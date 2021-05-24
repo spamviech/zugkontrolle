@@ -7,11 +7,13 @@ use log::*;
 use serde::{Deserialize, Serialize};
 use version::version;
 
-use super::gleise::*;
-use super::style::*;
-use super::*;
-
 mod touch_canvas;
+
+pub mod gleis;
+use gleis::{gleise::*, *};
+
+pub mod style;
+use style::*;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {

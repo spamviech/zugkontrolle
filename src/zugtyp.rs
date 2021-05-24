@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::{
+use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
@@ -108,7 +108,7 @@ pub mod value {
     use std::time::Duration;
 
     use super::*;
-    use crate::gleis::typen::*;
+    use crate::application::gleis::typen::*;
 
     // TODO in Zugtyp hinzufügen
     // einziger wirklicher Unterschied zwischen Märklin/Lego
@@ -189,8 +189,8 @@ pub mod deserialize {
     use walkdir::WalkDir;
 
     use super::value::{self, Schalter};
-    use crate::gleis::typen::*;
-    use crate::gleis::{gerade, kreuzung, kurve, weiche};
+    use crate::application::gleis::typen::*;
+    use crate::application::gleis::{gerade, kreuzung, kurve, weiche};
 
     // TODO erstelle via Macro
     /// mockup-Variante von super::value::Zugtyp, für schönere toml-Darstellung

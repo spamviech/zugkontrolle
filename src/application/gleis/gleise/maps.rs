@@ -6,11 +6,11 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use super::{id::GleisId, GleisIdLock};
-use crate::gleis::typen::*;
-use crate::gleis::{
+use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
+    typen::*,
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 

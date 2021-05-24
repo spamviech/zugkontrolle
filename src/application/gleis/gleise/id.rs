@@ -8,10 +8,12 @@ use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use log::*;
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::gerade::Gerade;
-use crate::gleis::kreuzung::Kreuzung;
-use crate::gleis::kurve::Kurve;
-use crate::gleis::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
+use crate::application::gleis::{
+    gerade::Gerade,
+    kreuzung::Kreuzung,
+    kurve::Kurve,
+    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+};
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]

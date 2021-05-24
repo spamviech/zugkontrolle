@@ -1,14 +1,14 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
 use crate::anschluss::{Error, Fließend, OutputAnschluss};
-use crate::gleis::canvas;
+use crate::application::gleis::canvas::Color;
 
 /// Steuerung der Stromzufuhr.
 #[derive(Debug)]
 pub struct Streckenabschnitt {
     // TODO name,farbe sind eigentlich nur für die Anzeige relevant
     pub name: String,
-    pub farbe: canvas::Color,
+    pub farbe: Color,
     pub anschluss: OutputAnschluss,
 }
 

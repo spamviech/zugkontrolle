@@ -5,8 +5,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::Richtung;
-use crate::gleis::typen::*;
-use crate::gleis::{anchor, gerade, kurve};
+use crate::application::gleis::{anchor, gerade, kurve, typen::*};
 
 /// Definition einer Kurven-Weiche
 ///

@@ -41,25 +41,25 @@ pub fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
     let struct_definition: TokenStream = quote! {
         #[derive(Debug)]
         #enum_vis struct #struct_name {
-            #(pub #struct_fields : #base_ident::gleis::anchor::Anchor),*
+            #(pub #struct_fields : #base_ident::application::gleis::anchor::Anchor),*
         }
     };
     let impl_lookup: TokenStream = quote! {
-        impl #base_ident::gleis::anchor::Lookup<#enum_name> for #struct_name {
-            fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Anchor {
+        impl #base_ident::application::gleis::anchor::Lookup<#enum_name> for #struct_name {
+            fn get(&self, key: #enum_name) -> &#base_ident::application::gleis::anchor::Anchor {
                 match key {
                     #(#enum_name::#enum_variants => &self.#struct_fields),*
                 }
             }
-            fn get_mut(&mut self, key: #enum_name) -> &mut #base_ident::gleis::anchor::Anchor {
+            fn get_mut(&mut self, key: #enum_name) -> &mut #base_ident::application::gleis::anchor::Anchor {
                 match key {
                     #(#enum_name::#enum_variants => &mut self.#struct_fields),*
                 }
             }
-            fn foreach<F: FnMut(#enum_name, &#base_ident::gleis::anchor::Anchor)>(&self, mut action: F) {
+            fn foreach<F: FnMut(#enum_name, &#base_ident::application::gleis::anchor::Anchor)>(&self, mut action: F) {
                 #(action(#enum_name::#enum_variants, &self.#struct_fields));*
             }
-            fn map<F: Fn(&#base_ident::gleis::anchor::Anchor)->#base_ident::gleis::anchor::Anchor>(&self, mut action: F) -> Self {
+            fn map<F: Fn(&#base_ident::application::gleis::anchor::Anchor)->#base_ident::application::gleis::anchor::Anchor>(&self, mut action: F) -> Self {
                 #struct_name {
                     #(#struct_fields: action(&self.#struct_fields)),*
                 }

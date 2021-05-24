@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::typen::mm;
+use super::mm;
 
 /// Skalar-Werte für Größen auf dem Canvas
 ///

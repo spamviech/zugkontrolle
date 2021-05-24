@@ -1,11 +1,13 @@
 //! This modules defines all Märklin rails I have access to.
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::gerade::Gerade;
-use crate::gleis::kreuzung::{self, Kreuzung};
-use crate::gleis::kurve::Kurve;
-use crate::gleis::typen::*;
-use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
+use crate::application::gleis::{
+    gerade::Gerade,
+    kreuzung::{self, Kreuzung},
+    kurve::Kurve,
+    typen::*,
+    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Märklin;

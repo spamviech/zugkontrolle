@@ -4,9 +4,16 @@ use std::fmt::Debug;
 
 use iced::{Application, Clipboard, Command, Element, Length, Settings};
 use simple_logger::SimpleLogger;
-use zugkontrolle::gleis::gleise::{Gleis, GleisIdLock, Gleise, GleiseMap};
-use zugkontrolle::gleis::typen::*;
-use zugkontrolle::gleis::{self, *};
+use zugkontrolle::application::{
+    self,
+    gleis::{
+        anchor,
+        gleise::{Gleis, GleisIdLock, Gleise, GleiseMap},
+        typen::*,
+        *,
+    },
+    Zugkontrolle,
+};
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
     märklin::{self, Märklin},
@@ -75,8 +82,8 @@ mod style {
 #[derive(Debug, Clone)]
 enum Message {
     TabSelected(usize),
-    Märklin(gleis::Message<Märklin>),
-    Lego(gleis::Message<Lego>),
+    Märklin(application::Message<Märklin>),
+    Lego(application::Message<Lego>),
 }
 
 struct App {
