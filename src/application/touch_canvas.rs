@@ -16,6 +16,7 @@ use iced_native::{
     Rectangle,
     Widget,
 };
+use log::trace;
 
 pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
 
@@ -79,19 +80,23 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
     ) -> event::Status {
         if let iced_native::Event::Touch(touch_event) = event {
             match touch_event {
-                touch::Event::FingerPressed { id: _, position } => {
+                touch::Event::FingerPressed { id, position } => {
+                    trace!("FingerPressed {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonPressed(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerLifted { id: _, position } => {
+                touch::Event::FingerLifted { id, position } => {
+                    trace!("FingerLifted {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerLost { id: _, position } => {
+                touch::Event::FingerLost { id, position } => {
+                    trace!("FingerLost {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerMoved { id: _, position } => {
+                touch::Event::FingerMoved { id, position } => {
+                    trace!("FingerMoved {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::CursorMoved { position });
                     cursor_position = position;
                 },
