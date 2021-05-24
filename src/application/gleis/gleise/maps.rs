@@ -13,11 +13,13 @@ use crate::application::gleis::{
     typen::*,
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
+use crate::steuerung::streckenabschnitt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
     pub definition: T,
     pub position: Position,
+    pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -67,6 +69,7 @@ pub struct GleiseMaps<Z> {
     pub(crate) kurven_weichen: Map<KurvenWeiche<Z>>,
     pub(crate) s_kurven_weichen: Map<SKurvenWeiche<Z>>,
     pub(crate) kreuzungen: Map<Kreuzung<Z>>,
+    pub(crate) streckenabschnitte: streckenabschnitt::Map,
 }
 impl<Z> GleiseMaps<Z> {
     pub(crate) fn neu() -> Self {
@@ -78,6 +81,7 @@ impl<Z> GleiseMaps<Z> {
             dreiwege_weichen: HashMap::new(),
             s_kurven_weichen: HashMap::new(),
             kreuzungen: HashMap::new(),
+            streckenabschnitte: HashMap::new(),
         }
     }
 }

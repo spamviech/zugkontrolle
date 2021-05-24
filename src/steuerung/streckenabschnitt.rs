@@ -1,5 +1,9 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
 use crate::anschluss::{Error, Fließend, OutputAnschluss};
 use crate::application::gleis::canvas::Color;
 
@@ -21,3 +25,9 @@ impl Streckenabschnitt {
         self.anschluss.umstellen()
     }
 }
+
+/// Doppelfunktion als Schlüssel & Name -> Entferne aus struct
+/// Geschwindigkeit speichert Namen von assoziierten Streckenabschnitten
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+pub type Map = HashMap<Name, Streckenabschnitt>;

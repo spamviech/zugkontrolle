@@ -147,6 +147,7 @@ pub struct Zugkontrolle<Z> {
     pfad: iced::text_input::State,
     aktueller_pfad: String,
 }
+
 impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send>
     iced::Application for Zugkontrolle<Z>
 {

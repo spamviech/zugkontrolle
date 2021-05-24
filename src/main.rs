@@ -38,8 +38,11 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let size: Vektor = definition.size();
         let punkt = Vektor { x: Skalar(150.) - size.x.halbiert(), y: self.y };
         let height: Skalar = size.y;
-        let res =
-            self.gleise.add(Gleis { definition, position: Position { punkt, winkel: Winkel(0.) } });
+        let res = self.gleise.add(Gleis {
+            definition,
+            position: Position { punkt, winkel: Winkel(0.) },
+            streckenabschnitt: None,
+        });
         self.y += height + Skalar(25.);
         res
     }
@@ -193,8 +196,18 @@ fn main() -> iced::Result {
         });
     }
     // attach
-    gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
-    gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, kreuzung1_anchor_points.ende_1);
+    gleise_lego.add_attach(
+        lego::GERADE,
+        None,
+        gerade::AnchorName::Ende,
+        weiche_anchor_points.gerade,
+    );
+    gleise_lego.add_attach(
+        lego::GERADE,
+        None,
+        gerade::AnchorName::Ende,
+        kreuzung1_anchor_points.ende_1,
+    );
     // relocate-attach
     if let Some(gleis_id) = &*kurve_lock.read() {
         gleise_lego.relocate_attach(
