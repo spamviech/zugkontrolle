@@ -233,7 +233,7 @@ fn fülle_alle_gleise<T: Zeichnen>(
     for (gleis_id, (Gleis { definition, position, streckenabschnitt }, _id_lock)) in map.iter() {
         // TODO Farbe abhängig vom Streckenabschnitt
         if let Some(Streckenabschnitt { farbe, .. }) =
-            streckenabschnitt.as_ref().map(|name| streckenabschnitte.get(name)).flatten()
+            streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
         {
             frame.with_save(|frame| {
                 move_to_position(frame, position);
