@@ -146,6 +146,7 @@ pub struct Zugkontrolle<Z> {
     laden: iced::button::State,
     pfad: iced::text_input::State,
     aktueller_pfad: String,
+    // TODO Streckenabschnitt
 }
 
 impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send>
@@ -197,8 +198,12 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             Message::Gleis { gleis, grab_height } => {
                 macro_rules! add_grabbed_at_mouse {
                     ($gleis:expr) => {{
-                        self.gleise
-                            .add_grabbed_at_mouse($gleis, Vektor { x: Skalar(0.), y: grab_height });
+                        self.gleise.add_grabbed_at_mouse(
+                            $gleis,
+                            Vektor { x: Skalar(0.), y: grab_height },
+                            // TODO aktueller Streckenabschnitt
+                            None,
+                        );
                     }};
                 }
                 match gleis {

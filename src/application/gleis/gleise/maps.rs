@@ -32,6 +32,7 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
+    // TODO streckenabschnitte
 }
 
 fn gleis<T: Clone>((_a, (b, _c)): (&GleisId<T>, &(Gleis<T>, GleisIdLock<T>))) -> Gleis<T> {

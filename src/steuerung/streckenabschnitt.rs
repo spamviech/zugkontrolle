@@ -11,7 +11,6 @@ use crate::application::gleis::canvas::Color;
 #[derive(Debug)]
 pub struct Streckenabschnitt {
     // TODO name,farbe sind eigentlich nur für die Anzeige relevant
-    pub name: String,
     pub farbe: Color,
     pub anschluss: OutputAnschluss,
 }

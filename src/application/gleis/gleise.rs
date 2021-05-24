@@ -51,19 +51,9 @@ impl<Z> Grabbed<Z> {
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
-    Bauen { grabbed: Option<Grabbed<Z>>, streckenabschnitt: Option<streckenabschnitt::Name> },
+    Bauen { grabbed: Option<Grabbed<Z>> },
     // TODO Funktionalität hinzufügen
     Fahren,
-}
-
-impl<Z> ModusDaten<Z> {
-    fn streckenabschnitt(&self) -> Option<streckenabschnitt::Name> {
-        if let ModusDaten::Bauen { streckenabschnitt, .. } = self {
-            streckenabschnitt.clone()
-        } else {
-            None
-        }
-    }
 }
 
 /// Anzeige aller Gleise.
@@ -91,7 +81,7 @@ impl<Z> Gleise<Z> {
             next_id: 0,
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
-            modus: ModusDaten::Bauen { grabbed: None, streckenabschnitt: None },
+            modus: ModusDaten::Bauen { grabbed: None },
         }
     }
 
@@ -153,7 +143,7 @@ impl<Z> Gleise<Z> {
     /// Wechsel den aktuellen Modus zu /modus/.
     pub fn moduswechsel(&mut self, modus: Modus) {
         self.modus = match modus {
-            Modus::Bauen => ModusDaten::Bauen { grabbed: None, streckenabschnitt: None },
+            Modus::Bauen => ModusDaten::Bauen { grabbed: None },
             Modus::Fahren => ModusDaten::Fahren,
         };
     }
@@ -184,6 +174,38 @@ impl<Z> Gleise<Z> {
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
         self.canvas.clear();
+    }
+
+    /// Füge einen Streckenabschnitt hinzu.
+    /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
+    pub fn neuer_streckenabschnitt(
+        &mut self,
+        name: streckenabschnitt::Name,
+        streckenabschnitt: Streckenabschnitt,
+    ) -> Option<Streckenabschnitt> {
+        self.maps.streckenabschnitte.insert(name, streckenabschnitt)
+    }
+
+    /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
+    pub fn streckenabschnitt(&self, name: &streckenabschnitt::Name) -> Option<&Streckenabschnitt> {
+        self.maps.streckenabschnitte.get(name)
+    }
+
+    /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
+    pub fn streckenabschnitt_mut(
+        &mut self,
+        name: &streckenabschnitt::Name,
+    ) -> Option<&mut Streckenabschnitt> {
+        self.maps.streckenabschnitte.get_mut(name)
+    }
+
+    /// Entferne einen Streckenabschnitt.
+    /// Falls er vorhanden war wird er zurückgegeben.
+    pub fn entferne_streckenabschnitt(
+        &mut self,
+        name: streckenabschnitt::Name,
+    ) -> Option<Streckenabschnitt> {
+        self.maps.streckenabschnitte.remove(&name)
     }
 }
 
@@ -578,6 +600,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         definition: T,
         grab_location: Vektor,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
@@ -605,7 +628,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 punkt: canvas_position - grab_location,
                 winkel: -self.pivot.winkel,
             },
-            streckenabschnitt: self.modus.streckenabschnitt(),
+            streckenabschnitt,
         });
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id_lock = &result.0;
