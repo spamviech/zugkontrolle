@@ -1,10 +1,12 @@
 //! Singleton für Zugriffsrechte auf Anschlüsse.
 
-use std::sync::PoisonError;
+#[cfg(not(raspi))]
+use std::collections::HashSet;
 use std::sync::{
     mpsc::{channel, Receiver, Sender},
     Arc,
     Mutex,
+    PoisonError,
 };
 use std::thread;
 
@@ -44,6 +46,8 @@ macro_rules! anschlüsse_data {
                 gpio: rppal::gpio::Gpio,
                 #[cfg(raspi)]
                 i2c: Arc<Mutex<rppal::gpio::I2c>>,
+                #[cfg(not(raspi))]
+                ausgegebene_pins: HashSet<u8>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
                     [<$k $l $m $n 0>]: Option<pcf8574::Port>,
@@ -251,6 +255,8 @@ impl Anschlüsse {
                         gpio: rppal::gpio::Gpio::new()?,
                         #[cfg(raspi)]
                         i2c: i2c.clone(),
+                        #[cfg(not(raspi))]
+                        ausgegebene_pins: HashSet::new(),
                         $(
                             [<$a0 $a1 $a2 $var>]: Arc::new(Mutex::new(Pcf8574::neu(
                                 level!($a0),
@@ -344,7 +350,7 @@ impl Anschlüsse {
     }
 
     /// Reserviere den spezifizierten Pin zur exklusiven Nutzung.
-    /// Rückgabe über den Drop-Handler.
+    /// Rückgabe über den Drop-Handler (nur bei Raspi).
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Error> {
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
@@ -352,9 +358,16 @@ impl Anschlüsse {
         }
         cfg_if! {
             if #[cfg(raspi)] {
-                Ok(Pin(self.gpio.get(pin)?))
+                Ok(Pin::neu(self.gpio.get(pin)?))
             } else {
-                Err(Error::Sync(SyncError::InVerwendung))
+                if let Some(true) = &self.0.as_mut()
+                                        .and_then(|arc| arc.lock().ok())
+                                        .map(|mut pcf8574| pcf8574.ausgegebene_pins.insert(pin))
+                {
+                    Ok(Pin::neu(pin))
+                } else {
+                    Err(Error::Sync(SyncError::InVerwendung))
+                }
             }
         }
     }

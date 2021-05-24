@@ -14,6 +14,10 @@ pub mod pwm;
 #[derive(Debug, PartialEq)]
 pub struct Pin(#[cfg(raspi)] gpio::Pin, #[cfg(not(raspi))] u8);
 impl Pin {
+    pub(super) fn neu(#[cfg(raspi)] pin: gpio::Pin, #[cfg(not(raspi))] pin: u8) -> Self {
+        Pin(pin)
+    }
+
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
