@@ -47,8 +47,6 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let streckenabschnitt = Anschlüsse::neu()
             .ok()
             .and_then(|mut anschlüsse| {
-                // TODO pin funktioniert nur auf raspi
-                // TODO into_output/input funktioniert nur auf raspi
                 anschlüsse
                     .reserviere_pcf8574_port(
                         Level::Low,
@@ -65,10 +63,8 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
                 anschluss,
             })
             .map(|streckenabschnitt| {
-                println!("a");
                 let name = Name("Test".to_string());
                 self.gleise.neuer_streckenabschnitt(name.clone(), streckenabschnitt);
-                println!("b");
                 name
             });
         let res = self.gleise.add(Gleis {
