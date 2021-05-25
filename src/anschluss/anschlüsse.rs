@@ -255,6 +255,7 @@ impl Anschlüsse {
                 Ok(pin) => match inner.lock() {
                     Ok(mut guard) => {
                         let anschlüsse = &mut *guard;
+                        debug!("rückgabe pin {}", pin);
                         anschlüsse.ausgegebene_pins.remove(&pin);
                     },
                     Err(err) => {
