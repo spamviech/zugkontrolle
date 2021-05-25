@@ -64,7 +64,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
                 anschluss,
             })
             .map(|streckenabschnitt| {
-                let name = Name("Test".to_string());
+                let name = Name(format!("Test{}", self.next_pin));
                 self.gleise.neuer_streckenabschnitt(name.clone(), streckenabschnitt);
                 name
             });
