@@ -3,9 +3,8 @@
 use std::fmt::Debug;
 
 use iced::{Application, Clipboard, Command, Element, Length, Settings};
-use num_x::u3;
 use simple_logger::SimpleLogger;
-use zugkontrolle::anschluss::{pcf8574::Variante, Anschluss, Anschlüsse, Level, Polarity};
+use zugkontrolle::anschluss::{Anschluss, Anschlüsse, Polarity};
 use zugkontrolle::steuerung::streckenabschnitt::Name;
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
@@ -28,10 +27,11 @@ use zugkontrolle::{
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
     y: Skalar,
+    next_pin: u8,
 }
 impl<'t, Z> AppendGleise<'t, Z> {
     fn new(gleise: &'t mut Gleise<Z>) -> AppendGleise<'t, Z> {
-        AppendGleise { gleise, y: Skalar(5.) }
+        AppendGleise { gleise, y: Skalar(5.), next_pin: 0 }
     }
 }
 
@@ -47,19 +47,20 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let streckenabschnitt = Anschlüsse::neu()
             .ok()
             .and_then(|mut anschlüsse| {
-                anschlüsse
-                    .reserviere_pcf8574_port(
-                        Level::Low,
-                        Level::Low,
-                        Level::Low,
-                        Variante::Normal,
-                        u3::new(0),
-                    )
-                    .ok()
+                let mut pin = None;
+                while pin.is_none() && self.next_pin <= 32 {
+                    pin = anschlüsse.reserviere_pin(self.next_pin).ok();
+                    self.next_pin += 1;
+                }
+                pin
             })
-            .and_then(|port| Anschluss::from(port).into_output(Polarity::Normal).ok())
+            .and_then(|pin| Anschluss::from(pin).into_output(Polarity::Normal).ok())
             .map(|anschluss| Streckenabschnitt {
-                farbe: canvas::Color::from_rgb(1., 0., 0.),
+                farbe: canvas::Color::from_rgb(
+                    if self.next_pin % 2 == 0 { 1. } else { 0. },
+                    if self.next_pin % 3 == 0 { 1. } else { 0. },
+                    if self.next_pin % 6 == 0 { 0. } else { 1. },
+                ),
                 anschluss,
             })
             .map(|streckenabschnitt| {

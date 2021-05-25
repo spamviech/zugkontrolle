@@ -97,7 +97,8 @@ impl AnschlüsseData {
                     match port.adresse() {
                         $(
                             (level!($k), level!($l), level!($m), variante!($n)) => {
-                                debug!("rückgabe {:?}{:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n), port.port());
+                                debug!("rückgabe pcf8574 {:?}-{:?}-{:?}-{:?}-{:?}"
+                                    , level!($k), level!($l), level!($m), variante!($n), port.port());
                                 match u8::from(port.port()) {
                                     0 => self.[<$k $l $m $n 0>] = Some(port),
                                     1 => self.[<$k $l $m $n 1>] = Some(port),
@@ -136,7 +137,8 @@ impl AnschlüsseData {
                     match (a0, a1,a2, variante) {
                         $(
                             (level!($k),level!($l),level!($m),variante!($n)) => {
-                                debug!("reserviere {:?}{:?}{:?}{:?}{}", level!($k), level!($l), level!($m), variante!($n), 0);
+                                debug!("reserviere pcf8574 {:?}-{:?}-{:?}-{:?}-{}"
+                                        , level!($k), level!($l), level!($m), variante!($n), port);
                                 match u8::from(port) {
                                     0 => std::mem::replace(&mut self.[<$k $l $m $n 0>], None),
                                     1 => std::mem::replace(&mut self.[<$k $l $m $n 1>], None),
@@ -352,6 +354,7 @@ impl Anschlüsse {
     /// Reserviere den spezifizierten Pin zur exklusiven Nutzung.
     /// Rückgabe über den Drop-Handler (nur bei Raspi).
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Error> {
+        debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
             return Err(Error::Sync(SyncError::InVerwendung))
