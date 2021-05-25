@@ -137,7 +137,7 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
-    streckenabschnitt: streckenabschnitt::Auswahl,
+    streckenabschnitt: streckenabschnitt::Anzeige,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
     unten: iced::button::State,
@@ -173,7 +173,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                 kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
                 s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
                 kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
-                streckenabschnitt: streckenabschnitt::Auswahl {
+                streckenabschnitt: streckenabschnitt::Anzeige {
                     aktuell: None,
                     auswählen: iced::button::State::new(),
                 },
@@ -349,7 +349,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
 
 fn top_row<'t, Z: 'static>(
     aktueller_modus: Modus,
-    streckenabschnitt: &'t mut streckenabschnitt::Auswahl,
+    streckenabschnitt: &'t mut streckenabschnitt::Anzeige,
     oben: &'t mut iced::button::State,
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
