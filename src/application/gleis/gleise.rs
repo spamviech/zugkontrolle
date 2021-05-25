@@ -207,6 +207,16 @@ impl<Z> Gleise<Z> {
     ) -> Option<Streckenabschnitt> {
         self.maps.streckenabschnitte.remove(&name)
     }
+
+    /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
+    pub(crate) fn streckenabschnitte(
+        &self,
+    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &iced::Color)> {
+        self.maps
+            .streckenabschnitte
+            .iter()
+            .map(|(name, streckenabschnitt)| (name, &streckenabschnitt.farbe))
+    }
 }
 
 pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {

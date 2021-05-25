@@ -15,6 +15,8 @@ use gleis::{gleise::*, *};
 pub mod style;
 use style::*;
 
+pub mod streckenabschnitt;
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
@@ -101,6 +103,8 @@ pub enum Message<Z> {
     Bewegen(Bewegen),
     Drehen(Drehen),
     Skalieren(Skalieren),
+    WähleStreckenabschnitt,
+    AktuellerStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
     Speichern,
     Laden,
     Pfad(String),
@@ -133,6 +137,7 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
+    streckenabschnitt: streckenabschnitt::Auswahl,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
     unten: iced::button::State,
@@ -168,6 +173,10 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                 kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
                 s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
                 kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+                streckenabschnitt: streckenabschnitt::Auswahl {
+                    aktuell: None,
+                    auswählen: iced::button::State::new(),
+                },
                 oben: iced::button::State::new(),
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
@@ -196,13 +205,14 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
     ) -> iced::Command<Self::Message> {
         match message {
             Message::Gleis { gleis, grab_height } => {
+                let streckenabschnitt =
+                    self.streckenabschnitt.aktuell.as_ref().map(|(name, _farbe)| name.clone());
                 macro_rules! add_grabbed_at_mouse {
                     ($gleis:expr) => {{
                         self.gleise.add_grabbed_at_mouse(
                             $gleis,
                             Vektor { x: Skalar(0.), y: grab_height },
-                            // TODO aktueller Streckenabschnitt
-                            None,
+                            streckenabschnitt,
                         );
                     }};
                 }
@@ -229,6 +239,21 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
+            Message::WähleStreckenabschnitt => {
+                // TODO modal-Fenster zur Auswahl anzeigen
+                // PickList?
+                // Scrollable mit Rows: Button(Auswahl), X-Button(Löschen)?
+                // Erste Zeile Leer(None), Neu(Streckenabschnitt erstellen)
+                debug!("TODO Wähle Streckenabschnitt");
+                self.streckenabschnitt.aktuell = self
+                    .gleise
+                    .streckenabschnitte()
+                    .map(|(name, farbe)| (name.clone(), farbe.clone()))
+                    .next();
+            },
+            Message::AktuellerStreckenabschnitt(aktuell) => {
+                self.streckenabschnitt.aktuell = aktuell
+            },
             Message::Speichern => {
                 if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
                     // TODO show a message box with the error message
@@ -239,6 +264,8 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                 if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
                     // TODO show a message box with the error message
                     error!("Error while loading from {}: {:?}", self.aktueller_pfad, err)
+                } else {
+                    self.streckenabschnitt.aktuell = None
                 }
             },
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
@@ -258,6 +285,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            streckenabschnitt,
             oben,
             unten,
             links,
@@ -275,6 +303,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
 
         let top_row = top_row(
             aktueller_modus,
+            streckenabschnitt,
             oben,
             unten,
             links,
@@ -320,6 +349,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
 
 fn top_row<'t, Z: 'static>(
     aktueller_modus: Modus,
+    streckenabschnitt: &'t mut streckenabschnitt::Auswahl,
     oben: &'t mut iced::button::State,
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
@@ -383,6 +413,7 @@ fn top_row<'t, Z: 'static>(
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
+        .push(streckenabschnitt.view(Message::WähleStreckenabschnitt))
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
         .padding(5)
