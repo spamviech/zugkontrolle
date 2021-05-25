@@ -57,9 +57,9 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
             .and_then(|pin| Anschluss::from(pin).into_output(Polarity::Normal).ok())
             .map(|anschluss| Streckenabschnitt {
                 farbe: canvas::Color::from_rgb(
-                    if self.next_pin % 2 == 0 { 1. } else { 0. },
-                    if self.next_pin % 3 == 0 { 1. } else { 0. },
-                    if self.next_pin % 6 == 0 { 0. } else { 1. },
+                    (self.next_pin as f32) / 32.,
+                    (32. - self.next_pin as f32) / 32.,
+                    ((self.next_pin * 4) % 32) as f32 / 32.,
                 ),
                 anschluss,
             })
