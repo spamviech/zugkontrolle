@@ -48,6 +48,8 @@ macro_rules! anschlüsse_data {
                 i2c: Arc<Mutex<rppal::gpio::I2c>>,
                 #[cfg(not(raspi))]
                 ausgegebene_pins: HashSet<u8>,
+                #[cfg(not(raspi))]
+                pin_rückgabe: Sender<u8>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
                     [<$k $l $m $n 0>]: Option<pcf8574::Port>,
@@ -246,7 +248,31 @@ impl Anschlüsse {
         }
     }
 
+    #[cfg(not(raspi))]
+    fn listen_pin_restore_messages(receiver: Receiver<u8>, inner: AnschlüsseInternal) {
+        loop {
+            match receiver.recv() {
+                Ok(pin) => match inner.lock() {
+                    Ok(mut guard) => {
+                        let anschlüsse = &mut *guard;
+                        anschlüsse.ausgegebene_pins.remove(&pin);
+                    },
+                    Err(err) => {
+                        error!("Anschlüsse-static poisoned: {}", err);
+                        break
+                    },
+                },
+                Err(err) => {
+                    error!("Kanal für Pin-Rückgabe geschlossen: {}", err);
+                    break
+                },
+            }
+        }
+    }
+
     fn erstelle_static() -> AnschlüsseStatic {
+        #[cfg(not(raspi))]
+        let (pin_sender, pin_receiver) = channel();
         macro_rules! make_anschlüsse {
             {$($a0:ident $a1:ident $a2:ident $var:ident),*} => {{
                 #[cfg(raspi)]
@@ -259,6 +285,8 @@ impl Anschlüsse {
                         i2c: i2c.clone(),
                         #[cfg(not(raspi))]
                         ausgegebene_pins: HashSet::new(),
+                        #[cfg(not(raspi))]
+                        pin_rückgabe: pin_sender,
                         $(
                             [<$a0 $a1 $a2 $var>]: Arc::new(Mutex::new(Pcf8574::neu(
                                 level!($a0),
@@ -291,10 +319,20 @@ impl Anschlüsse {
             let (sender, receiver) = channel();
             let sender_clone = sender.clone();
 
-            // erzeuge Thread der Rückgaben handelt
+            // erzeuge Thread der Rückgaben behandelt
             thread::spawn(move || {
                 Anschlüsse::listen_restore_messages(sender_clone, receiver, inner_clone)
             });
+
+            #[cfg(not(raspi))]
+            {
+                let inner_clone = inner.clone();
+
+                // erzeuge Thread der Pin-Rückgaben behandelt
+                thread::spawn(move || {
+                    Anschlüsse::listen_pin_restore_messages(pin_receiver, inner_clone)
+                });
+            }
 
             // Eigener Block um borrow-lifetime von inner zu beschränken
             {
@@ -363,11 +401,14 @@ impl Anschlüsse {
             if #[cfg(raspi)] {
                 Ok(Pin::neu(self.gpio.get(pin)?))
             } else {
-                if let Some(true) = &self.0.as_mut()
-                                        .and_then(|arc| arc.lock().ok())
-                                        .map(|mut pcf8574| pcf8574.ausgegebene_pins.insert(pin))
+                if let Some(arc) = self.0.as_ref()
                 {
-                    Ok(Pin::neu(pin))
+                    let mut pcf8574 = arc.lock()?;
+                    if pcf8574.ausgegebene_pins.insert(pin) {
+                        Ok(Pin::neu(pin, pcf8574.pin_rückgabe.clone()))
+                    } else {
+                        Err(Error::Sync(SyncError::InVerwendung))
+                    }
                 } else {
                     Err(Error::Sync(SyncError::InVerwendung))
                 }
@@ -412,6 +453,11 @@ pub enum Error {
 impl From<SyncError> for Error {
     fn from(error: SyncError) -> Self {
         Error::Sync(error)
+    }
+}
+impl<T> From<PoisonError<T>> for Error {
+    fn from(error: PoisonError<T>) -> Self {
+        SyncError::from(error).into()
     }
 }
 cfg_if! {

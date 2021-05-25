@@ -7,6 +7,8 @@ use log::debug;
 #[cfg(raspi)]
 use rppal::{gpio, pwm};
 
+#[cfg(not(raspi))]
+use super::Wrapper;
 use crate::anschluss::polarity::Polarity;
 
 /// Ein Gpio Pin konfiguriert für Pwm.
@@ -15,7 +17,7 @@ pub struct Pin {
     #[cfg(raspi)]
     pub(super) pin: Pwm,
     #[cfg(not(raspi))]
-    pub(super) pin: u8,
+    pub(super) pin: Wrapper,
     pub(super) config: Option<Config>,
 }
 #[cfg(raspi)]
@@ -87,7 +89,7 @@ impl Pin {
                     Pwm::Software(pin) => pin.pin(),
                 }
             } else {
-                self.pin
+                self.pin.0
             }
         }
     }
@@ -109,7 +111,7 @@ impl Pin {
 
     /// Ist der Pwm-Puls aktiv?
     pub fn is_enabled(&self) -> Result<&Option<Config>, Error> {
-        match self.pin {
+        match &self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, pin) => {
                 if pwm_channel.is_enabled()? {
@@ -130,7 +132,7 @@ impl Pin {
 
     /// Aktiviere den Pwm-Puls.
     pub fn enable_with_config(&mut self, config: Config) -> Result<(), Error> {
-        match self.pin {
+        match &self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 // update nur, sofern sich Parameter geändert haben.
@@ -176,7 +178,7 @@ impl Pin {
 
     /// Deaktiviere den Pwm-Puls
     pub fn disable(&mut self) -> Result<(), Error> {
-        match self.pin {
+        match &self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable()?;

@@ -1,5 +1,7 @@
 //! Gpio Pin in verschiedenen Konfigurationen.
 
+#[cfg(not(raspi))]
+use std::sync::mpsc::Sender;
 pub use std::time::Duration;
 
 use cfg_if::cfg_if;
@@ -10,12 +12,36 @@ pub mod input;
 pub mod output;
 pub mod pwm;
 
+#[cfg(not(raspi))]
+#[derive(Debug)]
+struct Wrapper(u8, Sender<u8>);
+
+#[cfg(not(raspi))]
+impl PartialEq for Wrapper {
+    fn eq(&self, other: &Wrapper) -> bool {
+        self.0 == other.0
+    }
+}
+
+#[cfg(not(raspi))]
+impl Drop for Wrapper {
+    fn drop(&mut self) {
+        let _ = self.1.send(self.0);
+    }
+}
+
 /// Ein Gpio Pin.
 #[derive(Debug, PartialEq)]
-pub struct Pin(#[cfg(raspi)] gpio::Pin, #[cfg(not(raspi))] u8);
+pub struct Pin(#[cfg(raspi)] gpio::Pin, #[cfg(not(raspi))] Wrapper);
 impl Pin {
-    pub(super) fn neu(#[cfg(raspi)] pin: gpio::Pin, #[cfg(not(raspi))] pin: u8) -> Self {
+    #[cfg(raspi)]
+    pub(super) fn neu(pin: gpio::Pin) -> Self {
         Pin(pin)
+    }
+
+    #[cfg(not(raspi))]
+    pub(super) fn neu(pin: u8, sender: Sender<u8>) -> Self {
+        Pin(Wrapper(pin, sender))
     }
 
     /// Returns the GPIO pin number.
@@ -29,7 +55,7 @@ impl Pin {
             } else {
                 // Pins sollten nur auf einem Raspi erzeugbar sein!
                 // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
-                self.0
+                self.0.0
             }
         }
     }

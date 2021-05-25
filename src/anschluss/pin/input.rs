@@ -5,11 +5,13 @@ use log::debug;
 #[cfg(raspi)]
 use rppal::gpio;
 
+#[cfg(not(raspi))]
+use super::Wrapper;
 use crate::anschluss::{level::Level, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]
-pub struct Pin(#[cfg(raspi)] pub(super) gpio::InputPin, #[cfg(not(raspi))] pub(super) u8);
+pub struct Pin(#[cfg(raspi)] pub(super) gpio::InputPin, #[cfg(not(raspi))] pub(super) Wrapper);
 
 impl Pin {
     /// Returns the GPIO pin number.
@@ -23,7 +25,7 @@ impl Pin {
             } else {
                 // Pins sollten nur auf einem Raspi erzeugbar sein!
                 // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
-                self.0
+                self.0.0
             }
         }
     }
