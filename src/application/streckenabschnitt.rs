@@ -1,6 +1,6 @@
 //! Anzeige & Erstellen eines Streckenabschnittes.
 
-use std::iter::FromIterator;
+use std::collections::BTreeMap;
 
 use iced::{
     button,
@@ -55,24 +55,22 @@ pub struct Auswahl(pub modal::State<Status>);
 #[derive(Debug)]
 pub struct Status {
     none_button_state: button::State,
-    streckenabschnitte: Vec<(Name, String, Color, button::State, button::State)>,
+    streckenabschnitte: BTreeMap<Name, (String, Color, button::State, button::State)>,
     scrollable_state: scrollable::State,
-}
-
-fn get_name((name, _, _, _, _): &(Name, String, Color, button::State, button::State)) -> String {
-    name.0.clone()
 }
 
 impl Status {
     fn iter_map<'t>(
         (name, streckenabschnitt): (&'t Name, &'t Streckenabschnitt),
-    ) -> (Name, String, Color, button::State, button::State) {
+    ) -> (Name, (String, Color, button::State, button::State)) {
         (
             name.clone(),
-            format!("{}", streckenabschnitt.anschluss),
-            streckenabschnitt.farbe.clone(),
-            button::State::new(),
-            button::State::new(),
+            (
+                format!("{}", streckenabschnitt.anschluss),
+                streckenabschnitt.farbe.clone(),
+                button::State::new(),
+                button::State::new(),
+            ),
         )
     }
 
@@ -83,25 +81,19 @@ impl Status {
     ) {
         self.streckenabschnitte.clear();
         self.streckenabschnitte.extend(streckenabschnitte.map(Status::iter_map));
-        self.streckenabschnitte.sort_by_cached_key(get_name)
     }
 
     /// Entferne den Streckenabschnitt mit übergebenen Namen.
     pub(super) fn entferne(&mut self, name: &Name) {
-        if let Ok(index) = self.streckenabschnitte.binary_search_by_key(&name.0, get_name) {
-            self.streckenabschnitte.remove(index);
-        }
+        self.streckenabschnitte.remove(name);
     }
 
     /// Füge einen neuen Streckenabschnitt hinzu.
     /// Falls der Name bereits existiert wird der bisherige ersetzt.
     #[allow(dead_code)]
     pub(super) fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
-        let value = Status::iter_map((name, streckenabschnitt));
-        match self.streckenabschnitte.binary_search_by_key(&name.0, get_name) {
-            Ok(index) => self.streckenabschnitte[index] = value,
-            Err(index) => self.streckenabschnitte.insert(index, value),
-        }
+        let (key, value) = Status::iter_map((name, streckenabschnitt));
+        self.streckenabschnitte.insert(key, value);
     }
 }
 
@@ -109,11 +101,9 @@ impl Auswahl {
     pub fn neu<'t>(
         streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
     ) -> Self {
-        let mut streckenabschnitte = Vec::from_iter(streckenabschnitte.map(Status::iter_map));
-        streckenabschnitte.sort_by_cached_key(get_name);
         Auswahl(modal::State::new(Status {
             none_button_state: button::State::new(),
-            streckenabschnitte,
+            streckenabschnitte: streckenabschnitte.map(Status::iter_map).collect(),
             scrollable_state: scrollable::State::new(),
         }))
     }
@@ -137,7 +127,7 @@ impl Auswahl {
                                     .on_press(Message::WähleStreckenabschnitt(None)),
                             )
                             .width(Length::Shrink);
-                        for (name, anschluss, farbe, button_state, delete_state) in
+                        for (name, (anschluss, farbe, button_state, delete_state)) in
                             streckenabschnitte
                         {
                             scrollable =
