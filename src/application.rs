@@ -260,6 +260,14 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                 self.streckenabschnitt_auswahl.0.show(false);
             },
             Message::LöscheStreckenabschnitt(name) => {
+                if self
+                    .streckenabschnitt_aktuell
+                    .aktuell
+                    .as_ref()
+                    .map_or(false, |(aktuell_name, _farbe)| aktuell_name == &name)
+                {
+                    self.streckenabschnitt_aktuell.aktuell = None;
+                }
                 self.streckenabschnitt_auswahl.0.inner_mut().entferne(&name);
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
