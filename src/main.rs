@@ -201,7 +201,7 @@ fn main() -> iced::Result {
     */
 
     // Märklin-Gleise
-    let mut gleise_märklin: Gleise<Märklin> = Gleise::new();
+    let mut gleise_märklin: Gleise<Märklin> = Gleise::neu();
     let mut append_märklin = AppendGleise::new(&mut gleise_märklin);
     append_märklin.append(märklin::gerade_5106());
     append_märklin.append(märklin::kurve_5100());
@@ -211,7 +211,7 @@ fn main() -> iced::Result {
     append_märklin.append(märklin::kreuzung_5207());
 
     // Lego-Gleise
-    let mut gleise_lego: Gleise<Lego> = Gleise::new();
+    let mut gleise_lego: Gleise<Lego> = Gleise::neu();
     let mut append_lego = AppendGleise::new(&mut gleise_lego);
     let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
     let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);

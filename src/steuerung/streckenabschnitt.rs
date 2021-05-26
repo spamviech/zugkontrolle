@@ -27,6 +27,6 @@ impl Streckenabschnitt {
 
 /// Doppelfunktion als Schlüssel & Name -> Entferne aus struct
 /// Geschwindigkeit speichert Namen von assoziierten Streckenabschnitten
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 pub type Map = HashMap<Name, Streckenabschnitt>;

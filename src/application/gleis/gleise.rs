@@ -71,7 +71,7 @@ pub struct Gleise<Z> {
 }
 
 impl<Z> Gleise<Z> {
-    pub fn new() -> Self {
+    pub fn neu() -> Self {
         Gleise {
             canvas: canvas::Cache::new(),
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
@@ -83,6 +83,10 @@ impl<Z> Gleise<Z> {
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { grabbed: None },
         }
+    }
+
+    pub(in crate::application) fn erzwinge_neuzeichnen(&mut self) {
+        self.canvas.clear()
     }
 
     fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
@@ -211,11 +215,8 @@ impl<Z> Gleise<Z> {
     /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte(
         &self,
-    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &iced::Color)> {
-        self.maps
-            .streckenabschnitte
-            .iter()
-            .map(|(name, streckenabschnitt)| (name, &streckenabschnitt.farbe))
+    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &Streckenabschnitt)> {
+        self.maps.streckenabschnitte.iter()
     }
 }
 
@@ -493,6 +494,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
+                // TODO setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                 let mut event_status = iced::canvas::event::Status::Ignored;
                 if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
                     if let Some(Grabbed { gleis_id, .. }) = grabbed {
