@@ -103,7 +103,8 @@ pub enum Message<Z> {
     Bewegen(Bewegen),
     Drehen(Drehen),
     Skalieren(Skalieren),
-    AuswahlStreckenabschnitt,
+    ZeigeAuswahlStreckenabschnitt,
+    SchließeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
     // TODO HinzufügenStreckenabschnitt
     LöscheStreckenabschnitt(streckenabschnitt::Name),
@@ -165,6 +166,8 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
     type Message = Message<Z>;
 
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let streckenabschnitt_auswahl =
+            streckenabschnitt::Auswahl::neu(gleise.streckenabschnitte());
         (
             Zugkontrolle {
                 gleise,
@@ -180,7 +183,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                     aktuell: None,
                     auswählen: iced::button::State::new(),
                 },
-                streckenabschnitt_auswahl: streckenabschnitt::Auswahl::neu(),
+                streckenabschnitt_auswahl,
                 oben: iced::button::State::new(),
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
@@ -246,27 +249,19 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
-            Message::AuswahlStreckenabschnitt => {
-                let show = !self.streckenabschnitt_auswahl.0.is_shown();
-                if show {
-                    // Update nicht notwendig, wenn Fenster versteckt wird.
-                    self.streckenabschnitt_auswahl
-                        .0
-                        .inner_mut()
-                        .update(self.gleise.streckenabschnitte());
-                }
-                self.streckenabschnitt_auswahl.0.show(show);
+            Message::ZeigeAuswahlStreckenabschnitt => {
+                self.streckenabschnitt_auswahl.0.show(true);
+            },
+            Message::SchließeAuswahlStreckenabschnitt => {
+                self.streckenabschnitt_auswahl.0.show(false);
             },
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
                 self.streckenabschnitt_auswahl.0.show(false);
             },
             Message::LöscheStreckenabschnitt(name) => {
+                self.streckenabschnitt_auswahl.0.inner_mut().entferne(&name);
                 self.gleise.entferne_streckenabschnitt(name);
-                self.streckenabschnitt_auswahl
-                    .0
-                    .inner_mut()
-                    .update(self.gleise.streckenabschnitte());
                 self.gleise.erzwinge_neuzeichnen()
             },
             Message::Speichern => {
@@ -280,7 +275,11 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                     // TODO show a message box with the error message
                     error!("Error while loading from {}: {:?}", self.aktueller_pfad, err)
                 } else {
-                    self.streckenabschnitt_aktuell.aktuell = None
+                    self.streckenabschnitt_aktuell.aktuell = None;
+                    self.streckenabschnitt_auswahl
+                        .0
+                        .inner_mut()
+                        .update(self.gleise.streckenabschnitte());
                 }
             },
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
@@ -430,7 +429,7 @@ fn top_row<'t, Z: 'static>(
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
-        .push(streckenabschnitt.view(Message::AuswahlStreckenabschnitt))
+        .push(streckenabschnitt.view(Message::ZeigeAuswahlStreckenabschnitt))
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
         .padding(5)

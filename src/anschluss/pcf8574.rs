@@ -105,8 +105,8 @@ impl Pcf8574 {
 
     /// Assoziiere den angeschlossenen InterruptPin.
     /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
-    /// Interrupt-Callbacks werden nicht zurückgesetzt!
-    fn set_interrupt(
+    /// Interrupt-Callbacks von Ports werden nicht zurückgesetzt!
+    fn set_interrupt_pin(
         arc: &mut Arc<Mutex<Self>>,
         mut interrupt: input::Pin,
     ) -> Result<Option<input::Pin>, Error> {
@@ -453,8 +453,11 @@ impl InputPort {
     /// Assoziiere den angeschlossenen InterruptPin für den Pcf8574.
     /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
-    pub fn set_interrupt(&mut self, interrupt: input::Pin) -> Result<Option<input::Pin>, Error> {
-        Pcf8574::set_interrupt(&mut self.0.pcf8574, interrupt)
+    pub fn set_interrupt_pin(
+        &mut self,
+        interrupt: input::Pin,
+    ) -> Result<Option<input::Pin>, Error> {
+        Pcf8574::set_interrupt_pin(&mut self.0.pcf8574, interrupt)
     }
 
     /// Configures an asynchronous interrupt trigger, which executes the callback on a separate

@@ -1,5 +1,7 @@
 //! Mit Raspberry Pi schaltbarer Anschluss
 
+use std::fmt::{self, Display, Formatter};
+
 pub mod level;
 pub use level::*;
 
@@ -38,6 +40,41 @@ impl From<pcf8574::Port> for Anschluss {
     }
 }
 
+fn write_level(f: &mut Formatter<'_>, level: &Level) -> fmt::Result {
+    match level {
+        Level::Low => write!(f, "L"),
+        Level::High => write!(f, "H"),
+    }
+}
+fn write_variante(f: &mut Formatter<'_>, variante: &pcf8574::Variante) -> fmt::Result {
+    match variante {
+        pcf8574::Variante::Normal => write!(f, " "),
+        pcf8574::Variante::A => write!(f, "A"),
+    }
+}
+fn write_adresse(
+    f: &mut Formatter<'_>,
+    (a0, a1, a2, variante): &(Level, Level, Level, pcf8574::Variante),
+) -> fmt::Result {
+    write_level(f, a0)?;
+    write_level(f, a1)?;
+    write_level(f, a2)?;
+    write_variante(f, variante)
+}
+
+impl Display for Anschluss {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Anschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
+            Anschluss::Pcf8574Port(port) => {
+                write!(f, "Pcf8574Port(")?;
+                write_adresse(f, port.adresse())?;
+                write!(f, "-{})", port.port())
+            },
+        }
+    }
+}
+
 impl Anschluss {
     pub fn into_output(self, polarität: Polarity) -> Result<OutputAnschluss, Error> {
         Ok(match self {
@@ -61,6 +98,21 @@ impl Anschluss {
 pub enum OutputAnschluss {
     Pin { pin: output::Pin, polarität: Polarity },
     Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarity },
+}
+
+impl Display for OutputAnschluss {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            OutputAnschluss::Pin { pin, polarität } => {
+                write!(f, "Pin({}, {})", pin.pin(), polarität)
+            },
+            OutputAnschluss::Pcf8574Port { port, polarität } => {
+                write!(f, "Pcf8574Port(")?;
+                write_adresse(f, port.adresse())?;
+                write!(f, "-{}, {})", port.port(), polarität)
+            },
+        }
+    }
 }
 
 impl OutputAnschluss {
@@ -114,6 +166,19 @@ impl OutputAnschluss {
 pub enum InputAnschluss {
     Pin(input::Pin),
     Pcf8574Port(pcf8574::InputPort),
+}
+
+impl Display for InputAnschluss {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            InputAnschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
+            InputAnschluss::Pcf8574Port(port) => {
+                write!(f, "Pcf8574Port(")?;
+                write_adresse(f, port.adresse())?;
+                write!(f, "-{})", port.port())
+            },
+        }
+    }
 }
 
 macro_rules! match_method {
