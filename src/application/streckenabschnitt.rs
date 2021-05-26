@@ -54,6 +54,7 @@ impl Anzeige {
 pub struct Auswahl(pub modal::State<Status>);
 #[derive(Debug)]
 pub struct Status {
+    none_button_state: button::State,
     streckenabschnitte: Vec<(Name, String, Color, button::State, button::State)>,
     scrollable_state: scrollable::State,
 }
@@ -111,6 +112,7 @@ impl Auswahl {
         let mut streckenabschnitte = Vec::from_iter(streckenabschnitte.map(Status::iter_map));
         streckenabschnitte.sort_by_cached_key(get_name);
         Auswahl(modal::State::new(Status {
+            none_button_state: button::State::new(),
             streckenabschnitte,
             scrollable_state: scrollable::State::new(),
         }))
@@ -123,40 +125,51 @@ impl Auswahl {
         &'t mut self,
         underlay: U,
     ) -> Element<Message<Z>> {
-        Modal::new(&mut self.0, underlay, |Status { streckenabschnitte, scrollable_state }| {
-            Container::new(
-                Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-                    let mut scrollable = Scrollable::new(scrollable_state).width(Length::Shrink);
-                    for (name, anschluss, farbe, button_state, delete_state) in streckenabschnitte {
-                        scrollable = scrollable.push(
-                            Row::new()
-                                .push(
-                                    Button::new(
-                                        button_state,
-                                        Text::new(&format!("{}: {:?}", name.0, anschluss)),
-                                    )
-                                    .on_press(Message::WähleStreckenabschnitt(Some((
-                                        name.clone(),
-                                        *farbe,
-                                    ))))
-                                    .style(style::Auswahl(*farbe)),
-                                )
-                                .push(
-                                    Button::new(delete_state, Text::new("X"))
-                                        .on_press(Message::LöscheStreckenabschnitt(name.clone())),
-                                ),
-                        );
-                    }
-                    scrollable
-                })
-                .on_close(Message::SchließeAuswahlStreckenabschnitt)
-                .width(Length::Shrink),
-            )
-            .style(background::WHITE)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .into()
-        })
+        Modal::new(
+            &mut self.0,
+            underlay,
+            |Status { none_button_state, streckenabschnitte, scrollable_state }| {
+                Container::new(
+                    Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
+                        let mut scrollable = Scrollable::new(scrollable_state)
+                            .push(
+                                Button::new(none_button_state, Text::new("Keinen"))
+                                    .on_press(Message::WähleStreckenabschnitt(None)),
+                            )
+                            .width(Length::Shrink);
+                        for (name, anschluss, farbe, button_state, delete_state) in
+                            streckenabschnitte
+                        {
+                            scrollable =
+                                scrollable.push(
+                                    Row::new()
+                                        .push(
+                                            Button::new(
+                                                button_state,
+                                                Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                                            )
+                                            .on_press(Message::WähleStreckenabschnitt(Some((
+                                                name.clone(),
+                                                *farbe,
+                                            ))))
+                                            .style(style::Auswahl(*farbe)),
+                                        )
+                                        .push(Button::new(delete_state, Text::new("X")).on_press(
+                                            Message::LöscheStreckenabschnitt(name.clone()),
+                                        )),
+                                );
+                        }
+                        scrollable
+                    })
+                    .on_close(Message::SchließeAuswahlStreckenabschnitt)
+                    .width(Length::Shrink),
+                )
+                .style(background::WHITE)
+                .width(Length::Shrink)
+                .height(Length::Shrink)
+                .into()
+            },
+        )
         .on_esc(Message::SchließeAuswahlStreckenabschnitt)
         .into()
     }
