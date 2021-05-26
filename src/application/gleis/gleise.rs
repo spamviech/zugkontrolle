@@ -19,6 +19,7 @@ pub use maps::*;
 struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: Vektor,
+    moved: bool,
 }
 impl<Z> Grabbed<Z> {
     fn find_clicked<T>(grabbed: &mut Option<Grabbed<Z>>, map: &mut Map<T>, canvas_pos: Vektor)
@@ -37,6 +38,7 @@ impl<Z> Grabbed<Z> {
                         grabbed = Some(Grabbed {
                             gleis_id: AnyId::from_refs(gleis_id, gleis_id_lock),
                             grab_location: relative_pos,
+                            moved: false,
                         });
                         break
                     }
@@ -238,6 +240,29 @@ impl<Z> Gleise<Z> {
     ) -> impl Iterator<Item = (&streckenabschnitt::Name, &Streckenabschnitt)> {
         self.maps.streckenabschnitte.iter()
     }
+
+    /// Setze den Streckenabschnitt für das spezifizierte Gleis.
+    /// Der bisherige Wert wird zurückgegeben.
+    pub fn setze_streckenabschnitt<T: GleiseMap<Z>>(
+        &mut self,
+        gleis_id: &GleisId<T>,
+        name: Option<streckenabschnitt::Name>,
+    ) -> Option<streckenabschnitt::Name> {
+        let (gleis, _id_lock) = T::get_map_mut(&mut self.maps)
+            .get_mut(gleis_id)
+            .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        std::mem::replace(&mut gleis.streckenabschnitt, name)
+    }
+
+    /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id_lock`
+    #[inline]
+    pub(in crate::application) fn setze_streckenabschnitt_unit<T: GleiseMap<Z>>(
+        &mut self,
+        gleis_id: &GleisId<T>,
+        name: Option<streckenabschnitt::Name>,
+    ) {
+        self.setze_streckenabschnitt(gleis_id, name);
+    }
 }
 
 pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
@@ -429,7 +454,12 @@ fn grab_gleis_an_position<Z: Zugtyp>(
     }
 }
 
-impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+pub enum Message<Z> {
+    SetzeStreckenabschnitt(AnyIdLock<Z>),
+}
+
+impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -502,56 +532,62 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Message>) {
+    ) -> (iced::canvas::event::Status, Option<Message<Z>>) {
+        let mut event_status = iced::canvas::event::Status::Ignored;
+        let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
-        let event_status = match event {
+        match event {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
             )) => {
                 let Gleise { modus, maps, pivot, skalieren, .. } = self;
-                grab_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren)
+                event_status =
+                    grab_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
                 // TODO setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                let mut event_status = iced::canvas::event::Status::Ignored;
+                // sende Nachricht mit GleisIdLock, erlaube setzten von außen über GleisId
                 if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                    if let Some(Grabbed { gleis_id, moved, .. }) = &*grabbed {
                         let gleis_id_clone = gleis_id.clone();
+                        let moved_copy = *moved;
                         *grabbed = None;
-                        if cursor.is_over(&bounds) {
-                            with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self);
+                        if moved_copy {
+                            if cursor.is_over(&bounds) {
+                                with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self);
+                            } else {
+                                with_any_id_and_lock!(gleis_id_clone, Gleise::remove_grabbed, self);
+                            }
                         } else {
-                            with_any_id_and_lock!(gleis_id_clone, Gleise::remove_grabbed, self);
+                            message = Some(Message::SetzeStreckenabschnitt(gleis_id_clone.into()));
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
                 }
-                event_status
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
-                let mut event_status = iced::canvas::event::Status::Ignored;
                 if let Some(canvas_pos) =
                     get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
                     if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                        if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
+                        if let Some(Grabbed { gleis_id, grab_location, moved }) = grabbed {
+                            *moved = true;
                             let point = canvas_pos - grab_location;
                             with_any_id!(gleis_id.clone(), Gleise::relocate_grabbed, self, point);
                             event_status = iced::canvas::event::Status::Captured
                         }
                     }
                 }
-                event_status
             },
-            _otherwise => iced::canvas::event::Status::Ignored,
+            _otherwise => {},
         };
         if event_status == iced::canvas::event::Status::Captured {
             self.canvas.clear()
         }
-        (event_status, None)
+        (event_status, message)
     }
 
     fn mouse_interaction(
@@ -669,7 +705,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .as_ref()
                 .map(|gleis_id| AnyId::from_refs(gleis_id, gleis_id_lock))
             {
-                *grabbed = Some(Grabbed { gleis_id, grab_location });
+                *grabbed = Some(Grabbed { gleis_id, grab_location, moved: true });
             }
         }
         result

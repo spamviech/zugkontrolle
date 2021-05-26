@@ -9,6 +9,7 @@ use version::version;
 
 mod touch_canvas;
 
+#[macro_use]
 pub mod gleis;
 use gleis::{gleise::*, *};
 
@@ -108,9 +109,19 @@ pub enum Message<Z> {
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
     // TODO HinzufügenStreckenabschnitt
     LöscheStreckenabschnitt(streckenabschnitt::Name),
+    SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,
     Laden,
     Pfad(String),
+}
+impl<Z> From<gleise::Message<Z>> for Message<Z> {
+    fn from(message: gleise::Message<Z>) -> Self {
+        match message {
+            gleise::Message::SetzeStreckenabschnitt(any_id_lock) => {
+                Message::SetzeStreckenabschnitt(any_id_lock)
+            },
+        }
+    }
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -158,8 +169,9 @@ pub struct Zugkontrolle<Z> {
     // TODO Streckenabschnitt
 }
 
-impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send>
-    iced::Application for Zugkontrolle<Z>
+impl<Z> iced::Application for Zugkontrolle<Z>
+where
+    Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
 {
     type Executor = iced::executor::Default;
     type Flags = Gleise<Z>;
@@ -272,6 +284,17 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
             },
+            Message::SetzeStreckenabschnitt(any_id_lock) => {
+                with_any_id_lock!(
+                    any_id_lock,
+                    Gleise::setze_streckenabschnitt_unit,
+                    &mut self.gleise,
+                    self.streckenabschnitt_aktuell
+                        .aktuell
+                        .as_ref()
+                        .map(|(name, _farbe)| name.clone())
+                );
+            },
             Message::Speichern => {
                 if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
                     // TODO show a message box with the error message
@@ -358,9 +381,13 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             .push(
                 row_with_scrollable.push(
                     iced::Container::new(
-                        touch_canvas::Canvas::new(gleise)
-                            .width(iced::Length::Fill)
-                            .height(iced::Length::Fill),
+                        iced::Element::from(
+                            touch_canvas::Canvas::new(gleise)
+                                .width(iced::Length::Fill)
+                                .height(iced::Length::Fill),
+                        )
+                        // TODO sinnvolle Map-Funktion
+                        .map(Into::into),
                     )
                     .width(iced::Length::Fill)
                     .height(iced::Length::Fill),

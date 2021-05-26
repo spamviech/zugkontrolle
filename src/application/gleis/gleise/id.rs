@@ -33,6 +33,77 @@ impl<T> GleisIdLock<T> {
     }
 }
 
+/// GleisIdLock<Z> für ein beliebiges Gleis.
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+pub enum AnyIdLock<Z> {
+    Gerade(GleisIdLock<Gerade<Z>>),
+    Kurve(GleisIdLock<Kurve<Z>>),
+    Weiche(GleisIdLock<Weiche<Z>>),
+    DreiwegeWeiche(GleisIdLock<DreiwegeWeiche<Z>>),
+    KurvenWeiche(GleisIdLock<KurvenWeiche<Z>>),
+    SKurvenWeiche(GleisIdLock<SKurvenWeiche<Z>>),
+    Kreuzung(GleisIdLock<Kreuzung<Z>>),
+}
+
+macro_rules! with_any_id_lock {
+    ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
+        match $any_id {
+            AnyIdLock::Gerade(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::Kurve(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::Weiche(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::DreiwegeWeiche(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::KurvenWeiche(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::SKurvenWeiche(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+            AnyIdLock::Kreuzung(gleis_id_lock) => {
+                if let Some(gleis_id) = &*gleis_id_lock.read() {
+                    $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_any_id_lock_from {
+    ($type:ident) => {
+        impl<Z> From<GleisIdLock<$type<Z>>> for AnyIdLock<Z> {
+            fn from(gleis_id_lock: GleisIdLock<$type<Z>>) -> Self {
+                AnyIdLock::$type(gleis_id_lock)
+            }
+        }
+    };
+}
+impl_any_id_lock_from! {Gerade}
+impl_any_id_lock_from! {Kurve}
+impl_any_id_lock_from! {Weiche}
+impl_any_id_lock_from! {DreiwegeWeiche}
+impl_any_id_lock_from! {KurvenWeiche}
+impl_any_id_lock_from! {SKurvenWeiche}
+impl_any_id_lock_from! {Kreuzung}
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Any;
 
@@ -40,9 +111,9 @@ pub(crate) struct Any;
 ///
 /// The API will only provide &GleisIdLock<Z>.
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleisId<T>(u64, PhantomData<*const T>);
+pub struct GleisId<T>(u64, PhantomData<T>);
 impl<T> GleisId<T> {
-    pub fn new(gleis_id: u64) -> Self {
+    pub(crate) fn new(gleis_id: u64) -> Self {
         GleisId(gleis_id, PhantomData)
     }
 
@@ -133,6 +204,14 @@ macro_rules! with_any_id_and_lock {
             }
         }
     };
+}
+fn snd_into<A, B, C: From<B>>(_a: A, b: B) -> C {
+    b.into()
+}
+impl<Z> From<AnyId<Z>> for AnyIdLock<Z> {
+    fn from(any_id: AnyId<Z>) -> Self {
+        with_any_id_and_lock!(any_id, snd_into)
+    }
 }
 impl<Z> AnyId<Z> {
     pub(crate) fn id_as_any(&self) -> GleisId<Any> {
