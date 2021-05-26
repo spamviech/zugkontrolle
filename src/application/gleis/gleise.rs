@@ -209,6 +209,26 @@ impl<Z> Gleise<Z> {
         &mut self,
         name: streckenabschnitt::Name,
     ) -> Option<Streckenabschnitt> {
+        macro_rules! clean_maps {
+            ($($map:ident),*) => {
+                $(
+                    for (Gleis { streckenabschnitt, .. }, _id_lock) in self.maps.$map.values_mut() {
+                        if streckenabschnitt.as_ref() == Some(&name) {
+                            *streckenabschnitt = None;
+                        }
+                    }
+                )*
+            };
+        }
+        clean_maps! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen
+        }
         self.maps.streckenabschnitte.remove(&name)
     }
 
