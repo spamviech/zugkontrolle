@@ -97,8 +97,8 @@ impl Pin {
     pub fn pin(&self) -> u8 {
         cfg_if! {
             if #[cfg(raspi)] {
-                match self.pin {
-                    Pwm::Hardware(pwm, pin) => pin.pin(),
+                match &self.pin {
+                    Pwm::Hardware(_pwm, pin) => pin.pin(),
                     Pwm::Software(pin) => pin.pin(),
                 }
             } else {
@@ -125,7 +125,7 @@ impl Pin {
     pub fn is_enabled(&self) -> Result<&Option<Config>, Error> {
         match &self.pin {
             #[cfg(raspi)]
-            Pwm::Hardware(pwm_channel, pin) => {
+            Pwm::Hardware(pwm_channel, _pin) => {
                 Ok(if pwm_channel.is_enabled()? {
                     &self.config
                 } else {
@@ -134,7 +134,7 @@ impl Pin {
                 })
             },
             #[cfg(raspi)]
-            Pwm::Software(pin) => Ok(&self.config),
+            Pwm::Software(_pin) => Ok(&self.config),
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.is_enabled()", self);
@@ -145,14 +145,14 @@ impl Pin {
 
     /// Aktiviere den Pwm-Puls.
     pub fn enable_with_config(&mut self, config: Config) -> Result<(), Error> {
-        match &self.pin {
+        match &mut self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 // update nur, sofern sich Parameter geändert haben.
-                if self.config.map(|c| &c.polarity) != Some(&config.polarity) {
+                if self.config.as_ref().map(|Config {polarity, ..}| polarity) != Some(&config.polarity) {
                     pwm_channel.set_polarity(config.polarity)?;
                 }
-                if self.config.map(|c| &c.time) != Some(&config.time) {
+                if self.config.as_ref().map(|Config {time, ..}| time) != Some(&config.time) {
                     match config.time {
                         Time::Period { period, pulse_width } => {
                             pwm_channel.set_period(period)?;
@@ -167,13 +167,13 @@ impl Pin {
             },
             #[cfg(raspi)]
             Pwm::Software(pin) => match config.time {
-                Time::Period { period, pulse_width: mut pulse_width } => {
+                Time::Period { period, mut pulse_width } => {
                     if config.polarity == Polarity::Inverse {
                         pulse_width = period - pulse_width;
                     }
                     Ok(pin.set_pwm(period, pulse_width)?)
                 },
-                Time::Frequency { frequency, duty_cycle: mut duty_cycle } => {
+                Time::Frequency { frequency, mut duty_cycle } => {
                     if config.polarity == Polarity::Inverse {
                         duty_cycle = 1. - duty_cycle;
                     }
@@ -190,7 +190,7 @@ impl Pin {
 
     /// Deaktiviere den Pwm-Puls
     pub fn disable(&mut self) -> Result<(), Error> {
-        match &self.pin {
+        match &mut self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable()?;

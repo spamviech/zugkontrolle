@@ -15,8 +15,6 @@ use log::{debug, error};
 use num_x::u3;
 use once_cell::sync::Lazy;
 use paste::paste;
-#[cfg(raspi)]
-use rppal::i2c;
 
 use super::level::Level;
 use super::pcf8574::{self, Pcf8574, Port};
@@ -199,7 +197,6 @@ impl Anschlüsse {
         sender: Sender<(pcf8574::Nachricht, u3)>,
         receiver: Receiver<(pcf8574::Nachricht, u3)>,
         inner: AnschlüsseInternal,
-        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2c>>,
     ) {
         loop {
             match receiver.recv() {
@@ -279,11 +276,19 @@ impl Anschlüsse {
         macro_rules! make_anschlüsse {
             {$($a0:ident $a1:ident $a2:ident $var:ident),*} => {{
                 #[cfg(raspi)]
-                let i2c = Arc::new(Mutex::new(rppal::i2c::I2c::new()?));
+                let i2c = match rppal::i2c::I2c::new() {
+                    Ok(i2c) => Arc::new(Mutex::new(i2c)),
+                    Err(error) => return Arc::new(Mutex::new(Err(error.into()))),
+                };
+                #[cfg(raspi)]
+                let gpio = match rppal::gpio::Gpio::new() {
+                    Ok(gpio) => gpio,
+                    Err(error) => return Arc::new(Mutex::new(Err(error.into()))),
+                };
                 paste! {
                     Ok(AnschlüsseData {
                         #[cfg(raspi)]
-                        gpio: rppal::gpio::Gpio::new()?,
+                        gpio,
                         #[cfg(raspi)]
                         i2c: i2c.clone(),
                         #[cfg(not(raspi))]
@@ -313,9 +318,6 @@ impl Anschlüsse {
             }};
         }
         let inner = (llln_to_hhha! {make_anschlüsse}).map(|anschlüsse| {
-            #[cfg(raspi)]
-            let i2c_clone = anschlüsse.i2c.clone();
-
             let inner = Arc::new(Mutex::new(anschlüsse));
             let inner_clone = inner.clone();
 
@@ -400,22 +402,22 @@ impl Anschlüsse {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
             return Err(Error::Sync(SyncError::InVerwendung))
         }
-        cfg_if! {
-            if #[cfg(raspi)] {
-                Ok(Pin::neu(self.gpio.get(pin)?))
-            } else {
-                if let Some(arc) = self.0.as_ref()
-                {
-                    let mut pcf8574 = arc.lock()?;
-                    if pcf8574.ausgegebene_pins.insert(pin) {
+        if let Some(arc) = self.0.as_ref()
+        {
+            let anschlüsse = arc.lock()?;
+            cfg_if! {
+                if #[cfg(raspi)] {
+                    Ok(Pin::neu(anschlüsse.gpio.get(pin)?))
+                } else {
+                    if anschlüsse.ausgegebene_pins.insert(pin) {
                         Ok(Pin::neu(pin, pcf8574.pin_rückgabe.clone()))
                     } else {
                         Err(Error::Sync(SyncError::InVerwendung))
                     }
-                } else {
-                    Err(Error::Sync(SyncError::InVerwendung))
                 }
             }
+        } else {
+            Err(Error::Sync(SyncError::InVerwendung))
         }
     }
 
@@ -443,7 +445,7 @@ type AnschlüsseResult = Result<AnschlüsseInternal, Error>;
 type AnschlüsseStatic = Arc<Mutex<AnschlüsseResult>>;
 static ANSCHLÜSSE: Lazy<AnschlüsseStatic> = Lazy::new(Anschlüsse::erstelle_static);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
     Gpio(rppal::gpio::Error),
