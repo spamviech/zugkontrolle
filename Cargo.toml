@@ -44,7 +44,7 @@ features = ["derive"]
 [dependencies.iced]
 # ices_aw only works with crates.io-version for now
 # git = "https://github.com/hecrj/iced"
-# rev = "4b8ba8309f6645cdcb5bd605f8dd88097f8ee5a7"
+# rev = "3dfce43396af457aaee835dbe281663a41a261ab"
 version = "0.3.0"
 features = ["glow","glow_canvas"]
 
@@ -57,7 +57,7 @@ version = "0.2.0"
 git = "https://github.com/iced-rs/iced_aw"
 rev = "ef857dd56e8a68fbba9dfd8496455829d91d682c"
 default-features = false
-features = ["color_picker", "card", "modal", "tab_bar", "tabs", "glow"]
+features = ["color_picker", "card", "modal", "tab_bar", "tabs", "number_input", "glow"]
 
 
 # can't be used on non-raspi systems
