@@ -11,6 +11,7 @@ use rppal::{self, gpio};
 pub mod input;
 pub mod output;
 pub mod pwm;
+#[cfg(raspi)]
 use pwm::Pwm;
 
 #[cfg(not(raspi))]

@@ -403,13 +403,14 @@ impl Anschlüsse {
             return Err(Error::Sync(SyncError::InVerwendung))
         }
         if let Some(arc) = self.0.as_ref() {
-            let anschlüsse = arc.lock()?;
+            #[cfg_attr(raspi, allow(unused_mut))]
+            let mut anschlüsse = arc.lock()?;
             cfg_if! {
                 if #[cfg(raspi)] {
                     Ok(Pin::neu(anschlüsse.gpio.get(pin)?))
                 } else {
                     if anschlüsse.ausgegebene_pins.insert(pin) {
-                        Ok(Pin::neu(pin, pcf8574.pin_rückgabe.clone()))
+                        Ok(Pin::neu(pin, anschlüsse.pin_rückgabe.clone()))
                     } else {
                         Err(Error::Sync(SyncError::InVerwendung))
                     }
