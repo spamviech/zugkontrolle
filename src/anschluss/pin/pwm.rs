@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use cfg_if::cfg_if;
+#[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
 use rppal::{gpio, pwm};
@@ -20,12 +21,24 @@ pub struct Pin {
     pub(super) pin: Wrapper,
     pub(super) config: Option<Config>,
 }
+
 #[cfg(raspi)]
-#[derive(Debug, PartialEq)]
-enum Pwm {
+#[derive(Debug)]
+pub(super) enum Pwm {
     Hardware(pwm::Pwm, gpio::Pin),
     Software(gpio::OutputPin),
 }
+#[cfg(raspi)]
+impl PartialEq for Pwm {
+    fn eq(&self, other: &Pwm) -> bool {
+        match (self, other) {
+            (Pwm::Hardware(_, pin0), Pwm::Hardware(_, pin1)) => pin0 == pin1,
+            (Pwm::Software(pin0), Pwm::Software(pin1)) => pin0 == pin1,
+            _ => false,
+        }
+    }
+}
+
 /// Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
@@ -98,10 +111,9 @@ impl Pin {
     pub fn hardware_pwm(&self) -> bool {
         cfg_if! {
             if #[cfg(raspi)] {
-                match self.0 {
-                    Pwm::Hardware(_) => true,
-                    Pwm::HardwareFailedConfig(_) => true,
-                    Pwm::Software {..} => false,
+                match self.pin {
+                    Pwm::Hardware(_, _) => true,
+                    Pwm::Software(_) => false,
                 }
             } else {
                 false
@@ -114,14 +126,15 @@ impl Pin {
         match &self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, pin) => {
-                if pwm_channel.is_enabled()? {
+                Ok(if pwm_channel.is_enabled()? {
                     &self.config
                 } else {
-                    None
-                }
+                    // TODO
+                    &None
+                })
             },
             #[cfg(raspi)]
-            Pwm::Software(pin) => &self.config,
+            Pwm::Software(pin) => Ok(&self.config),
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.is_enabled()", self);
@@ -136,18 +149,17 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 // update nur, sofern sich Parameter geändert haben.
-                if self.config.and_then(|c| c.polarity) != Some(&config.polarity) {
+                if self.config.map(|c| &c.polarity) != Some(&config.polarity) {
                     pwm_channel.set_polarity(config.polarity)?;
                 }
-                if self.config.and_then(|c| c.time) != Some(&config.time) {
+                if self.config.map(|c| &c.time) != Some(&config.time) {
                     match config.time {
                         Time::Period { period, pulse_width } => {
                             pwm_channel.set_period(period)?;
                             pwm_channel.set_pulse_width(pulse_width)?;
                         },
                         Time::Frequency { frequency, duty_cycle } => {
-                            pwm_channel.set_frequency(frequency)?;
-                            pwm_channel.set_duty_cycle(duty_cycle)?;
+                            pwm_channel.set_frequency(frequency, duty_cycle)?;
                         },
                     }
                 }
@@ -156,13 +168,13 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Software(pin) => match config.time {
                 Time::Period { period, pulse_width: mut pulse_width } => {
-                    if polarity == Polarity::Inverse {
+                    if config.polarity == Polarity::Inverse {
                         pulse_width = period - pulse_width;
                     }
                     Ok(pin.set_pwm(period, pulse_width)?)
                 },
                 Time::Frequency { frequency, duty_cycle: mut duty_cycle } => {
-                    if polarity == Polarity::Inverse {
+                    if config.polarity == Polarity::Inverse {
                         duty_cycle = 1. - duty_cycle;
                     }
                     Ok(pin.set_pwm_frequency(frequency, duty_cycle)?)

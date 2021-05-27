@@ -69,7 +69,7 @@ pub struct Pcf8574 {
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
     #[cfg(raspi)]
-    i2c: Arc<RwLock<i2c::I2C>>,
+    i2c: Arc<Mutex<i2c::I2c>>,
 }
 
 pub(super) type Nachricht = (Level, Level, Level, Variante);
@@ -80,7 +80,7 @@ impl Pcf8574 {
         a1: Level,
         a2: Level,
         variante: Variante,
-        #[cfg(raspi)] i2c: Arc<i2c::I2c>,
+        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2c>>,
     ) -> Self {
         Pcf8574 {
             a0,
@@ -203,8 +203,8 @@ impl Pcf8574 {
     fn read(&self) -> Result<[Option<Level>; 8], Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                if let Ok(mut i2c_channel) = &mut *self.i2c.lock() {
-                    i2c_channel.set_slave_address(self.i2c_adresse.into())?;
+                if let Ok(mut i2c_channel) = self.i2c.lock() {
+                    i2c_channel.set_slave_address(self.i2c_adresse().into())?;
                     let mut buf = [0; 1];
                     let bytes_read = i2c_channel.read(&mut buf)?;
                     if bytes_read != 1 {
@@ -213,11 +213,11 @@ impl Pcf8574 {
                     let mut result = [None; 8];
                     for (port, modus) in self.ports.iter().enumerate() {
                         let port_bit = 2u8.pow(port as u32) as u8;
-                        if let Modus::Input = modus {
+                        result[port] = if let Modus::Input { .. } = modus {
                             Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
                         } else {
                             None
-                        }
+                        };
                     }
                     Ok(result)
                 } else {
@@ -255,12 +255,12 @@ impl Pcf8574 {
         self.ports[usize::from(port)] = level.into();
         cfg_if! {
             if #[cfg(raspi)] {
-                if let Ok(mut i2c_channel) = &mut *self.i2c.lock() {
-                    i2c_channel.set_slave_address(self.i2c_adresse.into())?;
+                if let Ok(mut i2c_channel) = self.i2c.lock() {
+                    i2c_channel.set_slave_address(self.i2c_adresse().into())?;
                     let mut wert = 0;
                     for (port, modus) in self.ports.iter().enumerate() {
                         wert |= match modus {
-                            Modus::Input | Modus::High => 2u8.pow(port as u32) as u8,
+                            Modus::Input { .. } | Modus::High => 2u8.pow(port as u32) as u8,
                             Modus::Low => 0,
                         };
                     }

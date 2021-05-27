@@ -1,6 +1,7 @@
 //! Gpio Pins konfiguriert für Input.
 
 use cfg_if::cfg_if;
+#[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
 use rppal::gpio;
@@ -65,7 +66,7 @@ impl Pin {
     ) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.set_async_interrupt(trigger, callback)
+                Ok(self.0.set_async_interrupt(trigger, callback)?)
             } else {
                 debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
                 Err(Error::KeinRaspberryPi)
@@ -78,7 +79,7 @@ impl Pin {
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.clear_async_interrupt()
+                Ok(self.0.clear_async_interrupt()?)
             } else {
                 debug!("{:?}.clear_async_interrupt()", self);
                 Err(Error::KeinRaspberryPi)

@@ -1,7 +1,10 @@
 //! Gpio Pins konfiguriert für Output.
 
 use cfg_if::cfg_if;
+#[cfg(not(raspi))]
 use log::debug;
+#[cfg(raspi)]
+use rppal::gpio;
 
 #[cfg(not(raspi))]
 use super::Wrapper;
@@ -9,7 +12,7 @@ use crate::anschluss::level::Level;
 
 /// Ein Gpio Pin konfiguriert für Output.
 #[derive(Debug, PartialEq)]
-pub struct Pin(#[cfg(raspi)] pub(super) gpio::Pin, #[cfg(not(raspi))] pub(super) Wrapper);
+pub struct Pin(#[cfg(raspi)] pub(super) gpio::OutputPin, #[cfg(not(raspi))] pub(super) Wrapper);
 
 impl Pin {
     /// Returns the GPIO pin number.
@@ -74,7 +77,7 @@ impl Pin {
     pub fn toggle(&mut self) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.toggle()
+                self.0.toggle();
                 Ok(())
             } else {
                 debug!("{:?}.toggle()", self);

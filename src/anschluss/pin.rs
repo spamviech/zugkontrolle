@@ -6,11 +6,12 @@ pub use std::time::Duration;
 
 use cfg_if::cfg_if;
 #[cfg(raspi)]
-use rppal::{gpio, pwm};
+use rppal::{self, gpio};
 
 pub mod input;
 pub mod output;
 pub mod pwm;
+use pwm::Pwm;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -115,10 +116,10 @@ impl Pin {
 
     #[cfg(raspi)]
     #[inline]
-    fn pwm_channel(&self) -> Option<pwm::Channel> {
+    fn pwm_channel(&self) -> Option<rppal::pwm::Channel> {
         match self.0.pin() {
-            18 => Some(pwm::Channel::Pwm0),
-            19 => Some(pwm::Channel::Pwm1),
+            18 => Some(rppal::pwm::Channel::Pwm0),
+            19 => Some(rppal::pwm::Channel::Pwm1),
             _ => None,
         }
     }
@@ -129,13 +130,13 @@ impl Pin {
         cfg_if! {
             if #[cfg(raspi)]
             {
-                if let Some(pwm) = self.pwm_channel().and_then(|channel| pwm::Pwm::new().ok()) {
+                if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok()) {
                     let config = pwm.polarity().and_then(|polarity|
                                     pwm.period().and_then(|period|
-                                    pwm.pulse_width().and_then(|pulse_width|
-                                    PwmConfig {time: PwmTime::Period {period, pulse_width}, polarity}))
-                                ).ok();
-                    pwm::Pin {pin: Pwm::Hardware(pwm, pin: self.0), config }
+                                    pwm.pulse_width().map(|pulse_width|
+                                    pwm::Config {time: pwm::Time::Period {period, pulse_width}, polarity}))
+                                 ).ok();
+                    pwm::Pin {pin: Pwm::Hardware(pwm, self.0), config }
                 } else {
                     // fallback software pwm
                     pwm::Pin {pin: Pwm::Software(self.0.into_output()), config: None }

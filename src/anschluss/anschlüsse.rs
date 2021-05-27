@@ -15,6 +15,8 @@ use log::{debug, error};
 use num_x::u3;
 use once_cell::sync::Lazy;
 use paste::paste;
+#[cfg(raspi)]
+use rppal::i2c;
 
 use super::level::Level;
 use super::pcf8574::{self, Pcf8574, Port};
@@ -45,7 +47,7 @@ macro_rules! anschlüsse_data {
                 #[cfg(raspi)]
                 gpio: rppal::gpio::Gpio,
                 #[cfg(raspi)]
-                i2c: Arc<Mutex<rppal::gpio::I2c>>,
+                i2c: Arc<Mutex<rppal::i2c::I2c>>,
                 #[cfg(not(raspi))]
                 ausgegebene_pins: HashSet<u8>,
                 #[cfg(not(raspi))]
@@ -197,7 +199,7 @@ impl Anschlüsse {
         sender: Sender<(pcf8574::Nachricht, u3)>,
         receiver: Receiver<(pcf8574::Nachricht, u3)>,
         inner: AnschlüsseInternal,
-        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2C>>,
+        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2c>>,
     ) {
         loop {
             match receiver.recv() {
@@ -277,7 +279,7 @@ impl Anschlüsse {
         macro_rules! make_anschlüsse {
             {$($a0:ident $a1:ident $a2:ident $var:ident),*} => {{
                 #[cfg(raspi)]
-                let i2c = Arc::new(Mutex::new(rppal::gpio::I2c::new()?));
+                let i2c = Arc::new(Mutex::new(rppal::i2c::I2c::new()?));
                 paste! {
                     Ok(AnschlüsseData {
                         #[cfg(raspi)]
