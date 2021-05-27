@@ -86,6 +86,7 @@ macro_rules! with_any_id_lock {
         }
     };
 }
+pub(crate) use with_any_id_lock;
 
 macro_rules! impl_any_id_lock_from {
     ($type:ident) => {
@@ -178,6 +179,7 @@ macro_rules! with_any_id {
         }
     };
 }
+pub(crate) use with_any_id;
 macro_rules! with_any_id_and_lock {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {
@@ -205,6 +207,7 @@ macro_rules! with_any_id_and_lock {
         }
     };
 }
+pub(crate) use with_any_id_and_lock;
 fn snd_into<A, B, C: From<B>>(_a: A, b: B) -> C {
     b.into()
 }

@@ -9,9 +9,8 @@ use version::version;
 
 mod touch_canvas;
 
-#[macro_use]
 pub mod gleis;
-use gleis::{gleise::*, *};
+use gleis::{gleise::{*, id::with_any_id_lock}, *};
 
 pub mod style;
 use style::*;

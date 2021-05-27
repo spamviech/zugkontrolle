@@ -4,11 +4,11 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
+use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor::{self, Lookup};
 use super::typen::*;
 use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
 
-#[macro_use]
 pub mod id;
 pub use id::*;
 
