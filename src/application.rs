@@ -20,6 +20,8 @@ use style::*;
 
 pub mod streckenabschnitt;
 
+pub mod anschluss;
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
@@ -106,8 +108,8 @@ pub enum Message<Z> {
     Bewegen(Bewegen),
     Drehen(Drehen),
     Skalieren(Skalieren),
+    SchließeModal,
     ZeigeAuswahlStreckenabschnitt,
-    SchließeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
     // TODO HinzufügenStreckenabschnitt
     LöscheStreckenabschnitt(streckenabschnitt::Name),
@@ -143,6 +145,11 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
+#[derive(Debug)]
+enum Modal {
+    Streckenabschnitt(streckenabschnitt::Auswahl),
+}
+
 pub struct Zugkontrolle<Z> {
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
@@ -153,8 +160,8 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
+    modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::Anzeige,
-    streckenabschnitt_auswahl: streckenabschnitt::Auswahl,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
     unten: iced::button::State,
@@ -193,11 +200,13 @@ where
                 kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
                 s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
                 kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+                modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(
+                    streckenabschnitt_auswahl,
+                )),
                 streckenabschnitt_aktuell: streckenabschnitt::Anzeige {
                     aktuell: None,
                     auswählen: iced::button::State::new(),
                 },
-                streckenabschnitt_auswahl,
                 oben: iced::button::State::new(),
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
@@ -263,15 +272,18 @@ where
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
-            Message::ZeigeAuswahlStreckenabschnitt => {
-                self.streckenabschnitt_auswahl.0.show(true);
+            Message::SchließeModal => {
+                self.modal_state.show(false);
             },
-            Message::SchließeAuswahlStreckenabschnitt => {
-                self.streckenabschnitt_auswahl.0.show(false);
+            Message::ZeigeAuswahlStreckenabschnitt => {
+                *self.modal_state.inner_mut() = Modal::Streckenabschnitt(
+                    streckenabschnitt::Auswahl::neu(self.gleise.streckenabschnitte()),
+                );
+                self.modal_state.show(true);
             },
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
-                self.streckenabschnitt_auswahl.0.show(false);
+                self.modal_state.show(false);
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
@@ -282,7 +294,13 @@ where
                 {
                     self.streckenabschnitt_aktuell.aktuell = None;
                 }
-                self.streckenabschnitt_auswahl.0.inner_mut().entferne(&name);
+                // TODO remove allow pragma
+                #[allow(irrefutable_let_patterns)]
+                if let Modal::Streckenabschnitt(streckenabschnitt_auswahl) =
+                    self.modal_state.inner_mut()
+                {
+                    streckenabschnitt_auswahl.entferne(&name);
+                }
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
             },
@@ -309,10 +327,6 @@ where
                     error!("Error while loading from {}: {:?}", self.aktueller_pfad, err)
                 } else {
                     self.streckenabschnitt_aktuell.aktuell = None;
-                    self.streckenabschnitt_auswahl
-                        .0
-                        .inner_mut()
-                        .update(self.gleise.streckenabschnitte());
                 }
             },
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
@@ -332,8 +346,8 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            modal_state,
             streckenabschnitt_aktuell,
-            streckenabschnitt_auswahl,
             oben,
             unten,
             links,
@@ -377,7 +391,7 @@ where
             kreuzungen,
         );
 
-        let column = iced::Column::new()
+        let column: iced::Element<Self::Message> = iced::Column::new()
             .push(top_row)
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
@@ -394,9 +408,14 @@ where
                     .width(iced::Length::Fill)
                     .height(iced::Length::Fill),
                 ),
-            );
+            )
+            .into();
 
-        streckenabschnitt_auswahl.view(column).into()
+        iced_aw::Modal::new(modal_state, column, |modal| match modal {
+            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => streckenabschnitt_auswahl.view(),
+        })
+        .on_esc(Message::SchließeModal)
+        .into()
     }
 }
 
