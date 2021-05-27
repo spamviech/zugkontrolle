@@ -149,10 +149,12 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 // update nur, sofern sich Parameter geändert haben.
-                if self.config.as_ref().map(|Config {polarity, ..}| polarity) != Some(&config.polarity) {
+                if self.config.as_ref().map(|Config { polarity, .. }| polarity)
+                    != Some(&config.polarity)
+                {
                     pwm_channel.set_polarity(config.polarity)?;
                 }
-                if self.config.as_ref().map(|Config {time, ..}| time) != Some(&config.time) {
+                if self.config.as_ref().map(|Config { time, .. }| time) != Some(&config.time) {
                     match config.time {
                         Time::Period { period, pulse_width } => {
                             pwm_channel.set_period(period)?;

@@ -402,8 +402,7 @@ impl Anschlüsse {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
             return Err(Error::Sync(SyncError::InVerwendung))
         }
-        if let Some(arc) = self.0.as_ref()
-        {
+        if let Some(arc) = self.0.as_ref() {
             let anschlüsse = arc.lock()?;
             cfg_if! {
                 if #[cfg(raspi)] {

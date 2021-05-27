@@ -10,7 +10,10 @@ use version::version;
 mod touch_canvas;
 
 pub mod gleis;
-use gleis::{gleise::{*, id::with_any_id_lock}, *};
+use gleis::{
+    gleise::{id::with_any_id_lock, *},
+    *,
+};
 
 pub mod style;
 use style::*;
