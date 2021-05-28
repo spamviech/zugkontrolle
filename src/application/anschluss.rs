@@ -1,9 +1,9 @@
 //! Auswahl eines Anschlusses.
 
 use iced_aw::native::{number_input, NumberInput, TabLabel, Tabs};
-use iced_graphics::{backend, button, Backend, Radio, Renderer, Row, Text};
+use iced_graphics::{backend, Backend, Renderer};
 use iced_native::{
-    column,
+    button,
     event,
     layout,
     Button,
@@ -15,7 +15,10 @@ use iced_native::{
     Layout,
     Length,
     Point,
+    Radio,
     Rectangle,
+    Row,
+    Text,
 };
 use num_x::u3;
 
@@ -164,9 +167,9 @@ impl Auswahl {
     }
 }
 
-pub struct Widget<'a, Renderer>(Column<'a, Message, Renderer>);
+pub struct Widget<'a, B: Backend>(Column<'a, Message, Renderer<B>>);
 
-impl<'a, B: 'a + Backend + backend::Text> Widget<'a, Renderer<B>> {
+impl<'a, B: 'a + Backend + backend::Text> Widget<'a, B> {
     pub fn neu(
         Auswahl {
             active_tab,
@@ -234,30 +237,34 @@ impl<'a, B: 'a + Backend + backend::Text> Widget<'a, Renderer<B>> {
     }
 }
 
-impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> {
+impl<'a, B: Backend> iced_native::Widget<Message, Renderer<B>> for Widget<'a, B> {
     fn width(&self) -> Length {
-        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::width(&self.0)
+        <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::width(
+            &self.0,
+        )
     }
 
     fn height(&self) -> Length {
-        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::height(&self.0)
+        <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::height(
+            &self.0,
+        )
     }
 
-    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::layout(
+    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
+        <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::layout(
             &self.0, renderer, limits,
         )
     }
 
     fn draw(
         &self,
-        renderer: &mut R,
-        defaults: &R::Defaults,
+        renderer: &mut Renderer<B>,
+        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> R::Output {
-        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::draw(
+    ) -> <Renderer<B> as iced_native::Renderer>::Output {
+        <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::draw(
             &self.0,
             renderer,
             defaults,
@@ -268,7 +275,9 @@ impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> 
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::hash_layout(&self.0, state)
+        <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::hash_layout(
+            &self.0, state,
+        )
     }
 
     fn on_event(
@@ -276,7 +285,7 @@ impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> 
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
-        _renderer: &R,
+        _renderer: &Renderer<B>,
         _clipboard: &mut dyn Clipboard,
         _messages: &mut Vec<Message>,
     ) -> event::Status {
@@ -284,11 +293,8 @@ impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> 
     }
 }
 
-impl<'a, B> From<Widget<'a, Renderer<B>>> for Element<'a, Message, Renderer<B>>
-where
-    B: 'a + Backend,
-{
-    fn from(widget: Widget<'a, Renderer<B>>) -> Element<'a, Message, Renderer<B>> {
+impl<'a, B: 'a + Backend> From<Widget<'a, B>> for Element<'a, Message, Renderer<B>> {
+    fn from(widget: Widget<'a, B>) -> Element<'a, Message, Renderer<B>> {
         Element::new(widget)
     }
 }
