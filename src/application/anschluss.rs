@@ -4,10 +4,13 @@ use iced_aw::native::{number_input, NumberInput, TabLabel, Tabs};
 use iced_graphics::{backend, button, Backend, Radio, Renderer, Row, Text};
 use iced_native::{
     column,
+    event,
     layout,
     Button,
+    Clipboard,
     Column,
     Element,
+    Event,
     Hasher,
     Layout,
     Length,
@@ -266,5 +269,17 @@ impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> 
 
     fn hash_layout(&self, state: &mut Hasher) {
         <Column<'a, Message, R> as iced_native::Widget<Message, R>>::hash_layout(&self.0, state)
+    }
+
+    fn on_event(
+        &mut self,
+        _event: Event,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _renderer: &R,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
+    ) -> event::Status {
+        todo!()
     }
 }
