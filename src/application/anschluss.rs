@@ -2,11 +2,15 @@
 
 use std::collections::HashMap;
 
-use iced_aw::native::{number_input, NumberInput, TabLabel, Tabs};
-use iced_graphics::{backend, Backend, Renderer};
+use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
 use iced_native::{
     button,
+    column,
+    container,
     event,
+    radio,
+    row,
+    text,
     Button,
     Clipboard,
     Column,
@@ -16,6 +20,7 @@ use iced_native::{
     Length,
     Point,
     Radio,
+    Renderer,
     Row,
     Text,
     Widget,
@@ -110,8 +115,8 @@ enum OutputMessage {
     Polarity(Polarity),
 }
 
-pub struct Auswahl<'a, T, M, B: Backend> {
-    column: Column<'a, M, Renderer<B>>,
+pub struct Auswahl<'a, T, M, R> {
+    column: Column<'a, M, R>,
     active_tab: usize,
     pin: u8,
     a0: Level,
@@ -122,7 +127,20 @@ pub struct Auswahl<'a, T, M, B: Backend> {
     modus: T,
 }
 
-impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, B> {
+impl<'a, R> Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>
+where
+    R: 'a
+        + Renderer
+        + text::Renderer
+        + radio::Renderer
+        + column::Renderer
+        + row::Renderer
+        + container::Renderer
+        + button::Renderer
+        + number_input::Renderer
+        + tabs::Renderer,
+    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
+{
     pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
         Auswahl::neu_mit_interrupt_view(
             status,
@@ -136,7 +154,20 @@ impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Input<'a>, InternalMessage
     }
 }
 
-impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Output, InternalMessage<OutputMessage>, B> {
+impl<'a, R> Auswahl<'a, Output, InternalMessage<OutputMessage>, R>
+where
+    R: 'a
+        + Renderer
+        + text::Renderer
+        + radio::Renderer
+        + column::Renderer
+        + row::Renderer
+        + container::Renderer
+        + button::Renderer
+        + number_input::Renderer
+        + tabs::Renderer,
+    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
+{
     pub fn neu_output(status: &'a mut Status<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(status, |Output { polarität }, _a0, _a1, _a2, _variante| {
             Column::new()
@@ -157,8 +188,19 @@ impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Output, InternalMessage<Ou
     }
 }
 
-impl<'a, T: 'a + Clone, M: 'static + Clone, B: 'a + Backend + backend::Text>
-    Auswahl<'a, T, InternalMessage<M>, B>
+impl<'a, T: 'a + Clone, M: 'static + Clone, R> Auswahl<'a, T, InternalMessage<M>, R>
+where
+    R: 'a
+        + Renderer
+        + text::Renderer
+        + radio::Renderer
+        + column::Renderer
+        + row::Renderer
+        + container::Renderer
+        + button::Renderer
+        + number_input::Renderer
+        + tabs::Renderer,
+    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
 {
     fn neu_mit_interrupt_view(
         Status {
@@ -174,13 +216,7 @@ impl<'a, T: 'a + Clone, M: 'static + Clone, B: 'a + Backend + backend::Text>
             port,
             modus,
         }: &'a mut Status<T>,
-        view_interrupt: impl FnOnce(
-            &'a mut T,
-            Level,
-            Level,
-            Level,
-            Variante,
-        ) -> Element<'a, M, Renderer<B>>,
+        view_interrupt: impl FnOnce(&'a mut T, Level, Level, Level, Variante) -> Element<'a, M, R>,
     ) -> Self {
         let modus_clone = modus.clone();
         let tabs = vec![
@@ -267,17 +303,17 @@ pub enum InputAnschluss {
     },
 }
 
-impl<'a, B: Backend> Widget<InputAnschluss, Renderer<B>>
-    for Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, B>
+impl<'a, R: 'a + Renderer + column::Renderer> Widget<InputAnschluss, R>
+    for Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>
 {
-    reexport_no_event_methods! {Column<'a, InternalMessage<InputMessage>, Renderer<B>>, column, InternalMessage<InputMessage>, Renderer<B>}
+    reexport_no_event_methods! {Column<'a, InternalMessage<InputMessage>, R>, column, InternalMessage<InputMessage>, R}
 
     fn on_event(
         &mut self,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        renderer: &Renderer<B>,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<InputAnschluss>,
     ) -> event::Status {
@@ -332,10 +368,11 @@ impl<'a, B: Backend> Widget<InputAnschluss, Renderer<B>>
     }
 }
 
-impl<'a, B: 'a + Backend> From<Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, B>>
-    for Element<'a, InputAnschluss, Renderer<B>>
+impl<'a, R: 'a + Renderer + column::Renderer>
+    From<Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>>
+    for Element<'a, InputAnschluss, R>
 {
-    fn from(auswahl: Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, B>) -> Self {
+    fn from(auswahl: Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>) -> Self {
         Element::new(auswahl)
     }
 }
@@ -356,17 +393,17 @@ pub enum OutputAnschluss {
     },
 }
 
-impl<'a, B: Backend> Widget<OutputAnschluss, Renderer<B>>
-    for Auswahl<'a, Output, InternalMessage<OutputMessage>, B>
+impl<'a, R: 'a + Renderer + column::Renderer> Widget<OutputAnschluss, R>
+    for Auswahl<'a, Output, InternalMessage<OutputMessage>, R>
 {
-    reexport_no_event_methods! {Column<'a, InternalMessage<OutputMessage>, Renderer<B>>, column, InternalMessage<OutputMessage>, Renderer<B>}
+    reexport_no_event_methods! {Column<'a, InternalMessage<OutputMessage>, R>, column, InternalMessage<OutputMessage>, R}
 
     fn on_event(
         &mut self,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        renderer: &Renderer<B>,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<OutputAnschluss>,
     ) -> event::Status {
@@ -412,10 +449,11 @@ impl<'a, B: Backend> Widget<OutputAnschluss, Renderer<B>>
     }
 }
 
-impl<'a, B: 'a + Backend> From<Auswahl<'a, Output, InternalMessage<OutputMessage>, B>>
-    for Element<'a, OutputAnschluss, Renderer<B>>
+impl<'a, R: 'a + Renderer + column::Renderer>
+    From<Auswahl<'a, Output, InternalMessage<OutputMessage>, R>>
+    for Element<'a, OutputAnschluss, R>
 {
-    fn from(auswahl: Auswahl<'a, Output, InternalMessage<OutputMessage>, B>) -> Self {
+    fn from(auswahl: Auswahl<'a, Output, InternalMessage<OutputMessage>, R>) -> Self {
         Element::new(auswahl)
     }
 }
@@ -427,8 +465,8 @@ impl PwmState {
     }
 }
 
-pub struct Pwm<'a, B: Backend + backend::Text> {
-    column: Column<'a, PwmMessage, Renderer<B>>,
+pub struct Pwm<'a, R: 'a + Renderer> {
+    column: Column<'a, PwmMessage, R>,
     pin: u8,
 }
 
@@ -442,7 +480,17 @@ pub struct PwmPin {
     pub pin: u8,
 }
 
-impl<'a, B: 'a + Backend + backend::Text> Pwm<'a, B> {
+impl<'a, R> Pwm<'a, R>
+where
+    R: 'a
+        + Renderer
+        + button::Renderer
+        + text::Renderer
+        + column::Renderer
+        + row::Renderer
+        + container::Renderer
+        + number_input::Renderer,
+{
     pub fn neu(PwmState(number_input_state, button_state): &'a mut PwmState) -> Self {
         Pwm {
             column: Column::new()
@@ -456,15 +504,15 @@ impl<'a, B: 'a + Backend + backend::Text> Pwm<'a, B> {
     }
 }
 
-impl<'a, B: Backend + backend::Text> Widget<PwmPin, Renderer<B>> for Pwm<'a, B> {
-    reexport_no_event_methods! {Column<'a, PwmMessage, Renderer<B>>, column, PwmMessage, Renderer<B>}
+impl<'a, R: 'a + Renderer + column::Renderer> Widget<PwmPin, R> for Pwm<'a, R> {
+    reexport_no_event_methods! {Column<'a, PwmMessage, R>, column, PwmMessage, R}
 
     fn on_event(
         &mut self,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        renderer: &Renderer<B>,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<PwmPin>,
     ) -> event::Status {
@@ -490,8 +538,8 @@ impl<'a, B: Backend + backend::Text> Widget<PwmPin, Renderer<B>> for Pwm<'a, B> 
     }
 }
 
-impl<'a, B: 'a + Backend + backend::Text> From<Pwm<'a, B>> for Element<'a, PwmPin, Renderer<B>> {
-    fn from(auswahl: Pwm<'a, B>) -> Self {
+impl<'a, R: 'a + Renderer + column::Renderer> From<Pwm<'a, R>> for Element<'a, PwmPin, R> {
+    fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }
 }
