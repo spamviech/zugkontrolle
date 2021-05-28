@@ -21,6 +21,7 @@ use iced_native::{
     Rectangle,
     Row,
     Text,
+    Widget,
 };
 use log::error;
 use num_x::u3;
@@ -243,78 +244,48 @@ impl<'a, T: 'a + Clone, M: 'static + Clone, B: 'a + Backend + backend::Text>
     }
 }
 
-impl<'a, T, M, B: Backend> Auswahl<'a, T, M, B> {
-    fn width(&self) -> Length {
-        <Column<'a, M, Renderer<B>> as iced_native::Widget<M, Renderer<B>>>::width(&self.column)
-    }
+macro_rules! reexport_methods {
+    ($type:ty, $record:ident, $message:ty) => {
+        fn width(&self) -> Length {
+            <$type as Widget<$message, Renderer<B>>>::width(&self.$record)
+        }
 
-    fn height(&self) -> Length {
-        <Column<'a, M, Renderer<B>> as iced_native::Widget<M, Renderer<B>>>::height(&self.column)
-    }
+        fn height(&self) -> Length {
+            <$type as Widget<$message, Renderer<B>>>::height(&self.$record)
+        }
 
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        <Column<'a, M, Renderer<B>> as iced_native::Widget<M, Renderer<B>>>::layout(
-            &self.column,
-            renderer,
-            limits,
-        )
-    }
+        fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
+            <$type as Widget<$message, Renderer<B>>>::layout(&self.$record, renderer, limits)
+        }
 
-    fn draw(
-        &self,
-        renderer: &mut Renderer<B>,
-        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
-        <Column<'a, M, Renderer<B>> as iced_native::Widget<M, Renderer<B>>>::draw(
-            &self.column,
-            renderer,
-            defaults,
-            layout,
-            cursor_position,
-            viewport,
-        )
-    }
+        fn draw(
+            &self,
+            renderer: &mut Renderer<B>,
+            defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
+            layout: Layout<'_>,
+            cursor_position: Point,
+            viewport: &Rectangle,
+        ) -> <Renderer<B> as iced_native::Renderer>::Output {
+            <$type as Widget<$message, Renderer<B>>>::draw(
+                &self.$record,
+                renderer,
+                defaults,
+                layout,
+                cursor_position,
+                viewport,
+            )
+        }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        <Column<'a, M, Renderer<B>> as iced_native::Widget<M, Renderer<B>>>::hash_layout(
-            &self.column,
-            state,
-        )
-    }
+        fn hash_layout(&self, state: &mut Hasher) {
+            <$type as Widget<$message, Renderer<B>>>::hash_layout(&self.$record, state)
+        }
+    };
 }
 
-impl<'a, B: Backend> iced_native::Widget<Result<InputAnschluss, Error>, Renderer<B>>
+impl<'a, B: Backend> Widget<Result<InputAnschluss, Error>, Renderer<B>>
     for Auswahl<'a, Input<'a>, Message<InputMessage>, B>
 {
-    fn width(&self) -> Length {
-        self.width()
-    }
-
-    fn height(&self) -> Length {
-        self.height()
-    }
-
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        self.layout(renderer, limits)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer<B>,
-        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
-        self.draw(renderer, defaults, layout, cursor_position, viewport)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.hash_layout(state)
-    }
+    reexport_methods! {Column<'a, Message<InputMessage>, Renderer<B>>, column, Message<InputMessage>}
 
     fn on_event(
         &mut self,
@@ -392,35 +363,10 @@ impl<'a, B: Backend> iced_native::Widget<Result<InputAnschluss, Error>, Renderer
     }
 }
 
-impl<'a, B: Backend> iced_native::Widget<Result<OutputAnschluss, Error>, Renderer<B>>
+impl<'a, B: Backend> Widget<Result<OutputAnschluss, Error>, Renderer<B>>
     for Auswahl<'a, Output, Message<OutputMessage>, B>
 {
-    fn width(&self) -> Length {
-        self.width()
-    }
-
-    fn height(&self) -> Length {
-        self.height()
-    }
-
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        self.layout(renderer, limits)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer<B>,
-        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
-        self.draw(renderer, defaults, layout, cursor_position, viewport)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.hash_layout(state)
-    }
+    reexport_methods! {Column<'a, Message<OutputMessage>, Renderer<B>>, column, Message<OutputMessage>}
 
     fn on_event(
         &mut self,
@@ -535,53 +481,8 @@ impl<'a, B: 'a + Backend + backend::Text> Pwm<'a, B> {
     }
 }
 
-impl<'a, B: Backend + backend::Text> iced_native::Widget<Result<pwm::Pin, Error>, Renderer<B>>
-    for Pwm<'a, B>
-{
-    fn width(&self) -> Length {
-        <Column<'a, PwmMessage, Renderer<B>> as iced_native::Widget<PwmMessage, Renderer<B>>>::width(
-            &self.column,
-        )
-    }
-
-    fn height(&self) -> Length {
-        <Column<'a, PwmMessage, Renderer<B>> as iced_native::Widget<PwmMessage, Renderer<B>>>::height(
-            &self.column,
-        )
-    }
-
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        <Column<'a, PwmMessage, Renderer<B>> as iced_native::Widget<PwmMessage, Renderer<B>>>::layout(
-            &self.column,
-            renderer,
-            limits,
-        )
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer<B>,
-        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
-        <Column<'a, PwmMessage, Renderer<B>> as iced_native::Widget<PwmMessage, Renderer<B>>>::draw(
-            &self.column,
-            renderer,
-            defaults,
-            layout,
-            cursor_position,
-            viewport,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        <Column<'a, PwmMessage, Renderer<B>> as iced_native::Widget<PwmMessage, Renderer<B>>>::hash_layout(
-            &self.column,
-            state,
-        )
-    }
+impl<'a, B: Backend + backend::Text> Widget<Result<pwm::Pin, Error>, Renderer<B>> for Pwm<'a, B> {
+    reexport_methods! {Column<'a, PwmMessage, Renderer<B>>, column, PwmMessage}
 
     fn on_event(
         &mut self,
