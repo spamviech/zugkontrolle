@@ -1,7 +1,19 @@
 //! Auswahl eines Anschlusses.
 
-use iced::{button, Button, Column, Element, Length, Radio, Row, Text};
-use iced_aw::{number_input, NumberInput, TabLabel, Tabs};
+use iced_aw::native::{number_input, NumberInput, TabLabel, Tabs};
+use iced_graphics::{backend, button, Backend, Radio, Renderer, Row, Text};
+use iced_native::{
+    column,
+    layout,
+    Button,
+    Column,
+    Element,
+    Hasher,
+    Layout,
+    Length,
+    Point,
+    Rectangle,
+};
 use num_x::u3;
 
 use crate::anschluss::{
@@ -52,7 +64,7 @@ impl Auswahl {
         }
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&mut self) -> iced::Element<Message> {
         let Auswahl {
             active_tab,
             confirm_state,
@@ -146,5 +158,113 @@ impl Auswahl {
             },
         }
         result
+    }
+}
+
+pub struct Widget<'a, Renderer>(Column<'a, Message, Renderer>);
+
+impl<'a, B: 'a + Backend + backend::Text> Widget<'a, Renderer<B>> {
+    pub fn neu(
+        Auswahl {
+            active_tab,
+            confirm_state,
+            pin_state,
+            pin,
+            a0,
+            a1,
+            a2,
+            variante,
+            port_state,
+            port,
+        }: &'a mut Auswahl,
+    ) -> Self {
+        let tabs = vec![
+            (
+                TabLabel::Text("Pin".to_string()),
+                NumberInput::new(pin_state, *pin, 32, Message::Pin).into(),
+            ),
+            (
+                TabLabel::Text("Pcf8574-Port".to_string()),
+                Row::new()
+                    .push(
+                        Column::new()
+                            .push(Radio::new(Level::High, "H", Some(*a0), Message::A0))
+                            .push(Radio::new(Level::Low, "L", Some(*a0), Message::A0)),
+                    )
+                    .push(
+                        Column::new()
+                            .push(Radio::new(Level::High, "H", Some(*a1), Message::A1))
+                            .push(Radio::new(Level::Low, "L", Some(*a1), Message::A1)),
+                    )
+                    .push(
+                        Column::new()
+                            .push(Radio::new(Level::High, "H", Some(*a2), Message::A2))
+                            .push(Radio::new(Level::Low, "L", Some(*a2), Message::A2)),
+                    )
+                    .push(
+                        Column::new()
+                            .push(Radio::new(
+                                Variante::Normal,
+                                "Normal",
+                                Some(*variante),
+                                Message::Variante,
+                            ))
+                            .push(Radio::new(Variante::A, "A", Some(*variante), Message::Variante)),
+                    )
+                    .push(NumberInput::new(port_state, *port, 8, Message::Port))
+                    .into(),
+            ),
+        ];
+        Widget(
+            Column::new()
+                .push(
+                    Tabs::with_tabs(*active_tab, tabs, Message::TabSelected)
+                        .tab_bar_style(style::TabBar),
+                )
+                .push(
+                    Button::new(confirm_state, Text::new("Hinzufügen"))
+                        .on_press(Message::Hinzufügen),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill),
+        )
+    }
+}
+
+impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> {
+    fn width(&self) -> Length {
+        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::width(&self.0)
+    }
+
+    fn height(&self) -> Length {
+        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::height(&self.0)
+    }
+
+    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::layout(
+            &self.0, renderer, limits,
+        )
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut R,
+        defaults: &R::Defaults,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> R::Output {
+        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::draw(
+            &self.0,
+            renderer,
+            defaults,
+            layout,
+            cursor_position,
+            viewport,
+        )
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        <Column<'a, Message, R> as iced_native::Widget<Message, R>>::hash_layout(&self.0, state)
     }
 }
