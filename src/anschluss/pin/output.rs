@@ -37,7 +37,7 @@ impl Pin {
     pub fn write(&mut self, level: Level) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.write(level);
+                self.0.write(level.into());
                 Ok(())
             } else {
                 debug!("{:?}.write({:?})", self, level);

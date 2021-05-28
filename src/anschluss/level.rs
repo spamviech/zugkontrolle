@@ -1,28 +1,28 @@
 //! Level eines Anschluss
 
-#[cfg(not(raspi))]
-use std::ops::Not;
+#[cfg(raspi)]
+use rppal::gpio;
 
-use cfg_if::cfg_if;
-
-cfg_if! {
-    if #[cfg(raspi)] {
-        pub use rppal::gpio::Level;
-    } else {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        pub enum Level {
-            Low,
-            High,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Level {
+    Low,
+    High,
+}
+#[cfg(raspi)]
+impl From<gpio::Level> for Level {
+    fn from(level: gpio::Level) -> Self {
+        match level {
+            gpio::Level::Low => Level::Low,
+            gpio::Level::High => Level::High,
         }
-        impl Not for Level {
-            type Output = Self;
-
-            fn not(self) -> Self::Output {
-                match self {
-                    Level::Low => Level::High,
-                    Level::High => Level::Low,
-                }
-            }
+    }
+}
+#[cfg(raspi)]
+impl From<Level> for gpio::Level {
+    fn from(level: gpio::Level) -> Self {
+        match level {
+            Level::Low => gpio::Level::Low,
+            Level::High => gpio::Level::High,
         }
     }
 }

@@ -291,7 +291,7 @@ impl PartialEq for Pcf8574 {
 }
 impl Eq for Pcf8574 {}
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Variante {
     Normal,
     A,

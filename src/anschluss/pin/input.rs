@@ -36,7 +36,7 @@ impl Pin {
     pub fn read(&mut self) -> Result<Level, Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                Ok(self.0.read())
+                Ok(self.0.read().into())
             } else {
                 Err(Error::KeinRaspberryPi)
             }

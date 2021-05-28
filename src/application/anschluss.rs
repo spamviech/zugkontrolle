@@ -1,5 +1,7 @@
 //! Auswahl eines Anschlusses.
 
+use std::collections::HashMap;
+
 use iced_aw::native::{number_input, NumberInput, TabLabel, Tabs};
 use iced_graphics::{backend, Backend, Renderer};
 use iced_native::{
@@ -29,7 +31,7 @@ mod style;
 
 // TODO direkt Input/Output/Pwm-Varianten
 #[derive(Debug)]
-pub struct Auswahl {
+pub struct Auswahl<T> {
     active_tab: usize,
     confirm_state: button::State,
     pin_state: number_input::State,
@@ -40,10 +42,11 @@ pub struct Auswahl {
     variante: Variante,
     port_state: number_input::State,
     port: u8,
+    interrupt: T,
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+enum Message {
     TabSelected(usize),
     Pin(u8),
     A0(Level),
@@ -51,11 +54,30 @@ pub enum Message {
     A2(Level),
     Variante(Variante),
     Port(u8),
+    Interrupt(u8),
     Hinzufügen,
 }
 
-impl Auswahl {
+#[derive(Debug, Clone)]
+pub struct Input<'t>(number_input::State, u8, &'t HashMap<(Level, Level, Level, Variante), u8>);
+impl<'t> Auswahl<Input<'t>> {
+    #[inline]
+    pub fn neu(interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>) -> Self {
+        Self::neu_mit_interrupt(Input(number_input::State::new(), 0, interrupt_pins))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Output;
+impl Auswahl<Output> {
+    #[inline]
     pub fn neu() -> Self {
+        Self::neu_mit_interrupt(Output)
+    }
+}
+
+impl<T> Auswahl<T> {
+    fn neu_mit_interrupt(interrupt: T) -> Self {
         Auswahl {
             active_tab: 0,
             confirm_state: button::State::new(),
@@ -67,110 +89,45 @@ impl Auswahl {
             variante: Variante::Normal,
             port_state: number_input::State::new(),
             port: 0,
+            interrupt,
         }
-    }
-
-    pub fn view(&mut self) -> iced::Element<Message> {
-        let Auswahl {
-            active_tab,
-            confirm_state,
-            pin_state,
-            pin,
-            a0,
-            a1,
-            a2,
-            variante,
-            port_state,
-            port,
-        } = self;
-        let tabs = vec![
-            (
-                TabLabel::Text("Pin".to_string()),
-                NumberInput::new(pin_state, *pin, 32, Message::Pin).into(),
-            ),
-            (
-                TabLabel::Text("Pcf8574-Port".to_string()),
-                Row::new()
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a0), Message::A0))
-                            .push(Radio::new(Level::Low, "L", Some(*a0), Message::A0)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a1), Message::A1))
-                            .push(Radio::new(Level::Low, "L", Some(*a1), Message::A1)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a2), Message::A2))
-                            .push(Radio::new(Level::Low, "L", Some(*a2), Message::A2)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(
-                                Variante::Normal,
-                                "Normal",
-                                Some(*variante),
-                                Message::Variante,
-                            ))
-                            .push(Radio::new(Variante::A, "A", Some(*variante), Message::Variante)),
-                    )
-                    .push(NumberInput::new(port_state, *port, 8, Message::Port))
-                    .into(),
-            ),
-        ];
-        Column::new()
-            .push(
-                Tabs::with_tabs(*active_tab, tabs, Message::TabSelected)
-                    .tab_bar_style(style::TabBar),
-            )
-            .push(Element::from(
-                Button::new(confirm_state, Text::new("Hinzufügen")).on_press(Message::Hinzufügen),
-            ))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    }
-
-    pub fn update(&mut self, message: Message) -> Option<Result<Anschluss, Error>> {
-        use Message::*;
-        let mut result: Option<Result<Anschluss, Error>> = None;
-        match message {
-            TabSelected(tab) => self.active_tab = tab,
-            Pin(pin) => self.pin = pin,
-            A0(a0) => self.a0 = a0,
-            A1(a1) => self.a1 = a1,
-            A2(a2) => self.a2 = a2,
-            Variante(variante) => self.variante = variante,
-            Port(port) => self.port = port,
-            Hinzufügen => {
-                result = Some(Anschlüsse::neu().and_then(|mut anschlüsse| {
-                    if self.active_tab == 0 {
-                        anschlüsse.reserviere_pin(self.pin).map(Into::into)
-                    } else {
-                        anschlüsse
-                            .reserviere_pcf8574_port(
-                                self.a0,
-                                self.a1,
-                                self.a2,
-                                self.variante,
-                                u3::new(self.port),
-                            )
-                            .map(Into::into)
-                            .map_err(Into::into)
-                    }
-                }))
-            },
-        }
-        result
     }
 }
 
-pub struct Widget<'a, B: Backend>(Column<'a, Message, Renderer<B>>);
+pub struct Widget<'a, T, B: Backend> {
+    column: Column<'a, Message, Renderer<B>>,
+    active_tab: usize,
+    pin: u8,
+    a0: Level,
+    a1: Level,
+    a2: Level,
+    variante: Variante,
+    port: u8,
+    interrupt: T,
+}
 
-impl<'a, B: 'a + Backend + backend::Text> Widget<'a, B> {
-    pub fn neu(
+impl<'a, B: 'a + Backend + backend::Text> Widget<'a, Input<'a>, B> {
+    pub fn neu(auswahl: &'a mut Auswahl<Input<'a>>) -> Self {
+        Widget::neu_mit_interrupt_view(
+            auswahl,
+            |Input(number_input_state, pin, map), a0, a1, a2, variante| {
+                Some(map.get(&(a0, a1, a2, variante)).map_or(
+                    NumberInput::new(number_input_state, *pin, 32, Message::Interrupt).into(),
+                    |pin| Text::new(pin.to_string()).into(),
+                ))
+            },
+        )
+    }
+}
+
+impl<'a, B: 'a + Backend + backend::Text> Widget<'a, Output, B> {
+    pub fn neu(auswahl: &'a mut Auswahl<Output>) -> Self {
+        Widget::neu_mit_interrupt_view(auswahl, |Output, _a0, _a1, _a2, _variante| None)
+    }
+}
+
+impl<'a, T: 'a + Clone, B: 'a + Backend + backend::Text> Widget<'a, T, B> {
+    fn neu_mit_interrupt_view(
         Auswahl {
             active_tab,
             confirm_state,
@@ -182,16 +139,24 @@ impl<'a, B: 'a + Backend + backend::Text> Widget<'a, B> {
             variante,
             port_state,
             port,
-        }: &'a mut Auswahl,
+            interrupt,
+        }: &'a mut Auswahl<T>,
+        view_interrupt: impl FnOnce(
+            &'a mut T,
+            Level,
+            Level,
+            Level,
+            Variante,
+        ) -> Option<Element<'a, Message, Renderer<B>>>,
     ) -> Self {
+        let interrupt_clone = interrupt.clone();
         let tabs = vec![
             (
                 TabLabel::Text("Pin".to_string()),
                 NumberInput::new(pin_state, *pin, 32, Message::Pin).into(),
             ),
-            (
-                TabLabel::Text("Pcf8574-Port".to_string()),
-                Row::new()
+            (TabLabel::Text("Pcf8574-Port".to_string()), {
+                let row = Row::new()
                     .push(
                         Column::new()
                             .push(Radio::new(Level::High, "H", Some(*a0), Message::A0))
@@ -217,42 +182,56 @@ impl<'a, B: 'a + Backend + backend::Text> Widget<'a, B> {
                             ))
                             .push(Radio::new(Variante::A, "A", Some(*variante), Message::Variante)),
                     )
-                    .push(NumberInput::new(port_state, *port, 8, Message::Port))
-                    .into(),
-            ),
+                    .push(NumberInput::new(port_state, *port, 8, Message::Port));
+                match view_interrupt(interrupt, *a0, *a1, *a2, *variante) {
+                    None => row,
+                    Some(element) => row.push(element),
+                }
+                .into()
+            }),
         ];
-        Widget(
-            Column::new()
-                .push(
-                    Tabs::with_tabs(*active_tab, tabs, Message::TabSelected)
-                        .tab_bar_style(style::TabBar),
-                )
-                .push(
-                    Button::new(confirm_state, Text::new("Hinzufügen"))
-                        .on_press(Message::Hinzufügen),
-                )
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
+        let column = Column::new()
+            .push(
+                Tabs::with_tabs(*active_tab, tabs, Message::TabSelected)
+                    .tab_bar_style(style::TabBar),
+            )
+            .push(Button::new(confirm_state, Text::new("Hinzufügen")).on_press(Message::Hinzufügen))
+            .width(Length::Fill)
+            .height(Length::Fill);
+        Widget {
+            column,
+            active_tab: *active_tab,
+            pin: *pin,
+            a0: *a0,
+            a1: *a1,
+            a2: *a2,
+            variante: *variante,
+            port: *port,
+            interrupt: interrupt_clone,
+        }
     }
 }
 
-impl<'a, B: Backend> iced_native::Widget<Message, Renderer<B>> for Widget<'a, B> {
+impl<'a, T, B: Backend> iced_native::Widget<Result<Anschluss, Error>, Renderer<B>>
+    for Widget<'a, T, B>
+{
     fn width(&self) -> Length {
         <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::width(
-            &self.0,
+            &self.column,
         )
     }
 
     fn height(&self) -> Length {
         <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::height(
-            &self.0,
+            &self.column,
         )
     }
 
     fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
         <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::layout(
-            &self.0, renderer, limits,
+            &self.column,
+            renderer,
+            limits,
         )
     }
 
@@ -265,7 +244,7 @@ impl<'a, B: Backend> iced_native::Widget<Message, Renderer<B>> for Widget<'a, B>
         viewport: &Rectangle,
     ) -> <Renderer<B> as iced_native::Renderer>::Output {
         <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::draw(
-            &self.0,
+            &self.column,
             renderer,
             defaults,
             layout,
@@ -276,25 +255,70 @@ impl<'a, B: Backend> iced_native::Widget<Message, Renderer<B>> for Widget<'a, B>
 
     fn hash_layout(&self, state: &mut Hasher) {
         <Column<'a, Message, Renderer<B>> as iced_native::Widget<Message, Renderer<B>>>::hash_layout(
-            &self.0, state,
+            &self.column,
+            state,
         )
     }
 
     fn on_event(
         &mut self,
-        _event: Event,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _renderer: &Renderer<B>,
-        _clipboard: &mut dyn Clipboard,
-        _messages: &mut Vec<Message>,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer<B>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Result<Anschluss, Error>>,
     ) -> event::Status {
-        todo!()
+        let mut column_messages = Vec::new();
+        let mut status = self.column.on_event(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            &mut column_messages,
+        );
+        for message in column_messages {
+            match message {
+                Message::TabSelected(tab) => self.active_tab = tab,
+                Message::Pin(pin) => self.pin = pin,
+                Message::A0(a0) => self.a0 = a0,
+                Message::A1(a1) => self.a1 = a1,
+                Message::A2(a2) => self.a2 = a2,
+                Message::Variante(variante) => self.variante = variante,
+                Message::Port(port) => self.port = port,
+                Message::Interrupt(interrupt) => todo!("interrupt signal: {}", interrupt),
+                Message::Hinzufügen => {
+                    messages.push(Anschlüsse::neu().and_then(|mut anschlüsse| {
+                        if self.active_tab == 0 {
+                            anschlüsse.reserviere_pin(self.pin).map(Into::into)
+                        } else {
+                            anschlüsse
+                                .reserviere_pcf8574_port(
+                                    self.a0,
+                                    self.a1,
+                                    self.a2,
+                                    self.variante,
+                                    u3::new(self.port),
+                                )
+                                .map(Into::into)
+                                .map_err(Into::into)
+                            // TODO set_interrupt_pin für input
+                        }
+                        // TODO into_output/input
+                    }))
+                },
+            }
+            status = event::Status::Captured;
+        }
+        status
     }
 }
 
-impl<'a, B: 'a + Backend> From<Widget<'a, B>> for Element<'a, Message, Renderer<B>> {
-    fn from(widget: Widget<'a, B>) -> Element<'a, Message, Renderer<B>> {
+impl<'a, T: 'a, B: 'a + Backend> From<Widget<'a, T, B>>
+    for Element<'a, Result<Anschluss, Error>, Renderer<B>>
+{
+    fn from(widget: Widget<'a, T, B>) -> Element<'a, Result<Anschluss, Error>, Renderer<B>> {
         Element::new(widget)
     }
 }
