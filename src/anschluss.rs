@@ -22,6 +22,8 @@ pub use pcf8574::Pcf8574;
 pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
 
+use self::anschlüsse::SyncError;
+
 /// Ein Anschluss
 #[derive(Debug)]
 pub enum Anschluss {
@@ -205,9 +207,20 @@ impl InputAnschluss {
 
 #[derive(Debug)]
 pub enum Error {
+    Anschlüsse(anschlüsse::Error),
     Output(output::Error),
     Input(input::Error),
     Pcf8574(pcf8574::Error),
+}
+impl From<SyncError> for Error {
+    fn from(error: SyncError) -> Self {
+        Error::Anschlüsse(error.into())
+    }
+}
+impl From<anschlüsse::Error> for Error {
+    fn from(error: anschlüsse::Error) -> Self {
+        Error::Anschlüsse(error)
+    }
 }
 impl From<output::Error> for Error {
     fn from(error: output::Error) -> Self {
