@@ -58,7 +58,7 @@ pub struct Status<T> {
 pub struct Input<'t>(number_input::State, u8, &'t HashMap<(Level, Level, Level, Variante), u8>);
 impl<'t> Status<Input<'t>> {
     #[inline]
-    pub fn neu(interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>) -> Self {
+    pub fn neu_input(interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>) -> Self {
         Self::neu_mit_interrupt(Input(number_input::State::new(), 0, interrupt_pins))
     }
 }
@@ -67,7 +67,7 @@ impl<'t> Status<Input<'t>> {
 pub struct Output(Polarity);
 impl Status<Output> {
     #[inline]
-    pub fn neu() -> Self {
+    pub fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output(Polarity::Normal))
     }
 }
@@ -124,7 +124,7 @@ pub struct Auswahl<'a, T, M, B: Backend> {
 }
 
 impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Input<'a>, Message<InputMessage>, B> {
-    pub fn neu(status: &'a mut Status<Input<'a>>) -> Self {
+    pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
         Auswahl::neu_mit_interrupt_view(
             status,
             |Input(number_input_state, pin, map), a0, a1, a2, variante| {
@@ -138,7 +138,7 @@ impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Input<'a>, Message<InputMe
 }
 
 impl<'a, B: 'a + Backend + backend::Text> Auswahl<'a, Output, Message<OutputMessage>, B> {
-    pub fn neu(status: &'a mut Status<Output>) -> Self {
+    pub fn neu_output(status: &'a mut Status<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(status, |Output(polarity), _a0, _a1, _a2, _variante| {
             Column::new()
                 .push(Radio::new(

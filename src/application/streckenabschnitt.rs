@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use iced::{
     button,
     scrollable,
+    text_input,
     Align,
     Button,
     Color,
@@ -14,9 +15,11 @@ use iced::{
     Row,
     Scrollable,
     Text,
+    TextInput,
 };
 use iced_aw::Card;
 
+use super::anschluss;
 use super::style::background;
 use super::Message;
 pub use crate::steuerung::streckenabschnitt::Name;
@@ -51,6 +54,9 @@ impl Anzeige {
 
 #[derive(Debug)]
 pub struct Auswahl {
+    neu_name: String,
+    neu_name_state: text_input::State,
+    neu_anschluss_state: anschluss::Status<anschluss::Output>,
     none_button_state: button::State,
     streckenabschnitte: BTreeMap<Name, (String, Color, button::State, button::State)>,
     scrollable_state: scrollable::State,
@@ -61,6 +67,9 @@ impl Auswahl {
         streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
     ) -> Self {
         Auswahl {
+            neu_name: String::new(),
+            neu_name_state: text_input::State::new(),
+            neu_anschluss_state: anschluss::Status::neu_output(),
             none_button_state: button::State::new(),
             streckenabschnitte: streckenabschnitte.map(Auswahl::iter_map).collect(),
             scrollable_state: scrollable::State::new(),
@@ -110,10 +119,23 @@ impl Auswahl {
     // Erste Zeile Leer(None Auswahl), Neu(Streckenabschnitt erstellen)
     // Über Scrollable?
     pub fn view<Z: 'static>(&mut self) -> Element<Message<Z>> {
-        let Auswahl { none_button_state, streckenabschnitte, scrollable_state } = self;
+        let Auswahl {
+            neu_name,
+            neu_name_state,
+            neu_anschluss_state,
+            none_button_state,
+            streckenabschnitte,
+            scrollable_state,
+        } = self;
         Container::new(
             Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
                 let mut scrollable = Scrollable::new(scrollable_state)
+                    // TODO Message muss Clone sein, Anschluss ist ein Singleton und kann nicht Clone sein!
+                    // .push(
+                    //     Row::new()
+                    //         .push(TextInput::new(neu_name_state, "<Name>", neu_name, todo!()))
+                    //         .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
+                    // )
                     .push(
                         Button::new(none_button_state, Text::new("Keinen"))
                             .on_press(Message::WähleStreckenabschnitt(None)),
