@@ -283,3 +283,12 @@ impl<'a, R: column::Renderer> iced_native::Widget<Message, R> for Widget<'a, R> 
         todo!()
     }
 }
+
+impl<'a, B> From<Widget<'a, Renderer<B>>> for Element<'a, Message, Renderer<B>>
+where
+    B: 'a + Backend,
+{
+    fn from(widget: Widget<'a, Renderer<B>>) -> Element<'a, Message, Renderer<B>> {
+        Element::new(widget)
+    }
+}
