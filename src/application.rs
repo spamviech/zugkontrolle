@@ -4,8 +4,11 @@ use std::convert::identity;
 use std::fmt::Debug;
 
 use log::*;
+use num_x::u3;
 use serde::{Deserialize, Serialize};
 use version::version;
+
+use crate::anschluss::{level::Level, pcf8574, polarity::Polarity};
 
 mod touch_canvas;
 
@@ -21,6 +24,8 @@ use style::*;
 pub mod streckenabschnitt;
 
 pub mod anschluss;
+
+pub(crate) mod macros;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
@@ -103,7 +108,10 @@ impl Skalieren {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
-    Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
+    Gleis {
+        gleis: AnyGleis<Z>,
+        grab_height: Skalar,
+    },
     Modus(Modus),
     Bewegen(Bewegen),
     Drehen(Drehen),
@@ -111,7 +119,15 @@ pub enum Message<Z> {
     SchließeModal,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
-    // TODO HinzufügenStreckenabschnitt
+    HinzufügenStreckenabschnitt {
+        name: streckenabschnitt::Name,
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: pcf8574::Variante,
+        port: u3,
+        polarität: Polarity,
+    },
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,
@@ -147,7 +163,7 @@ impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg
 
 #[derive(Debug)]
 enum Modal {
-    Streckenabschnitt(streckenabschnitt::Auswahl),
+    Streckenabschnitt(streckenabschnitt::AuswahlStatus),
 }
 
 pub struct Zugkontrolle<Z> {
@@ -161,7 +177,7 @@ pub struct Zugkontrolle<Z> {
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
     modal_state: iced_aw::modal::State<Modal>,
-    streckenabschnitt_aktuell: streckenabschnitt::Anzeige,
+    streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
     unten: iced::button::State,
@@ -188,7 +204,7 @@ where
 
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let streckenabschnitt_auswahl =
-            streckenabschnitt::Auswahl::neu(gleise.streckenabschnitte());
+            streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
         (
             Zugkontrolle {
                 gleise,
@@ -203,10 +219,7 @@ where
                 modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(
                     streckenabschnitt_auswahl,
                 )),
-                streckenabschnitt_aktuell: streckenabschnitt::Anzeige {
-                    aktuell: None,
-                    auswählen: iced::button::State::new(),
-                },
+                streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
                 oben: iced::button::State::new(),
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
@@ -277,13 +290,16 @@ where
             },
             Message::ZeigeAuswahlStreckenabschnitt => {
                 *self.modal_state.inner_mut() = Modal::Streckenabschnitt(
-                    streckenabschnitt::Auswahl::neu(self.gleise.streckenabschnitte()),
+                    streckenabschnitt::AuswahlStatus::neu(self.gleise.streckenabschnitte()),
                 );
                 self.modal_state.show(true);
             },
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
                 self.modal_state.show(false);
+            },
+            Message::HinzufügenStreckenabschnitt { .. } => {
+                todo!("Hinzufügen Streckenabschnitt")
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
@@ -412,7 +428,34 @@ where
             .into();
 
         iced_aw::Modal::new(modal_state, column, |modal| match modal {
-            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => streckenabschnitt_auswahl.view(),
+            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => iced::Element::from(
+                streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
+            )
+            .map(|message| {
+                use streckenabschnitt::AuswahlNachricht::*;
+                match message {
+                    SchließeAuswahlStreckenabschnitt => Message::SchließeModal,
+                    WähleStreckenabschnitt(wahl) => Message::WähleStreckenabschnitt(wahl),
+                    HinzufügenStreckenabschnitt {
+                        name,
+                        a0,
+                        a1,
+                        a2,
+                        variante,
+                        port,
+                        polarität,
+                    } => Message::HinzufügenStreckenabschnitt {
+                        name,
+                        a0,
+                        a1,
+                        a2,
+                        variante,
+                        port,
+                        polarität,
+                    },
+                    LöscheStreckenabschnitt(name) => Message::LöscheStreckenabschnitt(name),
+                }
+            }),
         })
         .on_esc(Message::SchließeModal)
         .into()
@@ -421,7 +464,7 @@ where
 
 fn top_row<'t, Z: 'static>(
     aktueller_modus: Modus,
-    streckenabschnitt: &'t mut streckenabschnitt::Anzeige,
+    streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     oben: &'t mut iced::button::State,
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
@@ -485,7 +528,9 @@ fn top_row<'t, Z: 'static>(
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
-        .push(streckenabschnitt.view(Message::ZeigeAuswahlStreckenabschnitt))
+        .push(iced::Element::from(streckenabschnitt::Anzeige::neu(streckenabschnitt)).map(
+            |streckenabschnitt::AnzeigeNachricht::Auswählen| Message::ZeigeAuswahlStreckenabschnitt,
+        ))
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
         .padding(5)

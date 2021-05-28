@@ -7,24 +7,22 @@ use iced_graphics::{backend, Backend, Renderer};
 use iced_native::{
     button,
     event,
-    layout,
     Button,
     Clipboard,
     Column,
     Element,
     Event,
-    Hasher,
     Layout,
     Length,
     Point,
     Radio,
-    Rectangle,
     Row,
     Text,
     Widget,
 };
 use num_x::u3;
 
+use super::macros::reexport_no_event_methods;
 use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarity};
 
 mod style;
@@ -254,44 +252,6 @@ impl<'a, T: 'a + Clone, M: 'static + Clone, B: 'a + Backend + backend::Text>
     }
 }
 
-macro_rules! reexport_methods {
-    ($type:ty, $record:ident, $message:ty) => {
-        fn width(&self) -> Length {
-            <$type as Widget<$message, Renderer<B>>>::width(&self.$record)
-        }
-
-        fn height(&self) -> Length {
-            <$type as Widget<$message, Renderer<B>>>::height(&self.$record)
-        }
-
-        fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-            <$type as Widget<$message, Renderer<B>>>::layout(&self.$record, renderer, limits)
-        }
-
-        fn draw(
-            &self,
-            renderer: &mut Renderer<B>,
-            defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-            layout: Layout<'_>,
-            cursor_position: Point,
-            viewport: &Rectangle,
-        ) -> <Renderer<B> as iced_native::Renderer>::Output {
-            <$type as Widget<$message, Renderer<B>>>::draw(
-                &self.$record,
-                renderer,
-                defaults,
-                layout,
-                cursor_position,
-                viewport,
-            )
-        }
-
-        fn hash_layout(&self, state: &mut Hasher) {
-            <$type as Widget<$message, Renderer<B>>>::hash_layout(&self.$record, state)
-        }
-    };
-}
-
 #[derive(Debug, Clone)]
 pub enum InputAnschluss {
     Pin {
@@ -310,7 +270,7 @@ pub enum InputAnschluss {
 impl<'a, B: Backend> Widget<InputAnschluss, Renderer<B>>
     for Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, B>
 {
-    reexport_methods! {Column<'a, InternalMessage<InputMessage>, Renderer<B>>, column, InternalMessage<InputMessage>}
+    reexport_no_event_methods! {Column<'a, InternalMessage<InputMessage>, Renderer<B>>, column, InternalMessage<InputMessage>, Renderer<B>}
 
     fn on_event(
         &mut self,
@@ -399,7 +359,7 @@ pub enum OutputAnschluss {
 impl<'a, B: Backend> Widget<OutputAnschluss, Renderer<B>>
     for Auswahl<'a, Output, InternalMessage<OutputMessage>, B>
 {
-    reexport_methods! {Column<'a, InternalMessage<OutputMessage>, Renderer<B>>, column, InternalMessage<OutputMessage>}
+    reexport_no_event_methods! {Column<'a, InternalMessage<OutputMessage>, Renderer<B>>, column, InternalMessage<OutputMessage>, Renderer<B>}
 
     fn on_event(
         &mut self,
@@ -497,7 +457,7 @@ impl<'a, B: 'a + Backend + backend::Text> Pwm<'a, B> {
 }
 
 impl<'a, B: Backend + backend::Text> Widget<PwmPin, Renderer<B>> for Pwm<'a, B> {
-    reexport_methods! {Column<'a, PwmMessage, Renderer<B>>, column, PwmMessage}
+    reexport_no_event_methods! {Column<'a, PwmMessage, Renderer<B>>, column, PwmMessage, Renderer<B>}
 
     fn on_event(
         &mut self,
