@@ -314,6 +314,9 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(name))
                 },
+                // TODO neu_name im Status anpassen!
+                // neu zeichen (view anpassen)
+                // analog für NumberInput, Tabs, etc. in anschluss::Auswahl
                 InterneAuswahlNachricht::Name(name) => self.neu_name = name,
             }
             status = event::Status::Captured;
