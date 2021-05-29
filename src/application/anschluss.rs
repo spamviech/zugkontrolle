@@ -127,7 +127,7 @@ pub struct Auswahl<'a, T, I, M, R> {
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
     new_pin: &'a dyn Fn(u8, T) -> M,
-    new_port: &'a dyn Fn(Level, Level, Level, Variante, u3, T) -> M,
+    new_port: Box<dyn Fn(Level, Level, Level, Variante, u3, T) -> M>,
 }
 
 impl<'a, R> Auswahl<'a, u8, InputMessage, InputAnschluss, R>
@@ -145,6 +145,7 @@ where
     <R as tab_bar::Renderer>::Style: From<style::TabBar>,
 {
     pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
+        let interrupt_pins = status.modus.interrupt_pins.clone();
         Auswahl::neu_mit_interrupt_view(
             status,
             |Input { number_input_state, pin, interrupt_pins }, a0, a1, a2, variante| {
@@ -159,21 +160,17 @@ where
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
             &|pin, _interrupt| InputAnschluss::Pin { pin },
-            &|a0, a1, a2, variante, port, interrupt| InputAnschluss::Pcf8574Port {
+            move |a0, a1, a2, variante, port, interrupt| InputAnschluss::Pcf8574Port {
                 a0,
                 a1,
                 a2,
                 variante,
                 port,
-                interrupt: Some(interrupt),
-                /*
-                // TODO
-                interrupt = if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
+                interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
                     None
                 } else {
                     Some(interrupt)
                 },
-                */
             },
         )
     }
@@ -217,7 +214,7 @@ where
             },
             &|modus, OutputMessage::Polarity(polarität)| *modus = polarität,
             &|pin, polarität| OutputAnschluss::Pin { pin, polarität },
-            &|a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
+            |a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -266,7 +263,7 @@ where
         ) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
         new_pin: &'a impl Fn(u8, T) -> M,
-        new_port: &'a impl Fn(Level, Level, Level, Variante, u3, T) -> M,
+        new_port: impl 'static + Fn(Level, Level, Level, Variante, u3, T) -> M,
     ) -> Self {
         let (view_interrupt, modus) = view_interrupt(modus, *a0, *a1, *a2, *variante);
         let tabs = vec![
@@ -335,7 +332,7 @@ where
             modus,
             update_modus,
             new_pin,
-            new_port,
+            new_port: Box::new(new_port),
         }
     }
 }
