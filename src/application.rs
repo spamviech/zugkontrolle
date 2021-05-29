@@ -193,7 +193,8 @@ impl<Z> Zugkontrolle<Z> {
             nachricht,
             button_state: iced::button::State::new(),
             message: Message::SchließeModal,
-        })
+        });
+        self.modal_state.show(true)
     }
 }
 
@@ -443,15 +444,16 @@ where
             .into();
 
         iced_aw::Modal::new(modal_state, column, |modal| match modal {
-            Modal::MessageBox { titel, nachricht, button_state, message } => {
-                iced::Element::from(iced_aw::Card::new(
+            Modal::MessageBox { titel, nachricht, button_state, message } => iced::Element::from(
+                iced_aw::Card::new(
                     iced::Text::new(&*titel),
                     iced::Column::new().push(iced::Text::new(&*nachricht)).push(
                         iced::Button::new(button_state, iced::Text::new("Ok"))
                             .on_press(message.clone()),
                     ),
-                ))
-            },
+                )
+                .width(iced::Length::Shrink),
+            ),
             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => iced::Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
