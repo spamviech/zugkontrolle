@@ -2,7 +2,16 @@
 
 use std::collections::BTreeMap;
 
-use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
+use iced_aw::native::{
+    card,
+    color_picker,
+    icon_text,
+    number_input,
+    tab_bar,
+    tabs,
+    Card,
+    ColorPicker,
+};
 use iced_native::{
     button,
     column,
@@ -112,8 +121,12 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
 #[derive(Debug)]
 pub struct AuswahlStatus {
     neu_name: String,
+    neu_farbe: Color,
     neu_name_state: text_input::State,
     neu_anschluss_state: anschluss::Status<anschluss::Output>,
+    neu_color_picker_state: color_picker::State,
+    neu_color_picker_sichtbar: bool,
+    neu_color_button_state: button::State,
     neu_button_state: button::State,
     none_button_state: button::State,
     streckenabschnitte: BTreeMap<Name, (String, Color, button::State, button::State)>,
@@ -126,8 +139,12 @@ impl AuswahlStatus {
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
+            neu_farbe: Color::WHITE,
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),
+            neu_color_picker_state: color_picker::State::new(),
+            neu_color_picker_sichtbar: false,
+            neu_color_button_state: button::State::new(),
             neu_button_state: button::State::new(),
             none_button_state: button::State::new(),
             streckenabschnitte: streckenabschnitte.map(Self::iter_map).collect(),
@@ -182,6 +199,9 @@ enum InterneAuswahlNachricht {
     Hinzufügen,
     Lösche(Name),
     Name(String),
+    FarbeAuswählen,
+    FarbeAbbrechen,
+    FarbeBestimmen(Color),
 }
 
 #[derive(Debug, Clone)]
@@ -195,6 +215,8 @@ pub enum AuswahlNachricht {
 pub struct Auswahl<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
+    neu_farbe: &'a mut Color,
+    neu_color_picker_sichtbar: &'a mut bool,
 }
 
 impl<'a, R> Auswahl<'a, R>
@@ -210,28 +232,36 @@ where
         + scrollable::Renderer
         + number_input::Renderer
         + tabs::Renderer
-        + card::Renderer,
+        + card::Renderer
+        + color_picker::Renderer
+        + icon_text::Renderer,
     <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
     <R as button::Renderer>::Style: From<style::Auswahl>,
     <R as container::Renderer>::Style: From<background::Grey>,
 {
     pub fn neu(status: &'a mut AuswahlStatus) -> Self {
-        let (container, neu_name) = Self::container(status);
-        Auswahl { container, neu_name }
+        let (container, neu_name, neu_farbe, neu_color_picker_sichtbar) = Self::container(status);
+        Auswahl { container, neu_name, neu_farbe, neu_color_picker_sichtbar }
     }
 
     fn container(
         status: &'a mut AuswahlStatus,
-    ) -> (Container<'a, InterneAuswahlNachricht, R>, &'a mut String) {
+    ) -> (Container<'a, InterneAuswahlNachricht, R>, &'a mut String, &'a mut Color, &'a mut bool)
+    {
         let AuswahlStatus {
             neu_name,
+            neu_farbe,
             neu_name_state,
             neu_anschluss_state,
+            neu_color_picker_state,
+            neu_color_picker_sichtbar,
+            neu_color_button_state,
             neu_button_state,
             none_button_state,
             streckenabschnitte,
             scrollable_state,
         } = status;
+        neu_color_picker_state.show(*neu_color_picker_sichtbar);
         (
             Container::new(
                 Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
@@ -248,10 +278,15 @@ where
                                                 InterneAuswahlNachricht::Name,
                                             )
                                             .width(Length::Units(200)),
-                                        )// TODO farbauswahl
-                                        .push(Element::from(anschluss::Auswahl::neu_output(
-                                            neu_anschluss_state,
-                                        ))),
+                                        )
+                                        .push(ColorPicker::new(
+                                            neu_color_picker_state,
+                                            Button::new(neu_color_button_state, Text::new("Farbe"))
+                                                .on_press(InterneAuswahlNachricht::FarbeAuswählen),
+                                            InterneAuswahlNachricht::FarbeAbbrechen,
+                                            InterneAuswahlNachricht::FarbeBestimmen,
+                                        ))
+                                        .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
                                 )
                                 .push(
                                     Button::new(neu_button_state, Text::new("Hinzufügen"))
@@ -293,6 +328,8 @@ where
             .width(Length::Shrink)
             .height(Length::Shrink),
             neu_name,
+            neu_farbe,
+            neu_color_picker_sichtbar,
         )
     }
 }
@@ -332,6 +369,9 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
                     messages.push(AuswahlNachricht::Lösche(name))
                 },
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
+                InterneAuswahlNachricht::FarbeAuswählen => *self.neu_color_picker_sichtbar = true,
+                InterneAuswahlNachricht::FarbeAbbrechen => *self.neu_color_picker_sichtbar = false,
+                InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
             }
             status = event::Status::Captured;
         }
