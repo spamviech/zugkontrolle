@@ -2,11 +2,13 @@
 
 use std::collections::BTreeMap;
 
-use iced_aw::native::{card, Card};
+use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
     button,
+    column,
     container,
     event,
+    radio,
     row,
     scrollable,
     text,
@@ -28,10 +30,8 @@ use iced_native::{
     TextInput,
     Widget,
 };
-use num_x::u3;
 
 use super::{anschluss, macros::reexport_no_event_methods, style::background};
-use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarity};
 pub use crate::steuerung::streckenabschnitt::Name;
 use crate::steuerung::Streckenabschnitt;
 
@@ -147,9 +147,7 @@ impl AuswahlStatus {
     }
 
     /// Ersetze die angezeigten Streckenabschnitte mit dem Argument.
-    // TODO remove pragma
-    #[allow(dead_code)]
-    pub(super) fn update<'t>(
+    pub fn update<'t>(
         &mut self,
         streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
     ) {
@@ -158,56 +156,58 @@ impl AuswahlStatus {
     }
 
     /// Entferne den Streckenabschnitt mit übergebenen Namen.
-    pub(super) fn entferne(&mut self, name: &Name) {
+    pub fn entferne(&mut self, name: &Name) {
         self.streckenabschnitte.remove(name);
     }
 
     /// Füge einen neuen Streckenabschnitt hinzu.
     /// Falls der Name bereits existiert wird der bisherige ersetzt.
-    // TODO remove pragma
-    #[allow(dead_code)]
-    pub(super) fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
+    pub fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
         let (key, value) = Self::iter_map((name, streckenabschnitt));
         self.streckenabschnitte.insert(key, value);
     }
 }
 
 #[derive(Debug, Clone)]
+enum InterneAuswahlNachricht {
+    Schließe,
+    Wähle(Option<(Name, iced::Color)>),
+    Hinzufügen(anschluss::OutputAnschluss),
+    Lösche(Name),
+    Name(String),
+}
+
+#[derive(Debug, Clone)]
 pub enum AuswahlNachricht {
-    SchließeAuswahlStreckenabschnitt,
-    WähleStreckenabschnitt(Option<(Name, iced::Color)>),
-    HinzufügenStreckenabschnitt {
-        name: Name,
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        port: u3,
-        polarität: Polarity,
-    },
-    LöscheStreckenabschnitt(Name),
+    Schließe,
+    Wähle(Option<(Name, iced::Color)>),
+    Hinzufügen(Name, anschluss::OutputAnschluss),
+    Lösche(Name),
 }
 
 pub struct Auswahl<'a, R: Renderer + container::Renderer> {
-    container: Container<'a, AuswahlNachricht, R>,
+    container: Container<'a, InterneAuswahlNachricht, R>,
+    neu_name: String,
 }
 
 impl<'a, R> Auswahl<'a, R>
 where
     R: 'a
         + Renderer
-        + container::Renderer
         + text::Renderer
+        + radio::Renderer
+        + column::Renderer
+        + row::Renderer
+        + container::Renderer
         + button::Renderer
         + scrollable::Renderer
-        + row::Renderer
+        + number_input::Renderer
+        + tabs::Renderer
         + card::Renderer,
+    <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
     <R as button::Renderer>::Style: From<style::Auswahl>,
     <R as container::Renderer>::Style: From<background::Grey>,
 {
-    // TODO
-    // Erste Zeile Leer(None Auswahl), Neu(Streckenabschnitt erstellen)
-    // Über Scrollable?
     pub fn neu(status: &'a mut AuswahlStatus) -> Self {
         let AuswahlStatus {
             neu_name,
@@ -220,15 +220,25 @@ where
         let container = Container::new(
             Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
                 let mut scrollable = Scrollable::new(scrollable_state)
-                    // TODO Message muss Clone sein, Anschluss ist ein Singleton und kann nicht Clone sein!
-                    // .push(
-                    //     Row::new()
-                    //         .push(TextInput::new(neu_name_state, "<Name>", neu_name, todo!()))
-                    //         .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
-                    // )
+                    .push(
+                        Row::new()
+                            .push(
+                                TextInput::new(
+                                    neu_name_state,
+                                    "<Name>",
+                                    neu_name,
+                                    InterneAuswahlNachricht::Name,
+                                )
+                                .width(Length::Units(200)),
+                            )
+                            .push(
+                                Element::from(anschluss::Auswahl::neu_output(neu_anschluss_state))
+                                    .map(InterneAuswahlNachricht::Hinzufügen),
+                            ),
+                    )
                     .push(
                         Button::new(none_button_state, Text::new("Keinen"))
-                            .on_press(AuswahlNachricht::WähleStreckenabschnitt(None)),
+                            .on_press(InterneAuswahlNachricht::Wähle(None)),
                     )
                     .width(Length::Shrink);
                 for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
@@ -239,31 +249,32 @@ where
                                     button_state,
                                     Text::new(&format!("{}: {:?}", name.0, anschluss)),
                                 )
-                                .on_press(AuswahlNachricht::WähleStreckenabschnitt(Some((
+                                .on_press(InterneAuswahlNachricht::Wähle(Some((
                                     name.clone(),
                                     *farbe,
                                 ))))
                                 .style(style::Auswahl(*farbe)),
                             )
-                            .push(Button::new(delete_state, Text::new("X")).on_press(
-                                AuswahlNachricht::LöscheStreckenabschnitt(name.clone()),
-                            )),
+                            .push(
+                                Button::new(delete_state, Text::new("X"))
+                                    .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                            ),
                     );
                 }
                 scrollable
             })
-            .on_close(AuswahlNachricht::SchließeAuswahlStreckenabschnitt)
+            .on_close(InterneAuswahlNachricht::Schließe)
             .width(Length::Shrink),
         )
         .style(background::WHITE)
         .width(Length::Shrink)
         .height(Length::Shrink);
-        Auswahl { container }
+        Auswahl { container, neu_name: String::new() }
     }
 }
 
 impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
-    reexport_no_event_methods! {Container<'a, AuswahlNachricht, R>, container, AuswahlNachricht, R}
+    reexport_no_event_methods! {Container<'a, InterneAuswahlNachricht, R>, container, InterneAuswahlNachricht, R}
 
     fn on_event(
         &mut self,
@@ -274,7 +285,40 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<AuswahlNachricht>,
     ) -> event::Status {
-        self.container.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+        let mut container_messages = Vec::new();
+        let mut status = self.container.on_event(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            &mut container_messages,
+        );
+        for message in container_messages {
+            match message {
+                InterneAuswahlNachricht::Schließe => messages.push(AuswahlNachricht::Schließe),
+                InterneAuswahlNachricht::Wähle(wahl) => {
+                    messages.push(AuswahlNachricht::Wähle(wahl));
+                    messages.push(AuswahlNachricht::Schließe)
+                },
+                InterneAuswahlNachricht::Hinzufügen(anschluss) => {
+                    messages.push(AuswahlNachricht::Hinzufügen(
+                        Name(self.neu_name.clone()),
+                        anschluss,
+                    ));
+                    messages.push(AuswahlNachricht::Wähle(Some((
+                        Name(self.neu_name.clone()),
+                        iced::Color::WHITE, // TODO farbauswahl
+                    ))))
+                },
+                InterneAuswahlNachricht::Lösche(name) => {
+                    messages.push(AuswahlNachricht::Lösche(name))
+                },
+                InterneAuswahlNachricht::Name(name) => self.neu_name = name,
+            }
+            status = event::Status::Captured;
+        }
+        status
     }
 }
 

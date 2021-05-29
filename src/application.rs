@@ -3,12 +3,9 @@
 use std::convert::identity;
 use std::fmt::Debug;
 
-use log::*;
-use num_x::u3;
+use log::error;
 use serde::{Deserialize, Serialize};
 use version::version;
-
-use crate::anschluss::{level::Level, pcf8574, polarity::Polarity};
 
 mod touch_canvas;
 
@@ -108,10 +105,7 @@ impl Skalieren {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
-    Gleis {
-        gleis: AnyGleis<Z>,
-        grab_height: Skalar,
-    },
+    Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
     Modus(Modus),
     Bewegen(Bewegen),
     Drehen(Drehen),
@@ -119,15 +113,7 @@ pub enum Message<Z> {
     SchließeModal,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
-    HinzufügenStreckenabschnitt {
-        name: streckenabschnitt::Name,
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: pcf8574::Variante,
-        port: u3,
-        polarität: Polarity,
-    },
+    HinzufügenStreckenabschnitt(streckenabschnitt::Name, anschluss::OutputAnschluss),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,
@@ -298,8 +284,8 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
                 self.modal_state.show(false);
             },
-            Message::HinzufügenStreckenabschnitt { .. } => {
-                todo!("Hinzufügen Streckenabschnitt")
+            Message::HinzufügenStreckenabschnitt(name, anschluss) => {
+                todo!("HinzufügenStreckenabschnitt({:?}, {:?})", name, anschluss)
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
@@ -434,26 +420,12 @@ where
             .map(|message| {
                 use streckenabschnitt::AuswahlNachricht::*;
                 match message {
-                    SchließeAuswahlStreckenabschnitt => Message::SchließeModal,
-                    WähleStreckenabschnitt(wahl) => Message::WähleStreckenabschnitt(wahl),
-                    HinzufügenStreckenabschnitt {
-                        name,
-                        a0,
-                        a1,
-                        a2,
-                        variante,
-                        port,
-                        polarität,
-                    } => Message::HinzufügenStreckenabschnitt {
-                        name,
-                        a0,
-                        a1,
-                        a2,
-                        variante,
-                        port,
-                        polarität,
+                    Schließe => Message::SchließeModal,
+                    Wähle(wahl) => Message::WähleStreckenabschnitt(wahl),
+                    Hinzufügen(name, anschluss) => {
+                        Message::HinzufügenStreckenabschnitt(name, anschluss)
                     },
-                    LöscheStreckenabschnitt(name) => Message::LöscheStreckenabschnitt(name),
+                    Lösche(name) => Message::LöscheStreckenabschnitt(name),
                 }
             }),
         })

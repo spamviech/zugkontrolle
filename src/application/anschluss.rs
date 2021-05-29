@@ -30,7 +30,7 @@ use num_x::u3;
 use super::macros::reexport_no_event_methods;
 use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarity};
 
-mod style;
+pub mod style;
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
 #[derive(Debug)]
@@ -107,16 +107,16 @@ enum InternalMessage<T> {
     Hinzufügen,
 }
 #[derive(Debug, Clone)]
-enum InputMessage {
+pub enum InputMessage {
     Interrupt(u8),
 }
 #[derive(Debug, Clone)]
-enum OutputMessage {
+pub enum OutputMessage {
     Polarity(Polarity),
 }
 
 pub struct Auswahl<'a, T, M, R> {
-    column: Column<'a, M, R>,
+    column: Column<'a, InternalMessage<M>, R>,
     active_tab: usize,
     pin: u8,
     a0: Level,
@@ -127,7 +127,7 @@ pub struct Auswahl<'a, T, M, R> {
     modus: T,
 }
 
-impl<'a, R> Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>
+impl<'a, R> Auswahl<'a, Input<'a>, InputMessage, R>
 where
     R: 'a
         + Renderer
@@ -154,7 +154,7 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Output, InternalMessage<OutputMessage>, R>
+impl<'a, R> Auswahl<'a, Output, OutputMessage, R>
 where
     R: 'a
         + Renderer
@@ -188,7 +188,7 @@ where
     }
 }
 
-impl<'a, T: 'a + Clone, M: 'static + Clone, R> Auswahl<'a, T, InternalMessage<M>, R>
+impl<'a, T: 'a + Clone, M: 'static + Clone, R> Auswahl<'a, T, M, R>
 where
     R: 'a
         + Renderer
@@ -266,14 +266,15 @@ where
         let column = Column::new()
             .push(
                 Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
-                    .tab_bar_style(style::TabBar),
+                    .tab_bar_style(style::TabBar)
+                    .height(Length::Shrink)
+                    // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
+                    .width(Length::Units(500)),
             )
             .push(
                 Button::new(confirm_state, Text::new("Hinzufügen"))
                     .on_press(InternalMessage::Hinzufügen),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill);
+            );
         Auswahl {
             column,
             active_tab: *active_tab,
@@ -304,7 +305,7 @@ pub enum InputAnschluss {
 }
 
 impl<'a, R: 'a + Renderer + column::Renderer> Widget<InputAnschluss, R>
-    for Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>
+    for Auswahl<'a, Input<'a>, InputMessage, R>
 {
     reexport_no_event_methods! {Column<'a, InternalMessage<InputMessage>, R>, column, InternalMessage<InputMessage>, R}
 
@@ -368,11 +369,10 @@ impl<'a, R: 'a + Renderer + column::Renderer> Widget<InputAnschluss, R>
     }
 }
 
-impl<'a, R: 'a + Renderer + column::Renderer>
-    From<Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>>
+impl<'a, R: 'a + Renderer + column::Renderer> From<Auswahl<'a, Input<'a>, InputMessage, R>>
     for Element<'a, InputAnschluss, R>
 {
-    fn from(auswahl: Auswahl<'a, Input<'a>, InternalMessage<InputMessage>, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Input<'a>, InputMessage, R>) -> Self {
         Element::new(auswahl)
     }
 }
@@ -394,7 +394,7 @@ pub enum OutputAnschluss {
 }
 
 impl<'a, R: 'a + Renderer + column::Renderer> Widget<OutputAnschluss, R>
-    for Auswahl<'a, Output, InternalMessage<OutputMessage>, R>
+    for Auswahl<'a, Output, OutputMessage, R>
 {
     reexport_no_event_methods! {Column<'a, InternalMessage<OutputMessage>, R>, column, InternalMessage<OutputMessage>, R}
 
@@ -449,11 +449,10 @@ impl<'a, R: 'a + Renderer + column::Renderer> Widget<OutputAnschluss, R>
     }
 }
 
-impl<'a, R: 'a + Renderer + column::Renderer>
-    From<Auswahl<'a, Output, InternalMessage<OutputMessage>, R>>
+impl<'a, R: 'a + Renderer + column::Renderer> From<Auswahl<'a, Output, OutputMessage, R>>
     for Element<'a, OutputAnschluss, R>
 {
-    fn from(auswahl: Auswahl<'a, Output, InternalMessage<OutputMessage>, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Output, OutputMessage, R>) -> Self {
         Element::new(auswahl)
     }
 }

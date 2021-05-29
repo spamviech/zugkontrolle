@@ -1,6 +1,6 @@
 //! Style-Strukturen zur Auswahl eines Anschlusses.
 
-pub(crate) struct TabBar;
+pub struct TabBar;
 impl TabBar {
     fn style(&self, tab_label_background: iced::Color) -> iced_aw::tab_bar::Style {
         iced_aw::tab_bar::Style {
