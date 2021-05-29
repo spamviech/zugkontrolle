@@ -17,6 +17,7 @@ use iced_native::{
     Button,
     Clipboard,
     Color,
+    Column,
     Container,
     Element,
     Event,
@@ -113,6 +114,7 @@ pub struct AuswahlStatus {
     neu_name: String,
     neu_name_state: text_input::State,
     neu_anschluss_state: anschluss::Status<anschluss::Output>,
+    neu_button_state: button::State,
     none_button_state: button::State,
     streckenabschnitte: BTreeMap<Name, (String, Color, button::State, button::State)>,
     scrollable_state: scrollable::State,
@@ -126,6 +128,7 @@ impl AuswahlStatus {
             neu_name: String::new(),
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),
+            neu_button_state: button::State::new(),
             none_button_state: button::State::new(),
             streckenabschnitte: streckenabschnitte.map(Self::iter_map).collect(),
             scrollable_state: scrollable::State::new(),
@@ -166,13 +169,17 @@ impl AuswahlStatus {
         let (key, value) = Self::iter_map((name, streckenabschnitt));
         self.streckenabschnitte.insert(key, value);
     }
+
+    pub fn streckenabschnitt(&self) -> (Name, anschluss::OutputAnschluss) {
+        (Name(self.neu_name.clone()), self.neu_anschluss_state.output_anschluss())
+    }
 }
 
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
     Schließe,
     Wähle(Option<(Name, iced::Color)>),
-    Hinzufügen(anschluss::OutputAnschluss),
+    Hinzufügen,
     Lösche(Name),
     Name(String),
 }
@@ -181,7 +188,7 @@ enum InterneAuswahlNachricht {
 pub enum AuswahlNachricht {
     Schließe,
     Wähle(Option<(Name, iced::Color)>),
-    Hinzufügen(Name, anschluss::OutputAnschluss),
+    Hinzufügen,
     Lösche(Name),
 }
 
@@ -220,6 +227,7 @@ where
             neu_name,
             neu_name_state,
             neu_anschluss_state,
+            neu_button_state,
             none_button_state,
             streckenabschnitte,
             scrollable_state,
@@ -229,21 +237,25 @@ where
                 Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
                     let mut scrollable = Scrollable::new(scrollable_state)
                         .push(
-                            Row::new()
+                            Column::new()
                                 .push(
-                                    TextInput::new(
-                                        neu_name_state,
-                                        "<Name>",
-                                        neu_name,
-                                        InterneAuswahlNachricht::Name,
-                                    )
-                                    .width(Length::Units(200)),
+                                    Row::new()
+                                        .push(
+                                            TextInput::new(
+                                                neu_name_state,
+                                                "<Name>",
+                                                neu_name,
+                                                InterneAuswahlNachricht::Name,
+                                            )
+                                            .width(Length::Units(200)),
+                                        )// TODO farbauswahl
+                                        .push(Element::from(anschluss::Auswahl::neu_output(
+                                            neu_anschluss_state,
+                                        ))),
                                 )
                                 .push(
-                                    Element::from(anschluss::Auswahl::neu_output(
-                                        neu_anschluss_state,
-                                    ))
-                                    .map(InterneAuswahlNachricht::Hinzufügen),
+                                    Button::new(neu_button_state, Text::new("Hinzufügen"))
+                                        .on_press(InterneAuswahlNachricht::Hinzufügen),
                                 ),
                         )
                         .push(
@@ -313,15 +325,8 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
                     messages.push(AuswahlNachricht::Wähle(wahl));
                     messages.push(AuswahlNachricht::Schließe)
                 },
-                InterneAuswahlNachricht::Hinzufügen(anschluss) => {
-                    messages.push(AuswahlNachricht::Hinzufügen(
-                        Name(self.neu_name.clone()),
-                        anschluss,
-                    ));
-                    messages.push(AuswahlNachricht::Wähle(Some((
-                        Name(self.neu_name.clone()),
-                        iced::Color::WHITE, // TODO farbauswahl
-                    ))))
+                InterneAuswahlNachricht::Hinzufügen => {
+                    messages.push(AuswahlNachricht::Hinzufügen);
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(name))

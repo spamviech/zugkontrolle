@@ -113,7 +113,7 @@ pub enum Message<Z> {
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
-    HinzufügenStreckenabschnitt(streckenabschnitt::Name, anschluss::OutputAnschluss),
+    HinzufügenStreckenabschnitt,
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,
@@ -302,12 +302,18 @@ where
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
-            Message::HinzufügenStreckenabschnitt(name, anschluss) => {
-                // TODO
-                self.zeige_message_box(
-                    "HinzufügenStreckenabschnitt".to_string(),
-                    format!("{}: {:?}", name.0, anschluss),
-                )
+            Message::HinzufügenStreckenabschnitt => {
+                match self.modal_state.inner() {
+                    Modal::Streckenabschnitt(auswahl_status) => {
+                        // TODO farbauswahl
+                        let (name, anschluss) = auswahl_status.streckenabschnitt();
+                        // TODO reservieren der Anschlüsse + struct erstellen
+                        self.zeige_message_box(
+                            "HinzufügenStreckenabschnitt".to_string(),
+                            format!("{}: {:?}", name.0, anschluss),
+                        )
+                    },
+                }
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
@@ -341,16 +347,16 @@ where
             Message::Speichern => {
                 if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
                     self.zeige_message_box(
-                        "Fehler beim Speichern".to_string(),
-                        format!("Fehler beim Speichern in {}: {:?}", self.aktueller_pfad, err),
+                        format!("Fehler beim Speichern in {}", self.aktueller_pfad),
+                        format!("{:?}", err),
                     )
                 }
             },
             Message::Laden => {
                 if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
                     self.zeige_message_box(
-                        "Fehler beim Laden".to_string(),
-                        format!("Fehler beim Laden von {}: {:?}", self.aktueller_pfad, err),
+                        format!("Fehler beim Laden von {}", self.aktueller_pfad),
+                        format!("{:?}", err),
                     )
                 } else {
                     self.streckenabschnitt_aktuell.aktuell = None;
@@ -447,9 +453,7 @@ where
                 match message {
                     Schließe => Message::SchließeModal,
                     Wähle(wahl) => Message::WähleStreckenabschnitt(wahl),
-                    Hinzufügen(name, anschluss) => {
-                        Message::HinzufügenStreckenabschnitt(name, anschluss)
-                    },
+                    Hinzufügen => Message::HinzufügenStreckenabschnitt,
                     Lösche(name) => Message::LöscheStreckenabschnitt(name),
                 }
             }),

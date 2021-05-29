@@ -36,7 +36,6 @@ pub mod style;
 #[derive(Debug)]
 pub struct Status<T> {
     active_tab: usize,
-    confirm_state: button::State,
     pin_state: number_input::State,
     pin: u8,
     a0: Level,
@@ -63,6 +62,27 @@ impl<'t> Status<Input<'t>> {
             interrupt_pins,
         })
     }
+
+    #[inline]
+    pub fn input_anschluss(&self) -> InputAnschluss {
+        self.anschluss(
+            |pin, _input| InputAnschluss::Pin { pin },
+            |a0, a1, a2, variante, port, Input { pin, interrupt_pins, .. }| {
+                InputAnschluss::Pcf8574Port {
+                    a0,
+                    a1,
+                    a2,
+                    variante,
+                    port,
+                    interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
+                        None
+                    } else {
+                        Some(*pin)
+                    },
+                }
+            },
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -74,13 +94,39 @@ impl Status<Output> {
     pub fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output { polarität: Polarity::Normal })
     }
+
+    #[inline]
+    pub fn output_anschluss(&self) -> OutputAnschluss {
+        self.anschluss(
+            |pin, Output { polarität }| OutputAnschluss::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, Output { polarität }| OutputAnschluss::Pcf8574Port {
+                a0,
+                a1,
+                a2,
+                variante,
+                port,
+                polarität: *polarität,
+            },
+        )
+    }
 }
 
 impl<T> Status<T> {
+    fn anschluss<M>(
+        &self,
+        make_pin: impl Fn(u8, &T) -> M,
+        make_port: impl Fn(Level, Level, Level, Variante, u3, &T) -> M,
+    ) -> M {
+        if self.active_tab == 0 {
+            make_pin(self.pin, &self.modus)
+        } else {
+            make_port(self.a0, self.a1, self.a2, self.variante, u3::new(self.port), &self.modus)
+        }
+    }
+
     fn neu_mit_interrupt(modus: T) -> Self {
         Status {
             active_tab: 0,
-            confirm_state: button::State::new(),
             pin_state: number_input::State::new(),
             pin: 0,
             a0: Level::Low,
@@ -104,7 +150,6 @@ enum InternalMessage<T> {
     Variante(Variante),
     Port(u8),
     Modus(T),
-    Hinzufügen,
 }
 #[derive(Debug, Clone)]
 pub enum InputMessage {
@@ -115,8 +160,8 @@ pub enum OutputMessage {
     Polarity(Polarity),
 }
 
-pub struct Auswahl<'a, T, I, M, R> {
-    column: Column<'a, InternalMessage<I>, R>,
+pub struct Auswahl<'a, T, I, R: tabs::Renderer> {
+    tabs: Tabs<'a, InternalMessage<I>, R>,
     active_tab: &'a mut usize,
     pin: &'a mut u8,
     a0: &'a mut Level,
@@ -126,11 +171,9 @@ pub struct Auswahl<'a, T, I, M, R> {
     port: &'a mut u8,
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
-    new_pin: &'a dyn Fn(u8, T) -> M,
-    new_port: Box<dyn Fn(Level, Level, Level, Variante, u3, T) -> M>,
 }
 
-impl<'a, R> Auswahl<'a, u8, InputMessage, InputAnschluss, R>
+impl<'a, R> Auswahl<'a, u8, InputMessage, R>
 where
     R: 'a
         + Renderer
@@ -145,7 +188,6 @@ where
     <R as tab_bar::Renderer>::Style: From<style::TabBar>,
 {
     pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
-        let interrupt_pins = status.modus.interrupt_pins.clone();
         Auswahl::neu_mit_interrupt_view(
             status,
             |Input { number_input_state, pin, interrupt_pins }, a0, a1, a2, variante| {
@@ -159,24 +201,11 @@ where
                 )
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
-            &|pin, _interrupt| InputAnschluss::Pin { pin },
-            move |a0, a1, a2, variante, port, interrupt| InputAnschluss::Pcf8574Port {
-                a0,
-                a1,
-                a2,
-                variante,
-                port,
-                interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
-                    None
-                } else {
-                    Some(interrupt)
-                },
-            },
         )
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarity, OutputMessage, OutputAnschluss, R>
+impl<'a, R> Auswahl<'a, Polarity, OutputMessage, R>
 where
     R: 'a
         + Renderer
@@ -213,20 +242,11 @@ where
                 )
             },
             &|modus, OutputMessage::Polarity(polarität)| *modus = polarität,
-            &|pin, polarität| OutputAnschluss::Pin { pin, polarität },
-            |a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
-                a0,
-                a1,
-                a2,
-                variante,
-                port,
-                polarität,
-            },
         )
     }
 }
 
-impl<'a, T: Copy, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
+impl<'a, T: Copy, I: 'static + Clone, R> Auswahl<'a, T, I, R>
 where
     R: 'a
         + Renderer
@@ -243,7 +263,6 @@ where
     fn neu_mit_interrupt_view<IO>(
         Status {
             active_tab,
-            confirm_state,
             pin_state,
             pin,
             a0,
@@ -262,8 +281,6 @@ where
             Variante,
         ) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
-        new_pin: &'a impl Fn(u8, T) -> M,
-        new_port: impl 'static + Fn(Level, Level, Level, Variante, u3, T) -> M,
     ) -> Self {
         let (view_interrupt, modus) = view_interrupt(modus, *a0, *a1, *a2, *variante);
         let tabs = vec![
@@ -308,32 +325,12 @@ where
                     .into()
             }),
         ];
-        let column = Column::new()
-            .push(
-                Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
+        let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
                     .tab_bar_style(style::TabBar)
                     .height(Length::Shrink)
                     // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
-                    .width(Length::Units(500)),
-            )
-            .push(
-                Button::new(confirm_state, Text::new("Hinzufügen"))
-                    .on_press(InternalMessage::Hinzufügen),
-            );
-        Auswahl {
-            column,
-            active_tab,
-            pin,
-            a0,
-            a1,
-            a2,
-            variante,
-            port,
-            modus,
-            update_modus,
-            new_pin,
-            new_port: Box::new(new_port),
-        }
+                    .width(Length::Units(500));
+        Auswahl { tabs, active_tab, pin, a0, a1, a2, variante, port, modus, update_modus }
     }
 }
 
@@ -368,10 +365,12 @@ pub enum OutputAnschluss {
     },
 }
 
-impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> Widget<M, R>
-    for Auswahl<'a, T, I, M, R>
+impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, R>
+where
+    T: Copy,
+    R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
 {
-    reexport_no_event_methods! {Column<'a, InternalMessage<I>, R>, column, InternalMessage<I>, R}
+    reexport_no_event_methods! {Tabs<'a, InternalMessage<I>, R>, tabs, InternalMessage<I>, R}
 
     fn on_event(
         &mut self,
@@ -380,18 +379,18 @@ impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> Widget<M, R>
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<M>,
+        _messages: &mut Vec<M>,
     ) -> event::Status {
-        let mut column_messages = Vec::new();
-        let mut status = self.column.on_event(
+        let mut internal_messages = Vec::new();
+        let mut status = self.tabs.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut column_messages,
+            &mut internal_messages,
         );
-        for message in column_messages {
+        for message in internal_messages {
             match message {
                 InternalMessage::TabSelected(tab) => *self.active_tab = tab,
                 InternalMessage::Pin(pin) => *self.pin = pin,
@@ -401,20 +400,6 @@ impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> Widget<M, R>
                 InternalMessage::Variante(variante) => *self.variante = variante,
                 InternalMessage::Port(port) => *self.port = port,
                 InternalMessage::Modus(msg) => (self.update_modus)(self.modus, msg),
-                InternalMessage::Hinzufügen => messages.push(
-                    if *self.active_tab == 0 {
-                        (self.new_pin)(*self.pin, *self.modus)
-                    } else {
-                        (self.new_port)(
-                            *self.a0,
-                            *self.a1,
-                            *self.a2,
-                            *self.variante,
-                            u3::new(*self.port),
-                            *self.modus,
-                        )
-                    },
-                ),
             }
             status = event::Status::Captured;
         }
@@ -422,10 +407,12 @@ impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> Widget<M, R>
     }
 }
 
-impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> From<Auswahl<'a, T, I, M, R>>
-    for Element<'a, M, R>
+impl<'a, T, I, M, R> From<Auswahl<'a, T, I, R>> for Element<'a, M, R>
+where
+    T: Copy,
+    R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
 {
-    fn from(auswahl: Auswahl<'a, T, I, M, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, T, I, R>) -> Self {
         Element::new(auswahl)
     }
 }
