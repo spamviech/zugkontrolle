@@ -187,7 +187,7 @@ pub enum AuswahlNachricht {
 
 pub struct Auswahl<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneAuswahlNachricht, R>,
-    neu_name: String,
+    neu_name: &'a mut String,
 }
 
 impl<'a, R> Auswahl<'a, R>
@@ -209,6 +209,13 @@ where
     <R as container::Renderer>::Style: From<background::Grey>,
 {
     pub fn neu(status: &'a mut AuswahlStatus) -> Self {
+        let (container, neu_name) = Self::container(status);
+        Auswahl { container, neu_name }
+    }
+
+    fn container(
+        status: &'a mut AuswahlStatus,
+    ) -> (Container<'a, InterneAuswahlNachricht, R>, &'a mut String) {
         let AuswahlStatus {
             neu_name,
             neu_name_state,
@@ -217,59 +224,64 @@ where
             streckenabschnitte,
             scrollable_state,
         } = status;
-        let container = Container::new(
-            Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-                let mut scrollable = Scrollable::new(scrollable_state)
-                    .push(
-                        Row::new()
-                            .push(
-                                TextInput::new(
-                                    neu_name_state,
-                                    "<Name>",
-                                    neu_name,
-                                    InterneAuswahlNachricht::Name,
+        (
+            Container::new(
+                Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
+                    let mut scrollable = Scrollable::new(scrollable_state)
+                        .push(
+                            Row::new()
+                                .push(
+                                    TextInput::new(
+                                        neu_name_state,
+                                        "<Name>",
+                                        neu_name,
+                                        InterneAuswahlNachricht::Name,
+                                    )
+                                    .width(Length::Units(200)),
                                 )
-                                .width(Length::Units(200)),
-                            )
-                            .push(
-                                Element::from(anschluss::Auswahl::neu_output(neu_anschluss_state))
+                                .push(
+                                    Element::from(anschluss::Auswahl::neu_output(
+                                        neu_anschluss_state,
+                                    ))
                                     .map(InterneAuswahlNachricht::Hinzufügen),
-                            ),
-                    )
-                    .push(
-                        Button::new(none_button_state, Text::new("Keinen"))
-                            .on_press(InterneAuswahlNachricht::Wähle(None)),
-                    )
-                    .width(Length::Shrink);
-                for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
-                    scrollable = scrollable.push(
-                        Row::new()
-                            .push(
-                                Button::new(
-                                    button_state,
-                                    Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                                ),
+                        )
+                        .push(
+                            Button::new(none_button_state, Text::new("Keinen"))
+                                .on_press(InterneAuswahlNachricht::Wähle(None)),
+                        )
+                        .width(Length::Shrink);
+                    for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte
+                    {
+                        scrollable = scrollable.push(
+                            Row::new()
+                                .push(
+                                    Button::new(
+                                        button_state,
+                                        Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                                    )
+                                    .on_press(InterneAuswahlNachricht::Wähle(Some((
+                                        name.clone(),
+                                        *farbe,
+                                    ))))
+                                    .style(style::Auswahl(*farbe)),
                                 )
-                                .on_press(InterneAuswahlNachricht::Wähle(Some((
-                                    name.clone(),
-                                    *farbe,
-                                ))))
-                                .style(style::Auswahl(*farbe)),
-                            )
-                            .push(
-                                Button::new(delete_state, Text::new("X"))
-                                    .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
-                            ),
-                    );
-                }
-                scrollable
-            })
-            .on_close(InterneAuswahlNachricht::Schließe)
-            .width(Length::Shrink),
+                                .push(
+                                    Button::new(delete_state, Text::new("X"))
+                                        .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                                ),
+                        );
+                    }
+                    scrollable
+                })
+                .on_close(InterneAuswahlNachricht::Schließe)
+                .width(Length::Shrink),
+            )
+            .style(background::WHITE)
+            .width(Length::Shrink)
+            .height(Length::Shrink),
+            neu_name,
         )
-        .style(background::WHITE)
-        .width(Length::Shrink)
-        .height(Length::Shrink);
-        Auswahl { container, neu_name: String::new() }
     }
 }
 
@@ -314,10 +326,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(name))
                 },
-                // TODO neu_name im Status anpassen!
-                // neu zeichen (view anpassen)
-                // analog für NumberInput, Tabs, etc. in anschluss::Auswahl
-                InterneAuswahlNachricht::Name(name) => self.neu_name = name,
+                InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
             }
             status = event::Status::Captured;
         }
