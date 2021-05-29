@@ -3,7 +3,6 @@
 use std::convert::identity;
 use std::fmt::Debug;
 
-use log::error;
 use serde::{Deserialize, Serialize};
 use version::version;
 
@@ -111,6 +110,7 @@ pub enum Message<Z> {
     Drehen(Drehen),
     Skalieren(Skalieren),
     SchließeModal,
+    SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
     HinzufügenStreckenabschnitt(streckenabschnitt::Name, anschluss::OutputAnschluss),
@@ -148,14 +148,15 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
 #[derive(Debug)]
-enum Modal<Z> {
-    MessageBox {
-        titel: String,
-        nachricht: String,
-        button_state: iced::button::State,
-        message: Message<Z>,
-    },
+enum Modal {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
+}
+
+#[derive(Debug)]
+struct MessageBox {
+    titel: String,
+    nachricht: String,
+    button_state: iced::button::State,
 }
 
 pub struct Zugkontrolle<Z> {
@@ -168,8 +169,9 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
-    modal_state: iced_aw::modal::State<Modal<Z>>,
+    modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
+    message_box: iced_aw::modal::State<MessageBox>,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
     unten: iced::button::State,
@@ -187,14 +189,11 @@ pub struct Zugkontrolle<Z> {
 }
 
 impl<Z> Zugkontrolle<Z> {
-    fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        self.modal_state = iced_aw::modal::State::new(Modal::MessageBox {
-            titel,
-            nachricht,
-            button_state: iced::button::State::new(),
-            message: Message::SchließeModal,
-        });
-        self.modal_state.show(true)
+    fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
+        let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
+        *titel = titel_arg;
+        *nachricht = nachricht_arg;
+        self.message_box.show(true)
     }
 }
 
@@ -207,6 +206,7 @@ where
     type Message = Message<Z>;
 
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
         (
             Zugkontrolle {
                 gleise,
@@ -218,13 +218,13 @@ where
                 kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
                 s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
                 kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
-                modal_state: iced_aw::modal::State::new(Modal::MessageBox {
+                modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
+                streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
+                message_box: iced_aw::modal::State::new(MessageBox {
                     titel: "Nicht initialisiert".to_string(),
                     nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
                     button_state: iced::button::State::new(),
-                    message: Message::SchließeModal,
                 }),
-                streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
                 oben: iced::button::State::new(),
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
@@ -322,12 +322,6 @@ where
                     Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                         streckenabschnitt_auswahl.entferne(&name);
                     },
-                    modal_state => {
-                        error!(
-                            "Invalider Modal-Zustand beim Löschen eines Streckenabschnittes: {:?}",
-                            modal_state
-                        )
-                    },
                 }
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
@@ -343,6 +337,7 @@ where
                         .map(|(name, _farbe)| name.clone())
                 );
             },
+            Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
                 if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
                     self.zeige_message_box(
@@ -380,6 +375,7 @@ where
             kreuzungen,
             modal_state,
             streckenabschnitt_aktuell,
+            message_box,
             oben,
             unten,
             links,
@@ -434,7 +430,6 @@ where
                                 .width(iced::Length::Fill)
                                 .height(iced::Length::Fill),
                         )
-                        // TODO sinnvolle Map-Funktion
                         .map(Into::into),
                     )
                     .width(iced::Length::Fill)
@@ -443,17 +438,7 @@ where
             )
             .into();
 
-        iced_aw::Modal::new(modal_state, column, |modal| match modal {
-            Modal::MessageBox { titel, nachricht, button_state, message } => iced::Element::from(
-                iced_aw::Card::new(
-                    iced::Text::new(&*titel),
-                    iced::Column::new().push(iced::Text::new(&*nachricht)).push(
-                        iced::Button::new(button_state, iced::Text::new("Ok"))
-                            .on_press(message.clone()),
-                    ),
-                )
-                .width(iced::Length::Shrink),
-            ),
+        let modal = iced_aw::Modal::new(modal_state, column, |modal| match modal {
             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => iced::Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
@@ -469,7 +454,21 @@ where
                 }
             }),
         })
-        .on_esc(Message::SchließeModal)
+        .on_esc(Message::SchließeModal);
+
+        iced_aw::Modal::new(message_box, modal, |MessageBox { titel, nachricht, button_state }| {
+            iced::Element::from(
+                iced_aw::Card::new(
+                    iced::Text::new(&*titel),
+                    iced::Column::new().push(iced::Text::new(&*nachricht)).push(
+                        iced::Button::new(button_state, iced::Text::new("Ok"))
+                            .on_press(Message::SchließeMessageBox),
+                    ),
+                )
+                .width(iced::Length::Shrink),
+            )
+        })
+        .on_esc(Message::SchließeMessageBox)
         .into()
     }
 }
