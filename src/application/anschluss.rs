@@ -433,16 +433,24 @@ impl<'a, T: Copy, I, M, R: 'a + Renderer + column::Renderer> From<Auswahl<'a, T,
     }
 }
 
-pub struct PwmState(number_input::State, button::State);
+pub struct PwmState {
+    pin: u8,
+    number_input_state: number_input::State,
+    button_state: button::State,
+}
 impl PwmState {
     pub fn neu() -> Self {
-        PwmState(number_input::State::new(), button::State::new())
+        PwmState {
+            pin: 0,
+            number_input_state: number_input::State::new(),
+            button_state: button::State::new(),
+        }
     }
 }
 
 pub struct Pwm<'a, R: 'a + Renderer> {
     column: Column<'a, PwmMessage, R>,
-    pin: u8,
+    pin: &'a mut u8,
 }
 
 #[derive(Debug, Clone)]
@@ -466,7 +474,7 @@ where
         + container::Renderer
         + number_input::Renderer,
 {
-    pub fn neu(PwmState(number_input_state, button_state): &'a mut PwmState) -> Self {
+    pub fn neu(PwmState { pin, number_input_state, button_state }: &'a mut PwmState) -> Self {
         Pwm {
             column: Column::new()
                 .push(NumberInput::new(number_input_state, 0, 32, PwmMessage::Pin))
@@ -474,7 +482,7 @@ where
                     Button::new(button_state, Text::new("Hinzufügen"))
                         .on_press(PwmMessage::Hinzufügen),
                 ),
-            pin: 0,
+            pin,
         }
     }
 }
@@ -502,9 +510,9 @@ impl<'a, R: 'a + Renderer + column::Renderer> Widget<PwmPin, R> for Pwm<'a, R> {
         );
         for message in column_messages {
             match message {
-                PwmMessage::Pin(pin) => self.pin = pin,
+                PwmMessage::Pin(pin) => *self.pin = pin,
                 PwmMessage::Hinzufügen => {
-                    messages.push(PwmPin { pin: self.pin });
+                    messages.push(PwmPin { pin: *self.pin });
                 },
             }
             status = event::Status::Captured;
