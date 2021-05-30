@@ -549,11 +549,6 @@ fn top_row<'t, Z: 'static>(
         ))
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
-        .push(farbwahl::Farbwahl::neu(&|c| {
-            // TODO entferne Debug-Widget
-            println!("{:?}", c);
-            Message::SchließeMessageBox
-        }))
         .padding(5)
         .spacing(5)
         .width(iced::Length::Fill)

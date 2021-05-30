@@ -53,9 +53,10 @@ impl<'a, M> Farbwahl<'a, M> {
 
     // Farbe eines Pixel oder None wenn außerhalb vom Radius.
     fn farbe(&self, vr: Vektor) -> Option<Color> {
+        let länge = vr.länge();
         let radius = Skalar(0.5 * self.durchmesser as f32);
-        if vr.länge() <= radius {
-            let normalisiert = vr / radius;
+        let halber_radius = radius.halbiert();
+        if länge <= radius {
             let e_r = Vektor { x: Skalar(1.), y: Skalar(0.) };
             let e_g = {
                 let winkel_g = winkel::TAU / 3.;
@@ -65,11 +66,27 @@ impl<'a, M> Farbwahl<'a, M> {
                 let winkel_b = winkel::TAU * 2. / 3.;
                 Vektor { x: winkel_b.cos(), y: winkel_b.sin() }
             };
-            let c = Color::from_rgb(
-                normalisiert.skalarprodukt(&e_r).0.max(0.),
-                normalisiert.skalarprodukt(&e_g).0.max(0.),
-                normalisiert.skalarprodukt(&e_b).0.max(0.),
-            );
+            let skaliert = vr / halber_radius;
+            let c = if länge <= halber_radius {
+                Color::from_rgb(
+                    skaliert.skalarprodukt(&e_r).0.max(0.),
+                    skaliert.skalarprodukt(&e_g).0.max(0.),
+                    skaliert.skalarprodukt(&e_b).0.max(0.),
+                )
+            } else {
+                let e = vr.einheitsvektor();
+                // skaliert um schwarzen äußeren Ring zu verhindern
+                let reduziert = Skalar(0.8) * skaliert - e;
+                let anpassen = |v: Vektor, e: Vektor| {
+                    let x = v.skalarprodukt(&e).0;
+                    let s_max = v.einheitsvektor().skalarprodukt(&e).0;
+                    (s_max - x).abs()
+                };
+                let r = anpassen(reduziert, e_r);
+                let g = anpassen(reduziert, e_g);
+                let b = anpassen(reduziert, e_b);
+                Color::from_rgb(r, g, b)
+            };
             Some(c)
         } else {
             None
