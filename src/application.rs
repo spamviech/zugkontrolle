@@ -6,6 +6,9 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use version::version;
 
+use crate::anschluss::anschlüsse::Anschlüsse;
+use crate::steuerung::streckenabschnitt::Streckenabschnitt;
+
 mod touch_canvas;
 
 pub mod gleis;
@@ -304,12 +307,60 @@ where
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
-            Message::HinzufügenStreckenabschnitt(name, farbe, anschluss) => {
-                // TODO reservieren der Anschlüsse + struct erstellen
-                self.zeige_message_box(
-                    "HinzufügenStreckenabschnitt".to_string(),
-                    format!("{}, {:?}: {:?}", name.0, farbe, anschluss),
-                )
+            Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
+                // TODO Anschlüsse in struct speichern?
+                // Alle Zugtypen gleichzeitig ist dann nicht mehr möglich
+                // Wahl über Kommandozeile?
+                match Anschlüsse::neu().map_err(crate::anschluss::Error::Anschlüsse).and_then(
+                    |mut anschlüsse| match anschluss_definition {
+                        anschluss::OutputAnschluss::Pin { pin, polarität } => anschlüsse
+                            .reserviere_pin(pin)
+                            .map_err(Into::into)
+                            .map(crate::anschluss::Pin::into_output)
+                            .map(|pin| crate::anschluss::OutputAnschluss::Pin { pin, polarität }),
+                        anschluss::OutputAnschluss::Pcf8574Port {
+                            a0,
+                            a1,
+                            a2,
+                            variante,
+                            port,
+                            polarität,
+                        } => anschlüsse
+                            .reserviere_pcf8574_port(a0, a1, a2, variante, port)
+                            .map_err(Into::into)
+                            .and_then(|port| port.into_output().map_err(Into::into))
+                            .map(|port| crate::anschluss::OutputAnschluss::Pcf8574Port {
+                                port,
+                                polarität,
+                            }),
+                    },
+                ) {
+                    Ok(anschluss) => {
+                        self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
+                        let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
+                        match self.modal_state.inner_mut() {
+                            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
+                                streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
+                            },
+                        }
+                        let name_string = name.0.clone();
+                        if let Some(ersetzt) =
+                            self.gleise.neuer_streckenabschnitt(name, streckenabschnitt)
+                        {
+                            self.zeige_message_box(
+                                "Hinzufügen Streckenabschnitt".to_string(),
+                                format!(
+                                    "Vorherigen Streckenabschnitt {} ersetzt: {:?}",
+                                    name_string, ersetzt
+                                ),
+                            )
+                        }
+                    },
+                    Err(error) => self.zeige_message_box(
+                        "Hinzufügen Streckenabschnitt".to_string(),
+                        format!("Fehler beim Hinzufügen: {:?}", error),
+                    ),
+                }
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
