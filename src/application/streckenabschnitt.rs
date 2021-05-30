@@ -34,6 +34,7 @@ use iced_native::{
 };
 
 use super::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods};
+use crate::anschluss::polarity::Polarity;
 pub use crate::steuerung::streckenabschnitt::Name;
 use crate::steuerung::Streckenabschnitt;
 
@@ -186,13 +187,14 @@ enum InterneAuswahlNachricht {
     Lösche(Name),
     Name(String),
     FarbeBestimmen(Color),
+    Anschluss(anschluss::OutputAnschluss),
 }
 
 #[derive(Debug, Clone)]
 pub enum AuswahlNachricht {
     Schließe,
-    Wähle(Option<(Name, iced::Color)>),
-    Hinzufügen,
+    Wähle(Option<(Name, Color)>),
+    Hinzufügen(Name, Color, anschluss::OutputAnschluss),
     Lösche(Name),
 }
 
@@ -200,6 +202,7 @@ pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
     neu_farbe: &'a mut Color,
+    neu_anschluss: anschluss::OutputAnschluss,
 }
 
 impl<'a, R> Auswahl<'a, R>
@@ -223,7 +226,12 @@ where
 {
     pub fn neu(status: &'a mut AuswahlStatus) -> Self {
         let (card, neu_name, neu_farbe) = Self::card(status);
-        Auswahl { card, neu_name, neu_farbe }
+        Auswahl {
+            card,
+            neu_name,
+            neu_farbe,
+            neu_anschluss: anschluss::OutputAnschluss::Pin { pin: 0, polarität: Polarity::Normal },
+        }
     }
 
     fn card(
@@ -260,7 +268,12 @@ where
                                             Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)
                                                 .durchmesser(50),
                                         )
-                                        .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
+                                        .push(
+                                            Element::from(anschluss::Auswahl::neu_output(
+                                                neu_anschluss_state,
+                                            ))
+                                            .map(InterneAuswahlNachricht::Anschluss),
+                                        ),
                                 )
                                 .push(
                                     Button::new(neu_button_state, Text::new("Hinzufügen"))
@@ -333,13 +346,18 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                     messages.push(AuswahlNachricht::Schließe)
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen);
+                    messages.push(AuswahlNachricht::Hinzufügen(
+                        Name(self.neu_name.clone()),
+                        self.neu_farbe.clone(),
+                        self.neu_anschluss.clone(),
+                    ));
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(name))
                 },
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
+                InterneAuswahlNachricht::Anschluss(anschluss) => self.neu_anschluss = anschluss,
             }
             status = event::Status::Captured;
         }

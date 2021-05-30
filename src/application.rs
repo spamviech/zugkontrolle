@@ -115,7 +115,7 @@ pub enum Message<Z> {
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
-    HinzufügenStreckenabschnitt,
+    HinzufügenStreckenabschnitt(streckenabschnitt::Name, iced::Color, anschluss::OutputAnschluss),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,
@@ -304,17 +304,12 @@ where
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
-            Message::HinzufügenStreckenabschnitt => {
-                match self.modal_state.inner() {
-                    Modal::Streckenabschnitt(auswahl_status) => {
-                        let (name, farbe, anschluss) = auswahl_status.streckenabschnitt();
-                        // TODO reservieren der Anschlüsse + struct erstellen
-                        self.zeige_message_box(
-                            "HinzufügenStreckenabschnitt".to_string(),
-                            format!("{}, {:?}: {:?}", name.0, farbe, anschluss),
-                        )
-                    },
-                }
+            Message::HinzufügenStreckenabschnitt(name, farbe, anschluss) => {
+                // TODO reservieren der Anschlüsse + struct erstellen
+                self.zeige_message_box(
+                    "HinzufügenStreckenabschnitt".to_string(),
+                    format!("{}, {:?}: {:?}", name.0, farbe, anschluss),
+                )
             },
             Message::LöscheStreckenabschnitt(name) => {
                 if self
@@ -454,7 +449,9 @@ where
                 match message {
                     Schließe => Message::SchließeModal,
                     Wähle(wahl) => Message::WähleStreckenabschnitt(wahl),
-                    Hinzufügen => Message::HinzufügenStreckenabschnitt,
+                    Hinzufügen(name, farbe, anschluss) => {
+                        Message::HinzufügenStreckenabschnitt(name, farbe, anschluss)
+                    },
                     Lösche(name) => Message::LöscheStreckenabschnitt(name),
                 }
             }),

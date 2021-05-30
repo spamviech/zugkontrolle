@@ -11,7 +11,6 @@ use iced_native::{
     radio,
     row,
     text,
-    Button,
     Clipboard,
     Column,
     Element,
@@ -160,7 +159,7 @@ pub enum OutputMessage {
     Polarity(Polarity),
 }
 
-pub struct Auswahl<'a, T, I, R: tabs::Renderer> {
+pub struct Auswahl<'a, T, I, M, R: tabs::Renderer> {
     tabs: Tabs<'a, InternalMessage<I>, R>,
     active_tab: &'a mut usize,
     pin: &'a mut u8,
@@ -171,9 +170,11 @@ pub struct Auswahl<'a, T, I, R: tabs::Renderer> {
     port: &'a mut u8,
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
+    make_pin: &'a dyn Fn(u8, &T) -> M,
+    make_port: Box<dyn Fn(Level, Level, Level, Variante, u3, &T) -> M>,
 }
 
-impl<'a, R> Auswahl<'a, u8, InputMessage, R>
+impl<'a, R> Auswahl<'a, u8, InputMessage, InputAnschluss, R>
 where
     R: 'a
         + Renderer
@@ -188,6 +189,7 @@ where
     <R as tab_bar::Renderer>::Style: From<style::TabBar>,
 {
     pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
+        let interrupt_pins = status.modus.interrupt_pins.clone();
         Auswahl::neu_mit_interrupt_view(
             status,
             |Input { number_input_state, pin, interrupt_pins }, a0, a1, a2, variante| {
@@ -201,11 +203,24 @@ where
                 )
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
+            &|pin, _input| InputAnschluss::Pin { pin },
+            move |a0, a1, a2, variante, port, pin| InputAnschluss::Pcf8574Port {
+                a0,
+                a1,
+                a2,
+                variante,
+                port,
+                interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
+                    None
+                } else {
+                    Some(*pin)
+                },
+            },
         )
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarity, OutputMessage, R>
+impl<'a, R> Auswahl<'a, Polarity, OutputMessage, OutputAnschluss, R>
 where
     R: 'a
         + Renderer
@@ -242,11 +257,20 @@ where
                 )
             },
             &|modus, OutputMessage::Polarity(polarität)| *modus = polarität,
+            &|pin, polarität| OutputAnschluss::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
+                a0,
+                a1,
+                a2,
+                variante,
+                port,
+                polarität: *polarität,
+            },
         )
     }
 }
 
-impl<'a, T: Copy, I: 'static + Clone, R> Auswahl<'a, T, I, R>
+impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
 where
     R: 'a
         + Renderer
@@ -281,6 +305,8 @@ where
             Variante,
         ) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
+        make_pin: &'a impl Fn(u8, &T) -> M,
+        make_port: impl 'static + Fn(Level, Level, Level, Variante, u3, &T) -> M,
     ) -> Self {
         let (view_interrupt, modus) = view_interrupt(modus, *a0, *a1, *a2, *variante);
         let tabs = vec![
@@ -330,7 +356,20 @@ where
                     .height(Length::Shrink)
                     // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
                     .width(Length::Units(500));
-        Auswahl { tabs, active_tab, pin, a0, a1, a2, variante, port, modus, update_modus }
+        Auswahl {
+            tabs,
+            active_tab,
+            pin,
+            a0,
+            a1,
+            a2,
+            variante,
+            port,
+            modus,
+            update_modus,
+            make_pin,
+            make_port: Box::new(make_port),
+        }
     }
 }
 
@@ -365,7 +404,7 @@ pub enum OutputAnschluss {
     },
 }
 
-impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, R>
+impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, M, R>
 where
     T: Copy,
     R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
@@ -379,7 +418,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        _messages: &mut Vec<M>,
+        messages: &mut Vec<M>,
     ) -> event::Status {
         let mut internal_messages = Vec::new();
         let mut status = self.tabs.on_event(
@@ -390,7 +429,9 @@ where
             clipboard,
             &mut internal_messages,
         );
+        let mut changed = false;
         for message in internal_messages {
+            changed = true;
             match message {
                 InternalMessage::TabSelected(tab) => *self.active_tab = tab,
                 InternalMessage::Pin(pin) => *self.pin = pin,
@@ -403,16 +444,32 @@ where
             }
             status = event::Status::Captured;
         }
+        if changed {
+            messages.push(
+                if *self.active_tab == 0 {
+                    (self.make_pin)(*self.pin, &self.modus)
+                } else {
+                    (self.make_port)(
+                        *self.a0,
+                        *self.a1,
+                        *self.a2,
+                        *self.variante,
+                        u3::new(*self.port),
+                        self.modus,
+                    )
+                },
+            )
+        }
         status
     }
 }
 
-impl<'a, T, I, M, R> From<Auswahl<'a, T, I, R>> for Element<'a, M, R>
+impl<'a, T, I, M, R> From<Auswahl<'a, T, I, M, R>> for Element<'a, M, R>
 where
     T: Copy,
     R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
 {
-    fn from(auswahl: Auswahl<'a, T, I, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, T, I, M, R>) -> Self {
         Element::new(auswahl)
     }
 }
@@ -420,32 +477,20 @@ where
 pub struct PwmState {
     pin: u8,
     number_input_state: number_input::State,
-    button_state: button::State,
 }
 impl PwmState {
     pub fn neu() -> Self {
-        PwmState {
-            pin: 0,
-            number_input_state: number_input::State::new(),
-            button_state: button::State::new(),
-        }
+        PwmState { pin: 0, number_input_state: number_input::State::new() }
     }
 }
 
-pub struct Pwm<'a, R: 'a + Renderer> {
-    column: Column<'a, PwmMessage, R>,
+pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
+    number_input: NumberInput<'a, u8, PwmPin, R>,
     pin: &'a mut u8,
 }
 
 #[derive(Debug, Clone)]
-enum PwmMessage {
-    Pin(u8),
-    Hinzufügen,
-}
-
-pub struct PwmPin {
-    pub pin: u8,
-}
+pub struct PwmPin(pub u8);
 
 impl<'a, R> Pwm<'a, R>
 where
@@ -458,21 +503,21 @@ where
         + container::Renderer
         + number_input::Renderer,
 {
-    pub fn neu(PwmState { pin, number_input_state, button_state }: &'a mut PwmState) -> Self {
-        Pwm {
-            column: Column::new()
-                .push(NumberInput::new(number_input_state, 0, 32, PwmMessage::Pin))
-                .push(
-                    Button::new(button_state, Text::new("Hinzufügen"))
-                        .on_press(PwmMessage::Hinzufügen),
-                ),
-            pin,
-        }
+    pub fn neu(PwmState { pin, number_input_state }: &'a mut PwmState) -> Self {
+        Pwm { number_input: NumberInput::new(number_input_state, 0, 32, PwmPin), pin }
     }
 }
 
-impl<'a, R: 'a + Renderer + column::Renderer> Widget<PwmPin, R> for Pwm<'a, R> {
-    reexport_no_event_methods! {Column<'a, PwmMessage, R>, column, PwmMessage, R}
+impl<'a, R> Widget<PwmPin, R> for Pwm<'a, R>
+where
+    R: 'a
+        + Renderer
+        + container::Renderer
+        + column::Renderer
+        + row::Renderer
+        + number_input::Renderer,
+{
+    reexport_no_event_methods! {NumberInput<'a, u8, PwmPin, R>, number_input, PwmPin, R}
 
     fn on_event(
         &mut self,
@@ -483,29 +528,31 @@ impl<'a, R: 'a + Renderer + column::Renderer> Widget<PwmPin, R> for Pwm<'a, R> {
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<PwmPin>,
     ) -> event::Status {
-        let mut column_messages = Vec::new();
-        let mut status = self.column.on_event(
+        let mut status = self.number_input.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut column_messages,
+            messages,
         );
-        for message in column_messages {
-            match message {
-                PwmMessage::Pin(pin) => *self.pin = pin,
-                PwmMessage::Hinzufügen => {
-                    messages.push(PwmPin { pin: *self.pin });
-                },
-            }
+        if let Some(PwmPin(pin)) = messages.last() {
+            *self.pin = *pin;
             status = event::Status::Captured;
         }
         status
     }
 }
 
-impl<'a, R: 'a + Renderer + column::Renderer> From<Pwm<'a, R>> for Element<'a, PwmPin, R> {
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, PwmPin, R>
+where
+    R: 'a
+        + Renderer
+        + container::Renderer
+        + column::Renderer
+        + row::Renderer
+        + number_input::Renderer,
+{
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }
