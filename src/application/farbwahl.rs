@@ -53,8 +53,9 @@ impl<'a, M> Farbwahl<'a, M> {
 
     // Farbe eines Pixel oder None wenn außerhalb vom Radius.
     fn farbe(&self, vr: Vektor) -> Option<Color> {
-        if vr.länge() <= Skalar(0.5 * self.durchmesser as f32) {
-            let e = vr.normalisiert();
+        let radius = Skalar(0.5 * self.durchmesser as f32);
+        if vr.länge() <= radius {
+            let normalisiert = vr / radius;
             let e_r = Vektor { x: Skalar(1.), y: Skalar(0.) };
             let e_g = {
                 let winkel_g = winkel::TAU / 3.;
@@ -65,9 +66,9 @@ impl<'a, M> Farbwahl<'a, M> {
                 Vektor { x: winkel_b.cos(), y: winkel_b.sin() }
             };
             let c = Color::from_rgb(
-                e.skalarprodukt(&e_r).0.max(0.),
-                e.skalarprodukt(&e_g).0.max(0.),
-                e.skalarprodukt(&e_b).0.max(0.),
+                normalisiert.skalarprodukt(&e_r).0.max(0.),
+                normalisiert.skalarprodukt(&e_g).0.max(0.),
+                normalisiert.skalarprodukt(&e_b).0.max(0.),
             );
             Some(c)
         } else {
