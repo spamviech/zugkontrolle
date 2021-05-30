@@ -279,13 +279,24 @@ where
                                             )
                                             .width(Length::Units(200)),
                                         )
-                                        .push(ColorPicker::new(
-                                            neu_color_picker_state,
-                                            Button::new(neu_color_button_state, Text::new("Farbe"))
+                                        .push(
+                                            // TODO ColorPicker verwendet overlay zur Anzeige, aber
+                                            // sowohl Card als auch Modal erlauben kein Overlay von
+                                            // child widgets
+                                            // TODO permanent sichtbarer Canvas zur farbauswahl?
+                                            // Hintergrund zur Anzeige der aktuell gewählten Farbe
+                                            // einfärben?
+                                            ColorPicker::new(
+                                                neu_color_picker_state,
+                                                Button::new(
+                                                    neu_color_button_state,
+                                                    Text::new("Farbe"),
+                                                )
                                                 .on_press(InterneAuswahlNachricht::FarbeAuswählen),
-                                            InterneAuswahlNachricht::FarbeAbbrechen,
-                                            InterneAuswahlNachricht::FarbeBestimmen,
-                                        ))
+                                                InterneAuswahlNachricht::FarbeAbbrechen,
+                                                InterneAuswahlNachricht::FarbeBestimmen,
+                                            ),
+                                        )
                                         .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
                                 )
                                 .push(
