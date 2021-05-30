@@ -47,6 +47,12 @@ impl Vektor {
         *self /= self.länge();
     }
 
+    /// Erzeuge einen auf länge /Skalar(1.)/ normalisierten Vektor.
+    pub fn normalisiert(mut self) -> Self {
+        self.normalisiere();
+        self
+    }
+
     /// Einheitsvektor mit identischer Richtung.
     pub fn einheitsvektor(mut self) -> Self {
         self.normalisiere();

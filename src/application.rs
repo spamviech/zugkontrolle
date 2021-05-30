@@ -23,6 +23,8 @@ pub mod anschluss;
 
 pub(crate) mod macros;
 
+pub mod farbwahl;
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
@@ -305,12 +307,11 @@ where
             Message::HinzufügenStreckenabschnitt => {
                 match self.modal_state.inner() {
                     Modal::Streckenabschnitt(auswahl_status) => {
-                        // TODO farbauswahl
-                        let (name, anschluss) = auswahl_status.streckenabschnitt();
+                        let (name, farbe, anschluss) = auswahl_status.streckenabschnitt();
                         // TODO reservieren der Anschlüsse + struct erstellen
                         self.zeige_message_box(
                             "HinzufügenStreckenabschnitt".to_string(),
-                            format!("{}: {:?}", name.0, anschluss),
+                            format!("{}, {:?}: {:?}", name.0, farbe, anschluss),
                         )
                     },
                 }
@@ -548,6 +549,11 @@ fn top_row<'t, Z: 'static>(
         ))
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
+        .push(farbwahl::Farbwahl::neu(&|c| {
+            // TODO entferne Debug-Widget
+            println!("{:?}", c);
+            Message::SchließeMessageBox
+        }))
         .padding(5)
         .spacing(5)
         .width(iced::Length::Fill)

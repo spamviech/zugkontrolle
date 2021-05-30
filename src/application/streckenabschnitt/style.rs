@@ -22,6 +22,14 @@ impl iced::container::StyleSheet for Anzeige {
 
 #[derive(Debug, Clone)]
 pub struct Auswahl(pub iced::Color);
+impl iced::container::StyleSheet for Auswahl {
+    fn style(&self) -> iced::container::Style {
+        iced::container::Style {
+            background: Some(iced::Background::Color(self.0)),
+            ..Default::default()
+        }
+    }
+}
 impl iced::button::StyleSheet for Auswahl {
     fn active(&self) -> iced::button::Style {
         iced::button::Style {
