@@ -38,7 +38,7 @@ pub struct Farbwahl<'a, M> {
 }
 impl<'a, M> Farbwahl<'a, M> {
     pub fn neu(nachricht: &'a impl Fn(Color) -> M) -> Self {
-        Farbwahl { durchmesser: 100, nachricht }
+        Farbwahl { durchmesser: 50, nachricht }
     }
 
     pub fn radius(mut self, radius: u16) -> Self {
