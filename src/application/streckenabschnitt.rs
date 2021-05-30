@@ -196,8 +196,8 @@ pub enum AuswahlNachricht {
     Lösche(Name),
 }
 
-pub struct Auswahl<'a, R: Renderer + container::Renderer> {
-    container: Container<'a, InterneAuswahlNachricht, R>,
+pub struct Auswahl<'a, R: Renderer + card::Renderer> {
+    card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
     neu_farbe: &'a mut Color,
 }
@@ -222,13 +222,13 @@ where
     <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
 {
     pub fn neu(status: &'a mut AuswahlStatus) -> Self {
-        let (container, neu_name, neu_farbe) = Self::container(status);
-        Auswahl { container, neu_name, neu_farbe }
+        let (card, neu_name, neu_farbe) = Self::card(status);
+        Auswahl { card, neu_name, neu_farbe }
     }
 
-    fn container(
+    fn card(
         status: &'a mut AuswahlStatus,
-    ) -> (Container<'a, InterneAuswahlNachricht, R>, &'a mut String, &'a mut Color) {
+    ) -> (Card<'a, InterneAuswahlNachricht, R>, &'a mut String, &'a mut Color) {
         let AuswahlStatus {
             neu_name,
             neu_farbe,
@@ -240,81 +240,72 @@ where
             scrollable_state,
         } = status;
         (
-            Container::new(
-                Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-                    let mut scrollable = Scrollable::new(scrollable_state)
-                        .push(
-                            Container::new(
-                                Column::new()
-                                    .push(
-                                        Row::new()
-                                            .push(
-                                                TextInput::new(
-                                                    neu_name_state,
-                                                    "<Name>",
-                                                    neu_name,
-                                                    InterneAuswahlNachricht::Name,
-                                                )
-                                                .width(Length::Units(200)),
-                                            )
-                                            .push(
-                                                Farbwahl::neu(
-                                                    &InterneAuswahlNachricht::FarbeBestimmen,
-                                                )
-                                                .durchmesser(50),
-                                            )
-                                            .push(anschluss::Auswahl::neu_output(
-                                                neu_anschluss_state,
-                                            )),
-                                    )
-                                    .push(
-                                        Button::new(neu_button_state, Text::new("Hinzufügen"))
-                                            .on_press(InterneAuswahlNachricht::Hinzufügen),
-                                    ),
-                            )
-                            .style(style::Auswahl(*neu_farbe)),
-                        )
-                        .push(
-                            Button::new(none_button_state, Text::new("Keinen"))
-                                .on_press(InterneAuswahlNachricht::Wähle(None)),
-                        )
-                        .width(Length::Shrink);
-                    for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte
-                    {
-                        scrollable = scrollable.push(
-                            Row::new()
+            Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
+                let mut scrollable = Scrollable::new(scrollable_state)
+                    .push(
+                        Container::new(
+                            Column::new()
                                 .push(
-                                    Button::new(
-                                        button_state,
-                                        Text::new(&format!("{}: {:?}", name.0, anschluss)),
-                                    )
-                                    .on_press(InterneAuswahlNachricht::Wähle(Some((
-                                        name.clone(),
-                                        *farbe,
-                                    ))))
-                                    .style(style::Auswahl(*farbe)),
+                                    Row::new()
+                                        .push(
+                                            TextInput::new(
+                                                neu_name_state,
+                                                "<Name>",
+                                                neu_name,
+                                                InterneAuswahlNachricht::Name,
+                                            )
+                                            .width(Length::Units(200)),
+                                        )
+                                        .push(
+                                            Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)
+                                                .durchmesser(50),
+                                        )
+                                        .push(anschluss::Auswahl::neu_output(neu_anschluss_state)),
                                 )
                                 .push(
-                                    Button::new(delete_state, Text::new("X"))
-                                        .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                                    Button::new(neu_button_state, Text::new("Hinzufügen"))
+                                        .on_press(InterneAuswahlNachricht::Hinzufügen),
                                 ),
-                        );
-                    }
-                    scrollable
-                })
-                .on_close(InterneAuswahlNachricht::Schließe)
-                .width(Length::Shrink),
-            )
-            .width(Length::Shrink)
-            .height(Length::Shrink),
+                        )
+                        .style(style::Auswahl(*neu_farbe)),
+                    )
+                    .push(
+                        Button::new(none_button_state, Text::new("Keinen"))
+                            .on_press(InterneAuswahlNachricht::Wähle(None)),
+                    )
+                    .width(Length::Shrink);
+                for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
+                    scrollable = scrollable.push(
+                        Row::new()
+                            .push(
+                                Button::new(
+                                    button_state,
+                                    Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                                )
+                                .on_press(InterneAuswahlNachricht::Wähle(Some((
+                                    name.clone(),
+                                    *farbe,
+                                ))))
+                                .style(style::Auswahl(*farbe)),
+                            )
+                            .push(
+                                Button::new(delete_state, Text::new("X"))
+                                    .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                            ),
+                    );
+                }
+                scrollable
+            })
+            .on_close(InterneAuswahlNachricht::Schließe)
+            .width(Length::Shrink),
             neu_name,
             neu_farbe,
         )
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
-    reexport_no_event_methods! {Container<'a, InterneAuswahlNachricht, R>, container, InterneAuswahlNachricht, R}
+impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
+    reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
     fn on_event(
         &mut self,
@@ -326,7 +317,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
         messages: &mut Vec<AuswahlNachricht>,
     ) -> event::Status {
         let mut container_messages = Vec::new();
-        let mut status = self.container.on_event(
+        let mut status = self.card.on_event(
             event,
             layout,
             cursor_position,
@@ -356,7 +347,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<AuswahlNachricht, R> for
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer> From<Auswahl<'a, R>>
+impl<'a, R: 'a + Renderer + card::Renderer> From<Auswahl<'a, R>>
     for Element<'a, AuswahlNachricht, R>
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
