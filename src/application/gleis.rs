@@ -4,7 +4,6 @@ pub mod anchor;
 pub mod button;
 pub mod gerade;
 pub mod gleise;
-pub mod icon;
 pub mod kreuzung;
 pub mod kurve;
 pub mod typen;
@@ -14,7 +13,6 @@ pub use {
     button::{Button, ButtonMessage},
     gerade::Gerade,
     gleise::Gleise,
-    icon::icon,
     kreuzung::Kreuzung,
     kurve::Kurve,
     typen::*,

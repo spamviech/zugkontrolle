@@ -28,6 +28,8 @@ pub(crate) mod macros;
 
 pub mod farbwahl;
 
+pub mod icon;
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
@@ -199,6 +201,11 @@ impl<Z> Zugkontrolle<Z> {
         *titel = titel_arg;
         *nachricht = nachricht_arg;
         self.message_box.show(true)
+    }
+
+    /// Icon für das Fenster.
+    pub fn icon() -> iced::window::Icon {
+        icon::icon()
     }
 }
 
