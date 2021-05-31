@@ -15,10 +15,10 @@ impl FromArgs for Wrapper {
         } else {
             Ok(Wrapper(
                 if let Some((pfad, [])) = args.split_first() {
-                    if pfad != &"--help" {
-                        Args::from_args(command_name, &["--pfad", pfad])?
-                    } else {
+                    if pfad.starts_with("-") {
                         Args::from_args(command_name, args)?
+                    } else {
+                        Args::from_args(command_name, &["--pfad", pfad])?
                     }
                 } else {
                     Args::from_args(command_name, args)?
@@ -50,7 +50,7 @@ impl Args {
     /// Parse Kommandozeilen-Argumente durch das `argh`-crate.
     ///
     /// Diese Methode berücksichtigt ein `--version` flag, dass zu einem `EarlyExit` führt.
-    /// Ein einzelnes Argument (!= "--help") wird als Pfad interpretiert.
+    /// Ein einzelnes Argument (das nicht mit "-" beginnt) wird als Pfad interpretiert.
     pub fn from_env() -> Self {
         let Wrapper(args) = argh::from_env();
         args
