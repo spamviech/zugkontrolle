@@ -24,6 +24,8 @@ use zugkontrolle::{
     steuerung::Streckenabschnitt,
 };
 
+mod args;
+
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
     y: Skalar,
@@ -189,6 +191,9 @@ fn main() -> iced::Result {
         .with_module_level("zugkontrolle", log::LevelFilter::Debug)
         .init()
         .expect("failed to initialize error logging");
+
+    let args = args::Args::from_env();
+    println!("{:?}", args);
 
     /*
     use std::collections::HashMap;
