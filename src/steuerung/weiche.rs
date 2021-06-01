@@ -1,30 +1,36 @@
 //! Schaltbare Gleise.
 
-use std::{thread::sleep, time::Duration};
+use std::{collections::HashMap, thread::sleep, time::Duration};
 
-use non_empty_vec::NonEmpty;
+use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{Error, Fließend, OutputAnschluss};
+use crate::lookup::Lookup;
 
 // inklusive Kreuzung
-pub struct Weiche<Richtung> {
+pub struct Weiche<Anschlüsse> {
     // TODO name ist eigentlich nur für die Anzeige relevant
     pub name: String,
-    pub anschlüsse: NonEmpty<(Richtung, OutputAnschluss)>,
+    pub anschlüsse: Anschlüsse,
 }
 
-impl<Richtung: PartialEq> Weiche<Richtung> {
-    pub fn schalten(&mut self, neue_richtung: &Richtung) -> Result<(), Error> {
-        for (richtung, anschluss) in self.anschlüsse.as_mut_slice() {
-            if &*richtung == neue_richtung {
-                anschluss.einstellen(Fließend::Fließend)?;
-                sleep(SCHALTZEIT);
-                anschluss.einstellen(Fließend::Gesperrt)?;
-            }
-        }
+impl<Anschlüsse> Weiche<Anschlüsse> {
+    pub fn schalten<Richtung>(&mut self, richtung: &Richtung) -> Result<(), Error>
+    where
+        Anschlüsse: Lookup<Richtung, OutputAnschluss>,
+    {
+        let anschluss = self.anschlüsse.get_mut(richtung);
+        anschluss.einstellen(Fließend::Fließend)?;
+        sleep(SCHALTZEIT);
+        anschluss.einstellen(Fließend::Gesperrt)?;
         Ok(())
     }
 }
 
 // TODO als Teil des Zugtyp-Traits?
 const SCHALTZEIT: Duration = Duration::from_millis(500);
+
+/// Name einer Weiche.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+pub type Map<Anschlüsse> = HashMap<Name, Weiche<Anschlüsse>>;
