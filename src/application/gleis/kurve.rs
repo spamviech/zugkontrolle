@@ -38,7 +38,8 @@ impl<Z> Kurve<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Ende,
@@ -46,7 +47,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         size::<Z>(self.radius, self.winkel)
@@ -96,7 +97,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
-        AnchorPoints {
+        AnchorElements {
             anfang: anchor::Anchor {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
                 richtung: winkel::PI,

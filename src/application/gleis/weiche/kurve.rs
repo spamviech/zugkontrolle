@@ -50,7 +50,8 @@ impl<Z> KurvenWeiche<Z> {
         }
     }
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Innen,
@@ -59,7 +60,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
@@ -270,7 +271,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 x: self.radius * self.winkel.sin(),
                 y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
             };
-        AnchorPoints {
+        AnchorElements {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             innen: anchor::Anchor { position: innen, richtung: multiplier.0 * self.winkel },
             außen: anchor::Anchor {

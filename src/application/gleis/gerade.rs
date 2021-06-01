@@ -29,7 +29,8 @@ impl<Z> Gerade<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Ende,
@@ -37,7 +38,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         size::<Z>(self.länge)
@@ -71,7 +72,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         let gleis_links = Skalar(0.);
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = beschränkung::<Z>().halbiert();
-        AnchorPoints {
+        AnchorElements {
             anfang: anchor::Anchor {
                 position: Vektor { x: gleis_links, y: beschränkung_mitte },
                 richtung: winkel::PI,

@@ -54,7 +54,8 @@ pub enum Richtung {
     Links,
     Rechts,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Gerade,
@@ -63,7 +64,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         let Weiche { länge, radius, winkel, .. } = *self;
@@ -201,7 +202,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         };
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
-        AnchorPoints {
+        AnchorElements {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },

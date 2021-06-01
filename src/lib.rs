@@ -2,6 +2,7 @@
 
 pub mod anschluss;
 pub mod application;
+pub mod lookup;
 pub mod steuerung;
 pub mod zugtyp;
 

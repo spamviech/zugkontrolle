@@ -33,6 +33,13 @@ pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     // Build the trait implementation
     lookup::impl_anchor_lookup(&ast).into()
 }
+#[proc_macro_attribute]
+pub fn impl_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(attr);
+    let ast = syn::parse_macro_input!(item);
+
+    lookup::impl_lookup(args, ast).into()
+}
 
 mod modus;
 #[proc_macro_attribute]

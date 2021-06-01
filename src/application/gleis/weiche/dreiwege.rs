@@ -46,7 +46,8 @@ impl<Z> DreiwegeWeiche<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Gerade,
@@ -55,7 +56,7 @@ pub enum AnchorName {
 }
 impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
@@ -169,13 +170,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector)
     }
 
-    fn anchor_points(&self) -> AnchorPoints {
+    fn anchor_points(&self) -> Self::AnchorPoints {
         let height: Skalar = self.size().y;
         let half_height = height.halbiert();
         let länge: Skalar = self.länge;
         let radius: Skalar = self.radius;
         let anfang = Vektor { x: Skalar(0.), y: half_height };
-        AnchorPoints {
+        AnchorElements {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: länge, y: Skalar(0.) },

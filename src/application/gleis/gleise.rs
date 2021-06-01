@@ -5,8 +5,9 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use self::id::{with_any_id, with_any_id_and_lock};
-use super::anchor::{self, Lookup};
+use super::anchor;
 use crate::application::typen::*;
+use crate::lookup::Lookup;
 use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
 
 pub mod id;
@@ -125,7 +126,7 @@ impl<Z> Gleise<Z> {
             },
         );
         let mut snap = None;
-        anchor_points.foreach(|anchor_name, anchor| {
+        anchor_points.for_each(|anchor_name, anchor| {
             if snap.is_none() {
                 snap = self
                     .anchor_points
@@ -341,7 +342,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
-            definition.anchor_points().foreach(|_name, &anchor| {
+            definition.anchor_points().for_each(|_name, &anchor| {
                 frame.with_save(|frame| {
                     let (opposing, grabbed) =
                         has_other_and_grabbed_id_at_point(gleis_id.as_any(), anchor::Anchor {
@@ -613,7 +614,7 @@ impl Position {
     ) -> Self
     where
         T: Zeichnen,
-        T::AnchorPoints: Lookup<T::AnchorName>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let anchor_points = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
@@ -650,7 +651,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         // increase next id
         self.next_id += 1;
         // add to anchor_points
-        anchor_points.foreach(|_name, anchor| {
+        anchor_points.for_each(|_name, anchor| {
             self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone())
         });
         // add to HashMap
@@ -757,12 +758,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         // store new position
         *position = position_neu;
         // delete old from anchor_points
-        anchor_points.foreach(|_name, anchor| {
+        anchor_points.for_each(|_name, anchor| {
             self.anchor_points.remove(gleis_id.as_any(), &anchor);
         });
         // add new to anchor_points
         anchor_points_neu
-            .foreach(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
+            .for_each(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -795,7 +796,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     fn remove_grabbed<T, A>(&mut self, _ignored: A, gleis_id_lock: GleisIdLock<T>)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
-        T::AnchorPoints: Lookup<T::AnchorName>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         self.remove(gleis_id_lock)
     }
@@ -809,7 +810,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn remove<T>(&mut self, gleis_id_lock: GleisIdLock<T>)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
-        T::AnchorPoints: Lookup<T::AnchorName>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut optional_id = gleis_id_lock.write();
         // only delete once
@@ -818,7 +819,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .remove(gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
-            definition.anchor_points().foreach(|_name, anchor| {
+            definition.anchor_points().for_each(|_name, anchor| {
                 self.anchor_points.remove(gleis_id.as_any(), &anchor::Anchor {
                     position: position.transformation(anchor.position),
                     richtung: position.winkel + anchor.richtung,

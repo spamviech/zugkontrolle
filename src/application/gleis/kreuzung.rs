@@ -59,7 +59,8 @@ impl<Z> Kreuzung<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+#[anchor::impl_lookup(anchor::Anchor)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang0,
     Ende0,
@@ -69,7 +70,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorPoints = AnchorElements;
 
     fn size(&self) -> Vektor {
         let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
@@ -235,7 +236,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let kurve = self.radius * Vektor { x: winkel.sin(), y: Skalar(1.) - winkel.cos() };
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
-        AnchorPoints {
+        AnchorElements {
             anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },
             ende_0: anchor::Anchor { position: ende0, richtung: winkel::ZERO },
             anfang_1: anchor::Anchor { position: anfang1, richtung: winkel::PI + winkel },

@@ -69,7 +69,7 @@ impl<Z> SKurvenWeiche<Z> {
 
 impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     type AnchorName = weiche::gerade::AnchorName;
-    type AnchorPoints = weiche::gerade::AnchorPoints;
+    type AnchorPoints = weiche::gerade::AnchorElements;
 
     fn size(&self) -> Vektor {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
@@ -364,7 +364,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             x: Skalar(0.),
             y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         };
-        weiche::gerade::AnchorPoints {
+        weiche::gerade::AnchorElements {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
