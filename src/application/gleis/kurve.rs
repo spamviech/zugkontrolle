@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::anchor;
-use super::typen::*;
+use crate::application::typen::*;
 
 /// Definition einer Kurve
 ///

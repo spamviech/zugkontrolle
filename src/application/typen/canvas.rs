@@ -11,13 +11,11 @@ pub use iced::{
 use serde::{Deserialize, Serialize};
 
 use super::skalar::Skalar;
+use super::vektor::Vektor;
 use super::winkel::Winkel;
 
 pub mod pfad;
 pub use pfad::{Bogen, Pfad, Transformation};
-
-pub mod vektor;
-pub use vektor::Vektor;
 
 /// newtype auf /iced::canvas::Frame/-Reference, dessen Methoden meine Typen verwenden.
 ///

@@ -108,7 +108,7 @@ pub mod value {
     use std::time::Duration;
 
     use super::*;
-    use crate::application::gleis::typen::*;
+    use crate::application::typen::*;
 
     // TODO in Zugtyp hinzufügen
     // einziger wirklicher Unterschied zwischen Märklin/Lego
@@ -189,8 +189,8 @@ pub mod deserialize {
     use walkdir::WalkDir;
 
     use super::value::{self, Schalter};
-    use crate::application::gleis::typen::*;
     use crate::application::gleis::{gerade, kreuzung, kurve, weiche};
+    use crate::application::typen::*;
 
     // TODO erstelle via Macro
     /// mockup-Variante von super::value::Zugtyp, für schönere toml-Darstellung

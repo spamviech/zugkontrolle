@@ -4,8 +4,8 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use super::typen::*;
 use super::{anchor, gerade, kurve};
+use crate::application::typen::*;
 
 /// Definition einer Kreuzung
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]

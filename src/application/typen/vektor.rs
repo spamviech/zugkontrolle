@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::typen::{
+use crate::application::typen::{
     skalar::Skalar,
     winkel::{Trigonometrie, Winkel},
 };

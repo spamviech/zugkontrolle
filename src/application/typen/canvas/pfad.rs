@@ -4,9 +4,9 @@ use std::marker::PhantomData;
 
 use zugkontrolle_derive::chain;
 
-use super::vektor::{self, Vektor};
-use crate::application::gleis::typen::{
+use crate::application::typen::{
     skalar::Skalar,
+    vektor::{self, Vektor},
     winkel::{self, Winkel},
 };
 

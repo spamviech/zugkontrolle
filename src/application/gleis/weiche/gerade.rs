@@ -4,7 +4,8 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::{anchor, gerade, kurve, typen::*};
+use crate::application::gleis::{anchor, gerade, kurve};
+use crate::application::typen::*;
 
 /// Definition einer Weiche
 ///

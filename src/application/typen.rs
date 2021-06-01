@@ -6,10 +6,12 @@ pub mod skalar;
 pub mod winkel;
 
 // re-exports
-pub use canvas::{pfad, vektor, Bogen, Cache, Frame, Pfad, Position, Transformation, Vektor};
+pub use canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation};
 pub use mm::*;
 pub use skalar::Skalar;
 pub use winkel::*;
+pub mod vektor;
+pub use vektor::Vektor;
 
 use super::anchor;
 pub use crate::zugtyp::{Anschluss, Zugtyp};

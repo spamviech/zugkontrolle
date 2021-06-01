@@ -10,9 +10,9 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    typen::*,
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
+use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

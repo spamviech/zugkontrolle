@@ -23,7 +23,7 @@ use iced_native::{
     Widget,
 };
 
-use super::gleis::typen::{
+use super::typen::{
     skalar::Skalar,
     vektor::Vektor,
     winkel::{self, Trigonometrie},

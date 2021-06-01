@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor::{self, Lookup};
-use super::typen::*;
+use crate::application::typen::*;
 use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
 
 pub mod id;

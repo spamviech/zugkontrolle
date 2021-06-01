@@ -8,9 +8,9 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::{self, Kreuzung},
     kurve::Kurve,
-    typen::*,
     weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
+use crate::application::typen::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;

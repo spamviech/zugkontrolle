@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{Error, Fließend, OutputAnschluss};
-use crate::application::gleis::canvas::Color;
+use crate::application::typen::canvas::Color;
 
 /// Steuerung der Stromzufuhr.
 #[derive(Debug)]

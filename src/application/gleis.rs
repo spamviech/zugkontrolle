@@ -6,7 +6,6 @@ pub mod gerade;
 pub mod gleise;
 pub mod kreuzung;
 pub mod kurve;
-pub mod typen;
 pub mod weiche;
 
 pub use {
@@ -15,6 +14,5 @@ pub use {
     gleise::Gleise,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    typen::*,
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };

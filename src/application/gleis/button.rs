@@ -1,7 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis
 
 use super::gleise::move_to_position;
-use super::typen::*;
+use crate::application::typen::*;
 
 const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;

@@ -17,6 +17,9 @@ use gleis::{
     *,
 };
 
+pub mod typen;
+pub use typen::*;
+
 pub mod style;
 use style::*;
 

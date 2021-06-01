@@ -5,7 +5,8 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::Richtung;
-use crate::application::gleis::{anchor, gerade, kurve, typen::*, weiche};
+use crate::application::gleis::{anchor, gerade, kurve, weiche};
+use crate::application::typen::*;
 
 /// Definition einer Weiche mit S-Kurve
 ///
