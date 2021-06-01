@@ -135,7 +135,7 @@ impl<Z> Gleise<Z> {
             }
         });
         if let Some((snap_name, snap_anchor)) = snap {
-            self.relocate_attach(&gleis_id, snap_name, snap_anchor);
+            self.relocate_attach(&gleis_id, &snap_name, snap_anchor);
         };
     }
 
@@ -609,7 +609,7 @@ impl Position {
     /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
-        anchor_name: T::AnchorName,
+        anchor_name: &T::AnchorName,
         target_anchor_point: anchor::Anchor,
     ) -> Self
     where
@@ -717,7 +717,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         definition: T,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-        anchor_name: T::AnchorName,
+        anchor_name: &T::AnchorName,
         target_anchor_point: anchor::Anchor,
     ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
@@ -774,7 +774,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn relocate_attach<T>(
         &mut self,
         gleis_id: &GleisId<T>,
-        anchor_name: T::AnchorName,
+        anchor_name: &T::AnchorName,
         target_anchor_point: anchor::Anchor,
     ) -> T::AnchorPoints
     where

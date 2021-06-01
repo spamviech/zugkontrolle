@@ -116,12 +116,12 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
         });
         impl_lookup = Some(quote! {
             impl #base_ident::lookup::Lookup<#ident, #element> for #struct_name {
-                fn get(&self, key: #ident) -> &#element {
+                fn get(&self, key: &#ident) -> &#element {
                     match key {
                         #(#ident::#enum_variants => &self.#struct_fields),*
                     }
                 }
-                fn get_mut(&mut self, key: #ident) -> &mut #element {
+                fn get_mut(&mut self, key: &#ident) -> &mut #element {
                     match key {
                         #(#ident::#enum_variants => &mut self.#struct_fields),*
                     }
