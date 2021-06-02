@@ -170,6 +170,7 @@ struct MessageBox {
 }
 
 pub struct Zugkontrolle<Z> {
+    anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<Gerade<Z>>>,
@@ -212,49 +213,69 @@ impl<Z> Zugkontrolle<Z> {
     }
 }
 
+impl<Z> Zugkontrolle<Z>
+where
+    Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
+{
+    fn laden(&mut self) {
+        if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
+            self.zeige_message_box(
+                format!("Fehler beim Laden von {}", self.aktueller_pfad),
+                format!("{:?}", err),
+            )
+        } else {
+            self.streckenabschnitt_aktuell.aktuell = None;
+        }
+    }
+}
+
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
 {
     type Executor = iced::executor::Default;
-    type Flags = Gleise<Z>;
+    type Flags = (Anschlüsse, Option<String>);
     type Message = Message<Z>;
 
-    fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new((anschlüsse, pfad_arg): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let gleise = Gleise::neu();
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
-        (
-            Zugkontrolle {
-                gleise,
-                scrollable_state: iced::scrollable::State::new(),
-                geraden: Z::geraden().into_iter().map(Button::new).collect(),
-                kurven: Z::kurven().into_iter().map(Button::new).collect(),
-                weichen: Z::weichen().into_iter().map(Button::new).collect(),
-                dreiwege_weichen: Z::dreiwege_weichen().into_iter().map(Button::new).collect(),
-                kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
-                s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
-                kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
-                modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
-                streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
-                message_box: iced_aw::modal::State::new(MessageBox {
-                    titel: "Nicht initialisiert".to_string(),
-                    nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
-                    button_state: iced::button::State::new(),
-                }),
-                oben: iced::button::State::new(),
-                unten: iced::button::State::new(),
-                links: iced::button::State::new(),
-                rechts: iced::button::State::new(),
-                clockwise: iced::button::State::new(),
-                counter_clockwise: iced::button::State::new(),
-                größer: iced::button::State::new(),
-                kleiner: iced::button::State::new(),
-                speichern: iced::button::State::new(),
-                laden: iced::button::State::new(),
-                pfad: iced::text_input::State::new(),
-                aktueller_pfad: format!("{}.zug", Z::NAME),
-            },
-            iced::Command::none(),
-        )
+        let mut zugkontrolle = Zugkontrolle {
+            anschlüsse,
+            gleise,
+            scrollable_state: iced::scrollable::State::new(),
+            geraden: Z::geraden().into_iter().map(Button::new).collect(),
+            kurven: Z::kurven().into_iter().map(Button::new).collect(),
+            weichen: Z::weichen().into_iter().map(Button::new).collect(),
+            dreiwege_weichen: Z::dreiwege_weichen().into_iter().map(Button::new).collect(),
+            kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
+            s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
+            kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+            modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
+            streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
+            message_box: iced_aw::modal::State::new(MessageBox {
+                titel: "Nicht initialisiert".to_string(),
+                nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
+                button_state: iced::button::State::new(),
+            }),
+            oben: iced::button::State::new(),
+            unten: iced::button::State::new(),
+            links: iced::button::State::new(),
+            rechts: iced::button::State::new(),
+            clockwise: iced::button::State::new(),
+            counter_clockwise: iced::button::State::new(),
+            größer: iced::button::State::new(),
+            kleiner: iced::button::State::new(),
+            speichern: iced::button::State::new(),
+            laden: iced::button::State::new(),
+            pfad: iced::text_input::State::new(),
+            aktueller_pfad: format!("{}.zug", Z::NAME),
+        };
+        if let Some(pfad) = pfad_arg {
+            zugkontrolle.aktueller_pfad = pfad;
+            zugkontrolle.laden()
+        }
+        (zugkontrolle, iced::Command::none())
     }
 
     fn title(&self) -> String {
@@ -318,33 +339,33 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                // TODO Anschlüsse in struct speichern?
-                // Alle Zugtypen gleichzeitig ist dann nicht mehr möglich
-                // Wahl über Kommandozeile?
-                match Anschlüsse::neu().map_err(crate::anschluss::Error::Anschlüsse).and_then(
-                    |mut anschlüsse| match anschluss_definition {
-                        anschluss::OutputAnschluss::Pin { pin, polarität } => anschlüsse
-                            .reserviere_pin(pin)
-                            .map_err(Into::into)
-                            .map(crate::anschluss::Pin::into_output)
-                            .map(|pin| crate::anschluss::OutputAnschluss::Pin { pin, polarität }),
-                        anschluss::OutputAnschluss::Pcf8574Port {
-                            a0,
-                            a1,
-                            a2,
-                            variante,
+                // TODO immer pin0???
+                println!("{:?}", anschluss_definition);
+                let anschluss = match anschluss_definition {
+                    anschluss::OutputAnschluss::Pin { pin, polarität } => self
+                        .anschlüsse
+                        .reserviere_pin(pin)
+                        .map_err(crate::anschluss::Error::from)
+                        .map(crate::anschluss::Pin::into_output)
+                        .map(|pin| crate::anschluss::OutputAnschluss::Pin { pin, polarität }),
+                    anschluss::OutputAnschluss::Pcf8574Port {
+                        a0,
+                        a1,
+                        a2,
+                        variante,
+                        port,
+                        polarität,
+                    } => self
+                        .anschlüsse
+                        .reserviere_pcf8574_port(a0, a1, a2, variante, port)
+                        .map_err(crate::anschluss::Error::from)
+                        .and_then(|port| port.into_output().map_err(Into::into))
+                        .map(|port| crate::anschluss::OutputAnschluss::Pcf8574Port {
                             port,
                             polarität,
-                        } => anschlüsse
-                            .reserviere_pcf8574_port(a0, a1, a2, variante, port)
-                            .map_err(Into::into)
-                            .and_then(|port| port.into_output().map_err(Into::into))
-                            .map(|port| crate::anschluss::OutputAnschluss::Pcf8574Port {
-                                port,
-                                polarität,
-                            }),
-                    },
-                ) {
+                        }),
+                };
+                match anschluss {
                     Ok(anschluss) => {
                         self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
                         let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
@@ -409,16 +430,7 @@ where
                     )
                 }
             },
-            Message::Laden => {
-                if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
-                    self.zeige_message_box(
-                        format!("Fehler beim Laden von {}", self.aktueller_pfad),
-                        format!("{:?}", err),
-                    )
-                } else {
-                    self.streckenabschnitt_aktuell.aktuell = None;
-                }
-            },
+            Message::Laden => self.laden(),
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
         }
 
@@ -427,6 +439,7 @@ where
 
     fn view(&mut self) -> iced::Element<Self::Message> {
         let Zugkontrolle {
+            anschlüsse: _,
             gleise,
             scrollable_state,
             geraden,
