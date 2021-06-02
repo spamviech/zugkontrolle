@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use syn;
 
+pub(crate) mod utils;
+
 mod debug;
 #[proc_macro_derive(Debug)]
 pub fn debug_derive(input: TokenStream) -> TokenStream {
