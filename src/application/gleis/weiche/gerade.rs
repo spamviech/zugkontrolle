@@ -1,5 +1,6 @@
 //! Definition und zeichnen einer Weiche
 
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use crate::{
         gleis::{anchor, gerade, kurve},
         typen::*,
     },
+    lookup::impl_lookup,
     steuerung,
 };
 
@@ -26,7 +28,7 @@ pub struct Weiche<Z> {
     pub richtung: Orientierung,
     pub beschreibung: Option<String>,
     pub steuerung: Option<()>,
-    // pub steuerung: Option<steuerung::Weiche<Richtung>>,
+    // TODO pub steuerung: Option<steuerung::Weiche<Anschlüsse>>,
 }
 impl<Z> Weiche<Z> {
     pub const fn neu(
@@ -66,14 +68,15 @@ pub enum Orientierung {
     Links,
     Rechts,
 }
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Gerade,
     Kurve,
 }
-#[anchor::impl_lookup(anschluss::OutputAnschluss)]
+#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse)]
+#[impl_lookup(anschluss::OutputSave, AnschlüsseSave)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Richtung {
     Links,
@@ -82,7 +85,7 @@ pub enum Richtung {
 
 impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         let Weiche { länge, radius, winkel, .. } = *self;
@@ -220,7 +223,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         };
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
-        AnchorElements {
+        AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },

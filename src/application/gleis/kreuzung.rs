@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::{anchor, gerade, kurve};
-use crate::application::typen::*;
+use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Kreuzung
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -59,7 +59,7 @@ impl<Z> Kreuzung<Z> {
     }
 }
 
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang0,
@@ -70,7 +70,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
@@ -236,7 +236,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let kurve = self.radius * Vektor { x: winkel.sin(), y: Skalar(1.) - winkel.cos() };
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
-        AnchorElements {
+        AnchorPoints {
             anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },
             ende_0: anchor::Anchor { position: ende0, richtung: winkel::ZERO },
             anfang_1: anchor::Anchor { position: anfang1, richtung: winkel::PI + winkel },

@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::anchor;
-use crate::application::typen::*;
+use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Gerade
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ impl<Z> Gerade<Z> {
     }
 }
 
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -38,7 +38,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         size::<Z>(self.länge)
@@ -72,7 +72,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         let gleis_links = Skalar(0.);
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = beschränkung::<Z>().halbiert();
-        AnchorElements {
+        AnchorPoints {
             anfang: anchor::Anchor {
                 position: Vektor { x: gleis_links, y: beschränkung_mitte },
                 richtung: winkel::PI,

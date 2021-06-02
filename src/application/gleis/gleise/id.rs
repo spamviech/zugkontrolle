@@ -99,7 +99,11 @@ macro_rules! impl_any_id_lock_from {
 }
 impl_any_id_lock_from! {Gerade}
 impl_any_id_lock_from! {Kurve}
-impl_any_id_lock_from! {Weiche}
+impl<Z> From<GleisIdLock<Weiche<Z>>> for AnyIdLock<Z> {
+    fn from(gleis_id_lock: GleisIdLock<Weiche<Z>>) -> Self {
+        AnyIdLock::Weiche(gleis_id_lock)
+    }
+}
 impl_any_id_lock_from! {DreiwegeWeiche}
 impl_any_id_lock_from! {KurvenWeiche}
 impl_any_id_lock_from! {SKurvenWeiche}
@@ -244,7 +248,11 @@ macro_rules! impl_any_id_from {
 }
 impl_any_id_from! {Gerade}
 impl_any_id_from! {Kurve}
-impl_any_id_from! {Weiche}
+impl<Z> From<(GleisId<Weiche<Z>>, GleisIdLock<Weiche<Z>>)> for AnyId<Z> {
+    fn from((gleis_id, gleis_id_lock): (GleisId<Weiche<Z>>, GleisIdLock<Weiche<Z>>)) -> Self {
+        AnyId::Weiche(gleis_id, gleis_id_lock)
+    }
+}
 impl_any_id_from! {DreiwegeWeiche}
 impl_any_id_from! {KurvenWeiche}
 impl_any_id_from! {SKurvenWeiche}

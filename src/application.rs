@@ -339,8 +339,6 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                // TODO immer pin0???
-                println!("{:?}", anschluss_definition);
                 let anschluss = match anschluss_definition {
                     anschluss::OutputAnschluss::Pin { pin, polarität } => self
                         .anschlüsse

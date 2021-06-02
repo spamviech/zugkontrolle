@@ -9,15 +9,17 @@ use quote::{format_ident, quote};
 pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let element = if let Some((arg, [])) = args.split_first() {
-        Some(arg)
+    let syn::ItemEnum { vis, variants, ident, .. } = &item;
+    let (element, struct_name) = if let [fst, snd] = args.as_slice() {
+        let suffix = quote!(#snd).to_string();
+        (Some(fst), Some(format_ident!("{}{}", ident.to_string().trim_end_matches("Name"), suffix)))
     } else {
-        if args.is_empty() {
-            errors.push("Lookup Element missing!".to_string())
-        } else if args.len() > 1 {
-            errors.push(format!("Only one argument supported, but {:?} were given.", args));
-        }
-        None
+        errors.push(match args.len() {
+            0 => "Lookup Element and Name suffix missing!".to_string(),
+            1 => "Name suffix missing!".to_string(),
+            _ => format!("Only two argument supported, but {:?} were given.", args),
+        });
+        (None, None)
     };
 
     let mut struct_definition = None;
@@ -28,12 +30,8 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
 
-        let syn::ItemEnum { vis, variants, ident, .. } = &item;
         let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
 
-        // construct a struct using a snake_case field for every variant, each holding an Element
-        let struct_name: syn::Ident =
-            format_ident!("{}Elements", ident.to_string().trim_end_matches("Name"));
         let struct_fields: Vec<syn::Ident> = enum_variants
                 .iter()
                 // TODO fix upstream?

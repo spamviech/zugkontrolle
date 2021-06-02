@@ -2,8 +2,9 @@
 
 #[cfg(raspi)]
 use rppal::gpio;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Level {
     Low,
     High,

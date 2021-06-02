@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Orientierung;
 use crate::application::gleis::{anchor, gerade, kurve};
-use crate::application::typen::*;
+use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Kurven-Weiche
 ///
@@ -52,7 +52,7 @@ impl<Z> KurvenWeiche<Z> {
         }
     }
 }
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -62,7 +62,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
@@ -273,7 +273,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 x: self.radius * self.winkel.sin(),
                 y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
             };
-        AnchorElements {
+        AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             innen: anchor::Anchor { position: innen, richtung: multiplier.0 * self.winkel },
             außen: anchor::Anchor {

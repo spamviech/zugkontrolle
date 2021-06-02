@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::anchor;
-use crate::application::typen::*;
+use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Kurve
 ///
@@ -38,7 +38,7 @@ impl<Z> Kurve<Z> {
     }
 }
 
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -47,7 +47,7 @@ pub enum AnchorName {
 
 impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         size::<Z>(self.radius, self.winkel)
@@ -97,7 +97,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
-        AnchorElements {
+        AnchorPoints {
             anfang: anchor::Anchor {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
                 richtung: winkel::PI,

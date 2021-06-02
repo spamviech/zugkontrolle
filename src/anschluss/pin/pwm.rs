@@ -7,6 +7,7 @@ use cfg_if::cfg_if;
 use log::debug;
 #[cfg(raspi)]
 use rppal::{gpio, pwm};
+use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
 use super::Wrapper;
@@ -239,5 +240,14 @@ impl From<gpio::Error> for Error {
 impl From<pwm::Error> for Error {
     fn from(error: pwm::Error) -> Self {
         Error::Pwm(error)
+    }
+}
+
+/// Serealisierbare Informationen einen Pwm-Pins.
+#[derive(Serialize, Deserialize)]
+pub struct Save(pub u8);
+impl From<Pin> for Save {
+    fn from(pin: Pin) -> Self {
+        Save(pin.pin())
     }
 }

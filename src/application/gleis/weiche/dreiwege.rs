@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use crate::application::gleis::{anchor, gerade, kurve};
-use crate::application::typen::*;
+use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Dreiwege-Weiche
 ///
@@ -46,7 +46,7 @@ impl<Z> DreiwegeWeiche<Z> {
     }
 }
 
-#[anchor::impl_lookup(anchor::Anchor)]
+#[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -56,7 +56,7 @@ pub enum AnchorName {
 }
 impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     type AnchorName = AnchorName;
-    type AnchorPoints = AnchorElements;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
@@ -176,7 +176,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let länge: Skalar = self.länge;
         let radius: Skalar = self.radius;
         let anfang = Vektor { x: Skalar(0.), y: half_height };
-        AnchorElements {
+        AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: länge, y: Skalar(0.) },

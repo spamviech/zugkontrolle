@@ -2,6 +2,8 @@
 
 use std::fmt::{self, Display, Formatter};
 
+use serde::{Deserialize, Serialize};
+
 pub mod level;
 pub use level::*;
 
@@ -163,6 +165,44 @@ impl OutputAnschluss {
     }
 }
 
+/// Serealisierbare Informationen eines OutputAnschlusses.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum OutputSave {
+    Pin {
+        pin: u8,
+        polarität: Polarität,
+    },
+    Pcf8574Port {
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: pcf8574::Variante,
+        port: u8,
+        polarität: Polarität,
+    },
+}
+impl From<OutputAnschluss> for OutputSave {
+    fn from(anschluss: OutputAnschluss) -> Self {
+        match anschluss {
+            OutputAnschluss::Pin { pin, polarität } => {
+                OutputSave::Pin { pin: pin.pin(), polarität }
+            },
+            OutputAnschluss::Pcf8574Port { port, polarität } => {
+                let (a0, a1, a2, variante) = port.adresse();
+                let port = port.port();
+                OutputSave::Pcf8574Port {
+                    a0: *a0,
+                    a1: *a1,
+                    a2: *a2,
+                    variante: *variante,
+                    port: port.into(),
+                    polarität,
+                }
+            },
+        }
+    }
+}
+
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
 pub enum InputAnschluss {
@@ -203,6 +243,42 @@ impl InputAnschluss {
     match_method! {set_async_interrupt(trigger: Trigger, callback: impl FnMut(Level) + Send + 'static)}
 
     match_method! {clear_async_interrupt}
+}
+
+/// Serealisierbare Informationen eines InputAnschlusses.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum InputSave {
+    Pin {
+        pin: u8,
+    },
+    Pcf8574Port {
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: pcf8574::Variante,
+        port: u8,
+        interrupt: Option<u8>,
+    },
+}
+impl From<InputAnschluss> for InputSave {
+    fn from(anschluss: InputAnschluss) -> Self {
+        match anschluss {
+            InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
+            InputAnschluss::Pcf8574Port(port) => {
+                let (a0, a1, a2, variante) = port.adresse();
+                let interrupt = port.interrupt_pin().unwrap_or(None);
+                let port = port.port();
+                InputSave::Pcf8574Port {
+                    a0: *a0,
+                    a1: *a1,
+                    a2: *a2,
+                    variante: *variante,
+                    port: port.into(),
+                    interrupt,
+                }
+            },
+        }
+    }
 }
 
 #[derive(Debug)]

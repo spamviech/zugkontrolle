@@ -10,7 +10,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;

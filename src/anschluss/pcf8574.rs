@@ -15,6 +15,7 @@ use num_x::u3;
 use num_x::u7;
 #[cfg(raspi)]
 use rppal::{gpio, i2c};
+use serde::{Deserialize, Serialize};
 
 use super::pin::input;
 use super::{level::Level, trigger::Trigger};
@@ -291,7 +292,7 @@ impl PartialEq for Pcf8574 {
 }
 impl Eq for Pcf8574 {}
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Variante {
     Normal,
     A,
@@ -448,6 +449,12 @@ impl InputPort {
             }
             self.read()
         }
+    }
+
+    /// Aktuell konfigurierter Interrupt Pin.
+    pub(super) fn interrupt_pin(&self) -> Result<Option<u8>, Error> {
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.interrupt.as_ref().map(input::Pin::pin))
     }
 
     /// Assoziiere den angeschlossenen InterruptPin für den Pcf8574.

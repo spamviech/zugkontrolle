@@ -8,9 +8,8 @@ use crate::anschluss::{Error, Fließend, OutputAnschluss};
 use crate::lookup::Lookup;
 
 // inklusive Kreuzung
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Weiche<Anschlüsse> {
-    // TODO name ist eigentlich nur für die Anzeige relevant
-    pub name: String,
     pub anschlüsse: Anschlüsse,
 }
 
