@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use super::Richtung;
+use super::Orientierung;
 use crate::application::gleis::{anchor, gerade, kurve};
 use crate::application::typen::*;
 
@@ -18,11 +18,13 @@ pub struct KurvenWeiche<Z> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
-    pub richtung: Richtung,
+    pub richtung: Orientierung,
     pub beschreibung: Option<String>,
 }
 impl<Z> KurvenWeiche<Z> {
-    pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
+    pub const fn neu(
+        länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung
+    ) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
@@ -37,7 +39,7 @@ impl<Z> KurvenWeiche<Z> {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        richtung: Richtung,
+        richtung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
         KurvenWeiche {
@@ -75,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Richtung::Links {
+        if self.richtung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
@@ -143,7 +145,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Richtung::Links {
+        if self.richtung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
@@ -204,11 +206,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             let start_height: Skalar;
             let multiplier: Skalar;
             match self.richtung {
-                Richtung::Rechts => {
+                Orientierung::Rechts => {
                     start_height = Skalar(0.);
                     multiplier = Skalar(1.);
                 },
-                Richtung::Links => {
+                Orientierung::Links => {
                     start_height = self.size().y;
                     multiplier = Skalar(-1.);
                 },
@@ -231,11 +233,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.richtung {
-            Richtung::Rechts => {
+            Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
             },
-            Richtung::Links => {
+            Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
             },
@@ -255,11 +257,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.richtung {
-            Richtung::Rechts => {
+            Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
             },
-            Richtung::Links => {
+            Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
             },

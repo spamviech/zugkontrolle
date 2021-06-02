@@ -356,7 +356,7 @@ pub mod deserialize {
         pub länge: f32,
         pub radius: f32,
         pub winkel: f32,
-        pub richtung: Option<weiche::Richtung>,
+        pub richtung: Option<weiche::Orientierung>,
         pub beschreibung: Option<String>,
     }
     impl Weiche {
@@ -370,16 +370,16 @@ pub mod deserialize {
                 richtung,
                 beschreibung: beschreibung.map(|s| {
                     s + match richtung {
-                        weiche::Richtung::Links => "L",
-                        weiche::Richtung::Rechts => "R",
+                        weiche::Orientierung::Links => "L",
+                        weiche::Orientierung::Rechts => "R",
                     }
                 }),
             };
             match richtung {
                 Some(richtung) => vec![konstruktor(richtung)],
                 None => vec![
-                    konstruktor.clone()(weiche::Richtung::Links),
-                    konstruktor(weiche::Richtung::Rechts),
+                    konstruktor.clone()(weiche::Orientierung::Links),
+                    konstruktor(weiche::Orientierung::Rechts),
                 ],
             }
         }
@@ -405,7 +405,7 @@ pub mod deserialize {
                 Länge::neu(0.),
                 Radius::neu(0.),
                 WinkelGradmaß::neu(0.).into(),
-                weiche::Richtung::Links,
+                weiche::Orientierung::Links,
             )
         }
     }
@@ -417,7 +417,7 @@ pub mod deserialize {
         pub winkel: f32,
         pub radius_reverse: f32,
         pub winkel_reverse: f32,
-        pub richtung: Option<weiche::Richtung>,
+        pub richtung: Option<weiche::Orientierung>,
         pub beschreibung: Option<String>,
     }
     impl SKurvenWeiche {
@@ -441,16 +441,16 @@ pub mod deserialize {
                 richtung,
                 beschreibung: beschreibung.map(|s| {
                     s + match richtung {
-                        weiche::Richtung::Links => "L",
-                        weiche::Richtung::Rechts => "R",
+                        weiche::Orientierung::Links => "L",
+                        weiche::Orientierung::Rechts => "R",
                     }
                 }),
             };
             match richtung {
                 Some(richtung) => vec![konstruktor(richtung)],
                 None => vec![
-                    konstruktor.clone()(weiche::Richtung::Links),
-                    konstruktor(weiche::Richtung::Rechts),
+                    konstruktor.clone()(weiche::Orientierung::Links),
+                    konstruktor(weiche::Orientierung::Rechts),
                 ],
             }
         }

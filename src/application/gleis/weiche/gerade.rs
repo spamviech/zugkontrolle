@@ -17,11 +17,13 @@ pub struct Weiche<Z> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
-    pub richtung: Richtung,
+    pub richtung: Orientierung,
     pub beschreibung: Option<String>,
 }
 impl<Z> Weiche<Z> {
-    pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
+    pub const fn neu(
+        länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung
+    ) -> Self {
         Weiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
@@ -36,7 +38,7 @@ impl<Z> Weiche<Z> {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        richtung: Richtung,
+        richtung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
         Weiche {
@@ -50,7 +52,7 @@ impl<Z> Weiche<Z> {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Richtung {
+pub enum Orientierung {
     Links,
     Rechts,
 }
@@ -75,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn zeichne(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
-        if richtung == Richtung::Links {
+        if richtung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             vec![
@@ -112,7 +114,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn fülle(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
-        if richtung == Richtung::Links {
+        if richtung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             vec![
@@ -143,11 +145,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             let start_height: Skalar;
             let multiplier: Skalar;
             match self.richtung {
-                Richtung::Rechts => {
+                Orientierung::Rechts => {
                     start_height = Skalar(0.);
                     multiplier = Skalar(1.);
                 },
-                Richtung::Links => {
+                Orientierung::Links => {
                     start_height = self.size().y;
                     multiplier = Skalar(-1.);
                 },
@@ -170,11 +172,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.richtung {
-            Richtung::Rechts => {
+            Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
             },
-            Richtung::Links => {
+            Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
             },
@@ -191,11 +193,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.richtung {
-            Richtung::Rechts => {
+            Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
             },
-            Richtung::Links => {
+            Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
             },

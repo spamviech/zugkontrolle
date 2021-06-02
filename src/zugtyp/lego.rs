@@ -103,11 +103,11 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
+pub const fn weiche(richtung: weiche::Orientierung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
-pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Rechts);
-pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Links);
+pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Orientierung::Rechts);
+pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Orientierung::Links);
 
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
 pub const KREUZUNG: Kreuzung<Lego> =
