@@ -10,7 +10,7 @@ use crate::{application::typen::*, lookup::impl_lookup};
 /// Definition einer Kreuzung
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kreuzung<T> {
-    pub zugtyp: PhantomData<T>,
+    pub zugtyp: PhantomData<fn() -> T>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub variante: Variante,
@@ -33,7 +33,7 @@ impl<Z> Kreuzung<Z> {
         Winkel(2. * (0.5 * (self.länge / self.radius).0).atan())
     }
 
-    pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

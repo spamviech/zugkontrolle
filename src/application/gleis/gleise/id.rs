@@ -116,7 +116,7 @@ pub(crate) struct Any;
 ///
 /// The API will only provide &GleisIdLock<Z>.
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleisId<T>(u64, PhantomData<T>);
+pub struct GleisId<T>(u64, PhantomData<fn() -> T>);
 impl<T> GleisId<T> {
     pub(crate) fn new(gleis_id: u64) -> Self {
         GleisId(gleis_id, PhantomData)

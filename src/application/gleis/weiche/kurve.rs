@@ -14,7 +14,7 @@ use crate::{application::typen::*, lookup::impl_lookup};
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct KurvenWeiche<Z> {
-    pub zugtyp: PhantomData<Z>,
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -22,9 +22,7 @@ pub struct KurvenWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> KurvenWeiche<Z> {
-    pub const fn neu(
-        länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung
-    ) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

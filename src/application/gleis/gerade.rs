@@ -11,12 +11,12 @@ use crate::{application::typen::*, lookup::impl_lookup};
 /// Definition einer Gerade
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z> {
-    pub zugtyp: PhantomData<Z>,
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub beschreibung: Option<String>,
 }
 impl<Z> Gerade<Z> {
-    pub const fn neu(länge: Länge) -> Self {
+    pub fn neu(länge: Länge) -> Self {
         Gerade { zugtyp: PhantomData, länge: länge.als_skalar(), beschreibung: None }
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
 }
 
 pub(crate) fn zeichne<Z, P, A>(
-    _zugtyp: PhantomData<Z>,
+    _zugtyp: PhantomData<fn() -> Z>,
     länge: Skalar,
     beschränkungen: bool,
     transformations: Vec<Transformation>,
@@ -142,7 +142,7 @@ fn zeichne_internal<Z, P, A>(
 }
 
 pub(crate) fn fülle<Z, P, A>(
-    _zugtyp: PhantomData<Z>,
+    _zugtyp: PhantomData<fn() -> Z>,
     länge: Skalar,
     transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(

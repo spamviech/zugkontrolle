@@ -13,14 +13,14 @@ use crate::{application::typen::*, lookup::impl_lookup};
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct DreiwegeWeiche<Z> {
-    pub zugtyp: PhantomData<Z>,
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
     pub beschreibung: Option<String>,
 }
 impl<Z> DreiwegeWeiche<Z> {
-    pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

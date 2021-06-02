@@ -21,7 +21,7 @@ use crate::{
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Weiche<Z> {
-    pub zugtyp: PhantomData<Z>,
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -31,9 +31,7 @@ pub struct Weiche<Z> {
     // TODO pub steuerung: Option<steuerung::Weiche<Anschlüsse>>,
 }
 impl<Z> Weiche<Z> {
-    pub const fn neu(
-        länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung
-    ) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung) -> Self {
         Weiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

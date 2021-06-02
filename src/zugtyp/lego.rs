@@ -19,11 +19,11 @@ impl Zugtyp for Lego {
     const SPURWEITE: Spurweite = Spurweite(38.);
 
     fn geraden() -> Vec<Gerade<Self>> {
-        vec![GERADE]
+        vec![gerade()]
     }
 
     fn kurven() -> Vec<Kurve<Self>> {
-        vec![KURVE]
+        vec![kurve()]
     }
 
     fn weichen() -> Vec<Weiche<Self>> {
@@ -39,11 +39,11 @@ impl Zugtyp for Lego {
     }
 
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
-        vec![WEICHE_LINKS, WEICHE_RECHTS]
+        vec![weiche(weiche::Orientierung::Links), weiche(weiche::Orientierung::Rechts)]
     }
 
     fn kreuzungen() -> Vec<Kreuzung<Self>> {
-        vec![KREUZUNG]
+        vec![kreuzung()]
     }
 }
 
@@ -76,10 +76,14 @@ const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
-pub const GERADE: Gerade<Lego> = Gerade::neu(LENGTH);
+pub fn gerade() -> Gerade<Lego> {
+    Gerade::neu(LENGTH)
+}
 
 const ANGLE: Winkel = Winkel(ANGLE_VALUE);
-pub const KURVE: Kurve<Lego> = Kurve::neu(RADIUS, ANGLE);
+pub fn kurve() -> Kurve<Lego> {
+    Kurve::neu(RADIUS, ANGLE)
+}
 
 /*
 Eine leichte S-Kurve: 6.5 Lücken rechts, dann 2.5 Lücken links; insgesamt 22.5°
@@ -103,12 +107,11 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub const fn weiche(richtung: weiche::Orientierung) -> SKurvenWeiche<Lego> {
+pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
-pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Orientierung::Rechts);
-pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Orientierung::Links);
 
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
-pub const KREUZUNG: Kreuzung<Lego> =
-    Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve);
+pub fn kreuzung() -> Kreuzung<Lego> {
+    Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve)
+}

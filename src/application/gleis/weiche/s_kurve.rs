@@ -15,7 +15,7 @@ use crate::application::typen::*;
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche<Z> {
-    pub zugtyp: PhantomData<Z>,
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -25,7 +25,7 @@ pub struct SKurvenWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> SKurvenWeiche<Z> {
-    pub const fn neu(
+    pub fn neu(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
