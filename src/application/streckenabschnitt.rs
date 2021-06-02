@@ -115,6 +115,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
 pub struct AuswahlStatus {
     neu_name: String,
     neu_farbe: Color,
+    neu_anschluss: anschluss::OutputAnschluss,
     neu_name_state: text_input::State,
     neu_anschluss_state: anschluss::Status<anschluss::Output>,
     neu_button_state: button::State,
@@ -130,6 +131,7 @@ impl AuswahlStatus {
         AuswahlStatus {
             neu_name: String::new(),
             neu_farbe: Color::WHITE,
+            neu_anschluss: anschluss::OutputAnschluss::Pin { pin: 0, polarität: Polarity::Normal },
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),
             neu_button_state: button::State::new(),
@@ -202,7 +204,7 @@ pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
     neu_farbe: &'a mut Color,
-    neu_anschluss: anschluss::OutputAnschluss,
+    neu_anschluss: &'a mut anschluss::OutputAnschluss,
 }
 
 impl<'a, R> Auswahl<'a, R>
@@ -224,96 +226,80 @@ where
     <R as iced_native::container::Renderer>::Style: From<style::Auswahl>,
     <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
 {
-    pub fn neu(status: &'a mut AuswahlStatus) -> Self {
-        let (card, neu_name, neu_farbe) = Self::card(status);
-        Auswahl {
-            card,
+    pub fn neu(
+        AuswahlStatus {
             neu_name,
             neu_farbe,
-            neu_anschluss: anschluss::OutputAnschluss::Pin { pin: 0, polarität: Polarity::Normal },
-        }
-    }
-
-    fn card(
-        status: &'a mut AuswahlStatus,
-    ) -> (Card<'a, InterneAuswahlNachricht, R>, &'a mut String, &'a mut Color) {
-        let AuswahlStatus {
-            neu_name,
-            neu_farbe,
+            neu_anschluss,
             neu_name_state,
             neu_anschluss_state,
             neu_button_state,
             none_button_state,
             streckenabschnitte,
             scrollable_state,
-        } = status;
-        (
-            Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-                let mut scrollable = Scrollable::new(scrollable_state)
-                    .push(
-                        Container::new(
-                            Column::new()
-                                .push(
-                                    Row::new()
-                                        .push(
-                                            TextInput::new(
-                                                neu_name_state,
-                                                "<Name>",
-                                                neu_name,
-                                                InterneAuswahlNachricht::Name,
-                                            )
-                                            .width(Length::Units(200)),
-                                        )
-                                        .push(
-                                            Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)
-                                                .durchmesser(50),
-                                        )
-                                        .push(
-                                            Element::from(anschluss::Auswahl::neu_output(
-                                                neu_anschluss_state,
-                                            ))
-                                            .map(InterneAuswahlNachricht::Anschluss),
-                                        ),
-                                )
-                                .push(
-                                    Button::new(neu_button_state, Text::new("Hinzufügen"))
-                                        .on_press(InterneAuswahlNachricht::Hinzufügen),
-                                ),
-                        )
-                        .style(style::Auswahl(*neu_farbe)),
-                    )
-                    .push(
-                        Button::new(none_button_state, Text::new("Keinen"))
-                            .on_press(InterneAuswahlNachricht::Wähle(None)),
-                    )
-                    .width(Length::Shrink);
-                for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
-                    scrollable = scrollable.push(
-                        Row::new()
+        }: &'a mut AuswahlStatus,
+    ) -> Self {
+        let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
+            let mut scrollable = Scrollable::new(scrollable_state)
+                .push(
+                    Container::new(
+                        Column::new()
                             .push(
-                                Button::new(
-                                    button_state,
-                                    Text::new(&format!("{}: {:?}", name.0, anschluss)),
-                                )
-                                .on_press(InterneAuswahlNachricht::Wähle(Some((
-                                    name.clone(),
-                                    *farbe,
-                                ))))
-                                .style(style::Auswahl(*farbe)),
+                                Row::new()
+                                    .push(
+                                        TextInput::new(
+                                            neu_name_state,
+                                            "<Name>",
+                                            neu_name,
+                                            InterneAuswahlNachricht::Name,
+                                        )
+                                        .width(Length::Units(200)),
+                                    )
+                                    .push(
+                                        Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)
+                                            .durchmesser(50),
+                                    )
+                                    .push(
+                                        Element::from(anschluss::Auswahl::neu_output(
+                                            neu_anschluss_state,
+                                        ))
+                                        .map(InterneAuswahlNachricht::Anschluss),
+                                    ),
                             )
                             .push(
-                                Button::new(delete_state, Text::new("X"))
-                                    .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                                Button::new(neu_button_state, Text::new("Hinzufügen"))
+                                    .on_press(InterneAuswahlNachricht::Hinzufügen),
                             ),
-                    );
-                }
-                scrollable
-            })
-            .on_close(InterneAuswahlNachricht::Schließe)
-            .width(Length::Shrink),
-            neu_name,
-            neu_farbe,
-        )
+                    )
+                    .style(style::Auswahl(*neu_farbe)),
+                )
+                .push(
+                    Button::new(none_button_state, Text::new("Keinen"))
+                        .on_press(InterneAuswahlNachricht::Wähle(None)),
+                )
+                .width(Length::Shrink);
+            for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
+                scrollable = scrollable.push(
+                    Row::new()
+                        .push(
+                            Button::new(
+                                button_state,
+                                Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                            )
+                            .on_press(InterneAuswahlNachricht::Wähle(Some((name.clone(), *farbe))))
+                            .style(style::Auswahl(*farbe)),
+                        )
+                        .push(
+                            Button::new(delete_state, Text::new("X"))
+                                .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
+                        ),
+                );
+            }
+            scrollable
+        })
+        .on_close(InterneAuswahlNachricht::Schließe)
+        .width(Length::Shrink);
+        Auswahl { card, neu_name, neu_farbe, neu_anschluss }
     }
 }
 
@@ -357,7 +343,7 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                 },
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
-                InterneAuswahlNachricht::Anschluss(anschluss) => self.neu_anschluss = anschluss,
+                InterneAuswahlNachricht::Anschluss(anschluss) => *self.neu_anschluss = anschluss,
             }
             status = event::Status::Captured;
         }
