@@ -27,7 +27,7 @@ use iced_native::{
 use num_x::u3;
 
 use super::macros::reexport_no_event_methods;
-use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarity};
+use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarität};
 
 pub mod style;
 
@@ -86,12 +86,12 @@ impl<'t> Status<Input<'t>> {
 
 #[derive(Debug, Clone)]
 pub struct Output {
-    polarität: Polarity,
+    polarität: Polarität,
 }
 impl Status<Output> {
     #[inline]
     pub fn neu_output() -> Self {
-        Self::neu_mit_interrupt(Output { polarität: Polarity::Normal })
+        Self::neu_mit_interrupt(Output { polarität: Polarität::Normal })
     }
 
     #[inline]
@@ -156,7 +156,7 @@ pub enum InputMessage {
 }
 #[derive(Debug, Clone)]
 pub enum OutputMessage {
-    Polarity(Polarity),
+    Polarität(Polarität),
 }
 
 pub struct Auswahl<'a, T, I, M, R: tabs::Renderer> {
@@ -220,7 +220,7 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarity, OutputMessage, OutputAnschluss, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputMessage, OutputAnschluss, R>
 where
     R: 'a
         + Renderer
@@ -241,22 +241,22 @@ where
                 (
                     Column::new()
                         .push(Radio::new(
-                            Polarity::Normal,
+                            Polarität::Normal,
                             "Normal",
                             Some(*polarität),
-                            OutputMessage::Polarity,
+                            OutputMessage::Polarität,
                         ))
                         .push(Radio::new(
-                            Polarity::Inverse,
+                            Polarität::Invertiert,
                             "Invertiert",
                             Some(*polarität),
-                            OutputMessage::Polarity,
+                            OutputMessage::Polarität,
                         ))
                         .into(),
                     polarität,
                 )
             },
-            &|modus, OutputMessage::Polarity(polarität)| *modus = polarität,
+            &|modus, OutputMessage::Polarität(polarität)| *modus = polarität,
             &|pin, polarität| OutputAnschluss::Pin { pin, polarität: *polarität },
             |a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
                 a0,
@@ -392,7 +392,7 @@ pub enum InputAnschluss {
 pub enum OutputAnschluss {
     Pin {
         pin: u8,
-        polarität: Polarity,
+        polarität: Polarität,
     },
     Pcf8574Port {
         a0: Level,
@@ -400,7 +400,7 @@ pub enum OutputAnschluss {
         a2: Level,
         variante: Variante,
         port: u3,
-        polarität: Polarity,
+        polarität: Polarität,
     },
 }
 

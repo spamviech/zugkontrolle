@@ -78,7 +78,7 @@ impl Display for Anschluss {
 }
 
 impl Anschluss {
-    pub fn into_output(self, polarität: Polarity) -> Result<OutputAnschluss, Error> {
+    pub fn into_output(self, polarität: Polarität) -> Result<OutputAnschluss, Error> {
         Ok(match self {
             Anschluss::Pin(pin) => OutputAnschluss::Pin { pin: pin.into_output(), polarität },
             Anschluss::Pcf8574Port(port) => {
@@ -98,8 +98,8 @@ impl Anschluss {
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
 pub enum OutputAnschluss {
-    Pin { pin: output::Pin, polarität: Polarity },
-    Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarity },
+    Pin { pin: output::Pin, polarität: Polarität },
+    Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarität },
 }
 
 impl Display for OutputAnschluss {
@@ -132,12 +132,12 @@ impl OutputAnschluss {
     pub fn ist_fließend(&mut self) -> Result<bool, Error> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarity::Normal => pin.is_set_high()?,
-                Polarity::Inverse => pin.is_set_low()?,
+                Polarität::Normal => pin.is_set_high()?,
+                Polarität::Invertiert => pin.is_set_low()?,
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
-                Polarity::Normal => port.is_set_high()?,
-                Polarity::Inverse => port.is_set_low()?,
+                Polarität::Normal => port.is_set_high()?,
+                Polarität::Invertiert => port.is_set_low()?,
             },
         })
     }
@@ -145,12 +145,12 @@ impl OutputAnschluss {
     pub fn ist_gesperrt(&mut self) -> Result<bool, Error> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarity::Normal => pin.is_set_low()?,
-                Polarity::Inverse => pin.is_set_high()?,
+                Polarität::Normal => pin.is_set_low()?,
+                Polarität::Invertiert => pin.is_set_high()?,
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
-                Polarity::Normal => port.is_set_low()?,
-                Polarity::Inverse => port.is_set_high()?,
+                Polarität::Normal => port.is_set_low()?,
+                Polarität::Invertiert => port.is_set_high()?,
             },
         })
     }

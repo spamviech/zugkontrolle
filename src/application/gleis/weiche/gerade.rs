@@ -4,8 +4,14 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::{anchor, gerade, kurve};
-use crate::application::typen::*;
+use crate::{
+    anschluss,
+    application::{
+        gleis::{anchor, gerade, kurve},
+        typen::*,
+    },
+    steuerung,
+};
 
 /// Definition einer Weiche
 ///
@@ -19,6 +25,8 @@ pub struct Weiche<Z> {
     pub winkel: Winkel,
     pub richtung: Orientierung,
     pub beschreibung: Option<String>,
+    pub steuerung: Option<()>,
+    // pub steuerung: Option<steuerung::Weiche<Richtung>>,
 }
 impl<Z> Weiche<Z> {
     pub const fn neu(
@@ -31,6 +39,7 @@ impl<Z> Weiche<Z> {
             winkel,
             richtung,
             beschreibung: None,
+            steuerung: None,
         }
     }
 
@@ -48,6 +57,7 @@ impl<Z> Weiche<Z> {
             winkel,
             richtung,
             beschreibung: Some(beschreibung.into()),
+            steuerung: None,
         }
     }
 }
@@ -62,6 +72,12 @@ pub enum AnchorName {
     Anfang,
     Gerade,
     Kurve,
+}
+#[anchor::impl_lookup(anschluss::OutputAnschluss)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Richtung {
+    Links,
+    Rechts,
 }
 
 impl<Z: Zugtyp> Zeichnen for Weiche<Z> {

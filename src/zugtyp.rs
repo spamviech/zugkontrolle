@@ -374,6 +374,7 @@ pub mod deserialize {
                         weiche::Orientierung::Rechts => "R",
                     }
                 }),
+                steuerung: None,
             };
             match richtung {
                 Some(richtung) => vec![konstruktor(richtung)],

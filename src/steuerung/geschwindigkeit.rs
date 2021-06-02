@@ -5,7 +5,7 @@ use std::{thread::sleep, time::Duration};
 
 use non_empty_vec::NonEmpty;
 
-use crate::anschluss::{self, pwm, Fließend, OutputAnschluss, Polarity};
+use crate::anschluss::{self, pwm, Fließend, OutputAnschluss, Polarität};
 
 #[derive(Debug)]
 pub struct Geschwindigkeit<Leiter> {
@@ -18,7 +18,7 @@ impl pwm::Pin {
         &mut self,
         wert: u8,
         faktor: f64,
-        polarity: Polarity,
+        polarity: Polarität,
     ) -> Result<(), pwm::Error> {
         debug_assert!(
             0. < faktor && faktor <= 1.,
@@ -56,7 +56,7 @@ fn geschwindigkeit_ks(
 pub enum Mittelleiter {
     Pwm {
         pin: pwm::Pin,
-        polarität: Polarity,
+        polarität: Polarität,
     },
     KonstanteSpannung {
         geschwindigkeit: NonEmpty<OutputAnschluss>,
@@ -114,7 +114,7 @@ impl Geschwindigkeit<Mittelleiter> {
 pub enum Zweileiter {
     Pwm {
         geschwindigkeit: pwm::Pin,
-        polarität: Polarity,
+        polarität: Polarität,
         fahrtrichtung: OutputAnschluss,
     },
     KonstanteSpannung {

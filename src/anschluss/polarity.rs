@@ -3,26 +3,30 @@
 #[cfg(not(raspi))]
 use std::fmt::{Display, Formatter, Result};
 
-use cfg_if::cfg_if;
+use serde::{Deserialize, Serialize};
 
 use super::level::Level;
 
-cfg_if! {
-    if #[cfg(raspi)] {
-        pub use rppal::pwm::Polarity;
-    } else {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        pub enum Polarity {
-            Normal,
-            Inverse,
-        }
-        impl Display for Polarity {
-            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-                write!(f, "{}", match self {
-                    Polarity::Normal => "Normal",
-                    Polarity::Inverse => "Inverse",
-                })
-            }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Polarität {
+    Normal,
+    Invertiert,
+}
+impl Display for Polarität {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", match self {
+            Polarität::Normal => "Normal",
+            Polarität::Invertiert => "Invertiert",
+        })
+    }
+}
+
+#[cfg(raspi)]
+impl From<Polarität> for rppal::pwm::Polarity {
+    fn from(polarität: Polarität) -> Self {
+        match polarität {
+            Polarität::Normal => Polarity::Normal,
+            Polarität::Invertiert => Polarity::Inverse,
         }
     }
 }
@@ -33,14 +37,12 @@ pub enum Fließend {
     Gesperrt,
 }
 impl Fließend {
-    pub fn with_polarity(self, polarity: Polarity) -> Level {
+    pub fn with_polarity(self, polarity: Polarität) -> Level {
         match (self, polarity) {
-            (Fließend::Fließend, Polarity::Normal) | (Fließend::Gesperrt, Polarity::Inverse) => {
-                Level::High
-            },
-            (Fließend::Fließend, Polarity::Inverse) | (Fließend::Gesperrt, Polarity::Normal) => {
-                Level::Low
-            },
+            (Fließend::Fließend, Polarität::Normal)
+            | (Fließend::Gesperrt, Polarität::Invertiert) => Level::High,
+            (Fließend::Fließend, Polarität::Invertiert)
+            | (Fließend::Gesperrt, Polarität::Normal) => Level::Low,
         }
     }
 }

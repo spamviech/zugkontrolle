@@ -10,7 +10,7 @@ use rppal::{gpio, pwm};
 
 #[cfg(not(raspi))]
 use super::Wrapper;
-use crate::anschluss::polarity::Polarity;
+use crate::anschluss::polarity::Polarität;
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
@@ -43,13 +43,13 @@ impl PartialEq for Pwm {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     pub time: Time,
-    pub polarity: Polarity,
+    pub polarity: Polarität,
 }
 impl Config {
     /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
     ///
     /// Time::valide muss /true/ sein.
-    pub fn new(time: Time, polarity: Polarity) -> Option<Self> {
+    pub fn new(time: Time, polarity: Polarität) -> Option<Self> {
         let config = Config { time, polarity };
         if config.valide() {
             Some(config)
@@ -152,7 +152,7 @@ impl Pin {
                 if self.config.as_ref().map(|Config { polarity, .. }| polarity)
                     != Some(&config.polarity)
                 {
-                    pwm_channel.set_polarity(config.polarity)?;
+                    pwm_channel.set_polarity(config.polarity.into())?;
                 }
                 if self.config.as_ref().map(|Config { time, .. }| time) != Some(&config.time) {
                     match config.time {
@@ -170,13 +170,13 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Software(pin) => match config.time {
                 Time::Period { period, mut pulse_width } => {
-                    if config.polarity == Polarity::Inverse {
+                    if config.polarity == Polarität::Inverse {
                         pulse_width = period - pulse_width;
                     }
                     Ok(pin.set_pwm(period, pulse_width)?)
                 },
                 Time::Frequency { frequency, mut duty_cycle } => {
-                    if config.polarity == Polarity::Inverse {
+                    if config.polarity == Polarität::Inverse {
                         duty_cycle = 1. - duty_cycle;
                     }
                     Ok(pin.set_pwm_frequency(frequency, duty_cycle)?)

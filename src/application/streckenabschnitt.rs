@@ -34,7 +34,7 @@ use iced_native::{
 };
 
 use super::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods};
-use crate::anschluss::polarity::Polarity;
+use crate::anschluss::polarity::Polarität;
 pub use crate::steuerung::streckenabschnitt::Name;
 use crate::steuerung::Streckenabschnitt;
 
@@ -131,7 +131,9 @@ impl AuswahlStatus {
         AuswahlStatus {
             neu_name: String::new(),
             neu_farbe: Color::WHITE,
-            neu_anschluss: anschluss::OutputAnschluss::Pin { pin: 0, polarität: Polarity::Normal },
+            neu_anschluss: anschluss::OutputAnschluss::Pin {
+                pin: 0, polarität: Polarität::Normal
+            },
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),
             neu_button_state: button::State::new(),
