@@ -10,16 +10,26 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
     let mut errors = Vec::new();
 
     let syn::ItemEnum { vis, variants, ident, .. } = &item;
-    let (element, struct_name) = if let [fst, snd] = args.as_slice() {
-        let suffix = quote!(#snd).to_string();
-        (Some(fst), Some(format_ident!("{}{}", ident.to_string().trim_end_matches("Name"), suffix)))
+    let dummy = Vec::new();
+    let (element, struct_name, derives) = if args.len() < 2 {
+        errors.push(
+            if args.is_empty() {
+                "Lookup Element and Name suffix missing!".to_string()
+            } else {
+                "Name suffix missing!".to_string()
+            },
+        );
+        (None, None, dummy.iter().skip(0))
     } else {
-        errors.push(match args.len() {
-            0 => "Lookup Element and Name suffix missing!".to_string(),
-            1 => "Name suffix missing!".to_string(),
-            _ => format!("Only two argument supported, but {:?} were given.", args),
-        });
-        (None, None)
+        let fst = &args[0];
+        let snd = &args[1];
+        let derives = args.iter().skip(2);
+        let suffix = quote!(#snd).to_string();
+        (
+            Some(fst),
+            Some(format_ident!("{}{}", ident.to_string().trim_end_matches("Name"), suffix)),
+            derives,
+        )
     };
 
     let mut struct_definition = None;
@@ -40,7 +50,7 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
                 .map(|variant| format_ident!("{}", to_snake_case(&variant.to_string()).replace("_ß", "ß")))
                 .collect();
         struct_definition = Some(quote! {
-            #[derive(Debug)]
+            #[derive(#(#derives),*)]
             #vis struct #struct_name {
                 #(pub #struct_fields : #element),*
             }
