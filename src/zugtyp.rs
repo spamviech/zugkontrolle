@@ -33,6 +33,9 @@ pub trait Zugtyp: Sized {
     const SPURWEITE: Spurweite;
     const NAME: &'static str;
 
+    /// Art der Stromzufuhr.
+    type Leiter;
+
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;
     fn weichen() -> Vec<WeicheUnit<Self>>;

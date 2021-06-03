@@ -171,7 +171,7 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-pub struct Zugkontrolle<Z> {
+pub struct Zugkontrolle<Z: Zugtyp> {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
@@ -182,7 +182,7 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
-    geschwindigkeiten: geschwindigkeit::Map<Z>,
+    geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
     modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     message_box: iced_aw::modal::State<MessageBox>,
@@ -202,7 +202,7 @@ pub struct Zugkontrolle<Z> {
     // TODO Geschwindigkeit, Wegstrecke, Plan
 }
 
-impl<Z> Zugkontrolle<Z> {
+impl<Z: Zugtyp> Zugkontrolle<Z> {
     fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
         *titel = titel_arg;
@@ -235,6 +235,7 @@ where
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
+    Z::Leiter: Debug,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>);
@@ -649,7 +650,7 @@ fn top_row<'t, Z: 'static>(
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
+fn row_with_scrollable<'t, Z>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Button<Gerade<Z>>>,
@@ -659,8 +660,12 @@ fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
     kurven_weichen: &'t mut Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: &'t mut Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: &'t mut Vec<Button<Kreuzung<Z>>>,
-    geschwindigkeiten: &'t mut geschwindigkeit::Map<Z>,
-) -> iced::Row<'t, Message<Z>> {
+    geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
+) -> iced::Row<'t, Message<Z>>
+where
+    Z: 'static + Zugtyp,
+    Z::Leiter: Debug,
+{
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
     // Fahren(Streckenabschnitt-Anzeige?
@@ -700,9 +705,9 @@ fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten"));
             for (name, geschwindigkeit) in geschwindigkeiten {
                 scrollable = scrollable.push(
-                    iced::Row::new().push(iced::Text::new(&name.0)), /* .push(iced::Text::new(&
-                                                                      * format!("{:?}",
-                                                                      * geschwindigkeit))), */
+                    iced::Row::new()
+                        .push(iced::Text::new(&name.0))
+                        .push(iced::Text::new(&format!("{:?}", geschwindigkeit))),
                 );
             }
             // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?, Separator dazwischen?

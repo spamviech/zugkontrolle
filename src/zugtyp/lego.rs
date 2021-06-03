@@ -11,10 +11,13 @@ use crate::application::gleis::{
     weiche::{self, gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
 };
 use crate::application::typen::*;
+use crate::steuerung::geschwindigkeit::Zweileiter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;
 impl Zugtyp for Lego {
+    type Leiter = Zweileiter;
+
     const NAME: &'static str = "Lego";
     const SPURWEITE: Spurweite = Spurweite(38.);
 

@@ -8,10 +8,13 @@ use crate::application::gleis::{
     weiche::{self, gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
 };
 use crate::application::typen::*;
+use crate::steuerung::geschwindigkeit::Mittelleiter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Märklin;
 impl Zugtyp for Märklin {
+    type Leiter = Mittelleiter;
+
     const NAME: &'static str = "Märklin";
     const SPURWEITE: Spurweite = Spurweite(16.5);
 
