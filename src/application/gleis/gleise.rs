@@ -850,7 +850,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             name,
             geraden,
             kurven,
-            weichen,
+            // weichen,
             dreiwege_weichen,
             kurven_weichen,
             s_kurven_weichen,
@@ -871,6 +871,42 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         self.next_id = 0;
         // don't reset last_mouse, last_size
         // TODO Modus?
+
+        // TODO dummy, wegen fehlendem serialize
+        let weichen = Vec::new();
+        let weichen = weichen.into_iter().map(
+            |Gleis {
+                 definition:
+                     super::weiche::WeicheSave {
+                         zugtyp,
+                         länge,
+                         radius,
+                         winkel,
+                         richtung,
+                         beschreibung,
+                         steuerung,
+                     },
+                 position,
+                 streckenabschnitt,
+             }| Gleis {
+                definition: super::weiche::Weiche {
+                    zugtyp,
+                    länge,
+                    radius,
+                    winkel,
+                    richtung,
+                    beschreibung,
+                    steuerung: steuerung.map(
+                        |crate::steuerung::Weiche {
+                             anschlüsse:
+                                 super::weiche::gerade::RichtungAnschlüsseSave { gerade, kurve },
+                         }| todo!(),
+                    ),
+                },
+                position,
+                streckenabschnitt,
+            },
+        );
 
         // restore state from data
         macro_rules! add_gleise {

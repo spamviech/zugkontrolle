@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
 use super::Wrapper;
-use crate::anschluss::polarity::Polarität;
+use crate::anschluss::{
+    anschlüsse::{self, Anschlüsse},
+    polarity::Polarität,
+};
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
@@ -249,5 +252,10 @@ pub struct Save(pub u8);
 impl From<Pin> for Save {
     fn from(pin: Pin) -> Self {
         Save(pin.pin())
+    }
+}
+impl Save {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Pin, anschlüsse::Error> {
+        anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm)
     }
 }

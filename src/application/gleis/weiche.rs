@@ -6,6 +6,6 @@ pub mod kurve;
 pub mod s_kurve;
 
 pub use dreiwege::DreiwegeWeiche;
-pub use gerade::{Orientierung, Weiche};
+pub use gerade::{Orientierung, Weiche, WeicheSave};
 pub use kurve::KurvenWeiche;
 pub use s_kurve::SKurvenWeiche;

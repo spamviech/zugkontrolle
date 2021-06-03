@@ -10,7 +10,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
 };
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
@@ -27,7 +27,7 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<Gerade<Z>>>,
     pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
-    pub(crate) weichen: Vec<Gleis<Weiche<Z>>>,
+    // pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeiche<Z>>>,
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
@@ -55,7 +55,7 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
         hashmaps_to_vecs!(
             geraden,
             kurven,
-            weichen,
+            // weichen,
             dreiwege_weichen,
             kurven_weichen,
             s_kurven_weichen,

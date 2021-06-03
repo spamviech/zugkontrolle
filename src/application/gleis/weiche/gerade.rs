@@ -15,31 +15,34 @@ use crate::{
     steuerung,
 };
 
-/// Definition einer Weiche
+pub type Weiche<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsse>>>;
+pub type WeicheSave<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
+pub type WeicheUnit<Z> = WeicheData<Z, ()>;
+
+/// Definition einer Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Weiche<Z> {
+pub struct WeicheData<Z, Anschlüsse> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
     pub richtung: Orientierung,
     pub beschreibung: Option<String>,
-    pub steuerung: Option<()>,
-    // TODO pub steuerung: Option<steuerung::Weiche<Anschlüsse>>,
+    pub steuerung: Anschlüsse,
 }
-impl<Z> Weiche<Z> {
+impl<Z> WeicheUnit<Z> {
     pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung) -> Self {
-        Weiche {
+        WeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: None,
-            steuerung: None,
+            steuerung: (),
         }
     }
 
@@ -50,14 +53,14 @@ impl<Z> Weiche<Z> {
         richtung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
-        Weiche {
+        WeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: Some(beschreibung.into()),
-            steuerung: None,
+            steuerung: (),
         }
     }
 }
@@ -73,27 +76,33 @@ pub enum AnchorName {
     Gerade,
     Kurve,
 }
-#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse)]
-#[impl_lookup(anschluss::OutputSave, AnschlüsseSave)]
+#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse, Debug)]
+#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Richtung {
-    Links,
-    Rechts,
+    Gerade,
+    Kurve,
 }
 
-impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
+impl From<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+    fn from(RichtungAnschlüsse { gerade, kurve }: RichtungAnschlüsse) -> Self {
+        RichtungAnschlüsseSave { gerade: gerade.into(), kurve: kurve.into() }
+    }
+}
+
+impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
-        let Weiche { länge, radius, winkel, .. } = *self;
+        let WeicheData { länge, radius, winkel, .. } = *self;
         let gerade_size = gerade::size::<Z>(länge);
         let kurve_size = kurve::size::<Z>(radius, winkel);
         Vektor { x: gerade_size.x.max(&kurve_size.x), y: kurve_size.y }
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
-        let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
+        let WeicheData { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
@@ -130,7 +139,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     }
 
     fn fülle(&self) -> Vec<Pfad> {
-        let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
+        let WeicheData { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];

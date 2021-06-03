@@ -6,7 +6,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+    weiche::{gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
 };
 
 pub mod lego;
@@ -35,7 +35,7 @@ pub trait Zugtyp: Sized {
 
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;
-    fn weichen() -> Vec<Weiche<Self>>;
+    fn weichen() -> Vec<WeicheUnit<Self>>;
     fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>>;
     fn kurven_weichen() -> Vec<KurvenWeiche<Self>>;
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>>;
@@ -138,7 +138,7 @@ pub mod value {
         pub umdrehen: Umdrehen,
         pub geraden: Vec<Gerade<()>>,
         pub kurven: Vec<Kurve<()>>,
-        pub weichen: Vec<Weiche<()>>,
+        // pub weichen: Vec<Weiche<()>>,
         pub dreiwege_weichen: Vec<DreiwegeWeiche<()>>,
         pub kurven_weichen: Vec<KurvenWeiche<()>>,
         pub s_kurven_weichen: Vec<SKurvenWeiche<()>>,
@@ -265,7 +265,7 @@ pub mod deserialize {
                 umdrehen: umdrehen.into(),
                 geraden: geraden.into_iter().map(Into::into).collect(),
                 kurven: kurven.into_iter().map(Into::into).collect(),
-                weichen: weichen.into_iter().flat_map(Weiche::into).collect(),
+                // weichen: weichen.into_iter().flat_map(Weiche::into).collect(),
                 dreiwege_weichen: dreiwege_weichen.into_iter().map(Into::into).collect(),
                 kurven_weichen: kurven_weichen.into_iter().map(Into::into).collect(),
                 s_kurven_weichen: s_kurven_weichen

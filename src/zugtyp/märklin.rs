@@ -5,7 +5,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::{self, Kreuzung},
     kurve::Kurve,
-    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+    weiche::{self, gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 use crate::application::typen::*;
 
@@ -41,7 +41,7 @@ impl Zugtyp for Märklin {
         ]
     }
 
-    fn weichen() -> Vec<Weiche<Self>> {
+    fn weichen() -> Vec<WeicheUnit<Self>> {
         vec![
             weiche_5117_links(),
             weiche_5117_rechts(),
@@ -153,12 +153,12 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-pub fn weiche_5117(richtung: weiche::Orientierung) -> Weiche<Märklin> {
+pub fn weiche_5117(richtung: weiche::Orientierung) -> WeicheUnit<Märklin> {
     let beschreibung = match richtung {
         weiche::Orientierung::Links => "5117L",
         weiche::Orientierung::Rechts => "5117R",
     };
-    Weiche::neu_mit_beschreibung(
+    WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
         WinkelGradmaß::neu(30.).into(),
@@ -166,18 +166,18 @@ pub fn weiche_5117(richtung: weiche::Orientierung) -> Weiche<Märklin> {
         beschreibung,
     )
 }
-pub fn weiche_5117_rechts() -> Weiche<Märklin> {
+pub fn weiche_5117_rechts() -> WeicheUnit<Märklin> {
     weiche_5117(weiche::Orientierung::Rechts)
 }
-pub fn weiche_5117_links() -> Weiche<Märklin> {
+pub fn weiche_5117_links() -> WeicheUnit<Märklin> {
     weiche_5117(weiche::Orientierung::Links)
 }
-pub fn weiche_5137(richtung: weiche::Orientierung) -> Weiche<Märklin> {
+pub fn weiche_5137(richtung: weiche::Orientierung) -> WeicheUnit<Märklin> {
     let beschreibung = match richtung {
         weiche::Orientierung::Links => "5137L",
         weiche::Orientierung::Rechts => "5137R",
     };
-    Weiche::neu_mit_beschreibung(
+    WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
         WinkelGradmaß::neu(22.5).into(),
@@ -185,18 +185,18 @@ pub fn weiche_5137(richtung: weiche::Orientierung) -> Weiche<Märklin> {
         beschreibung,
     )
 }
-pub fn weiche_5137_rechts() -> Weiche<Märklin> {
+pub fn weiche_5137_rechts() -> WeicheUnit<Märklin> {
     weiche_5137(weiche::Orientierung::Rechts)
 }
-pub fn weiche_5137_links() -> Weiche<Märklin> {
+pub fn weiche_5137_links() -> WeicheUnit<Märklin> {
     weiche_5137(weiche::Orientierung::Links)
 }
-pub fn weiche_5202(richtung: weiche::Orientierung) -> Weiche<Märklin> {
+pub fn weiche_5202(richtung: weiche::Orientierung) -> WeicheUnit<Märklin> {
     let beschreibung = match richtung {
         weiche::Orientierung::Links => "5202L",
         weiche::Orientierung::Rechts => "5202R",
     };
-    Weiche::neu_mit_beschreibung(
+    WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
         WinkelGradmaß::neu(24.28).into(),
@@ -204,10 +204,10 @@ pub fn weiche_5202(richtung: weiche::Orientierung) -> Weiche<Märklin> {
         beschreibung,
     )
 }
-pub fn weiche_5202_rechts() -> Weiche<Märklin> {
+pub fn weiche_5202_rechts() -> WeicheUnit<Märklin> {
     weiche_5202(weiche::Orientierung::Rechts)
 }
-pub fn weiche_5202_links() -> Weiche<Märklin> {
+pub fn weiche_5202_links() -> WeicheUnit<Märklin> {
     weiche_5202(weiche::Orientierung::Links)
 }
 

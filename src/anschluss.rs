@@ -2,6 +2,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
+use num_x::u3;
 use serde::{Deserialize, Serialize};
 
 pub mod level;
@@ -202,6 +203,20 @@ impl From<OutputAnschluss> for OutputSave {
         }
     }
 }
+impl OutputSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<OutputAnschluss, Error> {
+        let (anschluss, polarität) = match self {
+            OutputSave::Pin { pin, polarität } => {
+                (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
+            },
+            OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+                let port = u3::new(port);
+                (anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into(), polarität)
+            },
+        };
+        anschluss.into_output(polarität)
+    }
+}
 
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
@@ -278,6 +293,18 @@ impl From<InputAnschluss> for InputSave {
                 }
             },
         }
+    }
+}
+impl InputSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<InputAnschluss, Error> {
+        let anschluss = match self {
+            InputSave::Pin { pin } => Anschluss::from(anschlüsse.reserviere_pin(pin)?),
+            InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
+                let port = u3::new(port);
+                anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into()
+            },
+        };
+        anschluss.into_input()
     }
 }
 
