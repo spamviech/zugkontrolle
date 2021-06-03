@@ -16,7 +16,7 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
             syn::GenericParam::Type(ty) => {
-                generic_types.insert(&ty.ident, true);
+                generic_types.insert(&ty.ident, false);
             },
             syn::GenericParam::Const(_c) => {},
         }
