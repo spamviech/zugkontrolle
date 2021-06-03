@@ -10,7 +10,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
+    weiche::{DreiwegeWeiche, DreiwegeWeicheSave, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
 };
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
@@ -28,7 +28,7 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) geraden: Vec<Gleis<Gerade<Z>>>,
     pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
     pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeiche<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSave<Z>>>,
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
@@ -45,7 +45,7 @@ fn gleis<T: Clone>((_a, (b, _c)): (&GleisId<T>, &(Gleis<T>, GleisIdLock<T>))) ->
 impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     fn from(maps: &GleiseMaps<Z>) -> Self {
         macro_rules! hashmaps_to_vecs {
-            ($($map:ident),*; $($save_map:ident),*) => {
+            ($($map:ident),*; $($save_map:ident),* $(,)?) => {
                 GleiseVecs {
                     name: Z::NAME.to_string(),
                     $($map: maps.$map.iter().map(gleis).collect()),*,
@@ -64,11 +64,11 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
         hashmaps_to_vecs!(
             geraden,
             kurven,
-            dreiwege_weichen,
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen;
-            weichen
+            weichen,
+            dreiwege_weichen,
         )
     }
 }
@@ -91,8 +91,8 @@ impl<Z> GleiseMaps<Z> {
             geraden: HashMap::new(),
             kurven: HashMap::new(),
             weichen: HashMap::new(),
-            kurven_weichen: HashMap::new(),
             dreiwege_weichen: HashMap::new(),
+            kurven_weichen: HashMap::new(),
             s_kurven_weichen: HashMap::new(),
             kreuzungen: HashMap::new(),
             streckenabschnitte: HashMap::new(),
@@ -118,14 +118,14 @@ impl<Z> GleiseMap<Z> for Weiche<Z> {
         weichen
     }
 }
-impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
-    fn get_map_mut(GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
-        kurven_weichen
-    }
-}
 impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
     fn get_map_mut(GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         dreiwege_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
+    fn get_map_mut(GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+        kurven_weichen
     }
 }
 impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {

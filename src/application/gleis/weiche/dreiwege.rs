@@ -4,29 +4,67 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::{anchor, gerade, kurve};
-use crate::{application::typen::*, lookup::impl_lookup};
+use crate::{
+    anschluss,
+    application::gleis::{anchor, gerade, kurve},
+    steuerung,
+    {application::typen::*, lookup::impl_lookup},
+};
+
+pub type DreiwegeWeiche<Z> = DreiwegeWeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsse>>>;
+pub type DreiwegeWeicheSave<Z> =
+    DreiwegeWeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
+pub type DreiwegeWeicheUnit<Z> = DreiwegeWeicheData<Z, ()>;
+impl<Z> DreiwegeWeiche<Z> {
+    pub fn to_save(&self) -> DreiwegeWeicheSave<Z> {
+        let DreiwegeWeiche { zugtyp, länge, radius, winkel, beschreibung, steuerung } = self;
+        DreiwegeWeicheSave {
+            zugtyp: *zugtyp,
+            länge: *länge,
+            radius: *radius,
+            winkel: *winkel,
+            beschreibung: beschreibung.clone(),
+            steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
+                steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
+            }),
+        }
+    }
+
+    pub fn to_unit(&self) -> DreiwegeWeicheUnit<Z> {
+        let DreiwegeWeiche { zugtyp, länge, radius, winkel, beschreibung, steuerung: _ } = self;
+        DreiwegeWeicheUnit {
+            zugtyp: *zugtyp,
+            länge: *länge,
+            radius: *radius,
+            winkel: *winkel,
+            beschreibung: beschreibung.clone(),
+            steuerung: (),
+        }
+    }
+}
 
 /// Definition einer Dreiwege-Weiche
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct DreiwegeWeiche<Z> {
+pub struct DreiwegeWeicheData<Z, Anschlüsse> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
     pub beschreibung: Option<String>,
+    pub steuerung: Anschlüsse,
 }
-impl<Z> DreiwegeWeiche<Z> {
+impl<Z> DreiwegeWeicheUnit<Z> {
     pub fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
-        DreiwegeWeiche {
+        DreiwegeWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             beschreibung: None,
+            steuerung: (),
         }
     }
 
@@ -36,12 +74,13 @@ impl<Z> DreiwegeWeiche<Z> {
         winkel: Winkel,
         beschreibung: impl Into<String>,
     ) -> Self {
-        DreiwegeWeiche {
+        DreiwegeWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             beschreibung: Some(beschreibung.into()),
+            steuerung: (),
         }
     }
 }
@@ -54,12 +93,31 @@ pub enum AnchorName {
     Links,
     Rechts,
 }
-impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
+#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse, Debug)]
+#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Richtung {
+    Gerade,
+    Links,
+    Rechts,
+}
+impl RichtungAnschlüsse {
+    pub fn to_save(&self) -> RichtungAnschlüsseSave {
+        let RichtungAnschlüsse { gerade, links, rechts } = self;
+        RichtungAnschlüsseSave {
+            gerade: gerade.to_save(),
+            links: links.to_save(),
+            rechts: rechts.to_save(),
+        }
+    }
+}
+
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeicheData<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
-        let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
+        let DreiwegeWeicheData { länge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
         let height_kurven = size_kurve.y.doppelt() - beschränkung::<Z>();

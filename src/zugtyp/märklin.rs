@@ -5,7 +5,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::{self, Kreuzung},
     kurve::Kurve,
-    weiche::{self, gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
+    weiche::{self, dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
 };
 use crate::application::typen::*;
 use crate::steuerung::geschwindigkeit::Mittelleiter;
@@ -55,7 +55,7 @@ impl Zugtyp for Märklin {
         ]
     }
 
-    fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
+    fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>> {
         vec![dreiwege_weiche_5214()]
     }
 
@@ -218,8 +218,8 @@ pub fn weiche_5202_links() -> WeicheUnit<Märklin> {
 Dreiwege-Weiche
     5214: L180mm, 24,28°, R437.4mm
 */
-pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
-    DreiwegeWeiche::neu_mit_beschreibung(
+pub fn dreiwege_weiche_5214() -> DreiwegeWeicheUnit<Märklin> {
+    DreiwegeWeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
         WinkelGradmaß::neu(24.28).into(),

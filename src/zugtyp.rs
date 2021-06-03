@@ -6,7 +6,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
+    weiche::{dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
 };
 
 pub mod lego;
@@ -39,12 +39,13 @@ pub trait Zugtyp: Sized {
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;
     fn weichen() -> Vec<WeicheUnit<Self>>;
-    fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>>;
+    fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>>;
     fn kurven_weichen() -> Vec<KurvenWeiche<Self>>;
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>>;
     fn kreuzungen() -> Vec<Kreuzung<Self>>;
 }
 
+/*
 pub mod geschwindigkeit {
     use non_empty_vec::NonEmpty;
 
@@ -468,3 +469,4 @@ pub mod deserialize {
         }
     }
 }
+*/

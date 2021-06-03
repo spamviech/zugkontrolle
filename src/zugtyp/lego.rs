@@ -8,7 +8,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::{self, Kreuzung},
     kurve::Kurve,
-    weiche::{self, gerade::WeicheUnit, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche},
+    weiche::{self, dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
 };
 use crate::application::typen::*;
 use crate::steuerung::geschwindigkeit::Zweileiter;
@@ -33,7 +33,7 @@ impl Zugtyp for Lego {
         vec![]
     }
 
-    fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
+    fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>> {
         vec![]
     }
 

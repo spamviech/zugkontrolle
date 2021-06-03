@@ -112,7 +112,6 @@ pub enum Richtung {
     Gerade,
     Kurve,
 }
-
 impl RichtungAnschlüsse {
     pub fn to_save(&self) -> RichtungAnschlüsseSave {
         let RichtungAnschlüsse { gerade, kurve } = self;

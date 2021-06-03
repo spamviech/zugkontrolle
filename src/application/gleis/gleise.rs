@@ -877,7 +877,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // don't reset last_mouse, last_size
         // TODO Modus?
 
-        // TODO dummy, wegen fehlendem serialize
+        // TODO macro für reservieren-Map
         let weichen: Vec<_> = match weichen
             .into_iter()
             .map(
@@ -929,7 +929,60 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             Ok(vec) => vec,
             Err(error) => return Err(error),
         };
-
+        let dreiwege_weichen: Vec<_> = match dreiwege_weichen
+            .into_iter()
+            .map(
+                |Gleis {
+                     definition:
+                         super::weiche::DreiwegeWeicheSave {
+                             zugtyp,
+                             länge,
+                             radius,
+                             winkel,
+                             beschreibung,
+                             steuerung,
+                         },
+                     position,
+                     streckenabschnitt,
+                 }| {
+                    let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
+                        |crate::steuerung::Weiche {
+                             anschlüsse:
+                                 super::weiche::dreiwege::RichtungAnschlüsseSave {
+                                     gerade,
+                                     links,
+                                     rechts,
+                                 },
+                         }| {
+                            Ok(crate::steuerung::Weiche {
+                                anschlüsse: super::weiche::dreiwege::RichtungAnschlüsse {
+                                    gerade: gerade.reserviere(anschlüsse)?,
+                                    links: links.reserviere(anschlüsse)?,
+                                    rechts: rechts.reserviere(anschlüsse)?,
+                                },
+                            })
+                        },
+                    );
+                    let steuerung = steuerung_result.transpose()?;
+                    Ok(Gleis {
+                        definition: super::weiche::DreiwegeWeiche {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            beschreibung,
+                            steuerung,
+                        },
+                        position,
+                        streckenabschnitt,
+                    })
+                },
+            )
+            .collect()
+        {
+            Ok(vec) => vec,
+            Err(error) => return Err(error),
+        };
         // restore state from data
         macro_rules! add_gleise {
             ($($gleise: ident,)*) => {
