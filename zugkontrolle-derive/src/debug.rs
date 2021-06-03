@@ -12,10 +12,12 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
 
     let mut generic_lifetimes = Vec::new();
     let mut generic_types = HashMap::new();
+    let mut generic_type_names = Vec::new();
     for g in generics.params.iter() {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
             syn::GenericParam::Type(ty) => {
+                generic_type_names.push(&ty.ident);
                 generic_types.insert(&ty.ident, false);
             },
             syn::GenericParam::Const(_c) => {},
@@ -116,13 +118,16 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
             }
         },
         _ => {
-            unimplemented!("Unsupported data! Given ast: {:?}", ast)
+            let error = format!("Unsupported data! Given ast: {:?}", ast);
+            return quote! {
+                compile_error!(#error)
+            }
         },
     };
 
-    let generic_type_names = generic_types.keys();
-    let generic_type_constraints = generic_types.iter().map(|(ty, constraint)| {
-        if *constraint {
+    // map from generic_type_names to preserve order!
+    let generic_type_constraints = generic_type_names.iter().map(|ty| {
+        if *generic_types.get(ty).unwrap_or(&false) {
             quote!(#ty: std::fmt::Debug)
         } else {
             quote!(#ty)
