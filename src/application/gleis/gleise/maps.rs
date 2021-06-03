@@ -10,7 +10,7 @@ use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
+    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
 };
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
@@ -27,7 +27,7 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<Gerade<Z>>>,
     pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
-    // pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeiche<Z>>>,
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
@@ -45,21 +45,30 @@ fn gleis<T: Clone>((_a, (b, _c)): (&GleisId<T>, &(Gleis<T>, GleisIdLock<T>))) ->
 impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     fn from(maps: &GleiseMaps<Z>) -> Self {
         macro_rules! hashmaps_to_vecs {
-            ($($map:ident),*) => {
+            ($($map:ident),*; $($save_map:ident),*) => {
                 GleiseVecs {
                     name: Z::NAME.to_string(),
-                    $($map: maps.$map.iter().map(gleis).collect()),*
+                    $($map: maps.$map.iter().map(gleis).collect()),*,
+                    $($save_map: maps.$save_map.iter().map(
+                        |(_id, (Gleis {position, definition, streckenabschnitt}, _id_lock))|
+                        Gleis {
+                            position: position.clone(),
+                            definition: definition.to_save(),
+                            streckenabschnitt: streckenabschnitt.clone()
+                        })
+                        .collect()
+                    ),*
                 }
             };
         }
         hashmaps_to_vecs!(
             geraden,
             kurven,
-            // weichen,
             dreiwege_weichen,
             kurven_weichen,
             s_kurven_weichen,
-            kreuzungen
+            kreuzungen;
+            weichen
         )
     }
 }

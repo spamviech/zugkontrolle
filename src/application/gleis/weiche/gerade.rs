@@ -18,6 +18,35 @@ use crate::{
 pub type Weiche<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsse>>>;
 pub type WeicheSave<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
 pub type WeicheUnit<Z> = WeicheData<Z, ()>;
+impl<Z> Weiche<Z> {
+    pub fn to_save(&self) -> WeicheSave<Z> {
+        let Weiche { zugtyp, länge, radius, winkel, richtung, beschreibung, steuerung } = self;
+        WeicheSave {
+            zugtyp: *zugtyp,
+            länge: *länge,
+            radius: *radius,
+            winkel: *winkel,
+            richtung: *richtung,
+            beschreibung: beschreibung.clone(),
+            steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
+                steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
+            }),
+        }
+    }
+
+    pub fn to_unit(&self) -> WeicheUnit<Z> {
+        let Weiche { zugtyp, länge, radius, winkel, richtung, beschreibung, steuerung: _ } = self;
+        WeicheUnit {
+            zugtyp: *zugtyp,
+            länge: *länge,
+            radius: *radius,
+            winkel: *winkel,
+            richtung: *richtung,
+            beschreibung: beschreibung.clone(),
+            steuerung: (),
+        }
+    }
+}
 
 /// Definition einer Weiche.
 ///
@@ -77,16 +106,17 @@ pub enum AnchorName {
     Kurve,
 }
 #[impl_lookup(anschluss::OutputAnschluss, Anschlüsse, Debug)]
-#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone)]
+#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Richtung {
     Gerade,
     Kurve,
 }
 
-impl From<RichtungAnschlüsse> for RichtungAnschlüsseSave {
-    fn from(RichtungAnschlüsse { gerade, kurve }: RichtungAnschlüsse) -> Self {
-        RichtungAnschlüsseSave { gerade: gerade.into(), kurve: kurve.into() }
+impl RichtungAnschlüsse {
+    pub fn to_save(&self) -> RichtungAnschlüsseSave {
+        let RichtungAnschlüsse { gerade, kurve } = self;
+        RichtungAnschlüsseSave { gerade: gerade.to_save(), kurve: kurve.to_save() }
     }
 }
 

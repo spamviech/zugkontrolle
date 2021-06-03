@@ -138,7 +138,7 @@ pub mod value {
         pub umdrehen: Umdrehen,
         pub geraden: Vec<Gerade<()>>,
         pub kurven: Vec<Kurve<()>>,
-        // pub weichen: Vec<Weiche<()>>,
+        pub weichen: Vec<WeicheUnit<()>>,
         pub dreiwege_weichen: Vec<DreiwegeWeiche<()>>,
         pub kurven_weichen: Vec<KurvenWeiche<()>>,
         pub s_kurven_weichen: Vec<SKurvenWeiche<()>>,
@@ -265,7 +265,7 @@ pub mod deserialize {
                 umdrehen: umdrehen.into(),
                 geraden: geraden.into_iter().map(Into::into).collect(),
                 kurven: kurven.into_iter().map(Into::into).collect(),
-                // weichen: weichen.into_iter().flat_map(Weiche::into).collect(),
+                weichen: weichen.into_iter().flat_map(Weiche::into).collect(),
                 dreiwege_weichen: dreiwege_weichen.into_iter().map(Into::into).collect(),
                 kurven_weichen: kurven_weichen.into_iter().map(Into::into).collect(),
                 s_kurven_weichen: s_kurven_weichen
@@ -360,9 +360,9 @@ pub mod deserialize {
         pub beschreibung: Option<String>,
     }
     impl Weiche {
-        fn into<Z>(self) -> Vec<weiche::Weiche<Z>> {
+        fn into<Z>(self) -> Vec<weiche::gerade::WeicheUnit<Z>> {
             let Weiche { länge, radius, winkel, richtung, beschreibung } = self;
-            let konstruktor = |richtung| weiche::Weiche {
+            let konstruktor = |richtung| weiche::gerade::WeicheUnit {
                 zugtyp: PhantomData,
                 länge: Länge::neu(länge).als_skalar(),
                 radius: Radius::neu(radius).als_skalar(),
@@ -374,7 +374,7 @@ pub mod deserialize {
                         weiche::Orientierung::Rechts => "R",
                     }
                 }),
-                steuerung: None,
+                steuerung: (),
             };
             match richtung {
                 Some(richtung) => vec![konstruktor(richtung)],

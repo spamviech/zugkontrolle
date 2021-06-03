@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor;
+use crate::anschluss::{self, Anschlüsse};
 use crate::application::typen::*;
 use crate::lookup::Lookup;
 use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
@@ -844,13 +845,17 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
 }
 
 impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
-    pub fn laden(&mut self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Error> {
+    pub fn laden(
+        &mut self,
+        anschlüsse: &mut Anschlüsse,
+        pfad: impl AsRef<std::path::Path>,
+    ) -> std::result::Result<(), Error> {
         let file = std::fs::File::open(pfad)?;
         let GleiseVecs {
             name,
             geraden,
             kurven,
-            // weichen,
+            weichen,
             dreiwege_weichen,
             kurven_weichen,
             s_kurven_weichen,
@@ -873,40 +878,57 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // TODO Modus?
 
         // TODO dummy, wegen fehlendem serialize
-        let weichen = Vec::new();
-        let weichen = weichen.into_iter().map(
-            |Gleis {
-                 definition:
-                     super::weiche::WeicheSave {
-                         zugtyp,
-                         länge,
-                         radius,
-                         winkel,
-                         richtung,
-                         beschreibung,
-                         steuerung,
-                     },
-                 position,
-                 streckenabschnitt,
-             }| Gleis {
-                definition: super::weiche::Weiche {
-                    zugtyp,
-                    länge,
-                    radius,
-                    winkel,
-                    richtung,
-                    beschreibung,
-                    steuerung: steuerung.map(
+        let weichen: Vec<_> = match weichen
+            .into_iter()
+            .map(
+                |Gleis {
+                     definition:
+                         super::weiche::WeicheSave {
+                             zugtyp,
+                             länge,
+                             radius,
+                             winkel,
+                             richtung,
+                             beschreibung,
+                             steuerung,
+                         },
+                     position,
+                     streckenabschnitt,
+                 }| {
+                    let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
                         |crate::steuerung::Weiche {
                              anschlüsse:
                                  super::weiche::gerade::RichtungAnschlüsseSave { gerade, kurve },
-                         }| todo!(),
-                    ),
+                         }| {
+                            Ok(crate::steuerung::Weiche {
+                                anschlüsse: super::weiche::gerade::RichtungAnschlüsse {
+                                    gerade: gerade.reserviere(anschlüsse)?,
+                                    kurve: kurve.reserviere(anschlüsse)?,
+                                },
+                            })
+                        },
+                    );
+                    let steuerung = steuerung_result.transpose()?;
+                    Ok(Gleis {
+                        definition: super::weiche::Weiche {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            richtung,
+                            beschreibung,
+                            steuerung,
+                        },
+                        position,
+                        streckenabschnitt,
+                    })
                 },
-                position,
-                streckenabschnitt,
-            },
-        );
+            )
+            .collect()
+        {
+            Ok(vec) => vec,
+            Err(error) => return Err(error),
+        };
 
         // restore state from data
         macro_rules! add_gleise {
@@ -937,6 +959,7 @@ pub enum Error {
     IO(std::io::Error),
     Bincode(bincode::Error),
     FalscherZugtyp(String),
+    Anschluss(anschluss::Error),
 }
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
@@ -946,5 +969,10 @@ impl From<std::io::Error> for Error {
 impl From<bincode::Error> for Error {
     fn from(error: bincode::Error) -> Self {
         Error::Bincode(error)
+    }
+}
+impl From<anschluss::Error> for Error {
+    fn from(error: anschluss::Error) -> Self {
+        Error::Anschluss(error)
     }
 }

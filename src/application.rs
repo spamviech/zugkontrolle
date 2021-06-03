@@ -219,7 +219,7 @@ where
     Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
 {
     fn laden(&mut self) {
-        if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
+        if let Err(err) = self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
             self.zeige_message_box(
                 format!("Fehler beim Laden von {}", self.aktueller_pfad),
                 format!("{:?}", err),

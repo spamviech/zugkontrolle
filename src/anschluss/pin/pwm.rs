@@ -249,13 +249,13 @@ impl From<pwm::Error> for Error {
 /// Serealisierbare Informationen einen Pwm-Pins.
 #[derive(Serialize, Deserialize)]
 pub struct Save(pub u8);
-impl From<Pin> for Save {
-    fn from(pin: Pin) -> Self {
-        Save(pin.pin())
+impl Pin {
+    pub fn to_save(&self) -> Save {
+        Save(self.pin())
     }
 }
 impl Save {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Pin, anschlüsse::Error> {
+    pub fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Pin, anschlüsse::Error> {
         anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm)
     }
 }
