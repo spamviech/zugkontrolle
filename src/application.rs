@@ -1,5 +1,6 @@
 //! iced::Application für die Gleis-Anzeige
 
+use std::collections::BTreeMap;
 use std::convert::identity;
 use std::fmt::Debug;
 
@@ -7,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use version::version;
 
 use crate::anschluss::anschlüsse::Anschlüsse;
-use crate::steuerung::streckenabschnitt::Streckenabschnitt;
+use crate::steuerung::{geschwindigkeit, streckenabschnitt::Streckenabschnitt};
 
 mod touch_canvas;
 
@@ -181,6 +182,7 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
+    geschwindigkeiten: geschwindigkeit::Map<Z>,
     modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     message_box: iced_aw::modal::State<MessageBox>,
@@ -252,6 +254,7 @@ where
             kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
             s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
             kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+            geschwindigkeiten: BTreeMap::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             message_box: iced_aw::modal::State::new(MessageBox {
@@ -467,6 +470,7 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            geschwindigkeiten,
             modal_state,
             streckenabschnitt_aktuell,
             message_box,
@@ -511,6 +515,7 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            geschwindigkeiten,
         );
 
         let column: iced::Element<Self::Message> = iced::Column::new()
@@ -654,19 +659,23 @@ fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
     kurven_weichen: &'t mut Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: &'t mut Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: &'t mut Vec<Button<Kreuzung<Z>>>,
+    geschwindigkeiten: &'t mut geschwindigkeit::Map<Z>,
 ) -> iced::Row<'t, Message<Z>> {
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
     // Fahren(Streckenabschnitt-Anzeige?
     let mut scrollable = iced::Scrollable::new(scrollable_state);
-    let mut max_width = None;
+    let scrollable_style = scrollable::Collection::new(10);
+    let scroller_width = scrollable_style.width();
+    let mut width = iced::Length::Shrink;
     match aktueller_modus {
         Modus::Bauen => {
+            let mut max_width = None;
             macro_rules! add_buttons {
                 ($($vec: expr),*) => {
-                    max_width = Vec::new().into_iter()
+                    max_width = max_width.max(Vec::new().into_iter()
                         $(.chain($vec.iter().map(|button| button.size().x.0.ceil() as u16)))*
-                        .max();
+                        .max());
                     $(
                         for button in $vec {
                             scrollable = scrollable.push(button.to_iced(max_width));
@@ -683,28 +692,33 @@ fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
                 s_kurven_weichen,
                 kreuzungen
             );
+            if let Some(max) = max_width {
+                width = iced::Length::Units(max + scroller_width);
+            }
         },
         Modus::Fahren => {
-            // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?
+            scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten"));
+            for (name, geschwindigkeit) in geschwindigkeiten {
+                scrollable = scrollable.push(
+                    iced::Row::new().push(iced::Text::new(&name.0)), /* .push(iced::Text::new(&
+                                                                      * format!("{:?}",
+                                                                      * geschwindigkeit))), */
+                );
+            }
+            // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
-    let scrollable_style = scrollable::Collection::new(10);
-    let scroller_width = scrollable_style.width();
-    let row = iced::Row::new();
-    match max_width {
-        Some(width) => row
-            .push(
-                iced::Container::new(
-                    scrollable
-                        .scroller_width(scroller_width)
-                        .width(iced::Length::Fill)
-                        .height(iced::Length::Fill)
-                        .style(scrollable_style),
-                )
-                .width(iced::Length::Units(width + scroller_width))
-                .height(iced::Length::Fill),
+    iced::Row::new()
+        .push(
+            iced::Container::new(
+                scrollable
+                    .scroller_width(scroller_width)
+                    .width(iced::Length::Shrink)
+                    .height(iced::Length::Fill)
+                    .style(scrollable_style),
             )
-            .push(iced::Rule::vertical(1).style(rule::SEPARATOR)),
-        None => row,
-    }
+            .width(width)
+            .height(iced::Length::Fill),
+        )
+        .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
 }

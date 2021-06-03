@@ -1,15 +1,16 @@
 //! Einstellen der Geschwindigkeit.
 
+use std::collections::BTreeMap;
 use std::usize;
 use std::{thread::sleep, time::Duration};
 
 use non_empty_vec::NonEmpty;
+use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, Fließend, OutputAnschluss, Polarität};
 
 #[derive(Debug)]
 pub struct Geschwindigkeit<Leiter> {
-    pub name: String,
     pub leiter: Leiter,
 }
 
@@ -187,3 +188,8 @@ impl From<pwm::Error> for Error {
         Error::Pwm(error)
     }
 }
+
+/// Name einer Geschwindigkeit.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+pub type Map<Leiter> = BTreeMap<Name, Geschwindigkeit<Leiter>>;
