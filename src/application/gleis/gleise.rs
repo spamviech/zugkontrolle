@@ -877,112 +877,64 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // don't reset last_mouse, last_size
         // TODO Modus?
 
-        // TODO macro für reservieren-Map
-        let weichen: Vec<_> = match weichen
-            .into_iter()
-            .map(
-                |Gleis {
-                     definition:
-                         super::weiche::WeicheSave {
-                             zugtyp,
-                             länge,
-                             radius,
-                             winkel,
-                             richtung,
-                             beschreibung,
-                             steuerung,
-                         },
-                     position,
-                     streckenabschnitt,
-                 }| {
-                    let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
-                        |crate::steuerung::Weiche {
-                             anschlüsse:
-                                 super::weiche::gerade::RichtungAnschlüsseSave { gerade, kurve },
-                         }| {
-                            Ok(crate::steuerung::Weiche {
-                                anschlüsse: super::weiche::gerade::RichtungAnschlüsse {
-                                    gerade: gerade.reserviere(anschlüsse)?,
-                                    kurve: kurve.reserviere(anschlüsse)?,
+        macro_rules! reserviere_weiche_anschlüsse {
+            ($name:ident, $module:ident, $data:ident {$($data_feld:ident),*}: {$($anschlüsse_feld:ident),*}) => {
+                let $name: Vec<_> = match $name
+                    .into_iter()
+                    .map(
+                        |Gleis {
+                            definition:
+                                super::weiche::$module::$data {
+                                    steuerung,
+                                    $($data_feld),*
                                 },
+                            position,
+                            streckenabschnitt,
+                        }| {
+                            let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
+                                |crate::steuerung::Weiche {
+                                    anschlüsse:
+                                        super::weiche::$module::RichtungAnschlüsseSave {
+                                            $($anschlüsse_feld),*
+                                        },
+                                }| {
+                                    Ok(crate::steuerung::Weiche {
+                                        anschlüsse: super::weiche::$module::RichtungAnschlüsse {
+                                            $($anschlüsse_feld: $anschlüsse_feld.reserviere(anschlüsse)?),*
+                                        },
+                                    })
+                                },
+                            );
+                            let steuerung = steuerung_result.transpose()?;
+                            Ok(Gleis {
+                                definition: super::weiche::$module::$data {
+                                    steuerung,
+                                    $($data_feld),*
+                                },
+                                position,
+                                streckenabschnitt,
                             })
                         },
-                    );
-                    let steuerung = steuerung_result.transpose()?;
-                    Ok(Gleis {
-                        definition: super::weiche::Weiche {
-                            zugtyp,
-                            länge,
-                            radius,
-                            winkel,
-                            richtung,
-                            beschreibung,
-                            steuerung,
-                        },
-                        position,
-                        streckenabschnitt,
-                    })
-                },
-            )
-            .collect()
-        {
-            Ok(vec) => vec,
-            Err(error) => return Err(error),
-        };
-        let dreiwege_weichen: Vec<_> = match dreiwege_weichen
-            .into_iter()
-            .map(
-                |Gleis {
-                     definition:
-                         super::weiche::DreiwegeWeicheSave {
-                             zugtyp,
-                             länge,
-                             radius,
-                             winkel,
-                             beschreibung,
-                             steuerung,
-                         },
-                     position,
-                     streckenabschnitt,
-                 }| {
-                    let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
-                        |crate::steuerung::Weiche {
-                             anschlüsse:
-                                 super::weiche::dreiwege::RichtungAnschlüsseSave {
-                                     gerade,
-                                     links,
-                                     rechts,
-                                 },
-                         }| {
-                            Ok(crate::steuerung::Weiche {
-                                anschlüsse: super::weiche::dreiwege::RichtungAnschlüsse {
-                                    gerade: gerade.reserviere(anschlüsse)?,
-                                    links: links.reserviere(anschlüsse)?,
-                                    rechts: rechts.reserviere(anschlüsse)?,
-                                },
-                            })
-                        },
-                    );
-                    let steuerung = steuerung_result.transpose()?;
-                    Ok(Gleis {
-                        definition: super::weiche::DreiwegeWeiche {
-                            zugtyp,
-                            länge,
-                            radius,
-                            winkel,
-                            beschreibung,
-                            steuerung,
-                        },
-                        position,
-                        streckenabschnitt,
-                    })
-                },
-            )
-            .collect()
-        {
-            Ok(vec) => vec,
-            Err(error) => return Err(error),
-        };
+                    )
+                    .collect()
+                {
+                    Ok(vec) => vec,
+                    Err(error) => return Err(error),
+                };
+            };
+        }
+        reserviere_weiche_anschlüsse!(
+            weichen,
+            gerade,
+            WeicheData { zugtyp, länge, radius, winkel, richtung, beschreibung }
+            : { gerade, kurve }
+        );
+        reserviere_weiche_anschlüsse!(
+            dreiwege_weichen,
+            dreiwege,
+            DreiwegeWeicheData { zugtyp, länge, radius, winkel, beschreibung }
+            : { gerade, links, rechts }
+        );
         // restore state from data
         macro_rules! add_gleise {
             ($($gleise: ident,)*) => {
