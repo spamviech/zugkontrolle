@@ -60,3 +60,10 @@ pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     weiche::create_richtung(args, ast).into()
 }
+#[proc_macro_attribute]
+pub fn alias_save_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(attr);
+    let ast = syn::parse_macro_input!(item);
+
+    weiche::alias_save_unit(args, ast).into()
+}

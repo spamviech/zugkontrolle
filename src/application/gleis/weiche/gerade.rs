@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::create_richtung;
+use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
 use crate::{
     anschluss,
@@ -16,43 +16,11 @@ use crate::{
     steuerung,
 };
 
-pub type WeicheSave<Z> = Weiche<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
-pub type WeicheUnit<Z> = Weiche<Z, ()>;
-impl<Z> Weiche<Z> {
-    pub fn to_save(&self) -> WeicheSave<Z> {
-        let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung } = self;
-        WeicheSave {
-            zugtyp: *zugtyp,
-            länge: *länge,
-            radius: *radius,
-            winkel: *winkel,
-            orientierung: *orientierung,
-            beschreibung: beschreibung.clone(),
-            steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
-                steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
-            }),
-        }
-    }
-
-    pub fn to_unit(&self) -> WeicheUnit<Z> {
-        let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung: _ } =
-            self;
-        WeicheUnit {
-            zugtyp: *zugtyp,
-            länge: *länge,
-            radius: *radius,
-            winkel: *winkel,
-            orientierung: *orientierung,
-            beschreibung: beschreibung.clone(),
-            steuerung: (),
-        }
-    }
-}
-
 /// Definition einer Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
+#[alias_save_unit]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Weiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,

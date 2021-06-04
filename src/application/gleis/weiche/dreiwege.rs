@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::create_richtung;
+use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
 use crate::{
     anschluss,
@@ -12,41 +12,11 @@ use crate::{
     {application::typen::*, lookup::impl_lookup},
 };
 
-pub type DreiwegeWeicheSave<Z> =
-    DreiwegeWeiche<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
-pub type DreiwegeWeicheUnit<Z> = DreiwegeWeiche<Z, ()>;
-impl<Z> DreiwegeWeiche<Z> {
-    pub fn to_save(&self) -> DreiwegeWeicheSave<Z> {
-        let DreiwegeWeiche { zugtyp, länge, radius, winkel, beschreibung, steuerung } = self;
-        DreiwegeWeicheSave {
-            zugtyp: *zugtyp,
-            länge: *länge,
-            radius: *radius,
-            winkel: *winkel,
-            beschreibung: beschreibung.clone(),
-            steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
-                steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
-            }),
-        }
-    }
-
-    pub fn to_unit(&self) -> DreiwegeWeicheUnit<Z> {
-        let DreiwegeWeiche { zugtyp, länge, radius, winkel, beschreibung, steuerung: _ } = self;
-        DreiwegeWeicheUnit {
-            zugtyp: *zugtyp,
-            länge: *länge,
-            radius: *radius,
-            winkel: *winkel,
-            beschreibung: beschreibung.clone(),
-            steuerung: (),
-        }
-    }
-}
-
 /// Definition einer Dreiwege-Weiche
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
+#[alias_save_unit]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct DreiwegeWeiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
