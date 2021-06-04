@@ -12,10 +12,9 @@ use crate::{
     {application::typen::*, lookup::impl_lookup},
 };
 
-pub type DreiwegeWeiche<Z> = DreiwegeWeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsse>>>;
 pub type DreiwegeWeicheSave<Z> =
-    DreiwegeWeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
-pub type DreiwegeWeicheUnit<Z> = DreiwegeWeicheData<Z, ()>;
+    DreiwegeWeiche<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
+pub type DreiwegeWeicheUnit<Z> = DreiwegeWeiche<Z, ()>;
 impl<Z> DreiwegeWeiche<Z> {
     pub fn to_save(&self) -> DreiwegeWeicheSave<Z> {
         let DreiwegeWeiche { zugtyp, länge, radius, winkel, beschreibung, steuerung } = self;
@@ -49,7 +48,7 @@ impl<Z> DreiwegeWeiche<Z> {
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct DreiwegeWeicheData<Z, Anschlüsse> {
+pub struct DreiwegeWeiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
@@ -96,12 +95,12 @@ pub enum AnchorName {
     Rechts,
 }
 
-impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeicheData<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
-        let DreiwegeWeicheData { länge, radius, winkel, .. } = *self;
+        let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
         let height_kurven = size_kurve.y.doppelt() - beschränkung::<Z>();

@@ -916,7 +916,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 };
             };
         }
-        reserviere_weiche_anschlüsse!(weichen, gerade, WeicheData {
+        reserviere_weiche_anschlüsse!(weichen, gerade, Weiche {
             zugtyp,
             länge,
             radius,
@@ -924,7 +924,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             orientierung,
             beschreibung
         });
-        reserviere_weiche_anschlüsse!(dreiwege_weichen, dreiwege, DreiwegeWeicheData {
+        reserviere_weiche_anschlüsse!(dreiwege_weichen, dreiwege, DreiwegeWeiche {
             zugtyp,
             länge,
             radius,

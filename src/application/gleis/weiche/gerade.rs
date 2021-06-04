@@ -16,9 +16,8 @@ use crate::{
     steuerung,
 };
 
-pub type Weiche<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsse>>>;
-pub type WeicheSave<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
-pub type WeicheUnit<Z> = WeicheData<Z, ()>;
+pub type WeicheSave<Z> = Weiche<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
+pub type WeicheUnit<Z> = Weiche<Z, ()>;
 impl<Z> Weiche<Z> {
     pub fn to_save(&self) -> WeicheSave<Z> {
         let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung } = self;
@@ -55,7 +54,7 @@ impl<Z> Weiche<Z> {
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct WeicheData<Z, Anschlüsse> {
+pub struct Weiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
@@ -109,19 +108,19 @@ pub enum AnchorName {
     Kurve,
 }
 
-impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
+impl<Z: Zugtyp, A> Zeichnen for Weiche<Z, A> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
-        let WeicheData { länge, radius, winkel, .. } = *self;
+        let Weiche { länge, radius, winkel, .. } = *self;
         let gerade_size = gerade::size::<Z>(länge);
         let kurve_size = kurve::size::<Z>(radius, winkel);
         Vektor { x: gerade_size.x.max(&kurve_size.x), y: kurve_size.y }
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
-        let WeicheData { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
@@ -158,7 +157,7 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
     }
 
     fn fülle(&self) -> Vec<Pfad> {
-        let WeicheData { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
