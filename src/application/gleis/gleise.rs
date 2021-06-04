@@ -878,7 +878,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // TODO Modus?
 
         macro_rules! reserviere_weiche_anschlüsse {
-            ($name:ident, $module:ident, $data:ident {$($data_feld:ident),*}: {$($anschlüsse_feld:ident),*}) => {
+            ($name:ident, $module:ident, $data:ident {$($data_feld:ident),*}) => {
                 let $name: Vec<_> = match $name
                     .into_iter()
                     .map(
@@ -892,16 +892,9 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                             streckenabschnitt,
                         }| {
                             let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
-                                |crate::steuerung::Weiche {
-                                    anschlüsse:
-                                        super::weiche::$module::RichtungAnschlüsseSave {
-                                            $($anschlüsse_feld),*
-                                        },
-                                }| {
+                                |steuerung| {
                                     Ok(crate::steuerung::Weiche {
-                                        anschlüsse: super::weiche::$module::RichtungAnschlüsse {
-                                            $($anschlüsse_feld: $anschlüsse_feld.reserviere(anschlüsse)?),*
-                                        },
+                                        anschlüsse: steuerung.anschlüsse.reserviere(anschlüsse)?
                                     })
                                 },
                             );
@@ -923,18 +916,21 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 };
             };
         }
-        reserviere_weiche_anschlüsse!(
-            weichen,
-            gerade,
-            WeicheData { zugtyp, länge, radius, winkel, orientierung, beschreibung }
-            : { gerade, kurve }
-        );
-        reserviere_weiche_anschlüsse!(
-            dreiwege_weichen,
-            dreiwege,
-            DreiwegeWeicheData { zugtyp, länge, radius, winkel, beschreibung }
-            : { gerade, links, rechts }
-        );
+        reserviere_weiche_anschlüsse!(weichen, gerade, WeicheData {
+            zugtyp,
+            länge,
+            radius,
+            winkel,
+            orientierung,
+            beschreibung
+        });
+        reserviere_weiche_anschlüsse!(dreiwege_weichen, dreiwege, DreiwegeWeicheData {
+            zugtyp,
+            länge,
+            radius,
+            winkel,
+            beschreibung
+        });
         // restore state from data
         macro_rules! add_gleise {
             ($($gleise: ident,)*) => {

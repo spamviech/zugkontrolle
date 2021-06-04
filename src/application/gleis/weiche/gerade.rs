@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss,
+    anschluss::{self, Anschlüsse},
     application::{
         gleis::{anchor, gerade, kurve},
         typen::*,
@@ -117,6 +117,18 @@ impl RichtungAnschlüsse {
     pub fn to_save(&self) -> RichtungAnschlüsseSave {
         let RichtungAnschlüsse { gerade, kurve } = self;
         RichtungAnschlüsseSave { gerade: gerade.to_save(), kurve: kurve.to_save() }
+    }
+}
+impl RichtungAnschlüsseSave {
+    pub fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+    ) -> Result<RichtungAnschlüsse, anschluss::Error> {
+        let RichtungAnschlüsseSave { gerade, kurve } = self;
+        Ok(RichtungAnschlüsse {
+            gerade: gerade.reserviere(anschlüsse)?,
+            kurve: kurve.reserviere(anschlüsse)?,
+        })
     }
 }
 
