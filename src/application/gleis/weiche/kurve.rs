@@ -18,17 +18,17 @@ pub struct KurvenWeiche<Z> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
-    pub richtung: Orientierung,
+    pub orientierung: Orientierung,
     pub beschreibung: Option<String>,
 }
 impl<Z> KurvenWeiche<Z> {
-    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, orientierung: Orientierung) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            richtung,
+            orientierung,
             beschreibung: None,
         }
     }
@@ -37,7 +37,7 @@ impl<Z> KurvenWeiche<Z> {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        richtung: Orientierung,
+        orientierung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
         KurvenWeiche {
@@ -45,7 +45,7 @@ impl<Z> KurvenWeiche<Z> {
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            richtung,
+            orientierung,
             beschreibung: Some(beschreibung.into()),
         }
     }
@@ -75,7 +75,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Orientierung::Links {
+        if self.orientierung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
@@ -143,7 +143,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Orientierung::Links {
+        if self.orientierung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
@@ -203,7 +203,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         self.beschreibung.as_ref().map(|text| {
             let start_height: Skalar;
             let multiplier: Skalar;
-            match self.richtung {
+            match self.orientierung {
                 Orientierung::Rechts => {
                     start_height = Skalar(0.);
                     multiplier = Skalar(1.);
@@ -230,7 +230,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
@@ -254,7 +254,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);

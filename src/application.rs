@@ -317,7 +317,7 @@ where
                             länge,
                             radius,
                             winkel,
-                            richtung,
+                            orientierung,
                             beschreibung,
                             steuerung: (),
                         } = weiche;
@@ -326,7 +326,7 @@ where
                             länge,
                             radius,
                             winkel,
-                            richtung,
+                            orientierung,
                             beschreibung,
                             steuerung: None
                         })

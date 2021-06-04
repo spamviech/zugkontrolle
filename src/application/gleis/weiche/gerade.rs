@@ -20,13 +20,13 @@ pub type WeicheSave<Z> = WeicheData<Z, Option<steuerung::Weiche<RichtungAnschlü
 pub type WeicheUnit<Z> = WeicheData<Z, ()>;
 impl<Z> Weiche<Z> {
     pub fn to_save(&self) -> WeicheSave<Z> {
-        let Weiche { zugtyp, länge, radius, winkel, richtung, beschreibung, steuerung } = self;
+        let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung } = self;
         WeicheSave {
             zugtyp: *zugtyp,
             länge: *länge,
             radius: *radius,
             winkel: *winkel,
-            richtung: *richtung,
+            orientierung: *orientierung,
             beschreibung: beschreibung.clone(),
             steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
                 steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
@@ -35,13 +35,14 @@ impl<Z> Weiche<Z> {
     }
 
     pub fn to_unit(&self) -> WeicheUnit<Z> {
-        let Weiche { zugtyp, länge, radius, winkel, richtung, beschreibung, steuerung: _ } = self;
+        let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung: _ } =
+            self;
         WeicheUnit {
             zugtyp: *zugtyp,
             länge: *länge,
             radius: *radius,
             winkel: *winkel,
-            richtung: *richtung,
+            orientierung: *orientierung,
             beschreibung: beschreibung.clone(),
             steuerung: (),
         }
@@ -58,18 +59,18 @@ pub struct WeicheData<Z, Anschlüsse> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
-    pub richtung: Orientierung,
+    pub orientierung: Orientierung,
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
 impl<Z> WeicheUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Orientierung) -> Self {
+    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, orientierung: Orientierung) -> Self {
         WeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            richtung,
+            orientierung,
             beschreibung: None,
             steuerung: (),
         }
@@ -79,7 +80,7 @@ impl<Z> WeicheUnit<Z> {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        richtung: Orientierung,
+        orientierung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
         WeicheUnit {
@@ -87,7 +88,7 @@ impl<Z> WeicheUnit<Z> {
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            richtung,
+            orientierung,
             beschreibung: Some(beschreibung.into()),
             steuerung: (),
         }
@@ -131,8 +132,8 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
-        let WeicheData { zugtyp, länge, radius, winkel, richtung, .. } = *self;
-        if richtung == Orientierung::Links {
+        let WeicheData { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        if orientierung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             vec![
@@ -168,8 +169,8 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
     }
 
     fn fülle(&self) -> Vec<Pfad> {
-        let WeicheData { zugtyp, länge, radius, winkel, richtung, .. } = *self;
-        if richtung == Orientierung::Links {
+        let WeicheData { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        if orientierung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             vec![
@@ -199,7 +200,7 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
         self.beschreibung.as_ref().map(|text| {
             let start_height: Skalar;
             let multiplier: Skalar;
-            match self.richtung {
+            match self.orientierung {
                 Orientierung::Rechts => {
                     start_height = Skalar(0.);
                     multiplier = Skalar(1.);
@@ -226,7 +227,7 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
@@ -247,7 +248,7 @@ impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);

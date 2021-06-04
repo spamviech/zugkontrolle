@@ -926,7 +926,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         reserviere_weiche_anschlüsse!(
             weichen,
             gerade,
-            WeicheData { zugtyp, länge, radius, winkel, richtung, beschreibung }
+            WeicheData { zugtyp, länge, radius, winkel, orientierung, beschreibung }
             : { gerade, kurve }
         );
         reserviere_weiche_anschlüsse!(

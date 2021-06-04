@@ -21,7 +21,7 @@ pub struct SKurvenWeiche<Z> {
     pub winkel: Winkel,
     pub radius_reverse: Skalar,
     pub winkel_reverse: Winkel,
-    pub richtung: Orientierung,
+    pub orientierung: Orientierung,
     pub beschreibung: Option<String>,
 }
 impl<Z> SKurvenWeiche<Z> {
@@ -40,7 +40,7 @@ impl<Z> SKurvenWeiche<Z> {
             winkel,
             radius_reverse: radius_reverse.als_skalar(),
             winkel_reverse: angle_reverse,
-            richtung: direction,
+            orientierung: direction,
             beschreibung: None,
         }
     }
@@ -61,7 +61,7 @@ impl<Z> SKurvenWeiche<Z> {
             winkel,
             radius_reverse: radius_reverse.als_skalar(),
             winkel_reverse: angle_reverse,
-            richtung: direction,
+            orientierung: direction,
             beschreibung: Some(beschreibung.into()),
         }
     }
@@ -150,7 +150,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Orientierung::Links {
+        if self.orientierung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Gerade
@@ -231,7 +231,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
-        if self.richtung == Orientierung::Links {
+        if self.orientierung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Gerade
@@ -291,7 +291,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         self.beschreibung.as_ref().map(|text| {
             let start_height: Skalar;
             let multiplier: Skalar;
-            match self.richtung {
+            match self.orientierung {
                 Orientierung::Rechts => {
                     start_height = Skalar(0.);
                     multiplier = Skalar(1.);
@@ -318,7 +318,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
@@ -349,7 +349,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: Skalar;
         let multiplier: Skalar;
-        match self.richtung {
+        match self.orientierung {
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
