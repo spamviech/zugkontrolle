@@ -4,9 +4,10 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::create_richtung;
 
 use crate::{
-    anschluss::{self, Anschlüsse},
+    anschluss,
     application::{
         gleis::{anchor, gerade, kurve},
         typen::*,
@@ -99,37 +100,13 @@ pub enum Orientierung {
     Links,
     Rechts,
 }
+#[create_richtung]
 #[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
     Gerade,
     Kurve,
-}
-#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse, Debug)]
-#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Richtung {
-    Gerade,
-    Kurve,
-}
-impl RichtungAnschlüsse {
-    pub fn to_save(&self) -> RichtungAnschlüsseSave {
-        let RichtungAnschlüsse { gerade, kurve } = self;
-        RichtungAnschlüsseSave { gerade: gerade.to_save(), kurve: kurve.to_save() }
-    }
-}
-impl RichtungAnschlüsseSave {
-    pub fn reserviere(
-        self,
-        anschlüsse: &mut Anschlüsse,
-    ) -> Result<RichtungAnschlüsse, anschluss::Error> {
-        let RichtungAnschlüsseSave { gerade, kurve } = self;
-        Ok(RichtungAnschlüsse {
-            gerade: gerade.reserviere(anschlüsse)?,
-            kurve: kurve.reserviere(anschlüsse)?,
-        })
-    }
 }
 
 impl<Z: Zugtyp, A> Zeichnen for WeicheData<Z, A> {

@@ -51,3 +51,12 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     chain::make_chain(args, ast).into()
 }
+
+mod richtung;
+#[proc_macro_attribute]
+pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(attr);
+    let ast = syn::parse_macro_input!(item);
+
+    richtung::create_richtung(args, ast).into()
+}

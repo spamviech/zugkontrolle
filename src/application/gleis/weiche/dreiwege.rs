@@ -3,9 +3,10 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::create_richtung;
 
 use crate::{
-    anschluss::{self, Anschlüsse},
+    anschluss,
     application::gleis::{anchor, gerade, kurve},
     steuerung,
     {application::typen::*, lookup::impl_lookup},
@@ -85,6 +86,7 @@ impl<Z> DreiwegeWeicheUnit<Z> {
     }
 }
 
+#[create_richtung]
 #[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
@@ -92,37 +94,6 @@ pub enum AnchorName {
     Gerade,
     Links,
     Rechts,
-}
-#[impl_lookup(anschluss::OutputAnschluss, Anschlüsse, Debug)]
-#[impl_lookup(anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Richtung {
-    Gerade,
-    Links,
-    Rechts,
-}
-impl RichtungAnschlüsse {
-    pub fn to_save(&self) -> RichtungAnschlüsseSave {
-        let RichtungAnschlüsse { gerade, links, rechts } = self;
-        RichtungAnschlüsseSave {
-            gerade: gerade.to_save(),
-            links: links.to_save(),
-            rechts: rechts.to_save(),
-        }
-    }
-}
-impl RichtungAnschlüsseSave {
-    pub fn reserviere(
-        self,
-        anschlüsse: &mut Anschlüsse,
-    ) -> Result<RichtungAnschlüsse, anschluss::Error> {
-        let RichtungAnschlüsseSave { gerade, links, rechts } = self;
-        Ok(RichtungAnschlüsse {
-            gerade: gerade.reserviere(anschlüsse)?,
-            links: links.reserviere(anschlüsse)?,
-            rechts: rechts.reserviere(anschlüsse)?,
-        })
-    }
 }
 
 impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeicheData<Z, Anschlüsse> {

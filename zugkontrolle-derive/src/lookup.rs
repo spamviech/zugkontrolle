@@ -1,5 +1,4 @@
-//! Derive of zugkontrolle::gleis::anchor::lookup::Lookup from an enum
-//! by creating an associated AnchorPoints struct
+//! Derive of zugkontrolle::lookup::Lookup from an enum by creating an associated Elements struct
 
 use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
