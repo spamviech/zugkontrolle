@@ -1,15 +1,17 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
+
 use crate::anschluss::{Error, InputAnschluss, Level, Trigger};
 
-pub struct Kontakt {
-    // TODO name ist eigentlich nur für die Anzeige relevant
-    pub name: String,
-    pub anschluss: InputAnschluss,
-    pub trigger: Trigger,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Kontakt<Anschluss> {
+    pub anschluss: Anschluss,
 }
 
-impl Kontakt {
+impl Kontakt<InputAnschluss> {
     pub fn read(&mut self) -> Result<Level, Error> {
         self.anschluss.read()
     }
@@ -26,3 +28,8 @@ impl Kontakt {
         self.anschluss.clear_async_interrupt()
     }
 }
+
+/// Name eines Kontaktes.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+pub type Map<Anschluss> = BTreeMap<Name, Kontakt<Anschluss>>;
