@@ -58,8 +58,7 @@ pub fn alias_save_unit(args: Vec<syn::NestedMeta>, item: syn::ItemStruct) -> Tok
                                 #(#other_fields: #other_fields.clone()),*,
                                 #(
                                     #param_fields: #param_fields.as_ref().map(
-                                        |#base_ident::steuerung::Weiche {anschlüsse}|
-                                            steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
+                                        |steuerung| steuerung.to_save()
                                     )
                                 ),*
                             }
@@ -155,6 +154,19 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     Ok(RichtungAnschlüsse {
                         #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
                     })
+                }
+            }
+            impl #base_ident::steuerung::Weiche<RichtungAnschlüsse> {
+                pub fn to_save(&self) -> #base_ident::steuerung::Weiche<RichtungAnschlüsseSave> {
+                    #base_ident::steuerung::Weiche {anschlüsse: self.anschlüsse.to_save()}
+                }
+            }
+            impl #base_ident::steuerung::Weiche<RichtungAnschlüsseSave> {
+                pub fn reserviere(
+                    self,
+                    anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
+                ) -> Result<#base_ident::steuerung::Weiche<RichtungAnschlüsse>, #base_ident::anschluss::Error> {
+                    Ok(#base_ident::steuerung::Weiche {anschlüsse: self.anschlüsse.reserviere(anschlüsse)?})
                 }
             }
         })
