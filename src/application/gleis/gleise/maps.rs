@@ -6,12 +6,7 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use super::{id::GleisId, GleisIdLock};
-use crate::application::gleis::{
-    gerade::Gerade,
-    kreuzung::Kreuzung,
-    kurve::Kurve,
-    weiche::{DreiwegeWeiche, DreiwegeWeicheSave, KurvenWeiche, SKurvenWeiche, Weiche, WeicheSave},
-};
+use crate::application::gleis::{gerade::Gerade, kreuzung::*, kurve::Kurve, weiche::*};
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
 
@@ -29,9 +24,9 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
     pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSave<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSave<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     /* TODO
      * streckenabschnitte, geschwindigkeiten
      * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
@@ -63,12 +58,12 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
         }
         hashmaps_to_vecs!(
             geraden,
-            kurven,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen;
+            kurven;
             weichen,
             dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
         )
     }
 }

@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::application::gleis::{
     gerade::Gerade,
-    kreuzung::{self, Kreuzung},
+    kreuzung::{self, *},
     kurve::Kurve,
-    weiche::{self, dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
+    weiche::{self, *},
 };
 use crate::application::typen::*;
 use crate::steuerung::geschwindigkeit::Zweileiter;
@@ -37,15 +37,15 @@ impl Zugtyp for Lego {
         vec![]
     }
 
-    fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
+    fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>> {
         vec![]
     }
 
-    fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
+    fn s_kurven_weichen() -> Vec<SKurvenWeicheUnit<Self>> {
         vec![weiche(weiche::Orientierung::Links), weiche(weiche::Orientierung::Rechts)]
     }
 
-    fn kreuzungen() -> Vec<Kreuzung<Self>> {
+    fn kreuzungen() -> Vec<KreuzungUnit<Self>> {
         vec![kreuzung()]
     }
 }
@@ -110,11 +110,11 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeiche<Lego> {
+pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeicheUnit<Lego> {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
 
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
-pub fn kreuzung() -> Kreuzung<Lego> {
+pub fn kreuzung() -> KreuzungUnit<Lego> {
     Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve)
 }

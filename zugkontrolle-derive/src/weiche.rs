@@ -83,40 +83,6 @@ pub fn alias_save_unit(args: Vec<syn::NestedMeta>, item: syn::ItemStruct) -> Tok
     } else {
         errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string())
     }
-    /*
-    pub type WeicheSave<Z> = Weiche<Z, Option<steuerung::Weiche<RichtungAnschlüsseSave>>>;
-    pub type WeicheUnit<Z> = Weiche<Z, ()>;
-    impl<Z> Weiche<Z> {
-        pub fn to_save(&self) -> WeicheSave<Z> {
-            let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung } = self;
-            WeicheSave {
-                zugtyp: *zugtyp,
-                länge: *länge,
-                radius: *radius,
-                winkel: *winkel,
-                orientierung: *orientierung,
-                beschreibung: beschreibung.clone(),
-                steuerung: steuerung.as_ref().map(|steuerung::Weiche { anschlüsse }| {
-                    steuerung::Weiche { anschlüsse: anschlüsse.to_save() }
-                }),
-            }
-        }
-
-        pub fn to_unit(&self) -> WeicheUnit<Z> {
-            let Weiche { zugtyp, länge, radius, winkel, orientierung, beschreibung, steuerung: _ } =
-                self;
-            WeicheUnit {
-                zugtyp: *zugtyp,
-                länge: *länge,
-                radius: *radius,
-                winkel: *winkel,
-                orientierung: *orientierung,
-                beschreibung: beschreibung.clone(),
-                steuerung: (),
-            }
-        }
-    }
-    */
 
     if !errors.is_empty() {
         let error_message = errors.join("\n");
@@ -184,7 +150,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                 pub fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
-                ) -> Result<RichtungAnschlüsse, anschluss::Error> {
+                ) -> Result<RichtungAnschlüsse, #base_ident::anschluss::Error> {
                     let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
                     Ok(RichtungAnschlüsse {
                         #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*

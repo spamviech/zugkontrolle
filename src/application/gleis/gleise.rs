@@ -877,14 +877,14 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // don't reset last_mouse, last_size
         // TODO Modus?
 
-        macro_rules! reserviere_weiche_anschlüsse {
-            ($name:ident, $module:ident, $data:ident {$($data_feld:ident),*}) => {
+        macro_rules! reserviere_anschlüsse {
+            ($name:ident, $(:: $weiche:ident ::)? $module:ident, $data:ident {$($data_feld:ident),*}) => {
                 let $name: Vec<_> = match $name
                     .into_iter()
                     .map(
                         |Gleis {
                             definition:
-                                super::weiche::$module::$data {
+                                super::$($weiche::)?$module::$data {
                                     steuerung,
                                     $($data_feld),*
                                 },
@@ -900,7 +900,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                             );
                             let steuerung = steuerung_result.transpose()?;
                             Ok(Gleis {
-                                definition: super::weiche::$module::$data {
+                                definition: super::$($weiche::)?$module::$data {
                                     steuerung,
                                     $($data_feld),*
                                 },
@@ -916,7 +916,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 };
             };
         }
-        reserviere_weiche_anschlüsse!(weichen, gerade, Weiche {
+        reserviere_anschlüsse!(weichen, ::weiche::gerade, Weiche {
             zugtyp,
             länge,
             radius,
@@ -924,11 +924,36 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             orientierung,
             beschreibung
         });
-        reserviere_weiche_anschlüsse!(dreiwege_weichen, dreiwege, DreiwegeWeiche {
+        reserviere_anschlüsse!(dreiwege_weichen, ::weiche::dreiwege, DreiwegeWeiche {
             zugtyp,
             länge,
             radius,
             winkel,
+            beschreibung
+        });
+        reserviere_anschlüsse!(kurven_weichen, ::weiche::kurve, KurvenWeiche {
+            zugtyp,
+            länge,
+            radius,
+            winkel,
+            orientierung,
+            beschreibung
+        });
+        reserviere_anschlüsse!(s_kurven_weichen, ::weiche::s_kurve, SKurvenWeiche {
+            zugtyp,
+            länge,
+            radius,
+            winkel,
+            radius_reverse,
+            winkel_reverse,
+            orientierung,
+            beschreibung
+        });
+        reserviere_anschlüsse!(kreuzungen, kreuzung, Kreuzung {
+            zugtyp,
+            länge,
+            radius,
+            variante,
             beschreibung
         });
         // restore state from data

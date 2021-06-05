@@ -3,18 +3,24 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::alias_save_unit;
 
-use super::Orientierung;
-use crate::application::gleis::{anchor, gerade, kurve, weiche};
-use crate::application::typen::*;
+use crate::{
+    application::{
+        gleis::{anchor, gerade, kurve, weiche::gerade::*},
+        typen::*,
+    },
+    steuerung,
+};
 
 /// Definition einer Weiche mit S-Kurve
 ///
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
+#[alias_save_unit]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche<Z> {
+pub struct SKurvenWeiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
@@ -23,8 +29,9 @@ pub struct SKurvenWeiche<Z> {
     pub winkel_reverse: Winkel,
     pub orientierung: Orientierung,
     pub beschreibung: Option<String>,
+    pub steuerung: Anschlüsse,
 }
-impl<Z> SKurvenWeiche<Z> {
+impl<Z> SKurvenWeicheUnit<Z> {
     pub fn neu(
         länge: Länge,
         radius: Radius,
@@ -33,7 +40,7 @@ impl<Z> SKurvenWeiche<Z> {
         angle_reverse: Winkel,
         direction: Orientierung,
     ) -> Self {
-        SKurvenWeiche {
+        SKurvenWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
@@ -42,6 +49,7 @@ impl<Z> SKurvenWeiche<Z> {
             winkel_reverse: angle_reverse,
             orientierung: direction,
             beschreibung: None,
+            steuerung: (),
         }
     }
 
@@ -54,7 +62,7 @@ impl<Z> SKurvenWeiche<Z> {
         direction: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
-        SKurvenWeiche {
+        SKurvenWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
@@ -63,13 +71,14 @@ impl<Z> SKurvenWeiche<Z> {
             winkel_reverse: angle_reverse,
             orientierung: direction,
             beschreibung: Some(beschreibung.into()),
+            steuerung: (),
         }
     }
 }
 
-impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
-    type AnchorName = weiche::gerade::AnchorName;
-    type AnchorPoints = weiche::gerade::AnchorPoints;
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for SKurvenWeiche<Z, Anschlüsse> {
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> Vektor {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
@@ -364,7 +373,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             x: Skalar(0.),
             y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         };
-        weiche::gerade::AnchorPoints {
+        AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },

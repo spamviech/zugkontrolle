@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::application::gleis::{
     gerade::Gerade,
-    kreuzung::{self, Kreuzung},
+    kreuzung::{self, *},
     kurve::Kurve,
-    weiche::{self, dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
+    weiche::{self, *},
 };
 use crate::application::typen::*;
 use crate::steuerung::geschwindigkeit::Mittelleiter;
@@ -59,15 +59,15 @@ impl Zugtyp for Märklin {
         vec![dreiwege_weiche_5214()]
     }
 
-    fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
+    fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>> {
         vec![kurven_weiche_5140_links(), kurven_weiche_5140_rechts()]
     }
 
-    fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
+    fn s_kurven_weichen() -> Vec<SKurvenWeicheUnit<Self>> {
         vec![]
     }
 
-    fn kreuzungen() -> Vec<Kreuzung<Self>> {
+    fn kreuzungen() -> Vec<KreuzungUnit<Self>> {
         vec![kreuzung_5128(), kreuzung_5207()]
     }
 }
@@ -231,7 +231,7 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeicheUnit<Märklin> {
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-pub fn kurven_weiche_5140(richtung: weiche::Orientierung) -> KurvenWeiche<Märklin> {
+pub fn kurven_weiche_5140(richtung: weiche::Orientierung) -> KurvenWeicheUnit<Märklin> {
     let beschreibung = match richtung {
         weiche::Orientierung::Links => "5140L",
         weiche::Orientierung::Rechts => "5140R",
@@ -244,10 +244,10 @@ pub fn kurven_weiche_5140(richtung: weiche::Orientierung) -> KurvenWeiche<Märkl
         beschreibung,
     )
 }
-pub fn kurven_weiche_5140_rechts() -> KurvenWeiche<Märklin> {
+pub fn kurven_weiche_5140_rechts() -> KurvenWeicheUnit<Märklin> {
     kurven_weiche_5140(weiche::Orientierung::Rechts)
 }
-pub fn kurven_weiche_5140_links() -> KurvenWeiche<Märklin> {
+pub fn kurven_weiche_5140_links() -> KurvenWeicheUnit<Märklin> {
     kurven_weiche_5140(weiche::Orientierung::Links)
 }
 
@@ -256,7 +256,7 @@ Kreuzung
     5128: L193mm, 30°, R360mm
     5207: L180mm, 24.28°, R437.4mm
 */
-pub fn kreuzung_5128() -> Kreuzung<Märklin> {
+pub fn kreuzung_5128() -> KreuzungUnit<Märklin> {
     Kreuzung::neu_mit_beschreibung(
         Länge::neu(193.),
         RADIUS_R1,
@@ -266,7 +266,7 @@ pub fn kreuzung_5128() -> Kreuzung<Märklin> {
 }
 // Länge/Winkel 24.28 passt nicht!
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
-pub fn kreuzung_5207() -> Kreuzung<Märklin> {
+pub fn kreuzung_5207() -> KreuzungUnit<Märklin> {
     Kreuzung::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,

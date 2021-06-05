@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
 use crate::{
-    anschluss,
     application::{
         gleis::{anchor, gerade, kurve},
         typen::*,

@@ -3,43 +3,42 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::alias_save_unit;
 
-use super::{anchor, gerade, kurve};
-use crate::{application::typen::*, lookup::impl_lookup};
+use crate::{
+    application::{
+        gleis::{anchor, gerade, kurve, weiche::gerade::*},
+        typen::*,
+    },
+    lookup::impl_lookup,
+    steuerung,
+};
 
 /// Definition einer Kreuzung
+#[alias_save_unit]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kreuzung<T> {
-    pub zugtyp: PhantomData<fn() -> T>,
+pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
+    pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub variante: Variante,
     pub beschreibung: Option<String>,
+    pub steuerung: Anschlüsse,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
     MitKurve,
     OhneKurve,
 }
-impl<Z> Kreuzung<Z> {
-    fn winkel(&self) -> Winkel {
-        // winkel solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
-        // https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
-        // länge=0 gives winkel=0, but is not properly defined,
-        // since it violates the formula above (pi/2 required)
-        // pi/2 doesn't work either, since it violates the formula
-        // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
-        // only for radius=0 as well both formulas are satisfied by any winkel
-        Winkel(2. * (0.5 * (self.länge / self.radius).0).atan())
-    }
-
+impl<Z> KreuzungUnit<Z> {
     pub fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
-        Kreuzung {
+        KreuzungUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             variante,
             beschreibung: None,
+            steuerung: (),
         }
     }
 
@@ -49,13 +48,27 @@ impl<Z> Kreuzung<Z> {
         variante: Variante,
         beschreibung: impl Into<String>,
     ) -> Self {
-        Kreuzung {
+        KreuzungUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             variante,
             beschreibung: Some(beschreibung.into()),
+            steuerung: (),
         }
+    }
+}
+
+impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
+    fn winkel(&self) -> Winkel {
+        // winkel solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
+        // https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
+        // länge=0 gives winkel=0, but is not properly defined,
+        // since it violates the formula above (pi/2 required)
+        // pi/2 doesn't work either, since it violates the formula
+        // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
+        // only for radius=0 as well both formulas are satisfied by any winkel
+        Winkel(2. * (0.5 * (self.länge / self.radius).0).atan())
     }
 }
 
@@ -68,7 +81,7 @@ pub enum AnchorName {
     Ende1,
 }
 
-impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for Kreuzung<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 

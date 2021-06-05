@@ -1,13 +1,6 @@
 //! Zugtyp Trait + Phantom-Typen + Spurweite
 
-use serde::{Deserialize, Serialize};
-
-use crate::application::gleis::{
-    gerade::Gerade,
-    kreuzung::Kreuzung,
-    kurve::Kurve,
-    weiche::{dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, KurvenWeiche, SKurvenWeiche},
-};
+use crate::application::gleis::{gerade::Gerade, kreuzung::*, kurve::Kurve, weiche::*};
 
 pub mod lego;
 pub use lego::Lego;
@@ -15,15 +8,6 @@ pub use lego::Lego;
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 pub use märklin::Märklin;
-
-/// TODO
-/// Wirkliche Implementierung in eigenem Modul erstellen
-/// Pin, I2C/PCF8574Port, weitere?
-// Als Inspiration:
-// The GPIO war: macro bunkers for typestate explosions
-// https://www.ecorax.net/macro-bunker-1/
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Anschluss;
 
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -40,12 +24,23 @@ pub trait Zugtyp: Sized {
     fn kurven() -> Vec<Kurve<Self>>;
     fn weichen() -> Vec<WeicheUnit<Self>>;
     fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>>;
-    fn kurven_weichen() -> Vec<KurvenWeiche<Self>>;
-    fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>>;
-    fn kreuzungen() -> Vec<Kreuzung<Self>>;
+    fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>>;
+    fn s_kurven_weichen() -> Vec<SKurvenWeicheUnit<Self>>;
+    fn kreuzungen() -> Vec<KreuzungUnit<Self>>;
 }
 
 /*
+use serde::{Deserialize, Serialize};
+
+/// TODO
+/// Wirkliche Implementierung in eigenem Modul erstellen
+/// Pin, I2C/PCF8574Port, weitere?
+// Als Inspiration:
+// The GPIO war: macro bunkers for typestate explosions
+// https://www.ecorax.net/macro-bunker-1/
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Anschluss;
+
 pub mod geschwindigkeit {
     use non_empty_vec::NonEmpty;
 

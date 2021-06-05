@@ -14,7 +14,7 @@ pub mod vektor;
 pub use vektor::Vektor;
 
 use super::anchor;
-pub use crate::zugtyp::{Anschluss, Zugtyp};
+pub use crate::zugtyp::Zugtyp;
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
 /// Abstand beider Schienen

@@ -15,7 +15,8 @@ mod touch_canvas;
 pub mod gleis;
 use gleis::{
     gleise::{id::with_any_id_lock, *},
-    weiche::{dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit},
+    kreuzung::*,
+    weiche::*,
     *,
 };
 
@@ -41,9 +42,9 @@ pub enum AnyGleis<Z> {
     Kurve(Kurve<Z>),
     WeicheUnit(WeicheUnit<Z>),
     DreiwegeWeicheUnit(DreiwegeWeicheUnit<Z>),
-    KurvenWeiche(KurvenWeiche<Z>),
-    SKurvenWeiche(SKurvenWeiche<Z>),
-    Kreuzung(Kreuzung<Z>),
+    KurvenWeicheUnit(KurvenWeicheUnit<Z>),
+    SKurvenWeicheUnit(SKurvenWeicheUnit<Z>),
+    KreuzungUnit(KreuzungUnit<Z>),
 }
 macro_rules! impl_any_gleis_from {
     ($type:ident) => {
@@ -58,9 +59,9 @@ impl_any_gleis_from! {Gerade}
 impl_any_gleis_from! {Kurve}
 impl_any_gleis_from! {WeicheUnit}
 impl_any_gleis_from! {DreiwegeWeicheUnit}
-impl_any_gleis_from! {KurvenWeiche}
-impl_any_gleis_from! {SKurvenWeiche}
-impl_any_gleis_from! {Kreuzung}
+impl_any_gleis_from! {KurvenWeicheUnit}
+impl_any_gleis_from! {SKurvenWeicheUnit}
+impl_any_gleis_from! {KreuzungUnit}
 
 impl Modus {
     fn make_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
@@ -179,9 +180,9 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     kurven: Vec<Button<Kurve<Z>>>,
     weichen: Vec<Button<WeicheUnit<Z>>>,
     dreiwege_weichen: Vec<Button<DreiwegeWeicheUnit<Z>>>,
-    kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
-    s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
-    kreuzungen: Vec<Button<Kreuzung<Z>>>,
+    kurven_weichen: Vec<Button<KurvenWeicheUnit<Z>>>,
+    s_kurven_weichen: Vec<Button<SKurvenWeicheUnit<Z>>>,
+    kreuzungen: Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
     modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
@@ -349,11 +350,68 @@ where
                             steuerung: None
                         })
                     },
-                    AnyGleis::KurvenWeiche(kurven_weiche) => add_grabbed_at_mouse!(kurven_weiche),
-                    AnyGleis::SKurvenWeiche(s_kurven_weiche) => {
-                        add_grabbed_at_mouse!(s_kurven_weiche)
+                    AnyGleis::KurvenWeicheUnit(kurven_weiche) => {
+                        let KurvenWeicheUnit {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            orientierung,
+                            beschreibung,
+                            steuerung: (),
+                        } = kurven_weiche;
+                        add_grabbed_at_mouse!(KurvenWeiche {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            orientierung,
+                            beschreibung,
+                            steuerung: None
+                        })
                     },
-                    AnyGleis::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
+                    AnyGleis::SKurvenWeicheUnit(s_kurven_weiche) => {
+                        let SKurvenWeiche {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            radius_reverse,
+                            winkel_reverse,
+                            orientierung,
+                            beschreibung,
+                            steuerung: (),
+                        } = s_kurven_weiche;
+                        add_grabbed_at_mouse!(SKurvenWeiche {
+                            zugtyp,
+                            länge,
+                            radius,
+                            winkel,
+                            radius_reverse,
+                            winkel_reverse,
+                            orientierung,
+                            beschreibung,
+                            steuerung: None
+                        })
+                    },
+                    AnyGleis::KreuzungUnit(kreuzung) => {
+                        let Kreuzung {
+                            zugtyp,
+                            länge,
+                            radius,
+                            variante,
+                            beschreibung,
+                            steuerung: (),
+                        } = kreuzung;
+                        add_grabbed_at_mouse!(Kreuzung {
+                            zugtyp,
+                            länge,
+                            radius,
+                            variante,
+                            beschreibung,
+                            steuerung: None
+                        })
+                    },
                 }
             },
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
@@ -672,9 +730,9 @@ fn row_with_scrollable<'t, Z>(
     kurven: &'t mut Vec<Button<Kurve<Z>>>,
     weichen: &'t mut Vec<Button<WeicheUnit<Z>>>,
     dreiwege_weichen: &'t mut Vec<Button<DreiwegeWeicheUnit<Z>>>,
-    kurven_weichen: &'t mut Vec<Button<KurvenWeiche<Z>>>,
-    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeiche<Z>>>,
-    kreuzungen: &'t mut Vec<Button<Kreuzung<Z>>>,
+    kurven_weichen: &'t mut Vec<Button<KurvenWeicheUnit<Z>>>,
+    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit<Z>>>,
+    kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
 ) -> iced::Row<'t, Message<Z>>
 where

@@ -3,33 +3,40 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
-use super::Orientierung;
-use crate::application::gleis::{anchor, gerade, kurve};
-use crate::{application::typen::*, lookup::impl_lookup};
+use crate::{
+    application::gleis::{anchor, gerade, kurve, weiche::gerade::Orientierung},
+    application::typen::*,
+    lookup::impl_lookup,
+    steuerung,
+};
 
 /// Definition einer Kurven-Weiche
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
+#[alias_save_unit]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct KurvenWeiche<Z> {
+pub struct KurvenWeiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
     pub orientierung: Orientierung,
     pub beschreibung: Option<String>,
+    pub steuerung: Anschlüsse,
 }
-impl<Z> KurvenWeiche<Z> {
+impl<Z> KurvenWeicheUnit<Z> {
     pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, orientierung: Orientierung) -> Self {
-        KurvenWeiche {
+        KurvenWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             orientierung,
             beschreibung: None,
+            steuerung: (),
         }
     }
 
@@ -40,16 +47,18 @@ impl<Z> KurvenWeiche<Z> {
         orientierung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
-        KurvenWeiche {
+        KurvenWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             orientierung,
             beschreibung: Some(beschreibung.into()),
+            steuerung: (),
         }
     }
 }
+#[create_richtung]
 #[impl_lookup(anchor::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
@@ -58,7 +67,7 @@ pub enum AnchorName {
     Außen,
 }
 
-impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for KurvenWeiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
