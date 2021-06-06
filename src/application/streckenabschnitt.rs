@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
     button,
+    checkbox,
     column,
     container,
     event,
@@ -16,6 +17,7 @@ use iced_native::{
     text_input,
     Align,
     Button,
+    Checkbox,
     Clipboard,
     Column,
     Container,
@@ -55,6 +57,7 @@ impl AnzeigeStatus {
 #[derive(Debug, Clone)]
 pub enum AnzeigeNachricht {
     Auswählen,
+    Festlegen(bool),
 }
 
 pub struct Anzeige<'a, R: Renderer + container::Renderer> {
@@ -63,10 +66,17 @@ pub struct Anzeige<'a, R: Renderer + container::Renderer> {
 
 impl<'a, R> Anzeige<'a, R>
 where
-    R: 'a + Renderer + container::Renderer + text::Renderer + button::Renderer + row::Renderer,
+    R: 'a
+        + Renderer
+        + container::Renderer
+        + text::Renderer
+        + button::Renderer
+        + row::Renderer
+        + column::Renderer
+        + checkbox::Renderer,
     <R as container::Renderer>::Style: From<style::Anzeige>,
 {
-    pub fn neu(status: &'a mut AnzeigeStatus) -> Self {
+    pub fn neu(status: &'a mut AnzeigeStatus, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let style = if let Some((name, farbe)) = &status.aktuell {
             children.push(Text::new(&name.0).into());
@@ -76,8 +86,13 @@ where
             style::Anzeige::Deaktiviert
         };
         children.push(
-            Button::new(&mut status.auswählen, Text::new("Auswählen"))
-                .on_press(AnzeigeNachricht::Auswählen)
+            Column::new()
+                .push(
+                    Button::new(&mut status.auswählen, Text::new("Auswählen"))
+                        .on_press(AnzeigeNachricht::Auswählen),
+                )
+                .push(Checkbox::new(festlegen, "Festlegen", AnzeigeNachricht::Festlegen).spacing(0))
+                .spacing(1)
                 .into(),
         );
         let container =
@@ -130,7 +145,7 @@ impl AuswahlStatus {
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
-            neu_farbe: Farbe { r: 0., g: 0., b: 0. },
+            neu_farbe: Farbe { r: 1., g: 1., b: 1. },
             neu_anschluss: anschluss::OutputAnschluss::Pin {
                 pin: 0, polarität: Polarität::Normal
             },

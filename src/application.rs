@@ -132,6 +132,7 @@ pub enum Message<Z> {
     HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, anschluss::OutputAnschluss),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
+    StreckenabschnittFestlegen(bool),
     Speichern,
     Laden,
     Pfad(String),
@@ -189,6 +190,7 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
     modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
+    streckenabschnitt_aktuell_festlegen: bool,
     message_box: iced_aw::modal::State<MessageBox>,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
@@ -264,6 +266,7 @@ where
             geschwindigkeiten: BTreeMap::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
+            streckenabschnitt_aktuell_festlegen: true,
             message_box: iced_aw::modal::State::new(MessageBox {
                 titel: "Nicht initialisiert".to_string(),
                 nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
@@ -422,15 +425,20 @@ where
                 self.gleise.erzwinge_neuzeichnen()
             },
             Message::SetzeStreckenabschnitt(any_id_lock) => {
-                with_any_id_lock!(
-                    any_id_lock,
-                    Gleise::setze_streckenabschnitt_unit,
-                    &mut self.gleise,
-                    self.streckenabschnitt_aktuell
-                        .aktuell
-                        .as_ref()
-                        .map(|(name, _farbe)| name.clone())
-                );
+                if self.streckenabschnitt_aktuell_festlegen {
+                    with_any_id_lock!(
+                        any_id_lock,
+                        Gleise::setze_streckenabschnitt_unit,
+                        &mut self.gleise,
+                        self.streckenabschnitt_aktuell
+                            .aktuell
+                            .as_ref()
+                            .map(|(name, _farbe)| name.clone())
+                    );
+                }
+            },
+            Message::StreckenabschnittFestlegen(festlegen) => {
+                self.streckenabschnitt_aktuell_festlegen = festlegen
             },
             Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
@@ -465,6 +473,7 @@ where
             geschwindigkeiten,
             modal_state,
             streckenabschnitt_aktuell,
+            streckenabschnitt_aktuell_festlegen,
             message_box,
             oben,
             unten,
@@ -484,6 +493,7 @@ where
         let top_row = top_row(
             aktueller_modus,
             streckenabschnitt_aktuell,
+            streckenabschnitt_aktuell_festlegen,
             oben,
             unten,
             links,
@@ -567,6 +577,7 @@ where
 fn top_row<'t, Z: 'static>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
+    streckenabschnitt_festlegen: &'t mut bool,
     oben: &'t mut iced::button::State,
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
@@ -630,9 +641,20 @@ fn top_row<'t, Z: 'static>(
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
-        .push(iced::Element::from(streckenabschnitt::Anzeige::neu(streckenabschnitt)).map(
-            |streckenabschnitt::AnzeigeNachricht::Auswählen| Message::ZeigeAuswahlStreckenabschnitt,
-        ))
+        .push(
+            iced::Element::from(streckenabschnitt::Anzeige::neu(
+                streckenabschnitt,
+                *streckenabschnitt_festlegen,
+            ))
+            .map(|message| match message {
+                streckenabschnitt::AnzeigeNachricht::Auswählen => {
+                    Message::ZeigeAuswahlStreckenabschnitt
+                },
+                streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
+                    Message::StreckenabschnittFestlegen(festlegen)
+                },
+            }),
+        )
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
         .padding(5)
