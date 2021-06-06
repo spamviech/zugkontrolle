@@ -18,6 +18,7 @@ use crate::anschluss::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kontakt<Anschluss> {
     pub anschluss: Anschluss,
+    pub trigger: Trigger,
 }
 
 impl Kontakt<InputAnschluss> {
@@ -25,13 +26,11 @@ impl Kontakt<InputAnschluss> {
         self.anschluss.read()
     }
 
-    // TODO trigger in Kontakt speichern?
     pub fn set_async_interrupt(
         &mut self,
-        trigger: Trigger,
         callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
-        self.anschluss.set_async_interrupt(trigger, callback)
+        self.anschluss.set_async_interrupt(self.trigger, callback)
     }
 
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
@@ -41,13 +40,13 @@ impl Kontakt<InputAnschluss> {
 
 impl ToSave<Kontakt<InputSave>> for Kontakt<InputAnschluss> {
     fn to_save(&self) -> Kontakt<InputSave> {
-        Kontakt { anschluss: self.anschluss.to_save() }
+        Kontakt { anschluss: self.anschluss.to_save(), trigger: self.trigger }
     }
 }
 
 impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
     fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Kontakt<InputAnschluss>, Error> {
-        Ok(Kontakt { anschluss: self.anschluss.reserviere(anschlüsse)? })
+        Ok(Kontakt { anschluss: self.anschluss.reserviere(anschlüsse)?, trigger: self.trigger })
     }
 }
 
