@@ -60,10 +60,15 @@ pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     weiche::create_richtung(args, ast).into()
 }
+
+mod alias;
 #[proc_macro_attribute]
+/// Internes Macro mit sehr spezifischen Vorraussetzungen.
+///
+/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Save-Typ
+/// (Argument) über eine `to_save`-Methode möglich ist!
 pub fn alias_save_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(attr);
     let ast = syn::parse_macro_input!(item);
 
-    weiche::alias_save_unit(args, ast).into()
+    alias::alias_save_unit(attr.into(), ast).into()
 }
