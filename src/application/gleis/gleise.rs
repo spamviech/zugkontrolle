@@ -861,6 +861,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            streckenabschnitte,
         } = bincode::deserialize_from(file)?;
 
         if name != Z::NAME {
@@ -881,6 +882,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         macro_rules! reserviere_anschlüsse {
             ($name:ident, $source:ident, $(:: $weiche:ident ::)? $module:ident, $data:ident {$steuerung:ident, $($data_feld:ident),*}) => {
                 // collect to Vec to fail on first error
+                // match to fix error type of closure
                 let $name: Vec<_> = match $source
                     .into_iter()
                     .map(
@@ -991,6 +993,22 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             s_kurven_weichen_reserviert,
             kreuzungen_reserviert,
         );
+        let streckenabschnitte_reserviert: Vec<_> = match streckenabschnitte
+            .into_iter()
+            .map(|(name, Streckenabschnitt { farbe, anschluss })| {
+                Ok((name, Streckenabschnitt {
+                    farbe,
+                    anschluss: anschluss.reserviere(anschlüsse)?,
+                }))
+            })
+            .collect()
+        {
+            Ok(map) => map,
+            Err(error) => return Err(error),
+        };
+        for (name, streckenabschnitt) in streckenabschnitte_reserviert {
+            self.neuer_streckenabschnitt(name, streckenabschnitt);
+        }
 
         Ok(())
     }

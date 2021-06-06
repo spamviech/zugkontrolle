@@ -28,4 +28,4 @@ impl Streckenabschnitt<OutputAnschluss> {
 /// Name eines Streckenabschnittes.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
-pub type Map = HashMap<Name, Streckenabschnitt>;
+pub type Map<Anschluss = OutputAnschluss> = HashMap<Name, Streckenabschnitt<Anschluss>>;
