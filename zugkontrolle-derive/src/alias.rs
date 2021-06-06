@@ -34,9 +34,10 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
             let other_fields: Vec<_> = other_fields.into_iter().map(|field| &field.ident).collect();
             let save_ident = format_ident!("{}Save", ident);
             let unit_ident = format_ident!("{}Unit", ident);
+            let params_start = if params.is_empty() { quote!() } else { quote!(#(#params),*,) };
             type_definitionen = Some(quote! {
-                #vis type #save_ident<#(#params),*> = #ident<#(#params),*, Option<#arg>>;
-                #vis type #unit_ident<#(#params),*> = #ident<#(#params),*, ()>;
+                #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
+                #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
                 impl<#(#params),*> #ident<#(#params),*> {
                     pub fn to_save(&self) -> #save_ident<#(#params),*> {
                         let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -59,7 +60,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                     }
                 }
                 impl<#(#params),*> #unit_ident<#(#params),*> {
-                    pub fn to_option<T>(&self) -> #ident<#(#params),*, Option<T>> {
+                    pub fn to_option<T>(&self) -> #ident<#params_start Option<T>> {
                         let #ident { #(#other_fields),*, .. } = self;
                         #ident {
                             #(#other_fields: #other_fields.clone()),*,
