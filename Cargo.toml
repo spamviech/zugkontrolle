@@ -30,13 +30,6 @@ argh = "0.1.4"
 # probably best to only use one (if any)
 once = "0.3.4"
 
-[dependencies.non-empty-vec]
-# crates.io version doesn't support serde-feature
-# version = "0.1.2"
-git = "https://github.com/yihuang/non-empty-vec"
-rev = "8fd0cf1aee69ee0601403b2b6389b9281a5b335b"
-features = ["serde"]
-
 [dependencies.serde]
 version = "1.0.124"
 features = ["derive"]

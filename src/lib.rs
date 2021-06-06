@@ -4,6 +4,7 @@ pub mod anschluss;
 pub mod application;
 pub mod farbe;
 pub mod lookup;
+pub mod non_empty;
 pub mod steuerung;
 pub mod zugtyp;
 
