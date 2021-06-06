@@ -42,7 +42,7 @@ version = "1.0.124"
 features = ["derive"]
 
 [dependencies.iced]
-# ices_aw only works with crates.io-version for now
+# ices_aw only works with crates.io-version for now (at least tabs make problems with github version)
 # git = "https://github.com/hecrj/iced"
 # rev = "3dfce43396af457aaee835dbe281663a41a261ab"
 version = "0.3.0"

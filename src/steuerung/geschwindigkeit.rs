@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, Fließend, OutputAnschluss, Polarität};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
@@ -53,16 +53,16 @@ fn geschwindigkeit_ks(
     Ok(())
 }
 
-#[derive(Debug)]
-pub enum Mittelleiter {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
-        pin: pwm::Pin,
+        pin: Pwm,
         polarität: Polarität,
     },
     KonstanteSpannung {
-        geschwindigkeit: NonEmpty<OutputAnschluss>,
+        geschwindigkeit: NonEmpty<Anschluss>,
         letzter_wert: usize,
-        umdrehen: OutputAnschluss,
+        umdrehen: Anschluss,
     },
 }
 
@@ -111,17 +111,17 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 }
 
-#[derive(Debug)]
-pub enum Zweileiter {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
-        geschwindigkeit: pwm::Pin,
+        geschwindigkeit: Pwm,
         polarität: Polarität,
-        fahrtrichtung: OutputAnschluss,
+        fahrtrichtung: Anschluss,
     },
     KonstanteSpannung {
-        geschwindigkeit: NonEmpty<OutputAnschluss>,
+        geschwindigkeit: NonEmpty<Anschluss>,
         letzter_wert: usize,
-        fahrtrichtung: OutputAnschluss,
+        fahrtrichtung: Anschluss,
     },
 }
 

@@ -4,18 +4,18 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{Error, Fließend, OutputAnschluss};
+use crate::anschluss::{Error, Fließend, OutputAnschluss, OutputSave};
 use crate::application::typen::canvas::Color;
 
+pub type StreckenabschnittSave = Streckenabschnitt<OutputSave>;
 /// Steuerung der Stromzufuhr.
-#[derive(Debug)]
-pub struct Streckenabschnitt {
-    // TODO name,farbe sind eigentlich nur für die Anzeige relevant
+#[derive(Debug /* , Serialize, Deserialize */)]
+pub struct Streckenabschnitt<Anschluss = OutputAnschluss> {
     pub farbe: Color,
-    pub anschluss: OutputAnschluss,
+    pub anschluss: Anschluss,
 }
 
-impl Streckenabschnitt {
+impl Streckenabschnitt<OutputAnschluss> {
     pub fn strom(&mut self, fließend: Fließend) -> Result<(), Error> {
         self.anschluss.einstellen(fließend)
     }
