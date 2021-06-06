@@ -4,7 +4,7 @@ use std::{collections::HashMap, thread::sleep, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{Error, Fließend, OutputAnschluss};
+use crate::anschluss::{Anschlüsse, Error, Fließend, OutputAnschluss, Reserviere, ToSave};
 use crate::lookup::Lookup;
 
 // inklusive Kreuzung
@@ -23,6 +23,21 @@ impl<Anschlüsse> Weiche<Anschlüsse> {
         sleep(SCHALTZEIT);
         anschluss.einstellen(Fließend::Gesperrt)?;
         Ok(())
+    }
+}
+
+impl<T, S> ToSave<Weiche<S>> for Weiche<T>
+where
+    T: ToSave<S>,
+    S: Serialize + for<'de> Deserialize<'de>,
+{
+    fn to_save(&self) -> Weiche<S> {
+        Weiche { anschlüsse: self.anschlüsse.to_save() }
+    }
+}
+impl<T: Reserviere<R>, R> Reserviere<Weiche<R>> for Weiche<T> {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Weiche<R>, Error> {
+        Ok(Weiche { anschlüsse: self.anschlüsse.reserviere(anschlüsse)? })
     }
 }
 

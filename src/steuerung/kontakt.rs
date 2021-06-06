@@ -4,7 +4,16 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger};
+use crate::anschluss::{
+    Anschlüsse,
+    Error,
+    InputAnschluss,
+    InputSave,
+    Level,
+    Reserviere,
+    ToSave,
+    Trigger,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kontakt<Anschluss> {
@@ -16,6 +25,7 @@ impl Kontakt<InputAnschluss> {
         self.anschluss.read()
     }
 
+    // TODO trigger in Kontakt speichern?
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
@@ -27,16 +37,16 @@ impl Kontakt<InputAnschluss> {
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         self.anschluss.clear_async_interrupt()
     }
+}
 
-    pub fn to_save(&self) -> Kontakt<InputSave> {
+impl ToSave<Kontakt<InputSave>> for Kontakt<InputAnschluss> {
+    fn to_save(&self) -> Kontakt<InputSave> {
         Kontakt { anschluss: self.anschluss.to_save() }
     }
 }
 
-impl Kontakt<InputSave> {
-    pub fn reserviere(
-        self, anschlüsse: &mut Anschlüsse
-    ) -> Result<Kontakt<InputAnschluss>, Error> {
+impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Kontakt<InputAnschluss>, Error> {
         Ok(Kontakt { anschluss: self.anschluss.reserviere(anschlüsse)? })
     }
 }

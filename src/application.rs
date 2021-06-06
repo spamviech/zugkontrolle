@@ -225,13 +225,15 @@ where
     Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
 {
     fn laden(&mut self) {
-        if let Err(err) = self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
-            self.zeige_message_box(
+        match self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
+            Ok(geschwindigkeiten) => {
+                self.geschwindigkeiten = geschwindigkeiten;
+                self.streckenabschnitt_aktuell.aktuell = None;
+            },
+            Err(err) => self.zeige_message_box(
                 format!("Fehler beim Laden von {}", self.aktueller_pfad),
                 format!("{:?}", err),
-            )
-        } else {
-            self.streckenabschnitt_aktuell.aktuell = None;
+            ),
         }
     }
 }
@@ -432,7 +434,9 @@ where
             },
             Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
-                if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
+                if let Err(err) =
+                    self.gleise.speichern(&self.aktueller_pfad, &self.geschwindigkeiten)
+                {
                     self.zeige_message_box(
                         format!("Fehler beim Speichern in {}", self.aktueller_pfad),
                         format!("{:?}", err),

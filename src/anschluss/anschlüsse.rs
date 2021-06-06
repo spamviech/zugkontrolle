@@ -412,6 +412,7 @@ impl Anschlüsse {
                     if anschlüsse.ausgegebene_pins.insert(pin) {
                         Ok(Pin::neu(pin, anschlüsse.pin_rückgabe.clone()))
                     } else {
+                        // TODO besserer Fehler (welcher Pin wurde angefragt)
                         Err(Error::Sync(SyncError::InVerwendung))
                     }
                 }
@@ -431,7 +432,8 @@ impl Anschlüsse {
         port: u3,
     ) -> Result<pcf8574::Port, SyncError> {
         self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
-            arc.lock().map_err(Into::into).and_then(|mut guard| {
+            // TODO besserer Fehler (welche Port wurde angefragt)
+            arc.lock().map_err(SyncError::from).and_then(|mut guard| {
                 guard
                     .reserviere_pcf8574_port(a0, a1, a2, variante, port)
                     .ok_or(SyncError::InVerwendung)

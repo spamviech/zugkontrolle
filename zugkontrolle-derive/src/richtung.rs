@@ -47,14 +47,14 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             #vis enum Richtung {
                 #(#enum_variants),*
             }
-            impl RichtungAnschlüsse {
-                pub fn to_save(&self) -> RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::serde::ToSave<RichtungAnschlüsseSave> for RichtungAnschlüsse {
+                fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
             }
-            impl RichtungAnschlüsseSave {
-                pub fn reserviere(
+            impl #base_ident::anschluss::serde::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+                fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                 ) -> Result<RichtungAnschlüsse, #base_ident::anschluss::Error> {
@@ -62,19 +62,6 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     Ok(RichtungAnschlüsse {
                         #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
                     })
-                }
-            }
-            impl #base_ident::steuerung::Weiche<RichtungAnschlüsse> {
-                pub fn to_save(&self) -> #base_ident::steuerung::Weiche<RichtungAnschlüsseSave> {
-                    #base_ident::steuerung::Weiche {anschlüsse: self.anschlüsse.to_save()}
-                }
-            }
-            impl #base_ident::steuerung::Weiche<RichtungAnschlüsseSave> {
-                pub fn reserviere(
-                    self,
-                    anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
-                ) -> Result<#base_ident::steuerung::Weiche<RichtungAnschlüsse>, #base_ident::anschluss::Error> {
-                    Ok(#base_ident::steuerung::Weiche {anschlüsse: self.anschlüsse.reserviere(anschlüsse)?})
                 }
             }
         })

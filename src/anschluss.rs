@@ -2,8 +2,8 @@
 
 use std::fmt::{self, Display, Formatter};
 
+use ::serde::{Deserialize, Serialize};
 use num_x::u3;
-use serde::{Deserialize, Serialize};
 
 pub mod level;
 pub use level::*;
@@ -24,8 +24,10 @@ pub use pcf8574::Pcf8574;
 #[path = "anschluss/anschlüsse.rs"]
 pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
+use anschlüsse::SyncError;
 
-use self::anschlüsse::SyncError;
+pub mod serde;
+pub use self::serde::*;
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -182,8 +184,8 @@ pub enum OutputSave {
         polarität: Polarität,
     },
 }
-impl OutputAnschluss {
-    pub fn to_save(&self) -> OutputSave {
+impl ToSave<OutputSave> for OutputAnschluss {
+    fn to_save(&self) -> OutputSave {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 OutputSave::Pin { pin: pin.pin(), polarität: *polarität }
@@ -203,8 +205,8 @@ impl OutputAnschluss {
         }
     }
 }
-impl OutputSave {
-    pub fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<OutputAnschluss, Error> {
+impl Reserviere<OutputAnschluss> for OutputSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<OutputAnschluss, Error> {
         let (anschluss, polarität) = match self {
             OutputSave::Pin { pin, polarität } => {
                 (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
@@ -275,8 +277,8 @@ pub enum InputSave {
         interrupt: Option<u8>,
     },
 }
-impl InputAnschluss {
-    pub fn to_save(&self) -> InputSave {
+impl ToSave<InputSave> for InputAnschluss {
+    fn to_save(&self) -> InputSave {
         match self {
             InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
@@ -295,8 +297,8 @@ impl InputAnschluss {
         }
     }
 }
-impl InputSave {
-    pub fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<InputAnschluss, Error> {
+impl Reserviere<InputAnschluss> for InputSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<InputAnschluss, Error> {
         Ok(match self {
             InputSave::Pin { pin } => {
                 InputAnschluss::Pin(anschlüsse.reserviere_pin(pin)?.into_input())

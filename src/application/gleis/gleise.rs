@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 
 use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor;
-use crate::anschluss::{self, Anschlüsse};
+use crate::anschluss::{self, Anschlüsse, Reserviere};
 use crate::application::typen::*;
 use crate::farbe::Farbe;
 use crate::lookup::Lookup;
-use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
+use crate::steuerung::{geschwindigkeit, streckenabschnitt, Streckenabschnitt};
 
 pub mod id;
 pub use id::*;
@@ -835,10 +835,19 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize> Gleise<Z> {
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Error> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + Serialize,
+    Z::LeiterSave: Serialize + for<'t> Deserialize<'t>,
+{
+    #[must_use]
+    pub fn speichern(
+        &self,
+        pfad: impl AsRef<std::path::Path>,
+        geschwindigkeiten: &geschwindigkeit::Map<Z::Leiter>,
+    ) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
-        let vecs: GleiseVecs<Z> = maps.into();
+        let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &vecs)?;
         Ok(())
@@ -846,11 +855,12 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
 }
 
 impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+    #[must_use]
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
         pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<(), Error> {
+    ) -> std::result::Result<geschwindigkeit::Map<Z::Leiter>, Error> {
         let file = std::fs::File::open(pfad)?;
         let GleiseVecs {
             name,
@@ -862,6 +872,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             s_kurven_weichen,
             kreuzungen,
             streckenabschnitte,
+            geschwindigkeiten,
         } = bincode::deserialize_from(file)?;
 
         if name != Z::NAME {
@@ -1010,7 +1021,11 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             self.neuer_streckenabschnitt(name, streckenabschnitt);
         }
 
-        Ok(())
+        let geschwindigkeiten_reserviert = geschwindigkeiten
+            .into_iter()
+            .map(|(name, geschwindigkeit)| Ok((name, geschwindigkeit.reserviere(anschlüsse)?)))
+            .collect::<Result<_, anschluss::Error>>()?;
+        Ok(geschwindigkeiten_reserviert)
     }
 }
 

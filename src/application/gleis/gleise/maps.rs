@@ -6,10 +6,13 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use super::{id::GleisId, GleisIdLock};
-use crate::anschluss::OutputSave;
+use crate::anschluss::{OutputSave, ToSave};
 use crate::application::gleis::{gerade::*, kreuzung::*, kurve::*, weiche::*};
 use crate::application::typen::*;
-use crate::steuerung::streckenabschnitt::{self, Streckenabschnitt};
+use crate::steuerung::{
+    geschwindigkeit::{self, Geschwindigkeit},
+    streckenabschnitt::{self, Streckenabschnitt},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
@@ -84,8 +87,8 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Z> {
+#[derive(Serialize, Deserialize)]
+pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<GeradeSave<Z>>>,
     pub(crate) kurven: Vec<Gleis<KurveSave<Z>>>,
@@ -95,16 +98,15 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: streckenabschnitt::Map<OutputSave>,
-    /* pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z>,
-     * TODO
-     * streckenabschnitte, geschwindigkeiten
+    pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::LeiterSave>,
+    /* TODO
      * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
      * pläne, wegstrecken
      */
 }
 
-impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
-    fn from(maps: &GleiseMaps<Z>) -> Self {
+impl<Z: Zugtyp> From<(&GleiseMaps<Z>, &geschwindigkeit::Map<Z::Leiter>)> for GleiseVecs<Z> {
+    fn from((maps, geschwindigkeiten): (&GleiseMaps<Z>, &geschwindigkeit::Map<Z::Leiter>)) -> Self {
         macro_rules! hashmaps_to_vecs {
             ($($map:ident),* $(,)?) => {
                 GleiseVecs {
@@ -114,6 +116,11 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
                         |(name, Streckenabschnitt {farbe, anschluss})|
                             (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()})
                         ).collect(),
+                    geschwindigkeiten:geschwindigkeiten.iter().map(
+                        |(name, Geschwindigkeit { leiter })| {
+                            (name.clone(), Geschwindigkeit { leiter: leiter.to_save() })
+                        },
+                    ).collect(),
                     $($map: maps.$map.values().map(
                         |(Gleis {position, definition, streckenabschnitt}, _id_lock)|
                         Gleis {

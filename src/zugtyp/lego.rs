@@ -4,19 +4,22 @@ use std::f32::consts::PI;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::{
-    gerade::*,
-    kreuzung::{self, *},
-    kurve::*,
-    weiche::{self, *},
+use crate::application::{
+    gleis::{
+        gerade::*,
+        kreuzung::{self, *},
+        kurve::*,
+        weiche::{self, *},
+    },
+    typen::*,
 };
-use crate::application::typen::*;
-use crate::steuerung::geschwindigkeit::Zweileiter;
+use crate::steuerung::geschwindigkeit::{Zweileiter, ZweileiterSave};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;
 impl Zugtyp for Lego {
     type Leiter = Zweileiter;
+    type LeiterSave = ZweileiterSave;
 
     const NAME: &'static str = "Lego";
     const SPURWEITE: Spurweite = Spurweite(38.);

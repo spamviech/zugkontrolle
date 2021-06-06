@@ -4,14 +4,43 @@ use std::collections::BTreeMap;
 use std::usize;
 use std::{thread::sleep, time::Duration};
 
-use non_empty_vec::NonEmpty;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{self, pwm, Fließend, OutputAnschluss, Polarität};
+use crate::anschluss::{
+    self,
+    pwm,
+    Anschlüsse,
+    Fließend,
+    OutputAnschluss,
+    OutputSave,
+    Polarität,
+    Reserviere,
+    ToSave,
+};
+use crate::non_empty::{MaybeEmpty, NonEmpty};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
+}
+
+impl<T, S> ToSave<Geschwindigkeit<S>> for Geschwindigkeit<T>
+where
+    T: ToSave<S>,
+    S: Serialize + for<'de> Deserialize<'de>,
+{
+    fn to_save(&self) -> Geschwindigkeit<S> {
+        Geschwindigkeit { leiter: self.leiter.to_save() }
+    }
+}
+
+impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+    ) -> Result<Geschwindigkeit<R>, anschluss::Error> {
+        Ok(Geschwindigkeit { leiter: self.leiter.reserviere(anschlüsse)? })
+    }
 }
 
 impl pwm::Pin {
@@ -41,7 +70,7 @@ fn geschwindigkeit_ks(
     wert: u8,
 ) -> Result<(), Error> {
     let wert_usize = wert as usize;
-    let length = geschwindigkeit.len().get();
+    let length = geschwindigkeit.len();
     if wert_usize > length {
         return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length })
     }
@@ -53,6 +82,7 @@ fn geschwindigkeit_ks(
     Ok(())
 }
 
+pub type MittelleiterSave = Mittelleiter<pwm::Save, OutputSave>;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
@@ -64,6 +94,47 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
         letzter_wert: usize,
         umdrehen: Anschluss,
     },
+}
+
+impl ToSave<MittelleiterSave> for Mittelleiter {
+    fn to_save(&self) -> MittelleiterSave {
+        match self {
+            Mittelleiter::Pwm { pin, polarität } => {
+                Mittelleiter::Pwm { pin: pin.to_save(), polarität: *polarität }
+            },
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
+                Mittelleiter::KonstanteSpannung {
+                    geschwindigkeit: geschwindigkeit
+                        .iter()
+                        .map(OutputAnschluss::to_save)
+                        .collect::<MaybeEmpty<_>>()
+                        .unwrap(),
+                    letzter_wert: *letzter_wert,
+                    umdrehen: umdrehen.to_save(),
+                }
+            },
+        }
+    }
+}
+impl Reserviere<Mittelleiter> for MittelleiterSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Mittelleiter, anschluss::Error> {
+        Ok(match self {
+            Mittelleiter::Pwm { pin, polarität } => {
+                Mittelleiter::Pwm { pin: pin.reserviere(anschlüsse)?, polarität }
+            },
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                Mittelleiter::KonstanteSpannung {
+                    geschwindigkeit: geschwindigkeit
+                        .into_iter()
+                        .map(|anschluss| anschluss.reserviere(anschlüsse))
+                        .collect::<Result<MaybeEmpty<_>, _>>()?
+                        .unwrap(),
+                    letzter_wert: 0,
+                    umdrehen: umdrehen.reserviere(anschlüsse)?,
+                }
+            },
+        })
+    }
 }
 
 // TODO als Zugtyp-Eigenschaft?
@@ -111,6 +182,7 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 }
 
+pub type ZweileiterSave = Zweileiter<pwm::Save, OutputSave>;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
@@ -155,6 +227,51 @@ impl Geschwindigkeit<Zweileiter> {
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
         };
         Ok(fahrtrichtung.umstellen()?)
+    }
+}
+
+impl ToSave<ZweileiterSave> for Zweileiter {
+    fn to_save(&self) -> ZweileiterSave {
+        match self {
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
+                geschwindigkeit: geschwindigkeit.to_save(),
+                polarität: *polarität,
+                fahrtrichtung: fahrtrichtung.to_save(),
+            },
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, fahrtrichtung } => {
+                Zweileiter::KonstanteSpannung {
+                    geschwindigkeit: geschwindigkeit
+                        .iter()
+                        .map(OutputAnschluss::to_save)
+                        .collect::<MaybeEmpty<_>>()
+                        .unwrap(),
+                    letzter_wert: *letzter_wert,
+                    fahrtrichtung: fahrtrichtung.to_save(),
+                }
+            },
+        }
+    }
+}
+impl Reserviere<Zweileiter> for ZweileiterSave {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Zweileiter, anschluss::Error> {
+        Ok(match self {
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
+                geschwindigkeit: geschwindigkeit.reserviere(anschlüsse)?,
+                polarität,
+                fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+            },
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                Zweileiter::KonstanteSpannung {
+                    geschwindigkeit: geschwindigkeit
+                        .into_iter()
+                        .map(|anschluss| anschluss.reserviere(anschlüsse))
+                        .collect::<Result<MaybeEmpty<_>, _>>()?
+                        .unwrap(),
+                    letzter_wert: 0,
+                    fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                }
+            },
+        })
     }
 }
 

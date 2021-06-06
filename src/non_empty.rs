@@ -36,9 +36,9 @@ impl<T> NonEmpty<T> {
         Iter { head: &self.head, is_head: true, tail: self.tail.iter() }
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
-        IterMut { head: &mut self.head, is_head: true, tail: self.tail.iter_mut() }
-    }
+    // pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+    //     IterMut { head: &mut self.head, is_head: true, tail: self.tail.iter_mut() }
+    // }
 
     pub fn len(&self) -> usize {
         1 + self.tail.len()
@@ -85,13 +85,13 @@ impl<'t, T> Iterator for Iter<'t, T> {
     }
 }
 
+/*
 pub struct IterMut<'t, T> {
     head: &'t mut T,
     is_head: bool,
     tail: slice::IterMut<'t, T>,
 }
 
-/*
 // lifetime problems due to mutable reference
 impl<'t, T> MutIterator for IterMut<'t, T> {
     type Item = &'t mut T;
@@ -108,8 +108,7 @@ impl<'t, T> MutIterator for IterMut<'t, T> {
 */
 
 pub struct IntoIter<T> {
-    head: T,
-    is_head: bool,
+    head: Option<T>,
     tail: vec::IntoIter<T>,
 }
 
@@ -117,9 +116,9 @@ impl<T> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_head {
-            self.is_head = false;
-            Some(self.head)
+        if self.head.is_some() {
+            let head = self.head.take().unwrap();
+            Some(head)
         } else {
             self.tail.next()
         }
@@ -130,7 +129,7 @@ impl<T> IntoIterator for NonEmpty<T> {
     type Item = T;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.into_iter()
+        IntoIter { head: Some(self.head), tail: self.tail.into_iter() }
     }
 }
 
