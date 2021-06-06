@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use version::version;
 
 use crate::anschluss::anschlüsse::Anschlüsse;
+use crate::farbe::Farbe;
 use crate::steuerung::{geschwindigkeit, streckenabschnitt::Streckenabschnitt};
 
 mod touch_canvas;
@@ -127,8 +128,8 @@ pub enum Message<Z> {
     SchließeModal,
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
-    WähleStreckenabschnitt(Option<(streckenabschnitt::Name, iced::Color)>),
-    HinzufügenStreckenabschnitt(streckenabschnitt::Name, iced::Color, anschluss::OutputAnschluss),
+    WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
+    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, anschluss::OutputAnschluss),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     Speichern,

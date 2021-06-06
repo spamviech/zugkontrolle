@@ -28,16 +28,17 @@ use super::typen::{
     vektor::Vektor,
     winkel::{self, Trigonometrie},
 };
+use crate::farbe::Farbe;
 
 /// Widget zur Farbwahl.
 /// Im Gegensatz zum `iced_aw::ColorPicker` wird kein `overlay` verwendet, so dass es innerhalb
 /// eines `Modal` verwendet werden kann.
 pub struct Farbwahl<'a, M> {
     durchmesser: u16,
-    nachricht: &'a dyn Fn(Color) -> M,
+    nachricht: &'a dyn Fn(Farbe) -> M,
 }
 impl<'a, M> Farbwahl<'a, M> {
-    pub fn neu(nachricht: &'a impl Fn(Color) -> M) -> Self {
+    pub fn neu(nachricht: &'a impl Fn(Farbe) -> M) -> Self {
         Farbwahl { durchmesser: 50, nachricht }
     }
 
@@ -52,7 +53,7 @@ impl<'a, M> Farbwahl<'a, M> {
     }
 
     // Farbe eines Pixel oder None wenn außerhalb vom Radius.
-    fn farbe(&self, vr: Vektor) -> Option<Color> {
+    fn farbe(&self, vr: Vektor) -> Option<Farbe> {
         let länge = vr.länge();
         let radius = Skalar(0.5 * self.durchmesser as f32);
         let halber_radius = radius.halbiert();
@@ -68,11 +69,11 @@ impl<'a, M> Farbwahl<'a, M> {
             };
             let skaliert = vr / halber_radius;
             let c = if länge <= halber_radius {
-                Color::from_rgb(
-                    skaliert.skalarprodukt(&e_r).0.max(0.),
-                    skaliert.skalarprodukt(&e_g).0.max(0.),
-                    skaliert.skalarprodukt(&e_b).0.max(0.),
-                )
+                Farbe {
+                    r: skaliert.skalarprodukt(&e_r).0.max(0.),
+                    g: skaliert.skalarprodukt(&e_g).0.max(0.),
+                    b: skaliert.skalarprodukt(&e_b).0.max(0.),
+                }
             } else {
                 let e = vr.einheitsvektor();
                 // skaliert um schwarzen äußeren Ring zu verhindern
@@ -85,7 +86,7 @@ impl<'a, M> Farbwahl<'a, M> {
                 let r = anpassen(reduziert, e_r);
                 let g = anpassen(reduziert, e_g);
                 let b = anpassen(reduziert, e_b);
-                Color::from_rgb(r, g, b)
+                Farbe { r, g, b }
             };
             Some(c)
         } else {
@@ -136,7 +137,7 @@ where
                             width: 1.,
                             height: 1.,
                         },
-                        background: Background::Color(farbe),
+                        background: Background::Color(farbe.into()),
                         border_radius: 0.,
                         border_width: 0.,
                         border_color: Color::default(),

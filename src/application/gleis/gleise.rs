@@ -8,6 +8,7 @@ use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor;
 use crate::anschluss::{self, Anschlüsse};
 use crate::application::typen::*;
+use crate::farbe::Farbe;
 use crate::lookup::Lookup;
 use crate::steuerung::{streckenabschnitt, Streckenabschnitt};
 
@@ -298,8 +299,8 @@ fn fülle_alle_gleise<T: Zeichnen>(
                 // einfärben
                 for path in definition.fülle() {
                     frame.with_save(|frame| {
-                        let mut color = *farbe;
-                        color.a *= transparency(gleis_id, &is_grabbed);
+                        let Farbe { r, g, b } = *farbe;
+                        let color = iced::Color { r, g, b, a: transparency(gleis_id, &is_grabbed) };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                     });
                 }

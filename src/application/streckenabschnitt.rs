@@ -17,7 +17,6 @@ use iced_native::{
     Align,
     Button,
     Clipboard,
-    Color,
     Column,
     Container,
     Element,
@@ -35,6 +34,7 @@ use iced_native::{
 
 use super::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods};
 use crate::anschluss::polarity::Polarität;
+use crate::farbe::Farbe;
 pub use crate::steuerung::streckenabschnitt::Name;
 use crate::steuerung::Streckenabschnitt;
 
@@ -42,7 +42,7 @@ pub mod style;
 
 #[derive(Debug)]
 pub struct AnzeigeStatus {
-    pub aktuell: Option<(Name, Color)>,
+    pub aktuell: Option<(Name, Farbe)>,
     pub auswählen: button::State,
 }
 
@@ -114,13 +114,13 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
 #[derive(Debug)]
 pub struct AuswahlStatus {
     neu_name: String,
-    neu_farbe: Color,
+    neu_farbe: Farbe,
     neu_anschluss: anschluss::OutputAnschluss,
     neu_name_state: text_input::State,
     neu_anschluss_state: anschluss::Status<anschluss::Output>,
     neu_button_state: button::State,
     none_button_state: button::State,
-    streckenabschnitte: BTreeMap<Name, (String, Color, button::State, button::State)>,
+    streckenabschnitte: BTreeMap<Name, (String, Farbe, button::State, button::State)>,
     scrollable_state: scrollable::State,
 }
 
@@ -130,7 +130,7 @@ impl AuswahlStatus {
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
-            neu_farbe: Color::WHITE,
+            neu_farbe: Farbe { r: 0., g: 0., b: 0. },
             neu_anschluss: anschluss::OutputAnschluss::Pin {
                 pin: 0, polarität: Polarität::Normal
             },
@@ -145,7 +145,7 @@ impl AuswahlStatus {
 
     fn iter_map<'t>(
         (name, streckenabschnitt): (&'t Name, &'t Streckenabschnitt),
-    ) -> (Name, (String, Color, button::State, button::State)) {
+    ) -> (Name, (String, Farbe, button::State, button::State)) {
         (
             name.clone(),
             (
@@ -178,7 +178,7 @@ impl AuswahlStatus {
         self.streckenabschnitte.insert(key, value);
     }
 
-    pub fn streckenabschnitt(&self) -> (Name, Color, anschluss::OutputAnschluss) {
+    pub fn streckenabschnitt(&self) -> (Name, Farbe, anschluss::OutputAnschluss) {
         (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_state.output_anschluss())
     }
 }
@@ -186,26 +186,26 @@ impl AuswahlStatus {
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
     Schließe,
-    Wähle(Option<(Name, iced::Color)>),
+    Wähle(Option<(Name, Farbe)>),
     Hinzufügen,
     Lösche(Name),
     Name(String),
-    FarbeBestimmen(Color),
+    FarbeBestimmen(Farbe),
     Anschluss(anschluss::OutputAnschluss),
 }
 
 #[derive(Debug, Clone)]
 pub enum AuswahlNachricht {
     Schließe,
-    Wähle(Option<(Name, Color)>),
-    Hinzufügen(Name, Color, anschluss::OutputAnschluss),
+    Wähle(Option<(Name, Farbe)>),
+    Hinzufügen(Name, Farbe, anschluss::OutputAnschluss),
     Lösche(Name),
 }
 
 pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
-    neu_farbe: &'a mut Color,
+    neu_farbe: &'a mut Farbe,
     neu_anschluss: &'a mut anschluss::OutputAnschluss,
 }
 

@@ -1,15 +1,17 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
+use crate::farbe::Farbe;
+
 #[derive(Debug, Clone)]
 pub enum Anzeige {
-    Farbe(iced::Color),
+    Farbe(Farbe),
     Deaktiviert,
 }
 impl iced::container::StyleSheet for Anzeige {
     fn style(&self) -> iced::container::Style {
         match self {
             Anzeige::Farbe(farbe) => iced::container::Style {
-                background: Some(iced::Background::Color(*farbe)),
+                background: Some(iced::Background::Color((*farbe).into())),
                 ..Default::default()
             },
             Anzeige::Deaktiviert => iced::container::Style {
@@ -21,11 +23,11 @@ impl iced::container::StyleSheet for Anzeige {
 }
 
 #[derive(Debug, Clone)]
-pub struct Auswahl(pub iced::Color);
+pub struct Auswahl(pub Farbe);
 impl iced::container::StyleSheet for Auswahl {
     fn style(&self) -> iced::container::Style {
         iced::container::Style {
-            background: Some(iced::Background::Color(self.0)),
+            background: Some(iced::Background::Color(self.0.into())),
             ..Default::default()
         }
     }
@@ -33,7 +35,7 @@ impl iced::container::StyleSheet for Auswahl {
 impl iced::button::StyleSheet for Auswahl {
     fn active(&self) -> iced::button::Style {
         iced::button::Style {
-            background: Some(iced::Background::Color(self.0)),
+            background: Some(iced::Background::Color(self.0.into())),
             ..Default::default()
         }
     }

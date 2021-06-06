@@ -5,13 +5,13 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{Error, Fließend, OutputAnschluss, OutputSave};
-use crate::application::typen::canvas::Color;
+use crate::farbe::Farbe;
 
 pub type StreckenabschnittSave = Streckenabschnitt<OutputSave>;
 /// Steuerung der Stromzufuhr.
-#[derive(Debug /* , Serialize, Deserialize */)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = OutputAnschluss> {
-    pub farbe: Color,
+    pub farbe: Farbe,
     pub anschluss: Anschluss,
 }
 
