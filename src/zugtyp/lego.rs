@@ -5,9 +5,9 @@ use std::f32::consts::PI;
 use serde::{Deserialize, Serialize};
 
 use crate::application::gleis::{
-    gerade::Gerade,
+    gerade::*,
     kreuzung::{self, *},
-    kurve::Kurve,
+    kurve::*,
     weiche::{self, *},
 };
 use crate::application::typen::*;
@@ -21,11 +21,11 @@ impl Zugtyp for Lego {
     const NAME: &'static str = "Lego";
     const SPURWEITE: Spurweite = Spurweite(38.);
 
-    fn geraden() -> Vec<Gerade<Self>> {
+    fn geraden() -> Vec<GeradeUnit<Self>> {
         vec![gerade()]
     }
 
-    fn kurven() -> Vec<Kurve<Self>> {
+    fn kurven() -> Vec<KurveUnit<Self>> {
         vec![kurve()]
     }
 
@@ -79,12 +79,12 @@ const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
-pub fn gerade() -> Gerade<Lego> {
+pub fn gerade() -> GeradeUnit<Lego> {
     Gerade::neu(LENGTH)
 }
 
 const ANGLE: Winkel = Winkel(ANGLE_VALUE);
-pub fn kurve() -> Kurve<Lego> {
+pub fn kurve() -> KurveUnit<Lego> {
     Kurve::neu(RADIUS, ANGLE)
 }
 

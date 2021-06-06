@@ -38,7 +38,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 #vis type #save_ident<#(#params),*> = #ident<#(#params),*, Option<#arg>>;
                 #vis type #unit_ident<#(#params),*> = #ident<#(#params),*, ()>;
                 impl<#(#params),*> #ident<#(#params),*> {
-                    pub fn to_save(&self) -> #save_ident<Z> {
+                    pub fn to_save(&self) -> #save_ident<#(#params),*> {
                         let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                         #save_ident {
                             #(#other_fields: #other_fields.clone()),*,
@@ -50,11 +50,20 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                         }
                     }
 
-                    pub fn to_unit(&self) -> #unit_ident<Z> {
+                    pub fn to_unit(&self) -> #unit_ident<#(#params),*> {
                         let #ident { #(#other_fields),*, .. } = self;
                         #unit_ident {
                             #(#other_fields: #other_fields.clone()),*,
                             #(#param_fields: ()),*
+                        }
+                    }
+                }
+                impl<#(#params),*> #unit_ident<#(#params),*> {
+                    pub fn to_option<T>(&self) -> #ident<#(#params),*, Option<T>> {
+                        let #ident { #(#other_fields),*, .. } = self;
+                        #ident {
+                            #(#other_fields: #other_fields.clone()),*,
+                            #(#param_fields: None),*
                         }
                     }
                 }

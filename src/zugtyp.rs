@@ -1,6 +1,6 @@
 //! Zugtyp Trait + Phantom-Typen + Spurweite
 
-use crate::application::gleis::{gerade::Gerade, kreuzung::*, kurve::Kurve, weiche::*};
+use crate::application::gleis::{gerade::*, kreuzung::*, kurve::*, weiche::*};
 
 pub mod lego;
 pub use lego::Lego;
@@ -20,8 +20,8 @@ pub trait Zugtyp: Sized {
     /// Art der Stromzufuhr.
     type Leiter;
 
-    fn geraden() -> Vec<Gerade<Self>>;
-    fn kurven() -> Vec<Kurve<Self>>;
+    fn geraden() -> Vec<GeradeUnit<Self>>;
+    fn kurven() -> Vec<KurveUnit<Self>>;
     fn weichen() -> Vec<WeicheUnit<Self>>;
     fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>>;
     fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>>;

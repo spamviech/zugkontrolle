@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{Error, InputAnschluss, Level, Trigger};
+use crate::anschluss::{Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kontakt<Anschluss> {
@@ -26,6 +26,18 @@ impl Kontakt<InputAnschluss> {
 
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         self.anschluss.clear_async_interrupt()
+    }
+
+    pub fn to_save(&self) -> Kontakt<InputSave> {
+        Kontakt { anschluss: self.anschluss.to_save() }
+    }
+}
+
+impl Kontakt<InputSave> {
+    pub fn reserviere(
+        self, anschlüsse: &mut Anschlüsse
+    ) -> Result<Kontakt<InputAnschluss>, Error> {
+        Ok(Kontakt { anschluss: self.anschluss.reserviere(anschlüsse)? })
     }
 }
 

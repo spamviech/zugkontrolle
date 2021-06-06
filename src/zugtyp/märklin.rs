@@ -2,9 +2,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::application::gleis::{
-    gerade::Gerade,
+    gerade::*,
     kreuzung::{self, *},
-    kurve::Kurve,
+    kurve::*,
     weiche::{self, *},
 };
 use crate::application::typen::*;
@@ -18,7 +18,7 @@ impl Zugtyp for Märklin {
     const NAME: &'static str = "Märklin";
     const SPURWEITE: Spurweite = Spurweite(16.5);
 
-    fn geraden() -> Vec<Gerade<Self>> {
+    fn geraden() -> Vec<GeradeUnit<Self>> {
         vec![
             gerade_5106(),
             gerade_5107(),
@@ -31,7 +31,7 @@ impl Zugtyp for Märklin {
         ]
     }
 
-    fn kurven() -> Vec<Kurve<Self>> {
+    fn kurven() -> Vec<KurveUnit<Self>> {
         vec![
             kurve_5100(),
             kurve_5101(),
@@ -89,28 +89,28 @@ Gerade
     5210: L16mm
     5208: L8mm
 */
-pub fn gerade_5106() -> Gerade<Märklin> {
+pub fn gerade_5106() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(180.), "5106")
 }
-pub fn gerade_5107() -> Gerade<Märklin> {
+pub fn gerade_5107() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(90.), "5107")
 }
-pub fn gerade_5129() -> Gerade<Märklin> {
+pub fn gerade_5129() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(70.), "5129")
 }
-pub fn gerade_5108() -> Gerade<Märklin> {
+pub fn gerade_5108() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(45.), "5108")
 }
-pub fn gerade_5109() -> Gerade<Märklin> {
+pub fn gerade_5109() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(33.5), "5109")
 }
-pub fn gerade_5110() -> Gerade<Märklin> {
+pub fn gerade_5110() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(22.5), "5110")
 }
-pub fn gerade_5210() -> Gerade<Märklin> {
+pub fn gerade_5210() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(16.), "5210")
 }
-pub fn gerade_5208() -> Gerade<Märklin> {
+pub fn gerade_5208() -> GeradeUnit<Märklin> {
     Gerade::neu_mit_beschreibung(Länge::neu(8.), "5208")
 }
 
@@ -125,28 +125,28 @@ Kurve
     5201: 15°, R437.4mm
     5205: 5.72°, R437.4mm
 */
-pub fn kurve_5120() -> Kurve<Märklin> {
+pub fn kurve_5120() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_INDUSTRIE, WinkelGradmaß::neu(45.).into(), "5120")
 }
-pub fn kurve_5100() -> Kurve<Märklin> {
+pub fn kurve_5100() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(30.).into(), "5100")
 }
-pub fn kurve_5101() -> Kurve<Märklin> {
+pub fn kurve_5101() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(15.).into(), "5101")
 }
-pub fn kurve_5102() -> Kurve<Märklin> {
+pub fn kurve_5102() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(7.5).into(), "5102")
 }
-pub fn kurve_5200() -> Kurve<Märklin> {
+pub fn kurve_5200() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(30.).into(), "5200")
 }
-pub fn kurve_5206() -> Kurve<Märklin> {
+pub fn kurve_5206() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(24.28).into(), "5206")
 }
-pub fn kurve_5201() -> Kurve<Märklin> {
+pub fn kurve_5201() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(15.).into(), "5201")
 }
-pub fn kurve_5205() -> Kurve<Märklin> {
+pub fn kurve_5205() -> KurveUnit<Märklin> {
     Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(5.72).into(), "5205")
 }
 

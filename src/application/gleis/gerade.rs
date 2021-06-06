@@ -4,27 +4,38 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::alias_save_unit;
 
 use super::anchor;
+use crate::anschluss::{InputAnschluss, InputSave};
+use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Gerade
+#[alias_save_unit(Kontakt<InputSave>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Gerade<Z> {
+pub struct Gerade<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub beschreibung: Option<String>,
+    pub kontakt: Anschluss,
 }
-impl<Z> Gerade<Z> {
+impl<Z> GeradeUnit<Z> {
     pub fn neu(länge: Länge) -> Self {
-        Gerade { zugtyp: PhantomData, länge: länge.als_skalar(), beschreibung: None }
+        GeradeUnit {
+            zugtyp: PhantomData,
+            länge: länge.als_skalar(),
+            beschreibung: None,
+            kontakt: (),
+        }
     }
 
     pub fn neu_mit_beschreibung(länge: Länge, beschreibung: impl Into<String>) -> Self {
-        Gerade {
+        GeradeUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             beschreibung: Some(beschreibung.into()),
+            kontakt: (),
         }
     }
 }
@@ -36,7 +47,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
+impl<Z: Zugtyp, Anschluss> Zeichnen for Gerade<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 

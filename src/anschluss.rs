@@ -276,7 +276,7 @@ pub enum InputSave {
     },
 }
 impl InputAnschluss {
-    pub fn from(&self) -> InputSave {
+    pub fn to_save(&self) -> InputSave {
         match self {
             InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {

@@ -4,24 +4,35 @@ use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use zugkontrolle_derive::alias_save_unit;
 
 use super::anchor;
+use crate::anschluss::{InputAnschluss, InputSave};
+use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Kurve
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
+#[alias_save_unit(Kontakt<InputSave>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kurve<Z> {
+pub struct Kurve<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub radius: Skalar,
     pub winkel: Winkel,
     pub beschreibung: Option<String>,
+    pub kontakt: Anschluss,
 }
-impl<Z> Kurve<Z> {
+impl<Z> KurveUnit<Z> {
     pub fn neu(radius: Radius, winkel: Winkel) -> Self {
-        Kurve { zugtyp: PhantomData, radius: radius.als_skalar(), winkel, beschreibung: None }
+        KurveUnit {
+            zugtyp: PhantomData,
+            radius: radius.als_skalar(),
+            winkel,
+            beschreibung: None,
+            kontakt: (),
+        }
     }
 
     pub fn neu_mit_beschreibung(
@@ -29,11 +40,12 @@ impl<Z> Kurve<Z> {
         winkel: Winkel,
         beschreibung: impl Into<String>,
     ) -> Self {
-        Kurve {
+        KurveUnit {
             zugtyp: PhantomData,
             radius: radius.als_skalar(),
             winkel,
             beschreibung: Some(beschreibung.into()),
+            kontakt: (),
         }
     }
 }
@@ -45,7 +57,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
+impl<Z: Zugtyp, Anschluss> Zeichnen for Kurve<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 

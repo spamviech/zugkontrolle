@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use super::{id::GleisId, GleisIdLock};
-use crate::application::gleis::{gerade::Gerade, kreuzung::*, kurve::Kurve, weiche::*};
+use crate::application::gleis::{gerade::*, kreuzung::*, kurve::*, weiche::*};
 use crate::application::typen::*;
 use crate::steuerung::streckenabschnitt;
 
@@ -15,57 +15,6 @@ pub struct Gleis<T> {
     pub definition: T,
     pub position: Position,
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
-}
-
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Z> {
-    pub(crate) name: String,
-    pub(crate) geraden: Vec<Gleis<Gerade<Z>>>,
-    pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSave<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSave<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
-    /* TODO
-     * streckenabschnitte, geschwindigkeiten
-     * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
-     * pläne, wegstrecken
-     */
-}
-
-fn gleis<T: Clone>((_a, (b, _c)): (&GleisId<T>, &(Gleis<T>, GleisIdLock<T>))) -> Gleis<T> {
-    b.clone()
-}
-impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
-    fn from(maps: &GleiseMaps<Z>) -> Self {
-        macro_rules! hashmaps_to_vecs {
-            ($($map:ident),*; $($save_map:ident),* $(,)?) => {
-                GleiseVecs {
-                    name: Z::NAME.to_string(),
-                    $($map: maps.$map.iter().map(gleis).collect()),*,
-                    $($save_map: maps.$save_map.iter().map(
-                        |(_id, (Gleis {position, definition, streckenabschnitt}, _id_lock))|
-                        Gleis {
-                            position: position.clone(),
-                            definition: definition.to_save(),
-                            streckenabschnitt: streckenabschnitt.clone()
-                        })
-                        .collect()
-                    ),*
-                }
-            };
-        }
-        hashmaps_to_vecs!(
-            geraden,
-            kurven;
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        )
-    }
 }
 
 pub type Map<T> = HashMap<GleisId<T>, (Gleis<T>, GleisIdLock<T>)>;
@@ -131,5 +80,54 @@ impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
 impl<Z> GleiseMap<Z> for Kreuzung<Z> {
     fn get_map_mut(GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         kreuzungen
+    }
+}
+
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+pub(crate) struct GleiseVecs<Z> {
+    pub(crate) name: String,
+    pub(crate) geraden: Vec<Gleis<GeradeSave<Z>>>,
+    pub(crate) kurven: Vec<Gleis<KurveSave<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSave<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSave<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
+    /* pub(crate) streckenabschnitte: streckenabschnitt::Map,
+     * pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z>,
+     * TODO
+     * streckenabschnitte, geschwindigkeiten
+     * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
+     * pläne, wegstrecken
+     */
+}
+
+impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
+    fn from(maps: &GleiseMaps<Z>) -> Self {
+        macro_rules! hashmaps_to_vecs {
+            ($($map:ident),* $(,)?) => {
+                GleiseVecs {
+                    name: Z::NAME.to_string(),
+                    $($map: maps.$map.iter().map(
+                        |(_id, (Gleis {position, definition, streckenabschnitt}, _id_lock))|
+                        Gleis {
+                            position: position.clone(),
+                            definition: definition.to_save(),
+                            streckenabschnitt: streckenabschnitt.clone()
+                        })
+                        .collect()
+                    ),*
+                }
+            };
+        }
+        hashmaps_to_vecs!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        )
     }
 }

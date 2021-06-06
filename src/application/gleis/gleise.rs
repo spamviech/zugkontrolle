@@ -878,30 +878,27 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // TODO Modus?
 
         macro_rules! reserviere_anschlüsse {
-            ($name:ident, $(:: $weiche:ident ::)? $module:ident, $data:ident {$($data_feld:ident),*}) => {
-                let $name: Vec<_> = match $name
+            ($name:ident, $source:ident, $(:: $weiche:ident ::)? $module:ident, $data:ident {$steuerung:ident, $($data_feld:ident),*}) => {
+                // collect to Vec to fail on first error
+                let $name: Vec<_> = match $source
                     .into_iter()
                     .map(
                         |Gleis {
                             definition:
                                 super::$($weiche::)?$module::$data {
-                                    steuerung,
+                                    $steuerung,
                                     $($data_feld),*
                                 },
                             position,
                             streckenabschnitt,
                         }| {
-                            let steuerung_result: Option<Result<_, anschluss::Error>> = steuerung.map(
-                                |steuerung| {
-                                    Ok(crate::steuerung::Weiche {
-                                        anschlüsse: steuerung.anschlüsse.reserviere(anschlüsse)?
-                                    })
-                                },
+                            let steuerung_result: Option<Result<_, anschluss::Error>> = $steuerung.map(
+                                |steuerung| Ok(steuerung.reserviere(anschlüsse)?)
                             );
-                            let steuerung = steuerung_result.transpose()?;
+                            let steuerung_reserviert = steuerung_result.transpose()?;
                             Ok(Gleis {
                                 definition: super::$($weiche::)?$module::$data {
-                                    steuerung,
+                                    $steuerung: steuerung_reserviert,
                                     $($data_feld),*
                                 },
                                 position,
@@ -916,7 +913,21 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 };
             };
         }
-        reserviere_anschlüsse!(weichen, ::weiche::gerade, Weiche {
+        reserviere_anschlüsse!(geraden_reserviert, geraden, gerade, Gerade {
+            kontakt,
+            zugtyp,
+            länge,
+            beschreibung
+        });
+        reserviere_anschlüsse!(kurven_reserviert, kurven, kurve, Kurve {
+            kontakt,
+            zugtyp,
+            radius,
+            winkel,
+            beschreibung
+        });
+        reserviere_anschlüsse!(weichen_reserviert, weichen, ::weiche::gerade, Weiche {
+            steuerung,
             zugtyp,
             länge,
             radius,
@@ -924,32 +935,36 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             orientierung,
             beschreibung
         });
-        reserviere_anschlüsse!(dreiwege_weichen, ::weiche::dreiwege, DreiwegeWeiche {
-            zugtyp,
-            länge,
-            radius,
-            winkel,
-            beschreibung
-        });
-        reserviere_anschlüsse!(kurven_weichen, ::weiche::kurve, KurvenWeiche {
-            zugtyp,
-            länge,
-            radius,
-            winkel,
-            orientierung,
-            beschreibung
-        });
-        reserviere_anschlüsse!(s_kurven_weichen, ::weiche::s_kurve, SKurvenWeiche {
-            zugtyp,
-            länge,
-            radius,
-            winkel,
-            radius_reverse,
-            winkel_reverse,
-            orientierung,
-            beschreibung
-        });
-        reserviere_anschlüsse!(kreuzungen, kreuzung, Kreuzung {
+        reserviere_anschlüsse!(
+            dreiwege_weichen_reserviert,
+            dreiwege_weichen,
+            ::weiche::dreiwege,
+            DreiwegeWeiche { steuerung, zugtyp, länge, radius, winkel, beschreibung }
+        );
+        reserviere_anschlüsse!(
+            kurven_weichen_reserviert,
+            kurven_weichen,
+            ::weiche::kurve,
+            KurvenWeiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung }
+        );
+        reserviere_anschlüsse!(
+            s_kurven_weichen_reserviert,
+            s_kurven_weichen,
+            ::weiche::s_kurve,
+            SKurvenWeiche {
+                steuerung,
+                zugtyp,
+                länge,
+                radius,
+                winkel,
+                radius_reverse,
+                winkel_reverse,
+                orientierung,
+                beschreibung
+            }
+        );
+        reserviere_anschlüsse!(kreuzungen_reserviert, kreuzungen, kreuzung, Kreuzung {
+            steuerung,
             zugtyp,
             länge,
             radius,
@@ -967,13 +982,13 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             }
         }
         add_gleise!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
+            geraden_reserviert,
+            kurven_reserviert,
+            weichen_reserviert,
+            dreiwege_weichen_reserviert,
+            kurven_weichen_reserviert,
+            s_kurven_weichen_reserviert,
+            kreuzungen_reserviert,
         );
 
         Ok(())
