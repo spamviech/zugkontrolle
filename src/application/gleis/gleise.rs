@@ -1,6 +1,7 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
 use std::fmt::Debug;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
@@ -56,7 +57,7 @@ impl<Z> Grabbed<Z> {
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
-    Bauen { grabbed: Option<Grabbed<Z>> },
+    Bauen { grabbed: Option<Grabbed<Z>>, last: Instant },
     // TODO Funktionalität hinzufügen
     Fahren,
 }
@@ -86,7 +87,7 @@ impl<Z> Gleise<Z> {
             next_id: 0,
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
-            modus: ModusDaten::Bauen { grabbed: None },
+            modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
         }
     }
 
@@ -152,7 +153,7 @@ impl<Z> Gleise<Z> {
     /// Wechsel den aktuellen Modus zu /modus/.
     pub fn moduswechsel(&mut self, modus: Modus) {
         self.modus = match modus {
-            Modus::Bauen => ModusDaten::Bauen { grabbed: None },
+            Modus::Bauen => ModusDaten::Bauen { grabbed: None, last: Instant::now() },
             Modus::Fahren => ModusDaten::Fahren,
         };
     }
@@ -420,6 +421,8 @@ fn get_canvas_position(
     })
 }
 
+const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
+
 fn grab_gleis_an_position<Z: Zugtyp>(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
@@ -439,7 +442,10 @@ fn grab_gleis_an_position<Z: Zugtyp>(
 ) -> iced::canvas::event::Status {
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            if let ModusDaten::Bauen { grabbed, .. } = modus {
+            if let ModusDaten::Bauen { grabbed, last } = modus {
+                let now = Instant::now();
+                let diff = now - *last;
+                *last = now;
                 Grabbed::find_clicked(grabbed, geraden, canvas_pos);
                 Grabbed::find_clicked(grabbed, kurven, canvas_pos);
                 Grabbed::find_clicked(grabbed, weichen, canvas_pos);
@@ -447,6 +453,12 @@ fn grab_gleis_an_position<Z: Zugtyp>(
                 Grabbed::find_clicked(grabbed, kurven_weichen, canvas_pos);
                 Grabbed::find_clicked(grabbed, s_kurven_weichen, canvas_pos);
                 Grabbed::find_clicked(grabbed, kreuzungen, canvas_pos);
+                if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                    if diff < DOUBLE_CLICK_TIME {
+                        // TODO Erzeuge Message um Steuerung/Kontakt festzulegen
+                        println!("Doppelklick auf {:?}", gleis_id)
+                    }
+                }
             }
         }
     }
