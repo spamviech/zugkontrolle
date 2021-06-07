@@ -87,7 +87,6 @@ pub fn kurve() -> KurveUnit<Lego> {
 Eine leichte S-Kurve: 6.5 Lücken rechts, dann 2.5 Lücken links; insgesamt 22.5°
 Normale Kurve (22.5°) hat 4 Lücken
 Nach 1 Gerade/Kurve sind Haupt- und Parallelgleis auf der selben Höhe
-// FIXME aktueller Wert stimmt nicht ganz!
 const ANGLE_DIFFERENCE: Winkel = ANGLE_OUTWARDS - ANGLE_INWARDS;
 ANGLE_OUTWARDS = (1.5 * LENGTH / RADIUS).asin();
 ANGLE_INWARDS = ANGLE_OUTWARDS - ANGLE;
