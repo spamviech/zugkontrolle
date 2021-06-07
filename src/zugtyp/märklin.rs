@@ -1,12 +1,7 @@
 //! This modules defines all Märklin rails I have access to.
 use serde::{Deserialize, Serialize};
 
-use crate::application::gleis::{
-    gerade::*,
-    kreuzung::{self, *},
-    kurve::*,
-    weiche::{self, *},
-};
+use crate::application::gleis::*;
 use crate::application::typen::*;
 use crate::steuerung::geschwindigkeit::{Mittelleiter, MittelleiterSave};
 

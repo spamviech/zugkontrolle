@@ -4,15 +4,7 @@ use std::f32::consts::PI;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::{
-    gleis::{
-        gerade::*,
-        kreuzung::{self, *},
-        kurve::*,
-        weiche::{self, *},
-    },
-    typen::*,
-};
+use crate::application::{gleis::*, typen::*};
 use crate::steuerung::geschwindigkeit::{Zweileiter, ZweileiterSave};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

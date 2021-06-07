@@ -15,11 +15,7 @@ mod touch_canvas;
 
 pub mod gleis;
 use gleis::{
-    gerade::*,
     gleise::{id::with_any_id_lock, *},
-    kreuzung::*,
-    kurve::*,
-    weiche::*,
     *,
 };
 

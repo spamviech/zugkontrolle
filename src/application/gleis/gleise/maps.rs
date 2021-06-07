@@ -5,13 +5,14 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use super::{id::GleisId, GleisIdLock};
-use crate::anschluss::{OutputSave, ToSave};
-use crate::application::gleis::{gerade::*, kreuzung::*, kurve::*, weiche::*};
-use crate::application::typen::*;
-use crate::steuerung::{
-    geschwindigkeit::{self, Geschwindigkeit},
-    streckenabschnitt::{self, Streckenabschnitt},
+use super::id::{GleisId, GleisIdLock};
+use crate::{
+    anschluss::{OutputSave, ToSave},
+    application::{gleis::*, typen::*},
+    steuerung::{
+        geschwindigkeit::{self, Geschwindigkeit},
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
