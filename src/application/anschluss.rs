@@ -159,8 +159,8 @@ pub enum OutputMessage {
     Polarität(Polarität),
 }
 
-pub struct Auswahl<'a, T, I, M, R: tabs::Renderer> {
-    tabs: Tabs<'a, InternalMessage<I>, R>,
+pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
+    row: Row<'a, InternalMessage<I>, R>,
     active_tab: &'a mut usize,
     pin: &'a mut u8,
     a0: &'a mut Level,
@@ -192,6 +192,7 @@ where
         let interrupt_pins = status.modus.interrupt_pins.clone();
         Auswahl::neu_mit_interrupt_view(
             status,
+            ZeigeModus::Pcf8574,
             |Input { number_input_state, pin, interrupt_pins }, a0, a1, a2, variante| {
                 (
                     interrupt_pins.get(&(a0, a1, a2, variante)).map_or(
@@ -237,6 +238,7 @@ where
     pub fn neu_output(status: &'a mut Status<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(
             status,
+            ZeigeModus::Beide,
             |Output { polarität }, _a0, _a1, _a2, _variante| {
                 (
                     Column::new()
@@ -270,6 +272,29 @@ where
     }
 }
 
+enum ZeigeModus {
+    Beide,
+    Pcf8574,
+}
+
+fn make_radios<'a, T, M, R>(
+    current: &T,
+    fst: T,
+    fst_s: &str,
+    snd: T,
+    snd_s: &str,
+    to_message: impl Fn(T) -> M + Clone + 'static,
+) -> Column<'a, M, R>
+where
+    T: Copy + Eq,
+    M: 'a + Clone,
+    R: 'a + column::Renderer + row::Renderer + text::Renderer + radio::Renderer,
+{
+    Column::new()
+        .push(Radio::new(fst, fst_s, Some(current.clone()), to_message.clone()).spacing(0))
+        .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
+}
+
 impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
 where
     R: 'a
@@ -297,7 +322,8 @@ where
             port,
             modus,
         }: &'a mut Status<IO>,
-        view_interrupt: impl FnOnce(
+        zeige_modus: ZeigeModus,
+        view_modus: impl FnOnce(
             &'a mut IO,
             Level,
             Level,
@@ -308,56 +334,60 @@ where
         make_pin: &'a impl Fn(u8, &T) -> M,
         make_port: impl 'static + Fn(Level, Level, Level, Variante, u3, &T) -> M,
     ) -> Self {
-        let (view_interrupt, modus) = view_interrupt(modus, *a0, *a1, *a2, *variante);
-        let tabs = vec![
-            (
-                TabLabel::Text("Pin".to_string()),
-                NumberInput::new(pin_state, *pin, 32, InternalMessage::Pin).into(),
-            ),
-            (TabLabel::Text("Pcf8574-Port".to_string()), {
-                Row::new()
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a0), InternalMessage::A0))
-                            .push(Radio::new(Level::Low, "L", Some(*a0), InternalMessage::A0)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a1), InternalMessage::A1))
-                            .push(Radio::new(Level::Low, "L", Some(*a1), InternalMessage::A1)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(Level::High, "H", Some(*a2), InternalMessage::A2))
-                            .push(Radio::new(Level::Low, "L", Some(*a2), InternalMessage::A2)),
-                    )
-                    .push(
-                        Column::new()
-                            .push(Radio::new(
-                                Variante::Normal,
-                                "Normal",
-                                Some(*variante),
-                                InternalMessage::Variante,
-                            ))
-                            .push(Radio::new(
-                                Variante::A,
-                                "A",
-                                Some(*variante),
-                                InternalMessage::Variante,
-                            )),
-                    )
-                    .push(NumberInput::new(port_state, *port, 8, InternalMessage::Port))
-                    .push(view_interrupt.map(InternalMessage::Modus))
-                    .into()
-            }),
-        ];
-        let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
+        let (view_modus, modus) = view_modus(modus, *a0, *a1, *a2, *variante);
+        let view_modus_mapped = view_modus.map(InternalMessage::Modus);
+        let high_low_column = |level: &Level, to_message: fn(Level) -> InternalMessage<I>| {
+            make_radios(level, Level::High, "H", Level::Low, "L", to_message)
+        };
+        let pcf8574_row = Row::new()
+            .push(high_low_column(a0, InternalMessage::A0))
+            .push(high_low_column(a1, InternalMessage::A1))
+            .push(high_low_column(a2, InternalMessage::A2))
+            .push(make_radios(
+                variante,
+                Variante::Normal,
+                "Normal",
+                Variante::A,
+                "A",
+                InternalMessage::Variante,
+            ))
+            .push(NumberInput::new(port_state, *port, 8, InternalMessage::Port));
+        // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
+        let width = Length::Units(350);
+        let row = match zeige_modus {
+            ZeigeModus::Pcf8574 => {
+                let tabs = vec![
+                    (
+                        TabLabel::Text("Pin".to_string()),
+                        NumberInput::new(pin_state, *pin, 32, InternalMessage::Pin).into(),
+                    ),
+                    (TabLabel::Text("Pcf8574-Port".to_string()), {
+                        pcf8574_row.push(view_modus_mapped).into()
+                    }),
+                ];
+                let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
                     .tab_bar_style(style::TabBar)
                     .height(Length::Shrink)
-                    // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
-                    .width(Length::Units(500));
+                    .width(width);
+                Row::new().push(tabs)
+            },
+            ZeigeModus::Beide => {
+                let tabs = vec![
+                    (
+                        TabLabel::Text("Pin".to_string()),
+                        NumberInput::new(pin_state, *pin, 32, InternalMessage::Pin).into(),
+                    ),
+                    (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
+                ];
+                let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
+                    .tab_bar_style(style::TabBar)
+                    .height(Length::Shrink)
+                    .width(width);
+                Row::new().push(tabs).push(view_modus_mapped)
+            },
+        };
         Auswahl {
-            tabs,
+            row,
             active_tab,
             pin,
             a0,
@@ -409,7 +439,7 @@ where
     T: Copy,
     R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
 {
-    reexport_no_event_methods! {Tabs<'a, InternalMessage<I>, R>, tabs, InternalMessage<I>, R}
+    reexport_no_event_methods! {Row<'a, InternalMessage<I>, R>, row, InternalMessage<I>, R}
 
     fn on_event(
         &mut self,
@@ -421,7 +451,7 @@ where
         messages: &mut Vec<M>,
     ) -> event::Status {
         let mut internal_messages = Vec::new();
-        let mut status = self.tabs.on_event(
+        let mut status = self.row.on_event(
             event,
             layout,
             cursor_position,

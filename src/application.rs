@@ -68,7 +68,7 @@ impl_any_gleis_from! {KreuzungUnit}
 
 impl Modus {
     fn make_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
-        iced::Radio::new(self, self, Some(aktueller_modus), identity)
+        iced::Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
 
