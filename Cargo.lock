@@ -76,9 +76,9 @@ checksum = "000444226fcff248f2bc4c7625be32c63caccfecc2723a2b9f78a7487a49c407"
 
 [[package]]
 name = "approx"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
+checksum = "072df7202e63b127ab55acfe16ce97013d5b97bf160489336d3f1840fd78e99e"
 dependencies = [
  "num-traits",
 ]
@@ -1336,9 +1336,9 @@ dependencies = [
 
 [[package]]
 name = "glyph_brush_layout"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10bc06d530bf20c1902f1b02799ab7372ff43f6119770c49b0bc3f21bd148820"
+checksum = "15cf18cf985bd942f05e14552b63c9d08f7d0ed1ec79a977eb9747c9e065f497"
 dependencies = [
  "ab_glyph",
  "approx",
@@ -1463,7 +1463,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced_aw?rev=ef857dd56e8a68fbba9dfd8496455829d91d682c#ef857dd56e8a68fbba9dfd8496455829d91d682c"
+source = "git+https://github.com/iced-rs/iced_aw?rev=3dfce43396af457aaee835dbe281663a41a261ab#3dfce43396af457aaee835dbe281663a41a261ab"
 dependencies = [
  "dodrio",
  "iced_graphics",
