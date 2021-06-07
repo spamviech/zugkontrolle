@@ -171,13 +171,13 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Software(pin) => match config.time {
                 Time::Period { period, mut pulse_width } => {
-                    if config.polarity == Polarität::Inverse {
+                    if config.polarity == Polarität::Invertiert {
                         pulse_width = period - pulse_width;
                     }
                     Ok(pin.set_pwm(period, pulse_width)?)
                 },
                 Time::Frequency { frequency, mut duty_cycle } => {
-                    if config.polarity == Polarität::Inverse {
+                    if config.polarity == Polarität::Invertiert {
                         duty_cycle = 1. - duty_cycle;
                     }
                     Ok(pin.set_pwm_frequency(frequency, duty_cycle)?)

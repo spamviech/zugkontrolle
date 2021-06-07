@@ -1,6 +1,5 @@
 //! Level eines Anschluss
 
-#[cfg(not(raspi))]
 use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
@@ -25,8 +24,18 @@ impl Display for Polarität {
 impl From<Polarität> for rppal::pwm::Polarity {
     fn from(polarität: Polarität) -> Self {
         match polarität {
-            Polarität::Normal => Polarity::Normal,
-            Polarität::Invertiert => Polarity::Inverse,
+            Polarität::Normal => rppal::pwm::Polarity::Normal,
+            Polarität::Invertiert => rppal::pwm::Polarity::Inverse,
+        }
+    }
+}
+
+#[cfg(raspi)]
+impl From<rppal::pwm::Polarity> for Polarität {
+    fn from(polarity: rppal::pwm::Polarity) -> Self {
+        match polarity {
+            rppal::pwm::Polarity::Normal => Polarität::Normal,
+            rppal::pwm::Polarity::Inverse => Polarität::Invertiert,
         }
     }
 }

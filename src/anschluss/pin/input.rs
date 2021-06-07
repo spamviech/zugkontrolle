@@ -62,11 +62,11 @@ impl Pin {
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
-        callback: impl FnMut(Level) + Send + 'static,
+        mut callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                Ok(self.0.set_async_interrupt(trigger, callback)?)
+                Ok(self.0.set_async_interrupt(trigger.into(), move |level| callback(level.into()))?)
             } else {
                 debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
                 Err(Error::KeinRaspberryPi)

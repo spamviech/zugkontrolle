@@ -1,6 +1,5 @@
 //! Trigger für auslösen eines Interrupt-Events
 
-#[cfg(not(raspi))]
 use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};

@@ -132,10 +132,10 @@ impl Pin {
             if #[cfg(raspi)]
             {
                 if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok()) {
-                    let config = pwm.polarity().and_then(|polarity|
+                    let config = pwm.polarity().and_then(|polarität|
                                     pwm.period().and_then(|period|
                                     pwm.pulse_width().map(|pulse_width|
-                                    pwm::Config {time: pwm::Time::Period {period, pulse_width}, polarity}))
+                                    pwm::Config {time: pwm::Time::Period {period, pulse_width}, polarity: polarität.into()}))
                                  ).ok();
                     pwm::Pin {pin: Pwm::Hardware(pwm, self.0), config }
                 } else {

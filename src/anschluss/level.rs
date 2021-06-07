@@ -20,7 +20,7 @@ impl From<gpio::Level> for Level {
 }
 #[cfg(raspi)]
 impl From<Level> for gpio::Level {
-    fn from(level: gpio::Level) -> Self {
+    fn from(level: Level) -> Self {
         match level {
             Level::Low => gpio::Level::Low,
             Level::High => gpio::Level::High,
