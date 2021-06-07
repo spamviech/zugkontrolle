@@ -62,7 +62,7 @@ impl Pin {
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
-        mut callback: impl FnMut(Level) + Send + 'static,
+        #[cfg_attr(not(raspi), allow(unused_mut))] mut callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
