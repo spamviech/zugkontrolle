@@ -4,36 +4,29 @@ use std::collections::BTreeMap;
 use std::convert::identity;
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
-use version::version;
-
-use crate::anschluss::anschlüsse::Anschlüsse;
-use crate::farbe::Farbe;
-use crate::steuerung::{geschwindigkeit, streckenabschnitt::Streckenabschnitt};
-
-mod touch_canvas;
-
-pub mod gleis;
 use gleis::{
     gleise::{id::with_any_id_lock, *},
     *,
 };
+use serde::{Deserialize, Serialize};
+use version::version;
 
-pub mod typen;
-pub use typen::*;
-
-pub mod style;
-use style::*;
-
-pub mod streckenabschnitt;
+use self::streckenabschnitt::Streckenabschnitt;
+use self::style::*;
+pub use self::typen::*;
+use crate::anschluss::anschlüsse::Anschlüsse;
+use crate::farbe::Farbe;
 
 pub mod anschluss;
-
-pub(crate) mod macros;
-
 pub mod farbwahl;
-
+pub mod geschwindigkeit;
+pub mod gleis;
 pub mod icon;
+pub(crate) mod macros;
+pub mod streckenabschnitt;
+pub mod style;
+mod touch_canvas;
+pub mod typen;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {

@@ -37,8 +37,7 @@ use iced_native::{
 use super::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods};
 use crate::anschluss::polarity::Polarität;
 use crate::farbe::Farbe;
-pub use crate::steuerung::streckenabschnitt::Name;
-use crate::steuerung::Streckenabschnitt;
+pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
 
 pub mod style;
 
