@@ -31,7 +31,8 @@ features = ["derive"]
 
 [dependencies.iced]
 version = "0.3.0"
-features = ["glow","glow_canvas"]
+default-features = false
+features = ["glow", "glow_canvas"]
 
 [dependencies.iced_native]
 version = "0.4.0"
