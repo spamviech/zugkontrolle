@@ -149,9 +149,66 @@ pub enum MessageZweileiter {
     Geschwindigkeit(u8),
     Fahrtrichtung(Fahrtrichtung),
 }
-impl<'t, R> Anzeige<'t, Zweileiter, Fahrtrichtung, MessageZweileiter, R> {
-    pub fn neu() -> Self {
-        todo!()
+impl<'t, R> Anzeige<'t, Zweileiter, Fahrtrichtung, MessageZweileiter, R>
+where
+    R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
+{
+    pub fn neu(
+        name: &'t Name,
+        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
+        status: &'t mut AnzeigeStatus<Fahrtrichtung>,
+    ) -> Self {
+        let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
+            status;
+        // TODO Anschluss-Anzeige (Expander über Overlay?)
+        let mut row = Row::new().push(Text::new(&name.0));
+        row = match &geschwindigkeit.leiter {
+            Zweileiter::Pwm { geschwindigkeit: _, polarität: _, fahrtrichtung: _ } => {
+                row.push(Slider::new(
+                    pwm_slider_state,
+                    0 ..= u8::MAX,
+                    *aktuelle_geschwindigkeit,
+                    MessageZweileiter::Geschwindigkeit,
+                ))
+            },
+            Zweileiter::KonstanteSpannung {
+                geschwindigkeit,
+                letzter_wert: _,
+                fahrtrichtung: _,
+            } => row.push(Column::with_children(
+                iter::once(())
+                    .chain(geschwindigkeit.iter().map(|_| ()))
+                    .enumerate()
+                    .map(|(i, ())| {
+                        let i_u8 = i as u8;
+                        Radio::new(
+                            i_u8,
+                            i_u8.to_string(),
+                            Some(*aktuelle_geschwindigkeit),
+                            MessageZweileiter::Geschwindigkeit,
+                        )
+                        .into()
+                    })
+                    .collect(),
+            )),
+        };
+        let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung| {
+            Radio::new(
+                fahrtrichtung,
+                fahrtrichtung.to_string(),
+                Some(*fahrtrichtung_state),
+                MessageZweileiter::Fahrtrichtung,
+            )
+        };
+        row = row
+            .push(fahrtrichtung_radio(Fahrtrichtung::Vorwärts))
+            .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts));
+        Anzeige {
+            geschwindigkeit,
+            aktuelle_geschwindigkeit,
+            aktuelle_fahrtrichtung: fahrtrichtung_state,
+            row,
+        }
     }
 }
 

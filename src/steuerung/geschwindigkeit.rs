@@ -1,6 +1,7 @@
 //! Einstellen der Geschwindigkeit.
 
 use std::collections::BTreeMap;
+use std::fmt::{self, Display};
 use std::usize;
 use std::{thread::sleep, time::Duration};
 
@@ -286,6 +287,14 @@ impl From<Fahrtrichtung> for Fließend {
             Fahrtrichtung::Vorwärts => Fließend::Fließend,
             Fahrtrichtung::Rückwärts => Fließend::Gesperrt,
         }
+    }
+}
+impl Display for Fahrtrichtung {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Fahrtrichtung::Vorwärts => "Vorwärts",
+            Fahrtrichtung::Rückwärts => "Rückwärts",
+        })
     }
 }
 
