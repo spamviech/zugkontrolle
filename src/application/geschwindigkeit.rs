@@ -3,6 +3,8 @@
 // TODO for now
 #![allow(unused_imports)]
 
+use std::iter;
+
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
     button,
@@ -28,6 +30,7 @@ use iced_native::{
     Layout,
     Length,
     Point,
+    Radio,
     Renderer,
     Row,
     Scrollable,
@@ -47,38 +50,101 @@ pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Map, Name};
 
 #[derive(Debug)]
 pub struct AnzeigeStatus<Umdrehen> {
-    // aktueller Wert konstante Spannung in Geschwindigkeit gespeichert
-    pwm_slider: slider::State,
-    fahrtrichtung: Umdrehen,
+    aktuelle_geschwindigkeit: u8,
+    pwm_slider_state: slider::State,
+    fahrtrichtung_state: Umdrehen,
 }
 
 impl Mittelleiter {
-    pub fn anzeige_status_neu() -> AnzeigeStatus<button::State> {
-        AnzeigeStatus { pwm_slider: slider::State::new(), fahrtrichtung: button::State::new() }
+    pub fn anzeige_status_neu() -> AnzeigeStatus<(button::State, ())> {
+        AnzeigeStatus {
+            aktuelle_geschwindigkeit: 0,
+            pwm_slider_state: slider::State::new(),
+            fahrtrichtung_state: (button::State::new(), ()),
+        }
     }
 }
 
 impl Zweileiter {
     pub fn anzeige_status_neu() -> AnzeigeStatus<Fahrtrichtung> {
-        AnzeigeStatus { pwm_slider: slider::State::new(), fahrtrichtung: Fahrtrichtung::Vorwärts }
+        AnzeigeStatus {
+            aktuelle_geschwindigkeit: 0,
+            pwm_slider_state: slider::State::new(),
+            fahrtrichtung_state: Fahrtrichtung::Vorwärts,
+        }
     }
 }
 
-pub struct Anzeige<'t, Leiter, Umdrehen, M, R> {
+pub struct Anzeige<'t, Leiter, FahrtrichtungMarker, M, R> {
     geschwindigkeit: &'t Geschwindigkeit<Leiter>,
-    status: &'t mut AnzeigeStatus<Umdrehen>,
+    aktuelle_geschwindigkeit: &'t mut u8,
+    aktuelle_fahrtrichtung: &'t mut FahrtrichtungMarker,
     row: Row<'t, M, R>,
 }
 
+#[derive(Debug, Clone)]
 pub enum MessageMittelleiter {
     Geschwindigkeit(u8),
     Umdrehen,
 }
-impl<'t, R> Anzeige<'t, Mittelleiter, button::State, MessageMittelleiter, R> {
-    pub fn neu() -> Self {
-        todo!()
+impl<'t, R> Anzeige<'t, Mittelleiter, (), MessageMittelleiter, R>
+where
+    R: 't
+        + row::Renderer
+        + column::Renderer
+        + text::Renderer
+        + button::Renderer
+        + slider::Renderer
+        + radio::Renderer,
+{
+    pub fn neu(
+        name: &'t Name,
+        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
+        status: &'t mut AnzeigeStatus<(button::State, ())>,
+    ) -> Self {
+        let AnzeigeStatus {
+            aktuelle_geschwindigkeit,
+            pwm_slider_state,
+            fahrtrichtung_state: (umdrehen_state, unit),
+        } = status;
+        // TODO Anschluss-Anzeige (Expander über Overlay?)
+        let mut row = match &geschwindigkeit.leiter {
+            Mittelleiter::Pwm { pin: _, polarität: _ } => {
+                Row::new().push(Text::new(&name.0)).push(Slider::new(
+                    pwm_slider_state,
+                    0 ..= u8::MAX,
+                    *aktuelle_geschwindigkeit,
+                    MessageMittelleiter::Geschwindigkeit,
+                ))
+            },
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen: _ } => {
+                Row::new().push(Column::with_children(
+                    iter::once(())
+                        .chain(geschwindigkeit.iter().map(|_| ()))
+                        .enumerate()
+                        .map(|(i, ())| {
+                            let i_u8 = i as u8;
+                            Radio::new(
+                                i_u8,
+                                i_u8.to_string(),
+                                Some(*aktuelle_geschwindigkeit),
+                                MessageMittelleiter::Geschwindigkeit,
+                            )
+                            .into()
+                        })
+                        .collect(),
+                ))
+            },
+        };
+        row = row.push(
+            Button::new(umdrehen_state, Text::new("Umdrehen"))
+                .on_press(MessageMittelleiter::Umdrehen),
+        );
+        Anzeige { geschwindigkeit, aktuelle_geschwindigkeit, aktuelle_fahrtrichtung: unit, row }
     }
 }
+
+#[derive(Debug, Clone)]
 pub enum MessageZweileiter {
     Geschwindigkeit(u8),
     Fahrtrichtung(Fahrtrichtung),
