@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use self::id::{with_any_id, with_any_id_and_lock};
 use super::anchor;
 use crate::anschluss::{self, Anschlüsse, Reserviere};
-use crate::application::typen::*;
+use crate::application::{geschwindigkeit::LeiterAnzeige, typen::*};
 use crate::farbe::Farbe;
 use crate::lookup::Lookup;
 use crate::steuerung::{geschwindigkeit, streckenabschnitt, Streckenabschnitt};
@@ -850,13 +850,14 @@ impl<Z: Zugtyp> Gleise<Z> {
 impl<Z> Gleise<Z>
 where
     Z: Zugtyp + Serialize,
+    Z::Leiter: LeiterAnzeige,
     Z::LeiterSave: Serialize + for<'t> Deserialize<'t>,
 {
     #[must_use]
     pub fn speichern(
         &self,
         pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: &geschwindigkeit::Map<Z::Leiter>,
+        geschwindigkeiten: geschwindigkeit::Map<Z::LeiterSave>,
     ) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();
@@ -866,7 +867,11 @@ where
     }
 }
 
-impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
+    Z::Leiter: LeiterAnzeige,
+{
     #[must_use]
     pub fn laden(
         &mut self,

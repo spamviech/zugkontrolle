@@ -3,7 +3,7 @@
 // TODO for now
 #![allow(unused_imports)]
 
-use std::iter;
+use std::{collections::BTreeMap, iter};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
@@ -45,34 +45,148 @@ use super::{anschluss, macros::reexport_no_event_methods};
 use crate::anschluss::polarity::Polarität;
 use crate::farbe::Farbe;
 use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
-pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Map, Name};
+pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 
-// TODO Map-Typ-alias mit AnzeigeStatus?
+pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
 #[derive(Debug)]
-pub struct AnzeigeStatus<Umdrehen> {
+pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
     aktuelle_geschwindigkeit: u8,
     pwm_slider_state: slider::State,
-    fahrtrichtung_state: Umdrehen,
+    fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-impl Mittelleiter {
-    pub fn anzeige_status_neu() -> AnzeigeStatus<button::State> {
+pub trait LeiterAnzeige: Sized {
+    type Fahrtrichtung;
+    type Message;
+
+    fn anzeige_status_neu() -> AnzeigeStatus<Self>;
+
+    fn anzeige_neu<'t, R>(
+        name: &'t Name,
+        geschwindigkeit: &'t Geschwindigkeit<Self>,
+        status: &'t mut AnzeigeStatus<Self>,
+    ) -> Anzeige<'t, Self::Message, R>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer;
+}
+
+#[derive(Debug, Clone)]
+pub enum MessageMittelleiter {
+    Geschwindigkeit(u8),
+    Umdrehen,
+}
+
+impl LeiterAnzeige for Mittelleiter {
+    type Fahrtrichtung = button::State;
+    type Message = MessageMittelleiter;
+
+    fn anzeige_status_neu() -> AnzeigeStatus<Self> {
         AnzeigeStatus {
             aktuelle_geschwindigkeit: 0,
             pwm_slider_state: slider::State::new(),
             fahrtrichtung_state: button::State::new(),
         }
     }
+
+    fn anzeige_neu<'t, R>(
+        name: &'t Name,
+        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
+        status: &'t mut AnzeigeStatus<Mittelleiter>,
+    ) -> Anzeige<'t, Self::Message, R>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer,
+    {
+        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Mittelleiter>| match leiter {
+            Mittelleiter::Pwm { .. } => None,
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
+        };
+        let zeige_fahrtrichtung = |button_state: &'t mut button::State| {
+            Button::new(button_state, Text::new("Umdrehen"))
+                .on_press(MessageMittelleiter::Umdrehen)
+                .into()
+        };
+        Anzeige::neu_mit_leiter(
+            name,
+            geschwindigkeit,
+            status,
+            ks_iter,
+            MessageMittelleiter::Geschwindigkeit,
+            zeige_fahrtrichtung,
+        )
+    }
 }
 
-impl Zweileiter {
-    pub fn anzeige_status_neu() -> AnzeigeStatus<Fahrtrichtung> {
+#[derive(Debug, Clone)]
+pub enum MessageZweileiter {
+    Geschwindigkeit(u8),
+    Fahrtrichtung(Fahrtrichtung),
+}
+
+impl LeiterAnzeige for Zweileiter {
+    type Fahrtrichtung = Fahrtrichtung;
+    type Message = MessageZweileiter;
+
+    fn anzeige_status_neu() -> AnzeigeStatus<Self> {
         AnzeigeStatus {
             aktuelle_geschwindigkeit: 0,
             pwm_slider_state: slider::State::new(),
             fahrtrichtung_state: Fahrtrichtung::Vorwärts,
         }
+    }
+
+    fn anzeige_neu<'t, R>(
+        name: &'t Name,
+        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
+        status: &'t mut AnzeigeStatus<Zweileiter>,
+    ) -> Anzeige<'t, Self::Message, R>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer,
+    {
+        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Zweileiter>| match leiter {
+            Zweileiter::Pwm { .. } => None,
+            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
+        };
+        let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
+            Radio::new(
+                fahrtrichtung,
+                fahrtrichtung.to_string(),
+                Some(*aktuell),
+                MessageZweileiter::Fahrtrichtung,
+            )
+        };
+        let zeige_fahrtrichtung = |fahrtrichtung: &'t mut Fahrtrichtung| {
+            Row::new()
+                .push(fahrtrichtung_radio(Fahrtrichtung::Vorwärts, fahrtrichtung))
+                .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, fahrtrichtung))
+                .into()
+        };
+        Anzeige::neu_mit_leiter(
+            name,
+            geschwindigkeit,
+            status,
+            ks_iter,
+            MessageZweileiter::Geschwindigkeit,
+            zeige_fahrtrichtung,
+        )
     }
 }
 
@@ -84,13 +198,13 @@ where
     M: 'static + Clone,
     R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
 {
-    pub fn neu_mit_leiter<Leiter, S, Iter: Iterator>(
+    pub fn neu_mit_leiter<Leiter: LeiterAnzeige, Iter: Iterator>(
         name: &'t Name,
         geschwindigkeit: &'t Geschwindigkeit<Leiter>,
-        status: &'t mut AnzeigeStatus<S>,
+        status: &'t mut AnzeigeStatus<Leiter>,
         ks_iter: impl FnOnce(&'t Geschwindigkeit<Leiter>) -> Option<Iter>,
         geschwindigkeits_nachricht: impl Fn(u8) -> M + Clone + 'static,
-        zeige_fahrtrichtung: impl FnOnce(&'t mut S) -> Element<'t, M, R>,
+        zeige_fahrtrichtung: impl FnOnce(&'t mut Leiter::Fahrtrichtung) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
     ) -> Self {
         let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
@@ -124,89 +238,6 @@ where
         };
         row = row.push(zeige_fahrtrichtung(fahrtrichtung_state));
         Anzeige { row }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum MessageMittelleiter {
-    Geschwindigkeit(u8),
-    Umdrehen,
-}
-impl<'t, R> Anzeige<'t, MessageMittelleiter, R>
-where
-    R: 't
-        + row::Renderer
-        + column::Renderer
-        + text::Renderer
-        + button::Renderer
-        + slider::Renderer
-        + radio::Renderer,
-{
-    pub fn neu(
-        name: &'t Name,
-        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
-        status: &'t mut AnzeigeStatus<button::State>,
-    ) -> Self {
-        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Mittelleiter>| match leiter {
-            Mittelleiter::Pwm { .. } => None,
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
-        };
-        let zeige_fahrtrichtung = |button_state: &'t mut button::State| {
-            Button::new(button_state, Text::new("Umdrehen"))
-                .on_press(MessageMittelleiter::Umdrehen)
-                .into()
-        };
-        Anzeige::neu_mit_leiter(
-            name,
-            geschwindigkeit,
-            status,
-            ks_iter,
-            MessageMittelleiter::Geschwindigkeit,
-            zeige_fahrtrichtung,
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum MessageZweileiter {
-    Geschwindigkeit(u8),
-    Fahrtrichtung(Fahrtrichtung),
-}
-impl<'t, R> Anzeige<'t, MessageZweileiter, R>
-where
-    R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
-{
-    pub fn neu(
-        name: &'t Name,
-        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
-        status: &'t mut AnzeigeStatus<Fahrtrichtung>,
-    ) -> Self {
-        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Zweileiter>| match leiter {
-            Zweileiter::Pwm { .. } => None,
-            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
-        };
-        let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
-            Radio::new(
-                fahrtrichtung,
-                fahrtrichtung.to_string(),
-                Some(*aktuell),
-                MessageZweileiter::Fahrtrichtung,
-            )
-        };
-        let zeige_fahrtrichtung = |fahrtrichtung: &'t mut Fahrtrichtung| {
-            Row::new()
-                .push(fahrtrichtung_radio(Fahrtrichtung::Vorwärts, fahrtrichtung))
-                .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, fahrtrichtung))
-                .into()
-        };
-        Anzeige::neu_mit_leiter(
-            name,
-            geschwindigkeit,
-            status,
-            ks_iter,
-            MessageZweileiter::Geschwindigkeit,
-            zeige_fahrtrichtung,
-        )
     }
 }
 

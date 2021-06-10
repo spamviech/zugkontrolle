@@ -11,10 +11,11 @@ use gleis::{
 use serde::{Deserialize, Serialize};
 use version::version;
 
+use self::geschwindigkeit::{Geschwindigkeit, LeiterAnzeige};
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
-use crate::anschluss::anschlüsse::Anschlüsse;
+use crate::anschluss::{anschlüsse::Anschlüsse, ToSave};
 use crate::farbe::Farbe;
 
 pub mod anschluss;
@@ -165,7 +166,11 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-pub struct Zugkontrolle<Z: Zugtyp> {
+pub struct Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    Z::Leiter: LeiterAnzeige,
+{
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
@@ -197,7 +202,11 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     // TODO Geschwindigkeit, Wegstrecke, Plan
 }
 
-impl<Z: Zugtyp> Zugkontrolle<Z> {
+impl<Z> Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    Z::Leiter: LeiterAnzeige,
+{
     fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
         *titel = titel_arg;
@@ -214,11 +223,17 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 impl<Z> Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
+    Z::Leiter: LeiterAnzeige,
 {
     fn laden(&mut self) {
         match self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
             Ok(geschwindigkeiten) => {
-                self.geschwindigkeiten = geschwindigkeiten;
+                self.geschwindigkeiten = geschwindigkeiten
+                    .into_iter()
+                    .map(|(name, geschwindigkeit)| {
+                        (name, (geschwindigkeit, Z::Leiter::anzeige_status_neu()))
+                    })
+                    .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;
             },
             Err(err) => self.zeige_message_box(
@@ -232,7 +247,8 @@ where
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
-    Z::Leiter: Debug,
+    Z::Leiter: Debug + LeiterAnzeige,
+    Geschwindigkeit<Z::Leiter>: ToSave<Geschwindigkeit<Z::LeiterSave>>,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>);
@@ -431,9 +447,15 @@ where
             },
             Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
-                if let Err(err) =
-                    self.gleise.speichern(&self.aktueller_pfad, &self.geschwindigkeiten)
-                {
+                if let Err(err) = self.gleise.speichern(
+                    &self.aktueller_pfad,
+                    self.geschwindigkeiten
+                        .iter()
+                        .map(|(name, (geschwindigkeit, _anzeige_status))| {
+                            (name.clone(), geschwindigkeit.to_save())
+                        })
+                        .collect(),
+                ) {
                     self.zeige_message_box(
                         format!("Fehler beim Speichern in {}", self.aktueller_pfad),
                         format!("{:?}", err),
@@ -666,7 +688,7 @@ fn row_with_scrollable<'t, Z>(
 ) -> iced::Row<'t, Message<Z>>
 where
     Z: 'static + Zugtyp,
-    Z::Leiter: Debug,
+    Z::Leiter: Debug + LeiterAnzeige,
 {
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
@@ -705,7 +727,9 @@ where
         },
         Modus::Fahren => {
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten"));
-            for (name, geschwindigkeit) in geschwindigkeiten {
+            for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
+                // TODO unterschiedlicher Message-Typ...
+                // let anzeige = Z::Leiter::anzeige_neu(name, geschwindigkeit, anzeige_status);
                 scrollable = scrollable.push(
                     iced::Row::new()
                         .push(iced::Text::new(&name.0))

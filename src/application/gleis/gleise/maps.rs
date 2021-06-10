@@ -10,7 +10,7 @@ use crate::{
     anschluss::{OutputSave, ToSave},
     application::{gleis::*, typen::*},
     steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit},
+        geschwindigkeit,
         streckenabschnitt::{self, Streckenabschnitt},
     },
 };
@@ -106,8 +106,10 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
      */
 }
 
-impl<Z: Zugtyp> From<(&GleiseMaps<Z>, &geschwindigkeit::Map<Z::Leiter>)> for GleiseVecs<Z> {
-    fn from((maps, geschwindigkeiten): (&GleiseMaps<Z>, &geschwindigkeit::Map<Z::Leiter>)) -> Self {
+impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<Z::LeiterSave>)> for GleiseVecs<Z> {
+    fn from(
+        (maps, geschwindigkeiten): (&GleiseMaps<Z>, geschwindigkeit::Map<Z::LeiterSave>),
+    ) -> Self {
         macro_rules! hashmaps_to_vecs {
             ($($map:ident),* $(,)?) => {
                 GleiseVecs {
@@ -117,11 +119,7 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, &geschwindigkeit::Map<Z::Leiter>)> for Gle
                         |(name, Streckenabschnitt {farbe, anschluss})|
                             (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()})
                         ).collect(),
-                    geschwindigkeiten:geschwindigkeiten.iter().map(
-                        |(name, Geschwindigkeit { leiter })| {
-                            (name.clone(), Geschwindigkeit { leiter: leiter.to_save() })
-                        },
-                    ).collect(),
+                    geschwindigkeiten,
                     $($map: maps.$map.values().map(
                         |(Gleis {position, definition, streckenabschnitt}, _id_lock)|
                         Gleis {
