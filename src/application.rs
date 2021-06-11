@@ -11,7 +11,7 @@ use gleis::{
 use serde::{Deserialize, Serialize};
 use version::version;
 
-use self::geschwindigkeit::{Geschwindigkeit, LeiterAnzeige};
+use self::geschwindigkeit::LeiterAnzeige;
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
@@ -247,8 +247,7 @@ where
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
-    Z::Leiter: Debug + LeiterAnzeige,
-    Geschwindigkeit<Z::Leiter>: ToSave<Geschwindigkeit<Z::LeiterSave>>,
+    Z::Leiter: Debug,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>);

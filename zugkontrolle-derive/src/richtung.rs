@@ -47,7 +47,8 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             #vis enum Richtung {
                 #(#enum_variants),*
             }
-            impl #base_ident::anschluss::serde::ToSave<RichtungAnschlüsseSave> for RichtungAnschlüsse {
+            impl #base_ident::anschluss::serde::ToSave for RichtungAnschlüsse {
+                type Save = RichtungAnschlüsseSave;
                 fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }

@@ -26,12 +26,10 @@ impl<Anschlüsse> Weiche<Anschlüsse> {
     }
 }
 
-impl<T, S> ToSave<Weiche<S>> for Weiche<T>
-where
-    T: ToSave<S>,
-    S: Serialize + for<'de> Deserialize<'de>,
-{
-    fn to_save(&self) -> Weiche<S> {
+impl<T: ToSave> ToSave for Weiche<T> {
+    type Save = Weiche<T::Save>;
+
+    fn to_save(&self) -> Weiche<T::Save> {
         Weiche { anschlüsse: self.anschlüsse.to_save() }
     }
 }

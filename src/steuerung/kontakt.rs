@@ -38,7 +38,9 @@ impl Kontakt<InputAnschluss> {
     }
 }
 
-impl ToSave<Kontakt<InputSave>> for Kontakt<InputAnschluss> {
+impl ToSave for Kontakt<InputAnschluss> {
+    type Save = Kontakt<InputSave>;
+
     fn to_save(&self) -> Kontakt<InputSave> {
         Kontakt { anschluss: self.anschluss.to_save(), trigger: self.trigger }
     }

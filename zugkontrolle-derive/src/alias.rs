@@ -47,7 +47,8 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::serde::ToSave<#save_ident<#(#params),*>> for #ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::serde::ToSave for #ident<#(#params),*> {
+                        type Save = #save_ident<#(#params),*>;
                         fn to_save(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             #save_ident {

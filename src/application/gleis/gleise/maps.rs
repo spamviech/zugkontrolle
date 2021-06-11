@@ -99,16 +99,21 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: streckenabschnitt::Map<OutputSave>,
-    pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::LeiterSave>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
     /* TODO
      * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
      * pläne, wegstrecken
      */
 }
 
-impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<Z::LeiterSave>)> for GleiseVecs<Z> {
+impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
+    for GleiseVecs<Z>
+{
     fn from(
-        (maps, geschwindigkeiten): (&GleiseMaps<Z>, geschwindigkeit::Map<Z::LeiterSave>),
+        (maps, geschwindigkeiten): (
+            &GleiseMaps<Z>,
+            geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
+        ),
     ) -> Self {
         macro_rules! hashmaps_to_vecs {
             ($($map:ident),* $(,)?) => {

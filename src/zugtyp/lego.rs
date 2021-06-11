@@ -5,13 +5,12 @@ use std::f32::consts::PI;
 use serde::{Deserialize, Serialize};
 
 use crate::application::{gleis::*, typen::*};
-use crate::steuerung::geschwindigkeit::{Zweileiter, ZweileiterSave};
+use crate::steuerung::geschwindigkeit::Zweileiter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;
 impl Zugtyp for Lego {
     type Leiter = Zweileiter;
-    type LeiterSave = ZweileiterSave;
 
     const NAME: &'static str = "Lego";
     const SPURWEITE: Spurweite = Spurweite(38.);

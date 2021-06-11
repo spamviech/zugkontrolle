@@ -184,7 +184,9 @@ pub enum OutputSave {
         polarität: Polarität,
     },
 }
-impl ToSave<OutputSave> for OutputAnschluss {
+impl ToSave for OutputAnschluss {
+    type Save = OutputSave;
+
     fn to_save(&self) -> OutputSave {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
@@ -277,7 +279,9 @@ pub enum InputSave {
         interrupt: Option<u8>,
     },
 }
-impl ToSave<InputSave> for InputAnschluss {
+impl ToSave for InputAnschluss {
+    type Save = InputSave;
+
     fn to_save(&self) -> InputSave {
         match self {
             InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },

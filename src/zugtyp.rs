@@ -1,6 +1,7 @@
 //! Zugtyp Trait + Phantom-Typen + Spurweite
 
-use crate::anschluss::serde::{Reserviere, ToSave};
+use crate::anschluss::serde::ToSave;
+use crate::application::geschwindigkeit::LeiterAnzeige;
 use crate::application::gleis::*;
 
 pub mod lego;
@@ -9,7 +10,6 @@ pub use lego::Lego;
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 pub use märklin::Märklin;
-use serde::{Deserialize, Serialize};
 
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -20,8 +20,7 @@ pub trait Zugtyp: Sized {
     const NAME: &'static str;
 
     /// Art der Stromzufuhr.
-    type Leiter: ToSave<Self::LeiterSave>;
-    type LeiterSave: Reserviere<Self::Leiter> + Serialize + for<'de> Deserialize<'de>;
+    type Leiter: ToSave + LeiterAnzeige;
 
     fn geraden() -> Vec<GeradeUnit<Self>>;
     fn kurven() -> Vec<KurveUnit<Self>>;

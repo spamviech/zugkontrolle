@@ -25,12 +25,10 @@ pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
 
-impl<T, S> ToSave<Geschwindigkeit<S>> for Geschwindigkeit<T>
-where
-    T: ToSave<S>,
-    S: Serialize + for<'de> Deserialize<'de>,
-{
-    fn to_save(&self) -> Geschwindigkeit<S> {
+impl<T: ToSave> ToSave for Geschwindigkeit<T> {
+    type Save = Geschwindigkeit<T::Save>;
+
+    fn to_save(&self) -> Geschwindigkeit<T::Save> {
         Geschwindigkeit { leiter: self.leiter.to_save() }
     }
 }
@@ -97,7 +95,9 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     },
 }
 
-impl ToSave<MittelleiterSave> for Mittelleiter {
+impl ToSave for Mittelleiter {
+    type Save = MittelleiterSave;
+
     fn to_save(&self) -> MittelleiterSave {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
@@ -231,7 +231,9 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
-impl ToSave<ZweileiterSave> for Zweileiter {
+impl ToSave for Zweileiter {
+    type Save = ZweileiterSave;
+
     fn to_save(&self) -> ZweileiterSave {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
