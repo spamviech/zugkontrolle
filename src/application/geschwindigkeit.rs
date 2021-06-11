@@ -75,6 +75,20 @@ pub trait LeiterAnzeige: Sized {
             + text::Renderer
             + slider::Renderer
             + radio::Renderer;
+
+    fn update<'t, R>(
+        anzeige: &mut Anzeige<'t, Self::Message, R>,
+        geschwindigkeit: &mut Geschwindigkeit<Self>,
+        message: Self::Message,
+    ) -> iced::Command<Self::Message>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer;
 }
 
 #[derive(Debug, Clone)]
@@ -126,6 +140,23 @@ impl LeiterAnzeige for Mittelleiter {
             MessageMittelleiter::Geschwindigkeit,
             zeige_fahrtrichtung,
         )
+    }
+
+    fn update<'t, R>(
+        anzeige: &mut Anzeige<'t, Self::Message, R>,
+        geschwindigkeit: &mut Geschwindigkeit<Self>,
+        message: Self::Message,
+    ) -> iced::Command<Self::Message>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer,
+    {
+        todo!()
     }
 }
 
@@ -187,6 +218,23 @@ impl LeiterAnzeige for Zweileiter {
             MessageZweileiter::Geschwindigkeit,
             zeige_fahrtrichtung,
         )
+    }
+
+    fn update<'t, R>(
+        anzeige: &mut Anzeige<'t, Self::Message, R>,
+        geschwindigkeit: &mut Geschwindigkeit<Self>,
+        message: Self::Message,
+    ) -> iced::Command<Self::Message>
+    where
+        R: 't
+            + column::Renderer
+            + row::Renderer
+            + button::Renderer
+            + text::Renderer
+            + slider::Renderer
+            + radio::Renderer,
+    {
+        todo!()
     }
 }
 

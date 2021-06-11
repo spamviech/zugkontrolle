@@ -126,6 +126,10 @@ pub enum Message<Z> {
     Speichern,
     Laden,
     Pfad(String),
+    /* GeschwindigkeitAnzeige {
+     *     name: geschwindigkeit::Name,
+     *     nachricht: <Z::Leiter as LeiterAnzeige>::Message,
+     * }, */
 }
 impl<Z> From<gleise::Message<Z>> for Message<Z> {
     fn from(message: gleise::Message<Z>) -> Self {
