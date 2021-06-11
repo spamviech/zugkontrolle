@@ -2,15 +2,15 @@
 
 use std::collections::HashMap;
 
-pub fn mark_fields_generic<'t>(
+pub fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t syn::Field>,
-    generic_types: &mut HashMap<&syn::Ident, bool>,
+    generic_types: &mut HashMap<&syn::Ident, (T, bool)>,
 ) {
     for field in fields {
         match &field.ty {
             syn::Type::Path(syn::TypePath { path: syn::Path { segments, .. }, .. }) => {
                 if let Some(syn::PathSegment { ident, .. }) = segments.first() {
-                    if let Some(v) = generic_types.get_mut(ident) {
+                    if let Some((_, v)) = generic_types.get_mut(ident) {
                         *v = true
                     }
                 }

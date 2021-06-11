@@ -3,7 +3,7 @@
 // TODO for now
 #![allow(unused_imports)]
 
-use std::{collections::BTreeMap, iter};
+use std::{collections::BTreeMap, fmt::Debug, iter};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
@@ -58,7 +58,7 @@ pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
 
 pub trait LeiterAnzeige: Sized {
     type Fahrtrichtung;
-    type Message;
+    type Message: Debug + Clone + Send;
 
     fn anzeige_status_neu() -> AnzeigeStatus<Self>;
 
@@ -76,19 +76,11 @@ pub trait LeiterAnzeige: Sized {
             + slider::Renderer
             + radio::Renderer;
 
-    fn update<'t, R>(
-        anzeige: &mut Anzeige<'t, Self::Message, R>,
+    fn update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
+        anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer;
+    ) -> iced::Command<Self::Message>;
 }
 
 #[derive(Debug, Clone)]
@@ -142,20 +134,11 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn update<'t, R>(
-        anzeige: &mut Anzeige<'t, Self::Message, R>,
+    fn update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
+        anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer,
-    {
+    ) -> iced::Command<Self::Message> {
         todo!()
     }
 }
@@ -220,20 +203,11 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn update<'t, R>(
-        anzeige: &mut Anzeige<'t, Self::Message, R>,
+    fn update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
+        anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer,
-    {
+    ) -> iced::Command<Self::Message> {
         todo!()
     }
 }
@@ -310,5 +284,15 @@ where
     fn overlay(&mut self, _layout: Layout<'_>) -> Option<overlay::Element<'_, M, R>> {
         //TODO overlay (Expander-artige Anschlüsse-Anzeige)
         None
+    }
+}
+
+impl<'t, M, R> From<Anzeige<'t, M, R>> for Element<'t, M, R>
+where
+    M: 'static,
+    R: 't + Renderer + row::Renderer,
+{
+    fn from(anzeige: Anzeige<'t, M, R>) -> Self {
+        Element::new(anzeige)
     }
 }

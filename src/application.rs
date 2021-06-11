@@ -8,6 +8,7 @@ use gleis::{
     gleise::{id::with_any_id_lock, *},
     *,
 };
+use log::error;
 use serde::{Deserialize, Serialize};
 use version::version;
 
@@ -109,8 +110,11 @@ impl Skalieren {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Message<Z> {
-    Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
+pub enum Message<Z: Zugtyp> {
+    Gleis {
+        gleis: AnyGleis<Z>,
+        grab_height: Skalar,
+    },
     Modus(Modus),
     Bewegen(Bewegen),
     Drehen(Drehen),
@@ -126,12 +130,12 @@ pub enum Message<Z> {
     Speichern,
     Laden,
     Pfad(String),
-    /* GeschwindigkeitAnzeige {
-     *     name: geschwindigkeit::Name,
-     *     nachricht: <Z::Leiter as LeiterAnzeige>::Message,
-     * }, */
+    GeschwindigkeitAnzeige {
+        name: geschwindigkeit::Name,
+        nachricht: <Z::Leiter as LeiterAnzeige>::Message,
+    },
 }
-impl<Z> From<gleise::Message<Z>> for Message<Z> {
+impl<Z: Zugtyp> From<gleise::Message<Z>> for Message<Z> {
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
             gleise::Message::SetzeStreckenabschnitt(any_id_lock) => {
@@ -141,14 +145,14 @@ impl<Z> From<gleise::Message<Z>> for Message<Z> {
     }
 }
 
-impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
+impl<T: Clone + Into<AnyGleis<Z>>, Z: Zugtyp> ButtonMessage<Message<Z>> for T {
     fn to_message(&self, grab_location: Vektor) -> Message<Z> {
         Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
     }
 }
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
-    fn mit_teil_nachricht<Z: 'static>(
+    fn mit_teil_nachricht<Z: 'static + Zugtyp>(
         self,
         konstruktor: impl Fn(Msg) -> Message<Z> + 'static,
     ) -> iced::Element<'t, Message<Z>> {
@@ -309,6 +313,8 @@ where
         message: Self::Message,
         _clipboard: &mut iced::Clipboard,
     ) -> iced::Command<Self::Message> {
+        let mut command = iced::Command::none();
+
         match message {
             Message::Gleis { gleis, grab_height } => {
                 let streckenabschnitt = self
@@ -467,9 +473,30 @@ where
             },
             Message::Laden => self.laden(),
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
+            Message::GeschwindigkeitAnzeige { name, nachricht } => {
+                if let Some((geschwindigkeit, anzeige_status)) =
+                    self.geschwindigkeiten.get_mut(&name)
+                {
+                    let name_s = name.0.clone();
+                    command = <Z::Leiter as LeiterAnzeige>::update(
+                        geschwindigkeit,
+                        anzeige_status,
+                        nachricht,
+                    )
+                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                        name: geschwindigkeit::Name(name_s.clone()),
+                        nachricht,
+                    })
+                } else {
+                    error!(
+                        "Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}",
+                        name.0, nachricht
+                    )
+                }
+            },
         }
 
-        iced::Command::none()
+        command
     }
 
     fn view(&mut self) -> iced::Element<Self::Message> {
@@ -588,7 +615,7 @@ where
     }
 }
 
-fn top_row<'t, Z: 'static>(
+fn top_row<'t, Z: 'static + Zugtyp>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -731,12 +758,17 @@ where
         Modus::Fahren => {
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten"));
             for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
-                // TODO unterschiedlicher Message-Typ...
-                // let anzeige = Z::Leiter::anzeige_neu(name, geschwindigkeit, anzeige_status);
+                let name_clone = name.clone();
                 scrollable = scrollable.push(
-                    iced::Row::new()
-                        .push(iced::Text::new(&name.0))
-                        .push(iced::Text::new(&format!("{:?}", geschwindigkeit))),
+                    iced::Element::from(Z::Leiter::anzeige_neu(
+                        name,
+                        geschwindigkeit,
+                        anzeige_status,
+                    ))
+                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                        name: name_clone.clone(),
+                        nachricht,
+                    }),
                 );
             }
             // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?, Separator dazwischen?

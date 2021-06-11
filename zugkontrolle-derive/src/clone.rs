@@ -1,6 +1,7 @@
 //! Implementation of the Clone-Trait without requirement for generic parameters
 
 use std::collections::HashMap;
+use std::iter;
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -18,7 +19,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
             syn::GenericParam::Type(ty) => {
                 generic_type_names.push(&ty.ident);
-                generic_types.insert(&ty.ident, false);
+                generic_types.insert(&ty.ident, (&ty.bounds, false));
             },
             syn::GenericParam::Const(_c) => {},
         }
@@ -106,8 +107,14 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
 
     // map from generic_type_names to preserve order!
     let generic_type_constraints = generic_type_names.iter().map(|ty| {
-        if *generic_types.get(ty).unwrap_or(&false) {
-            quote!(#ty: Clone)
+        if let Some((ty_bounds, debug_clone)) = generic_types.get(ty) {
+            let ty_bounds_iter = ty_bounds.iter().map(|bound| quote!(#bound));
+            let bounds: Vec<_> = if *debug_clone {
+                ty_bounds_iter.chain(iter::once(quote!(Clone))).collect()
+            } else {
+                ty_bounds_iter.collect()
+            };
+            quote!(#ty: #(#bounds),*)
         } else {
             quote!(#ty)
         }
