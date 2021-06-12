@@ -20,7 +20,7 @@ use crate::anschluss::{
 };
 use crate::non_empty::{MaybeEmpty, NonEmpty};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
@@ -42,26 +42,20 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
     }
 }
 
-impl pwm::Pin {
-    fn geschwindigkeit(
-        &mut self,
-        wert: u8,
-        faktor: f64,
-        polarity: Polarität,
-    ) -> Result<(), pwm::Error> {
-        debug_assert!(
-            0. < faktor && faktor <= 1.,
-            "Faktor muss zwischen 0 und 1 liegen: {}",
-            faktor
-        );
-        self.enable_with_config(pwm::Config {
-            polarity,
-            time: pwm::Time::Frequency {
-                frequency: PWM_FREQUENZ,
-                duty_cycle: faktor * wert as f64 / u8::MAX as f64,
-            },
-        })
-    }
+fn geschwindigkeit_pwm(
+    pin: &mut pwm::Pin,
+    wert: u8,
+    faktor: f64,
+    polarity: Polarität,
+) -> Result<(), pwm::Error> {
+    debug_assert!(0. < faktor && faktor <= 1., "Faktor muss zwischen 0 und 1 liegen: {}", faktor);
+    pin.enable_with_config(pwm::Config {
+        polarity,
+        time: pwm::Time::Frequency {
+            frequency: PWM_FREQUENZ,
+            duty_cycle: faktor * wert as f64 / u8::MAX as f64,
+        },
+    })
 }
 fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
@@ -82,7 +76,7 @@ fn geschwindigkeit_ks(
 }
 
 pub type MittelleiterSave = Mittelleiter<pwm::Save, OutputSave>;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         pin: Pwm,
@@ -154,7 +148,7 @@ impl Geschwindigkeit<Mittelleiter> {
     pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Mittelleiter::Pwm { pin, polarität } => {
-                Ok(pin.geschwindigkeit(wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
+                Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
             },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
@@ -184,7 +178,7 @@ impl Geschwindigkeit<Mittelleiter> {
 }
 
 pub type ZweileiterSave = Zweileiter<pwm::Save, OutputSave>;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         geschwindigkeit: Pwm,
@@ -202,7 +196,7 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
-                Ok(geschwindigkeit.geschwindigkeit(wert, 1., *polarität)?)
+                Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)

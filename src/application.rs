@@ -111,7 +111,11 @@ impl Skalieren {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Message<Z: Zugtyp> {
+pub enum Message<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     Gleis {
         gleis: AnyGleis<Z>,
         grab_height: Skalar,
@@ -137,7 +141,11 @@ pub enum Message<Z: Zugtyp> {
     },
 }
 
-impl<Z: Zugtyp> From<gleise::Message<Z>> for Message<Z> {
+impl<Z> From<gleise::Message<Z>> for Message<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
             gleise::Message::SetzeStreckenabschnitt(any_id_lock) => {
@@ -147,24 +155,37 @@ impl<Z: Zugtyp> From<gleise::Message<Z>> for Message<Z> {
     }
 }
 
-impl<T: Clone + Into<AnyGleis<Z>>, Z: Zugtyp> ButtonMessage<Message<Z>> for T {
+impl<T, Z> ButtonMessage<Message<Z>> for T
+where
+    T: Clone + Into<AnyGleis<Z>>,
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     fn to_message(&self, grab_location: Vektor) -> Message<Z> {
         Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
     }
 }
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
-    fn mit_teil_nachricht<Z: 'static + Zugtyp>(
+    fn mit_teil_nachricht<Z>(
         self,
         konstruktor: impl Fn(Msg) -> Message<Z> + 'static,
-    ) -> iced::Element<'t, Message<Z>> {
+    ) -> iced::Element<'t, Message<Z>>
+    where
+        Z: 'static + Zugtyp,
+        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    {
         self.into().map(konstruktor)
     }
 }
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<Z: Zugtyp> Message<Z> {
+impl<Z> Message<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     async fn laden() -> Message<Z> {
         Message::Laden
     }
@@ -186,6 +207,7 @@ pub struct Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
@@ -222,6 +244,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
@@ -240,6 +263,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
     Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     fn laden(&mut self) {
         match self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
@@ -264,6 +288,7 @@ impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>);
@@ -624,7 +649,7 @@ where
     }
 }
 
-fn top_row<'t, Z: 'static + Zugtyp>(
+fn top_row<'t, Z>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -640,7 +665,11 @@ fn top_row<'t, Z: 'static + Zugtyp>(
     laden: &'t mut iced::button::State,
     pfad: &'t mut iced::text_input::State,
     aktueller_pfad: &'t str,
-) -> iced::Row<'t, Message<Z>> {
+) -> iced::Row<'t, Message<Z>>
+where
+    Z: 'static + Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.make_radio(aktueller_modus))
         .push(Modus::Fahren.make_radio(aktueller_modus));
@@ -728,6 +757,7 @@ fn row_with_scrollable<'t, Z>(
 where
     Z: 'static + Zugtyp,
     Z::Leiter: Debug + LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)

@@ -1,5 +1,9 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
+use std::fmt::Debug;
+
+use crate::anschluss::serde::ToSave;
+
 pub mod canvas;
 pub mod mm;
 pub mod skalar;
@@ -18,23 +22,43 @@ pub use crate::zugtyp::Zugtyp;
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
 /// Abstand beider Schienen
-pub fn spurweite<Z: Zugtyp>() -> Skalar {
+pub fn spurweite<Z>() -> Skalar
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     Z::SPURWEITE.als_skalar()
 }
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp>() -> Skalar {
+pub fn abstand<Z>() -> Skalar
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     spurweite::<Z>() / Skalar(3.)
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschränkung<Z: Zugtyp>() -> Skalar {
+pub fn beschränkung<Z>() -> Skalar
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     spurweite::<Z>() + abstand::<Z>().doppelt()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Skalar) -> Skalar {
+pub fn radius_begrenzung_innen<Z>(radius: Skalar) -> Skalar
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     radius - Skalar(0.5) * spurweite::<Z>() - abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
+pub fn radius_begrenzung_außen<Z>(radius: Skalar) -> Skalar
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     radius + Skalar(0.5) * spurweite::<Z>() + abstand::<Z>()
 }
 

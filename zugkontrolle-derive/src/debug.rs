@@ -14,6 +14,7 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
     let mut generic_lifetimes = Vec::new();
     let mut generic_types = HashMap::new();
     let mut generic_type_names = Vec::new();
+    let where_clause = &generics.where_clause;
     for g in generics.params.iter() {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
@@ -142,7 +143,7 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
     });
 
     quote! {
-        impl<#(#generic_lifetimes),* #(#generic_type_constraints),*> std::fmt::Debug for #ident<#(#generic_lifetimes),* #(#generic_type_names),*> {
+        impl<#(#generic_lifetimes),* #(#generic_type_constraints),*> std::fmt::Debug for #ident<#(#generic_lifetimes),* #(#generic_type_names),*> #where_clause {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 #fmt
             }

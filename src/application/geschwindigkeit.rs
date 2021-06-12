@@ -42,13 +42,21 @@ use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter}
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
 #[derive(Debug)]
-pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
+pub struct AnzeigeStatus<Leiter>
+where
+    Leiter: LeiterAnzeige,
+    Geschwindigkeit<<Leiter as ToSave>::Save>: Debug + Clone,
+{
     aktuelle_geschwindigkeit: u8,
     pwm_slider_state: slider::State,
     fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-pub trait LeiterAnzeige: Sized {
+pub trait LeiterAnzeige
+where
+    Self: ToSave + Sized,
+    Geschwindigkeit<<Self as ToSave>::Save>: Debug + Clone,
+{
     type Fahrtrichtung;
     type Message: Debug + Clone + Send;
 
@@ -73,6 +81,24 @@ pub trait LeiterAnzeige: Sized {
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
     ) -> Result<iced::Command<Self::Message>, Error>;
+
+    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    where
+        R: 't
+            + container::Renderer
+            + column::Renderer
+            + row::Renderer
+            + scrollable::Renderer
+            + text::Renderer
+            + text_input::Renderer
+            + button::Renderer
+            + radio::Renderer
+            + card::Renderer
+            + tabs::Renderer
+            + number_input::Renderer,
+        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>;
+
+    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>);
 }
 
 #[derive(Debug, Clone)]
@@ -139,6 +165,29 @@ impl LeiterAnzeige for Mittelleiter {
             MessageMittelleiter::Umdrehen => geschwindigkeit.umdrehen(),
         }
         .map(|()| iced::Command::none())
+    }
+
+    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    where
+        R: 't
+            + container::Renderer
+            + column::Renderer
+            + row::Renderer
+            + scrollable::Renderer
+            + text::Renderer
+            + text_input::Renderer
+            + button::Renderer
+            + radio::Renderer
+            + card::Renderer
+            + tabs::Renderer
+            + number_input::Renderer,
+        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+    {
+        todo!()
+    }
+
+    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
+        todo!()
     }
 }
 
@@ -219,6 +268,29 @@ impl LeiterAnzeige for Zweileiter {
         }
         .map(|()| iced::Command::none())
     }
+
+    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    where
+        R: 't
+            + container::Renderer
+            + column::Renderer
+            + row::Renderer
+            + scrollable::Renderer
+            + text::Renderer
+            + text_input::Renderer
+            + button::Renderer
+            + radio::Renderer
+            + card::Renderer
+            + tabs::Renderer
+            + number_input::Renderer,
+        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+    {
+        todo!()
+    }
+
+    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
+        todo!()
+    }
 }
 
 pub struct Anzeige<'t, M, R> {
@@ -229,7 +301,7 @@ where
     M: 'static + Clone,
     R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
 {
-    pub fn neu_mit_leiter<Leiter: LeiterAnzeige, Iter: Iterator>(
+    pub fn neu_mit_leiter<Leiter, Iter>(
         name: &'t Name,
         geschwindigkeit: &'t Geschwindigkeit<Leiter>,
         status: &'t mut AnzeigeStatus<Leiter>,
@@ -237,7 +309,12 @@ where
         geschwindigkeits_nachricht: impl Fn(u8) -> M + Clone + 'static,
         zeige_fahrtrichtung: impl FnOnce(&'t mut Leiter::Fahrtrichtung) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
-    ) -> Self {
+    ) -> Self
+    where
+        Leiter: LeiterAnzeige,
+        <Leiter as ToSave>::Save: Debug + Clone,
+        Iter: Iterator,
+    {
         let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
             status;
         // TODO Anschluss-Anzeige (Expander über Overlay?)
@@ -372,7 +449,12 @@ where
     Löschen(Name),
 }
 
-pub struct Auswahl<'t, F, G, R: card::Renderer> {
+pub struct Auswahl<'t, Leiter, R>
+where
+    Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
+    R: card::Renderer,
+{
     card: Card<'t, InterneAuswahlNachricht, R>,
     neu_name: &'t mut String,
     aktueller_tab: &'t mut usize,
@@ -380,8 +462,9 @@ pub struct Auswahl<'t, F, G, R: card::Renderer> {
     pwm_pin: &'t mut pwm::Save,
     neuer_ks_anschluss: &'t mut bool,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht: &'t F,
-    ks_nachricht: &'t G,
+    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    ks_nachricht:
+        &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
 }
 
 enum UmdrehenAnzeige {
@@ -389,8 +472,10 @@ enum UmdrehenAnzeige {
     Immer,
 }
 
-impl<'t, F, G, R> Auswahl<'t, F, G, R>
+impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
+    Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
     R: 't
         + container::Renderer
         + column::Renderer
@@ -405,17 +490,15 @@ where
         + number_input::Renderer,
     <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
 {
-    fn neu<Leiter>(
+    fn neu(
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
-        pwm_nachricht: &'t F,
-        ks_nachricht: &'t G,
-    ) -> Self
-    where
-        Leiter: ToSave,
-        F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-        G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-    {
+        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+        ks_nachricht: &'t impl Fn(
+            OutputSave,
+            NonEmpty<OutputSave>,
+        ) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    ) -> Self {
         let AuswahlStatus {
             neu_name,
             neu_name_state,
@@ -519,12 +602,11 @@ where
     }
 }
 
-impl<'t, Leiter, F, G, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, F, G, R>
+impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
 where
     Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
     <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
-    F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-    G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -594,15 +676,14 @@ where
     }
 }
 
-impl<'t, Leiter, F, G, R> From<Auswahl<'t, F, G, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
+impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
 where
-    Leiter: ToSave,
+    Leiter: 't + ToSave,
+    <Leiter as ToSave>::Save: 't,
     <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
-    F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-    G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
     R: 't + Renderer + card::Renderer,
 {
-    fn from(anzeige: Auswahl<'t, F, G, R>) -> Self {
+    fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {
         Element::new(anzeige)
     }
 }

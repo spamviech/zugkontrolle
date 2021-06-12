@@ -106,6 +106,7 @@ impl<Z> Gleise<Z> {
     fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
     where
         Z: Zugtyp,
+        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
         T: GleiseMap<Z>,
     {
         let (Gleis { position, .. }, _id_lock) =
@@ -117,6 +118,7 @@ impl<Z> Gleise<Z> {
     fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
     where
         Z: Zugtyp,
+        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
         T: GleiseMap<Z>,
     {
         let (Gleis { definition, position, .. }, _id_lock) =
@@ -423,7 +425,7 @@ fn get_canvas_position(
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-fn grab_gleis_an_position<Z: Zugtyp>(
+fn grab_gleis_an_position<Z>(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
     modus: &mut ModusDaten<Z>,
@@ -439,7 +441,11 @@ fn grab_gleis_an_position<Z: Zugtyp>(
     }: &mut GleiseMaps<Z>,
     pivot: &Position,
     skalieren: &Skalar,
-) -> iced::canvas::event::Status {
+) -> iced::canvas::event::Status
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
             if let ModusDaten::Bauen { grabbed, last } = modus {
@@ -474,7 +480,11 @@ pub enum Message<Z> {
     SetzeStreckenabschnitt(AnyIdLock<Z>),
 }
 
-impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
+impl<Z> iced::canvas::Program<Message<Z>> for Gleise<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -646,7 +656,11 @@ impl Position {
     }
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     /// Add a new gleis to its position.
     pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
     where
@@ -847,7 +861,11 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + Serialize,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     #[must_use]
     pub fn speichern(
         &self,
@@ -862,7 +880,11 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     #[must_use]
     pub fn laden(
         &mut self,

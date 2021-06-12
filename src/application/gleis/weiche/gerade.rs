@@ -1,12 +1,12 @@
 //! Definition und zeichnen einer Weiche
 
-use std::fmt::Debug;
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
 use crate::{
+    anschluss::ToSave,
     application::{
         gleis::{anchor, gerade, kurve},
         typen::*,
@@ -75,7 +75,11 @@ pub enum AnchorName {
     Kurve,
 }
 
-impl<Z: Zugtyp, A> Zeichnen for Weiche<Z, A> {
+impl<Z, A> Zeichnen for Weiche<Z, A>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+{
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
