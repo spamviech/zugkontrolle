@@ -83,7 +83,7 @@ impl<T> Index<usize> for NonEmpty<T> {
         if index == 0 {
             &self.head
         } else {
-            self.tail.index(index + 1)
+            self.tail.index(index - 1)
         }
     }
 }
@@ -92,7 +92,7 @@ impl<T> IndexMut<usize> for NonEmpty<T> {
         if index == 0 {
             &mut self.head
         } else {
-            self.tail.index_mut(index + 1)
+            self.tail.index_mut(index - 1)
         }
     }
 }
