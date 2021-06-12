@@ -1,18 +1,13 @@
 //! Anzeige & Erstellen einer Geschwindigkeit.
 
-// TODO for now
-#![allow(unused_imports)]
+use std::{collections::BTreeMap, fmt::Debug, iter, num::NonZeroUsize};
 
-use std::{collections::BTreeMap, fmt::Debug, iter};
-
-use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
+use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
 use iced_native::{
     button,
-    checkbox,
     column,
     container,
     event,
-    mouse,
     overlay,
     radio,
     row,
@@ -20,12 +15,9 @@ use iced_native::{
     slider,
     text,
     text_input,
-    Align,
     Button,
-    Checkbox,
     Clipboard,
     Column,
-    Container,
     Element,
     Event,
     Layout,
@@ -43,7 +35,6 @@ use iced_native::{
 
 use super::{anschluss, macros::reexport_no_event_methods};
 use crate::anschluss::{polarity::Polarität, pwm, OutputSave, ToSave};
-use crate::farbe::Farbe;
 use crate::non_empty::{MaybeEmpty, NonEmpty};
 pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
 use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
@@ -325,6 +316,7 @@ pub struct AuswahlStatus {
     pwm_state: anschluss::PwmState,
     neuer_ks_anschluss: bool,
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
+    ks_scrollable_state: scrollable::State,
     hinzufügen_button_state: button::State,
     geschwindigkeiten: BTreeMap<Name, button::State>,
     scrollable_state: scrollable::State,
@@ -346,6 +338,7 @@ impl AuswahlStatus {
                 anschluss::Status::neu_output(),
                 button::State::new(),
             )),
+            ks_scrollable_state: scrollable::State::new(),
             hinzufügen_button_state: button::State::new(),
             geschwindigkeiten: geschwindigkeiten
                 .map(|name| (name.clone(), button::State::new()))
@@ -360,10 +353,11 @@ enum InterneAuswahlNachricht {
     Schließen,
     WähleTab(usize),
     Name(String),
+    UmdrehenAnschluss(OutputSave),
     PwmPin(pwm::Save),
     KonstanteSpannungAnschluss(usize, OutputSave),
     NeuerKonstanteSpannungAnschluss,
-    LöscheKonstanteSpannungAnschluss(usize),
+    LöscheKonstanteSpannungAnschluss(NonZeroUsize),
     Hinzufügen,
     Löschen(Name),
 }
@@ -398,12 +392,18 @@ enum UmdrehenAnzeige {
 impl<'t, F, G, R> Auswahl<'t, F, G, R>
 where
     R: 't
+        + container::Renderer
         + column::Renderer
+        + row::Renderer
         + scrollable::Renderer
         + text::Renderer
         + text_input::Renderer
         + button::Renderer
-        + card::Renderer,
+        + radio::Renderer
+        + card::Renderer
+        + tabs::Renderer
+        + number_input::Renderer,
+    <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
 {
     fn neu<Leiter>(
         status: &'t mut AuswahlStatus,
@@ -426,6 +426,7 @@ where
             pwm_state,
             neuer_ks_anschluss,
             ks_anschlüsse,
+            ks_scrollable_state,
             hinzufügen_button_state,
             geschwindigkeiten,
             scrollable_state,
@@ -440,33 +441,66 @@ where
         }
         // TODO Anzeige vorhandene Geschwindigkeiten mit Löschen-Knopf
         let (output_save_head, status_head, button_state_head) = &mut ks_anschlüsse.head;
-        let anschlüsse_state_head = (output_save_head.clone(), status_head, button_state_head);
+        let anschlüsse_state_head = (status_head, button_state_head);
         let (anschlüsse_state_tail, anschlüsse_save_tail): (Vec<_>, Vec<_>) = ks_anschlüsse
             .tail
             .iter_mut()
-            .map(|(output_save, status, button_state)| {
-                ((output_save.clone(), status, button_state), output_save)
-            })
+            .map(|(output_save, status, button_state)| ((status, button_state), output_save))
             .unzip();
         let anschlüsse_state =
             NonEmpty { head: anschlüsse_state_head, tail: anschlüsse_state_tail };
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         // TODO mehr als Auswahl anzeigen
-        let neu = Column::new().push(TextInput::new(
+        let mut neu = Column::new().push(TextInput::new(
             neu_name_state,
             "<Name>",
             neu_name,
             InterneAuswahlNachricht::Name,
         ));
-        let mut scrollable = Scrollable::new(scrollable_state).push(neu);
-        for (i, (name, button_state)) in geschwindigkeiten.iter_mut().enumerate() {
-            let button = if i == 0 {
-                Button::new(button_state, Text::new("+"))
-                    .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss)
-            } else {
-                Button::new(button_state, Text::new("+"))
-                    .on_press(InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(i))
-            };
+        let umdrehen_auswahl = Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
+            .map(InterneAuswahlNachricht::UmdrehenAnschluss);
+        let pwm_auswahl =
+            Element::from(anschluss::Pwm::neu(pwm_state)).map(InterneAuswahlNachricht::PwmPin);
+        let mut ks_auswahl = Row::new();
+        match umdrehen_anzeige {
+            UmdrehenAnzeige::KonstanteSpannung => ks_auswahl = ks_auswahl.push(umdrehen_auswahl),
+            UmdrehenAnzeige::Immer => neu = neu.push(umdrehen_auswahl),
+        }
+        let mut ks_scrollable = Scrollable::new(ks_scrollable_state);
+        for (i, (status, button_state)) in anschlüsse_state.into_iter().enumerate() {
+            let ii = i;
+            let mut row = Row::new().push(
+                Element::from(anschluss::Auswahl::neu_output(status)).map(move |anschluss| {
+                    InterneAuswahlNachricht::KonstanteSpannungAnschluss(ii, anschluss)
+                }),
+            );
+            row =
+                row.push(
+                    if let Some(ix) = NonZeroUsize::new(i) {
+                        Element::from(Button::new(button_state, Text::new("X")).on_press(
+                            InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix),
+                        ))
+                    } else {
+                        Element::from(
+                            Button::new(button_state, Text::new("+"))
+                                .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
+                        )
+                    },
+                );
+            ks_scrollable = ks_scrollable.push(row)
+        }
+        ks_auswahl = ks_auswahl.push(ks_scrollable);
+        let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
+            .push(TabLabel::Text("Pwm".to_string()), pwm_auswahl)
+            .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl);
+        neu = neu.push(tabs);
+        let mut scrollable = Scrollable::new(scrollable_state).push(neu).push(
+            Button::new(hinzufügen_button_state, Text::new("Hinzufügen"))
+                .on_press(InterneAuswahlNachricht::Hinzufügen),
+        );
+        for (name, button_state) in geschwindigkeiten.iter_mut() {
+            let button = Button::new(button_state, Text::new("X"))
+                .on_press(InterneAuswahlNachricht::Löschen(name.clone()));
             scrollable = scrollable.push(Column::new().push(Text::new(&name.0)).push(button));
         }
         let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
@@ -519,6 +553,9 @@ where
                 InterneAuswahlNachricht::Schließen => messages.push(AuswahlNachricht::Schließen),
                 InterneAuswahlNachricht::WähleTab(tab) => *self.aktueller_tab = tab,
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
+                InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
+                    *self.umdrehen_anschluss = anschluss
+                },
                 InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss) => {
                     *self.ks_anschlüsse[ix] = anschluss
@@ -527,7 +564,7 @@ where
                     *self.neuer_ks_anschluss = true
                 },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
-                    self.ks_anschlüsse.remove(ix);
+                    self.ks_anschlüsse.remove(ix.get());
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(
