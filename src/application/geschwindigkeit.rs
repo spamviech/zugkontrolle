@@ -395,6 +395,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct AuswahlStatus {
     neu_name: String,
     neu_name_state: text_input::State,
@@ -436,6 +437,14 @@ impl AuswahlStatus {
                 .collect(),
             scrollable_state: scrollable::State::new(),
         }
+    }
+
+    pub fn hinzufügen(&mut self, name: Name) {
+        self.geschwindigkeiten.insert(name, button::State::new());
+    }
+
+    pub fn entfernen(&mut self, name: &Name) {
+        self.geschwindigkeiten.remove(name);
     }
 }
 
@@ -598,7 +607,8 @@ where
         ks_auswahl = ks_auswahl.push(ks_scrollable);
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
             .push(TabLabel::Text("Pwm".to_string()), pwm_auswahl)
-            .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl);
+            .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl)
+            .height(Length::Shrink);
         neu = neu.push(tabs);
         let mut scrollable = Scrollable::new(scrollable_state).push(neu).push(
             Button::new(hinzufügen_button_state, Text::new("Hinzufügen"))

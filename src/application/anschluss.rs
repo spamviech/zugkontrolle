@@ -479,6 +479,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct PwmState {
     pin: u8,
     number_input_state: number_input::State,

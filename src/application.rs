@@ -9,15 +9,14 @@ use gleis::{
     *,
 };
 use log::error;
-use num_x::u3;
 use serde::{Deserialize, Serialize};
 use version::version;
 
-use self::geschwindigkeit::LeiterAnzeige;
+use self::geschwindigkeit::{Geschwindigkeit, LeiterAnzeige};
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
-use crate::anschluss::{anschlüsse::Anschlüsse, OutputSave, ToSave};
+use crate::anschluss::{anschlüsse::Anschlüsse, OutputSave, Reserviere, ToSave};
 use crate::farbe::Farbe;
 
 pub mod anschluss;
@@ -139,6 +138,12 @@ where
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Message,
     },
+    ZeigeAuswahlGeschwindigkeit,
+    HinzufügenGeschwindigkeit(
+        geschwindigkeit::Name,
+        Geschwindigkeit<<<Z as Zugtyp>::Leiter as ToSave>::Save>,
+    ),
+    LöscheGeschwindigkeit(geschwindigkeit::Name),
 }
 
 impl<Z> From<gleise::Message<Z>> for Message<Z>
@@ -194,6 +199,7 @@ where
 #[derive(Debug)]
 enum Modal {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
+    Geschwindigkeit(geschwindigkeit::AuswahlStatus),
 }
 
 #[derive(Debug)]
@@ -223,6 +229,7 @@ where
     modal_state: iced_aw::modal::State<Modal>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
+    geschwindigkeit_button_state: iced::button::State,
     message_box: iced_aw::modal::State<MessageBox>,
     // TODO use a good-looking solution instead of simple buttons
     oben: iced::button::State,
@@ -288,7 +295,8 @@ impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>);
@@ -317,6 +325,7 @@ where
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             streckenabschnitt_aktuell_festlegen: true,
+            geschwindigkeit_button_state: iced::button::State::new(),
             message_box: iced_aw::modal::State::new(MessageBox {
                 titel: "Nicht initialisiert".to_string(),
                 nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
@@ -403,30 +412,24 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             },
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                let anschluss = match anschluss_definition {
-                    OutputSave::Pin { pin, polarität } => self
-                        .anschlüsse
-                        .reserviere_pin(pin)
-                        .map_err(crate::anschluss::Error::from)
-                        .map(crate::anschluss::Pin::into_output)
-                        .map(|pin| crate::anschluss::OutputAnschluss::Pin { pin, polarität }),
-                    OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => self
-                        .anschlüsse
-                        .reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))
-                        .map_err(crate::anschluss::Error::from)
-                        .and_then(|port| port.into_output().map_err(Into::into))
-                        .map(|port| crate::anschluss::OutputAnschluss::Pcf8574Port {
-                            port,
-                            polarität,
-                        }),
-                };
-                match anschluss {
+                match anschluss_definition.reserviere(&mut self.anschlüsse) {
                     Ok(anschluss) => {
                         self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
                         let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
                         match self.modal_state.inner_mut() {
                             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                                 streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
+                            },
+                            modal => {
+                                error!(
+                                    "Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}",
+                                    modal
+                                );
+                                *modal = Modal::Streckenabschnitt(
+                                    streckenabschnitt::AuswahlStatus::neu(
+                                        self.gleise.streckenabschnitte(),
+                                    ),
+                                );
                             },
                         }
                         let name_string = name.0.clone();
@@ -460,6 +463,12 @@ where
                 match self.modal_state.inner_mut() {
                     Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                         streckenabschnitt_auswahl.entferne(&name);
+                    },
+                    modal => {
+                        error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
+                        *modal = Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(
+                            self.gleise.streckenabschnitte(),
+                        ));
                     },
                 }
                 self.gleise.entferne_streckenabschnitt(name);
@@ -528,6 +537,66 @@ where
                     )
                 }
             },
+            Message::ZeigeAuswahlGeschwindigkeit => {
+                *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
+                    geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.keys()),
+                );
+                self.modal_state.show(true);
+            },
+            Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
+                match geschwindigkeit_save.reserviere(&mut self.anschlüsse) {
+                    Ok(geschwindigkeit) => {
+                        if let Some(ersetzt) = self.geschwindigkeiten.insert(
+                            name.clone(),
+                            (
+                                geschwindigkeit,
+                                <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
+                            ),
+                        ) {
+                            self.zeige_message_box(
+                                "Hinzufügen Geschwindigkeit".to_string(),
+                                format!(
+                                    "Vorherige Geschwindigkeit {} ersetzt: {:?}",
+                                    name.0, ersetzt
+                                ),
+                            )
+                        }
+                        match self.modal_state.inner_mut() {
+                            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                                geschwindigkeit_auswahl.hinzufügen(name);
+                            },
+                            modal => {
+                                error!(
+                                    "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
+                                    modal
+                                );
+                                *modal =
+                                    Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
+                                        self.geschwindigkeiten.keys(),
+                                    ));
+                            },
+                        }
+                    },
+                    Err(error) => self.zeige_message_box(
+                        "Hinzufügen Geschwindigkeit".to_string(),
+                        format!("Fehler beim Hinzufügen: {:?}", error),
+                    ),
+                }
+            },
+            Message::LöscheGeschwindigkeit(name) => {
+                self.geschwindigkeiten.remove(&name);
+                match self.modal_state.inner_mut() {
+                    Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                        geschwindigkeit_auswahl.entfernen(&name);
+                    },
+                    modal => {
+                        error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
+                        *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
+                            self.geschwindigkeiten.keys(),
+                        ));
+                    },
+                }
+            },
         }
 
         command
@@ -549,6 +618,7 @@ where
             modal_state,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
+            geschwindigkeit_button_state,
             message_box,
             oben,
             unten,
@@ -569,6 +639,7 @@ where
             aktueller_modus,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
+            geschwindigkeit_button_state,
             oben,
             unten,
             links,
@@ -629,6 +700,19 @@ where
                     Lösche(name) => Message::LöscheStreckenabschnitt(name),
                 }
             }),
+            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
+                <<Z as Zugtyp>::Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
+            )
+            .map(|message| {
+                use geschwindigkeit::AuswahlNachricht::*;
+                match message {
+                    Schließen => Message::SchließeModal,
+                    Hinzufügen(name, geschwindigkeit) => {
+                        Message::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+                    },
+                    Löschen(name) => Message::LöscheGeschwindigkeit(name),
+                }
+            }),
         })
         .on_esc(Message::SchließeModal);
 
@@ -653,6 +737,7 @@ fn top_row<'t, Z>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
+    geschwindigkeit_button_state: &'t mut iced::button::State,
     oben: &'t mut iced::button::State,
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
@@ -733,6 +818,10 @@ where
                     Message::StreckenabschnittFestlegen(festlegen)
                 },
             }),
+        )
+        .push(
+            iced::Button::new(geschwindigkeit_button_state, iced::Text::new("Geschwindigkeiten"))
+                .on_press(Message::ZeigeAuswahlGeschwindigkeit),
         )
         .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
