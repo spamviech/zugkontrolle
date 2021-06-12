@@ -82,7 +82,7 @@ where
         message: Self::Message,
     ) -> Result<iced::Command<Self::Message>, Error>;
 
-    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
     where
         R: 't
             + container::Renderer
@@ -167,7 +167,7 @@ impl LeiterAnzeige for Mittelleiter {
         .map(|()| iced::Command::none())
     }
 
-    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
     where
         R: 't
             + container::Renderer
@@ -183,7 +183,16 @@ impl LeiterAnzeige for Mittelleiter {
             + number_input::Renderer,
         <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
     {
-        todo!()
+        Auswahl::neu(
+            status,
+            UmdrehenAnzeige::KonstanteSpannung,
+            &|_umdrehen, pin, polarität| Mittelleiter::Pwm { pin, polarität },
+            &|umdrehen, geschwindigkeit| Mittelleiter::KonstanteSpannung {
+                geschwindigkeit,
+                letzter_wert: 0,
+                umdrehen,
+            },
+        )
     }
 
     fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
@@ -269,7 +278,7 @@ impl LeiterAnzeige for Zweileiter {
         .map(|()| iced::Command::none())
     }
 
-    fn auswahl_neu<'t, F, G, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
+    fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
     where
         R: 't
             + container::Renderer
@@ -285,7 +294,20 @@ impl LeiterAnzeige for Zweileiter {
             + number_input::Renderer,
         <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
     {
-        todo!()
+        Auswahl::neu(
+            status,
+            UmdrehenAnzeige::Immer,
+            &|fahrtrichtung, geschwindigkeit, polarität| Zweileiter::Pwm {
+                geschwindigkeit,
+                polarität,
+                fahrtrichtung,
+            },
+            &|fahrtrichtung, geschwindigkeit| Zweileiter::KonstanteSpannung {
+                geschwindigkeit,
+                letzter_wert: 0,
+                fahrtrichtung,
+            },
+        )
     }
 
     fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
@@ -390,6 +412,7 @@ pub struct AuswahlStatus {
     umdrehen_anschluss: OutputSave,
     umdrehen_state: anschluss::Status<anschluss::Output>,
     pwm_pin: pwm::Save,
+    pwm_polarität: Polarität,
     pwm_state: anschluss::PwmState,
     neuer_ks_anschluss: bool,
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
@@ -408,6 +431,7 @@ impl AuswahlStatus {
             umdrehen_anschluss: OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
             umdrehen_state: anschluss::Status::neu_output(),
             pwm_pin: pwm::Save(0),
+            pwm_polarität: Polarität::Normal,
             pwm_state: anschluss::PwmState::neu(),
             neuer_ks_anschluss: false,
             ks_anschlüsse: NonEmpty::singleton((
@@ -432,6 +456,7 @@ enum InterneAuswahlNachricht {
     Name(String),
     UmdrehenAnschluss(OutputSave),
     PwmPin(pwm::Save),
+    PwmPolarität(Polarität),
     KonstanteSpannungAnschluss(usize, OutputSave),
     NeuerKonstanteSpannungAnschluss,
     LöscheKonstanteSpannungAnschluss(NonZeroUsize),
@@ -460,11 +485,11 @@ where
     aktueller_tab: &'t mut usize,
     umdrehen_anschluss: &'t mut OutputSave,
     pwm_pin: &'t mut pwm::Save,
+    pwm_polarität: &'t mut Polarität,
     neuer_ks_anschluss: &'t mut bool,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-    ks_nachricht:
-        &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
+    ks_nachricht: &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
 }
 
 enum UmdrehenAnzeige {
@@ -493,11 +518,8 @@ where
     fn neu(
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
-        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-        ks_nachricht: &'t impl Fn(
-            OutputSave,
-            NonEmpty<OutputSave>,
-        ) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
+        ks_nachricht: &'t impl Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
     ) -> Self {
         let AuswahlStatus {
             neu_name,
@@ -506,6 +528,7 @@ where
             umdrehen_anschluss,
             umdrehen_state,
             pwm_pin,
+            pwm_polarität,
             pwm_state,
             neuer_ks_anschluss,
             ks_anschlüsse,
@@ -542,8 +565,18 @@ where
         ));
         let umdrehen_auswahl = Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
             .map(InterneAuswahlNachricht::UmdrehenAnschluss);
-        let pwm_auswahl =
-            Element::from(anschluss::Pwm::neu(pwm_state)).map(InterneAuswahlNachricht::PwmPin);
+        let make_radio = |polarität: Polarität, aktuell: &Polarität| {
+            Radio::new(polarität, "Normal", Some(*aktuell), InterneAuswahlNachricht::PwmPolarität)
+        };
+        let pwm_auswahl = Row::new()
+            .push(
+                Element::from(anschluss::Pwm::neu(pwm_state)).map(InterneAuswahlNachricht::PwmPin),
+            )
+            .push(
+                Column::new()
+                    .push(make_radio(Polarität::Normal, pwm_polarität))
+                    .push(make_radio(Polarität::Invertiert, pwm_polarität)),
+            );
         let mut ks_auswahl = Row::new();
         match umdrehen_anzeige {
             UmdrehenAnzeige::KonstanteSpannung => ks_auswahl = ks_auswahl.push(umdrehen_auswahl),
@@ -594,6 +627,7 @@ where
             aktueller_tab,
             umdrehen_anschluss,
             pwm_pin,
+            pwm_polarität,
             neuer_ks_anschluss,
             ks_anschlüsse: anschlüsse_save,
             pwm_nachricht,
@@ -639,6 +673,9 @@ where
                     *self.umdrehen_anschluss = anschluss
                 },
                 InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
+                InterneAuswahlNachricht::PwmPolarität(polarität) => {
+                    *self.pwm_polarität = polarität
+                },
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss) => {
                     *self.ks_anschlüsse[ix] = anschluss
                 },
@@ -649,11 +686,12 @@ where
                     self.ks_anschlüsse.remove(ix.get());
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(
-                        if self.aktueller_tab == &0 {
+                    messages.push(AuswahlNachricht::Hinzufügen(Geschwindigkeit {
+                        leiter: if self.aktueller_tab == &0 {
                             (self.pwm_nachricht)(
                                 self.umdrehen_anschluss.clone(),
                                 self.pwm_pin.clone(),
+                                *self.pwm_polarität,
                             )
                         } else {
                             (self.ks_nachricht)(
@@ -665,7 +703,7 @@ where
                                     .unwrap(),
                             )
                         },
-                    ))
+                    }))
                 },
                 InterneAuswahlNachricht::Löschen(name) => {
                     messages.push(AuswahlNachricht::Löschen(name))
