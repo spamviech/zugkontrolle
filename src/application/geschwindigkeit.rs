@@ -97,8 +97,6 @@ where
             + tabs::Renderer
             + number_input::Renderer,
         <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>;
-
-    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>);
 }
 
 #[derive(Debug, Clone)]
@@ -193,10 +191,6 @@ impl LeiterAnzeige for Mittelleiter {
                 umdrehen,
             },
         )
-    }
-
-    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
-        todo!()
     }
 }
 
@@ -308,10 +302,6 @@ impl LeiterAnzeige for Zweileiter {
                 fahrtrichtung,
             },
         )
-    }
-
-    fn auswahl_update(status: &mut AuswahlStatus, nachricht: AuswahlNachricht<Self>) {
-        todo!()
     }
 }
 
@@ -470,7 +460,7 @@ where
     <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
 {
     Schließen,
-    Hinzufügen(<Geschwindigkeit<Leiter> as ToSave>::Save),
+    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave>::Save),
     Löschen(Name),
 }
 
@@ -685,8 +675,8 @@ where
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     self.ks_anschlüsse.remove(ix.get());
                 },
-                InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(Geschwindigkeit {
+                InterneAuswahlNachricht::Hinzufügen => messages.push(
+                    AuswahlNachricht::Hinzufügen(Name(self.neu_name.clone()), Geschwindigkeit {
                         leiter: if self.aktueller_tab == &0 {
                             (self.pwm_nachricht)(
                                 self.umdrehen_anschluss.clone(),
@@ -703,8 +693,8 @@ where
                                     .unwrap(),
                             )
                         },
-                    }))
-                },
+                    }),
+                ),
                 InterneAuswahlNachricht::Löschen(name) => {
                     messages.push(AuswahlNachricht::Löschen(name))
                 },
