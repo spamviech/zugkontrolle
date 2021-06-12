@@ -40,9 +40,9 @@ impl<T> NonEmpty<T> {
         Iter { head: &self.head, is_head: true, tail: self.tail.iter() }
     }
 
-    // pub fn iter_mut(&mut self) -> IterMut<'_, T> {
-    //     IterMut { head: &mut self.head, is_head: true, tail: self.tail.iter_mut() }
-    // }
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+        IterMut { head: &mut self.head, is_head: true, tail: self.tail.iter_mut() }
+    }
 
     pub fn len(&self) -> usize {
         1 + self.tail.len()
@@ -116,7 +116,6 @@ impl<'t, T> Iterator for Iter<'t, T> {
     }
 }
 
-/*
 pub struct IterMut<'t, T> {
     head: &'t mut T,
     is_head: bool,
@@ -124,19 +123,23 @@ pub struct IterMut<'t, T> {
 }
 
 // lifetime problems due to mutable reference
-impl<'t, T> MutIterator for IterMut<'t, T> {
+impl<'t, T> Iterator for IterMut<'t, T> {
     type Item = &'t mut T;
 
     fn next<'n>(&'n mut self) -> Option<Self::Item> {
         if self.is_head {
             self.is_head = false;
-            Some(self.head)
+            // http://smallcultfollowing.com/babysteps/blog/2013/10/24/iterators-yielding-mutable-references/
+            // https://doc.rust-lang.org/nomicon/transmutes.html
+            // as long as IterMut exists (i.e. lifetime 't) no one else can access the NonEmpty
+            // therefore, unsafe to extend the returned lifetime is safe here
+            let head: &'t mut T = unsafe { std::mem::transmute(&mut self.head) };
+            Some(head)
         } else {
             self.tail.next()
         }
     }
 }
-*/
 
 pub struct IntoIter<T> {
     head: Option<T>,
