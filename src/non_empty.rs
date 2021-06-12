@@ -47,6 +47,33 @@ impl<T> NonEmpty<T> {
     pub fn len(&self) -> usize {
         1 + self.tail.len()
     }
+
+    /// Add a new element to the end of the NonEmpty.
+    pub fn push(&mut self, t: T) {
+        self.tail.push(t)
+    }
+
+    /// Return the last element and removes it from the NonEmpty,
+    /// returning None if only one element remains.
+    pub fn pop(&mut self) -> Option<T> {
+        self.tail.pop()
+    }
+
+    /// Remove the element at the specified index and return it.
+    /// None is returned for out-of-bound indices and the last element.
+    pub fn remove(&mut self, index: usize) -> Option<T> {
+        let len = self.len();
+        if index > len || (len == 1 && index == 0) {
+            return None
+        }
+        if index == 0 {
+            let mut new_head = self.tail.remove(0);
+            std::mem::swap(&mut self.head, &mut new_head);
+            Some(new_head)
+        } else {
+            Some(self.tail.remove(index - 1))
+        }
+    }
 }
 
 impl<T> Index<usize> for NonEmpty<T> {

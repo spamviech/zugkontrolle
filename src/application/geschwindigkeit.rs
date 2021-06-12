@@ -42,9 +42,9 @@ use iced_native::{
 };
 
 use super::{anschluss, macros::reexport_no_event_methods};
-use crate::anschluss::{polarity::Polarität, pwm, OutputSave};
+use crate::anschluss::{polarity::Polarität, pwm, OutputSave, ToSave};
 use crate::farbe::Farbe;
-use crate::non_empty::NonEmpty;
+use crate::non_empty::{MaybeEmpty, NonEmpty};
 pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
 use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
 
@@ -323,8 +323,9 @@ pub struct AuswahlStatus {
     umdrehen_state: anschluss::Status<anschluss::Output>,
     pwm_pin: pwm::Save,
     pwm_state: anschluss::PwmState,
+    neuer_ks_anschluss: bool,
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
-    neu_button_state: button::State,
+    hinzufügen_button_state: button::State,
 }
 
 impl AuswahlStatus {
@@ -337,12 +338,168 @@ impl AuswahlStatus {
             umdrehen_state: anschluss::Status::neu_output(),
             pwm_pin: pwm::Save(0),
             pwm_state: anschluss::PwmState::neu(),
+            neuer_ks_anschluss: false,
             ks_anschlüsse: NonEmpty::singleton((
                 OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
                 anschluss::Status::neu_output(),
                 button::State::new(),
             )),
-            neu_button_state: button::State::new(),
+            hinzufügen_button_state: button::State::new(),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum InterneAuswahlNachricht {
+    WähleTab(u8),
+    PwmPin(pwm::Save),
+    KonstanteSpannungAnschluss(usize, OutputSave),
+    NeuerKonstanteSpannungAnschluss,
+    LöscheKonstanteSpannungAnschluss(usize),
+    Hinzufügen,
+}
+
+#[derive(Debug, Clone)]
+pub enum AuswahlNachricht<Leiter: ToSave>
+where
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+{
+    Schließen,
+    Hinzufügen(<Geschwindigkeit<Leiter> as ToSave>::Save),
+    Löschen(Name),
+}
+
+pub struct Auswahl<'t, F, G, R: card::Renderer> {
+    card: Card<'t, InterneAuswahlNachricht, R>,
+    aktueller_tab: &'t mut u8,
+    umdrehen_anschluss: &'t mut OutputSave,
+    pwm_pin: &'t mut pwm::Save,
+    neuer_ks_anschluss: &'t mut bool,
+    ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
+    pwm_nachricht: &'t F,
+    ks_nachricht: &'t G,
+}
+
+enum UmdrehenAnzeige {
+    KonstanteSpannung,
+    Immer,
+}
+
+impl<'t, F, G, R: card::Renderer> Auswahl<'t, F, G, R> {
+    fn neu<Leiter>(
+        status: &'t mut AuswahlStatus,
+        umdrehen_anzeige: UmdrehenAnzeige,
+        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+        ks_nachricht: &'t impl Fn(
+            OutputSave,
+            NonEmpty<OutputSave>,
+        ) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    ) -> Self
+    where
+        Leiter: ToSave,
+        F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+        G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    {
+        let AuswahlStatus {
+            neu_name,
+            neu_name_state,
+            aktueller_tab,
+            umdrehen_anschluss,
+            umdrehen_state,
+            pwm_pin,
+            pwm_state,
+            neuer_ks_anschluss,
+            ks_anschlüsse,
+            hinzufügen_button_state,
+        } = status;
+        if *neuer_ks_anschluss {
+            *neuer_ks_anschluss = false;
+            ks_anschlüsse.push((
+                OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+                anschluss::Status::neu_output(),
+                button::State::new(),
+            ))
+        }
+        todo!()
+    }
+}
+
+impl<'t, Leiter, F, G, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, F, G, R>
+where
+    Leiter: ToSave,
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    R: Renderer + card::Renderer,
+{
+    reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &R,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<AuswahlNachricht<Leiter>>,
+    ) -> event::Status {
+        let mut column_messages = Vec::new();
+        let mut status = self.card.on_event(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            &mut column_messages,
+        );
+        for message in column_messages {
+            status = event::Status::Captured;
+            match message {
+                InterneAuswahlNachricht::WähleTab(tab) => *self.aktueller_tab = tab,
+                InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
+                InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss) => {
+                    *self.ks_anschlüsse[ix] = anschluss
+                },
+                InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
+                    *self.neuer_ks_anschluss = true
+                },
+                InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
+                    self.ks_anschlüsse.remove(ix);
+                },
+                InterneAuswahlNachricht::Hinzufügen => {
+                    messages.push(AuswahlNachricht::Hinzufügen(
+                        if self.aktueller_tab == &0 {
+                            (self.pwm_nachricht)(
+                                self.umdrehen_anschluss.clone(),
+                                self.pwm_pin.clone(),
+                            )
+                        } else {
+                            (self.ks_nachricht)(
+                                self.umdrehen_anschluss.clone(),
+                                self.ks_anschlüsse
+                                    .iter()
+                                    .map(|output_save| (*output_save).clone())
+                                    .collect::<MaybeEmpty<_>>()
+                                    .unwrap(),
+                            )
+                        },
+                    ))
+                },
+            }
+        }
+        status
+    }
+}
+
+impl<'t, Leiter, F, G, R> From<Auswahl<'t, F, G, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
+where
+    Leiter: ToSave,
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    F: Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    G: Fn(OutputSave, NonEmpty<OutputSave>) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+    R: 't + Renderer + card::Renderer,
+{
+    fn from(anzeige: Auswahl<'t, F, G, R>) -> Self {
+        Element::new(anzeige)
     }
 }
