@@ -24,10 +24,16 @@ use iced_native::{
     Text,
     Widget,
 };
-use num_x::u3;
 
 use super::macros::reexport_no_event_methods;
-use crate::anschluss::{level::Level, pcf8574::Variante, polarity::Polarität};
+use crate::anschluss::{
+    level::Level,
+    pcf8574::Variante,
+    pin::pwm,
+    polarity::Polarität,
+    InputSave,
+    OutputSave,
+};
 
 pub mod style;
 
@@ -63,11 +69,11 @@ impl<'t> Status<Input<'t>> {
     }
 
     #[inline]
-    pub fn input_anschluss(&self) -> InputAnschluss {
+    pub fn input_anschluss(&self) -> InputSave {
         self.anschluss(
-            |pin, _input| InputAnschluss::Pin { pin },
+            |pin, _input| InputSave::Pin { pin },
             |a0, a1, a2, variante, port, Input { pin, interrupt_pins, .. }| {
-                InputAnschluss::Pcf8574Port {
+                InputSave::Pcf8574Port {
                     a0,
                     a1,
                     a2,
@@ -95,10 +101,10 @@ impl Status<Output> {
     }
 
     #[inline]
-    pub fn output_anschluss(&self) -> OutputAnschluss {
+    pub fn output_anschluss(&self) -> OutputSave {
         self.anschluss(
-            |pin, Output { polarität }| OutputAnschluss::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, Output { polarität }| OutputAnschluss::Pcf8574Port {
+            |pin, Output { polarität }| OutputSave::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, Output { polarität }| OutputSave::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -114,12 +120,12 @@ impl<T> Status<T> {
     fn anschluss<M>(
         &self,
         make_pin: impl Fn(u8, &T) -> M,
-        make_port: impl Fn(Level, Level, Level, Variante, u3, &T) -> M,
+        make_port: impl Fn(Level, Level, Level, Variante, u8, &T) -> M,
     ) -> M {
         if self.active_tab == 0 {
             make_pin(self.pin, &self.modus)
         } else {
-            make_port(self.a0, self.a1, self.a2, self.variante, u3::new(self.port), &self.modus)
+            make_port(self.a0, self.a1, self.a2, self.variante, self.port, &self.modus)
         }
     }
 
@@ -171,10 +177,10 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
     make_pin: &'a dyn Fn(u8, &T) -> M,
-    make_port: Box<dyn Fn(Level, Level, Level, Variante, u3, &T) -> M>,
+    make_port: Box<dyn Fn(Level, Level, Level, Variante, u8, &T) -> M>,
 }
 
-impl<'a, R> Auswahl<'a, u8, InputMessage, InputAnschluss, R>
+impl<'a, R> Auswahl<'a, u8, InputMessage, InputSave, R>
 where
     R: 'a
         + Renderer
@@ -204,8 +210,8 @@ where
                 )
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
-            &|pin, _input| InputAnschluss::Pin { pin },
-            move |a0, a1, a2, variante, port, pin| InputAnschluss::Pcf8574Port {
+            &|pin, _input| InputSave::Pin { pin },
+            move |a0, a1, a2, variante, port, pin| InputSave::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -221,7 +227,7 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputMessage, OutputAnschluss, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputMessage, OutputSave, R>
 where
     R: 'a
         + Renderer
@@ -259,8 +265,8 @@ where
                 )
             },
             &|modus, OutputMessage::Polarität(polarität)| *modus = polarität,
-            &|pin, polarität| OutputAnschluss::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, polarität| OutputAnschluss::Pcf8574Port {
+            &|pin, polarität| OutputSave::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, polarität| OutputSave::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -332,7 +338,7 @@ where
         ) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
         make_pin: &'a impl Fn(u8, &T) -> M,
-        make_port: impl 'static + Fn(Level, Level, Level, Variante, u3, &T) -> M,
+        make_port: impl 'static + Fn(Level, Level, Level, Variante, u8, &T) -> M,
     ) -> Self {
         let (view_modus, modus) = view_modus(modus, *a0, *a1, *a2, *variante);
         let view_modus_mapped = view_modus.map(InternalMessage::Modus);
@@ -403,37 +409,6 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum InputAnschluss {
-    Pin {
-        pin: u8,
-    },
-    Pcf8574Port {
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        port: u3,
-        interrupt: Option<u8>,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum OutputAnschluss {
-    Pin {
-        pin: u8,
-        polarität: Polarität,
-    },
-    Pcf8574Port {
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        port: u3,
-        polarität: Polarität,
-    },
-}
-
 impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, M, R>
 where
     T: Copy,
@@ -484,7 +459,7 @@ where
                         *self.a1,
                         *self.a2,
                         *self.variante,
-                        u3::new(*self.port),
+                        *self.port,
                         self.modus,
                     )
                 },
@@ -515,12 +490,9 @@ impl PwmState {
 }
 
 pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
-    number_input: NumberInput<'a, u8, PwmPin, R>,
+    number_input: NumberInput<'a, u8, pwm::Save, R>,
     pin: &'a mut u8,
 }
-
-#[derive(Debug, Clone)]
-pub struct PwmPin(pub u8);
 
 impl<'a, R> Pwm<'a, R>
 where
@@ -534,11 +506,11 @@ where
         + number_input::Renderer,
 {
     pub fn neu(PwmState { pin, number_input_state }: &'a mut PwmState) -> Self {
-        Pwm { number_input: NumberInput::new(number_input_state, 0, 32, PwmPin), pin }
+        Pwm { number_input: NumberInput::new(number_input_state, 0, 32, pwm::Save), pin }
     }
 }
 
-impl<'a, R> Widget<PwmPin, R> for Pwm<'a, R>
+impl<'a, R> Widget<pwm::Save, R> for Pwm<'a, R>
 where
     R: 'a
         + Renderer
@@ -547,7 +519,7 @@ where
         + row::Renderer
         + number_input::Renderer,
 {
-    reexport_no_event_methods! {NumberInput<'a, u8, PwmPin, R>, number_input, PwmPin, R}
+    reexport_no_event_methods! {NumberInput<'a, u8, pwm::Save, R>, number_input, pwm::Save, R}
 
     fn on_event(
         &mut self,
@@ -556,7 +528,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<PwmPin>,
+        messages: &mut Vec<pwm::Save>,
     ) -> event::Status {
         let mut status = self.number_input.on_event(
             event,
@@ -566,7 +538,7 @@ where
             clipboard,
             messages,
         );
-        if let Some(PwmPin(pin)) = messages.last() {
+        if let Some(pwm::Save(pin)) = messages.last() {
             *self.pin = *pin;
             status = event::Status::Captured;
         }
@@ -574,7 +546,7 @@ where
     }
 }
 
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, PwmPin, R>
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Save, R>
 where
     R: 'a
         + Renderer

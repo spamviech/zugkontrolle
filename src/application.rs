@@ -9,6 +9,7 @@ use gleis::{
     *,
 };
 use log::error;
+use num_x::u3;
 use serde::{Deserialize, Serialize};
 use version::version;
 
@@ -16,7 +17,7 @@ use self::geschwindigkeit::LeiterAnzeige;
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
-use crate::anschluss::{anschlüsse::Anschlüsse, ToSave};
+use crate::anschluss::{anschlüsse::Anschlüsse, OutputSave, ToSave};
 use crate::farbe::Farbe;
 
 pub mod anschluss;
@@ -123,7 +124,7 @@ pub enum Message<Z: Zugtyp> {
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
-    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, anschluss::OutputAnschluss),
+    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSave),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyIdLock<Z>),
     StreckenabschnittFestlegen(bool),
@@ -378,22 +379,15 @@ where
             },
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
                 let anschluss = match anschluss_definition {
-                    anschluss::OutputAnschluss::Pin { pin, polarität } => self
+                    OutputSave::Pin { pin, polarität } => self
                         .anschlüsse
                         .reserviere_pin(pin)
                         .map_err(crate::anschluss::Error::from)
                         .map(crate::anschluss::Pin::into_output)
                         .map(|pin| crate::anschluss::OutputAnschluss::Pin { pin, polarität }),
-                    anschluss::OutputAnschluss::Pcf8574Port {
-                        a0,
-                        a1,
-                        a2,
-                        variante,
-                        port,
-                        polarität,
-                    } => self
+                    OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => self
                         .anschlüsse
-                        .reserviere_pcf8574_port(a0, a1, a2, variante, port)
+                        .reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))
                         .map_err(crate::anschluss::Error::from)
                         .and_then(|port| port.into_output().map_err(Into::into))
                         .map(|port| crate::anschluss::OutputAnschluss::Pcf8574Port {
