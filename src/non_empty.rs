@@ -76,6 +76,8 @@ impl<T> NonEmpty<T> {
     }
 }
 
+// TODO entferne Index-Trait? (panics on out-of-bounds index)
+// verwende stattdessen get/get_mut-Methoden mit Option-Ergebnis
 impl<T> Index<usize> for NonEmpty<T> {
     type Output = T;
 

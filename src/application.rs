@@ -884,7 +884,7 @@ where
             }
         },
         Modus::Fahren => {
-            scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten"));
+            scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten")).spacing(1);
             for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
                 let name_clone = name.clone();
                 scrollable = scrollable.push(

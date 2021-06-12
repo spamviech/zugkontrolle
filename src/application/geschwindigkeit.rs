@@ -306,7 +306,7 @@ impl LeiterAnzeige for Zweileiter {
 }
 
 pub struct Anzeige<'t, M, R> {
-    row: Row<'t, M, R>,
+    column: Column<'t, M, R>,
 }
 impl<'t, M, R> Anzeige<'t, M, R>
 where
@@ -330,42 +330,49 @@ where
         let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
             status;
         // TODO Anschluss-Anzeige (Expander über Overlay?)
-        let mut row = Row::new().push(Text::new(&name.0));
-        row = if let Some(iter) = ks_iter(geschwindigkeit) {
-            row.push(Column::with_children(
-                iter::once(())
-                    .chain(iter.map(|_| ()))
-                    .enumerate()
-                    .map(|(i, ())| {
-                        let i_u8 = i as u8;
-                        Radio::new(
-                            i_u8,
-                            i_u8.to_string(),
-                            Some(*aktuelle_geschwindigkeit),
-                            geschwindigkeits_nachricht.clone(),
-                        )
-                        .into()
-                    })
-                    .collect(),
-            ))
+        let mut column = Column::new().spacing(1).push(Text::new(&name.0));
+        column = if let Some(iter) = ks_iter(geschwindigkeit) {
+            column.push(
+                Row::with_children(
+                    iter::once(())
+                        .chain(iter.map(|_| ()))
+                        .enumerate()
+                        .map(|(i, ())| {
+                            let i_u8 = i as u8;
+                            Radio::new(
+                                i_u8,
+                                i_u8.to_string(),
+                                Some(*aktuelle_geschwindigkeit),
+                                geschwindigkeits_nachricht.clone(),
+                            )
+                            .spacing(0)
+                            .into()
+                        })
+                        .collect(),
+                )
+                .spacing(0),
+            )
         } else {
-            row.push(Slider::new(
-                pwm_slider_state,
-                0 ..= u8::MAX,
-                *aktuelle_geschwindigkeit,
-                geschwindigkeits_nachricht,
-            ))
+            column.push(
+                Slider::new(
+                    pwm_slider_state,
+                    0 ..= u8::MAX,
+                    *aktuelle_geschwindigkeit,
+                    geschwindigkeits_nachricht,
+                )
+                .width(Length::Units(100)),
+            )
         };
-        row = row.push(zeige_fahrtrichtung(fahrtrichtung_state));
-        Anzeige { row }
+        column = column.push(zeige_fahrtrichtung(fahrtrichtung_state));
+        Anzeige { column }
     }
 }
 
 impl<'t, M, R> Widget<M, R> for Anzeige<'t, M, R>
 where
-    R: Renderer + row::Renderer,
+    R: Renderer + column::Renderer,
 {
-    reexport_no_event_methods! {Row<'t, M, R>, row, M, R}
+    reexport_no_event_methods! {Column<'t, M, R>, column, M, R}
 
     fn on_event(
         &mut self,
@@ -376,7 +383,7 @@ where
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<M>,
     ) -> event::Status {
-        self.row.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+        self.column.on_event(event, layout, cursor_position, renderer, clipboard, messages)
     }
 
     fn overlay(&mut self, _layout: Layout<'_>) -> Option<overlay::Element<'_, M, R>> {
@@ -388,7 +395,7 @@ where
 impl<'t, M, R> From<Anzeige<'t, M, R>> for Element<'t, M, R>
 where
     M: 'static,
-    R: 't + Renderer + row::Renderer,
+    R: 't + Renderer + column::Renderer,
 {
     fn from(anzeige: Anzeige<'t, M, R>) -> Self {
         Element::new(anzeige)
