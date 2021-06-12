@@ -14,6 +14,10 @@ pub struct NonEmpty<T> {
 }
 
 impl<T> NonEmpty<T> {
+    pub fn singleton(head: T) -> Self {
+        NonEmpty { head, tail: Vec::new() }
+    }
+
     pub fn head(&self) -> &T {
         &self.head
     }

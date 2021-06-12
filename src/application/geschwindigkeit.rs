@@ -42,8 +42,9 @@ use iced_native::{
 };
 
 use super::{anschluss, macros::reexport_no_event_methods};
-use crate::anschluss::polarity::Polarität;
+use crate::anschluss::{polarity::Polarität, pwm, OutputSave};
 use crate::farbe::Farbe;
+use crate::non_empty::NonEmpty;
 pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
 use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
 
@@ -311,5 +312,37 @@ where
 {
     fn from(anzeige: Anzeige<'t, M, R>) -> Self {
         Element::new(anzeige)
+    }
+}
+
+pub struct AuswahlStatus {
+    neu_name: String,
+    neu_name_state: text_input::State,
+    aktueller_tab: usize,
+    umdrehen_anschluss: OutputSave,
+    umdrehen_state: anschluss::Status<anschluss::Output>,
+    pwm_pin: pwm::Save,
+    pwm_state: anschluss::PwmState,
+    ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
+    neu_button_state: button::State,
+}
+
+impl AuswahlStatus {
+    pub fn neu() -> Self {
+        AuswahlStatus {
+            neu_name: String::new(),
+            neu_name_state: text_input::State::new(),
+            aktueller_tab: 0,
+            umdrehen_anschluss: OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+            umdrehen_state: anschluss::Status::neu_output(),
+            pwm_pin: pwm::Save(0),
+            pwm_state: anschluss::PwmState::neu(),
+            ks_anschlüsse: NonEmpty::singleton((
+                OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+                anschluss::Status::neu_output(),
+                button::State::new(),
+            )),
+            neu_button_state: button::State::new(),
+        }
     }
 }
