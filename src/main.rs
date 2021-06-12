@@ -11,6 +11,7 @@ use zugkontrolle::{
 };
 
 pub mod args;
+use self::args::Args;
 
 fn main() -> Result<(), Error> {
     SimpleLogger::new()
@@ -19,7 +20,7 @@ fn main() -> Result<(), Error> {
         .init()
         .expect("failed to initialize error logging");
 
-    let args::Args { zugtyp, pfad, .. } = args::Args::from_env();
+    let Args { zugtyp, pfad, .. } = Args::from_env();
     Anschlüsse::neu().map_err(Error::from).and_then(|anschlüsse| {
         let settings = Settings {
             window: iced::window::Settings {

@@ -135,6 +135,7 @@ pub enum Message<Z: Zugtyp> {
         nachricht: <Z::Leiter as LeiterAnzeige>::Message,
     },
 }
+
 impl<Z: Zugtyp> From<gleise::Message<Z>> for Message<Z> {
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
@@ -161,6 +162,12 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 }
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
+
+impl<Z: Zugtyp> Message<Z> {
+    async fn laden() -> Message<Z> {
+        Message::Laden
+    }
+}
 
 #[derive(Debug)]
 enum Modal {
@@ -264,7 +271,12 @@ where
     fn new((anschlüsse, pfad_arg): Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let gleise = Gleise::neu();
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
-        let mut zugkontrolle = Zugkontrolle {
+        let command = if pfad_arg.is_some() {
+            iced::Command::perform(Message::laden(), identity)
+        } else {
+            iced::Command::none()
+        };
+        let zugkontrolle = Zugkontrolle {
             anschlüsse,
             gleise,
             scrollable_state: iced::scrollable::State::new(),
@@ -295,13 +307,9 @@ where
             speichern: iced::button::State::new(),
             laden: iced::button::State::new(),
             pfad: iced::text_input::State::new(),
-            aktueller_pfad: format!("{}.zug", Z::NAME),
+            aktueller_pfad: pfad_arg.unwrap_or(format!("{}.zug", Z::NAME)),
         };
-        if let Some(pfad) = pfad_arg {
-            zugkontrolle.aktueller_pfad = pfad;
-            zugkontrolle.laden()
-        }
-        (zugkontrolle, iced::Command::none())
+        (zugkontrolle, command)
     }
 
     fn title(&self) -> String {
