@@ -396,6 +396,12 @@ where
 }
 
 #[derive(Debug)]
+enum KonstanteSpannungAnpassen {
+    Hinzufügen,
+    Entfernen(NonZeroUsize),
+}
+
+#[derive(Debug)]
 pub struct AuswahlStatus {
     neu_name: String,
     neu_name_state: text_input::State,
@@ -405,7 +411,7 @@ pub struct AuswahlStatus {
     pwm_pin: pwm::Save,
     pwm_polarität: Polarität,
     pwm_state: anschluss::PwmState,
-    neuer_ks_anschluss: bool,
+    ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
     ks_scrollable_state: scrollable::State,
     hinzufügen_button_state: button::State,
@@ -424,7 +430,7 @@ impl AuswahlStatus {
             pwm_pin: pwm::Save(0),
             pwm_polarität: Polarität::Normal,
             pwm_state: anschluss::PwmState::neu(),
-            neuer_ks_anschluss: false,
+            ks_anschlüsse_anpassen: None,
             ks_anschlüsse: NonEmpty::singleton((
                 OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
                 anschluss::Status::neu_output(),
@@ -485,7 +491,7 @@ where
     umdrehen_anschluss: &'t mut OutputSave,
     pwm_pin: &'t mut pwm::Save,
     pwm_polarität: &'t mut Polarität,
-    neuer_ks_anschluss: &'t mut bool,
+    ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
     pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
     ks_nachricht: &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
@@ -529,20 +535,25 @@ where
             pwm_pin,
             pwm_polarität,
             pwm_state,
-            neuer_ks_anschluss,
+            ks_anschlüsse_anpassen,
             ks_anschlüsse,
             ks_scrollable_state,
             hinzufügen_button_state,
             geschwindigkeiten,
             scrollable_state,
         } = status;
-        if *neuer_ks_anschluss {
-            *neuer_ks_anschluss = false;
-            ks_anschlüsse.push((
-                OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
-                anschluss::Status::neu_output(),
-                button::State::new(),
-            ))
+        if let Some(anpassen) = ks_anschlüsse_anpassen {
+            match anpassen {
+                KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse.push((
+                    OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+                    anschluss::Status::neu_output(),
+                    button::State::new(),
+                )),
+                KonstanteSpannungAnpassen::Entfernen(ix) => {
+                    ks_anschlüsse.remove(ix.get());
+                },
+            }
+            *ks_anschlüsse_anpassen = None;
         }
         // TODO Anzeige vorhandene Geschwindigkeiten mit Löschen-Knopf
         let (output_save_head, status_head, button_state_head) = &mut ks_anschlüsse.head;
@@ -565,7 +576,12 @@ where
         let umdrehen_auswahl = Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
             .map(InterneAuswahlNachricht::UmdrehenAnschluss);
         let make_radio = |polarität: Polarität, aktuell: &Polarität| {
-            Radio::new(polarität, "Normal", Some(*aktuell), InterneAuswahlNachricht::PwmPolarität)
+            Radio::new(
+                polarität,
+                polarität.to_string(),
+                Some(*aktuell),
+                InterneAuswahlNachricht::PwmPolarität,
+            )
         };
         let pwm_auswahl = Row::new()
             .push(
@@ -628,7 +644,7 @@ where
             umdrehen_anschluss,
             pwm_pin,
             pwm_polarität,
-            neuer_ks_anschluss,
+            ks_anschlüsse_anpassen,
             ks_anschlüsse: anschlüsse_save,
             pwm_nachricht,
             ks_nachricht,
@@ -680,9 +696,10 @@ where
                     *self.ks_anschlüsse[ix] = anschluss
                 },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
-                    *self.neuer_ks_anschluss = true
+                    *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
                 },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
+                    *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
                     self.ks_anschlüsse.remove(ix.get());
                 },
                 InterneAuswahlNachricht::Hinzufügen => messages.push(
