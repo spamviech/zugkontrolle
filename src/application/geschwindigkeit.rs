@@ -326,10 +326,12 @@ pub struct AuswahlStatus {
     neuer_ks_anschluss: bool,
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
     hinzufügen_button_state: button::State,
+    geschwindigkeiten: BTreeMap<Name, button::State>,
+    scrollable_state: scrollable::State,
 }
 
 impl AuswahlStatus {
-    pub fn neu() -> Self {
+    pub fn neu<'t>(geschwindigkeiten: impl Iterator<Item = &'t Name>) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
             neu_name_state: text_input::State::new(),
@@ -345,18 +347,25 @@ impl AuswahlStatus {
                 button::State::new(),
             )),
             hinzufügen_button_state: button::State::new(),
+            geschwindigkeiten: geschwindigkeiten
+                .map(|name| (name.clone(), button::State::new()))
+                .collect(),
+            scrollable_state: scrollable::State::new(),
         }
     }
 }
 
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
-    WähleTab(u8),
+    Schließen,
+    WähleTab(usize),
+    Name(String),
     PwmPin(pwm::Save),
     KonstanteSpannungAnschluss(usize, OutputSave),
     NeuerKonstanteSpannungAnschluss,
     LöscheKonstanteSpannungAnschluss(usize),
     Hinzufügen,
+    Löschen(Name),
 }
 
 #[derive(Debug, Clone)]
@@ -371,7 +380,8 @@ where
 
 pub struct Auswahl<'t, F, G, R: card::Renderer> {
     card: Card<'t, InterneAuswahlNachricht, R>,
-    aktueller_tab: &'t mut u8,
+    neu_name: &'t mut String,
+    aktueller_tab: &'t mut usize,
     umdrehen_anschluss: &'t mut OutputSave,
     pwm_pin: &'t mut pwm::Save,
     neuer_ks_anschluss: &'t mut bool,
@@ -385,15 +395,21 @@ enum UmdrehenAnzeige {
     Immer,
 }
 
-impl<'t, F, G, R: card::Renderer> Auswahl<'t, F, G, R> {
+impl<'t, F, G, R> Auswahl<'t, F, G, R>
+where
+    R: 't
+        + column::Renderer
+        + scrollable::Renderer
+        + text::Renderer
+        + text_input::Renderer
+        + button::Renderer
+        + card::Renderer,
+{
     fn neu<Leiter>(
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
-        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
-        ks_nachricht: &'t impl Fn(
-            OutputSave,
-            NonEmpty<OutputSave>,
-        ) -> <Geschwindigkeit<Leiter> as ToSave>::Save,
+        pwm_nachricht: &'t F,
+        ks_nachricht: &'t G,
     ) -> Self
     where
         Leiter: ToSave,
@@ -411,6 +427,8 @@ impl<'t, F, G, R: card::Renderer> Auswahl<'t, F, G, R> {
             neuer_ks_anschluss,
             ks_anschlüsse,
             hinzufügen_button_state,
+            geschwindigkeiten,
+            scrollable_state,
         } = status;
         if *neuer_ks_anschluss {
             *neuer_ks_anschluss = false;
@@ -420,7 +438,50 @@ impl<'t, F, G, R: card::Renderer> Auswahl<'t, F, G, R> {
                 button::State::new(),
             ))
         }
-        todo!()
+        // TODO Anzeige vorhandene Geschwindigkeiten mit Löschen-Knopf
+        let (output_save_head, status_head, button_state_head) = &mut ks_anschlüsse.head;
+        let anschlüsse_state_head = (output_save_head.clone(), status_head, button_state_head);
+        let (anschlüsse_state_tail, anschlüsse_save_tail): (Vec<_>, Vec<_>) = ks_anschlüsse
+            .tail
+            .iter_mut()
+            .map(|(output_save, status, button_state)| {
+                ((output_save.clone(), status, button_state), output_save)
+            })
+            .unzip();
+        let anschlüsse_state =
+            NonEmpty { head: anschlüsse_state_head, tail: anschlüsse_state_tail };
+        let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
+        // TODO mehr als Auswahl anzeigen
+        let neu = Column::new().push(TextInput::new(
+            neu_name_state,
+            "<Name>",
+            neu_name,
+            InterneAuswahlNachricht::Name,
+        ));
+        let mut scrollable = Scrollable::new(scrollable_state).push(neu);
+        for (i, (name, button_state)) in geschwindigkeiten.iter_mut().enumerate() {
+            let button = if i == 0 {
+                Button::new(button_state, Text::new("+"))
+                    .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss)
+            } else {
+                Button::new(button_state, Text::new("+"))
+                    .on_press(InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(i))
+            };
+            scrollable = scrollable.push(Column::new().push(Text::new(&name.0)).push(button));
+        }
+        let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
+            .on_close(InterneAuswahlNachricht::Schließen);
+        Auswahl {
+            card,
+            neu_name,
+            aktueller_tab,
+            umdrehen_anschluss,
+            pwm_pin,
+            neuer_ks_anschluss,
+            ks_anschlüsse: anschlüsse_save,
+            pwm_nachricht,
+            ks_nachricht,
+        }
     }
 }
 
@@ -455,7 +516,9 @@ where
         for message in column_messages {
             status = event::Status::Captured;
             match message {
+                InterneAuswahlNachricht::Schließen => messages.push(AuswahlNachricht::Schließen),
                 InterneAuswahlNachricht::WähleTab(tab) => *self.aktueller_tab = tab,
+                InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss) => {
                     *self.ks_anschlüsse[ix] = anschluss
@@ -484,6 +547,9 @@ where
                             )
                         },
                     ))
+                },
+                InterneAuswahlNachricht::Löschen(name) => {
+                    messages.push(AuswahlNachricht::Löschen(name))
                 },
             }
         }
