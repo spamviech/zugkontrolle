@@ -507,7 +507,7 @@ where
         + number_input::Renderer,
 {
     pub fn neu(PwmState { pin, number_input_state }: &'a mut PwmState) -> Self {
-        Pwm { number_input: NumberInput::new(number_input_state, 0, 32, pwm::Save), pin }
+        Pwm { number_input: NumberInput::new(number_input_state, *pin, 32, pwm::Save), pin }
     }
 }
 
