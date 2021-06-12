@@ -44,8 +44,8 @@ use iced_native::{
 use super::{anschluss, macros::reexport_no_event_methods};
 use crate::anschluss::polarity::Polarität;
 use crate::farbe::Farbe;
+pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
 use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
-pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
@@ -76,11 +76,11 @@ pub trait LeiterAnzeige: Sized {
             + slider::Renderer
             + radio::Renderer;
 
-    fn update(
+    fn anzeige_update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message>;
+    ) -> Result<iced::Command<Self::Message>, Error>;
 }
 
 #[derive(Debug, Clone)]
@@ -134,12 +134,19 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn update(
+    fn anzeige_update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message> {
-        todo!()
+    ) -> Result<iced::Command<Self::Message>, Error> {
+        match message {
+            MessageMittelleiter::Geschwindigkeit(wert) => {
+                anzeige_status.aktuelle_geschwindigkeit = wert;
+                geschwindigkeit.geschwindigkeit(wert)
+            },
+            MessageMittelleiter::Umdrehen => geschwindigkeit.umdrehen(),
+        }
+        .map(|()| iced::Command::none())
     }
 }
 
@@ -203,12 +210,22 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn update(
+    fn anzeige_update(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> iced::Command<Self::Message> {
-        todo!()
+    ) -> Result<iced::Command<Self::Message>, Error> {
+        match message {
+            MessageZweileiter::Geschwindigkeit(wert) => {
+                anzeige_status.aktuelle_geschwindigkeit = wert;
+                geschwindigkeit.geschwindigkeit(wert)
+            },
+            MessageZweileiter::Fahrtrichtung(fahrtrichtung) => {
+                anzeige_status.fahrtrichtung_state = fahrtrichtung;
+                geschwindigkeit.fahrtrichtung(fahrtrichtung)
+            },
+        }
+        .map(|()| iced::Command::none())
     }
 }
 

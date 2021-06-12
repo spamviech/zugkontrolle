@@ -477,16 +477,23 @@ where
                 if let Some((geschwindigkeit, anzeige_status)) =
                     self.geschwindigkeiten.get_mut(&name)
                 {
-                    let name_s = name.0.clone();
-                    command = <Z::Leiter as LeiterAnzeige>::update(
+                    match <Z::Leiter as LeiterAnzeige>::anzeige_update(
                         geschwindigkeit,
                         anzeige_status,
                         nachricht,
-                    )
-                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
-                        name: geschwindigkeit::Name(name_s.clone()),
-                        nachricht,
-                    })
+                    ) {
+                        Ok(cmd) => {
+                            let name_clone = name.clone();
+                            command = cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                                name: name_clone.clone(),
+                                nachricht,
+                            })
+                        },
+                        Err(error) => self.zeige_message_box(
+                            format!("Fehler Geschwindigkeit {}", name.0),
+                            format!("{:?}", error),
+                        ),
+                    }
                 } else {
                     error!(
                         "Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}",
