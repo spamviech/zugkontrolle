@@ -78,10 +78,10 @@ pub enum Bewegen {
 impl Bewegen {
     fn bewegen(self) -> Vektor {
         match self {
-            Bewegen::Oben => vektor::EY,
-            Bewegen::Unten => -vektor::EY,
-            Bewegen::Links => vektor::EX,
-            Bewegen::Rechts => -vektor::EX,
+            Bewegen::Oben => -vektor::EY,
+            Bewegen::Unten => vektor::EY,
+            Bewegen::Links => -vektor::EX,
+            Bewegen::Rechts => vektor::EX,
         }
     }
 }
