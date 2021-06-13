@@ -653,110 +653,119 @@ where
                     },
                 }
             },
-            Message::ZeigeAnschlüsseAnpassen(any_id) => {
-                match any_id {
-                    AnyId::Gerade(id) => {
-                        debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-                    },
-                    AnyId::Kurve(id) => {
-                        debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-                    },
-                    AnyId::Weiche(id) => {
-                        if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
-                            let steuerung_save =
-                                steuerung.as_ref().map(|steuerung| steuerung.to_save());
-                            *self.modal_state.inner_mut() = Modal::Weiche(
-                                weiche::Status::neu(steuerung_save),
-                                Box::new(move |steuerung| {
-                                    Message::WeicheAnschlüsseAnpassen(id.clone(), steuerung)
-                                }),
-                            )
-                        } else {
-                            self.zeige_message_box(
-                                "Gleis entfernt!".to_string(),
-                                "Anschlüsse Weiche anpassen für entferntes Gleis!".to_string(),
-                            )
-                        }
-                    },
-                    AnyId::DreiwegeWeiche(id) => {
-                        if let Ok(steuerung) = self.gleise.steuerung_dreiwege_weiche(&id) {
-                            let steuerung_save =
-                                steuerung.as_ref().map(|steuerung| steuerung.to_save());
-                            *self.modal_state.inner_mut() = Modal::DreiwegeWeiche(
-                                weiche::Status::neu(steuerung_save),
-                                Box::new(move |steuerung| {
-                                    Message::DreiwegeWeicheAnschlüsseAnpassen(
-                                        id.clone(),
-                                        steuerung,
-                                    )
-                                }),
-                            )
-                        } else {
-                            self.zeige_message_box(
-                                "Gleis entfernt!".to_string(),
-                                "Anschlüsse DreiwegeWeiche anpassen für entferntes Gleis!"
-                                    .to_string(),
-                            )
-                        }
-                    },
-                    AnyId::KurvenWeiche(id) => {
-                        if let Ok(steuerung) = self.gleise.steuerung_kurven_weiche(&id) {
-                            let steuerung_save =
-                                steuerung.as_ref().map(|steuerung| steuerung.to_save());
-                            *self.modal_state.inner_mut() = Modal::KurvenWeiche(
-                                weiche::Status::neu(steuerung_save),
-                                Box::new(move |steuerung| {
-                                    Message::KurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
-                                }),
-                            )
-                        } else {
-                            self.zeige_message_box(
-                                "Gleis entfernt!".to_string(),
-                                "Anschlüsse KurvenWeiche anpassen für entferntes Gleis!"
-                                    .to_string(),
-                            )
-                        }
-                    },
-                    AnyId::SKurvenWeiche(id) => {
-                        if let Ok(steuerung) = self.gleise.steuerung_s_kurven_weiche(&id) {
-                            let steuerung_save =
-                                steuerung.as_ref().map(|steuerung| steuerung.to_save());
-                            *self.modal_state.inner_mut() = Modal::Weiche(
-                                weiche::Status::neu(steuerung_save),
-                                Box::new(move |steuerung| {
-                                    Message::SKurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
-                                }),
-                            )
-                        } else {
-                            self.zeige_message_box(
-                                "Gleis entfernt!".to_string(),
-                                "Anschlüsse SKurvenWeiche anpassen für entferntes Gleis!"
-                                    .to_string(),
-                            )
-                        }
-                    },
-                    AnyId::Kreuzung(id) => {
-                        if let Ok(steuerung) = self.gleise.steuerung_kreuzung(&id) {
-                            let steuerung_save =
-                                steuerung.as_ref().map(|steuerung| steuerung.to_save());
-                            *self.modal_state.inner_mut() = Modal::Weiche(
-                                weiche::Status::neu(steuerung_save),
-                                Box::new(move |steuerung| {
-                                    Message::KreuzungAnschlüsseAnpassen(id.clone(), steuerung)
-                                }),
-                            )
-                        } else {
-                            self.zeige_message_box(
-                                "Gleis entfernt!".to_string(),
-                                "Anschlüsse Kreuzung anpassen für entferntes Gleis!".to_string(),
-                            )
-                        }
-                    },
-                }
-                self.modal_state.show(true);
+            Message::ZeigeAnschlüsseAnpassen(any_id) => match any_id {
+                AnyId::Gerade(id) => {
+                    debug!("Anschlüsse für Gerade {:?} anpassen.", id)
+                },
+                AnyId::Kurve(id) => {
+                    debug!("Anschlüsse für Kurve {:?} anpassen.", id)
+                },
+                AnyId::Weiche(id) => {
+                    if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
+                        let steuerung_save =
+                            steuerung.as_ref().map(|steuerung| steuerung.to_save());
+                        *self.modal_state.inner_mut() = Modal::Weiche(
+                            weiche::Status::neu(steuerung_save),
+                            Box::new(move |steuerung| {
+                                Message::WeicheAnschlüsseAnpassen(id.clone(), steuerung)
+                            }),
+                        );
+                        self.modal_state.show(true)
+                    } else {
+                        self.zeige_message_box(
+                            "Gleis entfernt!".to_string(),
+                            "Anschlüsse Weiche anpassen für entferntes Gleis!".to_string(),
+                        )
+                    }
+                },
+                AnyId::DreiwegeWeiche(id) => {
+                    if let Ok(steuerung) = self.gleise.steuerung_dreiwege_weiche(&id) {
+                        let steuerung_save =
+                            steuerung.as_ref().map(|steuerung| steuerung.to_save());
+                        *self.modal_state.inner_mut() = Modal::DreiwegeWeiche(
+                            weiche::Status::neu(steuerung_save),
+                            Box::new(move |steuerung| {
+                                Message::DreiwegeWeicheAnschlüsseAnpassen(id.clone(), steuerung)
+                            }),
+                        );
+                        self.modal_state.show(true)
+                    } else {
+                        self.zeige_message_box(
+                            "Gleis entfernt!".to_string(),
+                            "Anschlüsse DreiwegeWeiche anpassen für entferntes Gleis!".to_string(),
+                        )
+                    }
+                },
+                AnyId::KurvenWeiche(id) => {
+                    if let Ok(steuerung) = self.gleise.steuerung_kurven_weiche(&id) {
+                        let steuerung_save =
+                            steuerung.as_ref().map(|steuerung| steuerung.to_save());
+                        *self.modal_state.inner_mut() = Modal::KurvenWeiche(
+                            weiche::Status::neu(steuerung_save),
+                            Box::new(move |steuerung| {
+                                Message::KurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
+                            }),
+                        );
+                        self.modal_state.show(true)
+                    } else {
+                        self.zeige_message_box(
+                            "Gleis entfernt!".to_string(),
+                            "Anschlüsse KurvenWeiche anpassen für entferntes Gleis!".to_string(),
+                        )
+                    }
+                },
+                AnyId::SKurvenWeiche(id) => {
+                    if let Ok(steuerung) = self.gleise.steuerung_s_kurven_weiche(&id) {
+                        let steuerung_save =
+                            steuerung.as_ref().map(|steuerung| steuerung.to_save());
+                        *self.modal_state.inner_mut() = Modal::Weiche(
+                            weiche::Status::neu(steuerung_save),
+                            Box::new(move |steuerung| {
+                                Message::SKurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
+                            }),
+                        );
+                        self.modal_state.show(true)
+                    } else {
+                        self.zeige_message_box(
+                            "Gleis entfernt!".to_string(),
+                            "Anschlüsse SKurvenWeiche anpassen für entferntes Gleis!".to_string(),
+                        )
+                    }
+                },
+                AnyId::Kreuzung(id) => {
+                    if let Ok(steuerung) = self.gleise.steuerung_kreuzung(&id) {
+                        let steuerung_save =
+                            steuerung.as_ref().map(|steuerung| steuerung.to_save());
+                        *self.modal_state.inner_mut() = Modal::Weiche(
+                            weiche::Status::neu(steuerung_save),
+                            Box::new(move |steuerung| {
+                                Message::KreuzungAnschlüsseAnpassen(id.clone(), steuerung)
+                            }),
+                        );
+                        self.modal_state.show(true)
+                    } else {
+                        self.zeige_message_box(
+                            "Gleis entfernt!".to_string(),
+                            "Anschlüsse Kreuzung anpassen für entferntes Gleis!".to_string(),
+                        )
+                    }
+                },
             },
-            Message::WeicheAnschlüsseAnpassen(id, anschlüsse) => {
-                todo!()
+            Message::WeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
+                if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
+                    match anschlüsse_save.reserviere(&mut self.anschlüsse) {
+                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Err(error) => self.zeige_message_box(
+                            "Anschlüsse Weiche anpassen".to_string(),
+                            format!("{:?}", error),
+                        ),
+                    }
+                } else {
+                    self.zeige_message_box(
+                        "Gleis entfernt!".to_string(),
+                        "Anschlüsse Weiche anpassen für entferntes Gleis!".to_string(),
+                    )
+                }
             },
             Message::DreiwegeWeicheAnschlüsseAnpassen(id, anschlüsse) => {
                 todo!()
