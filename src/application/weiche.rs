@@ -101,8 +101,10 @@ where
     ) -> Self {
         let Status { name, name_state, anschlüsse_save, anschlüsse_state, festlegen_state } =
             status;
-        let mut column =
-            Column::new().push(TextInput::new(name_state, "<Name>", name, InterneNachricht::Name));
+        let mut column = Column::new().push(
+            TextInput::new(name_state, "<Name>", name, InterneNachricht::Name)
+                .width(Length::Units(200)),
+        );
         for (richtung, anschluss_status) in anschlüsse_state.mut_refs().into_iter() {
             column = column.push(Row::new().push(Text::new(format!("{}", richtung))).push(
                 Element::from(anschluss::Auswahl::neu_output(anschluss_status)).map(
@@ -118,6 +120,7 @@ where
         );
         let card = Card::new(Text::new("Weiche"), column)
             .on_close(InterneNachricht::Schließen)
+            .width(Length::Shrink)
             .height(Length::Shrink);
         Auswahl { card, name, anschlüsse: anschlüsse_save }
     }
