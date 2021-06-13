@@ -767,17 +767,69 @@ where
                     )
                 }
             },
-            Message::DreiwegeWeicheAnschlüsseAnpassen(id, anschlüsse) => {
-                todo!()
+            Message::DreiwegeWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
+                if let Ok(steuerung) = self.gleise.steuerung_dreiwege_weiche(&id) {
+                    match anschlüsse_save.reserviere(&mut self.anschlüsse) {
+                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Err(error) => self.zeige_message_box(
+                            "Anschlüsse DreiwegeWeiche anpassen".to_string(),
+                            format!("{:?}", error),
+                        ),
+                    }
+                } else {
+                    self.zeige_message_box(
+                        "Gleis entfernt!".to_string(),
+                        "Anschlüsse DreiwegeWeiche anpassen für entferntes Gleis!".to_string(),
+                    )
+                }
             },
-            Message::KurvenWeicheAnschlüsseAnpassen(id, anschlüsse) => {
-                todo!()
+            Message::KurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
+                if let Ok(steuerung) = self.gleise.steuerung_kurven_weiche(&id) {
+                    match anschlüsse_save.reserviere(&mut self.anschlüsse) {
+                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Err(error) => self.zeige_message_box(
+                            "Anschlüsse KurvenWeiche anpassen".to_string(),
+                            format!("{:?}", error),
+                        ),
+                    }
+                } else {
+                    self.zeige_message_box(
+                        "Gleis entfernt!".to_string(),
+                        "Anschlüsse KurvenWeiche anpassen für entferntes Gleis!".to_string(),
+                    )
+                }
             },
-            Message::SKurvenWeicheAnschlüsseAnpassen(id, anschlüsse) => {
-                todo!()
+            Message::SKurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
+                if let Ok(steuerung) = self.gleise.steuerung_s_kurven_weiche(&id) {
+                    match anschlüsse_save.reserviere(&mut self.anschlüsse) {
+                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Err(error) => self.zeige_message_box(
+                            "Anschlüsse SKurvenWeiche anpassen".to_string(),
+                            format!("{:?}", error),
+                        ),
+                    }
+                } else {
+                    self.zeige_message_box(
+                        "Gleis entfernt!".to_string(),
+                        "Anschlüsse SKurvenWeiche anpassen für entferntes Gleis!".to_string(),
+                    )
+                }
             },
-            Message::KreuzungAnschlüsseAnpassen(id, anschlüsse) => {
-                todo!()
+            Message::KreuzungAnschlüsseAnpassen(id, anschlüsse_save) => {
+                if let Ok(steuerung) = self.gleise.steuerung_kreuzung(&id) {
+                    match anschlüsse_save.reserviere(&mut self.anschlüsse) {
+                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Err(error) => self.zeige_message_box(
+                            "Anschlüsse Kreuzung anpassen".to_string(),
+                            format!("{:?}", error),
+                        ),
+                    }
+                } else {
+                    self.zeige_message_box(
+                        "Gleis entfernt!".to_string(),
+                        "Anschlüsse Kreuzung anpassen für entferntes Gleis!".to_string(),
+                    )
+                }
             },
         }
 
