@@ -74,7 +74,7 @@ impl Config {
 pub enum Time {
     /// Periodendauer und Pulsweite.
     Period { period: Duration, pulse_width: Duration },
-    /// Frequenz (in Herz) und Duty-cycle ([0,1]) als Prozentwert.
+    /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Prozentwert.
     Frequency { frequency: f64, duty_cycle: f64 },
 }
 impl Time {

@@ -68,12 +68,12 @@ impl<'t> Frame<'t> {
     /// Wende die übergebene Transformation auf den Frame an.
     ///
     /// **ACHTUNG**: Durch die Art wie es in /iced/ implementiert ist wird die /transformation/
-    /// **vor** allen bisherigen ausgeführt, getrennt durch /with_save/.
+    /// **vor** allen bisherigen ausgeführt.
     ///
     /// Links zum Implementierung verfolgen:
-    /// https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234
-    /// https://docs.rs/lyon/0.17.5/lyon/math/type.Transform.html
-    /// https://docs.rs/euclid/0.22.3/euclid/struct.Transform2D.html#method.pre_rotate
+    /// <https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234>
+    /// <https://docs.rs/lyon/0.17.5/lyon/math/type.Transform.html>
+    /// <https://docs.rs/euclid/0.22.3/euclid/struct.Transform2D.html#method.pre_rotate>
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
             Transformation::Translation(Vektor { x, y }) => {
