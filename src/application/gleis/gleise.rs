@@ -12,7 +12,7 @@ use crate::{
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{geschwindigkeit, streckenabschnitt, Streckenabschnitt},
+    steuerung::{geschwindigkeit, streckenabschnitt, weiche, Streckenabschnitt},
 };
 
 pub mod id;
@@ -266,7 +266,7 @@ impl<Z> Gleise<Z> {
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
 
-    /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id_lock`
+    /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline]
     pub(in crate::application) fn setze_streckenabschnitt_unit<T: GleiseMap<Z>>(
         &mut self,
@@ -453,10 +453,11 @@ fn grab_gleis_an_position<Z>(
     }: &mut GleiseMaps<Z>,
     pivot: &Position,
     skalieren: &Skalar,
-) -> iced::canvas::event::Status
+) -> (iced::canvas::event::Status, Option<Message<Z>>)
 where
     Z: Zugtyp,
 {
+    let mut message = None;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
             if let ModusDaten::Bauen { grabbed, last } = modus {
@@ -472,23 +473,26 @@ where
                 Grabbed::find_clicked(grabbed, kreuzungen, canvas_pos);
                 if let Some(Grabbed { gleis_id, .. }) = grabbed {
                     if diff < DOUBLE_CLICK_TIME {
-                        // TODO Erzeuge Message um Steuerung/Kontakt festzulegen
-                        println!("Doppelklick auf {:?}", gleis_id)
+                        message = Some(Message::AnschlüsseAnpassen(gleis_id.clone()))
                     }
                 }
             }
         }
     }
-    if let ModusDaten::Bauen { grabbed: None, .. } = modus {
-        iced::canvas::event::Status::Ignored
-    } else {
-        iced::canvas::event::Status::Captured
-    }
+    (
+        if let ModusDaten::Bauen { grabbed: None, .. } = modus {
+            iced::canvas::event::Status::Ignored
+        } else {
+            iced::canvas::event::Status::Captured
+        },
+        message,
+    )
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
     SetzeStreckenabschnitt(AnyId<Z>),
+    AnschlüsseAnpassen(AnyId<Z>),
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
@@ -573,8 +577,10 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 let Gleise { modus, maps, pivot, skalieren, .. } = self;
-                event_status =
+                let grab_result =
                     grab_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
+                event_status = grab_result.0;
+                message = grab_result.1;
                 // TODO Streckenabschnitt/Weiche schalten im Fahren-Modus
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
@@ -1039,6 +1045,56 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             .map(|(name, geschwindigkeit)| Ok((name, geschwindigkeit.reserviere(anschlüsse)?)))
             .collect::<Result<_, anschluss::Error>>()?;
         Ok(geschwindigkeiten_reserviert)
+    }
+}
+
+macro_rules! steuerung {
+    ($name:ident, $type:ty, $map:ident, $anschlüsse:ty) => {
+        pub(in crate::application) fn $name(
+            &mut self,
+            gleis_id: &GleisId<$type>,
+        ) -> Result<&mut Option<weiche::Weiche<$anschlüsse>>, GleisEntferntError> {
+            let Gleis { definition, .. } =
+                self.maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntError)?;
+            Ok(&mut definition.steuerung)
+        }
+    };
+}
+
+impl<Z: Zugtyp> Gleise<Z> {
+    steuerung! {
+        steuerung_weiche,
+        super::Weiche<Z>,
+        weichen,
+        super::weiche::gerade::RichtungAnschlüsse
+    }
+
+    steuerung! {
+        steuerung_dreiwege_weiche,
+        super::DreiwegeWeiche<Z>,
+        dreiwege_weichen,
+        super::weiche::dreiwege::RichtungAnschlüsse
+    }
+
+    steuerung! {
+        steuerung_kurven_weiche,
+        super::KurvenWeiche<Z>,
+        kurven_weichen,
+        super::weiche::kurve::RichtungAnschlüsse
+    }
+
+    steuerung! {
+        steuerung_s_kurven_weiche,
+        super::SKurvenWeiche<Z>,
+        s_kurven_weichen,
+        super::weiche::gerade::RichtungAnschlüsse
+    }
+
+    steuerung! {
+        steuerung_kreuzung,
+        super::Kreuzung<Z>,
+        kreuzungen,
+        super::weiche::gerade::RichtungAnschlüsse
     }
 }
 

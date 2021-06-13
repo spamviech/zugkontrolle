@@ -33,7 +33,7 @@ impl<T> GleisId<T> {
     }
 
     // defined a method so it stays private
-    pub(super) fn clone(&self) -> Self {
+    pub(in crate::application) fn clone(&self) -> Self {
         GleisId(self.0, self.1)
     }
 }

@@ -45,7 +45,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             type OutputAuswahl = #base_ident::application::anschluss::Status<#base_ident::application::anschluss::Output>;
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
-            #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus)]
+            #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*
@@ -75,6 +75,13 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     Ok(RichtungAnschlüsse {
                         #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
                     })
+                }
+            }
+            impl Default for RichtungAnschlüsseSave {
+                fn default() -> Self {
+                    RichtungAnschlüsseSave {
+                        #(#struct_fields: #base_ident::anschluss::OutputSave::Pin {pin:0, polarität: #base_ident::anschluss::Polarität::Normal}),*
+                    }
                 }
             }
             impl From<RichtungAnschlüsseSave> for RichtungAnschlüsseAuswahlStatus {

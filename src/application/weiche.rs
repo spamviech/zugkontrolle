@@ -45,12 +45,17 @@ pub struct Status<AnschlüsseSave, AnschlüsseAuswahlStatus> {
 
 impl<AnschlüsseSave, AnschlüsseAuswahlStatus> Status<AnschlüsseSave, AnschlüsseAuswahlStatus>
 where
-    AnschlüsseSave: Clone + Into<AnschlüsseAuswahlStatus>,
+    AnschlüsseSave: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
-    pub fn neu(name: Name, anschlüsse_save: AnschlüsseSave) -> Self {
+    pub fn neu(option_weiche: Option<Weiche<AnschlüsseSave>>) -> Self {
+        let (name, anschlüsse_save) = if let Some(Weiche { name, anschlüsse }) = option_weiche {
+            (name.0, anschlüsse)
+        } else {
+            (String::new(), Default::default())
+        };
         let anschlüsse_state = anschlüsse_save.clone().into();
         Status {
-            name: name.0,
+            name,
             name_state: text_input::State::new(),
             anschlüsse_save,
             anschlüsse_state,
