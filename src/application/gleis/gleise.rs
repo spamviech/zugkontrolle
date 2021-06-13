@@ -291,7 +291,6 @@ fn fülle_alle_gleise<T: Zeichnen>(
     streckenabschnitte: &streckenabschnitt::Map,
 ) {
     for (gleis_id, (Gleis { definition, position, streckenabschnitt }, _id_lock)) in map.iter() {
-        // TODO Farbe abhängig vom Streckenabschnitt
         if let Some(Streckenabschnitt { farbe, .. }) =
             streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
         {
@@ -501,7 +500,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
             ..
         } = self;
         vec![canvas.draw_skaliert_von_pivot(bounds.size(), &self.pivot, &self.skalieren, |frame| {
-            // TODO don't draw out of bound Gleise
+            // TODO zeichne keine out-of-bounds Gleise
             // Zeichne Gleise
             let grabbed_id =
                 if let ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
@@ -561,12 +560,11 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                 let Gleise { modus, maps, pivot, skalieren, .. } = self;
                 event_status =
                     grab_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
+                // TODO Streckenabschnitt/Weiche schalten im Fahren-Modus
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                // TODO setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                // sende Nachricht mit GleisIdLock, erlaube setzten von außen über GleisId
                 if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
                     if let Some(Grabbed { gleis_id, moved, .. }) = &*grabbed {
                         let gleis_id_clone = gleis_id.clone();
@@ -579,6 +577,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                                 with_any_id_and_lock!(gleis_id_clone, Gleise::remove_grabbed, self);
                             }
                         } else {
+                            // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                             message = Some(Message::SetzeStreckenabschnitt(gleis_id_clone.into()));
                         }
                         event_status = iced::canvas::event::Status::Captured;
