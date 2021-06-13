@@ -1080,30 +1080,39 @@ where
         .spacing(5)
         .align_items(iced::Align::Center)
         .width(iced::Length::Shrink);
-    iced::Row::new()
+    let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
-        .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
-        .push(
-            iced::Element::from(streckenabschnitt::Anzeige::neu(
-                streckenabschnitt,
-                *streckenabschnitt_festlegen,
-            ))
-            .map(|message| match message {
-                streckenabschnitt::AnzeigeNachricht::Auswählen => {
-                    Message::ZeigeAuswahlStreckenabschnitt
-                },
-                streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
-                    Message::StreckenabschnittFestlegen(festlegen)
-                },
-            }),
-        )
-        .push(
-            iced::Button::new(geschwindigkeit_button_state, iced::Text::new("Geschwindigkeiten"))
+        .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren));
+
+    // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
+    if let Modus::Bauen { .. } = aktueller_modus {
+        row = row
+            .push(
+                iced::Element::from(streckenabschnitt::Anzeige::neu(
+                    streckenabschnitt,
+                    *streckenabschnitt_festlegen,
+                ))
+                .map(|message| match message {
+                    streckenabschnitt::AnzeigeNachricht::Auswählen => {
+                        Message::ZeigeAuswahlStreckenabschnitt
+                    },
+                    streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
+                        Message::StreckenabschnittFestlegen(festlegen)
+                    },
+                }),
+            )
+            .push(
+                iced::Button::new(
+                    geschwindigkeit_button_state,
+                    iced::Text::new("Geschwindigkeiten"),
+                )
                 .on_press(Message::ZeigeAuswahlGeschwindigkeit),
-        )
-        .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
+            );
+    }
+
+    row.push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(speichern_laden)
         .padding(5)
         .spacing(5)

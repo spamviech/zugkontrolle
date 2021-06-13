@@ -3,6 +3,14 @@
 use crate::farbe::Farbe;
 
 #[derive(Debug, Clone)]
+pub struct Beschreibung;
+impl iced::container::StyleSheet for Beschreibung {
+    fn style(&self) -> iced::container::Style {
+        iced::container::Style { text_color: Some(iced::Color::BLACK), ..Default::default() }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Anzeige {
     Farbe(Farbe),
     Deaktiviert,

@@ -79,14 +79,17 @@ where
         + column::Renderer
         + checkbox::Renderer,
     <R as container::Renderer>::Style: From<style::Anzeige>,
+    <R as iced_native::container::Renderer>::Style: From<style::Beschreibung>,
 {
     pub fn neu(status: &'a mut AnzeigeStatus, festlegen: bool) -> Self {
         let mut children = Vec::new();
+        let column = Column::new()
+            .push(Container::new(Text::new("Streckenabschnitt")).style(style::Beschreibung));
         let style = if let Some((name, farbe)) = &status.aktuell {
-            children.push(Text::new(&name.0).into());
+            children.push(column.push(Text::new(&name.0)).into());
             style::Anzeige::Farbe(*farbe)
         } else {
-            children.push(Text::new("<Name>").into());
+            children.push(column.push(Text::new("<Name>")).into());
             style::Anzeige::Deaktiviert
         };
         children.push(
