@@ -11,4 +11,6 @@ pub trait Lookup<Name, Element> {
     fn for_each<F: FnMut(Name, &Element)>(&self, action: F);
     /// Führe eine Funktion für jedes /Element/ und ersetze es mit dem Ergebnis.
     fn map<F: Fn(&Element) -> Element>(&self, function: F) -> Self;
+    /// Erhalte einen Vec über mutable References aller /Element/e.
+    fn mut_refs<'t>(&'t mut self) -> Vec<(Name, &'t mut Element)>;
 }

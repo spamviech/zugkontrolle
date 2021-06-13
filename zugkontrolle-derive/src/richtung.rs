@@ -32,6 +32,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                 },
             )
             .collect();
+        let enum_variants_str = enum_variants.iter().map(ToString::to_string);
         let struct_fields: Vec<syn::Ident> = enum_variants
                     .iter()
                     // TODO fix upstream?
@@ -41,11 +42,22 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     .collect();
 
         enum_definition = Some(quote! {
+            type OutputAuswahl = #base_ident::application::anschluss::Status<#base_ident::application::anschluss::Output>;
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
+            #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus)]
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*
+            }
+            impl std::fmt::Display for Richtung {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}",
+                        match self {
+                            #( Richtung::#enum_variants =>  #enum_variants_str ),*
+                        }
+                    )
+                }
             }
             impl #base_ident::anschluss::serde::ToSave for RichtungAnschlüsse {
                 type Save = RichtungAnschlüsseSave;
@@ -63,6 +75,13 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     Ok(RichtungAnschlüsse {
                         #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
                     })
+                }
+            }
+            impl From<RichtungAnschlüsseSave> for RichtungAnschlüsseAuswahlStatus {
+                fn from(anschlüsse_save: RichtungAnschlüsseSave) -> Self {
+                    RichtungAnschlüsseAuswahlStatus {
+                        #(#struct_fields: #base_ident::application::anschluss::Status::von_output_save(anschlüsse_save.#struct_fields)),*
+                    }
                 }
             }
         })

@@ -29,6 +29,7 @@ pub mod streckenabschnitt;
 pub mod style;
 mod touch_canvas;
 pub mod typen;
+pub mod weiche;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {

@@ -67,6 +67,28 @@ impl<'t> Status<Input<'t>> {
     }
 
     #[inline]
+    pub fn von_input_save(
+        initial: InputSave,
+        interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
+    ) -> Self {
+        let make_modus =
+            |pin: u8| Input { number_input_state: number_input::State::new(), pin, interrupt_pins };
+        match initial {
+            InputSave::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
+            InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
+                Self::neu_mit_initial_port(
+                    a0,
+                    a1,
+                    a2,
+                    variante,
+                    port,
+                    make_modus(interrupt.unwrap_or(0)),
+                )
+            },
+        }
+    }
+
+    #[inline]
     pub fn input_anschluss(&self) -> InputSave {
         self.anschluss(
             |pin, _input| InputSave::Pin { pin },
@@ -96,6 +118,18 @@ impl Status<Output> {
     #[inline]
     pub fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output { polarität: Polarität::Normal })
+    }
+
+    #[inline]
+    pub fn von_output_save(initial: OutputSave) -> Self {
+        match initial {
+            OutputSave::Pin { pin, polarität } => {
+                Self::neu_mit_initial_pin(pin, Output { polarität })
+            },
+            OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+                Self::neu_mit_initial_port(a0, a1, a2, variante, port, Output { polarität })
+            },
+        }
     }
 
     #[inline]
@@ -138,6 +172,43 @@ impl<T> Status<T> {
             variante: Variante::Normal,
             port_state: number_input::State::new(),
             port: 0,
+            modus,
+        }
+    }
+
+    fn neu_mit_initial_pin(pin: u8, modus: T) -> Self {
+        Status {
+            active_tab: 0,
+            pin_state: number_input::State::new(),
+            pin,
+            a0: Level::Low,
+            a1: Level::Low,
+            a2: Level::Low,
+            variante: Variante::Normal,
+            port_state: number_input::State::new(),
+            port: 0,
+            modus,
+        }
+    }
+
+    fn neu_mit_initial_port(
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: Variante,
+        port: u8,
+        modus: T,
+    ) -> Self {
+        Status {
+            active_tab: 1,
+            pin_state: number_input::State::new(),
+            pin: 0,
+            a0,
+            a1,
+            a2,
+            variante,
+            port_state: number_input::State::new(),
+            port,
             modus,
         }
     }

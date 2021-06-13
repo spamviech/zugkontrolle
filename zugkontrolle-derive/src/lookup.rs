@@ -74,6 +74,10 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
                         #(#struct_fields: action(&self.#struct_fields)),*
                     }
                 }
+                fn mut_refs<'t>(&'t mut self) -> Vec<(#ident, &'t mut #element)> {
+                    let #struct_name { #(#struct_fields),* } = self;
+                    vec![ #((#ident::#enum_variants, #struct_fields)),* ]
+                }
             }
         });
     } else {
