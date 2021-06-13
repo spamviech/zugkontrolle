@@ -20,7 +20,7 @@ fn main() -> Result<(), Error> {
         .init()
         .expect("failed to initialize error logging");
 
-    let Args { zugtyp, pfad, .. } = Args::from_env();
+    let Args { zugtyp, pfad, modus, .. } = Args::from_env();
     Anschlüsse::neu().map_err(Error::from).and_then(|anschlüsse| {
         let settings = Settings {
             window: iced::window::Settings {
@@ -28,7 +28,7 @@ fn main() -> Result<(), Error> {
                 icon: Some(icon()),
                 ..Default::default()
             },
-            ..Settings::with_flags((anschlüsse, pfad))
+            ..Settings::with_flags((anschlüsse, pfad, modus))
         };
         match zugtyp {
             args::Zugtyp::Märklin => Zugkontrolle::<Märklin>::run(settings),

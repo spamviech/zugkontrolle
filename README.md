@@ -134,13 +134,16 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
     Zeige den Hilfstext an. Dieser wird automatisch erzeugt, wodurch Teile davon auf englisch sind.
 - -v | --version  
     Zeige die aktuelle Version an.
-- -zZUGTYP | --zugtyp ZUGTYP
+- -z ZUGTYP | --zugtyp ZUGTYP
     Starte mit dem übergebenen Zugtyp. Vorhandene Gleise und Geschwindigkeiten unterscheiden sich.
     Aktuell sind `Märklin` und `Lego` unterstützt.
-- -pDATEI | --pfad DATEI  
+- -p DATEI | --pfad DATEI  
     Versuche den in DATEI gespeicherten Zustand zu laden.
     Wenn die Datei nicht existiert/das falsche Format hat wird mit Fehlermeldung
     und einem leeren Zustand gestartet.
+- -m MODUS | --modus MODUS
+    Bestimme den Modus bei Programstart.
+    Aktuell sind `Bauen` und `Fahren` unterstützt.
 
 ### Starten durch ziehen einer Datei auf die binary
 

@@ -335,7 +335,7 @@ where
     laden: iced::button::State,
     pfad: iced::text_input::State,
     aktueller_pfad: String,
-    // TODO Geschwindigkeit, Wegstrecke, Plan
+    // TODO Wegstrecke, Plan
 }
 
 impl<Z> Zugkontrolle<Z>
@@ -390,11 +390,16 @@ where
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Anschlüsse, Option<String>);
+    type Flags = (Anschlüsse, Option<String>, Option<Modus>);
     type Message = Message<Z>;
 
-    fn new((anschlüsse, pfad_arg): Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let gleise = Gleise::neu();
+    fn new(
+        (anschlüsse, pfad_arg, modus_arg): Self::Flags
+    ) -> (Self, iced::Command<Self::Message>) {
+        let mut gleise = Gleise::neu();
+        if let Some(modus) = modus_arg {
+            gleise.moduswechsel(modus)
+        }
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
         let command = if pfad_arg.is_some() {
             iced::Command::perform(Message::laden(), identity)

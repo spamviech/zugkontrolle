@@ -73,7 +73,7 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
     let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
-    let enum_variants_str = enum_variants.iter().map(syn::Ident::to_string);
+    let enum_variants_str: Vec<String> = enum_variants.iter().map(syn::Ident::to_string).collect();
     quote!(
         #ast
 
@@ -92,6 +92,17 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
         impl From<#enum_ident> for String {
             fn from(modus: #enum_ident) -> Self {
                 format!("{}", modus)
+            }
+        }
+
+        impl std::str::FromStr for #enum_ident {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    #(#enum_variants_str => Ok(#enum_ident::#enum_variants)),*,
+                    _ => Err(s.to_string()),
+                }
             }
         }
     )

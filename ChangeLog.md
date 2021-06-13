@@ -172,3 +172,4 @@
 ## Unreleased changes
 
 - Rewrite in rust
+- Anzeige über Gleisplan

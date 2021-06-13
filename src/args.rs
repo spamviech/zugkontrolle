@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
+use zugkontrolle::application::gleis::gleise::Modus;
 
 #[derive(Debug)]
 struct Wrapper(pub Args);
@@ -40,6 +41,10 @@ pub struct Args {
     #[argh(option, short = 'p')]
     /// dateiname
     pub pfad: Option<String>,
+
+    #[argh(option, short = 'm')]
+    /// modus bei Programstart
+    pub modus: Option<Modus>,
 
     #[argh(switch)]
     /// zeige die aktuelle Version
