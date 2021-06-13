@@ -755,7 +755,10 @@ where
             Message::WeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
                 if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Ok(anschlüsse) => {
+                            *steuerung = Some(anschlüsse);
+                            self.gleise.erzwinge_neuzeichnen()
+                        },
                         Err(error) => self.zeige_message_box(
                             "Anschlüsse Weiche anpassen".to_string(),
                             format!("{:?}", error),
@@ -771,7 +774,10 @@ where
             Message::DreiwegeWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
                 if let Ok(steuerung) = self.gleise.steuerung_dreiwege_weiche(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Ok(anschlüsse) => {
+                            *steuerung = Some(anschlüsse);
+                            self.gleise.erzwinge_neuzeichnen()
+                        },
                         Err(error) => self.zeige_message_box(
                             "Anschlüsse DreiwegeWeiche anpassen".to_string(),
                             format!("{:?}", error),
@@ -787,7 +793,10 @@ where
             Message::KurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
                 if let Ok(steuerung) = self.gleise.steuerung_kurven_weiche(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Ok(anschlüsse) => {
+                            *steuerung = Some(anschlüsse);
+                            self.gleise.erzwinge_neuzeichnen()
+                        },
                         Err(error) => self.zeige_message_box(
                             "Anschlüsse KurvenWeiche anpassen".to_string(),
                             format!("{:?}", error),
@@ -803,7 +812,10 @@ where
             Message::SKurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
                 if let Ok(steuerung) = self.gleise.steuerung_s_kurven_weiche(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Ok(anschlüsse) => {
+                            *steuerung = Some(anschlüsse);
+                            self.gleise.erzwinge_neuzeichnen()
+                        },
                         Err(error) => self.zeige_message_box(
                             "Anschlüsse SKurvenWeiche anpassen".to_string(),
                             format!("{:?}", error),
@@ -819,7 +831,10 @@ where
             Message::KreuzungAnschlüsseAnpassen(id, anschlüsse_save) => {
                 if let Ok(steuerung) = self.gleise.steuerung_kreuzung(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                        Ok(anschlüsse) => *steuerung = Some(anschlüsse),
+                        Ok(anschlüsse) => {
+                            *steuerung = Some(anschlüsse);
+                            self.gleise.erzwinge_neuzeichnen()
+                        },
                         Err(error) => self.zeige_message_box(
                             "Anschlüsse Kreuzung anpassen".to_string(),
                             format!("{:?}", error),

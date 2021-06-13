@@ -171,10 +171,13 @@ where
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *self.anschlüsse.get_mut(&richtung) = anschluss
                 },
-                InterneNachricht::Festlegen => messages.push(Nachricht::Festlegen(Weiche {
-                    name: Name(self.name.clone()),
-                    anschlüsse: self.anschlüsse.clone(),
-                })),
+                InterneNachricht::Festlegen => {
+                    messages.push(Nachricht::Festlegen(Weiche {
+                        name: Name(self.name.clone()),
+                        anschlüsse: self.anschlüsse.clone(),
+                    }));
+                    messages.push(Nachricht::Schließen)
+                },
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
         }
