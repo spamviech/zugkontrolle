@@ -213,7 +213,6 @@ pub struct Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
@@ -251,7 +250,6 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
@@ -270,7 +268,6 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     fn laden(&mut self) {
         match self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {

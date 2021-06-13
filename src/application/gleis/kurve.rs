@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_save_unit;
 
 use super::anchor;
-use crate::anschluss::{InputAnschluss, InputSave, ToSave};
+use crate::anschluss::{InputAnschluss, InputSave};
 use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
@@ -56,11 +56,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z, Anschluss> Zeichnen for Kurve<Z, Anschluss>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp, Anschluss> Zeichnen for Kurve<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -128,11 +124,7 @@ where
     }
 }
 
-pub(crate) fn size<Z>(radius: Skalar, winkel: Winkel) -> Vektor
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub(crate) fn size<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Vektor {
     // Breite
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
     let width_factor = if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { Skalar(1.) };
@@ -187,7 +179,6 @@ pub(crate) fn zeichne<Z, P, A>(
 ) -> Pfad
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -209,7 +200,6 @@ fn zeichne_internal<Z, P, A>(
     beschränkungen: Beschränkung,
 ) where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -269,7 +259,6 @@ pub(crate) fn fülle<Z, P, A>(
 ) -> Pfad
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -285,7 +274,6 @@ where
 fn fülle_internal<Z, P, A>(path_builder: &mut pfad::Erbauer<P, A>, radius: Skalar, winkel: Winkel)
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -338,11 +326,11 @@ where
     path_builder.close();
 }
 
-pub(crate) fn innerhalb<Z>(radius: Skalar, winkel: Winkel, relative_position: Vektor) -> bool
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub(crate) fn innerhalb<Z: Zugtyp>(
+    radius: Skalar,
+    winkel: Winkel,
+    relative_position: Vektor,
+) -> bool {
     let spurweite = spurweite::<Z>();
     let abstand = abstand::<Z>();
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);

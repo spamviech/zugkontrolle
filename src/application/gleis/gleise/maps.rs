@@ -89,11 +89,7 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<GeradeSave<Z>>>,
     pub(crate) kurven: Vec<Gleis<KurveSave<Z>>>,
@@ -110,10 +106,8 @@ where
      */
 }
 
-impl<Z> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)> for GleiseVecs<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
+    for GleiseVecs<Z>
 {
     fn from(
         (maps, geschwindigkeiten): (

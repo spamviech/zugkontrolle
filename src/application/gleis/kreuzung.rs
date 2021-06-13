@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_save_unit;
 
 use crate::{
-    anschluss::ToSave,
     application::{
         gleis::{
             anchor,
@@ -87,11 +86,7 @@ pub enum AnchorName {
     Ende1,
 }
 
-impl<Z, Anschlüsse> Zeichnen for Kreuzung<Z, Anschlüsse>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for Kreuzung<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 

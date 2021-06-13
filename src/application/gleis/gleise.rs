@@ -106,7 +106,6 @@ impl<Z> Gleise<Z> {
     fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
     where
         Z: Zugtyp,
-        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
         T: GleiseMap<Z>,
     {
         let (Gleis { position, .. }, _id_lock) =
@@ -118,7 +117,6 @@ impl<Z> Gleise<Z> {
     fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
     where
         Z: Zugtyp,
-        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
         T: GleiseMap<Z>,
     {
         let (Gleis { definition, position, .. }, _id_lock) =
@@ -444,7 +442,6 @@ fn grab_gleis_an_position<Z>(
 ) -> iced::canvas::event::Status
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
@@ -480,11 +477,7 @@ pub enum Message<Z> {
     SetzeStreckenabschnitt(AnyIdLock<Z>),
 }
 
-impl<Z> iced::canvas::Program<Message<Z>> for Gleise<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -656,11 +649,7 @@ impl Position {
     }
 }
 
-impl<Z> Gleise<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
     pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
     where
@@ -861,11 +850,7 @@ where
     }
 }
 
-impl<Z> Gleise<Z>
-where
-    Z: Zugtyp + Serialize,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp + Serialize> Gleise<Z> {
     #[must_use]
     pub fn speichern(
         &self,
@@ -880,11 +865,7 @@ where
     }
 }
 
-impl<Z> Gleise<Z>
-where
-    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
     #[must_use]
     pub fn laden(
         &mut self,

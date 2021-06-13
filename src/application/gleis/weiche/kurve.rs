@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_save_unit, create_richtung};
 
 use crate::{
-    anschluss::ToSave,
     application::{
         gleis::{anchor, gerade, kurve, weiche::gerade::Orientierung},
         typen::*,
@@ -70,11 +69,7 @@ pub enum AnchorName {
     Außen,
 }
 
-impl<Z, Anschlüsse> Zeichnen for KurvenWeiche<Z, Anschlüsse>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp, Anschlüsse> Zeichnen for KurvenWeiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 

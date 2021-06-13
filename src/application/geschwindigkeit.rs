@@ -42,21 +42,13 @@ use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter}
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
 #[derive(Debug)]
-pub struct AnzeigeStatus<Leiter>
-where
-    Leiter: LeiterAnzeige,
-    Geschwindigkeit<<Leiter as ToSave>::Save>: Debug + Clone,
-{
+pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
     aktuelle_geschwindigkeit: u8,
     pwm_slider_state: slider::State,
     fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-pub trait LeiterAnzeige
-where
-    Self: ToSave + Sized,
-    Geschwindigkeit<<Self as ToSave>::Save>: Debug + Clone,
-{
+pub trait LeiterAnzeige: ToSave + Sized {
     type Fahrtrichtung;
     type Message: Debug + Clone + Send;
 
@@ -326,7 +318,6 @@ where
     ) -> Self
     where
         Leiter: LeiterAnzeige,
-        <Leiter as ToSave>::Save: Debug + Clone,
         Iter: Iterator,
     {
         let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
@@ -478,7 +469,7 @@ enum InterneAuswahlNachricht {
     Löschen(Name),
 }
 
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AuswahlNachricht<Leiter: ToSave>
 where
     <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,

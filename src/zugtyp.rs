@@ -16,10 +16,7 @@ pub use märklin::Märklin;
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Spurweite(pub f32);
-pub trait Zugtyp: Sized
-where
-    <<Self as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub trait Zugtyp: Sized {
     /// Spurweite in mm.
     const SPURWEITE: Spurweite;
     const NAME: &'static str;

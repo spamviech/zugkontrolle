@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_save_unit;
 
 use super::anchor;
-use crate::anschluss::{InputAnschluss, InputSave, ToSave};
+use crate::anschluss::{InputAnschluss, InputSave};
 use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
@@ -46,11 +46,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z, Anschluss> Zeichnen for Gerade<Z, Anschluss>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+impl<Z: Zugtyp, Anschluss> Zeichnen for Gerade<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -99,11 +95,7 @@ where
     }
 }
 
-pub(crate) fn size<Z>(länge: Skalar) -> Vektor
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
     Vektor { x: länge, y: beschränkung::<Z>() }
 }
 
@@ -119,7 +111,6 @@ pub(crate) fn zeichne<Z, P, A>(
 ) -> Pfad
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -137,7 +128,6 @@ fn zeichne_internal<Z, P, A>(
     beschränkungen: bool,
 ) where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -172,7 +162,6 @@ pub(crate) fn fülle<Z, P, A>(
 ) -> Pfad
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -187,7 +176,6 @@ where
 fn fülle_internal<Z, P, A>(path_builder: &mut pfad::Erbauer<P, A>, länge: Skalar)
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -205,11 +193,7 @@ where
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
 }
 
-pub(crate) fn innerhalb<Z>(länge: Skalar, relative_position: Vektor) -> bool
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
+pub(crate) fn innerhalb<Z: Zugtyp>(länge: Skalar, relative_position: Vektor) -> bool {
     relative_position.x >= Skalar(0.)
         && relative_position.x <= länge
         && relative_position.y >= abstand::<Z>()
