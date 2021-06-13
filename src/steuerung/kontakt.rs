@@ -1,7 +1,5 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -15,8 +13,13 @@ use crate::anschluss::{
     Trigger,
 };
 
+/// Name eines Kontaktes.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kontakt<Anschluss> {
+    pub name: Name,
     pub anschluss: Anschluss,
     pub trigger: Trigger,
 }
@@ -42,17 +45,20 @@ impl ToSave for Kontakt<InputAnschluss> {
     type Save = Kontakt<InputSave>;
 
     fn to_save(&self) -> Kontakt<InputSave> {
-        Kontakt { anschluss: self.anschluss.to_save(), trigger: self.trigger }
+        Kontakt {
+            name: self.name.clone(),
+            anschluss: self.anschluss.to_save(),
+            trigger: self.trigger,
+        }
     }
 }
 
 impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
     fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Kontakt<InputAnschluss>, Error> {
-        Ok(Kontakt { anschluss: self.anschluss.reserviere(anschlüsse)?, trigger: self.trigger })
+        Ok(Kontakt {
+            name: self.name,
+            anschluss: self.anschluss.reserviere(anschlüsse)?,
+            trigger: self.trigger,
+        })
     }
 }
-
-/// Name eines Kontaktes.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Name(pub String);
-pub type Map<Anschluss> = BTreeMap<Name, Kontakt<Anschluss>>;

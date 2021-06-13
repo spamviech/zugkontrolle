@@ -395,6 +395,14 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
                 position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = Position { punkt, winkel };
+            // TODO verwende Name von steuerung-Typen
+            // let beschreibung =
+            //     match (&self.beschreibung, self.steuerung.as_ref().map(|steuerung|
+            // &steuerung.name)) {         (Some(beschreibung), Some(name)) =>
+            // Some(&format!("{} ({})", name.0, beschreibung)),         (None,
+            // Some(name)) => Some(&name.0),         (Some(beschreibung), None) =>
+            // Some(beschreibung),         (None, None) => None,
+            //     };
             frame.with_save(|frame| {
                 move_to_position(frame, &absolute_position);
                 frame.fill_text(canvas::Text {
