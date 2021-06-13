@@ -5,7 +5,7 @@ use std::convert::identity;
 use std::fmt::Debug;
 
 use gleis::{
-    gleise::{id::with_any_id_lock, *},
+    gleise::{id::with_any_id, *},
     *,
 };
 use log::error;
@@ -129,7 +129,7 @@ where
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
     HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSave),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
-    SetzeStreckenabschnitt(AnyIdLock<Z>),
+    SetzeStreckenabschnitt(AnyId<Z>),
     StreckenabschnittFestlegen(bool),
     Speichern,
     Laden,
@@ -471,17 +471,23 @@ where
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
             },
-            Message::SetzeStreckenabschnitt(any_id_lock) => {
+            Message::SetzeStreckenabschnitt(any_id) => {
                 if self.streckenabschnitt_aktuell_festlegen {
-                    with_any_id_lock!(
-                        any_id_lock,
+                    if let Err(GleisEntferntError) = with_any_id!(
+                        &any_id,
                         Gleise::setze_streckenabschnitt_unit,
                         &mut self.gleise,
                         self.streckenabschnitt_aktuell
                             .aktuell
                             .as_ref()
                             .map(|(name, _farbe)| name.clone())
-                    );
+                    ) {
+                        self.zeige_message_box(
+                            "Gleis entfernt".to_string(),
+                            "Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen!"
+                                .to_string(),
+                        )
+                    }
                 }
             },
             Message::StreckenabschnittFestlegen(festlegen) => {

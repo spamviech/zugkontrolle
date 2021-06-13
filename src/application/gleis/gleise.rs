@@ -3,15 +3,17 @@
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
+use log::error;
 use serde::{Deserialize, Serialize};
 
-use self::id::{with_any_id, with_any_id_and_lock};
-use super::anchor;
-use crate::anschluss::{self, Anschlüsse, Reserviere, ToSave};
-use crate::application::typen::*;
-use crate::farbe::Farbe;
-use crate::lookup::Lookup;
-use crate::steuerung::{geschwindigkeit, streckenabschnitt, Streckenabschnitt};
+use self::id::with_any_id;
+use crate::{
+    anschluss::{self, Anschlüsse, Reserviere, ToSave},
+    application::{anchor, typen::*},
+    farbe::Farbe,
+    lookup::Lookup,
+    steuerung::{geschwindigkeit, streckenabschnitt, Streckenabschnitt},
+};
 
 pub mod id;
 pub use id::*;
@@ -29,18 +31,18 @@ impl<Z> Grabbed<Z> {
     fn find_clicked<T>(grabbed: &mut Option<Grabbed<Z>>, map: &mut Map<T>, canvas_pos: Vektor)
     where
         T: Zeichnen,
-        (GleisId<T>, GleisIdLock<T>): Into<AnyId<Z>>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         // TODO store bounding box in rstar as well, to avoid searching everything stored?
         take_mut::take(grabbed, |grabbed| {
             grabbed.or({
                 let mut grabbed = None;
-                for (gleis_id, (Gleis { definition, position, .. }, gleis_id_lock)) in map.iter() {
+                for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
                     let relative_pos = canvas_pos - position.punkt;
                     let rotated_pos = relative_pos.rotiert(-position.winkel);
                     if definition.innerhalb(rotated_pos) {
                         grabbed = Some(Grabbed {
-                            gleis_id: AnyId::from_refs(gleis_id, gleis_id_lock),
+                            gleis_id: AnyId::from_ref(gleis_id),
                             grab_location: relative_pos,
                             moved: false,
                         });
@@ -95,32 +97,39 @@ impl<Z> Gleise<Z> {
         self.canvas.clear()
     }
 
-    fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
+    fn next_id<T: Debug>(&mut self) -> GleisId<T> {
         let gleis_id: u64 = self.next_id;
-        let gleis_id_lock: GleisIdLock<T> = GleisIdLock::new(gleis_id);
         // increase next id
         self.next_id += 1;
-        (gleis_id, gleis_id_lock)
+        GleisId::new(gleis_id)
     }
 
-    fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
+    fn relocate_grabbed<T: Debug + Zeichnen>(
+        &mut self,
+        gleis_id: GleisId<T>,
+        punkt: Vektor,
+    ) -> Result<(), GleisEntferntError>
     where
         Z: Zugtyp,
         T: GleiseMap<Z>,
     {
-        let (Gleis { position, .. }, _id_lock) =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
+        let Gleis { position, .. } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
         let position_neu = Position { punkt, winkel: position.winkel };
-        self.relocate(&gleis_id, position_neu);
+        self.relocate(&gleis_id, position_neu)?;
+        Ok(())
     }
 
-    fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
+    fn snap_to_anchor<T: Debug + Zeichnen>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<(), GleisEntferntError>
     where
         Z: Zugtyp,
         T: GleiseMap<Z>,
     {
-        let (Gleis { definition, position, .. }, _id_lock) =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
+        let Gleis { definition, position, .. } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
@@ -138,8 +147,9 @@ impl<Z> Gleise<Z> {
             }
         });
         if let Some((snap_name, snap_anchor)) = snap {
-            self.relocate_attach(&gleis_id, &snap_name, snap_anchor);
+            self.relocate_attach(&gleis_id, &snap_name, snap_anchor)?;
         };
+        Ok(())
     }
 
     /// Aktueller Modus.
@@ -218,7 +228,7 @@ impl<Z> Gleise<Z> {
         macro_rules! clean_maps {
             ($($map:ident),*) => {
                 $(
-                    for (Gleis { streckenabschnitt, .. }, _id_lock) in self.maps.$map.values_mut() {
+                    for Gleis { streckenabschnitt, .. } in self.maps.$map.values_mut() {
                         if streckenabschnitt.as_ref() == Some(&name) {
                             *streckenabschnitt = None;
                         }
@@ -251,11 +261,9 @@ impl<Z> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) -> Option<streckenabschnitt::Name> {
-        let (gleis, _id_lock) = T::get_map_mut(&mut self.maps)
-            .get_mut(gleis_id)
-            .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
-        std::mem::replace(&mut gleis.streckenabschnitt, name)
+    ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntError> {
+        let gleis = T::get_map_mut(&mut self.maps).get_mut(gleis_id).ok_or(GleisEntferntError)?;
+        Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id_lock`
@@ -264,8 +272,9 @@ impl<Z> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) {
-        self.setze_streckenabschnitt(gleis_id, name);
+    ) -> Result<(), GleisEntferntError> {
+        self.setze_streckenabschnitt(gleis_id, name)?;
+        Ok(())
     }
 }
 
@@ -290,7 +299,7 @@ fn fülle_alle_gleise<T: Zeichnen>(
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
     streckenabschnitte: &streckenabschnitt::Map,
 ) {
-    for (gleis_id, (Gleis { definition, position, streckenabschnitt }, _id_lock)) in map.iter() {
+    for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
         if let Some(Streckenabschnitt { farbe, .. }) =
             streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
         {
@@ -314,7 +323,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     map: &Map<T>,
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
-    for (gleis_id, (Gleis { definition, position, .. }, _id_lock)) in map.iter() {
+    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
@@ -340,7 +349,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     has_other_and_grabbed_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> (bool, bool),
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
-    for (gleis_id, (Gleis { definition, position, .. }, _id_lock)) in map.iter() {
+    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
@@ -380,7 +389,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
     map: &Map<T>,
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
-    for (gleis_id, (Gleis { definition, position, .. }, _id_lock)) in map.iter() {
+    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         if let Some((relative_position, content)) = definition.beschreibung() {
             let punkt =
                 position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
@@ -473,7 +482,7 @@ where
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
-    SetzeStreckenabschnitt(AnyIdLock<Z>),
+    SetzeStreckenabschnitt(AnyId<Z>),
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
@@ -572,9 +581,13 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                         *grabbed = None;
                         if moved_copy {
                             if cursor.is_over(&bounds) {
-                                with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self);
+                                if let Err(GleisEntferntError) =
+                                    with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self)
+                                {
+                                    error!("Ende Drag&Drop für entferntes Gleis!")
+                                }
                             } else {
-                                with_any_id_and_lock!(gleis_id_clone, Gleise::remove_grabbed, self);
+                                with_any_id!(gleis_id_clone, Gleise::remove, self);
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
@@ -593,7 +606,14 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                         if let Some(Grabbed { gleis_id, grab_location, moved }) = grabbed {
                             *moved = true;
                             let point = canvas_pos - grab_location;
-                            with_any_id!(gleis_id.clone(), Gleise::relocate_grabbed, self, point);
+                            if let Err(GleisEntferntError) = with_any_id!(
+                                gleis_id.clone(),
+                                Gleise::relocate_grabbed,
+                                self,
+                                point
+                            ) {
+                                error!("Drag&Drop für entferntes Gleis!")
+                            }
                             event_status = iced::canvas::event::Status::Captured
                         }
                     }
@@ -650,7 +670,7 @@ impl Position {
 
 impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
-    pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
+    pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -663,20 +683,18 @@ impl<Z: Zugtyp> Gleise<Z> {
                 richtung: position.winkel + richtung,
             },
         );
-        let (gleis_id, gleis_id_lock) = self.next_id();
+        let gleis_id = self.next_id();
         // increase next id
         self.next_id += 1;
         // add to anchor_points
-        anchor_points.for_each(|_name, anchor| {
-            self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone())
-        });
+        anchor_points
+            .for_each(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
         // add to HashMap
-        T::get_map_mut(&mut self.maps)
-            .insert(GleisId::new(gleis_id), (gleis, gleis_id_lock.clone()));
+        T::get_map_mut(&mut self.maps).insert(gleis_id.clone(), gleis);
         // trigger redraw
         self.canvas.clear();
         // return value
-        (gleis_id_lock, anchor_points)
+        (gleis_id, anchor_points)
     }
 
     /// Add a gleis at the last known mouse position
@@ -686,10 +704,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         grab_location: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> (GleisIdLock<T>, T::AnchorPoints)
+    ) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
-        (GleisId<T>, GleisIdLock<T>): Into<AnyId<Z>>,
+        GleisId<T>: Into<AnyId<Z>>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut canvas_position = self.last_mouse;
@@ -716,14 +734,8 @@ impl<Z: Zugtyp> Gleise<Z> {
             streckenabschnitt,
         });
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-            let gleis_id_lock = &result.0;
-            if let Some(gleis_id) = gleis_id_lock
-                .read()
-                .as_ref()
-                .map(|gleis_id| AnyId::from_refs(gleis_id, gleis_id_lock))
-            {
-                *grabbed = Some(Grabbed { gleis_id, grab_location, moved: true });
-            }
+            let gleis_id = result.0.clone().into();
+            *grabbed = Some(Grabbed { gleis_id, grab_location, moved: true });
         }
         result
     }
@@ -735,7 +747,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         anchor_name: &T::AnchorName,
         target_anchor_point: anchor::Anchor,
-    ) -> (GleisIdLock<T>, T::AnchorPoints)
+    ) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -749,14 +761,17 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate<T>(&mut self, gleis_id: &GleisId<T>, position_neu: Position) -> T::AnchorPoints
+    pub fn relocate<T>(
+        &mut self,
+        gleis_id: &GleisId<T>,
+        position_neu: Position,
+    ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let (Gleis { definition, position, .. }, _id_lock) = T::get_map_mut(&mut self.maps)
-            .get_mut(&gleis_id)
-            .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        let Gleis { definition, position, .. } =
+            T::get_map_mut(&mut self.maps).get_mut(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
@@ -783,7 +798,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         // trigger redraw
         self.canvas.clear();
         // return value
-        anchor_points_neu
+        Ok(anchor_points_neu)
     }
 
     /// Move an existing gleis gleis with anchor_name adjacent to the target_anchor_point.
@@ -792,48 +807,32 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis_id: &GleisId<T>,
         anchor_name: &T::AnchorName,
         target_anchor_point: anchor::Anchor,
-    ) -> T::AnchorPoints
+    ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let position = {
-            let (Gleis { definition, .. }, _id_lock) = T::get_map_mut(&mut self.maps)
-                .get(&gleis_id)
-                .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+            let Gleis { definition, .. } =
+                T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
         self.relocate(gleis_id, position)
     }
 
-    /// wrapper um Gleise::remove mit ignoriertem Argument für with_any_id_and_lock-Macro
-    #[inline]
-    fn remove_grabbed<T, A>(&mut self, _ignored: A, gleis_id_lock: GleisIdLock<T>)
-    where
-        T: Debug + Zeichnen + GleiseMap<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
-    {
-        self.remove(gleis_id_lock)
-    }
-
     /// Remove the Gleis associated the the GleisId.
     ///
-    /// The value contained inside GleisIdLock<Z> is set to None.
-    /// Removing a value multiple times is no error.
     /// Only the first remove has an effect.
     /// Regardless, after a remove the associated Gleis is guaranteed to be removed.
-    pub fn remove<T>(&mut self, gleis_id_lock: GleisIdLock<T>)
+    pub fn remove<T>(&mut self, gleis_id: GleisId<T>)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let mut optional_id = gleis_id_lock.write();
-        // only delete once
-        if let Some(gleis_id) = optional_id.as_ref() {
-            let (Gleis { definition, position, .. }, _id_lock) = T::get_map_mut(&mut self.maps)
-                .remove(gleis_id)
-                .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        if let Some(Gleis { definition, position, .. }) =
+            T::get_map_mut(&mut self.maps).remove(&gleis_id)
+        {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
                 self.anchor_points.remove(gleis_id.as_any(), &anchor::Anchor {
@@ -841,11 +840,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                     richtung: position.winkel + anchor.richtung,
                 });
             });
+            // trigger redraw
+            self.canvas.clear();
         }
-        // make sure everyone knows about the deletion
-        *optional_id = None;
-        // trigger redraw
-        self.canvas.clear();
     }
 }
 
@@ -1045,6 +1042,7 @@ pub enum Error {
     Bincode(bincode::Error),
     FalscherZugtyp(String),
     Anschluss(anschluss::Error),
+    GleisEntfernt,
 }
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
@@ -1059,5 +1057,13 @@ impl From<bincode::Error> for Error {
 impl From<anschluss::Error> for Error {
     fn from(error: anschluss::Error) -> Self {
         Error::Anschluss(error)
+    }
+}
+
+#[derive(Debug)]
+pub struct GleisEntferntError;
+impl From<GleisEntferntError> for Error {
+    fn from(GleisEntferntError: GleisEntferntError) -> Self {
+        Error::GleisEntfernt
     }
 }

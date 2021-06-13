@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use super::id::{GleisId, GleisIdLock};
+use super::id::GleisId;
 use crate::{
     anschluss::{OutputSave, ToSave},
     application::{gleis::*, typen::*},
@@ -22,7 +22,7 @@ pub struct Gleis<T> {
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
-pub type Map<T> = HashMap<GleisId<T>, (Gleis<T>, GleisIdLock<T>)>;
+pub type Map<T> = HashMap<GleisId<T>, Gleis<T>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleiseMaps<Z> {
     pub(crate) geraden: Map<Gerade<Z>>,
@@ -100,10 +100,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: streckenabschnitt::Map<OutputSave>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
-    /* TODO
-     * steuerung-Typen bei Gleisen (kontakt, kupplung, weiche)
-     * pläne, wegstrecken
-     */
+    // TODO pläne, wegstrecken
 }
 
 impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
@@ -119,14 +116,13 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>
             ($($map:ident),* $(,)?) => {
                 GleiseVecs {
                     name: Z::NAME.to_string(),
-                    // TODO
                     streckenabschnitte: maps.streckenabschnitte.iter().map(
                         |(name, Streckenabschnitt {farbe, anschluss})|
                             (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()})
                         ).collect(),
                     geschwindigkeiten,
                     $($map: maps.$map.values().map(
-                        |(Gleis {position, definition, streckenabschnitt}, _id_lock)|
+                        |Gleis {position, definition, streckenabschnitt}|
                         Gleis {
                             position: position.clone(),
                             definition: definition.to_save(),

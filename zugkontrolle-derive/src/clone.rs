@@ -36,7 +36,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                 quote! {
                     let #ident {#(#fs_iter),*} = self;
                     #ident {
-                        #(#fs_vec: Clone::clone(#fs_vec)),*
+                        #(#fs_vec: #fs_vec.clone()),*
                     }
                 }
             },
@@ -52,7 +52,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     .collect();
                 quote! {
                     let #ident (#(#fs_str),*) = self;
-                    #ident (#(Clone::clone(#fs_str)),*)
+                    #ident (#(#fs_str.clone()),*)
                 }
             },
             syn::Fields::Unit => quote! {#ident},
@@ -68,7 +68,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                         quote! {
                             #ident::#variant_ident {#(#fs_iter),*} => {
                                 #ident::#variant_ident {
-                                    #(#fs_vec: Clone::clone(#fs_vec)),*
+                                    #(#fs_vec: #fs_vec.clone()),*
                                 }
                             }
                         }
@@ -85,7 +85,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                             .collect();
                         quote! {
                             #ident::#variant_ident (#(#fs_str),*) => {
-                                #ident::#variant_ident (#(Clone::clone(#fs_str)),*)
+                                #ident::#variant_ident (#(#fs_str.clone()),*)
                             }
                         }
                     },
