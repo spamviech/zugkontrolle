@@ -2,8 +2,42 @@
 
 Ermöglicht die Steuerung einer Modelleisenbahn über einen Raspberry Pi.  
 Die Funktion der Pins wird mit Datentypen realisiert, welche zur Laufzeit erstellt werden können.  
-Je nach Datentyp stehen einem so registrierten Pin vorgefertigte Aktionen (z.B. Schalten einer Weiche) zur Verfügung.
+Je nach Datentyp stehen einem so registrierten Pin vorgefertigte Aktionen
+(z.B. Schalten einer Weiche) zur Verfügung.
 Einige Beispielschaltpläne sind __NOCH NICHT ERSTELLT__.
+
+## Bedienen
+
+### Modus: Bauen
+
+Neue Gleise werden durch hereinziehen erstellt.
+Sie erhalten automatisch den aktuellen Streckenabschnitt.
+Wenn die Checkbox gesetzt ist führt ein Klick auf ein Gleis _ohne_ Bewegen der Maus
+ebenfalls zu einem zuweisen des aktuellen Streckenabschnittes.
+
+Gleise können über einfaches Drag&Drop bewegt werden.
+Wird ein Gleis aus dem angezeigten Bereich gezogen (Maus beim loslassen außerhalb des Canvas)
+wird das Gleis gelöscht.
+
+Ein Doppelklick auf ein weichen-artiges Gleis öffnet einen Dialog zum einstellen
+der Anschlüsse zur Richtungs-Steuerung.
+
+Ein Doppelklick auf eine Gerade oder Kurve soll einen Dialog zum einstellen der Anschlüsse
+für einen Kontakt öffnen (nicht implementiert).
+
+Ändern des angezeigten Bereiches (Bewegen/Drehen,Zoomen) ist aktuell
+nur über die Knöpfe in der oberen Leiste möglich.
+
+### Modus: Fahren (geplant, noch nicht implementiert)
+
+Geschwindigkeiten können in der linken Seitenleiste eingestellt werden.
+
+Weichen können über einen Klick auf das Gleis gestellt werden.
+
+Streckenabschnitte können über einen Klick auf eine zugehörige Gerade oder Kurve an/ausgeschaltet werden.
+
+Ändern des angezeigten Bereiches (Bewegen/Drehen,Zoomen) ist aktuell
+nur über die Knöpfe in der oberen Leiste möglich.
 
 ## Begriffe
 
@@ -11,13 +45,17 @@ Einige Beispielschaltpläne sind __NOCH NICHT ERSTELLT__.
 
 Unterstützte Zugtypen sind (analoge) __Märklin__- und __Lego__-Modelleisenbahnen. Bei beiden erfolgt die Stromzufuhr über eine leitende Schiene.
 Der Hauptunterschied besteht darin, wie ein Umdrehen einer Lokomotive erfolgt:
-    Bei __Märklin__-Eisenbahnen führt eine Fahrspannung von __24V__ (im Gegensatz zur normalen Betriebsspannung __<=16V__) zu einem Umdrehen aller auf der Schiene befindlichen Lokomotiven.
-    Bei __Lego__-Eisenbahnen gibt die _Polarität_ der Spannung die Richtung vor.
-Außerdem gibt es bei __Lego__-Eisenbahnen keine automatischen Weichen, weshalb ein Schalten z.B. über einen Servo-Motor realisiert werden muss.
 
-### Bahngeschwindigkeit
+- Bei __Märklin__-Eisenbahnen führt eine Fahrspannung von __24V__ (im Gegensatz zur normalen Betriebsspannung __<=16V__) zu einem Umdrehen aller auf der Schiene befindlichen Lokomotiven.
+- Bei __Lego__-Eisenbahnen gibt die _Polarität_ der Spannung die Richtung vor.
+    Außerdem gibt es bei __Lego__-Eisenbahnen keine automatischen Weichen,
+    weshalb eine Schaltung selbst gebaut werden muss.
+    Ein Beispiel ist [in diesem Youtube-Video zu sehen](https://www.youtube.com/watch?v=h-5FmGfYzRs).
 
-Eine Bahngeschwindigkeit regelt die Geschwindigkeit von allen Zügen auf den zugehörigen Gleisen, bzw. deren Fahrtrichtung.
+### Geschwindigkeit
+
+Eine Geschwindigkeit regelt die Geschwindigkeit von allen Zügen auf den zugehörigen Gleisen,
+bzw. deren Fahrtrichtung.
 Dazu wird ein PWM-Signal erzeugt um ausgehend von einer Maximal-Spannung eine effektiv geringere Fahrspannung zu erzeugen.
 
 Bei __Märklin__-Modellbahnen wird __1__ Pin benötigt. Die Maximalspannung sollte __24V__ (Umdrehen-Spannung) betragen.
@@ -28,40 +66,41 @@ Je ein Pin kümmert sich dabei um Geschwindigkeit und Fahrtrichtung.
 
 ### Streckenabschnitt
 
-Ein Streckenabschnitt regelt, welche Gleis-Abschnitte mit Strom versorgt werden. So können Abstellgleise abgeschaltet werden, ohne eine eigene Bahngeschwindigkeit zu benötigen.
+Ein Streckenabschnitt regelt, welche Gleis-Abschnitte mit Strom versorgt werden.
+So können Abstellgleise abgeschaltet werden, ohne eine eigene Bahngeschwindigkeit zu benötigen.
 
 ### Weiche
 
 Weichen und Kreuzungen, bei denen die Fahrtrichtung geändert werden kann.
+Es wird ein Anschluss pro Richtung benötigt.
 
-Bei __Märklin__-Modellbahnen wird pro Richtung __1__ Anschluss benötigt.
-Bei __Lego__-Modellbahnen ist ein Umschalten über einen Servo-Motor angedacht. Es werden nur __2__ Richtungen unterstützt und __1__ Pin benötigt.
+## Geplant
 
-### Kupplung
+### Kupplung (nicht implementiert)
 
 Eine Kupplung ist eine Schiene bei der Zug-Elemente (Lokomotive/Wagon) voneinander getrennt werden können. Es wird __1__ Anschluss benötigt.
 
 __Anmerkung:__
     Mir sind keine Kupplungsschienen für __Lego__-Modellbahnen bekannt.
 
-### Kontakt
+### Kontakt (nicht implementiert)
 
 Ein Kontakt ist ein Eingangssignal. Es wird durch einen Zug ausgelöst und ist hauptsächlich für den
 automatischen Betrieb (Plan) interessant.
 
 Soll ein PCF8574Port verwenden werden wird der zugehörige InterruptPin benötigt.
-Es wird empfohlen den zugehörigen PCF8574 nicht gleichzeitig für Output zu verwenden.
 
-### Wegstrecke
+### Wegstrecke (nicht implementiert)
 
-Eine Wegstrecke ist eine Zusammenfassung mehrerer Teilelemente, wobei Weichen eine eindeutige Richtung zugewiesen wurde.
+Eine Wegstrecke ist eine Zusammenfassung mehrerer Teilelemente,
+wobei Weichen eine eindeutige Richtung zugewiesen wurde.
 Eine mögliche Anwendung ist das fahren von/auf ein Abstellgleis.
 
 Wegstrecken unterstützen sämtliche Funktionen ihrer Elemente, welche immer auf einmal ausgeführt werden.
 Weichen können dabei nur auf ihre festgelegte Richtung eingestellt werden.
 Bei Kontakten wird auf ein beliebiges Signal gewartet.
 
-### Plan
+### Plan (nicht implementiert)
 
 Ein Plan ist eine Aneinanderreihung von Aktionen vorher erstellter StreckenObjekte und Wartezeiten.
 Beim ausführen eines Plans werden diese nacheinander aufgerufen.
@@ -69,7 +108,8 @@ Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 ## Installation
 
 Zur Installation aus dem Quellcode wird cargo empfohlen.  
-Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von `cargo build` eine Executable in einem Unterordner von `./target` erstellt werden.
+Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von
+`cargo build --release` eine Executable in einem Unterordner von `./target` erstellt werden.
 
 Alternativ wird für jede Release-Version eine vorkompilierte binary im Unterordner `bin` angeboten.
 
@@ -80,128 +120,34 @@ Zur Installation von rustup wird empfohlen die Anleitung auf der
 Im Moment lautet der Befehl
     `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-### Swap-Datei erstellen
-
-TODO: überprüfen ob es mit rust auch notwendig ist
-
-```sh
-    sudo dphys-swapfile swapoff   # disable swap
-    sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 2048
-    sudo dphys-swapfile setup     # refresh with new settings
-    sudo dphys-swapfile swapon    # re-enable swap
-```
-
-
-#### libtinfo-dev
-
-TODO: überprüfen ob es mit rust auch notwendig ist
-
-```sh
-sudo apt-get install libtinfo-dev
-```
-
-### Installation von pigpio
-
-Zur Ansteuerung der GPio-Pins wird [pigpio](http://abyz.me.uk/rpi/pigpio/download.html) verwendet.
-Der Befehlt zur Installation über apt lautet
-
-```sh
-sudo apt-get update
-sudo apt-get install pigpio python-pigpio python3-pigpio
-```
-
-### Installation von GTK+
-
-Um  das GTK-UI zu verwenden muss natürlich GTK+ (Version 3) installiert werden.
-Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/download/index.php) zu befolgen.
-
-* Linux/Raspbian:
-    Falls nicht schon installiert, ist eine Installation über den verwendeten paket manager vermutlich das einfachste.
-    Bei Verwendung von apt ist der Befehl: `sudo apt install libgtk-3-dev`
-
-    gobject-introspection: `sudo apt install gobject-introspection`
-    
-    Things not preinstalled on Ubuntu:
-    pkg-config: `sudo apt install pgk-config`
-    girepository: `sudo apt install libgirepository1.0-dev`
-
-* Windows:
-    Die Installation erfolgt über __MSYS2__.  
-    Der Installationsbefehl lautet `pacman -S mingw-w64-x86_64-gtk3`.
-        gtk4 (evtl. für spätere Versionen): `pacman -S mingw64/mingw-w64-x86_64-gtk4`
-    
-    gobject-introspection:`pacman -S mingw64/mingw-w64-x86_64-gobject-introspection`
-
-
-    Wenn man keine selbst gepflegte MSYS2-Installation wünscht kann man die von stack mitgebrachte verwenden.
-    Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
-
-TODO: evtl. umstellen auf gtk4 (geplant)
-
-#### haskell-gi Voraussetzugen
-
-TODO: auch bei rust benötigt?
-
-haskell-gi requires certain development libraries to be present.
-```sh
-sudo apt-get install libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
-```
-
-[Source](https://github.com/haskell-gi/haskell-gi/blob/master/README.md#installation)
-
-
 ## Ausführen des Programms
 
-Zum Ausführen kann wieder cargo verwendet werden.  
-Der Befehl lautet `cargo run`.  
+Sobald sie als ausführbar markiert ist kann die binary über die Kommandozeile
+(mit gewünschten Parametern) gestartet werden.
+
+Alternativ lautet der Befehl zum Ausführen über cargo `cargo run -- release`.  
 Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` übergeben werden.
-
-Alternativ kann natürlich direkt die von `cargo build` erzeugte binary gestartet werden.
-
-### Starten des pigpio daemon
-
-TODO: Nicht sicher wie die bindings funktionieren,
-kann evtl. weiter sudo für hardware-pwm (dafür kein pigpiod) benötigen.
-
-Um eine Ausführung ohne root-Rechte zu ermöglichen wird `pigpiod` verwendet.
-Mehr Informationen dazu auf der [pigpio Website](http://abyz.me.uk/rpi/pigpio/pigpiod.html).
-Der Befehl zum starten lautet
-
-```sh
-sudo pigpiod
-````
 
 ### Unterstütze Kommandozeilen-Parameter
 
-* -h | --help  
+- -h | --help  
     Zeige den Hilfstext an. Dieser wird automatisch erzeugt, wodurch Teile davon auf englisch sind.
-* -v | --version  
+- -v | --version  
     Zeige die aktuelle Version an.
-* -p | --print  
-    Wenn diese Flag gesetzt ist werden die Ausgaben der Raspberry Pi Ausgänge (Pins) nicht als Ausgang verwendet.
-    Es wird stattdessen eine Konsolenausgabe erzeugt.  
-    Diese Flag ist vor allem zum Testen auf anderen Systemen gedacht.
-* --ui=Cmd | GTK  
-    Auswahl der Benutzer-Schnittstelle (Standard: GTK).
-    Bei Installation mit "--flag Zugkontrolle:-gui" wird immer das Cmd-UI verwendet.
-* -lDATEI | --load=DATEI  
-    Versuche den in DATEI (im `yaml`-Format) gespeicherten Zustand zu laden.
-    Wenn die Datei nicht existiert/das falsche Format hat wird ohne Fehlermeldung mit einem leeren Zustand gestartet.
-* --pwm=HardwarePWM | SoftwarePWM  
-    Gebe an, welche PWM-Funktion bevorzugt verwendet wird (Standard: SoftwarePWM).
-    Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
-* --sprache=Deutsch | Englisch  
-    Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.
-* --seiten=Einzelseiten | Sammelseiten  
-    Soll im Gtk-UI jede Kategorie eine eigene Seite bekommen?  
-    Vor allem auf kleineren Bildschirmen ist die Option `--seiten=Einzelseiten` zu empfehlen.
+- -zZUGTYP | --zugtyp ZUGTYP
+    Starte mit dem übergebenen Zugtyp. Vorhandene Gleise und Geschwindigkeiten unterscheiden sich.
+    Aktuell sind `Märklin` und `Lego` unterstützt.
+- -pDATEI | --pfad DATEI  
+    Versuche den in DATEI gespeicherten Zustand zu laden.
+    Wenn die Datei nicht existiert/das falsche Format hat wird mit Fehlermeldung
+    und einem leeren Zustand gestartet.
 
 ### Starten durch ziehen einer Datei auf die binary
 
 Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu öffnen und zu laden.
 
-* Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
-* Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
+- Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
+- Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
     Stattdessen muss eine .desktop-Datei erstellt werden, die dass Verhalten unterstützt.
 
     Eine .desktop-Datei kann folgendermaßen aussehen:
@@ -216,5 +162,5 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
 
   Die Anleitung stammt aus folgenden Quellen:
 
-  * [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
-  * [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)
+  - [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
+  - [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)
