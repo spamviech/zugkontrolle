@@ -56,7 +56,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z: Zugtyp, Anschluss> Zeichnen for Kurve<Z, Anschluss> {
+impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -85,21 +85,20 @@ impl<Z: Zugtyp, Anschluss> Zeichnen for Kurve<Z, Anschluss> {
         )]
     }
 
-    fn beschreibung(&self) -> Option<(Position, &String)> {
-        self.beschreibung.as_ref().map(|text| {
-            let half_angle = 0.5 * self.winkel;
-            (
-                Position {
-                    punkt: Vektor {
-                        x: self.radius * half_angle.sin(),
-                        y: beschränkung::<Z>().halbiert()
-                            + self.radius * (Skalar(1.) - half_angle.cos()),
-                    },
-                    winkel: Winkel(0.),
+    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+        let half_angle = 0.5 * self.winkel;
+        (
+            Position {
+                punkt: Vektor {
+                    x: self.radius * half_angle.sin(),
+                    y: beschränkung::<Z>().halbiert()
+                        + self.radius * (Skalar(1.) - half_angle.cos()),
                 },
-                text,
-            )
-        })
+                winkel: Winkel(0.),
+            },
+            self.beschreibung.as_ref(),
+            self.kontakt.name(),
+        )
     }
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {

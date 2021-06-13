@@ -64,7 +64,7 @@ pub enum AnchorName {
     Rechts,
 }
 
-impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeiche<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for DreiwegeWeiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -151,19 +151,18 @@ impl<Z: Zugtyp, Anschlüsse> Zeichnen for DreiwegeWeiche<Z, Anschlüsse> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(Position, &String)> {
-        self.beschreibung.as_ref().map(|text| {
-            let half_height = self.size().y.halbiert();
-            let halbe_beschränkung = beschränkung::<Z>().halbiert();
-            let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
-            (
-                Position {
-                    punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
-                    winkel: winkel::ZERO,
-                },
-                text,
-            )
-        })
+    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+        let half_height = self.size().y.halbiert();
+        let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
+        (
+            Position {
+                punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
+                winkel: winkel::ZERO,
+            },
+            self.beschreibung.as_ref(),
+            self.steuerung.name(),
+        )
     }
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {

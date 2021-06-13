@@ -390,23 +390,21 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
-        if let Some((relative_position, content)) = definition.beschreibung() {
+        let (relative_position, beschreibung, name) = definition.beschreibung_und_name();
+        if let Some(content) = match (beschreibung, name) {
+            (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
+            (None, Some(name)) => Some(name.clone()),
+            (Some(beschreibung), None) => Some(beschreibung.clone()),
+            (None, None) => None,
+        } {
             let punkt =
                 position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = Position { punkt, winkel };
-            // TODO verwende Name von steuerung-Typen
-            // let beschreibung =
-            //     match (&self.beschreibung, self.steuerung.as_ref().map(|steuerung|
-            // &steuerung.name)) {         (Some(beschreibung), Some(name)) =>
-            // Some(&format!("{} ({})", name.0, beschreibung)),         (None,
-            // Some(name)) => Some(&name.0),         (Some(beschreibung), None) =>
-            // Some(beschreibung),         (None, None) => None,
-            //     };
             frame.with_save(|frame| {
                 move_to_position(frame, &absolute_position);
                 frame.fill_text(canvas::Text {
-                    content: content.to_string(),
+                    content,
                     position: iced::Point::ORIGIN,
                     color: canvas::Color {
                         a: transparency(gleis_id, &is_grabbed),

@@ -87,7 +87,7 @@ impl<Z> SKurvenWeicheUnit<Z> {
     }
 }
 
-impl<Z: Zugtyp, Anschlüsse> Zeichnen for SKurvenWeiche<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for SKurvenWeiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -307,31 +307,30 @@ impl<Z: Zugtyp, Anschlüsse> Zeichnen for SKurvenWeiche<Z, Anschlüsse> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(Position, &String)> {
-        self.beschreibung.as_ref().map(|text| {
-            let start_height: Skalar;
-            let multiplier: Skalar;
-            match self.orientierung {
-                Orientierung::Rechts => {
-                    start_height = Skalar(0.);
-                    multiplier = Skalar(1.);
+    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+        let start_height: Skalar;
+        let multiplier: Skalar;
+        match self.orientierung {
+            Orientierung::Rechts => {
+                start_height = Skalar(0.);
+                multiplier = Skalar(1.);
+            },
+            Orientierung::Links => {
+                start_height = self.size().y;
+                multiplier = Skalar(-1.);
+            },
+        };
+        (
+            Position {
+                punkt: Vektor {
+                    x: self.länge.halbiert(),
+                    y: start_height + multiplier * beschränkung::<Z>().halbiert(),
                 },
-                Orientierung::Links => {
-                    start_height = self.size().y;
-                    multiplier = Skalar(-1.);
-                },
-            };
-            (
-                Position {
-                    punkt: Vektor {
-                        x: self.länge.halbiert(),
-                        y: start_height + multiplier * beschränkung::<Z>().halbiert(),
-                    },
-                    winkel: Winkel(0.),
-                },
-                text,
-            )
-        })
+                winkel: Winkel(0.),
+            },
+            self.beschreibung.as_ref(),
+            self.steuerung.name(),
+        )
     }
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {

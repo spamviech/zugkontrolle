@@ -14,6 +14,7 @@ pub mod vektor;
 pub use vektor::Vektor;
 
 use super::anchor;
+use crate::steuerung::{kontakt::Kontakt, weiche::Weiche};
 pub use crate::zugtyp::Zugtyp;
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
@@ -52,8 +53,8 @@ where
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<Pfad>;
 
-    /// Beschreibung und Position (falls verfügbar)
-    fn beschreibung(&self) -> Option<(Position, &String)>;
+    /// Position, Beschreibung und Name (falls verfügbar)
+    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>);
 
     /// Zeigt der /Vektor/ auf das Gleis?
     fn innerhalb(&self, relative_position: Vektor) -> bool;
@@ -68,4 +69,23 @@ where
     /// Position ausgehend von zeichnen bei (0,0),
     /// Richtung nach außen zeigend.
     fn anchor_points(&self) -> Self::AnchorPoints;
+}
+
+pub trait MitName {
+    fn name(&self) -> Option<&String>;
+}
+impl MitName for () {
+    fn name(&self) -> Option<&String> {
+        None
+    }
+}
+impl<A> MitName for Option<Weiche<A>> {
+    fn name(&self) -> Option<&String> {
+        self.as_ref().map(|weiche| &weiche.name.0)
+    }
+}
+impl<A> MitName for Option<Kontakt<A>> {
+    fn name(&self) -> Option<&String> {
+        self.as_ref().map(|kontakt| &kontakt.name.0)
+    }
 }

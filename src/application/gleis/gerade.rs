@@ -46,7 +46,7 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z: Zugtyp, Anschluss> Zeichnen for Gerade<Z, Anschluss> {
+impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -62,16 +62,15 @@ impl<Z: Zugtyp, Anschluss> Zeichnen for Gerade<Z, Anschluss> {
         vec![fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
-    fn beschreibung(&self) -> Option<(Position, &String)> {
-        self.beschreibung.as_ref().map(|text| {
-            (
-                Position {
-                    punkt: Vektor { x: self.länge.halbiert(), y: beschränkung::<Z>().halbiert() },
-                    winkel: Winkel(0.),
-                },
-                text,
-            )
-        })
+    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+        (
+            Position {
+                punkt: Vektor { x: self.länge.halbiert(), y: beschränkung::<Z>().halbiert() },
+                winkel: Winkel(0.),
+            },
+            self.beschreibung.as_ref(),
+            self.kontakt.name(),
+        )
     }
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {

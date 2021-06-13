@@ -93,11 +93,13 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
                     });
                 });
             }
-            if let Some((relative_position, content)) = self.gleis.beschreibung() {
+            if let (relative_position, Some(content), _unit_name) =
+                self.gleis.beschreibung_und_name()
+            {
                 frame.with_save(|frame| {
                     move_to_position(frame, &relative_position);
                     frame.fill_text(canvas::Text {
-                        content: content.to_string(),
+                        content: content.clone(),
                         position: iced::Point::ORIGIN,
                         color: canvas::Color::BLACK,
                         horizontal_alignment: canvas::HorizontalAlignment::Center,
