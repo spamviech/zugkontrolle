@@ -28,7 +28,7 @@ für einen Kontakt öffnen (nicht implementiert).
 Ändern des angezeigten Bereiches (Bewegen/Drehen,Zoomen) ist aktuell
 nur über die Knöpfe in der oberen Leiste möglich.
 
-### Modus: Fahren (geplant, noch nicht implementiert)
+### Modus: Fahren
 
 Geschwindigkeiten können in der linken Seitenleiste eingestellt werden.
 

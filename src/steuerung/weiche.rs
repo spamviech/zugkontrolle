@@ -13,34 +13,53 @@ pub struct Name(pub String);
 
 // inklusive Kreuzung
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Weiche<Anschlüsse> {
+pub struct Weiche<Richtung, Anschlüsse> {
     pub name: Name,
+    pub aktuelle_richtung: Richtung,
+    pub letzte_richtung: Richtung,
     pub anschlüsse: Anschlüsse,
 }
 
-impl<Anschlüsse> Weiche<Anschlüsse> {
-    pub fn schalten<Richtung>(&mut self, richtung: &Richtung) -> Result<(), Error>
-    where
-        Anschlüsse: Lookup<Richtung, OutputAnschluss>,
-    {
+impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
+where
+    Richtung: Clone,
+    Anschlüsse: Lookup<Richtung, OutputAnschluss>,
+{
+    pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Error> {
         let anschluss = self.anschlüsse.get_mut(richtung);
         anschluss.einstellen(Fließend::Fließend)?;
         sleep(SCHALTZEIT);
         anschluss.einstellen(Fließend::Gesperrt)?;
+        self.letzte_richtung = self.aktuelle_richtung.clone();
+        self.aktuelle_richtung = richtung.clone();
         Ok(())
     }
 }
 
-impl<T: ToSave> ToSave for Weiche<T> {
-    type Save = Weiche<T::Save>;
+impl<Richtung, T> ToSave for Weiche<Richtung, T>
+where
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    T: ToSave,
+{
+    type Save = Weiche<Richtung, T::Save>;
 
-    fn to_save(&self) -> Weiche<T::Save> {
-        Weiche { name: self.name.clone(), anschlüsse: self.anschlüsse.to_save() }
+    fn to_save(&self) -> Weiche<Richtung, T::Save> {
+        Weiche {
+            name: self.name.clone(),
+            aktuelle_richtung: self.aktuelle_richtung.clone(),
+            letzte_richtung: self.letzte_richtung.clone(),
+            anschlüsse: self.anschlüsse.to_save(),
+        }
     }
 }
-impl<T: Reserviere<R>, R> Reserviere<Weiche<R>> for Weiche<T> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Weiche<R>, Error> {
-        Ok(Weiche { name: self.name, anschlüsse: self.anschlüsse.reserviere(anschlüsse)? })
+impl<Richtung: Clone, T: Reserviere<R>, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T> {
+    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Weiche<Richtung, R>, Error> {
+        Ok(Weiche {
+            name: self.name,
+            aktuelle_richtung: self.aktuelle_richtung.clone(),
+            letzte_richtung: self.letzte_richtung.clone(),
+            anschlüsse: self.anschlüsse.reserviere(anschlüsse)?,
+        })
     }
 }
 

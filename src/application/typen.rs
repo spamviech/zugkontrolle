@@ -79,7 +79,7 @@ impl MitName for () {
         None
     }
 }
-impl<A> MitName for Option<Weiche<A>> {
+impl<R, A> MitName for Option<Weiche<R, A>> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|weiche| &weiche.name.0)
     }

@@ -32,6 +32,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                 },
             )
             .collect();
+        let default_variant = enum_variants[0];
         let enum_variants_str = enum_variants.iter().map(ToString::to_string);
         let struct_fields: Vec<syn::Ident> = enum_variants
                     .iter()
@@ -49,6 +50,11 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*
+            }
+            impl Default for Richtung {
+                fn default() -> Self {
+                    Richtung::#default_variant
+                }
             }
             impl std::fmt::Display for Richtung {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -15,6 +15,7 @@ use crate::{
                 AnchorName,
                 AnchorPoints,
                 Orientierung,
+                Richtung,
                 RichtungAnschlüsse,
                 RichtungAnschlüsseSave,
             },
@@ -29,9 +30,10 @@ use crate::{
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[alias_save_unit(steuerung::Weiche<RichtungAnschlüsseSave>)]
+#[alias_save_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSave>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche<Z, Anschlüsse = Option<steuerung::Weiche<RichtungAnschlüsse>>> {
+pub struct SKurvenWeiche
+<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,

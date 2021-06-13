@@ -47,8 +47,9 @@ impl<AnschlüsseSave, AnschlüsseAuswahlStatus> Status<AnschlüsseSave, Anschlü
 where
     AnschlüsseSave: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
-    pub fn neu(option_weiche: Option<Weiche<AnschlüsseSave>>) -> Self {
-        let (name, anschlüsse_save) = if let Some(Weiche { name, anschlüsse }) = option_weiche {
+    pub fn neu<Richtung>(option_weiche: Option<Weiche<Richtung, AnschlüsseSave>>) -> Self {
+        let (name, anschlüsse_save) = if let Some(Weiche { name, anschlüsse, .. }) = option_weiche
+        {
             (name.0, anschlüsse)
         } else {
             (String::new(), Default::default())
@@ -127,15 +128,15 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum Nachricht<AnschlüsseSave> {
-    Festlegen(Weiche<AnschlüsseSave>),
+pub enum Nachricht<Richtung, AnschlüsseSave> {
+    Festlegen(Weiche<Richtung, AnschlüsseSave>),
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSave, R> Widget<Nachricht<AnschlüsseSave>, R>
+impl<'t, Richtung, AnschlüsseSave, R> Widget<Nachricht<Richtung, AnschlüsseSave>, R>
     for Auswahl<'t, Richtung, AnschlüsseSave, R>
 where
-    Richtung: Clone,
+    Richtung: Clone + Default,
     AnschlüsseSave: Clone + Lookup<Richtung, OutputSave>,
     R: Renderer + card::Renderer,
 {
@@ -153,7 +154,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht<AnschlüsseSave>>,
+        messages: &mut Vec<Nachricht<Richtung, AnschlüsseSave>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
         let mut status = self.card.on_event(
@@ -174,6 +175,8 @@ where
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Weiche {
                         name: Name(self.name.clone()),
+                        aktuelle_richtung: Default::default(),
+                        letzte_richtung: Default::default(),
                         anschlüsse: self.anschlüsse.clone(),
                     }));
                     messages.push(Nachricht::Schließen)
@@ -186,9 +189,9 @@ where
 }
 
 impl<'t, Richtung, AnschlüsseSave, R> From<Auswahl<'t, Richtung, AnschlüsseSave, R>>
-    for Element<'t, Nachricht<AnschlüsseSave>, R>
+    for Element<'t, Nachricht<Richtung, AnschlüsseSave>, R>
 where
-    Richtung: 't + Clone,
+    Richtung: 't + Clone + Default,
     AnschlüsseSave: Clone + Lookup<Richtung, OutputSave>,
     R: 't + Renderer + card::Renderer,
 {

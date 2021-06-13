@@ -27,40 +27,12 @@ struct Grabbed<Z> {
     grab_location: Vektor,
     moved: bool,
 }
-impl<Z> Grabbed<Z> {
-    fn find_clicked<T>(grabbed: &mut Option<Grabbed<Z>>, map: &mut Map<T>, canvas_pos: Vektor)
-    where
-        T: Zeichnen,
-        GleisId<T>: Into<AnyId<Z>>,
-    {
-        // TODO store bounding box in rstar as well, to avoid searching everything stored?
-        take_mut::take(grabbed, |grabbed| {
-            grabbed.or({
-                let mut grabbed = None;
-                for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
-                    let relative_pos = canvas_pos - position.punkt;
-                    let rotated_pos = relative_pos.rotiert(-position.winkel);
-                    if definition.innerhalb(rotated_pos) {
-                        grabbed = Some(Grabbed {
-                            gleis_id: AnyId::from_ref(gleis_id),
-                            grab_location: relative_pos,
-                            moved: false,
-                        });
-                        break
-                    }
-                }
-                grabbed
-            })
-        })
-    }
-}
 
 // Aktueller Modus von /Gleise/
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
     Bauen { grabbed: Option<Grabbed<Z>>, last: Instant },
-    // TODO Funktionalität hinzufügen
     Fahren,
 }
 
@@ -212,10 +184,10 @@ impl<Z> Gleise<Z> {
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn streckenabschnitt_mut(
-        &mut self,
-        name: &streckenabschnitt::Name,
-    ) -> Option<&mut Streckenabschnitt> {
+    pub fn streckenabschnitt_mut<'s, 't>(
+        &'s mut self,
+        name: &'t streckenabschnitt::Name,
+    ) -> Option<&'s mut Streckenabschnitt> {
         self.maps.streckenabschnitte.get_mut(name)
     }
 
@@ -437,7 +409,23 @@ fn get_canvas_position(
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-fn grab_gleis_an_position<Z>(
+fn find_clicked<T, Z>(map: &mut Map<T>, canvas_pos: Vektor) -> Option<(AnyId<Z>, Vektor)>
+where
+    T: Zeichnen,
+    GleisId<T>: Into<AnyId<Z>>,
+{
+    // TODO speichere bounding box ebenfalls in rstar, um nicht jedes Gleis durchsuchen zu müssen?
+    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
+        let relative_pos = canvas_pos - position.punkt;
+        let rotated_pos = relative_pos.rotiert(-position.winkel);
+        if definition.innerhalb(rotated_pos) {
+            return Some((AnyId::from_ref(gleis_id), relative_pos))
+        }
+    }
+    None
+}
+
+fn aktion_gleis_an_position<Z>(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
     modus: &mut ModusDaten<Z>,
@@ -458,41 +446,54 @@ where
     Z: Zugtyp,
 {
     let mut message = None;
+    let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            if let ModusDaten::Bauen { grabbed, last } = modus {
-                let now = Instant::now();
-                let diff = now - *last;
-                *last = now;
-                Grabbed::find_clicked(grabbed, geraden, canvas_pos);
-                Grabbed::find_clicked(grabbed, kurven, canvas_pos);
-                Grabbed::find_clicked(grabbed, weichen, canvas_pos);
-                Grabbed::find_clicked(grabbed, dreiwege_weichen, canvas_pos);
-                Grabbed::find_clicked(grabbed, kurven_weichen, canvas_pos);
-                Grabbed::find_clicked(grabbed, s_kurven_weichen, canvas_pos);
-                Grabbed::find_clicked(grabbed, kreuzungen, canvas_pos);
-                if let Some(Grabbed { gleis_id, .. }) = grabbed {
-                    if diff < DOUBLE_CLICK_TIME {
-                        message = Some(Message::AnschlüsseAnpassen(gleis_id.clone()))
+            let find_clicked_result = find_clicked(geraden, canvas_pos)
+                .or(find_clicked(kurven, canvas_pos))
+                .or(find_clicked(weichen, canvas_pos))
+                .or(find_clicked(dreiwege_weichen, canvas_pos))
+                .or(find_clicked(kurven_weichen, canvas_pos))
+                .or(find_clicked(s_kurven_weichen, canvas_pos))
+                .or(find_clicked(kreuzungen, canvas_pos));
+            match modus {
+                ModusDaten::Bauen { grabbed, last } => {
+                    let now = Instant::now();
+                    let diff = now - *last;
+                    *last = now;
+                    take_mut::take(grabbed, |grabbed| {
+                        grabbed.or({
+                            if let Some((gleis_id, grab_location)) = find_clicked_result {
+                                Some(Grabbed { gleis_id, grab_location, moved: false })
+                            } else {
+                                None
+                            }
+                        })
+                    });
+                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                        if diff < DOUBLE_CLICK_TIME {
+                            message = Some(Message::AnschlüsseAnpassen(gleis_id.clone()))
+                        }
+                        status = iced::canvas::event::Status::Captured
                     }
-                }
+                },
+                ModusDaten::Fahren => {
+                    if let Some((gleis_id, _grab_location)) = find_clicked_result {
+                        message = Some(Message::FahrenAktion(gleis_id));
+                        status = iced::canvas::event::Status::Captured
+                    }
+                },
             }
         }
     }
-    (
-        if let ModusDaten::Bauen { grabbed: None, .. } = modus {
-            iced::canvas::event::Status::Ignored
-        } else {
-            iced::canvas::event::Status::Captured
-        },
-        message,
-    )
+    (status, message)
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
     SetzeStreckenabschnitt(AnyId<Z>),
     AnschlüsseAnpassen(AnyId<Z>),
+    FahrenAktion(AnyId<Z>),
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
@@ -577,11 +578,10 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 let Gleise { modus, maps, pivot, skalieren, .. } = self;
-                let grab_result =
-                    grab_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
-                event_status = grab_result.0;
-                message = grab_result.1;
-                // TODO Streckenabschnitt/Weiche schalten im Fahren-Modus
+                let click_result =
+                    aktion_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
+                event_status = click_result.0;
+                message = click_result.1;
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
@@ -856,6 +856,27 @@ impl<Z: Zugtyp> Gleise<Z> {
             self.canvas.clear();
         }
     }
+
+    pub(crate) fn streckenabschnitt_für_id<T>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<Option<&mut Streckenabschnitt>, GleisEntferntError>
+    where
+        T: GleiseMap<Z>,
+    {
+        if let Some(Gleis { streckenabschnitt, .. }) = T::get_map_mut(&mut self.maps).get(&gleis_id)
+        {
+            Ok(if let Some(name) = streckenabschnitt {
+                let name_clone = name.clone();
+                drop(name);
+                self.streckenabschnitt_mut(&name_clone)
+            } else {
+                None
+            })
+        } else {
+            Err(GleisEntferntError)
+        }
+    }
 }
 
 impl<Z: Zugtyp + Serialize> Gleise<Z> {
@@ -1049,11 +1070,11 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
 }
 
 macro_rules! steuerung {
-    ($name:ident, $type:ty, $map:ident, $anschlüsse:ty) => {
+    ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
         pub(in crate::application) fn $name(
             &mut self,
             gleis_id: &GleisId<$type>,
-        ) -> Result<&mut Option<weiche::Weiche<$anschlüsse>>, GleisEntferntError> {
+        ) -> Result<&mut Option<weiche::Weiche<$richtung, $anschlüsse>>, GleisEntferntError> {
             let Gleis { definition, .. } =
                 self.maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntError)?;
             Ok(&mut definition.steuerung)
@@ -1066,6 +1087,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_weiche,
         super::Weiche<Z>,
         weichen,
+        super::weiche::gerade::Richtung,
         super::weiche::gerade::RichtungAnschlüsse
     }
 
@@ -1073,6 +1095,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_dreiwege_weiche,
         super::DreiwegeWeiche<Z>,
         dreiwege_weichen,
+        super::weiche::dreiwege::Richtung,
         super::weiche::dreiwege::RichtungAnschlüsse
     }
 
@@ -1080,6 +1103,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_kurven_weiche,
         super::KurvenWeiche<Z>,
         kurven_weichen,
+        super::weiche::kurve::Richtung,
         super::weiche::kurve::RichtungAnschlüsse
     }
 
@@ -1087,6 +1111,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_s_kurven_weiche,
         super::SKurvenWeiche<Z>,
         s_kurven_weichen,
+        super::weiche::gerade::Richtung,
         super::weiche::gerade::RichtungAnschlüsse
     }
 
@@ -1094,6 +1119,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_kreuzung,
         super::Kreuzung<Z>,
         kreuzungen,
+        super::weiche::gerade::Richtung,
         super::weiche::gerade::RichtungAnschlüsse
     }
 }
