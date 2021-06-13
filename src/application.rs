@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::convert::identity;
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use gleis::{
     gleise::{id::with_any_id, *},
@@ -236,14 +237,14 @@ where
             gleis::weiche::gerade::RichtungAnschlüsseSave,
             gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
         >,
-        Box<dyn Fn(steuerung::Weiche<gleis::weiche::gerade::RichtungAnschlüsseSave>) -> Message<Z>>,
+        Arc<dyn Fn(steuerung::Weiche<gleis::weiche::gerade::RichtungAnschlüsseSave>) -> Message<Z>>,
     ),
     DreiwegeWeiche(
         weiche::Status<
             gleis::weiche::dreiwege::RichtungAnschlüsseSave,
             gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
         >,
-        Box<
+        Arc<
             dyn Fn(
                 steuerung::Weiche<gleis::weiche::dreiwege::RichtungAnschlüsseSave>,
             ) -> Message<Z>,
@@ -254,7 +255,7 @@ where
             gleis::weiche::kurve::RichtungAnschlüsseSave,
             gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
         >,
-        Box<dyn Fn(steuerung::Weiche<gleis::weiche::kurve::RichtungAnschlüsseSave>) -> Message<Z>>,
+        Arc<dyn Fn(steuerung::Weiche<gleis::weiche::kurve::RichtungAnschlüsseSave>) -> Message<Z>>,
     ),
 }
 
@@ -666,7 +667,7 @@ where
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
                         *self.modal_state.inner_mut() = Modal::Weiche(
                             weiche::Status::neu(steuerung_save),
-                            Box::new(move |steuerung| {
+                            Arc::new(move |steuerung| {
                                 Message::WeicheAnschlüsseAnpassen(id.clone(), steuerung)
                             }),
                         );
@@ -684,7 +685,7 @@ where
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
                         *self.modal_state.inner_mut() = Modal::DreiwegeWeiche(
                             weiche::Status::neu(steuerung_save),
-                            Box::new(move |steuerung| {
+                            Arc::new(move |steuerung| {
                                 Message::DreiwegeWeicheAnschlüsseAnpassen(id.clone(), steuerung)
                             }),
                         );
@@ -702,7 +703,7 @@ where
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
                         *self.modal_state.inner_mut() = Modal::KurvenWeiche(
                             weiche::Status::neu(steuerung_save),
-                            Box::new(move |steuerung| {
+                            Arc::new(move |steuerung| {
                                 Message::KurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
                             }),
                         );
@@ -720,7 +721,7 @@ where
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
                         *self.modal_state.inner_mut() = Modal::Weiche(
                             weiche::Status::neu(steuerung_save),
-                            Box::new(move |steuerung| {
+                            Arc::new(move |steuerung| {
                                 Message::SKurvenWeicheAnschlüsseAnpassen(id.clone(), steuerung)
                             }),
                         );
@@ -738,7 +739,7 @@ where
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
                         *self.modal_state.inner_mut() = Modal::Weiche(
                             weiche::Status::neu(steuerung_save),
-                            Box::new(move |steuerung| {
+                            Arc::new(move |steuerung| {
                                 Message::KreuzungAnschlüsseAnpassen(id.clone(), steuerung)
                             }),
                         );
@@ -948,13 +949,34 @@ where
                 }
             }),
             Modal::Weiche(status, als_message) => {
-                todo!()
+                let als_message_clone = als_message.clone();
+                iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                    use weiche::Nachricht::*;
+                    match message {
+                        Festlegen(steuerung) => als_message_clone(steuerung),
+                        Schließen => Message::SchließeModal,
+                    }
+                })
             },
             Modal::DreiwegeWeiche(status, als_message) => {
-                todo!()
+                let als_message_clone = als_message.clone();
+                iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                    use weiche::Nachricht::*;
+                    match message {
+                        Festlegen(steuerung) => als_message_clone(steuerung),
+                        Schließen => Message::SchließeModal,
+                    }
+                })
             },
             Modal::KurvenWeiche(status, als_message) => {
-                todo!()
+                let als_message_clone = als_message.clone();
+                iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                    use weiche::Nachricht::*;
+                    match message {
+                        Festlegen(steuerung) => als_message_clone(steuerung),
+                        Schließen => Message::SchließeModal,
+                    }
+                })
             },
         })
         .on_esc(Message::SchließeModal);
