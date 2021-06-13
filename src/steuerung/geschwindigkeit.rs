@@ -1,10 +1,14 @@
 //! Einstellen der Geschwindigkeit.
 
-use std::collections::BTreeMap;
-use std::fmt::{self, Display};
-use std::usize;
-use std::{thread::sleep, time::Duration};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display},
+    thread::sleep,
+    time::Duration,
+    usize,
+};
 
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -68,10 +72,17 @@ fn geschwindigkeit_ks(
         return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length })
     }
     // aktuellen Anschluss ausstellen
-    geschwindigkeit[*letzter_wert].einstellen(Fließend::Gesperrt)?;
+    if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert) {
+        anschluss.einstellen(Fließend::Gesperrt)?;
+    } else {
+        error!(
+            "Letzter Wert ist {}, Geschwindigkeit hat aber nur {} Anschlüsse!",
+            letzter_wert, length
+        )
+    }
     // neuen anstellen
     *letzter_wert = wert_usize;
-    geschwindigkeit[wert_usize].einstellen(Fließend::Gesperrt)?;
+    geschwindigkeit.get_mut(wert_usize).unwrap().einstellen(Fließend::Gesperrt)?;
     Ok(())
 }
 

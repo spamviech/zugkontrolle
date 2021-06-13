@@ -32,6 +32,7 @@ use iced_native::{
     TextInput,
     Widget,
 };
+use log::error;
 
 use super::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{polarity::Polarität, pwm, OutputSave, ToSave};
@@ -695,8 +696,16 @@ where
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
                     *self.pwm_polarität = polarität
                 },
-                InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss) => {
-                    *self.ks_anschlüsse[ix] = anschluss
+                InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
+                    if let Some(anschluss) = self.ks_anschlüsse.get_mut(ix) {
+                        **anschluss = anschluss_neu
+                    } else {
+                        error!(
+                            "Update-Nachricht für Anschluss {}, es gibt aber nur {}!",
+                            ix,
+                            self.ks_anschlüsse.len()
+                        )
+                    }
                 },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)

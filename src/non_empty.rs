@@ -1,7 +1,6 @@
 //! Vektoren mit mindestens einem Element.
 
 use std::iter::FromIterator;
-use std::ops::{Index, IndexMut};
 use std::{slice, vec};
 
 use serde::{Deserialize, Serialize};
@@ -74,27 +73,20 @@ impl<T> NonEmpty<T> {
             Some(self.tail.remove(index - 1))
         }
     }
-}
 
-// TODO entferne Index-Trait? (panics on out-of-bounds index)
-// verwende stattdessen get/get_mut-Methoden mit Option-Ergebnis
-impl<T> Index<usize> for NonEmpty<T> {
-    type Output = T;
-
-    fn index(&self, index: usize) -> &Self::Output {
+    pub fn get(&self, index: usize) -> Option<&T> {
         if index == 0 {
-            &self.head
+            Some(&self.head)
         } else {
-            self.tail.index(index - 1)
+            self.tail.get(index - 1)
         }
     }
-}
-impl<T> IndexMut<usize> for NonEmpty<T> {
-    fn index_mut(&mut self, index: usize) -> &mut <Self as Index<usize>>::Output {
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         if index == 0 {
-            &mut self.head
+            Some(&mut self.head)
         } else {
-            self.tail.index_mut(index - 1)
+            self.tail.get_mut(index - 1)
         }
     }
 }
