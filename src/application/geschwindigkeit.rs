@@ -33,7 +33,7 @@ use iced_native::{
     Widget,
 };
 
-use super::{anschluss, macros::reexport_no_event_methods};
+use super::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{polarity::Polarität, pwm, OutputSave, ToSave};
 use crate::non_empty::{MaybeEmpty, NonEmpty};
 pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
@@ -96,7 +96,7 @@ where
             + card::Renderer
             + tabs::Renderer
             + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>;
+        <R as tab_bar::Renderer>::Style: From<TabBar>;
 }
 
 #[derive(Debug, Clone)]
@@ -179,11 +179,12 @@ impl LeiterAnzeige for Mittelleiter {
             + card::Renderer
             + tabs::Renderer
             + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+        <R as tab_bar::Renderer>::Style: From<TabBar>,
     {
         Auswahl::neu(
             status,
             UmdrehenAnzeige::KonstanteSpannung,
+            "Umdrehen",
             &|_umdrehen, pin, polarität| Mittelleiter::Pwm { pin, polarität },
             &|umdrehen, geschwindigkeit| Mittelleiter::KonstanteSpannung {
                 geschwindigkeit,
@@ -286,11 +287,12 @@ impl LeiterAnzeige for Zweileiter {
             + card::Renderer
             + tabs::Renderer
             + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+        <R as tab_bar::Renderer>::Style: From<TabBar>,
     {
         Auswahl::neu(
             status,
             UmdrehenAnzeige::Immer,
+            "Fahrtrichtung",
             &|fahrtrichtung, geschwindigkeit, polarität| Zweileiter::Pwm {
                 geschwindigkeit,
                 polarität,
@@ -525,11 +527,12 @@ where
         + card::Renderer
         + tabs::Renderer
         + number_input::Renderer,
-    <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+    <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     fn neu(
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
+        umdrehen_beschreibung: impl Into<String>,
         pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
         ks_nachricht: &'t impl Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
     ) -> Self {
@@ -573,20 +576,21 @@ where
         let anschlüsse_state =
             NonEmpty { head: anschlüsse_state_head, tail: anschlüsse_state_tail };
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
-        // TODO mehr als Auswahl anzeigen
         let mut neu = Column::new().push(TextInput::new(
             neu_name_state,
             "<Name>",
             neu_name,
             InterneAuswahlNachricht::Name,
         ));
-        let umdrehen_auswahl = Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
-            .map(InterneAuswahlNachricht::UmdrehenAnschluss);
-        let make_radio = |polarität: Polarität, aktuell: &Polarität| {
+        let umdrehen_auswahl = Column::new().push(Text::new(umdrehen_beschreibung)).push(
+            Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
+                .map(InterneAuswahlNachricht::UmdrehenAnschluss),
+        );
+        let make_radio = |polarität: Polarität| {
             Radio::new(
                 polarität,
                 polarität.to_string(),
-                Some(*aktuell),
+                Some(*pwm_polarität),
                 InterneAuswahlNachricht::PwmPolarität,
             )
         };
@@ -596,15 +600,15 @@ where
             )
             .push(
                 Column::new()
-                    .push(make_radio(Polarität::Normal, pwm_polarität))
-                    .push(make_radio(Polarität::Invertiert, pwm_polarität)),
+                    .push(make_radio(Polarität::Normal))
+                    .push(make_radio(Polarität::Invertiert)),
             );
         let mut ks_auswahl = Row::new();
         match umdrehen_anzeige {
             UmdrehenAnzeige::KonstanteSpannung => ks_auswahl = ks_auswahl.push(umdrehen_auswahl),
             UmdrehenAnzeige::Immer => neu = neu.push(umdrehen_auswahl),
         }
-        let mut ks_scrollable = Scrollable::new(ks_scrollable_state);
+        let mut ks_scrollable = Scrollable::new(ks_scrollable_state).height(Length::Units(150));
         for (i, (status, button_state)) in anschlüsse_state.into_iter().enumerate() {
             let ii = i;
             let mut row = Row::new().push(
@@ -631,7 +635,8 @@ where
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
             .push(TabLabel::Text("Pwm".to_string()), pwm_auswahl)
             .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl)
-            .height(Length::Shrink);
+            .height(Length::Shrink)
+            .tab_bar_style(TabBar);
         neu = neu.push(tabs);
         let mut scrollable = Scrollable::new(scrollable_state).push(neu).push(
             Button::new(hinzufügen_button_state, Text::new("Hinzufügen"))

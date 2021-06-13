@@ -25,7 +25,7 @@ use iced_native::{
     Widget,
 };
 
-use super::macros::reexport_no_event_methods;
+use super::{macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{
     level::Level,
     pcf8574::Variante,
@@ -34,8 +34,6 @@ use crate::anschluss::{
     InputSave,
     OutputSave,
 };
-
-pub mod style;
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
 #[derive(Debug)]
@@ -192,7 +190,7 @@ where
         + button::Renderer
         + number_input::Renderer
         + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
+    <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
         let interrupt_pins = status.modus.interrupt_pins.clone();
@@ -239,7 +237,7 @@ where
         + button::Renderer
         + number_input::Renderer
         + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
+    <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     pub fn neu_output(status: &'a mut Status<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(
@@ -313,7 +311,7 @@ where
         + button::Renderer
         + number_input::Renderer
         + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<style::TabBar>,
+    <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     fn neu_mit_interrupt_view<IO>(
         Status {
@@ -372,7 +370,7 @@ where
                     }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
-                    .tab_bar_style(style::TabBar)
+                    .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -386,7 +384,7 @@ where
                     (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InternalMessage::TabSelected)
-                    .tab_bar_style(style::TabBar)
+                    .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)

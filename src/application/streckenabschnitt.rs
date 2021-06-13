@@ -34,7 +34,12 @@ use iced_native::{
     Widget,
 };
 
-use super::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods};
+use super::{
+    anschluss,
+    farbwahl::Farbwahl,
+    macros::reexport_no_event_methods,
+    style::tab_bar::TabBar,
+};
 use crate::anschluss::{polarity::Polarität, OutputSave};
 use crate::farbe::Farbe;
 pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
@@ -235,7 +240,7 @@ where
         + number_input::Renderer
         + tabs::Renderer
         + card::Renderer,
-    <R as tab_bar::Renderer>::Style: From<anschluss::style::TabBar>,
+    <R as tab_bar::Renderer>::Style: From<TabBar>,
     <R as button::Renderer>::Style: From<style::Auswahl>,
     <R as iced_native::container::Renderer>::Style: From<style::Auswahl>,
     <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
