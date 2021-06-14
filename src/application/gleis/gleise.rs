@@ -302,6 +302,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
             // zeichne Kontur
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
+                    // TODO aktuelle Richtung für Weichen-artige Gleise anzeigen
                     frame.stroke(&path, canvas::Stroke {
                         color: canvas::Color {
                             a: transparency(gleis_id, &is_grabbed),
