@@ -701,6 +701,7 @@ where
                     debug!("Anschlüsse für Kurve {:?} anpassen.", id)
                 },
                 AnyId::Weiche(id) => {
+                    // TODO Macro für Modal anzeigen
                     if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
                         let steuerung_save =
                             steuerung.as_ref().map(|steuerung| steuerung.to_save());
@@ -792,6 +793,7 @@ where
                 },
             },
             Message::WeicheAnschlüsseAnpassen(id, anschlüsse_save) => {
+                // TODO macro zur Auswertung
                 if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
                     match anschlüsse_save.reserviere(&mut self.anschlüsse) {
                         Ok(anschlüsse) => {
