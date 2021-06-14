@@ -280,6 +280,7 @@ fn fülle_alle_gleise<T: Zeichnen>(
                 // einfärben
                 for path in definition.fülle() {
                     frame.with_save(|frame| {
+                        // TODO Farbe abhängig von Fließend/Gesperrt anpassen
                         let Farbe { r, g, b } = *farbe;
                         let color = iced::Color { r, g, b, a: transparency(gleis_id, &is_grabbed) };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });

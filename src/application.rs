@@ -18,8 +18,9 @@ use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, OutputSave, Reserviere, ToSave},
+    anschluss::{anschlüsse::Anschlüsse, OutputAnschluss, OutputSave, Reserviere, ToSave},
     farbe::Farbe,
+    lookup::Lookup,
     steuerung,
 };
 
@@ -408,6 +409,69 @@ where
             self.zeige_message_box(
                 "Gleis entfernt!".to_string(),
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
+            )
+        }
+    }
+
+    fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(&mut self, gleis_art: &str, id: GleisId<T>) {
+        if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
+            if let Some(streckenabschnitt) = steuerung {
+                if let Err(error) = streckenabschnitt.strom_umschalten() {
+                    self.zeige_message_box(
+                        "Streckenabschnitt umschalten".to_string(),
+                        format!("{:?}", error),
+                    )
+                }
+            } else {
+                self.zeige_message_box(
+                    "Kein Streckenabschnitt!".to_string(),
+                    format!("{} hat keinen Streckenabschnitt!", gleis_art),
+                )
+            }
+        } else {
+            self.zeige_message_box(
+                "Gleis entfernt!".to_string(),
+                format!("FahrenAktion für entfernte {}!", gleis_art),
+            )
+        }
+    }
+
+    fn weiche_stellen<T, Richtung, Anschlüsse>(
+        &mut self,
+        gleis_art: &str,
+        id: GleisId<T>,
+        gleise_steuerung: impl for<'t> Fn(
+            &'t mut Gleise<Z>,
+            &GleisId<T>,
+        ) -> Result<
+            &'t mut Option<steuerung::Weiche<Richtung, Anschlüsse>>,
+            GleisEntferntError,
+        >,
+        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
+    ) where
+        Richtung: Clone,
+        Anschlüsse: Lookup<Richtung, OutputAnschluss>,
+    {
+        if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+            if let Some(weiche) = steuerung {
+                let richtung =
+                    nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
+                if let Err(error) = weiche.schalten(&richtung) {
+                    self.zeige_message_box(
+                        format!("{} schalten", gleis_art),
+                        format!("{:?}", error),
+                    )
+                }
+            } else {
+                self.zeige_message_box(
+                    "Keine Richtungs-Anschlüsse!".to_string(),
+                    format!("{} hat keine Anschlüsse!", gleis_art),
+                )
+            }
+        } else {
+            self.zeige_message_box(
+                "Gleis entfernt!".to_string(),
+                format!("FahrenAktion für entfernte {}!", gleis_art),
             )
         }
     }
@@ -833,194 +897,78 @@ where
                     Gleise::steuerung_kreuzung,
                 ),
             Message::FahrenAktion(any_id) => match any_id {
-                AnyId::Gerade(id) => {
-                    if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
-                        if let Some(streckenabschnitt) = steuerung {
-                            if let Err(error) = streckenabschnitt.strom_umschalten() {
-                                self.zeige_message_box(
-                                    "Streckenabschnitt umschalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
+                // TODO in Methode auslagern
+                AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
+                AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
+                AnyId::Weiche(id) => self.weiche_stellen(
+                    "Weiche",
+                    id,
+                    Gleise::steuerung_weiche,
+                    |aktuelle_richtung, _letzte_richtung| {
+                        use gleis::weiche::gerade::Richtung;
+                        if aktuelle_richtung == &Richtung::Gerade {
+                            Richtung::Kurve
                         } else {
-                            self.zeige_message_box(
-                                "Kein Streckenabschnitt!".to_string(),
-                                "Gerade hat keinen Streckenabschnitt!".to_string(),
-                            )
+                            Richtung::Gerade
                         }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte Gerade!".to_string(),
-                        )
-                    }
-                },
-                AnyId::Kurve(id) => {
-                    if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
-                        if let Some(streckenabschnitt) = steuerung {
-                            if let Err(error) = streckenabschnitt.strom_umschalten() {
-                                self.zeige_message_box(
-                                    "Streckenabschnitt umschalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
-                        } else {
-                            self.zeige_message_box(
-                                "Kein Streckenabschnitt!".to_string(),
-                                "Gerade hat keinen Streckenabschnitt!".to_string(),
-                            )
-                        }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte Kurve!".to_string(),
-                        )
-                    }
-                },
-                AnyId::Weiche(id) => {
-                    if let Ok(steuerung) = self.gleise.steuerung_weiche(&id) {
-                        if let Some(weiche) = steuerung {
-                            use gleis::weiche::gerade::Richtung;
-                            let richtung = if weiche.aktuelle_richtung == Richtung::Gerade {
-                                Richtung::Kurve
+                    },
+                ),
+                AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
+                    "DreiwegeWeiche",
+                    id,
+                    Gleise::steuerung_dreiwege_weiche,
+                    |aktuelle_richtung, letzte_richtung| {
+                        use gleis::weiche::dreiwege::Richtung;
+                        if aktuelle_richtung == &Richtung::Gerade {
+                            if letzte_richtung == &Richtung::Links {
+                                Richtung::Rechts
                             } else {
-                                Richtung::Gerade
-                            };
-                            if let Err(error) = weiche.schalten(&richtung) {
-                                self.zeige_message_box(
-                                    "Weiche schalten".to_string(),
-                                    format!("{:?}", error),
-                                )
+                                Richtung::Links
                             }
                         } else {
-                            self.zeige_message_box(
-                                "Keine Richtungs-Anschlüsse!".to_string(),
-                                "Weiche hat keine Anschlüsse!".to_string(),
-                            )
+                            Richtung::Gerade
                         }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte Weiche!".to_string(),
-                        )
-                    }
-                },
-                AnyId::DreiwegeWeiche(id) => {
-                    if let Ok(steuerung) = self.gleise.steuerung_dreiwege_weiche(&id) {
-                        if let Some(weiche) = steuerung {
-                            use gleis::weiche::dreiwege::Richtung;
-                            let richtung = if weiche.aktuelle_richtung == Richtung::Gerade {
-                                if weiche.letzte_richtung == Richtung::Links {
-                                    Richtung::Rechts
-                                } else {
-                                    Richtung::Links
-                                }
-                            } else {
-                                Richtung::Gerade
-                            };
-                            if let Err(error) = weiche.schalten(&richtung) {
-                                self.zeige_message_box(
-                                    "Weiche schalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
+                    },
+                ),
+                AnyId::KurvenWeiche(id) => self.weiche_stellen(
+                    "KurvenWeiche",
+                    id,
+                    Gleise::steuerung_kurven_weiche,
+                    |aktuelle_richtung, _letzte_richtung| {
+                        use gleis::weiche::kurve::Richtung;
+                        if aktuelle_richtung == &Richtung::Außen {
+                            Richtung::Innen
                         } else {
-                            self.zeige_message_box(
-                                "Keine Richtungs-Anschlüsse!".to_string(),
-                                "Weiche hat keine Anschlüsse!".to_string(),
-                            )
+                            Richtung::Außen
                         }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte DreiwegeWeiche!".to_string(),
-                        )
-                    }
-                },
-                AnyId::KurvenWeiche(id) => {
-                    if let Ok(steuerung) = self.gleise.steuerung_kurven_weiche(&id) {
-                        if let Some(weiche) = steuerung {
-                            use gleis::weiche::kurve::Richtung;
-                            let richtung = if weiche.aktuelle_richtung == Richtung::Außen {
-                                Richtung::Innen
-                            } else {
-                                Richtung::Außen
-                            };
-                            if let Err(error) = weiche.schalten(&richtung) {
-                                self.zeige_message_box(
-                                    "KurvenWeiche schalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
+                    },
+                ),
+                AnyId::SKurvenWeiche(id) => self.weiche_stellen(
+                    "SKurvenWeiche",
+                    id,
+                    Gleise::steuerung_s_kurven_weiche,
+                    |aktuelle_richtung, _letzte_richtung| {
+                        use gleis::weiche::gerade::Richtung;
+                        if aktuelle_richtung == &Richtung::Gerade {
+                            Richtung::Kurve
                         } else {
-                            self.zeige_message_box(
-                                "Keine Richtungs-Anschlüsse!".to_string(),
-                                "KurvenWeiche hat keine Anschlüsse!".to_string(),
-                            )
+                            Richtung::Gerade
                         }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte KurvenWeiche!".to_string(),
-                        )
-                    }
-                },
-                AnyId::SKurvenWeiche(id) => {
-                    if let Ok(steuerung) = self.gleise.steuerung_s_kurven_weiche(&id) {
-                        if let Some(weiche) = steuerung {
-                            use gleis::weiche::gerade::Richtung;
-                            let richtung = if weiche.aktuelle_richtung == Richtung::Gerade {
-                                Richtung::Kurve
-                            } else {
-                                Richtung::Gerade
-                            };
-                            if let Err(error) = weiche.schalten(&richtung) {
-                                self.zeige_message_box(
-                                    "SKurvenWeiche schalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
+                    },
+                ),
+                AnyId::Kreuzung(id) => self.weiche_stellen(
+                    "Kreuzung",
+                    id,
+                    Gleise::steuerung_kreuzung,
+                    |aktuelle_richtung, _letzte_richtung| {
+                        use gleis::weiche::gerade::Richtung;
+                        if aktuelle_richtung == &Richtung::Gerade {
+                            Richtung::Kurve
                         } else {
-                            self.zeige_message_box(
-                                "Keine Richtungs-Anschlüsse!".to_string(),
-                                "SKurvenWeiche hat keine Anschlüsse!".to_string(),
-                            )
+                            Richtung::Gerade
                         }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte SKurvenWeiche!".to_string(),
-                        )
-                    }
-                },
-                AnyId::Kreuzung(id) => {
-                    if let Ok(steuerung) = self.gleise.steuerung_kreuzung(&id) {
-                        if let Some(weiche) = steuerung {
-                            use gleis::weiche::gerade::Richtung;
-                            let richtung = if weiche.aktuelle_richtung == Richtung::Gerade {
-                                Richtung::Kurve
-                            } else {
-                                Richtung::Gerade
-                            };
-                            if let Err(error) = weiche.schalten(&richtung) {
-                                self.zeige_message_box(
-                                    "Kreuzung schalten".to_string(),
-                                    format!("{:?}", error),
-                                )
-                            }
-                        } else {
-                            self.zeige_message_box(
-                                "Keine Richtungs-Anschlüsse!".to_string(),
-                                "Kreuzung hat keine Anschlüsse!".to_string(),
-                            )
-                        }
-                    } else {
-                        self.zeige_message_box(
-                            "Gleis entfernt!".to_string(),
-                            "FahrenAktion für entfernte Kreuzung!".to_string(),
-                        )
-                    }
-                },
+                    },
+                ),
             },
         }
 
