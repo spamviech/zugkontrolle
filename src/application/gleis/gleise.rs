@@ -915,6 +915,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             kreuzungen,
             streckenabschnitte,
             geschwindigkeiten,
+            pläne: _, // TODO verwenden, sobald Plan implementiert ist
         } = bincode::deserialize_from(file)?;
 
         if name != Z::NAME {

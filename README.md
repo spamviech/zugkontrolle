@@ -76,29 +76,12 @@ Es wird ein Anschluss pro Richtung benötigt.
 
 ## Geplant
 
-### Kupplung (nicht implementiert)
-
-Eine Kupplung ist eine Schiene bei der Zug-Elemente (Lokomotive/Wagon) voneinander getrennt werden können. Es wird __1__ Anschluss benötigt.
-
-__Anmerkung:__
-    Mir sind keine Kupplungsschienen für __Lego__-Modellbahnen bekannt.
-
 ### Kontakt (nicht implementiert)
 
 Ein Kontakt ist ein Eingangssignal. Es wird durch einen Zug ausgelöst und ist hauptsächlich für den
 automatischen Betrieb (Plan) interessant.
 
 Soll ein PCF8574Port verwenden werden wird der zugehörige InterruptPin benötigt.
-
-### Wegstrecke (nicht implementiert)
-
-Eine Wegstrecke ist eine Zusammenfassung mehrerer Teilelemente,
-wobei Weichen eine eindeutige Richtung zugewiesen wurde.
-Eine mögliche Anwendung ist das fahren von/auf ein Abstellgleis.
-
-Wegstrecken unterstützen sämtliche Funktionen ihrer Elemente, welche immer auf einmal ausgeführt werden.
-Weichen können dabei nur auf ihre festgelegte Richtung eingestellt werden.
-Bei Kontakten wird auf ein beliebiges Signal gewartet.
 
 ### Plan (nicht implementiert)
 

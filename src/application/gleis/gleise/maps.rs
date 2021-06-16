@@ -11,6 +11,7 @@ use crate::{
     application::{gleis::*, typen::*},
     steuerung::{
         geschwindigkeit,
+        plan::Plan,
         streckenabschnitt::{self, Streckenabschnitt},
     },
 };
@@ -100,7 +101,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: streckenabschnitt::Map<OutputSave>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
-    // TODO pläne, wegstrecken
+    pub(crate) pläne: Vec<Plan>,
 }
 
 impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
@@ -121,6 +122,8 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>
                             (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()})
                         ).collect(),
                     geschwindigkeiten,
+                    // TODO wirkliche Konvertierung, sobald Plan implementiert ist
+                    pläne: Vec::new(),
                     $($map: maps.$map.values().map(
                         |Gleis {position, definition, streckenabschnitt}|
                         Gleis {
