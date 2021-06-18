@@ -64,7 +64,9 @@ fn geschwindigkeit_ks(
         return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length });
     }
     // aktuellen Anschluss ausstellen
-    if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert) {
+    if *letzter_wert == 0 {
+        // Geschwindigkeit war aus, es muss also kein Anschluss ausgeschaltet werden
+    } else if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert - 1) {
         anschluss.einstellen(Fließend::Gesperrt)?;
     } else {
         error!(
