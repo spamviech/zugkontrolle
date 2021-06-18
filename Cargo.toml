@@ -51,11 +51,11 @@ features = ["card", "modal", "tab_bar", "tabs", "number_input", "glow"]
 [target.arm-unknown-linux-gnueabihf.dependencies]
 # raspi 0/1
 rppal = "0.12.0"
-rascam = "0.0.2"
+#rascam = "0.0.2"
 [target.armv7-unknown-linux-gnueabihf.dependencies]
 # raspi 2/3/4
 rppal = "0.12.0"
-rascam = "0.0.2"
+#rascam = "0.0.2"
 
 [build-dependencies]
 cfg_aliases = "0.1.0"
