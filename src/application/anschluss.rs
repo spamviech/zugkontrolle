@@ -404,7 +404,7 @@ where
                 "A",
                 InternalMessage::Variante,
             ))
-            .push(NumberInput::new(port_state, *port, 8, InternalMessage::Port));
+            .push(NumberInput::new(port_state, *port, 7, InternalMessage::Port));
         // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
         let width = Length::Units(350);
         let row = match zeige_modus {
