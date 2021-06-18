@@ -84,10 +84,13 @@ impl Display for Anschluss {
 
 impl Anschluss {
     pub fn into_output(self, polarität: Polarität) -> Result<OutputAnschluss, Error> {
+        let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
         Ok(match self {
-            Anschluss::Pin(pin) => OutputAnschluss::Pin { pin: pin.into_output(), polarität },
+            Anschluss::Pin(pin) => {
+                OutputAnschluss::Pin { pin: pin.into_output(gesperrt_level), polarität }
+            }
             Anschluss::Pcf8574Port(port) => {
-                OutputAnschluss::Pcf8574Port { port: port.into_output()?, polarität }
+                OutputAnschluss::Pcf8574Port { port: port.into_output(gesperrt_level)?, polarität }
             }
         })
     }

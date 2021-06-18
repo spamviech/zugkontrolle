@@ -8,6 +8,8 @@ use cfg_if::cfg_if;
 #[cfg(raspi)]
 use rppal::{self, gpio};
 
+use super::level::Level;
+
 pub mod input;
 pub mod output;
 pub mod pwm;
@@ -106,10 +108,15 @@ impl Pin {
 
     ///Consumes the Pin, returns an output::Pin and sets its mode to Output.
     #[inline]
-    pub fn into_output(self) -> output::Pin {
+    #[cfg_attr(not(raspi), allow(unused_variables))]
+    pub fn into_output(self, level: Level) -> output::Pin {
         output::Pin(
             #[cfg(raspi)]
-            self.0.into_output(),
+            {
+                let mut output_pin = self.0.into_output();
+                output_pin.write(level.into());
+                output_pin
+            },
             #[cfg(not(raspi))]
             self.0,
         )

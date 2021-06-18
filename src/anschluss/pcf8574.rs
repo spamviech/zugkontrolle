@@ -344,14 +344,14 @@ impl Port {
     }
 
     /// Konfiguriere den Port für Output.
-    pub fn into_output(self) -> Result<OutputPort, Error> {
+    pub fn into_output(self, level: Level) -> Result<OutputPort, Error> {
         {
             let pcf8574 = &mut *self.pcf8574.lock()?;
             cfg_if! {
                 if #[cfg(raspi)] {
-                    pcf8574.write_port(self.port, Level::High)?;
+                    pcf8574.write_port(self.port, level)?;
                 } else {
-                    pcf8574.ports[usize::from(self.port)] = Modus::High;
+                    pcf8574.ports[usize::from(self.port)] = level.into();
                 }
             }
         }
