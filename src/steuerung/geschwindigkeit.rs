@@ -74,7 +74,9 @@ fn geschwindigkeit_ks(
     }
     // neuen anstellen
     *letzter_wert = wert_usize;
-    geschwindigkeit.get_mut(wert_usize).unwrap().einstellen(Fließend::Gesperrt)?;
+    if wert_usize > 0 {
+        geschwindigkeit.get_mut(wert_usize - 1).unwrap().einstellen(Fließend::Gesperrt)?;
+    }
     Ok(())
 }
 
