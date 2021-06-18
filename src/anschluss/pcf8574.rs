@@ -186,13 +186,13 @@ impl Pcf8574 {
             Variante::A => 0x38,
         });
         if let Level::High = a0 {
-            adresse = adresse + u7::new(0b100);
+            adresse = adresse + u7::new(0b001);
         }
         if let Level::High = a1 {
             adresse = adresse + u7::new(0b010);
         }
         if let Level::High = a2 {
-            adresse = adresse + u7::new(0b001);
+            adresse = adresse + u7::new(0b100);
         }
         adresse
     }
