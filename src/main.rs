@@ -14,7 +14,7 @@ use self::args::Args;
 fn main() -> Result<(), Error> {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Error)
-        .with_module_level("zugkontrolle", log::LevelFilter::Debug)
+        .with_module_level("zugkontrolle", log::LevelFilter::Warn)
         .init()
         .expect("failed to initialize error logging");
 
