@@ -14,12 +14,16 @@ pub enum Trigger {
 
 impl Display for Trigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", match self {
-            Trigger::Disabled => "Disabled",
-            Trigger::RisingEdge => "Rising Edge",
-            Trigger::FallingEdge => "Falling Edge",
-            Trigger::Both => "Both",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Trigger::Disabled => "Disabled",
+                Trigger::RisingEdge => "Rising Edge",
+                Trigger::FallingEdge => "Falling Edge",
+                Trigger::Both => "Both",
+            }
+        )
     }
 }
 

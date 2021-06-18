@@ -4,41 +4,13 @@ use std::collections::BTreeMap;
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
-    button,
-    checkbox,
-    column,
-    container,
-    event,
-    mouse,
-    radio,
-    row,
-    scrollable,
-    text,
-    text_input,
-    Align,
-    Button,
-    Checkbox,
-    Clipboard,
-    Column,
-    Container,
-    Element,
-    Event,
-    Layout,
-    Length,
-    Point,
-    Renderer,
-    Row,
-    Scrollable,
-    Text,
-    TextInput,
-    Widget,
+    button, checkbox, column, container, event, mouse, radio, row, scrollable, text, text_input,
+    Align, Button, Checkbox, Clipboard, Column, Container, Element, Event, Layout, Length, Point,
+    Renderer, Row, Scrollable, Text, TextInput, Widget,
 };
 
 use super::{
-    anschluss,
-    farbwahl::Farbwahl,
-    macros::reexport_no_event_methods,
-    style::tab_bar::TabBar,
+    anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
 };
 use crate::anschluss::{polarity::Polarität, OutputSave};
 use crate::farbe::Farbe;
@@ -352,17 +324,17 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                 InterneAuswahlNachricht::Wähle(wahl) => {
                     messages.push(AuswahlNachricht::Wähle(wahl));
                     messages.push(AuswahlNachricht::Schließe)
-                },
+                }
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(
                         Name(self.neu_name.clone()),
                         self.neu_farbe.clone(),
                         self.neu_anschluss.clone(),
                     ));
-                },
+                }
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(name))
-                },
+                }
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
                 InterneAuswahlNachricht::Anschluss(anschluss) => *self.neu_anschluss = anschluss,

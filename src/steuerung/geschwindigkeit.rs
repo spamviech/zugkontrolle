@@ -12,15 +12,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    self,
-    pwm,
-    Anschlüsse,
-    Fließend,
-    OutputAnschluss,
-    OutputSave,
-    Polarität,
-    Reserviere,
-    ToSave,
+    self, pwm, Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität, Reserviere, ToSave,
 };
 use crate::non_empty::{MaybeEmpty, NonEmpty};
 
@@ -69,7 +61,7 @@ fn geschwindigkeit_ks(
     let wert_usize = wert as usize;
     let length = geschwindigkeit.len();
     if wert_usize > length {
-        return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length })
+        return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length });
     }
     // aktuellen Anschluss ausstellen
     if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert) {
@@ -107,7 +99,7 @@ impl ToSave for Mittelleiter {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Mittelleiter::Pwm { pin: pin.to_save(), polarität: *polarität }
-            },
+            }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
                 Mittelleiter::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
@@ -118,7 +110,7 @@ impl ToSave for Mittelleiter {
                     letzter_wert: *letzter_wert,
                     umdrehen: umdrehen.to_save(),
                 }
-            },
+            }
         }
     }
 }
@@ -127,7 +119,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Mittelleiter::Pwm { pin: pin.reserviere(anschlüsse)?, polarität }
-            },
+            }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 Mittelleiter::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
@@ -138,7 +130,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                     letzter_wert: 0,
                     umdrehen: umdrehen.reserviere(anschlüsse)?,
                 }
-            },
+            }
         })
     }
 }
@@ -160,10 +152,10 @@ impl Geschwindigkeit<Mittelleiter> {
         match &mut self.leiter {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
-            },
+            }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
-            },
+            }
         }
     }
 
@@ -178,12 +170,12 @@ impl Geschwindigkeit<Mittelleiter> {
                 })?;
                 sleep(UMDREHENZEIT);
                 pin.disable()?
-            },
+            }
             Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
                 umdrehen.einstellen(Fließend::Fließend)?;
                 sleep(UMDREHENZEIT);
                 umdrehen.einstellen(Fließend::Gesperrt)?
-            },
+            }
         })
     }
 }
@@ -208,10 +200,10 @@ impl Geschwindigkeit<Zweileiter> {
         match &mut self.leiter {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
-            },
+            }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
-            },
+            }
         }
     }
 
@@ -256,7 +248,7 @@ impl ToSave for Zweileiter {
                     letzter_wert: *letzter_wert,
                     fahrtrichtung: fahrtrichtung.to_save(),
                 }
-            },
+            }
         }
     }
 }
@@ -278,7 +270,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                     letzter_wert: 0,
                     fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
                 }
-            },
+            }
         })
     }
 }
@@ -298,10 +290,14 @@ impl From<Fahrtrichtung> for Fließend {
 }
 impl Display for Fahrtrichtung {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Fahrtrichtung::Vorwärts => "Vorwärts",
-            Fahrtrichtung::Rückwärts => "Rückwärts",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Fahrtrichtung::Vorwärts => "Vorwärts",
+                Fahrtrichtung::Rückwärts => "Rückwärts",
+            }
+        )
     }
 }
 

@@ -346,7 +346,7 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
             test_winkel += Winkel(2. * std::f32::consts::PI)
         }
         if test_winkel < winkel {
-            return true
+            return true;
         }
     }
     false

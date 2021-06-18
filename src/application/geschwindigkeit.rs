@@ -4,33 +4,9 @@ use std::{collections::BTreeMap, fmt::Debug, iter, num::NonZeroUsize};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
 use iced_native::{
-    button,
-    column,
-    container,
-    event,
-    overlay,
-    radio,
-    row,
-    scrollable,
-    slider,
-    text,
-    text_input,
-    Button,
-    Clipboard,
-    Column,
-    Element,
-    Event,
-    Layout,
-    Length,
-    Point,
-    Radio,
-    Renderer,
-    Row,
-    Scrollable,
-    Slider,
-    Text,
-    TextInput,
-    Widget,
+    button, column, container, event, overlay, radio, row, scrollable, slider, text, text_input,
+    Button, Clipboard, Column, Element, Event, Layout, Length, Point, Radio, Renderer, Row,
+    Scrollable, Slider, Text, TextInput, Widget,
 };
 use log::error;
 
@@ -152,7 +128,7 @@ impl LeiterAnzeige for Mittelleiter {
             MessageMittelleiter::Geschwindigkeit(wert) => {
                 anzeige_status.aktuelle_geschwindigkeit = wert;
                 geschwindigkeit.geschwindigkeit(wert)
-            },
+            }
             MessageMittelleiter::Umdrehen => geschwindigkeit.umdrehen(),
         }
         .map(|()| iced::Command::none())
@@ -257,11 +233,11 @@ impl LeiterAnzeige for Zweileiter {
             MessageZweileiter::Geschwindigkeit(wert) => {
                 anzeige_status.aktuelle_geschwindigkeit = wert;
                 geschwindigkeit.geschwindigkeit(wert)
-            },
+            }
             MessageZweileiter::Fahrtrichtung(fahrtrichtung) => {
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
                 geschwindigkeit.fahrtrichtung(fahrtrichtung)
-            },
+            }
         }
         .map(|()| iced::Command::none())
     }
@@ -350,7 +326,7 @@ where
             column.push(
                 Slider::new(
                     pwm_slider_state,
-                    0 ..= u8::MAX,
+                    0..=u8::MAX,
                     *aktuelle_geschwindigkeit,
                     geschwindigkeits_nachricht,
                 )
@@ -553,7 +529,7 @@ where
                 )),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
                     ks_anschlüsse.remove(ix.get());
-                },
+                }
             }
             *ks_anschlüsse_anpassen = None;
         }
@@ -608,19 +584,17 @@ where
                     InterneAuswahlNachricht::KonstanteSpannungAnschluss(ii, anschluss)
                 }),
             );
-            row =
-                row.push(
-                    if let Some(ix) = NonZeroUsize::new(i) {
-                        Element::from(Button::new(button_state, Text::new("X")).on_press(
-                            InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix),
-                        ))
-                    } else {
-                        Element::from(
-                            Button::new(button_state, Text::new("+"))
-                                .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
-                        )
-                    },
-                );
+            row = row.push(if let Some(ix) = NonZeroUsize::new(i) {
+                Element::from(
+                    Button::new(button_state, Text::new("X"))
+                        .on_press(InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix)),
+                )
+            } else {
+                Element::from(
+                    Button::new(button_state, Text::new("+"))
+                        .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
+                )
+            });
             ks_scrollable = ks_scrollable.push(row)
         }
         ks_auswahl = ks_auswahl.push(ks_scrollable);
@@ -691,11 +665,11 @@ where
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
                     *self.umdrehen_anschluss = anschluss
-                },
+                }
                 InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
                     *self.pwm_polarität = polarität
-                },
+                }
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
                     if let Some(anschluss) = self.ks_anschlüsse.get_mut(ix) {
                         **anschluss = anschluss_neu
@@ -706,37 +680,40 @@ where
                             self.ks_anschlüsse.len()
                         )
                     }
-                },
+                }
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
-                },
+                }
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
                     self.ks_anschlüsse.remove(ix.get());
-                },
-                InterneAuswahlNachricht::Hinzufügen => messages.push(
-                    AuswahlNachricht::Hinzufügen(Name(self.neu_name.clone()), Geschwindigkeit {
-                        leiter: if self.aktueller_tab == &0 {
-                            (self.pwm_nachricht)(
-                                self.umdrehen_anschluss.clone(),
-                                self.pwm_pin.clone(),
-                                *self.pwm_polarität,
-                            )
-                        } else {
-                            (self.ks_nachricht)(
-                                self.umdrehen_anschluss.clone(),
-                                self.ks_anschlüsse
-                                    .iter()
-                                    .map(|output_save| (*output_save).clone())
-                                    .collect::<MaybeEmpty<_>>()
-                                    .unwrap(),
-                            )
+                }
+                InterneAuswahlNachricht::Hinzufügen => {
+                    messages.push(AuswahlNachricht::Hinzufügen(
+                        Name(self.neu_name.clone()),
+                        Geschwindigkeit {
+                            leiter: if self.aktueller_tab == &0 {
+                                (self.pwm_nachricht)(
+                                    self.umdrehen_anschluss.clone(),
+                                    self.pwm_pin.clone(),
+                                    *self.pwm_polarität,
+                                )
+                            } else {
+                                (self.ks_nachricht)(
+                                    self.umdrehen_anschluss.clone(),
+                                    self.ks_anschlüsse
+                                        .iter()
+                                        .map(|output_save| (*output_save).clone())
+                                        .collect::<MaybeEmpty<_>>()
+                                        .unwrap(),
+                                )
+                            },
                         },
-                    }),
-                ),
+                    ))
+                }
                 InterneAuswahlNachricht::Löschen(name) => {
                     messages.push(AuswahlNachricht::Löschen(name))
-                },
+                }
             }
         }
         status

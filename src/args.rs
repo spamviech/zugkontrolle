@@ -14,17 +14,15 @@ impl FromArgs for Wrapper {
         if args.contains(&"--version") {
             Err(EarlyExit { output: format!("Zugkontrolle {}", version!()), status: Ok(()) })
         } else {
-            Ok(Wrapper(
-                if let Some((pfad, [])) = args.split_first() {
-                    if pfad.starts_with("-") {
-                        Args::from_args(command_name, args)?
-                    } else {
-                        Args::from_args(command_name, &["--pfad", pfad])?
-                    }
-                } else {
+            Ok(Wrapper(if let Some((pfad, [])) = args.split_first() {
+                if pfad.starts_with("-") {
                     Args::from_args(command_name, args)?
-                },
-            ))
+                } else {
+                    Args::from_args(command_name, &["--pfad", pfad])?
+                }
+            } else {
+                Args::from_args(command_name, args)?
+            }))
         }
     }
 }

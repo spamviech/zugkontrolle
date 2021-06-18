@@ -4,27 +4,8 @@ use std::fmt::{Debug, Display};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
-    button,
-    column,
-    container,
-    event,
-    radio,
-    row,
-    text,
-    text_input,
-    Button,
-    Clipboard,
-    Column,
-    Element,
-    Event,
-    Layout,
-    Length,
-    Point,
-    Renderer,
-    Row,
-    Text,
-    TextInput,
-    Widget,
+    button, column, container, event, radio, row, text, text_input, Button, Clipboard, Column,
+    Element, Event, Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
 };
 
 use crate::{
@@ -171,7 +152,7 @@ where
                 InterneNachricht::Name(name) => *self.name = name,
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *self.anschlüsse.get_mut(&richtung) = anschluss
-                },
+                }
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Weiche {
                         name: Name(self.name.clone()),
@@ -180,7 +161,7 @@ where
                         anschlüsse: self.anschlüsse.clone(),
                     }));
                     messages.push(Nachricht::Schließen)
-                },
+                }
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
         }

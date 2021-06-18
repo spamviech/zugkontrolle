@@ -68,7 +68,7 @@ impl RTree {
             {
                 opposing = true;
                 if grabbed {
-                    break
+                    break;
                 }
             }
             if !grabbed
@@ -77,7 +77,7 @@ impl RTree {
             {
                 grabbed = true;
                 if opposing {
-                    break
+                    break;
                 }
             }
         }

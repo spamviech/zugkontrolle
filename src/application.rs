@@ -198,10 +198,10 @@ where
         match message {
             gleise::Message::SetzeStreckenabschnitt(any_id) => {
                 Message::SetzeStreckenabschnitt(any_id)
-            },
+            }
             gleise::Message::AnschlüsseAnpassen(any_id) => {
                 Message::ZeigeAnschlüsseAnpassen(any_id)
-            },
+            }
             gleise::Message::FahrenAktion(any_id) => Message::FahrenAktion(any_id),
         }
     }
@@ -399,7 +399,7 @@ where
                 Ok(anschlüsse) => {
                     *steuerung = Some(anschlüsse);
                     self.gleise.erzwinge_neuzeichnen()
-                },
+                }
                 Err(error) => self.zeige_message_box(
                     "Anschlüsse Weiche anpassen".to_string(),
                     format!("{:?}", error),
@@ -493,7 +493,7 @@ where
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;
-            },
+            }
             Err(err) => self.zeige_message_box(
                 format!("Fehler beim Laden von {}", self.aktueller_pfad),
                 format!("{:?}", err),
@@ -596,37 +596,37 @@ where
                     AnyGleis::WeicheUnit(weiche) => add_grabbed_at_mouse!(weiche),
                     AnyGleis::DreiwegeWeicheUnit(dreiwege_weiche) => {
                         add_grabbed_at_mouse!(dreiwege_weiche)
-                    },
+                    }
                     AnyGleis::KurvenWeicheUnit(kurven_weiche) => {
                         add_grabbed_at_mouse!(kurven_weiche)
-                    },
+                    }
                     AnyGleis::SKurvenWeicheUnit(s_kurven_weiche) => {
                         add_grabbed_at_mouse!(s_kurven_weiche)
-                    },
+                    }
                     AnyGleis::KreuzungUnit(kreuzung) => add_grabbed_at_mouse!(kreuzung),
                 }
-            },
+            }
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
             Message::Bewegen(bewegen) => {
                 self.gleise.bewege_pivot(
                     bewegen.bewegen().rotiert(-self.gleise.pivot().winkel)
                         / self.gleise.skalierfaktor(),
                 );
-            },
+            }
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
             Message::SchließeModal => {
                 self.modal_state.show(false);
-            },
+            }
             Message::ZeigeAuswahlStreckenabschnitt => {
                 *self.modal_state.inner_mut() = Modal::Streckenabschnitt(
                     streckenabschnitt::AuswahlStatus::neu(self.gleise.streckenabschnitte()),
                 );
                 self.modal_state.show(true);
-            },
+            }
             Message::WähleStreckenabschnitt(aktuell) => {
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
-            },
+            }
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
                 match anschluss_definition.reserviere(&mut self.anschlüsse) {
                     Ok(anschluss) => {
@@ -635,7 +635,7 @@ where
                         match self.modal_state.inner_mut() {
                             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                                 streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
-                            },
+                            }
                             modal => {
                                 error!("Falscher Modal-State bei HinzufügenStreckenabschnitt!");
                                 *modal = Modal::Streckenabschnitt(
@@ -643,7 +643,7 @@ where
                                         self.gleise.streckenabschnitte(),
                                     ),
                                 );
-                            },
+                            }
                         }
                         let name_string = name.0.clone();
                         if let Some(ersetzt) =
@@ -657,13 +657,13 @@ where
                                 ),
                             )
                         }
-                    },
+                    }
                     Err(error) => self.zeige_message_box(
                         "Hinzufügen Streckenabschnitt".to_string(),
                         format!("Fehler beim Hinzufügen: {:?}", error),
                     ),
                 }
-            },
+            }
             Message::LöscheStreckenabschnitt(name) => {
                 if self
                     .streckenabschnitt_aktuell
@@ -676,17 +676,17 @@ where
                 match self.modal_state.inner_mut() {
                     Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                         streckenabschnitt_auswahl.entferne(&name);
-                    },
+                    }
                     modal => {
                         error!("Falscher Modal-State bei LöscheStreckenabschnitt!");
                         *modal = Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(
                             self.gleise.streckenabschnitte(),
                         ));
-                    },
+                    }
                 }
                 self.gleise.entferne_streckenabschnitt(name);
                 self.gleise.erzwinge_neuzeichnen()
-            },
+            }
             Message::SetzeStreckenabschnitt(any_id) => {
                 if self.streckenabschnitt_aktuell_festlegen {
                     if let Err(GleisEntferntError) = with_any_id!(
@@ -705,10 +705,10 @@ where
                         )
                     }
                 }
-            },
+            }
             Message::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_aktuell_festlegen = festlegen
-            },
+            }
             Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
                 if let Err(err) = self.gleise.speichern(
@@ -725,7 +725,7 @@ where
                         format!("{:?}", err),
                     )
                 }
-            },
+            }
             Message::Laden => self.laden(),
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,
             Message::GeschwindigkeitAnzeige { name, nachricht } => {
@@ -743,7 +743,7 @@ where
                                 name: name_clone.clone(),
                                 nachricht,
                             })
-                        },
+                        }
                         Err(error) => self.zeige_message_box(
                             format!("Fehler Geschwindigkeit {}", name.0),
                             format!("{:?}", error),
@@ -755,13 +755,13 @@ where
                         name.0, nachricht
                     )
                 }
-            },
+            }
             Message::ZeigeAuswahlGeschwindigkeit => {
                 *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
                     geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.keys()),
                 );
                 self.modal_state.show(true);
-            },
+            }
             Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 match geschwindigkeit_save.reserviere(&mut self.anschlüsse) {
                     Ok(geschwindigkeit) => {
@@ -783,43 +783,43 @@ where
                         match self.modal_state.inner_mut() {
                             Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                                 geschwindigkeit_auswahl.hinzufügen(name);
-                            },
+                            }
                             modal => {
                                 error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
                                 *modal =
                                     Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
                                         self.geschwindigkeiten.keys(),
                                     ));
-                            },
+                            }
                         }
-                    },
+                    }
                     Err(error) => self.zeige_message_box(
                         "Hinzufügen Geschwindigkeit".to_string(),
                         format!("Fehler beim Hinzufügen: {:?}", error),
                     ),
                 }
-            },
+            }
             Message::LöscheGeschwindigkeit(name) => {
                 self.geschwindigkeiten.remove(&name);
                 match self.modal_state.inner_mut() {
                     Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                         geschwindigkeit_auswahl.entfernen(&name);
-                    },
+                    }
                     modal => {
                         error!("Falscher Modal-State bei LöscheGeschwindigkeit!");
                         *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
                             self.geschwindigkeiten.keys(),
                         ));
-                    },
+                    }
                 }
-            },
+            }
             Message::ZeigeAnschlüsseAnpassen(any_id) => match any_id {
                 AnyId::Gerade(id) => {
                     debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-                },
+                }
                 AnyId::Kurve(id) => {
                     debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-                },
+                }
                 AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen(
                     "Weiche",
                     id,
@@ -1069,7 +1069,7 @@ where
                     Wähle(wahl) => Message::WähleStreckenabschnitt(wahl),
                     Hinzufügen(name, farbe, anschluss) => {
                         Message::HinzufügenStreckenabschnitt(name, farbe, anschluss)
-                    },
+                    }
                     Lösche(name) => Message::LöscheStreckenabschnitt(name),
                 }
             }),
@@ -1082,7 +1082,7 @@ where
                     Schließen => Message::SchließeModal,
                     Hinzufügen(name, geschwindigkeit) => {
                         Message::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-                    },
+                    }
                     Löschen(name) => Message::LöscheGeschwindigkeit(name),
                 }
             }),
@@ -1095,7 +1095,7 @@ where
                         Schließen => Message::SchließeModal,
                     }
                 })
-            },
+            }
             Modal::DreiwegeWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -1105,7 +1105,7 @@ where
                         Schließen => Message::SchließeModal,
                     }
                 })
-            },
+            }
             Modal::KurvenWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -1115,7 +1115,7 @@ where
                         Schließen => Message::SchließeModal,
                     }
                 })
-            },
+            }
         })
         .on_esc(Message::SchließeModal);
 
@@ -1220,10 +1220,10 @@ where
                 .map(|message| match message {
                     streckenabschnitt::AnzeigeNachricht::Auswählen => {
                         Message::ZeigeAuswahlStreckenabschnitt
-                    },
+                    }
                     streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
                         Message::StreckenabschnittFestlegen(festlegen)
-                    },
+                    }
                 }),
             )
             .push(
@@ -1294,7 +1294,7 @@ where
             if let Some(max) = max_width {
                 width = iced::Length::Units(max + scroller_width);
             }
-        },
+        }
         Modus::Fahren => {
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten")).spacing(1);
             for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
@@ -1312,7 +1312,7 @@ where
                 );
             }
             // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?, Separator dazwischen?
-        },
+        }
     }
     iced::Row::new()
         .push(

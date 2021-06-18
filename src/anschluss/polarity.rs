@@ -13,10 +13,14 @@ pub enum Polarität {
 }
 impl Display for Polarität {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", match self {
-            Polarität::Normal => "Normal",
-            Polarität::Invertiert => "Invertiert",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Polarität::Normal => "Normal",
+                Polarität::Invertiert => "Invertiert",
+            }
+        )
     }
 }
 

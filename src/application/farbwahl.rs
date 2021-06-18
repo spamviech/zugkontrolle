@@ -4,23 +4,8 @@ use std::hash::Hash;
 
 use iced_graphics::Primitive;
 use iced_native::{
-    event,
-    layout,
-    mouse,
-    touch,
-    Background,
-    Clipboard,
-    Color,
-    Element,
-    Event,
-    Hasher,
-    Layout,
-    Length,
-    Point,
-    Rectangle,
-    Renderer,
-    Size,
-    Widget,
+    event, layout, mouse, touch, Background, Clipboard, Color, Element, Event, Hasher, Layout,
+    Length, Point, Rectangle, Renderer, Size, Widget,
 };
 
 use super::typen::{
@@ -125,8 +110,8 @@ where
         let bounds = layout.bounds();
         let radius = Skalar(0.5 * self.durchmesser as f32);
         let center = Vektor { x: radius, y: radius };
-        for x in 0 .. self.durchmesser {
-            for y in 0 .. self.durchmesser {
+        for x in 0..self.durchmesser {
+            for y in 0..self.durchmesser {
                 let v = Vektor { x: Skalar(x as f32), y: Skalar(y as f32) };
                 let vr = v - center;
                 if let Some(farbe) = self.farbe(vr) {

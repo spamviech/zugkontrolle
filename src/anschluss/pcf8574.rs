@@ -38,10 +38,10 @@ impl Debug for Modus {
         match self {
             Modus::Input { trigger, callback: Some(_) } => {
                 write!(f, "Input {{trigger: {:?}, callback: Some(_)}}", trigger)
-            },
+            }
             Modus::Input { trigger, callback: None } => {
                 write!(f, "Input {{trigger: {:?}, callback: None}}", trigger)
-            },
+            }
             Modus::High => write!(f, "High"),
             Modus::Low => write!(f, "Low"),
         }
@@ -122,7 +122,7 @@ impl Pcf8574 {
                         let pcf8574 = &mut *guard;
                         match pcf8574.read() {
                             Ok(current) => {
-                                for i in 0 .. 8 {
+                                for i in 0..8 {
                                     match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
                                         (
                                             Modus::Input {
@@ -133,7 +133,7 @@ impl Pcf8574 {
                                             Some(last),
                                         ) if last == &mut Level::High && current == Level::Low => {
                                             callback(current);
-                                        },
+                                        }
                                         (
                                             Modus::Input {
                                                 trigger: Trigger::Both | Trigger::RisingEdge,
@@ -143,23 +143,23 @@ impl Pcf8574 {
                                             Some(last),
                                         ) if last == &mut Level::High && current == Level::Low => {
                                             callback(current);
-                                        },
-                                        _ => {},
+                                        }
+                                        _ => {}
                                     }
                                     last[i] = current[i];
                                 }
-                            },
+                            }
                             Err(error) => {
                                 error!(
                                     "Error while reading Pcf8574 while reacting to interrupt: {:?}",
                                     error
                                 );
-                            },
+                            }
                         }
-                    },
+                    }
                     Err(_error) => {
                         error!("Poison error on pcf8574-Mutex while reacting to interrupt!")
-                    },
+                    }
                 }
             })?;
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
@@ -411,7 +411,7 @@ impl OutputPort {
                 Modus::Input { .. } => {
                     error!("Output pin configured as input: {:?}", self);
                     Level::Low
-                },
+                }
             }
         };
         self.write(level)

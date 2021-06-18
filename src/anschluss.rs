@@ -77,7 +77,7 @@ impl Display for Anschluss {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.adresse())?;
                 write!(f, "-{})", port.port())
-            },
+            }
         }
     }
 }
@@ -88,7 +88,7 @@ impl Anschluss {
             Anschluss::Pin(pin) => OutputAnschluss::Pin { pin: pin.into_output(), polarität },
             Anschluss::Pcf8574Port(port) => {
                 OutputAnschluss::Pcf8574Port { port: port.into_output()?, polarität }
-            },
+            }
         })
     }
 
@@ -112,12 +112,12 @@ impl Display for OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 write!(f, "Pin({}, {})", pin.pin(), polarität)
-            },
+            }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.adresse())?;
                 write!(f, "-{}, {})", port.port(), polarität)
-            },
+            }
         }
     }
 }
@@ -127,10 +127,10 @@ impl OutputAnschluss {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 pin.write(fließend.with_polarity(*polarität))?
-            },
+            }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 port.write(fließend.with_polarity(*polarität))?
-            },
+            }
         })
     }
 
@@ -191,7 +191,7 @@ impl ToSave for OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 OutputSave::Pin { pin: pin.pin(), polarität: *polarität }
-            },
+            }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 let (a0, a1, a2, variante) = port.adresse();
                 let port = port.port();
@@ -203,7 +203,7 @@ impl ToSave for OutputAnschluss {
                     port: port.into(),
                     polarität: *polarität,
                 }
-            },
+            }
         }
     }
 }
@@ -212,11 +212,11 @@ impl Reserviere<OutputAnschluss> for OutputSave {
         let (anschluss, polarität) = match self {
             OutputSave::Pin { pin, polarität } => {
                 (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
-            },
+            }
             OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
                 let port = u3::new(port);
                 (anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into(), polarität)
-            },
+            }
         };
         anschluss.into_output(polarität)
     }
@@ -237,7 +237,7 @@ impl Display for InputAnschluss {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.adresse())?;
                 write!(f, "-{})", port.port())
-            },
+            }
         }
     }
 }
@@ -297,7 +297,7 @@ impl ToSave for InputAnschluss {
                     port: port.into(),
                     interrupt,
                 }
-            },
+            }
         }
     }
 }
@@ -306,7 +306,7 @@ impl Reserviere<InputAnschluss> for InputSave {
         Ok(match self {
             InputSave::Pin { pin } => {
                 InputAnschluss::Pin(anschlüsse.reserviere_pin(pin)?.into_input())
-            },
+            }
             InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
                 let port =
                     anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))?;
@@ -318,7 +318,7 @@ impl Reserviere<InputAnschluss> for InputSave {
                     }
                 }
                 InputAnschluss::Pcf8574Port(input_port)
-            },
+            }
         })
     }
 }

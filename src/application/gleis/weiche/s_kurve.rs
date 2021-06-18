@@ -8,15 +8,9 @@ use zugkontrolle_derive::alias_save_unit;
 use crate::{
     application::{
         gleis::{
-            anchor,
-            gerade,
-            kurve,
+            anchor, gerade, kurve,
             weiche::gerade::{
-                AnchorName,
-                AnchorPoints,
-                Orientierung,
-                Richtung,
-                RichtungAnschlüsse,
+                AnchorName, AnchorPoints, Orientierung, Richtung, RichtungAnschlüsse,
                 RichtungAnschlüsseSave,
             },
         },
@@ -316,11 +310,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for SKurvenWeiche<Z, Anschlüsse>
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         (
             Position {
@@ -343,11 +337,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for SKurvenWeiche<Z, Anschlüsse>
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
@@ -374,11 +368,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for SKurvenWeiche<Z, Anschlüsse>
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         let angle_difference = self.winkel - self.winkel_reverse;
         let anfang = Vektor {

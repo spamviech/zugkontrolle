@@ -8,9 +8,7 @@ use zugkontrolle_derive::alias_save_unit;
 use crate::{
     application::{
         gleis::{
-            anchor,
-            gerade,
-            kurve,
+            anchor, gerade, kurve,
             weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSave},
         },
         typen::*,

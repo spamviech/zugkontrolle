@@ -4,35 +4,13 @@ use std::collections::HashMap;
 
 use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
 use iced_native::{
-    button,
-    column,
-    container,
-    event,
-    radio,
-    row,
-    text,
-    Clipboard,
-    Column,
-    Element,
-    Event,
-    Layout,
-    Length,
-    Point,
-    Radio,
-    Renderer,
-    Row,
-    Text,
-    Widget,
+    button, column, container, event, radio, row, text, Clipboard, Column, Element, Event, Layout,
+    Length, Point, Radio, Renderer, Row, Text, Widget,
 };
 
 use super::{macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{
-    level::Level,
-    pcf8574::Variante,
-    pin::pwm,
-    polarity::Polarität,
-    InputSave,
-    OutputSave,
+    level::Level, pcf8574::Variante, pin::pwm, polarity::Polarität, InputSave, OutputSave,
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
@@ -84,7 +62,7 @@ impl<'t> Status<Input<'t>> {
                     port,
                     make_modus(interrupt.unwrap_or(0)),
                 )
-            },
+            }
         }
     }
 
@@ -125,10 +103,10 @@ impl Status<Output> {
         match initial {
             OutputSave::Pin { pin, polarität } => {
                 Self::neu_mit_initial_pin(pin, Output { polarität })
-            },
+            }
             OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
                 Self::neu_mit_initial_port(a0, a1, a2, variante, port, Output { polarität })
-            },
+            }
         }
     }
 
@@ -445,7 +423,7 @@ where
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
-            },
+            }
             ZeigeModus::Beide => {
                 let tabs = vec![
                     (
@@ -459,7 +437,7 @@ where
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
-            },
+            }
         };
         Auswahl {
             row,
@@ -519,20 +497,18 @@ where
             status = event::Status::Captured;
         }
         if changed {
-            messages.push(
-                if *self.active_tab == 0 {
-                    (self.make_pin)(*self.pin, &self.modus)
-                } else {
-                    (self.make_port)(
-                        *self.a0,
-                        *self.a1,
-                        *self.a2,
-                        *self.variante,
-                        *self.port,
-                        self.modus,
-                    )
-                },
-            )
+            messages.push(if *self.active_tab == 0 {
+                (self.make_pin)(*self.pin, &self.modus)
+            } else {
+                (self.make_port)(
+                    *self.a0,
+                    *self.a1,
+                    *self.a2,
+                    *self.variante,
+                    *self.port,
+                    self.modus,
+                )
+            })
         }
         status
     }

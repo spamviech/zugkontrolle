@@ -65,15 +65,21 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
         vec![self.canvas.draw(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
-            frame.fill(&border_path, canvas::Fill {
-                color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
-                rule: canvas::FillRule::EvenOdd,
-            });
-            frame.stroke(&border_path, canvas::Stroke {
-                color: canvas::Color::BLACK,
-                width: BORDER_WIDTH as f32,
-                ..Default::default()
-            });
+            frame.fill(
+                &border_path,
+                canvas::Fill {
+                    color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
+                    rule: canvas::FillRule::EvenOdd,
+                },
+            );
+            frame.stroke(
+                &border_path,
+                canvas::Stroke {
+                    color: canvas::Color::BLACK,
+                    width: BORDER_WIDTH as f32,
+                    ..Default::default()
+                },
+            );
             let size = self.gleis.size();
             if bounds_vector.x > size.x {
                 // horizontal zentrieren
@@ -86,11 +92,14 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
             }
             for path in self.gleis.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(&path, canvas::Stroke {
-                        color: canvas::Color::BLACK,
-                        width: STROKE_WIDTH.0,
-                        ..Default::default()
-                    });
+                    frame.stroke(
+                        &path,
+                        canvas::Stroke {
+                            color: canvas::Color::BLACK,
+                            width: STROKE_WIDTH.0,
+                            ..Default::default()
+                        },
+                    );
                 });
             }
             if let (relative_position, Some(content), _unit_name) =
@@ -132,7 +141,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
                     iced::canvas::event::Status::Captured,
                     Some(self.gleis.to_message(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
-            },
+            }
             _ => (iced::canvas::event::Status::Ignored, None),
         }
     }

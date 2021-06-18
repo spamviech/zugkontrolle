@@ -2,19 +2,9 @@
 
 use iced_graphics::{backend::Backend, canvas::Program, Renderer};
 use iced_native::{
-    event,
-    layout,
+    event, layout,
     mouse::{self, Button},
-    overlay,
-    touch,
-    Clipboard,
-    Element,
-    Hasher,
-    Layout,
-    Length,
-    Point,
-    Rectangle,
-    Widget,
+    overlay, touch, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 use log::trace;
 
@@ -84,22 +74,22 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
                     trace!("FingerPressed {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonPressed(Button::Left));
                     cursor_position = position;
-                },
+                }
                 touch::Event::FingerLifted { id, position } => {
                     trace!("FingerLifted {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
-                },
+                }
                 touch::Event::FingerLost { id, position } => {
                     trace!("FingerLost {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
-                },
+                }
                 touch::Event::FingerMoved { id, position } => {
                     trace!("FingerMoved {{ id: {:?}, position: {:?} }}", id, position);
                     event = iced_native::Event::Mouse(mouse::Event::CursorMoved { position });
                     cursor_position = position;
-                },
+                }
             }
         }
         Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, messages)

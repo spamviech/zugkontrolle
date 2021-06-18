@@ -133,14 +133,14 @@ impl Pin {
                     // TODO
                     &None
                 })
-            },
+            }
             #[cfg(raspi)]
             Pwm::Software(_pin) => Ok(&self.config),
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.is_enabled()", self);
                 Err(Error::KeinRaspberryPi)
-            },
+            }
         }
     }
 
@@ -160,14 +160,14 @@ impl Pin {
                         Time::Period { period, pulse_width } => {
                             pwm_channel.set_period(period)?;
                             pwm_channel.set_pulse_width(pulse_width)?;
-                        },
+                        }
                         Time::Frequency { frequency, duty_cycle } => {
                             pwm_channel.set_frequency(frequency, duty_cycle)?;
-                        },
+                        }
                     }
                 }
                 Ok(pwm_channel.enable()?)
-            },
+            }
             #[cfg(raspi)]
             Pwm::Software(pin) => match config.time {
                 Time::Period { period, mut pulse_width } => {
@@ -175,19 +175,19 @@ impl Pin {
                         pulse_width = period - pulse_width;
                     }
                     Ok(pin.set_pwm(period, pulse_width)?)
-                },
+                }
                 Time::Frequency { frequency, mut duty_cycle } => {
                     if config.polarity == Polarität::Invertiert {
                         duty_cycle = 1. - duty_cycle;
                     }
                     Ok(pin.set_pwm_frequency(frequency, duty_cycle)?)
-                },
+                }
             },
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.enable_with_config({:?})", self, config);
                 Err(Error::KeinRaspberryPi)
-            },
+            }
         }
     }
 
@@ -197,16 +197,16 @@ impl Pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable()?;
-            },
+            }
             #[cfg(raspi)]
             Pwm::Software(pin) => {
                 pin.clear_pwm()?;
-            },
+            }
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.disable()", self);
-                return Err(Error::KeinRaspberryPi)
-            },
+                return Err(Error::KeinRaspberryPi);
+            }
         }
         #[cfg_attr(not(raspi), allow(unreachable_code))]
         {

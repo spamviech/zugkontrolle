@@ -5,9 +5,7 @@ use simple_logger::SimpleLogger;
 use zugkontrolle::{
     anschluss::anschlüsse::{self, Anschlüsse},
     application::icon::icon,
-    Lego,
-    Märklin,
-    Zugkontrolle,
+    Lego, Märklin, Zugkontrolle,
 };
 
 pub mod args;

@@ -4,9 +4,7 @@
 use std::collections::HashSet;
 use std::sync::{
     mpsc::{channel, Receiver, Sender},
-    Arc,
-    Mutex,
-    PoisonError,
+    Arc, Mutex, PoisonError,
 };
 use std::thread;
 
@@ -188,7 +186,7 @@ impl Anschlüsse {
                 let data =
                     std::mem::replace(anschlüsse, Err(Error::Sync(SyncError::InVerwendung)))?;
                 Ok(Anschlüsse(Some(data)))
-            },
+            }
             Err(_er) => Err(Error::Sync(SyncError::PoisonError)),
         }
     }
@@ -231,18 +229,18 @@ impl Anschlüsse {
                         let port = llln_to_hhha! {match_nachricht: port_value};
                         if let Err(err) = anschlüsse.rückgabe(port) {
                             error!("Error bei rückgabe: {:?}", err);
-                            break
+                            break;
                         }
-                    },
+                    }
                     Err(err) => {
                         error!("Anschlüsse-static poisoned: {}", err);
-                        break
-                    },
+                        break;
+                    }
                 },
                 Err(err) => {
                     error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
-                    break
-                },
+                    break;
+                }
             }
         }
     }
@@ -256,16 +254,16 @@ impl Anschlüsse {
                         let anschlüsse = &mut *guard;
                         debug!("rückgabe pin {}", pin);
                         anschlüsse.ausgegebene_pins.remove(&pin);
-                    },
+                    }
                     Err(err) => {
                         error!("Anschlüsse-static poisoned: {}", err);
-                        break
-                    },
+                        break;
+                    }
                 },
                 Err(err) => {
                     error!("Kanal für Pin-Rückgabe geschlossen: {}", err);
-                    break
-                },
+                    break;
+                }
             }
         }
     }
@@ -400,7 +398,7 @@ impl Anschlüsse {
         debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
-            return Err(Error::Sync(SyncError::InVerwendung))
+            return Err(Error::Sync(SyncError::InVerwendung));
         }
         if let Some(arc) = self.0.as_ref() {
             #[cfg_attr(raspi, allow(unused_mut))]

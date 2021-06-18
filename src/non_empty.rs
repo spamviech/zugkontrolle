@@ -63,7 +63,7 @@ impl<T> NonEmpty<T> {
     pub fn remove(&mut self, index: usize) -> Option<T> {
         let len = self.len();
         if index > len || (len == 1 && index == 0) {
-            return None
+            return None;
         }
         if index == 0 {
             let mut new_head = self.tail.remove(0);

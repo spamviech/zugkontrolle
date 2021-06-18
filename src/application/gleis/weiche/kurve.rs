@@ -217,11 +217,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for KurvenWeiche<Z, Anschlüsse> 
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         (
             Position {
@@ -244,11 +244,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for KurvenWeiche<Z, Anschlüsse> 
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
@@ -268,11 +268,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for KurvenWeiche<Z, Anschlüsse> 
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            },
+            }
             Orientierung::Links => {
                 start_height = self.size().y;
                 multiplier = Skalar(-1.);
-            },
+            }
         };
         let halbe_beschränkung: Skalar = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };

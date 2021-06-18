@@ -3,14 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    Anschlüsse,
-    Error,
-    InputAnschluss,
-    InputSave,
-    Level,
-    Reserviere,
-    ToSave,
-    Trigger,
+    Anschlüsse, Error, InputAnschluss, InputSave, Level, Reserviere, ToSave, Trigger,
 };
 
 /// Name eines Kontaktes.

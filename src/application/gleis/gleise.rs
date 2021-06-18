@@ -303,14 +303,17 @@ fn zeichne_alle_gleise<T: Zeichnen>(
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
                     // TODO aktuelle Richtung für Weichen-artige Gleise anzeigen
-                    frame.stroke(&path, canvas::Stroke {
-                        color: canvas::Color {
-                            a: transparency(gleis_id, &is_grabbed),
-                            ..canvas::Color::BLACK
+                    frame.stroke(
+                        &path,
+                        canvas::Stroke {
+                            color: canvas::Color {
+                                a: transparency(gleis_id, &is_grabbed),
+                                ..canvas::Color::BLACK
+                            },
+                            width: 1.5,
+                            ..Default::default()
                         },
-                        width: 1.5,
-                        ..Default::default()
-                    });
+                    );
                 });
             }
         })
@@ -329,11 +332,13 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
             // zeichne anchor points
             definition.anchor_points().for_each(|_name, &anchor| {
                 frame.with_save(|frame| {
-                    let (opposing, grabbed) =
-                        has_other_and_grabbed_id_at_point(gleis_id.as_any(), anchor::Anchor {
+                    let (opposing, grabbed) = has_other_and_grabbed_id_at_point(
+                        gleis_id.as_any(),
+                        anchor::Anchor {
                             position: position.transformation(anchor.position),
                             richtung: position.winkel + anchor.richtung,
-                        });
+                        },
+                    );
                     let color = if opposing {
                         canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
                     } else {
@@ -421,7 +426,7 @@ where
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(rotated_pos) {
-            return Some((AnyId::from_ref(gleis_id), relative_pos))
+            return Some((AnyId::from_ref(gleis_id), relative_pos));
         }
     }
     None
@@ -478,13 +483,13 @@ where
                         }
                         status = iced::canvas::event::Status::Captured
                     }
-                },
+                }
                 ModusDaten::Fahren => {
                     if let Some((gleis_id, _grab_location)) = find_clicked_result {
                         message = Some(Message::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }
-                },
+                }
             }
         }
     }
@@ -584,7 +589,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                     aktion_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
                 event_status = click_result.0;
                 message = click_result.1;
-            },
+            }
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
@@ -610,7 +615,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                         event_status = iced::canvas::event::Status::Captured;
                     }
                 }
-            },
+            }
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 if let Some(canvas_pos) =
                     get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
@@ -632,8 +637,8 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                         }
                     }
                 }
-            },
-            _otherwise => {},
+            }
+            _otherwise => {}
         };
         if event_status == iced::canvas::event::Status::Captured {
             self.canvas.clear()
@@ -649,7 +654,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
         match &self.modus {
             ModusDaten::Bauen { grabbed: Some(_grabbed), .. } if cursor.is_over(&bounds) => {
                 iced::mouse::Interaction::Pointer
-            },
+            }
             _ => iced::mouse::Interaction::default(),
         }
     }
@@ -849,10 +854,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
-                self.anchor_points.remove(gleis_id.as_any(), &anchor::Anchor {
-                    position: position.transformation(anchor.position),
-                    richtung: position.winkel + anchor.richtung,
-                });
+                self.anchor_points.remove(
+                    gleis_id.as_any(),
+                    &anchor::Anchor {
+                        position: position.transformation(anchor.position),
+                        richtung: position.winkel + anchor.richtung,
+                    },
+                );
             });
             // trigger redraw
             self.canvas.clear();
@@ -919,7 +927,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         } = bincode::deserialize_from(file)?;
 
         if name != Z::NAME {
-            return Err(Error::FalscherZugtyp(name))
+            return Err(Error::FalscherZugtyp(name));
         }
 
         // reset current state
@@ -970,28 +978,24 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 };
             };
         }
-        reserviere_anschlüsse!(geraden_reserviert, geraden, gerade, Gerade {
-            kontakt,
-            zugtyp,
-            länge,
-            beschreibung
-        });
-        reserviere_anschlüsse!(kurven_reserviert, kurven, kurve, Kurve {
-            kontakt,
-            zugtyp,
-            radius,
-            winkel,
-            beschreibung
-        });
-        reserviere_anschlüsse!(weichen_reserviert, weichen, ::weiche::gerade, Weiche {
-            steuerung,
-            zugtyp,
-            länge,
-            radius,
-            winkel,
-            orientierung,
-            beschreibung
-        });
+        reserviere_anschlüsse!(
+            geraden_reserviert,
+            geraden,
+            gerade,
+            Gerade { kontakt, zugtyp, länge, beschreibung }
+        );
+        reserviere_anschlüsse!(
+            kurven_reserviert,
+            kurven,
+            kurve,
+            Kurve { kontakt, zugtyp, radius, winkel, beschreibung }
+        );
+        reserviere_anschlüsse!(
+            weichen_reserviert,
+            weichen,
+            ::weiche::gerade,
+            Weiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung }
+        );
         reserviere_anschlüsse!(
             dreiwege_weichen_reserviert,
             dreiwege_weichen,
@@ -1020,14 +1024,12 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 beschreibung
             }
         );
-        reserviere_anschlüsse!(kreuzungen_reserviert, kreuzungen, kreuzung, Kreuzung {
-            steuerung,
-            zugtyp,
-            länge,
-            radius,
-            variante,
-            beschreibung
-        });
+        reserviere_anschlüsse!(
+            kreuzungen_reserviert,
+            kreuzungen,
+            kreuzung,
+            Kreuzung { steuerung, zugtyp, länge, radius, variante, beschreibung }
+        );
         // restore state from data
         macro_rules! add_gleise {
             ($($gleise: ident,)*) => {
@@ -1050,10 +1052,10 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         let streckenabschnitte_reserviert: Vec<_> = match streckenabschnitte
             .into_iter()
             .map(|(name, Streckenabschnitt { farbe, anschluss })| {
-                Ok((name, Streckenabschnitt {
-                    farbe,
-                    anschluss: anschluss.reserviere(anschlüsse)?,
-                }))
+                Ok((
+                    name,
+                    Streckenabschnitt { farbe, anschluss: anschluss.reserviere(anschlüsse)? },
+                ))
             })
             .collect()
         {
