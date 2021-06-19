@@ -7,10 +7,10 @@ target/
 *~
 *.o
 
-/bin/Zugkontrolle
-/bin/Zugkontrolle.exe
-/bin/zugkontrolle
-/bin/zugkontrolle.exe
+/bin/Zugkontrolle*
+/bin/Zugkontrolle*.exe
+/bin/zugkontrolle*
+/bin/zugkontrolle*.exe
 
 /Schaltpläne/*.aux
 /Schaltpläne/*.log

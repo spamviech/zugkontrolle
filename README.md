@@ -90,11 +90,13 @@ Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 
 ## Installation
 
+Für jede Release-Version wird eine vorkompilierte binary als Asset auf [github](https://github.com/spamviech/Zugkontrolle/releases) angeboten.
+Damit es ausgeführt werden kann ist vermutlich ein Anpassen der Berechtigungen notwendig:
+`chmod +x /pfad/zu/binary/zugkontrolle-version`
+
 Zur Installation aus dem Quellcode wird cargo empfohlen.  
 Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von
 `cargo build --release` eine Executable in einem Unterordner von `./target` erstellt werden.
-
-Alternativ wird für jede Release-Version eine vorkompilierte binary im Unterordner `bin` angeboten.
 
 ### Installation via rustup
 
