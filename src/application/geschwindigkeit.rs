@@ -552,7 +552,6 @@ where
             }
             *ks_anschlüsse_anpassen = None;
         }
-        // TODO Anzeige vorhandene Geschwindigkeiten mit Löschen-Knopf
         let (output_save_head, status_head, button_state_head) = &mut ks_anschlüsse.head;
         let anschlüsse_state_head = (status_head, button_state_head);
         let (anschlüsse_state_tail, anschlüsse_save_tail): (Vec<_>, Vec<_>) = ks_anschlüsse
@@ -563,12 +562,11 @@ where
         let anschlüsse_state =
             NonEmpty { head: anschlüsse_state_head, tail: anschlüsse_state_tail };
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
-        let mut neu = Column::new().push(TextInput::new(
-            neu_name_state,
-            "<Name>",
-            neu_name,
-            InterneAuswahlNachricht::Name,
-        ));
+        let width = Length::Units(950);
+        let mut neu = Column::new().push(
+            TextInput::new(neu_name_state, "<Name>", neu_name, InterneAuswahlNachricht::Name)
+                .width(width),
+        );
         let umdrehen_auswahl = Column::new().push(Text::new(umdrehen_beschreibung)).push(
             Element::from(anschluss::Auswahl::neu_output(umdrehen_state))
                 .map(InterneAuswahlNachricht::UmdrehenAnschluss),
@@ -620,6 +618,7 @@ where
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
             .push(TabLabel::Text("Pwm".to_string()), pwm_auswahl)
             .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl)
+            .width(width)
             .height(Length::Shrink)
             .tab_bar_style(TabBar);
         neu = neu.push(tabs);
@@ -635,7 +634,8 @@ where
             );
         }
         let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
-            .on_close(InterneAuswahlNachricht::Schließen);
+            .on_close(InterneAuswahlNachricht::Schließen)
+            .width(Length::Shrink);
         Auswahl {
             card,
             neu_name,
