@@ -2,13 +2,17 @@
 
 ## Unreleased changes
 
+# 2.0.0
+
 - Neuschreiben in rust
-- Anzeige über Gleisplan, kein Cmd-UI mehr
+- Anzeige & Steuerung über Gleisplan, kein Cmd-UI mehr
 - Doppelklick für festlegen der Richtungs-Anschlüsse einer Weiche/Kreuzung
 - Streckenabschnitt erstellen über eigenes Untermenü
 - Zuweisen zu Gleisen über Erstellen/Klick nach Auswahl
 - Geschwindigkeiten erstellen über eigenes Untermenü
 - Lego-Weichen werden auf Raspi-Seite genauso bedient wie Märklin-Weichen
+- Streckenabschnitte schalten über Klick auf assoziierte Gerade/Kurve
+- Schalten von Weichen/Kreuzungen über Klick auf das jeweilige Gleis
 - Speichern über ein binary Format
 - Kontakte können aktuell nicht erstellt werden
 - Aktuell ist nur deutsche Sprache unterstützt
