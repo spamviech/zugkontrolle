@@ -9,6 +9,8 @@ target/
 
 /bin/Zugkontrolle
 /bin/Zugkontrolle.exe
+/bin/zugkontrolle
+/bin/zugkontrolle.exe
 
 /Schaltpläne/*.aux
 /Schaltpläne/*.log
