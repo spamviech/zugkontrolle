@@ -1,6 +1,6 @@
 //! Zugtyp Trait + Phantom-Typen + Spurweite
 
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::anschluss::serde::ToSave;
 use crate::application::geschwindigkeit::LeiterAnzeige;
@@ -22,7 +22,7 @@ pub trait Zugtyp: Sized {
     const NAME: &'static str;
 
     /// Art der Stromzufuhr.
-    type Leiter: ToSave + LeiterAnzeige;
+    type Leiter: ToSave + LeiterAnzeige + Display;
 
     fn geraden() -> Vec<GeradeUnit<Self>>;
     fn kurven() -> Vec<KurveUnit<Self>>;

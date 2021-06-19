@@ -1,6 +1,11 @@
 //! Anzeige & Erstellen einer Geschwindigkeit.
 
-use std::{collections::BTreeMap, fmt::Debug, iter, num::NonZeroUsize};
+use std::{
+    collections::BTreeMap,
+    fmt::{Debug, Display},
+    iter,
+    num::NonZeroUsize,
+};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
 use iced_native::{
@@ -392,12 +397,14 @@ pub struct AuswahlStatus {
     ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
     ks_scrollable_state: scrollable::State,
     hinzufügen_button_state: button::State,
-    geschwindigkeiten: BTreeMap<Name, button::State>,
+    geschwindigkeiten: BTreeMap<Name, (String, button::State)>,
     scrollable_state: scrollable::State,
 }
 
 impl AuswahlStatus {
-    pub fn neu<'t>(geschwindigkeiten: impl Iterator<Item = &'t Name>) -> Self {
+    pub fn neu<'t, Leiter: 't + Display, A: 't>(
+        geschwindigkeiten: impl Iterator<Item = (&'t Name, &'t (Geschwindigkeit<Leiter>, A))>,
+    ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
             neu_name_state: text_input::State::new(),
@@ -416,14 +423,26 @@ impl AuswahlStatus {
             ks_scrollable_state: scrollable::State::new(),
             hinzufügen_button_state: button::State::new(),
             geschwindigkeiten: geschwindigkeiten
-                .map(|name| (name.clone(), button::State::new()))
+                .map(|(name, (geschwindigkeit, _a))| (name, geschwindigkeit))
+                .map(Self::iter_map)
                 .collect(),
             scrollable_state: scrollable::State::new(),
         }
     }
 
-    pub fn hinzufügen(&mut self, name: Name) {
-        self.geschwindigkeiten.insert(name, button::State::new());
+    fn iter_map<'t, Leiter: 't + Display>(
+        (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
+    ) -> (Name, (String, button::State)) {
+        (name.clone(), (format!("{}", geschwindigkeit.leiter), button::State::new()))
+    }
+
+    pub fn hinzufügen<Leiter: Display>(
+        &mut self,
+        name: &Name,
+        geschwindigkeit: &Geschwindigkeit<Leiter>,
+    ) {
+        let (key, value) = Self::iter_map((name, geschwindigkeit));
+        self.geschwindigkeiten.insert(key, value);
     }
 
     pub fn entfernen(&mut self, name: &Name) {
@@ -608,10 +627,12 @@ where
             Button::new(hinzufügen_button_state, Text::new("Hinzufügen"))
                 .on_press(InterneAuswahlNachricht::Hinzufügen),
         );
-        for (name, button_state) in geschwindigkeiten.iter_mut() {
+        for (name, (anschlüsse, button_state)) in geschwindigkeiten.iter_mut() {
             let button = Button::new(button_state, Text::new("X"))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone()));
-            scrollable = scrollable.push(Column::new().push(Text::new(&name.0)).push(button));
+            scrollable = scrollable.push(
+                Column::new().push(Text::new(&name.0)).push(Text::new(&*anschlüsse)).push(button),
+            );
         }
         let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
             .on_close(InterneAuswahlNachricht::Schließen);

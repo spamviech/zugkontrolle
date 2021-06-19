@@ -2,7 +2,7 @@
 
 use std::{
     collections::BTreeMap,
-    fmt::{self, Display},
+    fmt::{self, Display, Formatter},
     thread::sleep,
     time::Duration,
     usize,
@@ -94,6 +94,29 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
         letzter_wert: usize,
         umdrehen: Anschluss,
     },
+}
+
+impl Display for Mittelleiter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Mittelleiter::Pwm { pin, polarität } => {
+                write!(f, "Pwm({}, {})", pin.pin(), polarität)
+            }
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                write!(f, "KonstanteSpannung(")?;
+                let mut first = true;
+                for anschluss in geschwindigkeit.iter() {
+                    if first {
+                        first = false;
+                    } else {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", anschluss)?;
+                }
+                write!(f, "-{})", umdrehen)
+            }
+        }
+    }
 }
 
 impl ToSave for Mittelleiter {
@@ -197,6 +220,29 @@ pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
         letzter_wert: usize,
         fahrtrichtung: Anschluss,
     },
+}
+
+impl Display for Zweileiter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                write!(f, "Pwm({}, {}-{})", geschwindigkeit.pin(), polarität, fahrtrichtung)
+            }
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                write!(f, "KonstanteSpannung(")?;
+                let mut first = true;
+                for anschluss in geschwindigkeit.iter() {
+                    if first {
+                        first = false;
+                    } else {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", anschluss)?;
+                }
+                write!(f, "-{})", fahrtrichtung)
+            }
+        }
+    }
 }
 
 impl Geschwindigkeit<Zweileiter> {

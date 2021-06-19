@@ -758,13 +758,25 @@ where
             }
             Message::ZeigeAuswahlGeschwindigkeit => {
                 *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
-                    geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.keys()),
+                    geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.iter()),
                 );
                 self.modal_state.show(true);
             }
             Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 match geschwindigkeit_save.reserviere(&mut self.anschlüsse) {
                     Ok(geschwindigkeit) => {
+                        match self.modal_state.inner_mut() {
+                            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                                geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
+                            }
+                            modal => {
+                                error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
+                                *modal =
+                                    Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
+                                        self.geschwindigkeiten.iter(),
+                                    ));
+                            }
+                        }
                         if let Some(ersetzt) = self.geschwindigkeiten.insert(
                             name.clone(),
                             (
@@ -779,18 +791,6 @@ where
                                     name.0, ersetzt
                                 ),
                             )
-                        }
-                        match self.modal_state.inner_mut() {
-                            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                                geschwindigkeit_auswahl.hinzufügen(name);
-                            }
-                            modal => {
-                                error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
-                                *modal =
-                                    Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                                        self.geschwindigkeiten.keys(),
-                                    ));
-                            }
                         }
                     }
                     Err(error) => self.zeige_message_box(
@@ -808,7 +808,7 @@ where
                     modal => {
                         error!("Falscher Modal-State bei LöscheGeschwindigkeit!");
                         *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                            self.geschwindigkeiten.keys(),
+                            self.geschwindigkeiten.iter(),
                         ));
                     }
                 }
