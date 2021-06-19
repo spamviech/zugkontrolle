@@ -4,4 +4,4 @@
 Type=Application
 Terminal=false
 Name[en_EN]=Zugkontrolle
-Exec=sh -c "/home/pi/Desktop/Zugkontrolle/bin/Zugkontrolle %f"
+Exec=sh -c "/home/pi/Desktop/Zugkontrolle/bin/zugkontrolle %f"
