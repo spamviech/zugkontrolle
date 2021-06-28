@@ -540,7 +540,7 @@ where
             geschwindigkeiten: BTreeMap::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
-            streckenabschnitt_aktuell_festlegen: true,
+            streckenabschnitt_aktuell_festlegen: false,
             geschwindigkeit_button_state: iced::button::State::new(),
             message_box: iced_aw::modal::State::new(MessageBox {
                 titel: "Nicht initialisiert".to_string(),
