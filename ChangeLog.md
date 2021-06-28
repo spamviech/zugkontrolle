@@ -2,7 +2,12 @@
 
 ## Unreleased changes
 
-# 2.0.0
+## 2.0.1
+
+- Checkbox zum automatischen Festlegen von Streckenabschnitten startet deaktiviert
+- Geschwindigkeit wird nach umdrehen auch als 0 angezeigt
+
+## 2.0.0
 
 - Neuschreiben in rust
 - Anzeige & Steuerung über Gleisplan, kein Cmd-UI mehr
