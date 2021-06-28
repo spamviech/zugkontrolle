@@ -12,13 +12,15 @@ pub mod args;
 use self::args::Args;
 
 fn main() -> Result<(), Error> {
+    let Args { zugtyp, pfad, modus, verbose, .. } = Args::from_env();
+
+    let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
     SimpleLogger::new()
         .with_level(log::LevelFilter::Error)
-        .with_module_level("zugkontrolle", log::LevelFilter::Warn)
+        .with_module_level("zugkontrolle", log_level)
         .init()
         .expect("failed to initialize error logging");
 
-    let Args { zugtyp, pfad, modus, .. } = Args::from_env();
     Anschlüsse::neu().map_err(Error::from).and_then(|anschlüsse| {
         let settings = Settings {
             window: iced::window::Settings {

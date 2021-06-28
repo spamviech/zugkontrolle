@@ -45,6 +45,10 @@ pub struct Args {
     pub modus: Option<Modus>,
 
     #[argh(switch)]
+    /// zeige zusätzliche Informationen in der Konsole an
+    pub verbose: bool,
+
+    #[argh(switch)]
     /// zeige die aktuelle Version
     version: bool,
 }

@@ -6,6 +6,7 @@
 
 - Checkbox zum automatischen Festlegen von Streckenabschnitten startet deaktiviert
 - Geschwindigkeit wird nach umdrehen auch als 0 angezeigt
+- Neues Kommandozeilen-Argument: `--verbose`
 
 ## 2.0.0
 

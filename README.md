@@ -117,7 +117,7 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
 
 - -h | --help  
     Zeige den Hilfstext an. Dieser wird automatisch erzeugt, wodurch Teile davon auf englisch sind.
-- -v | --version  
+- --version  
     Zeige die aktuelle Version an.
 - -z ZUGTYP | --zugtyp ZUGTYP
     Starte mit dem übergebenen Zugtyp. Vorhandene Gleise und Geschwindigkeiten unterscheiden sich.
@@ -129,6 +129,8 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
 - -m MODUS | --modus MODUS
     Bestimme den Modus bei Programstart.
     Aktuell sind `Bauen` und `Fahren` unterstützt.
+- --verbose
+    Zeige zusätzliche Informationen in der Kommandozeile an
 
 ### Starten durch ziehen einer Datei auf die binary
 
