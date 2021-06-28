@@ -134,7 +134,10 @@ impl LeiterAnzeige for Mittelleiter {
                 anzeige_status.aktuelle_geschwindigkeit = wert;
                 geschwindigkeit.geschwindigkeit(wert)
             }
-            MessageMittelleiter::Umdrehen => geschwindigkeit.umdrehen(),
+            MessageMittelleiter::Umdrehen => {
+                anzeige_status.aktuelle_geschwindigkeit = 0;
+                geschwindigkeit.umdrehen()
+            }
         }
         .map(|()| iced::Command::none())
     }
@@ -240,6 +243,7 @@ impl LeiterAnzeige for Zweileiter {
                 geschwindigkeit.geschwindigkeit(wert)
             }
             MessageZweileiter::Fahrtrichtung(fahrtrichtung) => {
+                anzeige_status.aktuelle_geschwindigkeit = 0;
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
                 geschwindigkeit.fahrtrichtung(fahrtrichtung)
             }
