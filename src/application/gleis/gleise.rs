@@ -260,12 +260,8 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn transparency<T>(
-    gleis_id: &GleisId<T>,
-    is_grabbed: &impl Fn(GleisId<Any>) -> bool,
-    fließend: Option<&Fließend>,
-) -> f32 {
-    if is_grabbed(gleis_id.as_any()) || fließend == Some(&Fließend::Gesperrt) {
+fn transparency<T>(gleis_id: &GleisId<T>, transparent: &impl Fn(GleisId<Any>) -> bool) -> f32 {
+    if transparent(gleis_id.as_any()) {
         0.5
     } else {
         1.
@@ -275,7 +271,7 @@ fn transparency<T>(
 fn fülle_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    is_grabbed: impl Fn(GleisId<Any>) -> bool,
+    transparent: impl Fn(GleisId<Any>, Fließend) -> bool,
     streckenabschnitte: &streckenabschnitt::Map,
 ) {
     for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
@@ -292,7 +288,7 @@ fn fülle_alle_gleise<T: Zeichnen>(
                             r,
                             g,
                             b,
-                            a: transparency(gleis_id, &is_grabbed, Some(fließend)),
+                            a: transparency(gleis_id, &|gleis_id| transparent(gleis_id, *fließend)),
                         };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                     });
@@ -318,7 +314,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
                         &path,
                         canvas::Stroke {
                             color: canvas::Color {
-                                a: transparency(gleis_id, &is_grabbed, None),
+                                a: transparency(gleis_id, &is_grabbed),
                                 ..canvas::Color::BLACK
                             },
                             width: 1.5,
@@ -351,19 +347,9 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                         },
                     );
                     let color = if opposing {
-                        canvas::Color::from_rgba(
-                            0.,
-                            1.,
-                            0.,
-                            transparency(gleis_id, &is_grabbed, None),
-                        )
+                        canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
                     } else {
-                        canvas::Color::from_rgba(
-                            0.,
-                            0.,
-                            1.,
-                            transparency(gleis_id, &is_grabbed, None),
-                        )
+                        canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
                     };
                     let direction: Vektor = Vektor::polar_koordinaten(Skalar(5.), anchor.richtung);
                     let direction_side: Vektor = Skalar(0.5) * direction.rotiert(winkel::FRAC_PI_2);
@@ -407,7 +393,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
                     content,
                     position: iced::Point::ORIGIN,
                     color: canvas::Color {
-                        a: transparency(gleis_id, &is_grabbed, None),
+                        a: transparency(gleis_id, &is_grabbed),
                         ..canvas::Color::BLACK
                     },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
@@ -550,12 +536,22 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
         vec![canvas.draw_skaliert_von_pivot(bounds.size(), &self.pivot, &self.skalieren, |frame| {
             // TODO zeichne keine out-of-bounds Gleise
             // Zeichne Gleise
-            let grabbed_id =
-                if let ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
-                    Some(gleis_id.id_as_any())
-                } else {
-                    None
-                };
+            let grabbed_id: Option<GleisId<Any>>;
+            let modus_bauen: bool;
+            match modus {
+                ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } => {
+                    grabbed_id = Some(gleis_id.id_as_any());
+                    modus_bauen = true;
+                }
+                ModusDaten::Bauen { grabbed: None, .. } => {
+                    grabbed_id = None;
+                    modus_bauen = true;
+                }
+                ModusDaten::Fahren => {
+                    grabbed_id = None;
+                    modus_bauen = false;
+                }
+            };
             // TODO markiere grabbed als "wird-gelöscht", falls cursor out of bounds ist
             let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
             let has_other_and_grabbed_id_at_point = |gleis_id, position| {
@@ -578,7 +574,15 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
                     };
                 }
             // Hintergrund
-            mit_allen_gleisen!(fülle_alle_gleise, is_grabbed, streckenabschnitte);
+            mit_allen_gleisen!(
+                fülle_alle_gleise,
+                |gleis_id, fließend| if modus_bauen {
+                    is_grabbed(gleis_id)
+                } else {
+                    fließend == Fließend::Gesperrt
+                },
+                streckenabschnitte
+            );
             // Kontur
             mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
             // AnchorPoints
