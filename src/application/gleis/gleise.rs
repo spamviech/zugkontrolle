@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use self::id::with_any_id;
 use crate::{
-    anschluss::{self, Anschlüsse, Reserviere, ToSave},
+    anschluss::{self, Anschlüsse, Fließend, Reserviere, ToSave},
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
@@ -174,12 +174,15 @@ impl<Z> Gleise<Z> {
         &mut self,
         name: streckenabschnitt::Name,
         streckenabschnitt: Streckenabschnitt,
-    ) -> Option<Streckenabschnitt> {
-        self.maps.streckenabschnitte.insert(name, streckenabschnitt)
+    ) -> Option<(Streckenabschnitt, Fließend)> {
+        self.maps.streckenabschnitte.insert(name, (streckenabschnitt, Fließend::Gesperrt))
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn streckenabschnitt(&self, name: &streckenabschnitt::Name) -> Option<&Streckenabschnitt> {
+    pub fn streckenabschnitt(
+        &self,
+        name: &streckenabschnitt::Name,
+    ) -> Option<&(Streckenabschnitt, Fließend)> {
         self.maps.streckenabschnitte.get(name)
     }
 
@@ -187,7 +190,7 @@ impl<Z> Gleise<Z> {
     pub fn streckenabschnitt_mut<'s, 't>(
         &'s mut self,
         name: &'t streckenabschnitt::Name,
-    ) -> Option<&'s mut Streckenabschnitt> {
+    ) -> Option<&'s mut (Streckenabschnitt, Fließend)> {
         self.maps.streckenabschnitte.get_mut(name)
     }
 
@@ -196,7 +199,7 @@ impl<Z> Gleise<Z> {
     pub fn entferne_streckenabschnitt(
         &mut self,
         name: streckenabschnitt::Name,
-    ) -> Option<Streckenabschnitt> {
+    ) -> Option<(Streckenabschnitt, Fließend)> {
         macro_rules! clean_maps {
             ($($map:ident),*) => {
                 $(
@@ -223,7 +226,7 @@ impl<Z> Gleise<Z> {
     /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte(
         &self,
-    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &Streckenabschnitt)> {
+    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &(Streckenabschnitt, Fließend))> {
         self.maps.streckenabschnitte.iter()
     }
 
@@ -257,8 +260,12 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn transparency<T>(gleis_id: &GleisId<T>, is_grabbed: &impl Fn(GleisId<Any>) -> bool) -> f32 {
-    if is_grabbed(gleis_id.as_any()) {
+fn transparency<T>(
+    gleis_id: &GleisId<T>,
+    is_grabbed: &impl Fn(GleisId<Any>) -> bool,
+    fließend: Option<&Fließend>,
+) -> f32 {
+    if is_grabbed(gleis_id.as_any()) || fließend == Some(&Fließend::Gesperrt) {
         0.5
     } else {
         1.
@@ -272,7 +279,7 @@ fn fülle_alle_gleise<T: Zeichnen>(
     streckenabschnitte: &streckenabschnitt::Map,
 ) {
     for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
-        if let Some(Streckenabschnitt { farbe, .. }) =
+        if let Some((Streckenabschnitt { farbe, .. }, fließend)) =
             streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
         {
             frame.with_save(|frame| {
@@ -282,7 +289,12 @@ fn fülle_alle_gleise<T: Zeichnen>(
                     frame.with_save(|frame| {
                         // TODO Farbe abhängig von Fließend/Gesperrt anpassen
                         let Farbe { r, g, b } = *farbe;
-                        let color = iced::Color { r, g, b, a: transparency(gleis_id, &is_grabbed) };
+                        let color = iced::Color {
+                            r,
+                            g,
+                            b,
+                            a: transparency(gleis_id, &is_grabbed, Some(fließend)),
+                        };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                     });
                 }
@@ -307,7 +319,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
                         &path,
                         canvas::Stroke {
                             color: canvas::Color {
-                                a: transparency(gleis_id, &is_grabbed),
+                                a: transparency(gleis_id, &is_grabbed, None),
                                 ..canvas::Color::BLACK
                             },
                             width: 1.5,
@@ -340,9 +352,19 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                         },
                     );
                     let color = if opposing {
-                        canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
+                        canvas::Color::from_rgba(
+                            0.,
+                            1.,
+                            0.,
+                            transparency(gleis_id, &is_grabbed, None),
+                        )
                     } else {
-                        canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
+                        canvas::Color::from_rgba(
+                            0.,
+                            0.,
+                            1.,
+                            transparency(gleis_id, &is_grabbed, None),
+                        )
                     };
                     let direction: Vektor = Vektor::polar_koordinaten(Skalar(5.), anchor.richtung);
                     let direction_side: Vektor = Skalar(0.5) * direction.rotiert(winkel::FRAC_PI_2);
@@ -386,7 +408,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
                     content,
                     position: iced::Point::ORIGIN,
                     color: canvas::Color {
-                        a: transparency(gleis_id, &is_grabbed),
+                        a: transparency(gleis_id, &is_grabbed, None),
                         ..canvas::Color::BLACK
                     },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
@@ -870,7 +892,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn streckenabschnitt_für_id<T>(
         &mut self,
         gleis_id: GleisId<T>,
-    ) -> Result<Option<&mut Streckenabschnitt>, GleisEntferntError>
+    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntError>
     where
         T: GleiseMap<Z>,
     {

@@ -1,6 +1,7 @@
 //! Level eines Anschluss
 
 use std::fmt::{Display, Formatter, Result};
+use std::ops::Not;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,10 +45,20 @@ impl From<rppal::pwm::Polarity> for Polarität {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Fließend {
     Fließend,
     Gesperrt,
+}
+impl Not for Fließend {
+    type Output = Fließend;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Fließend::Fließend => Fließend::Gesperrt,
+            Fließend::Gesperrt => Fließend::Fließend,
+        }
+    }
 }
 impl Fließend {
     pub fn with_polarity(self, polarity: Polarität) -> Level {

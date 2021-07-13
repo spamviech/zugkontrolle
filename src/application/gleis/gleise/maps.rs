@@ -99,7 +99,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSave<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
-    pub(crate) streckenabschnitte: streckenabschnitt::Map<OutputSave>,
+    pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSave>>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
     pub(crate) pläne: Vec<Plan>,
 }
@@ -118,8 +118,8 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>
                 GleiseVecs {
                     name: Z::NAME.to_string(),
                     streckenabschnitte: maps.streckenabschnitte.iter().map(
-                        |(name, Streckenabschnitt {farbe, anschluss})|
-                            (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()})
+                        |(name, (Streckenabschnitt {farbe, anschluss}, _fließend))|
+                            (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()} )
                         ).collect(),
                     geschwindigkeiten,
                     // TODO wirkliche Konvertierung, sobald Plan implementiert ist

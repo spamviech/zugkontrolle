@@ -431,12 +431,15 @@ where
 
     fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(&mut self, gleis_art: &str, id: GleisId<T>) {
         if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
-            if let Some(streckenabschnitt) = steuerung {
-                if let Err(error) = streckenabschnitt.strom_umschalten() {
+            if let Some((streckenabschnitt, fließend)) = steuerung {
+                let fließend_neu = !*fließend;
+                if let Err(error) = streckenabschnitt.strom(fließend_neu) {
                     self.zeige_message_box(
                         "Streckenabschnitt umschalten".to_string(),
                         format!("{:?}", error),
                     )
+                } else {
+                    *fließend = fließend_neu
                 }
             } else {
                 self.zeige_message_box(

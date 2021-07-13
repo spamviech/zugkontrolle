@@ -12,7 +12,7 @@ use iced_native::{
 use super::{
     anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
 };
-use crate::anschluss::{polarity::Polarität, OutputSave};
+use crate::anschluss::{Fließend, OutputSave, Polarität};
 use crate::farbe::Farbe;
 pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
 
@@ -120,7 +120,7 @@ pub struct AuswahlStatus {
 
 impl AuswahlStatus {
     pub fn neu<'t>(
-        streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
+        streckenabschnitte: impl Iterator<Item = (&'t Name, &'t (Streckenabschnitt, Fließend))>,
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
@@ -130,7 +130,11 @@ impl AuswahlStatus {
             neu_anschluss_state: anschluss::Status::neu_output(),
             neu_button_state: button::State::new(),
             none_button_state: button::State::new(),
-            streckenabschnitte: streckenabschnitte.map(Self::iter_map).collect(),
+            streckenabschnitte: streckenabschnitte
+                .map(|(name, (streckenabschnitt, _fließend))| {
+                    Self::iter_map((name, streckenabschnitt))
+                })
+                .collect(),
             scrollable_state: scrollable::State::new(),
         }
     }
