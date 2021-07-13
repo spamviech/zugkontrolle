@@ -105,6 +105,11 @@ Zur Installation von rustup wird empfohlen die Anleitung auf der
 Im Moment lautet der Befehl
     `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
+### Installation von liblxkbcommon
+
+Obwohl angeblich nichts zusätzlich installiert wurde war der folgende Befehl notwendig
+    `sudo apt install libxkbcommon-dev`
+
 ## Ausführen des Programms
 
 Sobald sie als ausführbar markiert ist kann die binary über die Kommandozeile
