@@ -116,6 +116,45 @@ impl Skalieren {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+pub enum AnschlüsseAnpassen<Z> {
+    Weiche(
+        GleisId<Weiche<Z>>,
+        steuerung::Weiche<
+            gleis::weiche::gerade::Richtung,
+            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        >,
+    ),
+    DreiwegeWeiche(
+        GleisId<DreiwegeWeiche<Z>>,
+        steuerung::Weiche<
+            gleis::weiche::dreiwege::Richtung,
+            gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+        >,
+    ),
+    KurvenWeiche(
+        GleisId<KurvenWeiche<Z>>,
+        steuerung::Weiche<
+            gleis::weiche::kurve::Richtung,
+            gleis::weiche::kurve::RichtungAnschlüsseSave,
+        >,
+    ),
+    SKurvenWeiche(
+        GleisId<SKurvenWeiche<Z>>,
+        steuerung::Weiche<
+            gleis::weiche::gerade::Richtung,
+            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        >,
+    ),
+    Kreuzung(
+        GleisId<Kreuzung<Z>>,
+        steuerung::Weiche<
+            gleis::weiche::gerade::Richtung,
+            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        >,
+    ),
+}
+
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z>
 where
     Z: Zugtyp,
@@ -151,41 +190,7 @@ where
     ),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
-    WeicheAnschlüsseAnpassen(
-        GleisId<Weiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
-        >,
-    ),
-    DreiwegeWeicheAnschlüsseAnpassen(
-        GleisId<DreiwegeWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::dreiwege::Richtung,
-            gleis::weiche::dreiwege::RichtungAnschlüsseSave,
-        >,
-    ),
-    KurvenWeicheAnschlüsseAnpassen(
-        GleisId<KurvenWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::kurve::Richtung,
-            gleis::weiche::kurve::RichtungAnschlüsseSave,
-        >,
-    ),
-    SKurvenWeicheAnschlüsseAnpassen(
-        GleisId<SKurvenWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
-        >,
-    ),
-    KreuzungAnschlüsseAnpassen(
-        GleisId<Kreuzung<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
-        >,
-    ),
+    AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
     FahrenAktion(AnyId<Z>),
 }
 
@@ -233,13 +238,17 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
+async fn async_identity<T>(t: T) -> T {
+    t
+}
+
 impl<Z> Message<Z>
 where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    Z: 'static + Zugtyp,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
 {
-    async fn laden() -> Message<Z> {
-        Message::Laden
+    fn as_command(self) -> iced::Command<Message<Z>> {
+        iced::Command::perform(async_identity(self), identity)
     }
 }
 
@@ -367,13 +376,15 @@ where
         ) -> Result<&'t mut Option<W>, GleisEntferntError>,
         erzeuge_modal_status: impl Fn(Option<<W as ToSave>::Save>) -> Status,
         erzeuge_modal: impl Fn(Status, Arc<dyn Fn(<W as ToSave>::Save) -> Message<Z>>) -> Modal<Z>,
-        als_nachricht: impl Fn(GleisId<T>, <W as ToSave>::Save) -> Message<Z> + 'static,
+        als_nachricht: impl Fn(GleisId<T>, <W as ToSave>::Save) -> AnschlüsseAnpassen<Z> + 'static,
     ) {
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.to_save());
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
-                Arc::new(move |steuerung| als_nachricht(id.clone(), steuerung)),
+                Arc::new(move |steuerung| {
+                    Message::AnschlüsseAnpassen(als_nachricht(id.clone(), steuerung))
+                }),
             );
             self.modal_state.show(true)
         } else {
@@ -393,12 +404,15 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<&'t mut Option<W>, GleisEntferntError>,
-    ) {
+    ) -> Option<Message<Z>> {
+        let mut message = None;
+
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             match anschlüsse_save.reserviere(&mut self.anschlüsse) {
                 Ok(anschlüsse) => {
                     *steuerung = Some(anschlüsse);
-                    self.gleise.erzwinge_neuzeichnen()
+                    self.gleise.erzwinge_neuzeichnen();
+                    message = Some(Message::SchließeModal)
                 }
                 Err(error) => self.zeige_message_box(
                     "Anschlüsse Weiche anpassen".to_string(),
@@ -411,6 +425,8 @@ where
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
             )
         }
+
+        message
     }
 
     fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(&mut self, gleis_art: &str, id: GleisId<T>) {
@@ -521,11 +537,8 @@ where
             gleise.moduswechsel(modus)
         }
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
-        let command = if pfad_arg.is_some() {
-            iced::Command::perform(Message::laden(), identity)
-        } else {
-            iced::Command::none()
-        };
+        let command =
+            if pfad_arg.is_some() { Message::Laden.as_command() } else { iced::Command::none() };
         let zugkontrolle = Zugkontrolle {
             anschlüsse,
             gleise,
@@ -826,7 +839,7 @@ where
                     Gleise::steuerung_weiche,
                     weiche::Status::neu,
                     Modal::Weiche,
-                    Message::WeicheAnschlüsseAnpassen,
+                    AnschlüsseAnpassen::Weiche,
                 ),
                 AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen(
                     "DreiwegeWeiche",
@@ -834,7 +847,7 @@ where
                     Gleise::steuerung_dreiwege_weiche,
                     weiche::Status::neu,
                     Modal::DreiwegeWeiche,
-                    Message::DreiwegeWeicheAnschlüsseAnpassen,
+                    AnschlüsseAnpassen::DreiwegeWeiche,
                 ),
                 AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen(
                     "KurvenWeiche",
@@ -842,7 +855,7 @@ where
                     Gleise::steuerung_kurven_weiche,
                     weiche::Status::neu,
                     Modal::KurvenWeiche,
-                    Message::KurvenWeicheAnschlüsseAnpassen,
+                    AnschlüsseAnpassen::KurvenWeiche,
                 ),
                 AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen(
                     "SKurvenWeiche",
@@ -850,7 +863,7 @@ where
                     Gleise::steuerung_s_kurven_weiche,
                     weiche::Status::neu,
                     Modal::Weiche,
-                    Message::SKurvenWeicheAnschlüsseAnpassen,
+                    AnschlüsseAnpassen::SKurvenWeiche,
                 ),
                 AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen(
                     "Kreuzung",
@@ -858,44 +871,50 @@ where
                     Gleise::steuerung_kreuzung,
                     weiche::Status::neu,
                     Modal::Weiche,
-                    Message::KreuzungAnschlüsseAnpassen,
+                    AnschlüsseAnpassen::Kreuzung,
                 ),
             },
-            Message::WeicheAnschlüsseAnpassen(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "Weiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_weiche,
-                ),
-            Message::DreiwegeWeicheAnschlüsseAnpassen(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "DreiwegeWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_dreiwege_weiche,
-                ),
-            Message::KurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "KurvenWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_kurven_weiche,
-                ),
-            Message::SKurvenWeicheAnschlüsseAnpassen(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "SKurvenWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_s_kurven_weiche,
-                ),
-            Message::KreuzungAnschlüsseAnpassen(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "Kreuzung",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_kreuzung,
-                ),
+            Message::AnschlüsseAnpassen(anschlüsse_anpassen) => {
+                if let Some(message) = match anschlüsse_anpassen {
+                    AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self
+                        .gleis_anschlüsse_anpassen(
+                            "Weiche",
+                            id,
+                            anschlüsse_save,
+                            Gleise::steuerung_weiche,
+                        ),
+                    AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_save) => self
+                        .gleis_anschlüsse_anpassen(
+                            "DreiwegeWeiche",
+                            id,
+                            anschlüsse_save,
+                            Gleise::steuerung_dreiwege_weiche,
+                        ),
+                    AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_save) => self
+                        .gleis_anschlüsse_anpassen(
+                            "KurvenWeiche",
+                            id,
+                            anschlüsse_save,
+                            Gleise::steuerung_kurven_weiche,
+                        ),
+                    AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_save) => self
+                        .gleis_anschlüsse_anpassen(
+                            "SKurvenWeiche",
+                            id,
+                            anschlüsse_save,
+                            Gleise::steuerung_s_kurven_weiche,
+                        ),
+                    AnschlüsseAnpassen::Kreuzung(id, anschlüsse_save) => self
+                        .gleis_anschlüsse_anpassen(
+                            "Kreuzung",
+                            id,
+                            anschlüsse_save,
+                            Gleise::steuerung_kreuzung,
+                        ),
+                } {
+                    command = message.as_command()
+                }
+            }
             Message::FahrenAktion(any_id) => match any_id {
                 // TODO in Methode auslagern
                 AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),

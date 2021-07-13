@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+- Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster
+
 ## 2.0.1
 
 - Checkbox zum automatischen Festlegen von Streckenabschnitten startet deaktiviert
