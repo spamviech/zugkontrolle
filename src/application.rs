@@ -101,20 +101,6 @@ impl Drehen {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Skalieren {
-    Größer,
-    Kleiner,
-}
-impl Skalieren {
-    fn skalieren(self) -> Skalar {
-        Skalar(match self {
-            Skalieren::Größer => 4. / 3.,
-            Skalieren::Kleiner => 3. / 4.,
-        })
-    }
-}
-
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnschlüsseAnpassen<Z> {
     Weiche(
@@ -167,7 +153,7 @@ where
     Modus(Modus),
     Bewegen(Bewegen),
     Drehen(Drehen),
-    Skalieren(Skalieren),
+    Skalieren(Skalar),
     SchließeModal,
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
@@ -339,8 +325,7 @@ where
     rechts: iced::button::State,
     clockwise: iced::button::State,
     counter_clockwise: iced::button::State,
-    größer: iced::button::State,
-    kleiner: iced::button::State,
+    zoom: iced::slider::State,
     speichern: iced::button::State,
     laden: iced::button::State,
     pfad: iced::text_input::State,
@@ -569,8 +554,7 @@ where
             rechts: iced::button::State::new(),
             clockwise: iced::button::State::new(),
             counter_clockwise: iced::button::State::new(),
-            größer: iced::button::State::new(),
-            kleiner: iced::button::State::new(),
+            zoom: iced::slider::State::new(),
             speichern: iced::button::State::new(),
             laden: iced::button::State::new(),
             pfad: iced::text_input::State::new(),
@@ -630,7 +614,7 @@ where
                 );
             }
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
-            Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
+            Message::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
             Message::SchließeModal => {
                 self.modal_state.show(false);
             }
@@ -1021,14 +1005,14 @@ where
             rechts,
             clockwise,
             counter_clockwise,
-            größer,
-            kleiner,
+            zoom,
             speichern,
             laden,
             pfad,
             aktueller_pfad,
         } = self;
         let aktueller_modus = gleise.modus();
+        let aktueller_zoom = gleise.skalierfaktor();
 
         let top_row = top_row(
             aktueller_modus,
@@ -1041,8 +1025,8 @@ where
             rechts,
             clockwise,
             counter_clockwise,
-            größer,
-            kleiner,
+            zoom,
+            aktueller_zoom,
             speichern,
             laden,
             pfad,
@@ -1169,8 +1153,8 @@ fn top_row<'t, Z>(
     rechts: &'t mut iced::button::State,
     clockwise: &'t mut iced::button::State,
     counter_clockwise: &'t mut iced::button::State,
-    größer: &'t mut iced::button::State,
-    kleiner: &'t mut iced::button::State,
+    zoom: &'t mut iced::slider::State,
+    aktueller_zoom: Skalar,
     speichern: &'t mut iced::button::State,
     laden: &'t mut iced::button::State,
     pfad: &'t mut iced::text_input::State,
@@ -1203,9 +1187,13 @@ where
                 .on_press(Drehen::Rechtsdrehend),
         )
         .align_items(iced::Align::Center);
-    let skalieren_buttons = iced::Column::new()
-        .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalieren::Größer))
-        .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner))
+    let skalieren_slider = iced::Column::new()
+        .push(iced::Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
+        .push(
+            iced::Slider::new(zoom, 0.05..=1.5, aktueller_zoom.0, Skalar)
+                .step(0.05)
+                .width(iced::Length::Units(100)),
+        )
         .align_items(iced::Align::Center);
     let speichern_laden = iced::Row::new()
         .push(
@@ -1229,7 +1217,7 @@ where
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
-        .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren));
+        .push(skalieren_slider.mit_teil_nachricht(Message::Skalieren));
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {

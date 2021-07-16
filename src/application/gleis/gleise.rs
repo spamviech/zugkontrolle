@@ -162,7 +162,13 @@ impl<Z> Gleise<Z> {
         self.skalieren
     }
 
-    /// Skaliere die aktuelle Darstellung mit /skalieren/.
+    /// Setze den aktueller Skalierfaktor zur Darstellung.
+    pub fn setze_skalierfaktor(&mut self, skalieren: Skalar) {
+        self.skalieren = skalieren;
+        self.canvas.clear();
+    }
+
+    /// Multipliziere die aktuelle Darstellung mit /skalieren/.
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
         self.canvas.clear();

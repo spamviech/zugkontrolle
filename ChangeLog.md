@@ -4,6 +4,7 @@
 
 - Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster
 - Zeige Fließend-Status von Streckenabschnitten über Transparenz an
+- Verwende einen Slider anstelle von Buttons zum Skalieren
 
 ## 2.0.1
 
