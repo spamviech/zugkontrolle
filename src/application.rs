@@ -1,19 +1,22 @@
 //! iced::Application für die Gleis-Anzeige
 
-use std::collections::BTreeMap;
-use std::convert::identity;
-use std::fmt::Debug;
-use std::sync::Arc;
-
-use gleis::{
-    gleise::{id::with_any_id, *},
-    *,
+use std::{
+    collections::BTreeMap,
+    convert::identity,
+    fmt::Debug,
+    sync::Arc,
+    time::{Duration, Instant},
 };
+
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use version::version;
 
 use self::geschwindigkeit::{Geschwindigkeit, LeiterAnzeige};
+use self::gleis::{
+    gleise::{id::with_any_id, *},
+    *,
+};
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
@@ -178,6 +181,7 @@ where
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
     AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
     FahrenAktion(AnyId<Z>),
+    Tick(Instant),
 }
 
 impl<Z> From<gleise::Message<Z>> for Message<Z>
@@ -327,6 +331,7 @@ where
     counter_clockwise: iced::button::State,
     zoom: iced::slider::State,
     speichern: iced::button::State,
+    speichern_gefärbt: Option<Instant>,
     laden: iced::button::State,
     pfad: iced::text_input::State,
     aktueller_pfad: String,
@@ -556,6 +561,7 @@ where
             counter_clockwise: iced::button::State::new(),
             zoom: iced::slider::State::new(),
             speichern: iced::button::State::new(),
+            speichern_gefärbt: None,
             laden: iced::button::State::new(),
             pfad: iced::text_input::State::new(),
             aktueller_pfad: pfad_arg.unwrap_or(format!("{}.zug", Z::NAME)),
@@ -711,7 +717,7 @@ where
             }
             Message::SchließeMessageBox => self.message_box.show(false),
             Message::Speichern => {
-                if let Err(err) = self.gleise.speichern(
+                match self.gleise.speichern(
                     &self.aktueller_pfad,
                     self.geschwindigkeiten
                         .iter()
@@ -720,10 +726,13 @@ where
                         })
                         .collect(),
                 ) {
-                    self.zeige_message_box(
+                    Ok(()) => {
+                        self.speichern_gefärbt = Some(Instant::now());
+                    }
+                    Err(err) => self.zeige_message_box(
                         format!("Fehler beim Speichern in {}", self.aktueller_pfad),
                         format!("{:?}", err),
-                    )
+                    ),
                 }
             }
             Message::Laden => self.laden(),
@@ -976,9 +985,24 @@ where
                     },
                 ),
             },
+            Message::Tick(now) => {
+                if let Some(färbe_zeit) = self.speichern_gefärbt {
+                    if now - färbe_zeit > Duration::from_secs(2) {
+                        self.speichern_gefärbt = None;
+                    }
+                }
+            }
         }
 
         command
+    }
+
+    fn subscription(&self) -> iced::Subscription<Self::Message> {
+        if self.speichern_gefärbt.is_some() {
+            iced::time::every(Duration::from_millis(100)).map(Message::Tick)
+        } else {
+            iced::Subscription::none()
+        }
     }
 
     fn view(&mut self) -> iced::Element<Self::Message> {
@@ -1007,6 +1031,7 @@ where
             counter_clockwise,
             zoom,
             speichern,
+            speichern_gefärbt,
             laden,
             pfad,
             aktueller_pfad,
@@ -1028,6 +1053,7 @@ where
             zoom,
             aktueller_zoom,
             speichern,
+            speichern_gefärbt,
             laden,
             pfad,
             aktueller_pfad,
@@ -1156,6 +1182,7 @@ fn top_row<'t, Z>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern: &'t mut iced::button::State,
+    speichern_gefärbt: &'t Option<Instant>,
     laden: &'t mut iced::button::State,
     pfad: &'t mut iced::text_input::State,
     aktueller_pfad: &'t str,
@@ -1195,13 +1222,16 @@ where
                 .width(iced::Length::Units(100)),
         )
         .align_items(iced::Align::Center);
+    let speichern_ungefärbt =
+        iced::Button::new(speichern, iced::Text::new("speichern")).on_press(Message::Speichern);
     let speichern_laden = iced::Row::new()
         .push(
             iced::Column::new()
-                .push(
-                    iced::Button::new(speichern, iced::Text::new("speichern"))
-                        .on_press(Message::Speichern),
-                )
+                .push(if speichern_gefärbt.is_some() {
+                    speichern_ungefärbt.style(background::Green)
+                } else {
+                    speichern_ungefärbt
+                })
                 .push(iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden))
                 .align_items(iced::Align::End),
         )

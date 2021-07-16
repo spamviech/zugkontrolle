@@ -5,6 +5,7 @@
 - Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster
 - Zeige Fließend-Status von Streckenabschnitten über Transparenz an
 - Verwende einen Slider anstelle von Buttons zum Skalieren
+- Nach erfolgreichem Speichern wird der Knopf temporär Grün gefärbt
 
 ## 2.0.1
 

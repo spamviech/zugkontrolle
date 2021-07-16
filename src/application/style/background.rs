@@ -14,3 +14,21 @@ impl iced::container::StyleSheet for Grey {
         }
     }
 }
+
+pub struct Green;
+impl iced::container::StyleSheet for Green {
+    fn style(&self) -> iced::container::Style {
+        iced::container::Style {
+            background: Some(iced::Background::Color(iced::Color::from_rgb(0., 0.7, 0.))),
+            ..Default::default()
+        }
+    }
+}
+impl iced::button::StyleSheet for Green {
+    fn active(&self) -> iced::button::Style {
+        iced::button::Style {
+            background: Some(iced::Background::Color(iced::Color::from_rgb(0., 0.7, 0.))),
+            ..Default::default()
+        }
+    }
+}
