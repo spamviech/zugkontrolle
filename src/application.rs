@@ -33,6 +33,7 @@ pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
+mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
 mod touch_canvas;
@@ -165,9 +166,8 @@ where
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyId<Z>),
     StreckenabschnittFestlegen(bool),
-    Speichern,
-    Laden,
-    Pfad(String),
+    Speichern(String),
+    Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Message,
@@ -330,11 +330,8 @@ where
     clockwise: iced::button::State,
     counter_clockwise: iced::button::State,
     zoom: iced::slider::State,
-    speichern: iced::button::State,
+    speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
-    laden: iced::button::State,
-    pfad: iced::text_input::State,
-    aktueller_pfad: String,
     // TODO Wegstrecke, Plan
 }
 
@@ -486,31 +483,6 @@ where
     }
 }
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: 'static + Zugtyp + Debug + PartialEq + for<'de> Deserialize<'de>,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
-{
-    fn laden(&mut self) {
-        match self.gleise.laden(&mut self.anschlüsse, &self.aktueller_pfad) {
-            Ok(geschwindigkeiten) => {
-                self.geschwindigkeiten = geschwindigkeiten
-                    .into_iter()
-                    .map(|(name, geschwindigkeit)| {
-                        (name, (geschwindigkeit, Z::Leiter::anzeige_status_neu()))
-                    })
-                    .collect();
-                self.streckenabschnitt_aktuell.aktuell = None;
-            }
-            Err(err) => self.zeige_message_box(
-                format!("Fehler beim Laden von {}", self.aktueller_pfad),
-                format!("{:?}", err),
-            ),
-        }
-    }
-}
-
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
@@ -530,8 +502,15 @@ where
             gleise.moduswechsel(modus)
         }
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
-        let command =
-            if pfad_arg.is_some() { Message::Laden.as_command() } else { iced::Command::none() };
+        let command: iced::Command<Message<Z>>;
+        let aktueller_pfad: String;
+        if let Some(pfad) = pfad_arg {
+            command = Message::Laden(pfad.clone()).as_command();
+            aktueller_pfad = pfad;
+        } else {
+            command = iced::Command::none();
+            aktueller_pfad = format!("{}.zug", Z::NAME);
+        };
         let zugkontrolle = Zugkontrolle {
             anschlüsse,
             gleise,
@@ -560,11 +539,8 @@ where
             clockwise: iced::button::State::new(),
             counter_clockwise: iced::button::State::new(),
             zoom: iced::slider::State::new(),
-            speichern: iced::button::State::new(),
+            speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
-            laden: iced::button::State::new(),
-            pfad: iced::text_input::State::new(),
-            aktueller_pfad: pfad_arg.unwrap_or(format!("{}.zug", Z::NAME)),
         };
         (zugkontrolle, command)
     }
@@ -716,9 +692,9 @@ where
                 self.streckenabschnitt_aktuell_festlegen = festlegen
             }
             Message::SchließeMessageBox => self.message_box.show(false),
-            Message::Speichern => {
+            Message::Speichern(pfad) => {
                 match self.gleise.speichern(
-                    &self.aktueller_pfad,
+                    &pfad,
                     self.geschwindigkeiten
                         .iter()
                         .map(|(name, (geschwindigkeit, _anzeige_status))| {
@@ -727,16 +703,30 @@ where
                         .collect(),
                 ) {
                     Ok(()) => {
+                        self.speichern_laden.färbe_speichern(true);
                         self.speichern_gefärbt = Some(Instant::now());
                     }
                     Err(err) => self.zeige_message_box(
-                        format!("Fehler beim Speichern in {}", self.aktueller_pfad),
+                        format!("Fehler beim Speichern in {}", pfad),
                         format!("{:?}", err),
                     ),
                 }
             }
-            Message::Laden => self.laden(),
-            Message::Pfad(pfad) => self.aktueller_pfad = pfad,
+            Message::Laden(pfad) => match self.gleise.laden(&mut self.anschlüsse, &pfad) {
+                Ok(geschwindigkeiten) => {
+                    self.geschwindigkeiten = geschwindigkeiten
+                        .into_iter()
+                        .map(|(name, geschwindigkeit)| {
+                            (name, (geschwindigkeit, Z::Leiter::anzeige_status_neu()))
+                        })
+                        .collect();
+                    self.streckenabschnitt_aktuell.aktuell = None;
+                }
+                Err(err) => self.zeige_message_box(
+                    format!("Fehler beim Laden von {}", pfad),
+                    format!("{:?}", err),
+                ),
+            },
             Message::GeschwindigkeitAnzeige { name, nachricht } => {
                 if let Some((geschwindigkeit, anzeige_status)) =
                     self.geschwindigkeiten.get_mut(&name)
@@ -988,6 +978,7 @@ where
             Message::Tick(now) => {
                 if let Some(färbe_zeit) = self.speichern_gefärbt {
                     if now - färbe_zeit > Duration::from_secs(2) {
+                        self.speichern_laden.färbe_speichern(false);
                         self.speichern_gefärbt = None;
                     }
                 }
@@ -1030,11 +1021,8 @@ where
             clockwise,
             counter_clockwise,
             zoom,
-            speichern,
-            speichern_gefärbt,
-            laden,
-            pfad,
-            aktueller_pfad,
+            speichern_laden,
+            speichern_gefärbt: _,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();
@@ -1052,11 +1040,7 @@ where
             counter_clockwise,
             zoom,
             aktueller_zoom,
-            speichern,
-            speichern_gefärbt,
-            laden,
-            pfad,
-            aktueller_pfad,
+            speichern_laden,
         );
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
@@ -1181,11 +1165,7 @@ fn top_row<'t, Z>(
     counter_clockwise: &'t mut iced::button::State,
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
-    speichern: &'t mut iced::button::State,
-    speichern_gefärbt: &'t Option<Instant>,
-    laden: &'t mut iced::button::State,
-    pfad: &'t mut iced::text_input::State,
-    aktueller_pfad: &'t str,
+    speichern_laden: &'t mut speichern_laden::Status,
 ) -> iced::Row<'t, Message<Z>>
 where
     Z: 'static + Zugtyp,
@@ -1224,25 +1204,7 @@ where
             .width(iced::Length::Units(100)),
         )
         .align_items(iced::Align::Center);
-    let speichern_ungefärbt =
-        iced::Button::new(speichern, iced::Text::new("speichern")).on_press(Message::Speichern);
-    let speichern_style =
-        if speichern_gefärbt.is_some() { background::GREEN } else { background::DEFAULT };
-    let speichern_laden = iced::Row::new()
-        .push(
-            iced::Column::new()
-                .push(speichern_ungefärbt.style(speichern_style))
-                .push(iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden))
-                .align_items(iced::Align::End),
-        )
-        .push(
-            iced::TextInput::new(pfad, "pfad", aktueller_pfad, Message::Pfad)
-                .width(iced::Length::Units(250))
-                .padding(1),
-        )
-        .spacing(5)
-        .align_items(iced::Align::Center)
-        .width(iced::Length::Shrink);
+    let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
     let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
@@ -1276,7 +1238,10 @@ where
     }
 
     row.push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
-        .push(speichern_laden)
+        .push(iced::Element::from(speichern_laden).map(|message| match message {
+            speichern_laden::Nachricht::Speichern(pfad) => Message::Speichern(pfad),
+            speichern_laden::Nachricht::Laden(pfad) => Message::Laden(pfad),
+        }))
         .padding(5)
         .spacing(5)
         .width(iced::Length::Fill)
