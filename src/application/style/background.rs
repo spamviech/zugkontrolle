@@ -5,43 +5,40 @@ pub const BLACK: Background = Background::Grey(0.);
 pub const RED: Background = Background::Red(0.7);
 pub const GREEN: Background = Background::Green(0.7);
 pub const BLUE: Background = Background::Blue(0.7);
-pub const DEFAULT: Background = Background::Default;
+pub const DEFAULT: Background = Background::Grey(0.85);
 
+#[derive(Debug)]
 pub enum Background {
     Grey(f32),
     Red(f32),
     Green(f32),
     Blue(f32),
-    Default,
 }
 
 impl Background {
-    fn color(&self) -> Option<iced::Color> {
+    fn color(&self) -> iced::Color {
         match self {
-            Background::Grey(grey) => Some(iced::Color::from_rgb(*grey, *grey, *grey)),
-            Background::Red(red) => Some(iced::Color::from_rgb(*red, 0., 0.)),
-            Background::Green(green) => Some(iced::Color::from_rgb(0., *green, 0.)),
-            Background::Blue(blue) => Some(iced::Color::from_rgb(0., 0., *blue)),
-            Background::Default => None,
+            Background::Grey(grey) => iced::Color::from_rgb(*grey, *grey, *grey),
+            Background::Red(red) => iced::Color::from_rgb(*red, 0., 0.),
+            Background::Green(green) => iced::Color::from_rgb(0., *green, 0.),
+            Background::Blue(blue) => iced::Color::from_rgb(0., 0., *blue),
         }
     }
 }
 
 impl iced::container::StyleSheet for Background {
     fn style(&self) -> iced::container::Style {
-        let mut style = iced::container::Style::default();
-        if let Some(color) = self.color() {
-            style.background = Some(iced::Background::Color(color))
+        iced::container::Style {
+            background: Some(iced::Background::Color(self.color())),
+            ..Default::default()
         }
-        style
     }
 }
 impl iced::button::StyleSheet for Background {
     fn active(&self) -> iced::button::Style {
-        let mut style = iced::button::Style::default();
-        if let Some(color) = self.color() {
-            style.background = Some(iced::Background::Color(color))
+        iced::button::Style {
+            background: Some(iced::Background::Color(self.color())),
+            ..Default::default()
         }
-        style
     }
 }
