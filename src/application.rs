@@ -1224,14 +1224,12 @@ where
         .align_items(iced::Align::Center);
     let speichern_ungefärbt =
         iced::Button::new(speichern, iced::Text::new("speichern")).on_press(Message::Speichern);
+    let speichern_style =
+        if speichern_gefärbt.is_some() { background::GREEN } else { background::DEFAULT };
     let speichern_laden = iced::Row::new()
         .push(
             iced::Column::new()
-                .push(if speichern_gefärbt.is_some() {
-                    speichern_ungefärbt.style(background::Green)
-                } else {
-                    speichern_ungefärbt
-                })
+                .push(speichern_ungefärbt.style(speichern_style))
                 .push(iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden))
                 .align_items(iced::Align::End),
         )
