@@ -1217,9 +1217,11 @@ where
     let skalieren_slider = iced::Column::new()
         .push(iced::Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
-            iced::Slider::new(zoom, 0.05..=1.5, aktueller_zoom.0, Skalar)
-                .step(0.05)
-                .width(iced::Length::Units(100)),
+            iced::Slider::new(zoom, -2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
+                Message::Skalieren(Skalar(exponent.exp()))
+            })
+            .step(0.01)
+            .width(iced::Length::Units(100)),
         )
         .align_items(iced::Align::Center);
     let speichern_ungefärbt =
@@ -1245,7 +1247,7 @@ where
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
-        .push(skalieren_slider.mit_teil_nachricht(Message::Skalieren));
+        .push(skalieren_slider);
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
