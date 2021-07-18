@@ -17,6 +17,7 @@ use self::gleis::{
     gleise::{id::with_any_id, *},
     *,
 };
+use self::sleep::Sleep;
 use self::streckenabschnitt::Streckenabschnitt;
 use self::style::*;
 pub use self::typen::*;
@@ -33,6 +34,7 @@ pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
+pub mod sleep;
 mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
@@ -167,6 +169,7 @@ where
     SetzeStreckenabschnitt(AnyId<Z>),
     StreckenabschnittFestlegen(bool),
     Speichern(String),
+    EntferneSpeichernFarbe(Instant),
     Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
@@ -181,7 +184,6 @@ where
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
     AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
     FahrenAktion(AnyId<Z>),
-    Tick(Instant),
 }
 
 impl<Z> From<gleise::Message<Z>> for Message<Z>
@@ -489,6 +491,8 @@ where
     Z::Leiter: Debug,
     <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
+    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message: Unpin,
+    <<Z as Zugtyp>::Leiter as ToSave>::Save: Unpin,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Option<String>, Option<Modus>);
@@ -710,6 +714,14 @@ where
                         format!("Fehler beim Speichern in {}", pfad),
                         format!("{:?}", err),
                     ),
+                }
+            }
+            Message::EntferneSpeichernFarbe(nachricht_zeit) => {
+                if let Some(färbe_zeit) = self.speichern_gefärbt {
+                    if nachricht_zeit == färbe_zeit {
+                        self.speichern_laden.färbe_speichern(false);
+                        self.speichern_gefärbt = None;
+                    }
                 }
             }
             Message::Laden(pfad) => match self.gleise.laden(&mut self.anschlüsse, &pfad) {
@@ -975,22 +987,18 @@ where
                     },
                 ),
             },
-            Message::Tick(now) => {
-                if let Some(färbe_zeit) = self.speichern_gefärbt {
-                    if now - färbe_zeit > Duration::from_secs(2) {
-                        self.speichern_laden.färbe_speichern(false);
-                        self.speichern_gefärbt = None;
-                    }
-                }
-            }
         }
 
         command
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        if self.speichern_gefärbt.is_some() {
-            iced::time::every(Duration::from_millis(100)).map(Message::Tick)
+        if let Some(speicher_zeit) = self.speichern_gefärbt {
+            iced::Subscription::from_recipe(Sleep::neu(
+                speicher_zeit,
+                Duration::from_secs(2),
+                Message::EntferneSpeichernFarbe(speicher_zeit),
+            ))
         } else {
             iced::Subscription::none()
         }
