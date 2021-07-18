@@ -58,8 +58,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
         vec![zeichne(self.zugtyp, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
-        vec![fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis)]
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+        vec![(
+            fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+            Transparenz::Voll,
+        )]
     }
 
     fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {

@@ -65,7 +65,9 @@ pub enum AnchorName {
     Rechts,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for DreiwegeWeiche<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
+    for DreiwegeWeiche<Z, Anschlüsse>
+{
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -94,15 +96,6 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for DreiwegeWeiche<Z, Anschlüsse
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
-        // Rechts
-        paths.push(kurve::zeichne(
-            self.zugtyp,
-            self.radius,
-            self.winkel,
-            kurve::Beschränkung::Ende,
-            rechts_transformations,
-            pfad::Erbauer::with_normal_axis,
-        ));
         // Links
         paths.push(kurve::zeichne(
             self.zugtyp,
@@ -112,11 +105,20 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for DreiwegeWeiche<Z, Anschlüsse
             links_transformations,
             pfad::Erbauer::with_invert_y,
         ));
+        // Rechts
+        paths.push(kurve::zeichne(
+            self.zugtyp,
+            self.radius,
+            self.winkel,
+            kurve::Beschränkung::Ende,
+            rechts_transformations,
+            pfad::Erbauer::with_normal_axis,
+        ));
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
         let half_height = self.size().y.halbiert();
         let beschränkung = beschränkung::<Z>();
@@ -125,28 +127,50 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for DreiwegeWeiche<Z, Anschlüsse
         let rechts_transformations = vec![Transformation::Translation(start)];
         let links_transformations =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
+        let (gerade_transparenz, links_transparenz, rechts_transparenz) =
+            match self.steuerung.aktuelle_richtung() {
+                None => (Transparenz::Voll, Transparenz::Voll, Transparenz::Voll),
+                Some(Richtung::Gerade) => {
+                    (Transparenz::Voll, Transparenz::Reduziert, Transparenz::Reduziert)
+                }
+                Some(Richtung::Links) => {
+                    (Transparenz::Reduziert, Transparenz::Voll, Transparenz::Reduziert)
+                }
+                Some(Richtung::Rechts) => {
+                    (Transparenz::Reduziert, Transparenz::Reduziert, Transparenz::Voll)
+                }
+            };
         // Gerade
-        paths.push(gerade::fülle(
-            self.zugtyp,
-            self.länge,
-            rechts_transformations.clone(),
-            pfad::Erbauer::with_normal_axis,
-        ));
-        // Rechts
-        paths.push(kurve::fülle(
-            self.zugtyp,
-            self.radius,
-            self.winkel,
-            rechts_transformations,
-            pfad::Erbauer::with_normal_axis,
+        paths.push((
+            gerade::fülle(
+                self.zugtyp,
+                self.länge,
+                rechts_transformations.clone(),
+                pfad::Erbauer::with_normal_axis,
+            ),
+            gerade_transparenz,
         ));
         // Links
-        paths.push(kurve::fülle(
-            self.zugtyp,
-            self.radius,
-            self.winkel,
-            links_transformations,
-            pfad::Erbauer::with_invert_y,
+        paths.push((
+            kurve::fülle(
+                self.zugtyp,
+                self.radius,
+                self.winkel,
+                links_transformations,
+                pfad::Erbauer::with_invert_y,
+            ),
+            links_transparenz,
+        ));
+        // Rechts
+        paths.push((
+            kurve::fülle(
+                self.zugtyp,
+                self.radius,
+                self.winkel,
+                rechts_transformations,
+                pfad::Erbauer::with_normal_axis,
+            ),
+            rechts_transparenz,
         ));
         // return value
         paths

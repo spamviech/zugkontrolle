@@ -69,7 +69,9 @@ pub enum AnchorName {
     Außen,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for KurvenWeiche<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
+    for KurvenWeiche<Z, Anschlüsse>
+{
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -148,62 +150,85 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for KurvenWeiche<Z, Anschlüsse> 
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
         let außen_transformation =
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
+        let (innen_transparenz, außen_transparenz) = match self.steuerung.aktuelle_richtung() {
+            None => (Transparenz::Voll, Transparenz::Voll),
+            Some(Richtung::Innen) => (Transparenz::Voll, Transparenz::Reduziert),
+            Some(Richtung::Außen) => (Transparenz::Reduziert, Transparenz::Voll),
+        };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                self.winkel,
-                transformations.clone(),
-                pfad::Erbauer::with_invert_y,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    self.winkel,
+                    transformations.clone(),
+                    pfad::Erbauer::with_invert_y,
+                ),
+                innen_transparenz,
             ));
             // Gerade vor äußerer Kurve
-            paths.push(gerade::fülle(
-                self.zugtyp,
-                self.länge,
-                transformations.clone(),
-                pfad::Erbauer::with_invert_y,
+            paths.push((
+                gerade::fülle(
+                    self.zugtyp,
+                    self.länge,
+                    transformations.clone(),
+                    pfad::Erbauer::with_invert_y,
+                ),
+                außen_transparenz,
             ));
             // Äußere Kurve
             transformations.push(außen_transformation);
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                self.winkel,
-                transformations,
-                pfad::Erbauer::with_invert_y,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    self.winkel,
+                    transformations,
+                    pfad::Erbauer::with_invert_y,
+                ),
+                außen_transparenz,
             ));
         } else {
             // Innere Kurve
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                self.winkel,
-                Vec::new(),
-                pfad::Erbauer::with_normal_axis,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    self.winkel,
+                    Vec::new(),
+                    pfad::Erbauer::with_normal_axis,
+                ),
+                innen_transparenz,
             ));
             // Gerade vor äußerer Kurve
-            paths.push(gerade::fülle(
-                self.zugtyp,
-                self.länge,
-                Vec::new(),
-                pfad::Erbauer::with_normal_axis,
+            paths.push((
+                gerade::fülle(
+                    self.zugtyp,
+                    self.länge,
+                    Vec::new(),
+                    pfad::Erbauer::with_normal_axis,
+                ),
+                außen_transparenz,
             ));
             // Äußere Kurve
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                self.winkel,
-                vec![außen_transformation],
-                pfad::Erbauer::with_normal_axis,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    self.winkel,
+                    vec![außen_transformation],
+                    pfad::Erbauer::with_normal_axis,
+                ),
+                außen_transparenz,
             ));
         }
         // return value

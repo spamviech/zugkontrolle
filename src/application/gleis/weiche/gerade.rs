@@ -74,7 +74,7 @@ pub enum AnchorName {
     Kurve,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for Weiche<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -122,30 +122,53 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for Weiche<Z, Anschlüsse> {
         }
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
+            None => (Transparenz::Voll, Transparenz::Voll),
+            Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
+            Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
+        };
         if orientierung == Orientierung::Links {
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             vec![
-                gerade::fülle(
-                    zugtyp,
-                    länge,
-                    transformations.clone(),
-                    pfad::Erbauer::with_invert_y,
+                (
+                    gerade::fülle(
+                        zugtyp,
+                        länge,
+                        transformations.clone(),
+                        pfad::Erbauer::with_invert_y,
+                    ),
+                    gerade_transparenz,
                 ),
-                kurve::fülle(
-                    zugtyp,
-                    radius,
-                    winkel,
-                    transformations,
-                    pfad::Erbauer::with_invert_y,
+                (
+                    kurve::fülle(
+                        zugtyp,
+                        radius,
+                        winkel,
+                        transformations,
+                        pfad::Erbauer::with_invert_y,
+                    ),
+                    kurve_transparenz,
                 ),
             ]
         } else {
             vec![
-                gerade::fülle(zugtyp, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
-                kurve::fülle(zugtyp, radius, winkel, Vec::new(), pfad::Erbauer::with_normal_axis),
+                (
+                    gerade::fülle(zugtyp, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+                    gerade_transparenz,
+                ),
+                (
+                    kurve::fülle(
+                        zugtyp,
+                        radius,
+                        winkel,
+                        Vec::new(),
+                        pfad::Erbauer::with_normal_axis,
+                    ),
+                    kurve_transparenz,
+                ),
             ]
         }
     }

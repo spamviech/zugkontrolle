@@ -75,13 +75,16 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
         )]
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
-        vec![fülle(
-            self.zugtyp,
-            self.radius,
-            self.winkel,
-            Vec::new(),
-            pfad::Erbauer::with_normal_axis,
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+        vec![(
+            fülle(
+                self.zugtyp,
+                self.radius,
+                self.winkel,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            ),
+            Transparenz::Voll,
         )]
     }
 

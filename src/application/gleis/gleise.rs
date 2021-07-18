@@ -266,18 +266,10 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn transparency<T>(gleis_id: &GleisId<T>, transparent: &impl Fn(GleisId<Any>) -> bool) -> f32 {
-    if transparent(gleis_id.as_any()) {
-        0.5
-    } else {
-        1.
-    }
-}
-
 fn fülle_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    transparent: impl Fn(GleisId<Any>, Fließend) -> bool,
+    transparent: impl Fn(GleisId<Any>, Fließend) -> Transparenz,
     streckenabschnitte: &streckenabschnitt::Map,
 ) {
     for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
@@ -287,14 +279,16 @@ fn fülle_alle_gleise<T: Zeichnen>(
             frame.with_save(|frame| {
                 move_to_position(frame, position);
                 // einfärben
-                for path in definition.fülle() {
+                for (path, transparenz) in definition.fülle() {
                     frame.with_save(|frame| {
                         let Farbe { r, g, b } = *farbe;
                         let color = iced::Color {
                             r,
                             g,
                             b,
-                            a: transparency(gleis_id, &|gleis_id| transparent(gleis_id, *fließend)),
+                            a: transparent(gleis_id.as_any(), *fließend)
+                                .kombiniere(transparenz)
+                                .alpha(),
                         };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                     });
@@ -320,7 +314,8 @@ fn zeichne_alle_gleise<T: Zeichnen>(
                         &path,
                         canvas::Stroke {
                             color: canvas::Color {
-                                a: transparency(gleis_id, &is_grabbed),
+                                a: Transparenz::true_reduziert(is_grabbed(gleis_id.as_any()))
+                                    .alpha(),
                                 ..canvas::Color::BLACK
                             },
                             width: 1.5,
@@ -352,10 +347,11 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                             richtung: position.winkel + anchor.richtung,
                         },
                     );
+                    let a = Transparenz::true_reduziert(is_grabbed(gleis_id.as_any())).alpha();
                     let color = if opposing {
-                        canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
+                        canvas::Color { r: 0., g: 1., b: 0., a }
                     } else {
-                        canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
+                        canvas::Color { r: 0., g: 0., b: 1., a }
                     };
                     let direction: Vektor = Vektor::polar_koordinaten(Skalar(5.), anchor.richtung);
                     let direction_side: Vektor = Skalar(0.5) * direction.rotiert(winkel::FRAC_PI_2);
@@ -399,7 +395,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
                     content,
                     position: iced::Point::ORIGIN,
                     color: canvas::Color {
-                        a: transparency(gleis_id, &is_grabbed),
+                        a: Transparenz::true_reduziert(is_grabbed(gleis_id.as_any())).alpha(),
                         ..canvas::Color::BLACK
                     },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
@@ -582,11 +578,11 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
             // Hintergrund
             mit_allen_gleisen!(
                 fülle_alle_gleise,
-                |gleis_id, fließend| if modus_bauen {
+                |gleis_id, fließend| Transparenz::true_reduziert(if modus_bauen {
                     is_grabbed(gleis_id)
                 } else {
                     fließend == Fließend::Gesperrt
-                },
+                }),
                 streckenabschnitte
             );
             // Kontur

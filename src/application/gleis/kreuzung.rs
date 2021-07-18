@@ -84,7 +84,7 @@ pub enum AnchorName {
     Ende1,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for Kreuzung<Z, Anschlüsse> {
+impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Z, Anschlüsse> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
@@ -153,7 +153,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for Kreuzung<Z, Anschlüsse> {
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
         let Vektor { x: width, y: height } = self.size();
         let half_width = width.halbiert();
@@ -173,34 +173,51 @@ impl<Z: Zugtyp, Anschlüsse: MitName> Zeichnen for Kreuzung<Z, Anschlüsse> {
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
+        let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
+            None => (Transparenz::Voll, Transparenz::Voll),
+            Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
+            Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
+        };
         // Geraden
-        paths.push(gerade::fülle(
-            self.zugtyp,
-            self.länge,
-            horizontal_transformations.clone(),
-            pfad::Erbauer::with_normal_axis,
+        paths.push((
+            gerade::fülle(
+                self.zugtyp,
+                self.länge,
+                horizontal_transformations.clone(),
+                pfad::Erbauer::with_normal_axis,
+            ),
+            gerade_transparenz,
         ));
-        paths.push(gerade::fülle(
-            self.zugtyp,
-            self.länge,
-            gedreht_transformations.clone(),
-            pfad::Erbauer::with_invert_y,
+        paths.push((
+            gerade::fülle(
+                self.zugtyp,
+                self.länge,
+                gedreht_transformations.clone(),
+                pfad::Erbauer::with_invert_y,
+            ),
+            gerade_transparenz,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                winkel,
-                horizontal_transformations,
-                pfad::Erbauer::with_normal_axis,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    winkel,
+                    horizontal_transformations,
+                    pfad::Erbauer::with_normal_axis,
+                ),
+                kurve_transparenz,
             ));
-            paths.push(kurve::fülle(
-                self.zugtyp,
-                self.radius,
-                winkel,
-                gedreht_transformations,
-                pfad::Erbauer::with_invert_y,
+            paths.push((
+                kurve::fülle(
+                    self.zugtyp,
+                    self.radius,
+                    winkel,
+                    gedreht_transformations,
+                    pfad::Erbauer::with_invert_y,
+                ),
+                kurve_transparenz,
             ));
         }
         // return value

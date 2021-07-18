@@ -39,6 +39,42 @@ pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
     radius + Skalar(0.5) * spurweite::<Z>() + abstand::<Z>()
 }
 
+/// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Transparenz {
+    Voll,
+    Reduziert,
+    Unsichtbar,
+}
+
+impl Transparenz {
+    pub fn true_reduziert(input: bool) -> Transparenz {
+        if input {
+            Transparenz::Reduziert
+        } else {
+            Transparenz::Voll
+        }
+    }
+
+    pub fn kombiniere(self, other: Transparenz) -> Transparenz {
+        use Transparenz::*;
+        match (self, other) {
+            (Unsichtbar, _) | (_, Unsichtbar) => Unsichtbar,
+            (Reduziert, Reduziert) => Unsichtbar,
+            (Voll, Reduziert) | (Reduziert, Voll) => Reduziert,
+            (Transparenz::Voll, Transparenz::Voll) => Voll,
+        }
+    }
+
+    pub fn alpha(self) -> f32 {
+        match self {
+            Transparenz::Unsichtbar => 0.,
+            Transparenz::Reduziert => 0.5,
+            Transparenz::Voll => 1.,
+        }
+    }
+}
+
 pub trait Zeichnen
 where
     Self::AnchorPoints: anchor::Lookup<Self::AnchorName>,
@@ -48,7 +84,7 @@ where
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
-    fn fülle(&self) -> Vec<Pfad>;
+    fn fülle(&self) -> Vec<(Pfad, Transparenz)>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<Pfad>;
@@ -87,5 +123,19 @@ impl<R, A> MitName for Option<Weiche<R, A>> {
 impl<A> MitName for Option<Kontakt<A>> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|kontakt| &kontakt.name.0)
+    }
+}
+
+pub trait MitRichtung<Richtung> {
+    fn aktuelle_richtung(&self) -> Option<&Richtung>;
+}
+impl<R> MitRichtung<R> for () {
+    fn aktuelle_richtung(&self) -> Option<&R> {
+        None
+    }
+}
+impl<R, A> MitRichtung<R> for Option<Weiche<R, A>> {
+    fn aktuelle_richtung(&self) -> Option<&R> {
+        self.as_ref().map(|Weiche { aktuelle_richtung, .. }| aktuelle_richtung)
     }
 }
