@@ -1234,7 +1234,16 @@ where
             .width(iced::Length::Units(50))
             .height(iced::Length::Units(50)),
     )
-    .map(|_| Message::Bewegen(Bewegen::Oben));
+    .map(|nachricht| {
+        Message::Bewegen(match nachricht {
+            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Links) => Bewegen::Links,
+            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Rechts) => Bewegen::Rechts,
+            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Oben) => Bewegen::Oben,
+            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Unten) => Bewegen::Unten,
+            bewegen::Nachricht::BeendeBewegung => Bewegen::Oben, // TODO
+            bewegen::Nachricht::Zurücksetzen => Bewegen::Zurücksetzen,
+        })
+    });
     // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
     let drehen_buttons = iced::Column::new()
         .push(
