@@ -17,10 +17,7 @@ use self::gleis::{
     gleise::{id::with_any_id, *},
     *,
 };
-use self::sleep::Sleep;
-use self::streckenabschnitt::Streckenabschnitt;
-use self::style::*;
-pub use self::typen::*;
+use self::{sleep::Sleep, streckenabschnitt::Streckenabschnitt, style::*, typen::*};
 use crate::{
     anschluss::{anschlüsse::Anschlüsse, OutputAnschluss, OutputSave, Reserviere, ToSave},
     args::Args,
@@ -30,6 +27,8 @@ use crate::{
 };
 
 pub mod anschluss;
+mod bewegen;
+mod drehen;
 pub mod farbwahl;
 pub mod geschwindigkeit;
 pub mod gleis;
@@ -335,6 +334,7 @@ where
     links: iced::button::State,
     rechts: iced::button::State,
     pivot_zurücksetzen: iced::button::State,
+    bewegen: bewegen::Bewegen,
     clockwise: iced::button::State,
     counter_clockwise: iced::button::State,
     zoom: iced::slider::State,
@@ -557,6 +557,7 @@ where
             links: iced::button::State::new(),
             rechts: iced::button::State::new(),
             pivot_zurücksetzen: iced::button::State::new(),
+            bewegen: bewegen::Bewegen::neu(),
             clockwise: iced::button::State::new(),
             counter_clockwise: iced::button::State::new(),
             zoom: iced::slider::State::new(),
@@ -1054,6 +1055,7 @@ where
             links,
             rechts,
             pivot_zurücksetzen,
+            bewegen,
             clockwise,
             counter_clockwise,
             zoom,
@@ -1073,6 +1075,7 @@ where
             links,
             rechts,
             pivot_zurücksetzen,
+            bewegen,
             clockwise,
             counter_clockwise,
             zoom,
@@ -1199,6 +1202,7 @@ fn top_row<'t, Z>(
     links: &'t mut iced::button::State,
     rechts: &'t mut iced::button::State,
     pivot_zurücksetzen: &'t mut iced::button::State,
+    bewegen: &'t mut bewegen::Bewegen,
     clockwise: &'t mut iced::button::State,
     counter_clockwise: &'t mut iced::button::State,
     zoom: &'t mut iced::slider::State,
@@ -1225,6 +1229,12 @@ where
         .push(oben_unten_buttons)
         .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts))
         .align_items(iced::Align::Center);
+    let bewegen = iced::Element::from(
+        touch_canvas::Canvas::new(bewegen)
+            .width(iced::Length::Units(50))
+            .height(iced::Length::Units(50)),
+    )
+    .map(|_| Message::Bewegen(Bewegen::Oben));
     // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
     let drehen_buttons = iced::Column::new()
         .push(
@@ -1249,6 +1259,7 @@ where
     let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
     let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
+        .push(bewegen)
         .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_slider);
