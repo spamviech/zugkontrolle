@@ -2,6 +2,7 @@
 
 pub mod anschluss;
 pub mod application;
+pub mod args;
 pub mod farbe;
 pub mod lookup;
 pub mod non_empty;

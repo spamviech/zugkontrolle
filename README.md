@@ -134,8 +134,16 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
 - -m MODUS | --modus MODUS
     Bestimme den Modus bei Programstart.
     Aktuell sind `Bauen` und `Fahren` unterstützt.
+- -z ZOOM | --zoom ZOOM
+    Bestimme den Zoom bei Programmstart.
+- -x X | --x X
+    Bestimme den x-Wert der linken oberen Ecke.
+- -y Y | --y >
+    Bestimme den y-Wert der linken oberen Ecke.
+- -w WINKEL | --winkel WINKEL
+    Bestimme den Winkel bei Programmstart.
 - --verbose
-    Zeige zusätzliche Informationen in der Kommandozeile an
+    Zeige zusätzliche (Debug) Informationen in der Kommandozeile an.
 
 ### Starten durch ziehen einer Datei auf die binary
 

@@ -7,6 +7,7 @@
 - Verwende einen Slider anstelle von Buttons zum Skalieren
 - Nach erfolgreichem Speichern wird der Knopf temporär Grün gefärbt
 - Aktuelle Richtung einer Weiche wird über Transparenz der Füllung angezeigt
+- Neue Kommandozeilen-Argumente zoom, x, y, winkel
 
 ## 2.0.1
 

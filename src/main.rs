@@ -5,14 +5,14 @@ use simple_logger::SimpleLogger;
 use zugkontrolle::{
     anschluss::anschlüsse::{self, Anschlüsse},
     application::icon::icon,
+    args::{self, Args},
     Lego, Märklin, Zugkontrolle,
 };
 
-pub mod args;
-use self::args::Args;
-
 fn main() -> Result<(), Error> {
-    let Args { zugtyp, pfad, modus, verbose, .. } = Args::from_env();
+    let args = Args::from_env();
+    let verbose = args.verbose;
+    let zugtyp = args.zugtyp;
 
     let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
     SimpleLogger::new()
@@ -28,7 +28,7 @@ fn main() -> Result<(), Error> {
                 icon: Some(icon()),
                 ..Default::default()
             },
-            ..Settings::with_flags((anschlüsse, pfad, modus))
+            ..Settings::with_flags((anschlüsse, args))
         };
         match zugtyp {
             args::Zugtyp::Märklin => Zugkontrolle::<Märklin>::run(settings),

@@ -4,7 +4,8 @@ use std::str::FromStr;
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
-use zugkontrolle::application::gleis::gleise::Modus;
+
+use crate::application::gleis::gleise::Modus;
 
 #[derive(Debug)]
 struct Wrapper(pub Args);
@@ -44,6 +45,22 @@ pub struct Args {
     /// modus bei Programstart
     pub modus: Option<Modus>,
 
+    #[argh(option, short = 'z')]
+    /// zoom bei Programstart
+    pub zoom: Option<f32>,
+
+    #[argh(option, short = 'x')]
+    /// x-position bei Programstart
+    pub x: Option<f32>,
+
+    #[argh(option, short = 'y')]
+    /// y-position bei Programstart
+    pub y: Option<f32>,
+
+    #[argh(option, short = 'w')]
+    /// winkel bei Programstart
+    pub winkel: Option<f32>,
+
     #[argh(switch)]
     /// zeige zusätzliche Informationen in der Konsole an
     pub verbose: bool,
@@ -64,7 +81,7 @@ impl Args {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Zugtyp {
     Märklin,
     Lego,

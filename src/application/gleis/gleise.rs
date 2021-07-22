@@ -145,9 +145,21 @@ impl<Z> Gleise<Z> {
         &self.pivot
     }
 
+    /// Bewege aktuellen Pivot-Punkt nach /pivot/.
+    pub fn setze_pivot(&mut self, pivot: Vektor) {
+        self.pivot.punkt = pivot;
+        self.canvas.clear();
+    }
+
     /// Bewege aktuellen Pivot-Punkt um /bewegung/.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
+        self.canvas.clear();
+    }
+
+    /// Setze den /winkel/ für die aktuelle Darstellung.
+    pub fn winkel(&mut self, winkel: Winkel) {
+        self.pivot.winkel = winkel;
         self.canvas.clear();
     }
 

@@ -23,6 +23,7 @@ use self::style::*;
 pub use self::typen::*;
 use crate::{
     anschluss::{anschlüsse::Anschlüsse, OutputAnschluss, OutputSave, Reserviere, ToSave},
+    args::Args,
     farbe::Farbe,
     lookup::Lookup,
     steuerung,
@@ -158,7 +159,9 @@ where
     },
     Modus(Modus),
     Bewegen(Bewegen),
+    Position(Vektor),
     Drehen(Drehen),
+    Winkel(Winkel),
     Skalieren(Skalar),
     SchließeModal,
     SchließeMessageBox,
@@ -495,26 +498,36 @@ where
     <<Z as Zugtyp>::Leiter as ToSave>::Save: Unpin,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Anschlüsse, Option<String>, Option<Modus>);
+    type Flags = (Anschlüsse, Args);
     type Message = Message<Z>;
 
-    fn new(
-        (anschlüsse, pfad_arg, modus_arg): Self::Flags
-    ) -> (Self, iced::Command<Self::Message>) {
-        let mut gleise = Gleise::neu();
-        if let Some(modus) = modus_arg {
-            gleise.moduswechsel(modus)
+    fn new((anschlüsse, args): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
+        let mut messages = Vec::new();
+        if let Some(modus) = modus {
+            messages.push(Message::Modus(modus));
         }
+        let gleise = Gleise::neu();
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
-        let command: iced::Command<Message<Z>>;
         let aktueller_pfad: String;
-        if let Some(pfad) = pfad_arg {
-            command = Message::Laden(pfad.clone()).as_command();
+        if let Some(pfad) = pfad {
+            messages.push(Message::Laden(pfad.clone()));
             aktueller_pfad = pfad;
         } else {
-            command = iced::Command::none();
             aktueller_pfad = format!("{}.zug", Z::NAME);
         };
+        if let Some(zoom) = zoom {
+            messages.push(Message::Skalieren(Skalar(zoom)))
+        }
+        if x.is_some() || y.is_some() {
+            messages.push(Message::Position(Vektor {
+                x: Skalar(x.unwrap_or(0.)),
+                y: Skalar(y.unwrap_or(0.)),
+            }))
+        }
+        if let Some(winkel) = winkel {
+            messages.push(Message::Winkel(Winkel(winkel)))
+        }
         let zugkontrolle = Zugkontrolle {
             anschlüsse,
             gleise,
@@ -545,6 +558,11 @@ where
             zoom: iced::slider::State::new(),
             speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
+        };
+        let command = if messages.is_empty() {
+            iced::Command::none()
+        } else {
+            iced::Command::batch(messages.into_iter().map(Message::as_command))
         };
         (zugkontrolle, command)
     }
@@ -599,7 +617,9 @@ where
                         / self.gleise.skalierfaktor(),
                 );
             }
+            Message::Position(position) => self.gleise.setze_pivot(position),
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
+            Message::Winkel(winkel) => self.gleise.winkel(winkel),
             Message::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
             Message::SchließeModal => {
                 self.modal_state.show(false);
