@@ -82,14 +82,16 @@ pub enum Bewegen {
     Unten,
     Links,
     Rechts,
+    Zurücksetzen,
 }
 impl Bewegen {
-    fn bewegen(self) -> Vektor {
+    fn bewegen(self) -> Option<Vektor> {
         match self {
-            Bewegen::Oben => -vektor::EY,
-            Bewegen::Unten => vektor::EY,
-            Bewegen::Links => -vektor::EX,
-            Bewegen::Rechts => vektor::EX,
+            Bewegen::Oben => Some(-vektor::EY),
+            Bewegen::Unten => Some(vektor::EY),
+            Bewegen::Links => Some(-vektor::EX),
+            Bewegen::Rechts => Some(vektor::EX),
+            Bewegen::Zurücksetzen => None,
         }
     }
 }
@@ -332,6 +334,7 @@ where
     unten: iced::button::State,
     links: iced::button::State,
     rechts: iced::button::State,
+    pivot_zurücksetzen: iced::button::State,
     clockwise: iced::button::State,
     counter_clockwise: iced::button::State,
     zoom: iced::slider::State,
@@ -553,6 +556,7 @@ where
             unten: iced::button::State::new(),
             links: iced::button::State::new(),
             rechts: iced::button::State::new(),
+            pivot_zurücksetzen: iced::button::State::new(),
             clockwise: iced::button::State::new(),
             counter_clockwise: iced::button::State::new(),
             zoom: iced::slider::State::new(),
@@ -612,10 +616,13 @@ where
             }
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
             Message::Bewegen(bewegen) => {
-                self.gleise.bewege_pivot(
-                    bewegen.bewegen().rotiert(-self.gleise.pivot().winkel)
-                        / self.gleise.skalierfaktor(),
-                );
+                if let Some(vektor) = bewegen.bewegen() {
+                    self.gleise.bewege_pivot(
+                        vektor.rotiert(-self.gleise.pivot().winkel) / self.gleise.skalierfaktor(),
+                    );
+                } else {
+                    self.gleise.setze_pivot(Vektor::null_vektor());
+                }
             }
             Message::Position(position) => self.gleise.setze_pivot(position),
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
@@ -1046,6 +1053,7 @@ where
             unten,
             links,
             rechts,
+            pivot_zurücksetzen,
             clockwise,
             counter_clockwise,
             zoom,
@@ -1064,6 +1072,7 @@ where
             unten,
             links,
             rechts,
+            pivot_zurücksetzen,
             clockwise,
             counter_clockwise,
             zoom,
@@ -1189,6 +1198,7 @@ fn top_row<'t, Z>(
     unten: &'t mut iced::button::State,
     links: &'t mut iced::button::State,
     rechts: &'t mut iced::button::State,
+    pivot_zurücksetzen: &'t mut iced::button::State,
     clockwise: &'t mut iced::button::State,
     counter_clockwise: &'t mut iced::button::State,
     zoom: &'t mut iced::slider::State,
@@ -1204,6 +1214,10 @@ where
         .push(Modus::Fahren.make_radio(aktueller_modus));
     let oben_unten_buttons = iced::Column::new()
         .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
+        .push(
+            iced::Button::new(pivot_zurücksetzen, iced::Text::new("0"))
+                .on_press(Bewegen::Zurücksetzen),
+        )
         .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
         .align_items(iced::Align::Center);
     let move_buttons = iced::Row::new()

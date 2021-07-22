@@ -972,8 +972,6 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         // reset current state
         self.canvas.clear();
         // TODO pivot, skalieren?
-        self.pivot = Position { punkt: Vektor::null_vektor(), winkel: winkel::ZERO };
-        self.skalieren = Skalar::multiplikativ_neutral();
         self.maps = GleiseMaps::neu();
         self.anchor_points = anchor::rstar::RTree::new();
         self.next_id = 0;
