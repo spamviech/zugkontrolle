@@ -4,21 +4,32 @@ use iced::canvas::Program;
 
 use crate::application::typen::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Bewegung {
     Oben,
     Unten,
     Links,
     Rechts,
+    ObenLinks,
+    ObenRechts,
+    UntenLinks,
+    UntenRechts,
 }
 impl Bewegung {
-    fn vektor(self) -> Vektor {
-        match self {
-            Bewegung::Oben => -vektor::EY,
-            Bewegung::Unten => vektor::EY,
-            Bewegung::Links => -vektor::EX,
-            Bewegung::Rechts => vektor::EX,
-        }
+    pub fn vektor(self, radius: Skalar) -> Vektor {
+        Vektor::polar_koordinaten(
+            radius,
+            match self {
+                Bewegung::Rechts => 0.,
+                Bewegung::UntenRechts => 0.25,
+                Bewegung::Unten => 0.5,
+                Bewegung::UntenLinks => 0.75,
+                Bewegung::Links => 1.,
+                Bewegung::ObenLinks => 1.25,
+                Bewegung::Oben => 1.5,
+                Bewegung::ObenRechts => 1.75,
+            } * winkel::PI,
+        )
     }
 }
 
@@ -127,28 +138,28 @@ impl Program<Nachricht> for Bewegen {
                     let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
                     let klick_radius =
                         (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
-                    if position.x < links_grenze.0
-                        && position.y >= oben_grenze.0
-                        && position.y < unten_grenze.0
-                    {
+                    if position.x < links_grenze.0 {
                         self.bewegung = true;
-                        nachricht = Some(Nachricht::StarteBewegung(Bewegung::Links))
-                    } else if position.x >= rechts_grenze.0
-                        && position.y >= oben_grenze.0
-                        && position.y < unten_grenze.0
-                    {
+                        nachricht = Some(Nachricht::StarteBewegung(if position.y < oben_grenze.0 {
+                            Bewegung::ObenLinks
+                        } else if position.y > unten_grenze.0 {
+                            Bewegung::UntenLinks
+                        } else {
+                            Bewegung::Links
+                        }))
+                    } else if position.x >= rechts_grenze.0 {
                         self.bewegung = true;
-                        nachricht = Some(Nachricht::StarteBewegung(Bewegung::Rechts))
-                    } else if position.y < oben_grenze.0
-                        && position.x >= links_grenze.0
-                        && position.x < rechts_grenze.0
-                    {
+                        nachricht = Some(Nachricht::StarteBewegung(if position.y < oben_grenze.0 {
+                            Bewegung::ObenRechts
+                        } else if position.y >= unten_grenze.0 {
+                            Bewegung::UntenRechts
+                        } else {
+                            Bewegung::Rechts
+                        }))
+                    } else if position.y < oben_grenze.0 {
                         self.bewegung = true;
                         nachricht = Some(Nachricht::StarteBewegung(Bewegung::Oben))
-                    } else if position.y >= unten_grenze.0
-                        && position.x >= links_grenze.0
-                        && position.x < rechts_grenze.0
-                    {
+                    } else if position.y >= unten_grenze.0 {
                         self.bewegung = true;
                         nachricht = Some(Nachricht::StarteBewegung(Bewegung::Unten))
                     } else if klick_radius < radius {

@@ -12,12 +12,18 @@ use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use version::version;
 
-use self::geschwindigkeit::{Geschwindigkeit, LeiterAnzeige};
-use self::gleis::{
-    gleise::{id::with_any_id, *},
-    *,
+use self::{
+    bewegen::{Bewegen, Bewegung},
+    geschwindigkeit::{Geschwindigkeit, LeiterAnzeige},
+    gleis::{
+        gleise::{id::with_any_id, *},
+        *,
+    },
+    sleep::Sleep,
+    streckenabschnitt::Streckenabschnitt,
+    style::*,
+    typen::*,
 };
-use self::{sleep::Sleep, streckenabschnitt::Streckenabschnitt, style::*, typen::*};
 use crate::{
     anschluss::{anschlüsse::Anschlüsse, OutputAnschluss, OutputSave, Reserviere, ToSave},
     args::Args,
@@ -72,26 +78,6 @@ impl_any_gleis_from! {KreuzungUnit}
 impl Modus {
     fn make_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
         iced::Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Bewegen {
-    Oben,
-    Unten,
-    Links,
-    Rechts,
-    Zurücksetzen,
-}
-impl Bewegen {
-    fn bewegen(self) -> Option<Vektor> {
-        match self {
-            Bewegen::Oben => Some(-vektor::EY),
-            Bewegen::Unten => Some(vektor::EY),
-            Bewegen::Links => Some(-vektor::EX),
-            Bewegen::Rechts => Some(vektor::EX),
-            Bewegen::Zurücksetzen => None,
-        }
     }
 }
 
@@ -159,7 +145,8 @@ where
         grab_height: Skalar,
     },
     Modus(Modus),
-    Bewegen(Bewegen),
+    Bewegen(bewegen::Nachricht),
+    BewegungAusführen,
     Position(Vektor),
     Drehen(Drehen),
     Winkel(Winkel),
@@ -329,17 +316,13 @@ where
     geschwindigkeit_button_state: iced::button::State,
     message_box: iced_aw::modal::State<MessageBox>,
     // TODO use a good-looking solution instead of simple buttons
-    oben: iced::button::State,
-    unten: iced::button::State,
-    links: iced::button::State,
-    rechts: iced::button::State,
-    pivot_zurücksetzen: iced::button::State,
-    bewegen: bewegen::Bewegen,
+    bewegen: Bewegen,
     clockwise: iced::button::State,
     counter_clockwise: iced::button::State,
     zoom: iced::slider::State,
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
+    bewegung: Option<(Instant, Bewegung)>,
     // TODO Wegstrecke, Plan
 }
 
@@ -552,17 +535,13 @@ where
                 nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
                 button_state: iced::button::State::new(),
             }),
-            oben: iced::button::State::new(),
-            unten: iced::button::State::new(),
-            links: iced::button::State::new(),
-            rechts: iced::button::State::new(),
-            pivot_zurücksetzen: iced::button::State::new(),
-            bewegen: bewegen::Bewegen::neu(),
+            bewegen: Bewegen::neu(),
             clockwise: iced::button::State::new(),
             counter_clockwise: iced::button::State::new(),
             zoom: iced::slider::State::new(),
             speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
+            bewegung: None,
         };
         let command = if messages.is_empty() {
             iced::Command::none()
@@ -616,13 +595,18 @@ where
                 }
             }
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
-            Message::Bewegen(bewegen) => {
-                if let Some(vektor) = bewegen.bewegen() {
-                    self.gleise.bewege_pivot(
-                        vektor.rotiert(-self.gleise.pivot().winkel) / self.gleise.skalierfaktor(),
-                    );
-                } else {
-                    self.gleise.setze_pivot(Vektor::null_vektor());
+            Message::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
+                self.bewegung = Some((Instant::now(), bewegung))
+            }
+            Message::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung = None,
+            Message::Bewegen(bewegen::Nachricht::Zurücksetzen) => {
+                self.gleise.setze_pivot(Vektor::null_vektor())
+            }
+            Message::BewegungAusführen => {
+                if let Some((_letzte_zeit, bewegung)) = self.bewegung {
+                    self.bewegung = Some((Instant::now(), bewegung));
+                    self.gleise
+                        .bewege_pivot(bewegung.vektor(Skalar(1.) / self.gleise.skalierfaktor()))
                 }
             }
             Message::Position(position) => self.gleise.setze_pivot(position),
@@ -1021,14 +1005,25 @@ where
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
+        let mut subscriptions = Vec::new();
         if let Some(speicher_zeit) = self.speichern_gefärbt {
-            iced::Subscription::from_recipe(Sleep::neu(
+            subscriptions.push(iced::Subscription::from_recipe(Sleep::neu(
                 speicher_zeit,
                 Duration::from_secs(2),
                 Message::EntferneSpeichernFarbe(speicher_zeit),
-            ))
-        } else {
+            )))
+        }
+        if let Some((instant, _bewegung)) = self.bewegung {
+            subscriptions.push(iced::Subscription::from_recipe(Sleep::neu(
+                instant,
+                Duration::from_millis(20),
+                Message::BewegungAusführen,
+            )))
+        }
+        if subscriptions.is_empty() {
             iced::Subscription::none()
+        } else {
+            iced::Subscription::batch(subscriptions)
         }
     }
 
@@ -1050,17 +1045,13 @@ where
             streckenabschnitt_aktuell_festlegen,
             geschwindigkeit_button_state,
             message_box,
-            oben,
-            unten,
-            links,
-            rechts,
-            pivot_zurücksetzen,
             bewegen,
             clockwise,
             counter_clockwise,
             zoom,
             speichern_laden,
             speichern_gefärbt: _,
+            bewegung: _,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();
@@ -1070,11 +1061,6 @@ where
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             geschwindigkeit_button_state,
-            oben,
-            unten,
-            links,
-            rechts,
-            pivot_zurücksetzen,
             bewegen,
             clockwise,
             counter_clockwise,
@@ -1197,12 +1183,7 @@ fn top_row<'t, Z>(
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
     geschwindigkeit_button_state: &'t mut iced::button::State,
-    oben: &'t mut iced::button::State,
-    unten: &'t mut iced::button::State,
-    links: &'t mut iced::button::State,
-    rechts: &'t mut iced::button::State,
-    pivot_zurücksetzen: &'t mut iced::button::State,
-    bewegen: &'t mut bewegen::Bewegen,
+    bewegen: &'t mut Bewegen,
     clockwise: &'t mut iced::button::State,
     counter_clockwise: &'t mut iced::button::State,
     zoom: &'t mut iced::slider::State,
@@ -1216,34 +1197,9 @@ where
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.make_radio(aktueller_modus))
         .push(Modus::Fahren.make_radio(aktueller_modus));
-    let oben_unten_buttons = iced::Column::new()
-        .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
-        .push(
-            iced::Button::new(pivot_zurücksetzen, iced::Text::new("0"))
-                .on_press(Bewegen::Zurücksetzen),
-        )
-        .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
-        .align_items(iced::Align::Center);
-    let move_buttons = iced::Row::new()
-        .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
-        .push(oben_unten_buttons)
-        .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts))
-        .align_items(iced::Align::Center);
-    let bewegen = iced::Element::from(
-        touch_canvas::Canvas::new(bewegen)
-            .width(iced::Length::Units(50))
-            .height(iced::Length::Units(50)),
-    )
-    .map(|nachricht| {
-        Message::Bewegen(match nachricht {
-            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Links) => Bewegen::Links,
-            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Rechts) => Bewegen::Rechts,
-            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Oben) => Bewegen::Oben,
-            bewegen::Nachricht::StarteBewegung(bewegen::Bewegung::Unten) => Bewegen::Unten,
-            bewegen::Nachricht::BeendeBewegung => Bewegen::Oben, // TODO
-            bewegen::Nachricht::Zurücksetzen => Bewegen::Zurücksetzen,
-        })
-    });
+    let bewegen = touch_canvas::Canvas::new(bewegen)
+        .width(iced::Length::Units(50))
+        .height(iced::Length::Units(50));
     // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
     let drehen_buttons = iced::Column::new()
         .push(
@@ -1268,8 +1224,7 @@ where
     let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
     let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
-        .push(bewegen)
-        .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
+        .push(bewegen.mit_teil_nachricht(Message::Bewegen))
         .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
         .push(skalieren_slider);
 
