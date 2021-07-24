@@ -33,18 +33,18 @@ use crate::{
 };
 
 pub mod anschluss;
-mod bewegen;
-mod drehen;
+pub mod bewegen;
+pub mod drehen;
 pub mod farbwahl;
 pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
 pub mod sleep;
-mod speichern_laden;
+pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
-mod touch_canvas;
+pub mod touch_canvas;
 pub mod typen;
 pub mod weiche;
 
