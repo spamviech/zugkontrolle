@@ -14,6 +14,7 @@ use version::version;
 
 use self::{
     bewegen::{Bewegen, Bewegung},
+    drehen::Drehen,
     geschwindigkeit::{Geschwindigkeit, LeiterAnzeige},
     gleis::{
         gleise::{id::with_any_id, *},
@@ -81,20 +82,6 @@ impl Modus {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Drehen {
-    Rechtsdrehend, // clockwise
-    Linksdrehend,  // counterclockwise
-}
-impl Drehen {
-    fn drehen(self) -> Winkel {
-        match self {
-            Drehen::Rechtsdrehend => winkel::TAU / 72.,
-            Drehen::Linksdrehend => -winkel::TAU / 72.,
-        }
-    }
-}
-
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnschlüsseAnpassen<Z> {
     Weiche(
@@ -148,7 +135,6 @@ where
     Bewegen(bewegen::Nachricht),
     BewegungAusführen,
     Position(Vektor),
-    Drehen(Drehen),
     Winkel(Winkel),
     Skalieren(Skalar),
     SchließeModal,
@@ -315,10 +301,8 @@ where
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,
     message_box: iced_aw::modal::State<MessageBox>,
-    // TODO use a good-looking solution instead of simple buttons
     bewegen: Bewegen,
-    clockwise: iced::button::State,
-    counter_clockwise: iced::button::State,
+    drehen: Drehen,
     zoom: iced::slider::State,
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
@@ -536,8 +520,7 @@ where
                 button_state: iced::button::State::new(),
             }),
             bewegen: Bewegen::neu(),
-            clockwise: iced::button::State::new(),
-            counter_clockwise: iced::button::State::new(),
+            drehen: Drehen::neu(),
             zoom: iced::slider::State::new(),
             speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
@@ -610,7 +593,6 @@ where
                 }
             }
             Message::Position(position) => self.gleise.setze_pivot(position),
-            Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Winkel(winkel) => self.gleise.winkel(winkel),
             Message::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
             Message::SchließeModal => {
@@ -1046,8 +1028,7 @@ where
             geschwindigkeit_button_state,
             message_box,
             bewegen,
-            clockwise,
-            counter_clockwise,
+            drehen,
             zoom,
             speichern_laden,
             speichern_gefärbt: _,
@@ -1062,8 +1043,7 @@ where
             streckenabschnitt_aktuell_festlegen,
             geschwindigkeit_button_state,
             bewegen,
-            clockwise,
-            counter_clockwise,
+            drehen,
             zoom,
             aktueller_zoom,
             speichern_laden,
@@ -1184,8 +1164,7 @@ fn top_row<'t, Z>(
     streckenabschnitt_festlegen: &'t mut bool,
     geschwindigkeit_button_state: &'t mut iced::button::State,
     bewegen: &'t mut Bewegen,
-    clockwise: &'t mut iced::button::State,
-    counter_clockwise: &'t mut iced::button::State,
+    drehen: &'t mut Drehen,
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Status,
@@ -1200,17 +1179,9 @@ where
     let bewegen = touch_canvas::Canvas::new(bewegen)
         .width(iced::Length::Units(50))
         .height(iced::Length::Units(50));
-    // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
-    let drehen_buttons = iced::Column::new()
-        .push(
-            iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
-                .on_press(Drehen::Linksdrehend),
-        )
-        .push(
-            iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
-                .on_press(Drehen::Rechtsdrehend),
-        )
-        .align_items(iced::Align::Center);
+    let drehen = touch_canvas::Canvas::new(drehen)
+        .width(iced::Length::Units(50))
+        .height(iced::Length::Units(50));
     let skalieren_slider = iced::Column::new()
         .push(iced::Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
@@ -1225,7 +1196,7 @@ where
     let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(bewegen.mit_teil_nachricht(Message::Bewegen))
-        .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
+        .push(drehen.mit_teil_nachricht(Message::Winkel))
         .push(skalieren_slider);
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
