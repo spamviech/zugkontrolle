@@ -116,9 +116,10 @@ impl Program<Winkel> for Drehen {
                 let min_width_height = Skalar(size.width.min(size.height));
                 let half_min_width_height = min_width_height.halbiert();
                 let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-                self.winkel = Winkel::acos(
-                    (relative_position - kreis_zentrum).einheitsvektor().skalarprodukt(&vektor::EX),
-                );
+                let position_von_zentrum = relative_position - kreis_zentrum;
+                let acos =
+                    Winkel::acos(position_von_zentrum.einheitsvektor().skalarprodukt(&vektor::EX));
+                self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
                 winkel = Some(self.winkel);
             }
             _ => {}
