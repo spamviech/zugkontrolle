@@ -52,14 +52,14 @@ impl Program<Winkel> for Drehen {
                 })
                 .baue();
             let knopf_grau = if self.grabbed {
-                0.8
+                0.5
             } else if cursor.position_in(&bounds).map_or(false, |position| {
                 (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum).länge()
                     < knopf_radius
             }) {
                 0.7
             } else {
-                0.5
+                0.8
             };
             frame.fill(
                 &knopf_pfad,
@@ -106,21 +106,27 @@ impl Program<Winkel> for Drehen {
                 self.grabbed = false;
                 status = iced::canvas::event::Status::Captured;
             }
-            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position })
-                if self.grabbed =>
-            {
-                self.canvas.clear();
-                let relative_position =
-                    Vektor { x: Skalar(position.x - bounds.x), y: Skalar(position.y - bounds.y) };
-                let size = bounds.size();
-                let min_width_height = Skalar(size.width.min(size.height));
-                let half_min_width_height = min_width_height.halbiert();
-                let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-                let position_von_zentrum = relative_position - kreis_zentrum;
-                let acos =
-                    Winkel::acos(position_von_zentrum.einheitsvektor().skalarprodukt(&vektor::EX));
-                self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
-                winkel = Some(self.winkel);
+            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
+                if self.grabbed {
+                    self.canvas.clear();
+                    let relative_position = Vektor {
+                        x: Skalar(position.x - bounds.x),
+                        y: Skalar(position.y - bounds.y),
+                    };
+                    let size = bounds.size();
+                    let min_width_height = Skalar(size.width.min(size.height));
+                    let half_min_width_height = min_width_height.halbiert();
+                    let kreis_zentrum =
+                        Vektor { x: half_min_width_height, y: half_min_width_height };
+                    let position_von_zentrum = relative_position - kreis_zentrum;
+                    let acos = Winkel::acos(
+                        position_von_zentrum.einheitsvektor().skalarprodukt(&vektor::EX),
+                    );
+                    self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
+                    winkel = Some(self.winkel);
+                } else if cursor.is_over(&bounds) {
+                    self.canvas.clear()
+                }
             }
             _ => {}
         }
