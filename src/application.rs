@@ -588,8 +588,11 @@ where
             Message::BewegungAusführen => {
                 if let Some((_letzte_zeit, bewegung)) = self.bewegung {
                     self.bewegung = Some((Instant::now(), bewegung));
-                    self.gleise
-                        .bewege_pivot(bewegung.vektor(Skalar(1.) / self.gleise.skalierfaktor()))
+                    self.gleise.bewege_pivot(
+                        bewegung
+                            .vektor(Skalar(1.) / self.gleise.skalierfaktor())
+                            .rotiert(-self.gleise.pivot().winkel),
+                    )
                 }
             }
             Message::Position(position) => self.gleise.setze_pivot(position),
