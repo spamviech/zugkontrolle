@@ -1,4 +1,4 @@
-//! unittests für das anschluss-Modul
+//! unit tests für das anschluss-Modul
 
 use std::thread::sleep;
 use std::time::Duration;
@@ -6,7 +6,7 @@ use std::time::Duration;
 use num_x::u3;
 use simple_logger::SimpleLogger;
 
-use super::{Anschlüsse, SyncError};
+use super::{AnschlussBeschreibung, Anschlüsse, SyncError};
 use crate::anschluss::{level::Level, pcf8574};
 
 #[test]
@@ -38,7 +38,13 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncError::InVerwendung),
+        Err(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
+            a0: Level::Low,
+            a1: Level::Low,
+            a2: Level::Low,
+            variante: pcf8574::Variante::Normal,
+            port: u3::new(0)
+        })),
         "2. Aufruf von llln."
     );
     drop(llln);
@@ -65,7 +71,13 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncError::InVerwendung),
+        Err(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
+            a0: Level::Low,
+            a1: Level::Low,
+            a2: Level::Low,
+            variante: pcf8574::Variante::Normal,
+            port: u3::new(0)
+        })),
         "Aufruf von llln mit vorherigem Ergebnis in scope."
     );
     drop(llln);
