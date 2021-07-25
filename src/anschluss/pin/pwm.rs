@@ -2,15 +2,19 @@
 
 use std::time::Duration;
 
+use ::serde::{Deserialize, Serialize};
 #[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
 use rppal::{gpio, pwm};
-use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
 use super::Wrapper;
-use crate::anschluss::{anschlüsse::Anschlüsse, polarity::Polarität, serde::*};
+use crate::anschluss::{
+    anschlüsse::Anschlüsse,
+    polarity::Polarität,
+    serde::{self, Reserviere, Reserviert, ToSave},
+};
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
@@ -258,15 +262,17 @@ impl Reserviere<Pin> for Save {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        ersetzbare_anschlüsse: impl Iterator<Item = Pin>,
-    ) -> Result<Reserviert<Pin>, crate::anschluss::Error> {
-        let (gesucht, ersetzbar): (Vec<_>, Vec<_>) =
-            ersetzbare_anschlüsse.partition(|pin| pin.to_save() == self);
+        bisherige_anschlüsse: impl Iterator<Item = Pin>,
+    ) -> serde::Result<Pin> {
+        let (gesucht, mut nicht_benötigt): (Vec<_>, Vec<_>) =
+            bisherige_anschlüsse.partition(|pin| pin.to_save() == self);
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             anschluss
         } else {
-            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm)?
+            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|fehler| {
+                serde::Error { fehler: fehler.into(), bisherige_anschlüsse: { nicht_benötigt } }
+            })?
         };
-        Ok(Reserviert { anschluss, ersetzbar })
+        Ok(Reserviert { anschluss, nicht_benötigt })
     }
 }
