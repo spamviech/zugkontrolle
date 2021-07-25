@@ -10,6 +10,15 @@ pub trait ToSave: Sized {
     fn to_save(&self) -> Self::Save;
 }
 
+pub struct Reserviert<R> {
+    anschluss: R,
+    ersetzbar: Vec<R>,
+}
+
 pub trait Reserviere<R> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<R, Error>;
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        ersetzbare_anschlüsse: impl Iterator<Item = R>,
+    ) -> Result<Reserviert<R>, Error>;
 }

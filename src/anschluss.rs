@@ -3,6 +3,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use ::serde::{Deserialize, Serialize};
+use log::error;
 use num_x::u3;
 
 pub mod level;
@@ -187,6 +188,33 @@ pub enum OutputSave {
         polarität: Polarität,
     },
 }
+impl OutputSave {
+    // Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
+    pub fn selber_anschluss(&self, other: &OutputSave) -> bool {
+        match (self, other) {
+            (OutputSave::Pin { pin: p0, .. }, OutputSave::Pin { pin: p1, .. }) => p0 == p1,
+            (
+                OutputSave::Pcf8574Port {
+                    a0: a0A,
+                    a1: a1A,
+                    a2: a2A,
+                    variante: varianteA,
+                    port: portA,
+                    ..
+                },
+                OutputSave::Pcf8574Port {
+                    a0: a0B,
+                    a1: a1B,
+                    a2: a2B,
+                    variante: varianteB,
+                    port: portB,
+                    ..
+                },
+            ) => a0A == a0B && a1A == a1B && a2A == a2B && varianteA == varianteB && portA == portB,
+            _ => false,
+        }
+    }
+}
 impl ToSave for OutputAnschluss {
     type Save = OutputSave;
 
@@ -211,17 +239,40 @@ impl ToSave for OutputAnschluss {
     }
 }
 impl Reserviere<OutputAnschluss> for OutputSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<OutputAnschluss, Error> {
-        let (anschluss, polarität) = match self {
-            OutputSave::Pin { pin, polarität } => {
-                (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
-            }
-            OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
-                let port = u3::new(port);
-                (anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into(), polarität)
-            }
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        ersetzbare_anschlüsse: impl Iterator<Item = OutputAnschluss>,
+    ) -> Result<Reserviert<OutputAnschluss>, Error> {
+        let polarität = match self {
+            OutputSave::Pin { polarität, .. } => polarität,
+            OutputSave::Pcf8574Port { polarität, .. } => polarität,
         };
-        anschluss.into_output(polarität)
+        let (gesucht, ersetzbar): (Vec<_>, Vec<_>) = ersetzbare_anschlüsse
+            .partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
+        let anschluss = if let Some(anschluss) = gesucht.pop() {
+            match anschluss {
+                OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
+                OutputAnschluss::Pcf8574Port { port, .. } => {
+                    OutputAnschluss::Pcf8574Port { port, polarität }
+                }
+            }
+        } else {
+            let (anschluss, polarität) = match self {
+                OutputSave::Pin { pin, polarität } => {
+                    (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
+                }
+                OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+                    let port = u3::new(port);
+                    (
+                        anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into(),
+                        polarität,
+                    )
+                }
+            };
+            anschluss.into_output(polarität)?
+        };
+        Ok(Reserviert { anschluss, ersetzbar })
     }
 }
 
@@ -268,7 +319,7 @@ impl InputAnschluss {
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InputSave {
     Pin {
         pin: u8,
@@ -281,6 +332,41 @@ pub enum InputSave {
         port: u8,
         interrupt: Option<u8>,
     },
+}
+impl InputSave {
+    // Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
+    pub fn selber_anschluss(&self, other: &InputSave) -> bool {
+        match (self, other) {
+            (InputSave::Pin { pin: p0 }, InputSave::Pin { pin: p1 }) => p0 == p1,
+            (
+                InputSave::Pcf8574Port {
+                    a0: a0A,
+                    a1: a1A,
+                    a2: a2A,
+                    variante: varianteA,
+                    port: portA,
+                    ..
+                },
+                InputSave::Pcf8574Port {
+                    a0: a0B,
+                    a1: a1B,
+                    a2: a2B,
+                    variante: varianteB,
+                    port: portB,
+                    ..
+                },
+            ) => a0A == a0B && a1A == a1B && a2A == a2B && varianteA == varianteB && portA == portB,
+            _ => false,
+        }
+    }
+
+    pub fn interrupt(&self) -> Option<u8> {
+        if let InputSave::Pcf8574Port { interrupt, .. } = self {
+            interrupt.clone()
+        } else {
+            None
+        }
+    }
 }
 impl ToSave for InputAnschluss {
     type Save = InputSave;
@@ -305,24 +391,69 @@ impl ToSave for InputAnschluss {
     }
 }
 impl Reserviere<InputAnschluss> for InputSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<InputAnschluss, Error> {
-        Ok(match self {
-            InputSave::Pin { pin } => {
-                InputAnschluss::Pin(anschlüsse.reserviere_pin(pin)?.into_input())
-            }
-            InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
-                let port =
-                    anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))?;
-                let mut input_port = port.into_input()?;
-                if input_port.interrupt_pin()? != interrupt {
-                    if let Some(pin) = interrupt {
-                        let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
-                        let _ = input_port.set_interrupt_pin(interrupt);
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        ersetzbare_anschlüsse: impl Iterator<Item = InputAnschluss>,
+    ) -> Result<Reserviert<InputAnschluss>, Error> {
+        let self_interrupt = self.interrupt();
+        let (gesuchter_anschluss, gesuchter_interrupt, ersetzbar) = ersetzbare_anschlüsse.fold(
+            (None, None, Vec::new()),
+            |acc @ (gesucht, interrupt, ersetzbar), anschluss| {
+                if self.selber_anschluss(&anschluss.to_save()) {
+                    gesucht = Some(anschluss)
+                } else {
+                    match (anschluss, self_interrupt) {
+                        (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
+                            interrupt = Some(pin)
+                        }
+                        _ => ersetzbar.push(anschluss),
                     }
+                };
+                acc
+            },
+        );
+        let interrupt_konfigurieren = |anschluss| -> Result<_, Error> {
+            if let Some(interrupt) = gesuchter_interrupt {
+                if let InputAnschluss::Pcf8574Port(port) = anschluss {
+                    port.set_interrupt_pin(interrupt)?;
+                } else {
+                    error!(
+                        "Interrupt Pin {:?} für einen InputPin {:?} konfiguriert.",
+                        interrupt, anschluss
+                    )
                 }
-                InputAnschluss::Pcf8574Port(input_port)
+            } else if let Some(pin) = self_interrupt {
+                if let InputAnschluss::Pcf8574Port(port) = anschluss {
+                    if Some(pin) != port.interrupt_pin()? {
+                        let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
+                        port.set_interrupt_pin(interrupt)?;
+                    }
+                } else {
+                    error!(
+                        "Interrupt Pin {:?} für einen InputPin {:?} konfiguriert.",
+                        pin, anschluss
+                    )
+                }
             }
-        })
+            Ok(anschluss)
+        };
+        let anschluss = if let Some(anschluss) = gesuchter_anschluss {
+            interrupt_konfigurieren(anschluss)?
+        } else {
+            match self {
+                InputSave::Pin { pin } => {
+                    InputAnschluss::Pin(anschlüsse.reserviere_pin(pin)?.into_input())
+                }
+                InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
+                    let port =
+                        anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))?;
+                    let mut input_port = port.into_input()?;
+                    interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port))?
+                }
+            }
+        };
+        Ok(Reserviert { anschluss, ersetzbar })
     }
 }
 

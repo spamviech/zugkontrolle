@@ -245,7 +245,7 @@ impl From<pwm::Error> for Error {
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Save(pub u8);
 impl ToSave for Pin {
     type Save = Save;
@@ -255,7 +255,18 @@ impl ToSave for Pin {
     }
 }
 impl Reserviere<Pin> for Save {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Pin, crate::anschluss::Error> {
-        anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(Into::into)
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        ersetzbare_anschlüsse: impl Iterator<Item = Pin>,
+    ) -> Result<Reserviert<Pin>, crate::anschluss::Error> {
+        let (gesucht, ersetzbar): (Vec<_>, Vec<_>) =
+            ersetzbare_anschlüsse.partition(|pin| pin.to_save() == self);
+        let anschluss = if let Some(anschluss) = gesucht.pop() {
+            anschluss
+        } else {
+            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm)?
+        };
+        Ok(Reserviert { anschluss, ersetzbar })
     }
 }
