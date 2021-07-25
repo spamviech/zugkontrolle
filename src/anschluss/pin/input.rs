@@ -1,6 +1,5 @@
 //! Gpio Pins konfiguriert für Input.
 
-use cfg_if::cfg_if;
 #[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
@@ -20,26 +19,28 @@ impl Pin {
     /// Pins are addressed by their BCM numbers, rather than their physical location.
     #[inline]
     pub fn pin(&self) -> u8 {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                self.0.pin()
-            } else {
-                // Pins sollten nur auf einem Raspi erzeugbar sein!
-                // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
-                self.0.0
-            }
+        #[cfg(raspi)]
+        {
+            self.0.pin()
+        }
+        #[cfg(not(raspi))]
+        {
+            // Pins sollten nur auf einem Raspi erzeugbar sein!
+            // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
+            self.0 .0
         }
     }
 
     /// Reads the pin’s logic level.
     #[inline]
     pub fn read(&mut self) -> Result<Level, Error> {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                Ok(self.0.read().into())
-            } else {
-                Err(Error::KeinRaspberryPi)
-            }
+        #[cfg(raspi)]
+        {
+            Ok(self.0.read().into())
+        }
+        #[cfg(not(raspi))]
+        {
+            Err(Error::KeinRaspberryPi)
         }
     }
 
@@ -64,26 +65,28 @@ impl Pin {
         trigger: Trigger,
         #[cfg_attr(not(raspi), allow(unused_mut))] mut callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                Ok(self.0.set_async_interrupt(trigger.into(), move |level| callback(level.into()))?)
-            } else {
-                debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
-                Err(Error::KeinRaspberryPi)
-            }
+        #[cfg(raspi)]
+        {
+            Ok(self.0.set_async_interrupt(trigger.into(), move |level| callback(level.into()))?)
+        }
+        #[cfg(not(raspi))]
+        {
+            debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
+            Err(Error::KeinRaspberryPi)
         }
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
     #[inline]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                Ok(self.0.clear_async_interrupt()?)
-            } else {
-                debug!("{:?}.clear_async_interrupt()", self);
-                Err(Error::KeinRaspberryPi)
-            }
+        #[cfg(raspi)]
+        {
+            Ok(self.0.clear_async_interrupt()?)
+        }
+        #[cfg(not(raspi))]
+        {
+            debug!("{:?}.clear_async_interrupt()", self);
+            Err(Error::KeinRaspberryPi)
         }
     }
 }

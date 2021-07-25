@@ -8,7 +8,6 @@ use std::sync::{
 };
 use std::thread;
 
-use cfg_if::cfg_if;
 use log::{debug, error};
 use num_x::u3;
 use once_cell::sync::Lazy;
@@ -403,16 +402,17 @@ impl Anschlüsse {
         if let Some(arc) = self.0.as_ref() {
             #[cfg_attr(raspi, allow(unused_mut))]
             let mut anschlüsse = arc.lock()?;
-            cfg_if! {
-                if #[cfg(raspi)] {
-                    Ok(Pin::neu(anschlüsse.gpio.get(pin)?))
+            #[cfg(raspi)]
+            {
+                Ok(Pin::neu(anschlüsse.gpio.get(pin)?))
+            }
+            #[cfg(not(raspi))]
+            {
+                if anschlüsse.ausgegebene_pins.insert(pin) {
+                    Ok(Pin::neu(pin, anschlüsse.pin_rückgabe.clone()))
                 } else {
-                    if anschlüsse.ausgegebene_pins.insert(pin) {
-                        Ok(Pin::neu(pin, anschlüsse.pin_rückgabe.clone()))
-                    } else {
-                        // TODO besserer Fehler (welcher Pin wurde angefragt)
-                        Err(Error::Sync(SyncError::InVerwendung))
-                    }
+                    // TODO besserer Fehler (welcher Pin wurde angefragt)
+                    Err(Error::Sync(SyncError::InVerwendung))
                 }
             }
         } else {
@@ -465,25 +465,25 @@ impl<T> From<PoisonError<T>> for Error {
         SyncError::from(error).into()
     }
 }
-cfg_if! {
-    if #[cfg(raspi)] {
-        impl From<rppal::gpio::Error> for Error {
-            fn from(error: rppal::gpio::Error) -> Self {
-                Error::Gpio(error)
-            }
-        }
-        impl From<rppal::i2c::Error> for Error {
-            fn from(error: rppal::i2c::Error) -> Self {
-                Error::I2c(error)
-            }
-        }
-        impl From<rppal::pwm::Error> for Error {
-            fn from(error: rppal::pwm::Error) -> Self {
-                Error::Pwm(error)
-            }
-        }
+#[cfg(raspi)]
+impl From<rppal::gpio::Error> for Error {
+    fn from(error: rppal::gpio::Error) -> Self {
+        Error::Gpio(error)
     }
 }
+#[cfg(raspi)]
+impl From<rppal::i2c::Error> for Error {
+    fn from(error: rppal::i2c::Error) -> Self {
+        Error::I2c(error)
+    }
+}
+#[cfg(raspi)]
+impl From<rppal::pwm::Error> for Error {
+    fn from(error: rppal::pwm::Error) -> Self {
+        Error::Pwm(error)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncError {
     PoisonError,

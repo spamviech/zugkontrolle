@@ -7,7 +7,6 @@
 use std::fmt::Debug;
 use std::sync::{mpsc::Sender, Arc, Mutex, PoisonError};
 
-use cfg_if::cfg_if;
 use log::debug;
 use log::error;
 use num_x::u3;
@@ -202,33 +201,34 @@ impl Pcf8574 {
     ///
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
     fn read(&self) -> Result<[Option<Level>; 8], Error> {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                if let Ok(mut i2c_channel) = self.i2c.lock() {
-                    i2c_channel.set_slave_address(self.i2c_adresse().into())?;
-                    let mut buf = [0; 1];
-                    let bytes_read = i2c_channel.read(&mut buf)?;
-                    if bytes_read != 1 {
-                        debug!("bytes_read = {} != 1", bytes_read)
-                    }
-                    let mut result = [None; 8];
-                    for (port, modus) in self.ports.iter().enumerate() {
-                        let port_bit = 2u8.pow(port as u32) as u8;
-                        result[port] = if let Modus::Input { .. } = modus {
-                            Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
-                        } else {
-                            None
-                        };
-                    }
-                    Ok(result)
-                } else {
-                    error!("I2C-Mutex poisoned!");
-                    Err(Error::PoisonError)
+        #[cfg(raspi)]
+        {
+            if let Ok(mut i2c_channel) = self.i2c.lock() {
+                i2c_channel.set_slave_address(self.i2c_adresse().into())?;
+                let mut buf = [0; 1];
+                let bytes_read = i2c_channel.read(&mut buf)?;
+                if bytes_read != 1 {
+                    debug!("bytes_read = {} != 1", bytes_read)
                 }
+                let mut result = [None; 8];
+                for (port, modus) in self.ports.iter().enumerate() {
+                    let port_bit = 2u8.pow(port as u32) as u8;
+                    result[port] = if let Modus::Input { .. } = modus {
+                        Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
+                    } else {
+                        None
+                    };
+                }
+                Ok(result)
             } else {
-                debug!("{:?}.read()", self);
-                Err(Error::KeinRaspberryPi)
+                error!("I2C-Mutex poisoned!");
+                Err(Error::PoisonError)
             }
+        }
+        #[cfg(not(raspi))]
+        {
+            debug!("{:?}.read()", self);
+            Err(Error::KeinRaspberryPi)
         }
     }
 
@@ -254,31 +254,32 @@ impl Pcf8574 {
     /// Der Port wird automatisch als Output gesetzt.
     fn write_port(&mut self, port: u3, level: Level) -> Result<(), Error> {
         self.ports[usize::from(port)] = level.into();
-        cfg_if! {
-            if #[cfg(raspi)] {
-                if let Ok(mut i2c_channel) = self.i2c.lock() {
-                    i2c_channel.set_slave_address(self.i2c_adresse().into())?;
-                    let mut wert = 0;
-                    for (port, modus) in self.ports.iter().enumerate() {
-                        wert |= match modus {
-                            Modus::Input { .. } | Modus::High => 2u8.pow(port as u32) as u8,
-                            Modus::Low => 0,
-                        };
-                    }
-                    let buf = [wert; 1];
-                    let bytes_written = i2c_channel.write(&buf)?;
-                    if bytes_written != 1 {
-                        error!("bytes_written = {} != 1", bytes_written)
-                    }
-                    Ok(())
-                } else {
-                    error!("I2C-Mutex poisoned!");
-                    Err(Error::PoisonError)
+        #[cfg(raspi)]
+        {
+            if let Ok(mut i2c_channel) = self.i2c.lock() {
+                i2c_channel.set_slave_address(self.i2c_adresse().into())?;
+                let mut wert = 0;
+                for (port, modus) in self.ports.iter().enumerate() {
+                    wert |= match modus {
+                        Modus::Input { .. } | Modus::High => 2u8.pow(port as u32) as u8,
+                        Modus::Low => 0,
+                    };
                 }
+                let buf = [wert; 1];
+                let bytes_written = i2c_channel.write(&buf)?;
+                if bytes_written != 1 {
+                    error!("bytes_written = {} != 1", bytes_written)
+                }
+                Ok(())
             } else {
-                debug!("{:?}.write_port({}, {:?})", self, port, level);
-                Err(Error::KeinRaspberryPi)
+                error!("I2C-Mutex poisoned!");
+                Err(Error::PoisonError)
             }
+        }
+        #[cfg(not(raspi))]
+        {
+            debug!("{:?}.write_port({}, {:?})", self, port, level);
+            Err(Error::KeinRaspberryPi)
         }
     }
 }
@@ -347,12 +348,13 @@ impl Port {
     pub fn into_output(self, level: Level) -> Result<OutputPort, Error> {
         {
             let pcf8574 = &mut *self.pcf8574.lock()?;
-            cfg_if! {
-                if #[cfg(raspi)] {
-                    pcf8574.write_port(self.port, level)?;
-                } else {
-                    pcf8574.ports[usize::from(self.port)] = level.into();
-                }
+            #[cfg(raspi)]
+            {
+                pcf8574.write_port(self.port, level)?;
+            }
+            #[cfg(not(raspi))]
+            {
+                pcf8574.ports[usize::from(self.port)] = level.into();
             }
         }
         Ok(OutputPort(self))

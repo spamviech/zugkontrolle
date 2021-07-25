@@ -2695,7 +2695,6 @@ version = "2.1.0"
 dependencies = [
  "argh",
  "bincode",
- "cfg-if 1.0.0",
  "cfg_aliases",
  "iced",
  "iced_aw",

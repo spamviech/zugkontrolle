@@ -4,7 +4,6 @@
 use std::sync::mpsc::Sender;
 pub use std::time::Duration;
 
-use cfg_if::cfg_if;
 #[cfg(raspi)]
 use rppal::{self, gpio};
 
@@ -53,14 +52,15 @@ impl Pin {
     /// Pins are addressed by their BCM numbers, rather than their physical location.
     #[inline]
     pub fn pin(&self) -> u8 {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                self.0.pin()
-            } else {
-                // Pins sollten nur auf einem Raspi erzeugbar sein!
-                // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
-                self.0.0
-            }
+        #[cfg(raspi)]
+        {
+            self.0.pin()
+        }
+        #[cfg(not(raspi))]
+        {
+            // Pins sollten nur auf einem Raspi erzeugbar sein!
+            // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
+            self.0 .0
         }
     }
 
@@ -135,23 +135,31 @@ impl Pin {
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[cfg_attr(not(raspi), inline)]
     pub fn into_pwm(self) -> pwm::Pin {
-        cfg_if! {
-            if #[cfg(raspi)]
+        #[cfg(raspi)]
+        {
+            if let Some(pwm) =
+                self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok())
             {
-                if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok()) {
-                    let config = pwm.polarity().and_then(|polarität|
-                                    pwm.period().and_then(|period|
-                                    pwm.pulse_width().map(|pulse_width|
-                                    pwm::Config {time: pwm::Time::Period {period, pulse_width}, polarity: polarität.into()}))
-                                 ).ok();
-                    pwm::Pin {pin: Pwm::Hardware(pwm, self.0), config }
-                } else {
-                    // fallback software pwm
-                    pwm::Pin {pin: Pwm::Software(self.0.into_output()), config: None }
-                }
+                let config = pwm
+                    .polarity()
+                    .and_then(|polarität| {
+                        pwm.period().and_then(|period| {
+                            pwm.pulse_width().map(|pulse_width| pwm::Config {
+                                time: pwm::Time::Period { period, pulse_width },
+                                polarity: polarität.into(),
+                            })
+                        })
+                    })
+                    .ok();
+                pwm::Pin { pin: Pwm::Hardware(pwm, self.0), config }
             } else {
-                pwm::Pin {pin: self.0, config:None}
+                // fallback software pwm
+                pwm::Pin { pin: Pwm::Software(self.0.into_output()), config: None }
             }
+        }
+        #[cfg(not(raspi))]
+        {
+            pwm::Pin { pin: self.0, config: None }
         }
     }
 }

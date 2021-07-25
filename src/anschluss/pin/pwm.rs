@@ -2,7 +2,6 @@
 
 use std::time::Duration;
 
-use cfg_if::cfg_if;
 #[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
@@ -96,29 +95,31 @@ impl Pin {
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
     pub fn pin(&self) -> u8 {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                match &self.pin {
-                    Pwm::Hardware(_pwm, pin) => pin.pin(),
-                    Pwm::Software(pin) => pin.pin(),
-                }
-            } else {
-                self.pin.0
+        #[cfg(raspi)]
+        {
+            match &self.pin {
+                Pwm::Hardware(_pwm, pin) => pin.pin(),
+                Pwm::Software(pin) => pin.pin(),
             }
+        }
+        #[cfg(not(raspi))]
+        {
+            self.pin.0
         }
     }
 
     /// Wird Hardware-Pwm verwendet?
     pub fn hardware_pwm(&self) -> bool {
-        cfg_if! {
-            if #[cfg(raspi)] {
-                match self.pin {
-                    Pwm::Hardware(_, _) => true,
-                    Pwm::Software(_) => false,
-                }
-            } else {
-                false
+        #[cfg(raspi)]
+        {
+            match self.pin {
+                Pwm::Hardware(_, _) => true,
+                Pwm::Software(_) => false,
             }
+        }
+        #[cfg(not(raspi))]
+        {
+            false
         }
     }
 
