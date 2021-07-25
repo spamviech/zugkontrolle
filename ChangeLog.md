@@ -8,6 +8,7 @@
 - Nach erfolgreichem Speichern wird der Knopf temporär Grün gefärbt
 - Aktuelle Richtung einer Weiche wird über Transparenz der Füllung angezeigt
 - Neue Kommandozeilen-Argumente zoom, x, y, winkel
+- Verbesserte Widgets zum einstellen von Position und Rotation
 
 ## 2.0.1
 
