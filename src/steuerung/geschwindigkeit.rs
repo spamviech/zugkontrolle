@@ -1,18 +1,20 @@
 //! Einstellen der Geschwindigkeit.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::{self, Display, Formatter},
     thread::sleep,
     time::Duration,
     usize,
 };
 
+use ::serde::{Deserialize, Serialize};
 use log::error;
-use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    self, pwm, Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität, Reserviere, ToSave,
+    self, pwm,
+    serde::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität,
 };
 use crate::non_empty::{MaybeEmpty, NonEmpty};
 
@@ -33,8 +35,21 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-    ) -> Result<Geschwindigkeit<R>, anschluss::Error> {
-        Ok(Geschwindigkeit { leiter: self.leiter.reserviere(anschlüsse)? })
+        bisherige_anschlüsse: impl Iterator<Item = Geschwindigkeit<R>>,
+    ) -> serde::Result<Geschwindigkeit<R>> {
+        let konvertiere_leiter = |leiter_vec: Vec<R>| {
+            leiter_vec.into_iter().map(|leiter| Geschwindigkeit { leiter }).collect()
+        };
+        let Reserviert { anschluss: leiter, nicht_benötigt: nicht_benötigte_leiter } = self
+            .leiter
+            .reserviere(anschlüsse, bisherige_anschlüsse.map(|Geschwindigkeit { leiter }| leiter))
+            .map_err(|serde::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
+                serde::Error { fehler, bisherige_anschlüsse: konvertiere_leiter(bisherige_leiter) }
+            })?;
+        Ok(Reserviert {
+            anschluss: Geschwindigkeit { leiter },
+            nicht_benötigt: konvertiere_leiter(nicht_benötigte_leiter),
+        })
     }
 }
 
@@ -142,20 +157,73 @@ impl ToSave for Mittelleiter {
     }
 }
 impl Reserviere<Mittelleiter> for MittelleiterSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Mittelleiter, anschluss::Error> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        bisherige_anschlüsse: impl Iterator<Item = Mittelleiter>,
+    ) -> serde::Result<Mittelleiter> {
+        let (pwm_pins, ks_anschlüsse, save) =
+            bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
+                acc.2.push(mittelleiter.to_save());
+                match mittelleiter {
+                    Mittelleiter::Pwm { pin, polarität } => acc.0.push(pin),
+                    Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
+                        acc.1.extend(geschwindigkeit.into_iter().chain(std::iter::once(umdrehen)))
+                    }
+                }
+                acc
+            });
+        let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
+            let mut pwm_map: HashMap<_, _> =
+                pwm_pins.into_iter().map(|pin| (pin.to_save(), pin)).collect();
+            let mut ks_map: HashMap<_, _> = ks_anschlüsse
+                .into_iter()
+                .map(|anschluss| (anschluss.to_save(), anschluss))
+                .collect();
+            save.into_iter()
+                .filter_map(|save| match save {
+                    Mittelleiter::Pwm { pin, polarität } => {
+                        pwm_map.remove(&pin).map(|pin| Mittelleiter::Pwm { pin, polarität })
+                    }
+                    Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
+                        // Mittelleiter wird nur vollständig oder gar nicht zurückgegeben
+                        // (stattdessen via drop an singleton ANSCHLÜSSE)
+                        // bei Fehler sind alle vollständig,
+                        // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
+                        ks_map.remove(&umdrehen).and_then(|umdrehen| {
+                            geschwindigkeit
+                                .iter()
+                                .map(|save| ks_map.remove(save))
+                                .collect::<Option<Vec<OutputAnschluss>>>()
+                                .and_then(NonEmpty::from_vec)
+                                .map(|geschwindigkeit| Mittelleiter::KonstanteSpannung {
+                                    geschwindigkeit,
+                                    letzter_wert,
+                                    umdrehen,
+                                })
+                        })
+                    }
+                })
+                .collect::<Vec<Mittelleiter>>()
+        };
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                Mittelleiter::Pwm { pin: pin.reserviere(anschlüsse)?, polarität }
+                let Reserviert { anschluss: pin, nicht_benötigt } =
+                    pin.reserviere(anschlüsse, pwm_pins.into_iter())?;
+                Reserviert { anschluss: Mittelleiter::Pwm { pin, polarität }, nicht_benötigt }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
-                Mittelleiter::KonstanteSpannung {
-                    geschwindigkeit: geschwindigkeit
-                        .into_iter()
-                        .map(|anschluss| anschluss.reserviere(anschlüsse))
-                        .collect::<Result<MaybeEmpty<_>, _>>()?
-                        .unwrap(),
-                    letzter_wert: 0,
-                    umdrehen: umdrehen.reserviere(anschlüsse)?,
+                Reserviert {
+                    anschluss: Mittelleiter::KonstanteSpannung {
+                        geschwindigkeit: geschwindigkeit
+                            .into_iter()
+                            .map(|anschluss| anschluss.reserviere(anschlüsse))
+                            .collect::<Result<MaybeEmpty<_>, _>>()?
+                            .unwrap(),
+                        letzter_wert: 0,
+                        umdrehen: umdrehen.reserviere(anschlüsse)?,
+                    },
+                    nicht_benötigt,
                 }
             }
         })
@@ -303,22 +371,32 @@ impl ToSave for Zweileiter {
     }
 }
 impl Reserviere<Zweileiter> for ZweileiterSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Zweileiter, anschluss::Error> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        bisherige_anschlüsse: impl Iterator<Item = Zweileiter>,
+    ) -> serde::Result<Zweileiter> {
         Ok(match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
-                geschwindigkeit: geschwindigkeit.reserviere(anschlüsse)?,
-                polarität,
-                fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Reserviert {
+                anschluss: Zweileiter::Pwm {
+                    geschwindigkeit: geschwindigkeit.reserviere(anschlüsse)?,
+                    polarität,
+                    fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                },
+                nicht_benötigt,
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
-                Zweileiter::KonstanteSpannung {
-                    geschwindigkeit: geschwindigkeit
-                        .into_iter()
-                        .map(|anschluss| anschluss.reserviere(anschlüsse))
-                        .collect::<Result<MaybeEmpty<_>, _>>()?
-                        .unwrap(),
-                    letzter_wert: 0,
-                    fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                Reserviert {
+                    anschluss: Zweileiter::KonstanteSpannung {
+                        geschwindigkeit: geschwindigkeit
+                            .into_iter()
+                            .map(|anschluss| anschluss.reserviere(anschlüsse))
+                            .collect::<Result<MaybeEmpty<_>, _>>()?
+                            .unwrap(),
+                        letzter_wert: 0,
+                        fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                    },
+                    nicht_benötigt,
                 }
             }
         })

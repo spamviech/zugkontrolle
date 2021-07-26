@@ -13,6 +13,15 @@ pub struct NonEmpty<T> {
 }
 
 impl<T> NonEmpty<T> {
+    pub fn from_vec(vec: Vec<T>) -> Option<Self> {
+        if vec.len() > 0 {
+            let head = vec.remove(0);
+            Some(NonEmpty { head, tail: vec })
+        } else {
+            None
+        }
+    }
+
     pub fn singleton(head: T) -> Self {
         NonEmpty { head, tail: Vec::new() }
     }

@@ -173,7 +173,7 @@ impl OutputAnschluss {
 }
 
 /// Serealisierbare Informationen eines OutputAnschlusses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSave {
     Pin {
         pin: u8,
@@ -331,7 +331,7 @@ impl InputAnschluss {
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSave {
     Pin {
         pin: u8,
