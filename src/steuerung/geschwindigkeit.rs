@@ -417,27 +417,140 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Zweileiter>,
     ) -> serde::Result<Zweileiter> {
+        let (pwm_pins, ks_anschlüsse, save) =
+            bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
+                acc.2.push(mittelleiter.to_save());
+                match mittelleiter {
+                    Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                        acc.0.push(geschwindigkeit);
+                        acc.1.push(fahrtrichtung);
+                    }
+                    Zweileiter::KonstanteSpannung {
+                        geschwindigkeit,
+                        letzter_wert,
+                        fahrtrichtung,
+                    } => acc
+                        .1
+                        .extend(geschwindigkeit.into_iter().chain(std::iter::once(fahrtrichtung))),
+                }
+                acc
+            });
+        let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
+            let mut pwm_map: HashMap<_, _> =
+                pwm_pins.into_iter().map(|pin| (pin.to_save(), pin)).collect();
+            let mut ks_map: HashMap<_, _> = ks_anschlüsse
+                .into_iter()
+                .map(|anschluss| (anschluss.to_save(), anschluss))
+                .collect();
+            save.into_iter()
+                .filter_map(|save| match save {
+                    Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                        pwm_map.remove(&geschwindigkeit).and_then(|geschwindigkeit| {
+                            ks_map.remove(&fahrtrichtung).map(|fahrtrichtung| Zweileiter::Pwm {
+                                geschwindigkeit,
+                                polarität,
+                                fahrtrichtung,
+                            })
+                        })
+                    }
+                    Zweileiter::KonstanteSpannung {
+                        geschwindigkeit,
+                        letzter_wert,
+                        fahrtrichtung,
+                    } => {
+                        // Zweileiter wird nur vollständig oder gar nicht zurückgegeben
+                        // (stattdessen via drop an singleton ANSCHLÜSSE)
+                        // bei Fehler sind alle vollständig,
+                        // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
+                        ks_map.remove(&fahrtrichtung).and_then(|fahrtrichtung| {
+                            geschwindigkeit
+                                .iter()
+                                .map(|save| ks_map.remove(save))
+                                .collect::<Option<Vec<OutputAnschluss>>>()
+                                .and_then(NonEmpty::from_vec)
+                                .map(|geschwindigkeit| Zweileiter::KonstanteSpannung {
+                                    geschwindigkeit,
+                                    letzter_wert,
+                                    fahrtrichtung,
+                                })
+                        })
+                    }
+                })
+                .collect::<Vec<Zweileiter>>()
+        };
         Ok(match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Reserviert {
-                anschluss: Zweileiter::Pwm {
-                    geschwindigkeit: geschwindigkeit.reserviere(anschlüsse)?,
-                    polarität,
-                    fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
-                },
-                nicht_benötigt,
-            },
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                let Reserviert { anschluss: geschwindigkeit, nicht_benötigt: pwm_nicht_benötigt } =
+                    geschwindigkeit.reserviere(anschlüsse, pwm_pins.into_iter()).map_err(
+                        |serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                bisherige_anschlüsse,
+                                ks_anschlüsse,
+                            ),
+                        },
+                    )?;
+                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt: ks_nicht_benötigt } =
+                    fahrtrichtung.reserviere(anschlüsse, ks_anschlüsse.into_iter()).map_err(
+                        |serde::Error { fehler, bisherige_anschlüsse }| {
+                            pwm_nicht_benötigt.push(geschwindigkeit);
+                            serde::Error {
+                                fehler,
+                                bisherige_anschlüsse: anschluss_sammlung(
+                                    pwm_nicht_benötigt,
+                                    bisherige_anschlüsse,
+                                ),
+                            }
+                        },
+                    )?;
+                Reserviert {
+                    anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
+                    nicht_benötigt: anschluss_sammlung(pwm_nicht_benötigt, ks_nicht_benötigt),
+                }
+            }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
+                    .head
+                    .reserviere(anschlüsse, ks_anschlüsse.into_iter())
+                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        fehler,
+                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    })?;
+                let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
+                    Ok((Vec::new(), nicht_benötigt)),
+                    |acc_res, save| match acc_res {
+                        Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                            Ok(Reserviert { anschluss, nicht_benötigt }) => {
+                                acc.0.push(anschluss);
+                                Ok((acc.0, nicht_benötigt))
+                            }
+                            Err(serde::Error { fehler, mut bisherige_anschlüsse }) => {
+                                bisherige_anschlüsse.extend(acc.0.into_iter());
+                                Err(serde::Error {
+                                    fehler,
+                                    bisherige_anschlüsse: anschluss_sammlung(
+                                        pwm_pins,
+                                        bisherige_anschlüsse,
+                                    ),
+                                })
+                            }
+                        },
+                        error => error,
+                    },
+                )?;
+                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt } = fahrtrichtung
+                    .reserviere(anschlüsse, nicht_benötigt.into_iter())
+                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        fehler,
+                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    })?;
                 Reserviert {
                     anschluss: Zweileiter::KonstanteSpannung {
-                        geschwindigkeit: geschwindigkeit
-                            .into_iter()
-                            .map(|anschluss| anschluss.reserviere(anschlüsse))
-                            .collect::<Result<MaybeEmpty<_>, _>>()?
-                            .unwrap(),
+                        geschwindigkeit: NonEmpty { head, tail },
                         letzter_wert: 0,
-                        fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                        fahrtrichtung,
                     },
-                    nicht_benötigt,
+                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
                 }
             }
         })
