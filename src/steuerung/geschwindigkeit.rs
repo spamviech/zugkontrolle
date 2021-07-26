@@ -230,12 +230,28 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                         fehler,
                         bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
                     })?;
-                let (tail, nicht_benötigt) = geschwindigkeit
-                    .tail
-                    .into_iter()
-                    .fold((Vec::new(), nicht_benötigt), |acc, save| {
-                        todo!("reserviere Mittelleiter (Geschwindigkeit tail closure)")
-                    });
+                let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
+                    Ok((Vec::new(), nicht_benötigt)),
+                    |acc_res, save| match acc_res {
+                        Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                            Ok(Reserviert { anschluss, nicht_benötigt }) => {
+                                acc.0.push(anschluss);
+                                Ok((acc.0, nicht_benötigt))
+                            }
+                            Err(serde::Error { fehler, mut bisherige_anschlüsse }) => {
+                                bisherige_anschlüsse.extend(acc.0.into_iter());
+                                Err(serde::Error {
+                                    fehler,
+                                    bisherige_anschlüsse: anschluss_sammlung(
+                                        pwm_pins,
+                                        bisherige_anschlüsse,
+                                    ),
+                                })
+                            }
+                        },
+                        error => error,
+                    },
+                )?;
                 let Reserviert { anschluss: umdrehen, nicht_benötigt } = umdrehen
                     .reserviere(anschlüsse, nicht_benötigt.into_iter())
                     .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
