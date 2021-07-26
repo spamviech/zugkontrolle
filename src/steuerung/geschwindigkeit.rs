@@ -208,22 +208,47 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
         };
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                let Reserviert { anschluss: pin, nicht_benötigt } =
-                    pin.reserviere(anschlüsse, pwm_pins.into_iter())?;
-                Reserviert { anschluss: Mittelleiter::Pwm { pin, polarität }, nicht_benötigt }
+                let Reserviert { anschluss: pin, nicht_benötigt } = pin
+                    .reserviere(anschlüsse, pwm_pins.into_iter())
+                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        fehler,
+                        bisherige_anschlüsse: anschluss_sammlung(
+                            bisherige_anschlüsse,
+                            ks_anschlüsse,
+                        ),
+                    })?;
+                Reserviert {
+                    anschluss: Mittelleiter::Pwm { pin, polarität },
+                    nicht_benötigt: anschluss_sammlung(nicht_benötigt, ks_anschlüsse),
+                }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
+                    .head
+                    .reserviere(anschlüsse, ks_anschlüsse.into_iter())
+                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        fehler,
+                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    })?;
+                let (tail, nicht_benötigt) = geschwindigkeit
+                    .tail
+                    .into_iter()
+                    .fold((Vec::new(), nicht_benötigt), |acc, save| {
+                        todo!("reserviere Mittelleiter (Geschwindigkeit tail closure)")
+                    });
+                let Reserviert { anschluss: umdrehen, nicht_benötigt } = umdrehen
+                    .reserviere(anschlüsse, nicht_benötigt.into_iter())
+                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        fehler,
+                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    })?;
                 Reserviert {
                     anschluss: Mittelleiter::KonstanteSpannung {
-                        geschwindigkeit: geschwindigkeit
-                            .into_iter()
-                            .map(|anschluss| anschluss.reserviere(anschlüsse))
-                            .collect::<Result<MaybeEmpty<_>, _>>()?
-                            .unwrap(),
+                        geschwindigkeit: NonEmpty { head, tail },
                         letzter_wert: 0,
-                        umdrehen: umdrehen.reserviere(anschlüsse)?,
+                        umdrehen,
                     },
-                    nicht_benötigt,
+                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
                 }
             }
         })

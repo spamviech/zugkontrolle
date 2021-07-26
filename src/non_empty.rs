@@ -180,9 +180,6 @@ impl<T> MaybeEmpty<T> {
 impl<T> FromIterator<T> for MaybeEmpty<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut iterator = iter.into_iter();
-        match iterator.next() {
-            Some(head) => MaybeEmpty(Some(NonEmpty { head, tail: iterator.collect() })),
-            None => MaybeEmpty(None),
-        }
+        MaybeEmpty(iterator.next().map(|head| NonEmpty { head, tail: iterator.collect() }))
     }
 }
