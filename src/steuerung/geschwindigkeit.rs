@@ -186,7 +186,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                         pwm_map.remove(&pin).map(|pin| Mittelleiter::Pwm { pin, polarität })
                     }
                     Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
-                        // Mittelleiter wird nur vollständig oder gar nicht zurückgegeben
+                        // TODO Mittelleiter wird nur vollständig oder gar nicht zurückgegeben
                         // (stattdessen via drop an singleton ANSCHLÜSSE)
                         // bei Fehler sind alle vollständig,
                         // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
@@ -458,7 +458,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                         letzter_wert,
                         fahrtrichtung,
                     } => {
-                        // Zweileiter wird nur vollständig oder gar nicht zurückgegeben
+                        // TODO Zweileiter wird nur vollständig oder gar nicht zurückgegeben
                         // (stattdessen via drop an singleton ANSCHLÜSSE)
                         // bei Fehler sind alle vollständig,
                         // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
