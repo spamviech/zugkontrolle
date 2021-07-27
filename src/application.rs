@@ -26,7 +26,11 @@ use self::{
     typen::*,
 };
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, OutputAnschluss, OutputSave, Reserviere, ToSave},
+    anschluss::{
+        anschlüsse::Anschlüsse,
+        speichern::{Reserviere, Reserviert, ToSave},
+        OutputAnschluss, OutputSave,
+    },
     args::Args,
     farbe::Farbe,
     lookup::Lookup,
@@ -370,9 +374,21 @@ where
         let mut message = None;
 
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            match anschlüsse_save.reserviere(&mut self.anschlüsse) {
-                Ok(anschlüsse) => {
-                    *steuerung = Some(anschlüsse);
+            // TODO korrigieren, bei Fehler wiederherstellen
+            let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+                if let Some(s) = steuerung {
+                    (Some(s.to_save()), s.anschlüsse())
+                } else {
+                    (None, (Vec::new(), Vec::new(), Vec::new()))
+                };
+            match anschlüsse_save.reserviere(
+                &mut self.anschlüsse,
+                pwm_pins,
+                output_anschlüsse,
+                input_anschlüsse,
+            ) {
+                Ok(Reserviert { anschluss, .. }) => {
+                    *steuerung = Some(anschluss);
                     self.gleise.erzwinge_neuzeichnen();
                     message = Some(Message::SchließeModal)
                 }

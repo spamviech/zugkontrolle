@@ -8,6 +8,8 @@ pub trait ToSave: Sized {
     type Save: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
 
     fn to_save(&self) -> Self::Save;
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>);
 }
 
 #[derive(Debug)]
