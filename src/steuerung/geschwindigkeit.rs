@@ -43,19 +43,13 @@ impl<Anschluss, T: Reserviere<R, Anschluss>, R> Reserviere<Geschwindigkeit<R>, A
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Geschwindigkeit<R>>,
+        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
     ) -> speichern::Result<Geschwindigkeit<R>, Anschluss> {
-        let konvertiere_leiter = |leiter_vec: Vec<R>| {
-            leiter_vec.into_iter().map(|leiter| Geschwindigkeit { leiter }).collect()
-        };
         let Reserviert { anschluss: leiter, nicht_benötigt } = self
             .leiter
-            .reserviere(anschlüsse, bisherige_anschlüsse.map(|Geschwindigkeit { leiter }| leiter))
+            .reserviere(anschlüsse, bisherige_anschlüsse)
             .map_err(|speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
-                speichern::Error {
-                    fehler,
-                    bisherige_anschlüsse: konvertiere_leiter(bisherige_leiter),
-                }
+                speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }
             })?;
         Ok(Reserviert { anschluss: Geschwindigkeit { leiter }, nicht_benötigt })
     }
@@ -168,51 +162,22 @@ impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Mittelleiter>,
+        bisherige_anschlüsse: impl Iterator<Item = GeschwindigkeitAnschluss>,
     ) -> speichern::Result<Mittelleiter, GeschwindigkeitAnschluss> {
-        let (pwm_pins, ks_anschlüsse, save) =
-            bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
-                acc.2.push(mittelleiter.to_save());
-                match mittelleiter {
-                    Mittelleiter::Pwm { pin, polarität } => acc.0.push(pin),
-                    Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
-                        acc.1.extend(geschwindigkeit.into_iter().chain(std::iter::once(umdrehen)))
-                    }
+        let (pwm_pins, ks_anschlüsse) =
+            bisherige_anschlüsse.fold((Vec::new(), Vec::new()), |acc, anschluss| {
+                match anschluss {
+                    GeschwindigkeitAnschluss::Pwm(pin) => acc.0.push(pin),
+                    GeschwindigkeitAnschluss::Anschluss(anschluss) => acc.1.push(anschluss),
                 }
                 acc
             });
         let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
-            let mut pwm_map: HashMap<_, _> =
-                pwm_pins.into_iter().map(|pin| (pin.to_save(), pin)).collect();
-            let mut ks_map: HashMap<_, _> = ks_anschlüsse
+            pwm_pins
                 .into_iter()
-                .map(|anschluss| (anschluss.to_save(), anschluss))
-                .collect();
-            save.into_iter()
-                .filter_map(|save| match save {
-                    Mittelleiter::Pwm { pin, polarität } => {
-                        pwm_map.remove(&pin).map(|pin| Mittelleiter::Pwm { pin, polarität })
-                    }
-                    Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
-                        // TODO Mittelleiter wird nur vollständig oder gar nicht zurückgegeben
-                        // (stattdessen via drop an singleton ANSCHLÜSSE)
-                        // bei Fehler sind alle vollständig,
-                        // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
-                        ks_map.remove(&umdrehen).and_then(|umdrehen| {
-                            geschwindigkeit
-                                .iter()
-                                .map(|save| ks_map.remove(save))
-                                .collect::<Option<Vec<OutputAnschluss>>>()
-                                .and_then(NonEmpty::from_vec)
-                                .map(|geschwindigkeit| Mittelleiter::KonstanteSpannung {
-                                    geschwindigkeit,
-                                    letzter_wert,
-                                    umdrehen,
-                                })
-                        })
-                    }
-                })
-                .collect::<Vec<Mittelleiter>>()
+                .map(GeschwindigkeitAnschluss::Pwm)
+                .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
+                .collect::<Vec<GeschwindigkeitAnschluss>>()
         };
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
@@ -228,11 +193,7 @@ impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
                     )?;
                 Reserviert {
                     anschluss: Mittelleiter::Pwm { pin, polarität },
-                    nicht_benötigt: nicht_benötigt
-                        .into_iter()
-                        .map(GeschwindigkeitAnschluss::Pwm)
-                        .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
-                        .collect(),
+                    nicht_benötigt: anschluss_sammlung(nicht_benötigt, ks_anschlüsse),
                 }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
@@ -257,7 +218,7 @@ impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
                                 Ok((acc.0, nicht_benötigt))
                             }
                             Err(speichern::Error { fehler, mut bisherige_anschlüsse }) => {
-                                bisherige_anschlüsse.extend(acc.0.into_iter());
+                                acc.0.extend(bisherige_anschlüsse.into_iter());
                                 Err(speichern::Error {
                                     fehler,
                                     bisherige_anschlüsse: anschluss_sammlung(
@@ -286,11 +247,7 @@ impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
                         letzter_wert: 0,
                         umdrehen,
                     },
-                    nicht_benötigt: nicht_benötigt
-                        .into_iter()
-                        .map(GeschwindigkeitAnschluss::Anschluss)
-                        .chain(pwm_pins.into_iter().map(GeschwindigkeitAnschluss::Pwm))
-                        .collect(),
+                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
                 }
             }
         })
@@ -441,68 +398,22 @@ impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Zweileiter>,
+        bisherige_anschlüsse: impl Iterator<Item = GeschwindigkeitAnschluss>,
     ) -> speichern::Result<Zweileiter, GeschwindigkeitAnschluss> {
-        let (pwm_pins, ks_anschlüsse, save) =
-            bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
-                acc.2.push(mittelleiter.to_save());
-                match mittelleiter {
-                    Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
-                        acc.0.push(geschwindigkeit);
-                        acc.1.push(fahrtrichtung);
-                    }
-                    Zweileiter::KonstanteSpannung {
-                        geschwindigkeit,
-                        letzter_wert,
-                        fahrtrichtung,
-                    } => acc
-                        .1
-                        .extend(geschwindigkeit.into_iter().chain(std::iter::once(fahrtrichtung))),
+        let (pwm_pins, ks_anschlüsse) =
+            bisherige_anschlüsse.fold((Vec::new(), Vec::new()), |mut acc, anschluss| {
+                match anschluss {
+                    GeschwindigkeitAnschluss::Pwm(pin) => acc.0.push(pin),
+                    GeschwindigkeitAnschluss::Anschluss(anschluss) => acc.1.push(anschluss),
                 }
                 acc
             });
         let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
-            let mut pwm_map: HashMap<_, _> =
-                pwm_pins.into_iter().map(|pin| (pin.to_save(), pin)).collect();
-            let mut ks_map: HashMap<_, _> = ks_anschlüsse
+            pwm_pins
                 .into_iter()
-                .map(|anschluss| (anschluss.to_save(), anschluss))
-                .collect();
-            save.into_iter()
-                .filter_map(|save| match save {
-                    Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
-                        pwm_map.remove(&geschwindigkeit).and_then(|geschwindigkeit| {
-                            ks_map.remove(&fahrtrichtung).map(|fahrtrichtung| Zweileiter::Pwm {
-                                geschwindigkeit,
-                                polarität,
-                                fahrtrichtung,
-                            })
-                        })
-                    }
-                    Zweileiter::KonstanteSpannung {
-                        geschwindigkeit,
-                        letzter_wert,
-                        fahrtrichtung,
-                    } => {
-                        // TODO Zweileiter wird nur vollständig oder gar nicht zurückgegeben
-                        // (stattdessen via drop an singleton ANSCHLÜSSE)
-                        // bei Fehler sind alle vollständig,
-                        // daher nur ein Problem wenn vor laden nicht aufgeräumt wurde
-                        ks_map.remove(&fahrtrichtung).and_then(|fahrtrichtung| {
-                            geschwindigkeit
-                                .iter()
-                                .map(|save| ks_map.remove(save))
-                                .collect::<Option<Vec<OutputAnschluss>>>()
-                                .and_then(NonEmpty::from_vec)
-                                .map(|geschwindigkeit| Zweileiter::KonstanteSpannung {
-                                    geschwindigkeit,
-                                    letzter_wert,
-                                    fahrtrichtung,
-                                })
-                        })
-                    }
-                })
-                .collect::<Vec<Zweileiter>>()
+                .map(GeschwindigkeitAnschluss::Pwm)
+                .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
+                .collect::<Vec<GeschwindigkeitAnschluss>>()
         };
         Ok(match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
@@ -531,13 +442,7 @@ impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
                     )?;
                 Reserviert {
                     anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
-                    nicht_benötigt: pwm_nicht_benötigt
-                        .into_iter()
-                        .map(GeschwindigkeitAnschluss::Pwm)
-                        .chain(
-                            ks_nicht_benötigt.into_iter().map(GeschwindigkeitAnschluss::Anschluss),
-                        )
-                        .collect(),
+                    nicht_benötigt: anschluss_sammlung(pwm_nicht_benötigt, ks_nicht_benötigt),
                 }
             }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
@@ -591,11 +496,7 @@ impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
                         letzter_wert: 0,
                         fahrtrichtung,
                     },
-                    nicht_benötigt: nicht_benötigt
-                        .into_iter()
-                        .map(GeschwindigkeitAnschluss::Anschluss)
-                        .chain(pwm_pins.into_iter().map(GeschwindigkeitAnschluss::Pwm))
-                        .collect(),
+                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
                 }
             }
         })

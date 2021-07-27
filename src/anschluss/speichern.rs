@@ -17,17 +17,17 @@ pub struct Reserviert<R, Anschluss> {
 }
 
 #[derive(Debug)]
-pub struct Error<R> {
+pub struct Error<Anschluss> {
     fehler: anschluss::Error,
-    bisherige_anschlüsse: Vec<R>,
+    bisherige_anschlüsse: Vec<Anschluss>,
 }
 
-pub type Result<R, Anschluss> = std::result::Result<Reserviert<R, Anschluss>, Error<R>>;
+pub type Result<R, Anschluss> = std::result::Result<Reserviert<R, Anschluss>, Error<Anschluss>>;
 
 pub trait Reserviere<R, Anschluss> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = R>,
+        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
     ) -> Result<R, Anschluss>;
 }
