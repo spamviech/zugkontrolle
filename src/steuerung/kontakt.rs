@@ -1,9 +1,12 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+use ::serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    Anschlüsse, Error, InputAnschluss, InputSave, Level, Reserviere, ToSave, Trigger,
+    serde::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
 };
 
 /// Name eines Kontaktes.
@@ -47,11 +50,40 @@ impl ToSave for Kontakt<InputAnschluss> {
 }
 
 impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Kontakt<InputAnschluss>, Error> {
-        Ok(Kontakt {
-            name: self.name,
-            anschluss: self.anschluss.reserviere(anschlüsse)?,
-            trigger: self.trigger,
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        bisherige_anschlüsse: impl Iterator<Item = Kontakt<InputAnschluss>>,
+    ) -> serde::Result<Kontakt<InputAnschluss>> {
+        let (save, input_anschlüsse) =
+            bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
+                acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
+                acc.1.push(kontakt.anschluss);
+                acc
+            });
+        let konvertiere_anschlüsse = |vec: Vec<InputAnschluss>| {
+            vec.into_iter()
+                .filter_map(|anschluss| {
+                    save.remove(&anschluss.to_save()).map(
+                        |Kontakt { name, anschluss: _, trigger }| Kontakt {
+                            name,
+                            anschluss,
+                            trigger,
+                        },
+                    )
+                })
+                .collect::<Vec<Kontakt<InputAnschluss>>>()
+        };
+        let Reserviert { anschluss, nicht_benötigt } = self
+            .anschluss
+            .reserviere(anschlüsse, input_anschlüsse.into_iter())
+            .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                fehler,
+                bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
+            })?;
+        Ok(Reserviert {
+            anschluss: Kontakt { name: self.name, anschluss, trigger: self.trigger },
+            nicht_benötigt: konvertiere_anschlüsse(nicht_benötigt),
         })
     }
 }
