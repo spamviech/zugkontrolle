@@ -531,7 +531,13 @@ impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
                     )?;
                 Reserviert {
                     anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
-                    nicht_benötigt: anschluss_sammlung(pwm_nicht_benötigt, ks_nicht_benötigt),
+                    nicht_benötigt: pwm_nicht_benötigt
+                        .into_iter()
+                        .map(GeschwindigkeitAnschluss::Pwm)
+                        .chain(
+                            ks_nicht_benötigt.into_iter().map(GeschwindigkeitAnschluss::Anschluss),
+                        )
+                        .collect(),
                 }
             }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
@@ -585,7 +591,11 @@ impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
                         letzter_wert: 0,
                         fahrtrichtung,
                     },
-                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
+                    nicht_benötigt: nicht_benötigt
+                        .into_iter()
+                        .map(GeschwindigkeitAnschluss::Anschluss)
+                        .chain(pwm_pins.into_iter().map(GeschwindigkeitAnschluss::Pwm))
+                        .collect(),
                 }
             }
         })
