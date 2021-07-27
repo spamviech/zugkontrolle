@@ -2,11 +2,11 @@
 
 use std::time::Duration;
 
-use ::serde::{Deserialize, Serialize};
 #[cfg(not(raspi))]
 use log::debug;
 #[cfg(raspi)]
 use rppal::{gpio, pwm};
+use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
 use super::Wrapper;

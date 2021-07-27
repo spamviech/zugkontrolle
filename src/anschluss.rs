@@ -2,9 +2,9 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use ::serde::{Deserialize, Serialize};
 use log::error;
 use num_x::u3;
+use serde::{Deserialize, Serialize};
 
 pub mod level;
 pub use level::*;
@@ -260,7 +260,7 @@ impl Reserviere<OutputAnschluss, OutputAnschluss> for OutputSave {
         } else {
             macro_rules! konvertiere_fehler {
                 () => {
-                    |fehler| serde::Error {
+                    |fehler| speichern::Error {
                         fehler: fehler.into(),
                         bisherige_anschlüsse: nicht_benötigt,
                     }
@@ -380,7 +380,7 @@ impl InputSave {
         }
     }
 }
-impl ToSave for InputAnschluss {
+impl ToSave<InputAnschluss> for InputAnschluss {
     type Save = InputSave;
 
     fn to_save(&self) -> InputSave {
@@ -402,12 +402,12 @@ impl ToSave for InputAnschluss {
         }
     }
 }
-impl Reserviere<InputAnschluss> for InputSave {
+impl Reserviere<InputAnschluss, InputAnschluss> for InputSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = InputAnschluss>,
-    ) -> speichern::Result<InputAnschluss> {
+    ) -> speichern::Result<InputAnschluss, InputAnschluss> {
         let self_interrupt = self.interrupt();
         let (gesuchter_anschluss, gesuchter_interrupt, nicht_benötigt) = bisherige_anschlüsse.fold(
             (None, None, Vec::new()),
@@ -452,7 +452,7 @@ impl Reserviere<InputAnschluss> for InputSave {
         };
         macro_rules! konvertiere_fehler {
             () => {
-                |fehler| serde::Error {
+                |fehler| speichern::Error {
                     fehler: fehler.into(),
                     bisherige_anschlüsse: {
                         nicht_benötigt.extend(
