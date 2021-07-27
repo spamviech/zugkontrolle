@@ -5,8 +5,9 @@ use std::{fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
+    pwm,
     speichern::{self, Reserviere, Reserviert, ToSave},
-    Anschlüsse, Error, Fließend, OutputAnschluss,
+    Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
 
@@ -39,11 +40,10 @@ where
     }
 }
 
-impl<Richtung, T, Anschluss> ToSave for Weiche<Richtung, T>
+impl<Richtung, T> ToSave for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
     T: ToSave + Debug,
-    <T as ToSave>::Save: Hash + Eq + Debug,
 {
     type Save = Weiche<Richtung, T::Save>;
 
@@ -56,20 +56,30 @@ where
         }
     }
 }
-impl<Richtung, T, R, Anschluss> Reserviere<Weiche<Richtung, R>, Anschluss> for Weiche<Richtung, T>
+impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
 where
-    Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    R: ToSave + Debug,
-    T: Reserviere<R, Anschluss> + Hash,
-    <R as ToSave>::Save: Hash + Eq + Debug,
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    R: ToSave,
+    T: Reserviere<R>,
 {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
-    ) -> speichern::Result<Weiche<Richtung, R>, Anschluss> {
-        let Reserviert { anschluss: anschlüsse, nicht_benötigt } =
-            self.anschlüsse.reserviere(anschlüsse, bisherige_anschlüsse.into_iter())?;
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Weiche<Richtung, R>> {
+        let Reserviert {
+            anschluss: anschlüsse,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.anschlüsse.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
         Ok(Reserviert {
             anschluss: Weiche {
                 name: self.name,
@@ -77,7 +87,9 @@ where
                 letzte_richtung: self.letzte_richtung.clone(),
                 anschlüsse,
             },
-            nicht_benötigt,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
         })
     }
 }
