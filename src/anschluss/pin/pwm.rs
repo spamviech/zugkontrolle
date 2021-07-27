@@ -14,6 +14,7 @@ use crate::anschluss::{
     anschlüsse::Anschlüsse,
     polarity::Polarität,
     speichern::{self, Reserviere, Reserviert, ToSave},
+    InputAnschluss, OutputAnschluss,
 };
 
 /// Ein Gpio Pin konfiguriert für Pwm.
@@ -258,23 +259,30 @@ impl ToSave for Pin {
         Save(self.pin())
     }
 }
-impl Reserviere<Pin, Pin> for Save {
+impl Reserviere<Pin> for Save {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Pin>,
-    ) -> speichern::Result<Pin, Pin> {
-        let (gesucht, mut nicht_benötigt): (Vec<_>, Vec<_>) =
-            bisherige_anschlüsse.partition(|pin| pin.to_save() == self);
+        pwm_pins: Vec<Pin>,
+        output_nicht_benötigt: Vec<OutputAnschluss>,
+        input_nicht_benötigt: Vec<InputAnschluss>,
+    ) -> speichern::Result<Pin> {
+        let (gesucht, mut pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
+            pwm_pins.partition(|pin| pin.to_save() == self);
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             anschluss
         } else {
-            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|fehler| {
-                speichern::Error {
-                    fehler: fehler.into(), bisherige_anschlüsse: { nicht_benötigt }
-                }
+            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|mut err| {
+                err.output_anschlüsse = output_nicht_benötigt;
+                err.input_anschlüsse = input_nicht_benötigt;
+                err
             })?
         };
-        Ok(Reserviert { anschluss, nicht_benötigt })
+        Ok(Reserviert {
+            anschluss,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
     }
 }

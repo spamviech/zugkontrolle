@@ -238,18 +238,20 @@ impl ToSave for OutputAnschluss {
         }
     }
 }
-impl Reserviere<OutputAnschluss, OutputAnschluss> for OutputSave {
+impl Reserviere<OutputAnschluss> for OutputSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = OutputAnschluss>,
-    ) -> speichern::Result<OutputAnschluss, OutputAnschluss> {
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<OutputAnschluss> {
         let polarität = match self {
             OutputSave::Pin { polarität, .. } => polarität,
             OutputSave::Pcf8574Port { polarität, .. } => polarität,
         };
-        let (gesucht, nicht_benötigt): (Vec<_>, Vec<_>) =
-            bisherige_anschlüsse.partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
+        let (gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) =
+            output_anschlüsse.partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             match anschluss {
                 OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
@@ -261,8 +263,10 @@ impl Reserviere<OutputAnschluss, OutputAnschluss> for OutputSave {
             macro_rules! konvertiere_fehler {
                 () => {
                     |fehler| speichern::Error {
-                        fehler: fehler.into(),
-                        bisherige_anschlüsse: nicht_benötigt,
+                        fehler,
+                        pwm_pins,
+                        output_anschlüsse: output_nicht_benötigt,
+                        input_anschlüsse,
                     }
                 };
             }
@@ -284,7 +288,12 @@ impl Reserviere<OutputAnschluss, OutputAnschluss> for OutputSave {
             };
             anschluss.into_output(polarität).map_err(konvertiere_fehler!())?
         };
-        Ok(Reserviert { anschluss, nicht_benötigt })
+        Ok(Reserviert {
+            anschluss,
+            pwm_nicht_benötigt: pwm_pins,
+            output_nicht_benötigt,
+            input_nicht_benötigt: input_anschlüsse,
+        })
     }
 }
 
@@ -402,29 +411,34 @@ impl ToSave for InputAnschluss {
         }
     }
 }
-impl Reserviere<InputAnschluss, InputAnschluss> for InputSave {
+impl Reserviere<InputAnschluss> for InputSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = InputAnschluss>,
-    ) -> speichern::Result<InputAnschluss, InputAnschluss> {
-        let self_interrupt = self.interrupt();
-        let (gesuchter_anschluss, gesuchter_interrupt, nicht_benötigt) = bisherige_anschlüsse.fold(
-            (None, None, Vec::new()),
-            |acc @ (gesucht, interrupt, ersetzbar), anschluss| {
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<InputAnschluss> {
+        let (gesuchter_anschluss, output_nicht_benötigt) =
+            output_anschlüsse.fold((None, Vec::new()), |acc @ (gesucht, ersetzbar), anschluss| {
                 if self.selber_anschluss(&anschluss.to_save()) {
                     gesucht = Some(anschluss)
                 } else {
-                    match (anschluss, self_interrupt) {
-                        (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
-                            interrupt = Some(pin)
-                        }
-                        _ => ersetzbar.push(anschluss),
-                    }
-                };
+                    ersetzbar.push(anschluss)
+                }
                 acc
-            },
-        );
+            });
+        let self_interrupt = self.interrupt();
+        let (gesuchter_interrupt, input_nicht_benötigt) =
+            input_anschlüsse.fold((None, Vec::new()), |acc @ (interrupt, ersetzbar), anschluss| {
+                match (anschluss, self_interrupt) {
+                    (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
+                        interrupt = Some(pin)
+                    }
+                    _ => ersetzbar.push(anschluss),
+                }
+                acc
+            });
         let interrupt_konfigurieren = |anschluss| -> Result<_, Error> {
             if let Some(interrupt) = gesuchter_interrupt {
                 if let InputAnschluss::Pcf8574Port(port) = anschluss {
@@ -454,14 +468,9 @@ impl Reserviere<InputAnschluss, InputAnschluss> for InputSave {
             () => {
                 |fehler| speichern::Error {
                     fehler: fehler.into(),
-                    bisherige_anschlüsse: {
-                        nicht_benötigt.extend(
-                            gesuchter_anschluss
-                                .into_iter()
-                                .chain(gesuchter_interrupt.into_iter().map(InputAnschluss::Pin)),
-                        );
-                        nicht_benötigt
-                    },
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
                 }
             };
         }
@@ -482,7 +491,12 @@ impl Reserviere<InputAnschluss, InputAnschluss> for InputSave {
                 }
             }
         };
-        Ok(Reserviert { anschluss, nicht_benötigt })
+        Ok(Reserviert {
+            anschluss,
+            pwm_nicht_benötigt: pwm_pins,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
     }
 }
 
