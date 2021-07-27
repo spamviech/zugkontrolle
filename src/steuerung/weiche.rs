@@ -1,10 +1,14 @@
 //! Schaltbare Gleise.
 
-use std::{thread::sleep, time::Duration};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 
-use serde::{Deserialize, Serialize};
+use ::serde::{Deserialize, Serialize};
+use log::error;
 
-use crate::anschluss::{Anschlüsse, Error, Fließend, OutputAnschluss, Reserviere, ToSave};
+use crate::anschluss::{
+    serde::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Error, Fließend, OutputAnschluss,
+};
 use crate::lookup::Lookup;
 
 /// Name einer Weiche.
@@ -38,8 +42,9 @@ where
 
 impl<Richtung, T> ToSave for Weiche<Richtung, T>
 where
-    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
-    T: ToSave,
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
+    T: ToSave + Debug,
+    <T as ToSave>::Save: Hash + Eq + Debug,
 {
     type Save = Weiche<Richtung, T::Save>;
 
@@ -52,16 +57,60 @@ where
         }
     }
 }
-impl<Richtung: Clone, T: Reserviere<R>, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Weiche<Richtung, R>, Error> {
-        Ok(Weiche {
-            name: self.name,
-            aktuelle_richtung: self.aktuelle_richtung.clone(),
-            letzte_richtung: self.letzte_richtung.clone(),
-            anschlüsse: self.anschlüsse.reserviere(anschlüsse)?,
+impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
+where
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
+    R: ToSave + Debug,
+    T: Reserviere<R> + Hash,
+    <R as ToSave>::Save: Hash + Eq + Debug,
+{
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        bisherige_anschlüsse: impl Iterator<Item = Weiche<Richtung, R>>,
+    ) -> serde::Result<Weiche<Richtung, R>> {
+        let (save, rs) =
+            bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, weiche| {
+                acc.0.insert(weiche.anschlüsse.to_save(), weiche.to_save());
+                acc.1.push(weiche.anschlüsse);
+                acc
+            });
+        // Nicht gefundene Anschlüsse werden über drop-Handler ans Singleton zurückgegeben
+        // Es sollten alle Anschlüsse gefunden werden
+        let konvertiere_anschlüsse = |vec: Vec<R>| {
+            vec.into_iter()
+                .filter_map(|r| match save.remove(&r.to_save()) {
+                    Some(Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse: _ }) => {
+                        Some(Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse: r })
+                    }
+                    None => {
+                        error!(
+                            "Anschluss {:?} nicht in Map bisheriger Weichen {:?} gefunden!",
+                            r, save
+                        );
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+        };
+        let Reserviert { anschluss: anschlüsse, nicht_benötigt } = self
+            .anschlüsse
+            .reserviere(anschlüsse, rs.into_iter())
+            .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                fehler,
+                bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
+            })?;
+        Ok(Reserviert {
+            anschluss: Weiche {
+                name: self.name,
+                aktuelle_richtung: self.aktuelle_richtung.clone(),
+                letzte_richtung: self.letzte_richtung.clone(),
+                anschlüsse,
+            },
+            nicht_benötigt: konvertiere_anschlüsse(nicht_benötigt),
         })
     }
 }
 
 // TODO als Teil des Zugtyp-Traits?
-const SCHALTZEIT: Duration = Duration::from_millis(500);
+const SCHALTZEIT: Duration = Duration::from_millis(400);

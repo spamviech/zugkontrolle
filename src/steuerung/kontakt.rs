@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use ::serde::{Deserialize, Serialize};
+use log::error;
 
 use crate::anschluss::{
     serde::{self, Reserviere, Reserviert, ToSave},
@@ -61,16 +62,21 @@ impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
                 acc.1.push(kontakt.anschluss);
                 acc
             });
+        // Nicht gefundene Anschlüsse werden über drop-Handler ans Singleton zurückgegeben
+        // Es sollten alle Anschlüsse gefunden werden
         let konvertiere_anschlüsse = |vec: Vec<InputAnschluss>| {
             vec.into_iter()
-                .filter_map(|anschluss| {
-                    save.remove(&anschluss.to_save()).map(
-                        |Kontakt { name, anschluss: _, trigger }| Kontakt {
-                            name,
-                            anschluss,
-                            trigger,
-                        },
-                    )
+                .filter_map(|anschluss| match save.remove(&anschluss.to_save()) {
+                    Some(Kontakt { name, anschluss: _, trigger }) => {
+                        Some(Kontakt { name, anschluss, trigger })
+                    }
+                    None => {
+                        error!(
+                            "Anschluss {:?} nicht in Map bisheriger Kontakte {:?} gefunden!",
+                            anschluss, save
+                        );
+                        None
+                    }
                 })
                 .collect::<Vec<Kontakt<InputAnschluss>>>()
         };
