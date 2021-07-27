@@ -1088,12 +1088,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         );
         let streckenabschnitte_reserviert: Vec<_> = match streckenabschnitte
             .into_iter()
-            .map(|(name, Streckenabschnitt { farbe, anschluss })| {
-                Ok((
-                    name,
-                    Streckenabschnitt { farbe, anschluss: anschluss.reserviere(anschlüsse)? },
-                ))
-            })
+            .map(|(name, streckenabschnitt)| Ok((name, streckenabschnitt.reserviere(anschlüsse)?)))
             .collect()
         {
             Ok(map) => map,
