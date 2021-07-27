@@ -53,13 +53,8 @@ impl Reserviere<Kontakt<InputAnschluss>, InputAnschluss> for Kontakt<InputSave> 
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = InputAnschluss>,
     ) -> speichern::Result<Kontakt<InputAnschluss>, InputAnschluss> {
-        let Reserviert { anschluss, nicht_benötigt } = self
-            .anschluss
-            .reserviere(anschlüsse, bisherige_anschlüsse.into_iter())
-            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                fehler,
-                bisherige_anschlüsse,
-            })?;
+        let Reserviert { anschluss, nicht_benötigt } =
+            self.anschluss.reserviere(anschlüsse, bisherige_anschlüsse.into_iter())?;
         Ok(Reserviert {
             anschluss: Kontakt { name: self.name, anschluss, trigger: self.trigger },
             nicht_benötigt,

@@ -45,12 +45,8 @@ impl<Anschluss, T: Reserviere<R, Anschluss>, R> Reserviere<Geschwindigkeit<R>, A
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
     ) -> speichern::Result<Geschwindigkeit<R>, Anschluss> {
-        let Reserviert { anschluss: leiter, nicht_benötigt } = self
-            .leiter
-            .reserviere(anschlüsse, bisherige_anschlüsse)
-            .map_err(|speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
-                speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }
-            })?;
+        let Reserviert { anschluss: leiter, nicht_benötigt } =
+            self.leiter.reserviere(anschlüsse, bisherige_anschlüsse)?;
         Ok(Reserviert { anschluss: Geschwindigkeit { leiter }, nicht_benötigt })
     }
 }

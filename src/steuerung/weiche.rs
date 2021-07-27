@@ -68,13 +68,8 @@ where
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
     ) -> speichern::Result<Weiche<Richtung, R>, Anschluss> {
-        let Reserviert { anschluss: anschlüsse, nicht_benötigt } = self
-            .anschlüsse
-            .reserviere(anschlüsse, bisherige_anschlüsse.into_iter())
-            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                fehler,
-                bisherige_anschlüsse,
-            })?;
+        let Reserviert { anschluss: anschlüsse, nicht_benötigt } =
+            self.anschlüsse.reserviere(anschlüsse, bisherige_anschlüsse.into_iter())?;
         Ok(Reserviert {
             anschluss: Weiche {
                 name: self.name,
