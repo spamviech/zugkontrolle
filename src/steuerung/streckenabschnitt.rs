@@ -76,7 +76,7 @@ impl Reserviere<Streckenabschnitt, OutputAnschluss> for StreckenabschnittSave {
             })?;
         Ok(Reserviert {
             anschluss: Streckenabschnitt { farbe: self.farbe, anschluss },
-            nicht_benötigt: konvertiere_anschlüsse(nicht_benötigt),
+            nicht_benötigt,
         })
     }
 }

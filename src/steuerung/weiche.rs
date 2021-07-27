@@ -107,7 +107,7 @@ where
                 letzte_richtung: self.letzte_richtung.clone(),
                 anschlüsse,
             },
-            nicht_benötigt: konvertiere_anschlüsse(nicht_benötigt),
+            nicht_benötigt,
         })
     }
 }

@@ -89,7 +89,7 @@ impl Reserviere<Kontakt<InputAnschluss>, InputAnschluss> for Kontakt<InputSave> 
             })?;
         Ok(Reserviert {
             anschluss: Kontakt { name: self.name, anschluss, trigger: self.trigger },
-            nicht_benötigt: konvertiere_anschlüsse(nicht_benötigt),
+            nicht_benötigt,
         })
     }
 }
