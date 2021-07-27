@@ -12,7 +12,10 @@ use crate::{
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{geschwindigkeit, streckenabschnitt, weiche, Streckenabschnitt},
+    steuerung::{
+        geschwindigkeit::{self, GeschwindigkeitAnschluss},
+        streckenabschnitt, weiche, Streckenabschnitt,
+    },
 };
 
 pub mod id;
@@ -933,7 +936,9 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     pub fn speichern(
         &self,
         pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
+        geschwindigkeiten: geschwindigkeit::Map<
+            <Z::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
+        >,
     ) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();

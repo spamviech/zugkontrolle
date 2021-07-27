@@ -5,12 +5,9 @@ use std::collections::HashMap;
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    anschluss::{
-        speichern::{self, Reserviere, Reserviert, ToSave},
-        Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
-    },
-    application::anschluss::Input,
+use crate::anschluss::{
+    speichern::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
 };
 
 /// Name eines Kontaktes.
