@@ -29,7 +29,7 @@ pub enum GeschwindigkeitAnschluss {
     Anschluss(OutputAnschluss),
 }
 
-impl<Anschluss, T: ToSave<Anschluss>> ToSave<Anschluss> for Geschwindigkeit<T> {
+impl<Anschluss, T: ToSave> ToSave for Geschwindigkeit<T> {
     type Save = Geschwindigkeit<T::Save>;
 
     fn to_save(&self) -> Geschwindigkeit<T::Save> {
@@ -132,7 +132,7 @@ impl Display for Mittelleiter {
     }
 }
 
-impl ToSave<GeschwindigkeitAnschluss> for Mittelleiter {
+impl ToSave for Mittelleiter {
     type Save = MittelleiterSave;
 
     fn to_save(&self) -> MittelleiterSave {
@@ -366,7 +366,7 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
-impl ToSave<GeschwindigkeitAnschluss> for Zweileiter {
+impl ToSave for Zweileiter {
     type Save = ZweileiterSave;
 
     fn to_save(&self) -> ZweileiterSave {

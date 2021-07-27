@@ -100,21 +100,17 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSave>>,
-    pub(crate) geschwindigkeiten:
-        geschwindigkeit::Map<<Z::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp>
-    From<(
-        &GleiseMaps<Z>,
-        geschwindigkeit::Map<<Z::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save>,
-    )> for GleiseVecs<Z>
+impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
+    for GleiseVecs<Z>
 {
     fn from(
         (maps, geschwindigkeiten): (
             &GleiseMaps<Z>,
-            geschwindigkeit::Map<<Z::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save>,
+            geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
         ),
     ) -> Self {
         macro_rules! hashmaps_to_vecs {

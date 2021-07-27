@@ -2,32 +2,38 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{self, Anschlüsse};
+use crate::anschluss::{self, pwm, Anschlüsse, InputAnschluss, OutputAnschluss};
 
-pub trait ToSave<Anschluss>: Sized {
-    type Save: Serialize + for<'de> Deserialize<'de> + Reserviere<Self, Anschluss>;
+pub trait ToSave: Sized {
+    type Save: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
 
     fn to_save(&self) -> Self::Save;
 }
 
 #[derive(Debug)]
-pub struct Reserviert<R, Anschluss> {
+pub struct Reserviert<R> {
     anschluss: R,
-    nicht_benötigt: Vec<Anschluss>,
+    pwm_nicht_benötigt: Vec<pwm::Pin>,
+    output_nicht_benötigt: Vec<OutputAnschluss>,
+    input_nicht_benötigt: Vec<InputAnschluss>,
 }
 
 #[derive(Debug)]
-pub struct Error<Anschluss> {
+pub struct Error {
     fehler: anschluss::Error,
-    bisherige_anschlüsse: Vec<Anschluss>,
+    pwm_pins: Vec<pwm::Pin>,
+    output_anschlüsse: Vec<OutputAnschluss>,
+    input_anschlüsse: Vec<InputAnschluss>,
 }
 
-pub type Result<R, Anschluss> = std::result::Result<Reserviert<R, Anschluss>, Error<Anschluss>>;
+pub type Result<R> = std::result::Result<Reserviert<R>, Error>;
 
-pub trait Reserviere<R, Anschluss> {
+pub trait Reserviere<R> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
-    ) -> Result<R, Anschluss>;
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> Result<R>;
 }

@@ -39,11 +39,11 @@ where
     }
 }
 
-impl<Richtung, T, Anschluss> ToSave<Anschluss> for Weiche<Richtung, T>
+impl<Richtung, T, Anschluss> ToSave for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    T: ToSave<Anschluss> + Debug,
-    <T as ToSave<Anschluss>>::Save: Hash + Eq + Debug,
+    T: ToSave + Debug,
+    <T as ToSave>::Save: Hash + Eq + Debug,
 {
     type Save = Weiche<Richtung, T::Save>;
 
@@ -59,9 +59,9 @@ where
 impl<Richtung, T, R, Anschluss> Reserviere<Weiche<Richtung, R>, Anschluss> for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    R: ToSave<Anschluss> + Debug,
+    R: ToSave + Debug,
     T: Reserviere<R, Anschluss> + Hash,
-    <R as ToSave<Anschluss>>::Save: Hash + Eq + Debug,
+    <R as ToSave>::Save: Hash + Eq + Debug,
 {
     fn reserviere(
         self,

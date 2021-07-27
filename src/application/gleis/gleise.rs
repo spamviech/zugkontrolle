@@ -936,9 +936,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     pub fn speichern(
         &self,
         pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: geschwindigkeit::Map<
-            <Z::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
-        >,
+        geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
     ) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();

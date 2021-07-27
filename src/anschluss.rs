@@ -215,7 +215,7 @@ impl OutputSave {
         }
     }
 }
-impl ToSave<OutputAnschluss> for OutputAnschluss {
+impl ToSave for OutputAnschluss {
     type Save = OutputSave;
 
     fn to_save(&self) -> OutputSave {
@@ -380,7 +380,7 @@ impl InputSave {
         }
     }
 }
-impl ToSave<InputAnschluss> for InputAnschluss {
+impl ToSave for InputAnschluss {
     type Save = InputSave;
 
     fn to_save(&self) -> InputSave {

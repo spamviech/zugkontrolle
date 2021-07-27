@@ -47,7 +47,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<Anschluss, #(#params),*> #base_ident::anschluss::speichern::ToSave<Anschluss> for #ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern::ToSave for #ident<#(#params),*> {
                         type Save = #save_ident<#(#params),*>;
                         fn to_save(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -61,16 +61,26 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                             }
                         }
                     }
-                    impl<Anschluss, #(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>, Anschluss> for #save_ident<#(#params),*> {
-                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse) -> Result<#ident<#(#params),*, Anschluss>, #base_ident::anschluss::Error> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>, #base_ident::anschluss::OutputAnschluss> for #save_ident<#(#params),*> {
+                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse, bisherige_anschlüsse: impl Iterator<Item=#base_ident::anschluss::OutputAnschluss>) -> #base_ident::anschluss::speichern::Result<#ident<#(#params),*>, #base_ident::anschluss::OutputAnschluss> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            Ok(#ident {
-                                #(#other_fields),*,
-                                #(
-                                    #param_fields: #param_fields.map(
-                                        |steuerung| steuerung.reserviere(anschlüsse)
-                                    ).transpose()?
-                                ),*
+                            let mut acc: Vec<_> = bisherige_anschlüsse.collect();
+                            #(
+                                let #param_fields = if let Some(save) = #param_fields {
+                                    // if let statt map, damit ? richtig funktioniert
+                                    let #base_ident::anschluss::speichern::Reserviert {anschluss, nicht_benötigt} = save.reserviere(anschlüsse, acc.into_iter())?;
+                                    acc = nicht_benötigt;
+                                    Some(anschluss)
+                                } else {
+                                    None
+                                };
+                            )*
+                            Ok(#base_ident::anschluss::speichern::Reserviert {
+                                anschluss: #ident {
+                                    #(#other_fields),*,
+                                    #(#param_fields),*
+                                },
+                                nicht_benötigt:acc
                             })
                         }
                     }

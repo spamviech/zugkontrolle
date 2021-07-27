@@ -34,7 +34,7 @@ pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
     fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-pub trait LeiterAnzeige: ToSave<GeschwindigkeitAnschluss> + Sized {
+pub trait LeiterAnzeige: ToSave + Sized {
     type Fahrtrichtung;
     type Message: Debug + Clone + Send;
 
@@ -474,19 +474,19 @@ enum InterneAuswahlNachricht {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AuswahlNachricht<Leiter: ToSave<GeschwindigkeitAnschluss>>
+pub enum AuswahlNachricht<Leiter: ToSave>
 where
-    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
 {
     Schließen,
-    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save),
+    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave>::Save),
     Löschen(Name),
 }
 
 pub struct Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave<GeschwindigkeitAnschluss>,
-    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
+    Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
     R: card::Renderer,
 {
     card: Card<'t, InterneAuswahlNachricht, R>,
@@ -497,15 +497,8 @@ where
     pwm_polarität: &'t mut Polarität,
     ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht: &'t dyn Fn(
-        OutputSave,
-        pwm::Save,
-        Polarität,
-    ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
-    ks_nachricht: &'t dyn Fn(
-        OutputSave,
-        NonEmpty<OutputSave>,
-    ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
+    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
+    ks_nachricht: &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
 }
 
 enum UmdrehenAnzeige {
@@ -515,8 +508,8 @@ enum UmdrehenAnzeige {
 
 impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave<GeschwindigkeitAnschluss>,
-    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
+    Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
     R: 't
         + container::Renderer
         + column::Renderer
@@ -535,15 +528,8 @@ where
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
         umdrehen_beschreibung: impl Into<String>,
-        pwm_nachricht: &'t impl Fn(
-            OutputSave,
-            pwm::Save,
-            Polarität,
-        ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
-        ks_nachricht: &'t impl Fn(
-            OutputSave,
-            NonEmpty<OutputSave>,
-        ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
+        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
+        ks_nachricht: &'t impl Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
     ) -> Self {
         let AuswahlStatus {
             neu_name,
@@ -675,9 +661,9 @@ where
 
 impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave<GeschwindigkeitAnschluss>,
-    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
+    Leiter: ToSave,
+    <Leiter as ToSave>::Save: 't,
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -765,9 +751,9 @@ where
 
 impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
 where
-    Leiter: 't + ToSave<GeschwindigkeitAnschluss>,
-    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
+    Leiter: 't + ToSave,
+    <Leiter as ToSave>::Save: 't,
+    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {

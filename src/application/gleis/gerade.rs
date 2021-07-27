@@ -11,7 +11,7 @@ use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Gerade
-#[alias_save_unit(Kontakt<InputSave>)]
+#[alias_save_unit(Kontakt<InputSave>, InputAnschluss)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
     pub zugtyp: PhantomData<fn() -> Z>,

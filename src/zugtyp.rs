@@ -24,7 +24,7 @@ pub trait Zugtyp: Sized {
     const NAME: &'static str;
 
     /// Art der Stromzufuhr.
-    type Leiter: ToSave<GeschwindigkeitAnschluss> + LeiterAnzeige + Display;
+    type Leiter: ToSave + LeiterAnzeige + Display;
 
     fn geraden() -> Vec<GeradeUnit<Self>>;
     fn kurven() -> Vec<KurveUnit<Self>>;

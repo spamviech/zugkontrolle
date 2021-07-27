@@ -47,7 +47,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
             #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*
             }
@@ -65,21 +65,27 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     )
                 }
             }
-            impl<Anschluss> #base_ident::anschluss::speichern::ToSave<Anschluss> for RichtungAnschlüsse {
+            impl #base_ident::anschluss::speichern::ToSave for RichtungAnschlüsse {
                 type Save = RichtungAnschlüsseSave;
                 fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
             }
-            impl<Anschluss> #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse, Anschluss> for RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse, #base_ident::anschluss::OutputAnschluss> for RichtungAnschlüsseSave {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
-                ) -> Result<RichtungAnschlüsse, #base_ident::anschluss::Error> {
+                    bisherige_anschlüsse: impl Iterator<Item=#base_ident::anschluss::OutputAnschluss>
+                ) -> #base_ident::anschluss::speichern::Result<RichtungAnschlüsse, #base_ident::anschluss::OutputAnschluss> {
                     let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
-                    Ok(RichtungAnschlüsse {
-                        #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
+                    let nicht_benötigt: Vec<_> = bisherige_anschlüsse.collect();
+                    #(let #base_ident::anschluss::speichern::Reserviert {anschluss: #struct_fields, nicht_benötigt} = #struct_fields.reserviere(anschlüsse, nicht_benötigt.into_iter())?; )*
+                    Ok(#base_ident::anschluss::speichern::Reserviert {
+                        anschluss: RichtungAnschlüsse {
+                            #(#struct_fields),*
+                        },
+                        nicht_benötigt
                     })
                 }
             }

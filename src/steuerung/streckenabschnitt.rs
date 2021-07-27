@@ -29,7 +29,7 @@ impl Streckenabschnitt<OutputAnschluss> {
     }
 }
 
-impl ToSave<OutputAnschluss> for Streckenabschnitt {
+impl ToSave for Streckenabschnitt {
     type Save = StreckenabschnittSave;
 
     fn to_save(&self) -> Streckenabschnitt<OutputSave> {

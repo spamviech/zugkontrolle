@@ -251,7 +251,7 @@ impl From<pwm::Error> for Error {
 /// Serealisierbare Informationen einen Pwm-Pins.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Save(pub u8);
-impl ToSave<Pin> for Pin {
+impl ToSave for Pin {
     type Save = Save;
 
     fn to_save(&self) -> Save {
