@@ -1,8 +1,5 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-use std::collections::HashMap;
-
-use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -54,38 +51,14 @@ impl Reserviere<Kontakt<InputAnschluss>, InputAnschluss> for Kontakt<InputSave> 
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Kontakt<InputAnschluss>>,
+        bisherige_anschlüsse: impl Iterator<Item = InputAnschluss>,
     ) -> speichern::Result<Kontakt<InputAnschluss>, InputAnschluss> {
-        let (save, input_anschlüsse) =
-            bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
-                acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
-                acc.1.push(kontakt.anschluss);
-                acc
-            });
-        // Nicht gefundene Anschlüsse werden über drop-Handler ans Singleton zurückgegeben
-        // Es sollten alle Anschlüsse gefunden werden
-        let konvertiere_anschlüsse = |vec: Vec<InputAnschluss>| {
-            vec.into_iter()
-                .filter_map(|anschluss| match save.remove(&anschluss.to_save()) {
-                    Some(Kontakt { name, anschluss: _, trigger }) => {
-                        Some(Kontakt { name, anschluss, trigger })
-                    }
-                    None => {
-                        error!(
-                            "Anschluss {:?} nicht in Map bisheriger Kontakte {:?} gefunden!",
-                            anschluss, save
-                        );
-                        None
-                    }
-                })
-                .collect::<Vec<Kontakt<InputAnschluss>>>()
-        };
         let Reserviert { anschluss, nicht_benötigt } = self
             .anschluss
-            .reserviere(anschlüsse, input_anschlüsse.into_iter())
+            .reserviere(anschlüsse, bisherige_anschlüsse.into_iter())
             .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                 fehler,
-                bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
+                bisherige_anschlüsse,
             })?;
         Ok(Reserviert {
             anschluss: Kontakt { name: self.name, anschluss, trigger: self.trigger },

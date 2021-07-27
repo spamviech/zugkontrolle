@@ -1,8 +1,7 @@
 //! Schaltbare Gleise.
 
-use std::{collections::HashMap, fmt::Debug, hash::Hash, thread::sleep, time::Duration};
+use std::{fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 
-use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -67,38 +66,14 @@ where
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Weiche<Richtung, R>>,
+        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
     ) -> speichern::Result<Weiche<Richtung, R>, Anschluss> {
-        let (save, rs) =
-            bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, weiche| {
-                acc.0.insert(weiche.anschlüsse.to_save(), weiche.to_save());
-                acc.1.push(weiche.anschlüsse);
-                acc
-            });
-        // Nicht gefundene Anschlüsse werden über drop-Handler ans Singleton zurückgegeben
-        // Es sollten alle Anschlüsse gefunden werden
-        let konvertiere_anschlüsse = |vec: Vec<R>| {
-            vec.into_iter()
-                .filter_map(|r| match save.remove(&r.to_save()) {
-                    Some(Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse: _ }) => {
-                        Some(Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse: r })
-                    }
-                    None => {
-                        error!(
-                            "Anschluss {:?} nicht in Map bisheriger Weichen {:?} gefunden!",
-                            r, save
-                        );
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        };
         let Reserviert { anschluss: anschlüsse, nicht_benötigt } = self
             .anschlüsse
-            .reserviere(anschlüsse, rs.into_iter())
+            .reserviere(anschlüsse, bisherige_anschlüsse.into_iter())
             .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                 fehler,
-                bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
+                bisherige_anschlüsse,
             })?;
         Ok(Reserviert {
             anschluss: Weiche {

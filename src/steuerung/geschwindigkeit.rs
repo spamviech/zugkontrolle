@@ -1,7 +1,7 @@
 //! Einstellen der Geschwindigkeit.
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt::{self, Display, Formatter},
     thread::sleep,
     time::Duration,
