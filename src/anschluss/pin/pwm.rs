@@ -13,7 +13,7 @@ use super::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
     polarity::Polarität,
-    serde::{self, Reserviere, Reserviert, ToSave},
+    speichern::{self, Reserviere, Reserviert, ToSave},
 };
 
 /// Ein Gpio Pin konfiguriert für Pwm.
@@ -251,26 +251,28 @@ impl From<pwm::Error> for Error {
 /// Serealisierbare Informationen einen Pwm-Pins.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Save(pub u8);
-impl ToSave for Pin {
+impl ToSave<Pin> for Pin {
     type Save = Save;
 
     fn to_save(&self) -> Save {
         Save(self.pin())
     }
 }
-impl Reserviere<Pin> for Save {
+impl Reserviere<Pin, Pin> for Save {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Pin>,
-    ) -> serde::Result<Pin> {
+    ) -> speichern::Result<Pin, Pin> {
         let (gesucht, mut nicht_benötigt): (Vec<_>, Vec<_>) =
             bisherige_anschlüsse.partition(|pin| pin.to_save() == self);
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             anschluss
         } else {
             anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|fehler| {
-                serde::Error { fehler: fehler.into(), bisherige_anschlüsse: { nicht_benötigt } }
+                speichern::Error {
+                    fehler: fehler.into(), bisherige_anschlüsse: { nicht_benötigt }
+                }
             })?
         };
         Ok(Reserviert { anschluss, nicht_benötigt })

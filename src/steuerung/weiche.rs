@@ -6,7 +6,7 @@ use ::serde::{Deserialize, Serialize};
 use log::error;
 
 use crate::anschluss::{
-    serde::{self, Reserviere, Reserviert, ToSave},
+    speichern::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Error, Fließend, OutputAnschluss,
 };
 use crate::lookup::Lookup;
@@ -68,7 +68,7 @@ where
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Weiche<Richtung, R>>,
-    ) -> serde::Result<Weiche<Richtung, R>> {
+    ) -> speichern::Result<Weiche<Richtung, R>> {
         let (save, rs) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, weiche| {
                 acc.0.insert(weiche.anschlüsse.to_save(), weiche.to_save());
@@ -96,7 +96,7 @@ where
         let Reserviert { anschluss: anschlüsse, nicht_benötigt } = self
             .anschlüsse
             .reserviere(anschlüsse, rs.into_iter())
-            .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                 fehler,
                 bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
             })?;

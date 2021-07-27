@@ -13,7 +13,7 @@ use log::error;
 
 use crate::anschluss::{
     self, pwm,
-    serde::{self, Reserviere, Reserviert, ToSave},
+    speichern::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität,
 };
 use crate::non_empty::{MaybeEmpty, NonEmpty};
@@ -36,15 +36,18 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Geschwindigkeit<R>>,
-    ) -> serde::Result<Geschwindigkeit<R>> {
+    ) -> speichern::Result<Geschwindigkeit<R>> {
         let konvertiere_leiter = |leiter_vec: Vec<R>| {
             leiter_vec.into_iter().map(|leiter| Geschwindigkeit { leiter }).collect()
         };
         let Reserviert { anschluss: leiter, nicht_benötigt: nicht_benötigte_leiter } = self
             .leiter
             .reserviere(anschlüsse, bisherige_anschlüsse.map(|Geschwindigkeit { leiter }| leiter))
-            .map_err(|serde::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
-                serde::Error { fehler, bisherige_anschlüsse: konvertiere_leiter(bisherige_leiter) }
+            .map_err(|speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
+                speichern::Error {
+                    fehler,
+                    bisherige_anschlüsse: konvertiere_leiter(bisherige_leiter),
+                }
             })?;
         Ok(Reserviert {
             anschluss: Geschwindigkeit { leiter },
@@ -161,7 +164,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Mittelleiter>,
-    ) -> serde::Result<Mittelleiter> {
+    ) -> speichern::Result<Mittelleiter> {
         let (pwm_pins, ks_anschlüsse, save) =
             bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
                 acc.2.push(mittelleiter.to_save());
@@ -208,15 +211,16 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
         };
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                let Reserviert { anschluss: pin, nicht_benötigt } = pin
-                    .reserviere(anschlüsse, pwm_pins.into_iter())
-                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
-                        fehler,
-                        bisherige_anschlüsse: anschluss_sammlung(
-                            bisherige_anschlüsse,
-                            ks_anschlüsse,
-                        ),
-                    })?;
+                let Reserviert { anschluss: pin, nicht_benötigt } =
+                    pin.reserviere(anschlüsse, pwm_pins.into_iter()).map_err(
+                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                bisherige_anschlüsse,
+                                ks_anschlüsse,
+                            ),
+                        },
+                    )?;
                 Reserviert {
                     anschluss: Mittelleiter::Pwm { pin, polarität },
                     nicht_benötigt: anschluss_sammlung(nicht_benötigt, ks_anschlüsse),
@@ -226,9 +230,14 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                 let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
                     .head
                     .reserviere(anschlüsse, ks_anschlüsse.into_iter())
-                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
-                        fehler,
-                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| {
+                        speichern::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                pwm_pins,
+                                bisherige_anschlüsse,
+                            ),
+                        }
                     })?;
                 let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
                     Ok((Vec::new(), nicht_benötigt)),
@@ -238,9 +247,9 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                                 acc.0.push(anschluss);
                                 Ok((acc.0, nicht_benötigt))
                             }
-                            Err(serde::Error { fehler, mut bisherige_anschlüsse }) => {
+                            Err(speichern::Error { fehler, mut bisherige_anschlüsse }) => {
                                 bisherige_anschlüsse.extend(acc.0.into_iter());
-                                Err(serde::Error {
+                                Err(speichern::Error {
                                     fehler,
                                     bisherige_anschlüsse: anschluss_sammlung(
                                         pwm_pins,
@@ -252,12 +261,16 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                         error => error,
                     },
                 )?;
-                let Reserviert { anschluss: umdrehen, nicht_benötigt } = umdrehen
-                    .reserviere(anschlüsse, nicht_benötigt.into_iter())
-                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
-                        fehler,
-                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
-                    })?;
+                let Reserviert { anschluss: umdrehen, nicht_benötigt } =
+                    umdrehen.reserviere(anschlüsse, nicht_benötigt.into_iter()).map_err(
+                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                pwm_pins,
+                                bisherige_anschlüsse,
+                            ),
+                        },
+                    )?;
                 Reserviert {
                     anschluss: Mittelleiter::KonstanteSpannung {
                         geschwindigkeit: NonEmpty { head, tail },
@@ -416,7 +429,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Zweileiter>,
-    ) -> serde::Result<Zweileiter> {
+    ) -> speichern::Result<Zweileiter> {
         let (pwm_pins, ks_anschlüsse, save) =
             bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
                 acc.2.push(mittelleiter.to_save());
@@ -482,7 +495,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 let Reserviert { anschluss: geschwindigkeit, nicht_benötigt: pwm_nicht_benötigt } =
                     geschwindigkeit.reserviere(anschlüsse, pwm_pins.into_iter()).map_err(
-                        |serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                             fehler,
                             bisherige_anschlüsse: anschluss_sammlung(
                                 bisherige_anschlüsse,
@@ -492,9 +505,9 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                     )?;
                 let Reserviert { anschluss: fahrtrichtung, nicht_benötigt: ks_nicht_benötigt } =
                     fahrtrichtung.reserviere(anschlüsse, ks_anschlüsse.into_iter()).map_err(
-                        |serde::Error { fehler, bisherige_anschlüsse }| {
+                        |speichern::Error { fehler, bisherige_anschlüsse }| {
                             pwm_nicht_benötigt.push(geschwindigkeit);
-                            serde::Error {
+                            speichern::Error {
                                 fehler,
                                 bisherige_anschlüsse: anschluss_sammlung(
                                     pwm_nicht_benötigt,
@@ -512,9 +525,14 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                 let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
                     .head
                     .reserviere(anschlüsse, ks_anschlüsse.into_iter())
-                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
-                        fehler,
-                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
+                    .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| {
+                        speichern::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                pwm_pins,
+                                bisherige_anschlüsse,
+                            ),
+                        }
                     })?;
                 let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
                     Ok((Vec::new(), nicht_benötigt)),
@@ -524,9 +542,9 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                                 acc.0.push(anschluss);
                                 Ok((acc.0, nicht_benötigt))
                             }
-                            Err(serde::Error { fehler, mut bisherige_anschlüsse }) => {
+                            Err(speichern::Error { fehler, mut bisherige_anschlüsse }) => {
                                 bisherige_anschlüsse.extend(acc.0.into_iter());
-                                Err(serde::Error {
+                                Err(speichern::Error {
                                     fehler,
                                     bisherige_anschlüsse: anschluss_sammlung(
                                         pwm_pins,
@@ -538,12 +556,16 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                         error => error,
                     },
                 )?;
-                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt } = fahrtrichtung
-                    .reserviere(anschlüsse, nicht_benötigt.into_iter())
-                    .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
-                        fehler,
-                        bisherige_anschlüsse: anschluss_sammlung(pwm_pins, bisherige_anschlüsse),
-                    })?;
+                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt } =
+                    fahrtrichtung.reserviere(anschlüsse, nicht_benötigt.into_iter()).map_err(
+                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
+                            fehler,
+                            bisherige_anschlüsse: anschluss_sammlung(
+                                pwm_pins,
+                                bisherige_anschlüsse,
+                            ),
+                        },
+                    )?;
                 Reserviert {
                     anschluss: Zweileiter::KonstanteSpannung {
                         geschwindigkeit: NonEmpty { head, tail },

@@ -27,8 +27,8 @@ pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
 use anschlüsse::SyncError;
 
-pub mod serde;
-pub use self::serde::{Reserviere, Reserviert, ToSave};
+pub mod speichern;
+pub use self::speichern::{Reserviere, Reserviert, ToSave};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -215,7 +215,7 @@ impl OutputSave {
         }
     }
 }
-impl ToSave for OutputAnschluss {
+impl ToSave<OutputAnschluss> for OutputAnschluss {
     type Save = OutputSave;
 
     fn to_save(&self) -> OutputSave {
@@ -238,12 +238,12 @@ impl ToSave for OutputAnschluss {
         }
     }
 }
-impl Reserviere<OutputAnschluss> for OutputSave {
+impl Reserviere<OutputAnschluss, OutputAnschluss> for OutputSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = OutputAnschluss>,
-    ) -> serde::Result<OutputAnschluss> {
+    ) -> speichern::Result<OutputAnschluss, OutputAnschluss> {
         let polarität = match self {
             OutputSave::Pin { polarität, .. } => polarität,
             OutputSave::Pcf8574Port { polarität, .. } => polarität,
@@ -407,7 +407,7 @@ impl Reserviere<InputAnschluss> for InputSave {
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = InputAnschluss>,
-    ) -> serde::Result<InputAnschluss> {
+    ) -> speichern::Result<InputAnschluss> {
         let self_interrupt = self.interrupt();
         let (gesuchter_anschluss, gesuchter_interrupt, nicht_benötigt) = bisherige_anschlüsse.fold(
             (None, None, Vec::new()),

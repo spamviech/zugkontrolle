@@ -6,7 +6,7 @@ use ::serde::{Deserialize, Serialize};
 use log::error;
 
 use crate::anschluss::{
-    serde::{self, Reserviere, Reserviert, ToSave},
+    speichern::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Error, Fließend, OutputAnschluss, OutputSave,
 };
 use crate::farbe::Farbe;
@@ -42,7 +42,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Streckenabschnitt>,
-    ) -> serde::Result<Streckenabschnitt> {
+    ) -> speichern::Result<Streckenabschnitt> {
         let (save, output_anschlüsse) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
                 acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
@@ -70,7 +70,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
         let Reserviert { anschluss, nicht_benötigt } = self
             .anschluss
             .reserviere(anschlüsse, output_anschlüsse.into_iter())
-            .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                 fehler,
                 bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
             })?;

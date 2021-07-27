@@ -6,7 +6,7 @@ use ::serde::{Deserialize, Serialize};
 use log::error;
 
 use crate::anschluss::{
-    serde::{self, Reserviere, Reserviert, ToSave},
+    speichern::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
 };
 
@@ -55,7 +55,7 @@ impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Kontakt<InputAnschluss>>,
-    ) -> serde::Result<Kontakt<InputAnschluss>> {
+    ) -> speichern::Result<Kontakt<InputAnschluss>> {
         let (save, input_anschlüsse) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
                 acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
@@ -83,7 +83,7 @@ impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
         let Reserviert { anschluss, nicht_benötigt } = self
             .anschluss
             .reserviere(anschlüsse, input_anschlüsse.into_iter())
-            .map_err(|serde::Error { fehler, bisherige_anschlüsse }| serde::Error {
+            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
                 fehler,
                 bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
             })?;

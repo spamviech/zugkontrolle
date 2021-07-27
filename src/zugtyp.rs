@@ -2,7 +2,7 @@
 
 use std::fmt::{Debug, Display};
 
-use crate::anschluss::serde::ToSave;
+use crate::anschluss::speichern::ToSave;
 use crate::application::geschwindigkeit::LeiterAnzeige;
 use crate::application::gleis::*;
 
