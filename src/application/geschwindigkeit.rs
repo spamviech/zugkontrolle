@@ -15,11 +15,15 @@ use iced_native::{
 };
 use log::error;
 
-use super::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar};
-use crate::anschluss::{polarity::Polarität, pwm, OutputSave, ToSave};
-use crate::non_empty::{MaybeEmpty, NonEmpty};
 pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
-use crate::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
+use crate::{
+    anschluss::{polarity::Polarität, pwm, OutputSave, ToSave},
+    application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    non_empty::{MaybeEmpty, NonEmpty},
+    steuerung::geschwindigkeit::{
+        Fahrtrichtung, GeschwindigkeitAnschluss, Mittelleiter, Zweileiter,
+    },
+};
 
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
@@ -30,7 +34,7 @@ pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
     fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-pub trait LeiterAnzeige: ToSave + Sized {
+pub trait LeiterAnzeige: ToSave<GeschwindigkeitAnschluss> + Sized {
     type Fahrtrichtung;
     type Message: Debug + Clone + Send;
 
@@ -470,19 +474,19 @@ enum InterneAuswahlNachricht {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AuswahlNachricht<Leiter: ToSave>
+pub enum AuswahlNachricht<Leiter: ToSave<GeschwindigkeitAnschluss>>
 where
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     Schließen,
-    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave>::Save),
+    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save),
     Löschen(Name),
 }
 
 pub struct Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
+    Leiter: ToSave<GeschwindigkeitAnschluss>,
+    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
     R: card::Renderer,
 {
     card: Card<'t, InterneAuswahlNachricht, R>,
@@ -493,8 +497,15 @@ where
     pwm_polarität: &'t mut Polarität,
     ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
-    ks_nachricht: &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
+    pwm_nachricht: &'t dyn Fn(
+        OutputSave,
+        pwm::Save,
+        Polarität,
+    ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
+    ks_nachricht: &'t dyn Fn(
+        OutputSave,
+        NonEmpty<OutputSave>,
+    ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
 }
 
 enum UmdrehenAnzeige {
@@ -504,8 +515,8 @@ enum UmdrehenAnzeige {
 
 impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
+    Leiter: ToSave<GeschwindigkeitAnschluss>,
+    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
     R: 't
         + container::Renderer
         + column::Renderer
@@ -524,8 +535,15 @@ where
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
         umdrehen_beschreibung: impl Into<String>,
-        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
-        ks_nachricht: &'t impl Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
+        pwm_nachricht: &'t impl Fn(
+            OutputSave,
+            pwm::Save,
+            Polarität,
+        ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
+        ks_nachricht: &'t impl Fn(
+            OutputSave,
+            NonEmpty<OutputSave>,
+        ) -> <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save,
     ) -> Self {
         let AuswahlStatus {
             neu_name,
@@ -657,9 +675,9 @@ where
 
 impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    Leiter: ToSave<GeschwindigkeitAnschluss>,
+    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
+    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -747,9 +765,9 @@ where
 
 impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
 where
-    Leiter: 't + ToSave,
-    <Leiter as ToSave>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    Leiter: 't + ToSave<GeschwindigkeitAnschluss>,
+    <Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: 't,
+    <Geschwindigkeit<Leiter> as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {

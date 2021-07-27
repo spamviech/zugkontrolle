@@ -30,7 +30,7 @@ use crate::{
     args::Args,
     farbe::Farbe,
     lookup::Lookup,
-    steuerung,
+    steuerung::{self, geschwindigkeit::GeschwindigkeitAnschluss},
 };
 
 pub mod anschluss;
@@ -125,7 +125,7 @@ pub enum AnschlüsseAnpassen<Z> {
 pub enum Message<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     Gleis {
         gleis: AnyGleis<Z>,
@@ -155,7 +155,7 @@ where
     ZeigeAuswahlGeschwindigkeit,
     HinzufügenGeschwindigkeit(
         geschwindigkeit::Name,
-        Geschwindigkeit<<<Z as Zugtyp>::Leiter as ToSave>::Save>,
+        Geschwindigkeit<<<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save>,
     ),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
@@ -166,7 +166,7 @@ where
 impl<Z> From<gleise::Message<Z>> for Message<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
@@ -185,7 +185,7 @@ impl<T, Z> ButtonMessage<Message<Z>> for T
 where
     T: Clone + Into<AnyGleis<Z>>,
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     fn to_message(&self, grab_location: Vektor) -> Message<Z> {
         Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
@@ -199,7 +199,7 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
     ) -> iced::Element<'t, Message<Z>>
     where
         Z: 'static + Zugtyp,
-        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+        <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
     {
         self.into().map(konstruktor)
     }
@@ -214,7 +214,7 @@ async fn async_identity<T>(t: T) -> T {
 impl<Z> Message<Z>
 where
     Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone + Send,
 {
     fn as_command(self) -> iced::Command<Message<Z>> {
         iced::Command::perform(async_identity(self), identity)
@@ -224,7 +224,7 @@ where
 enum Modal<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
@@ -283,7 +283,7 @@ pub struct Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
@@ -314,7 +314,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
@@ -328,7 +328,7 @@ where
         icon::icon()
     }
 
-    fn zeige_anschlüsse_anpassen<T: 'static, W: ToSave, Status>(
+    fn zeige_anschlüsse_anpassen<T: 'static, W: ToSave<GeschwindigkeitAnschluss>, Status>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -336,9 +336,13 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<&'t mut Option<W>, GleisEntferntError>,
-        erzeuge_modal_status: impl Fn(Option<<W as ToSave>::Save>) -> Status,
-        erzeuge_modal: impl Fn(Status, Arc<dyn Fn(<W as ToSave>::Save) -> Message<Z>>) -> Modal<Z>,
-        als_nachricht: impl Fn(GleisId<T>, <W as ToSave>::Save) -> AnschlüsseAnpassen<Z> + 'static,
+        erzeuge_modal_status: impl Fn(Option<<W as ToSave<GeschwindigkeitAnschluss>>::Save>) -> Status,
+        erzeuge_modal: impl Fn(
+            Status,
+            Arc<dyn Fn(<W as ToSave<GeschwindigkeitAnschluss>>::Save) -> Message<Z>>,
+        ) -> Modal<Z>,
+        als_nachricht: impl Fn(GleisId<T>, <W as ToSave<GeschwindigkeitAnschluss>>::Save) -> AnschlüsseAnpassen<Z>
+            + 'static,
     ) {
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.to_save());
@@ -357,11 +361,11 @@ where
         }
     }
 
-    fn gleis_anschlüsse_anpassen<T, W: ToSave>(
+    fn gleis_anschlüsse_anpassen<T, W: ToSave<GeschwindigkeitAnschluss>>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
-        anschlüsse_save: <W as ToSave>::Save,
+        anschlüsse_save: <W as ToSave<GeschwindigkeitAnschluss>>::Save,
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
@@ -462,10 +466,10 @@ impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone + Send,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message: Unpin,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Unpin,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Unpin,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Args);
@@ -1174,7 +1178,7 @@ fn top_row<'t, Z>(
 ) -> iced::Row<'t, Message<Z>>
 where
     Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.make_radio(aktueller_modus))
@@ -1254,7 +1258,7 @@ fn row_with_scrollable<'t, Z>(
 where
     Z: 'static + Zugtyp,
     Z::Leiter: Debug + LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as ToSave<GeschwindigkeitAnschluss>>::Save: Debug + Clone,
 {
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)

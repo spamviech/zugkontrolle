@@ -65,14 +65,14 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     )
                 }
             }
-            impl #base_ident::anschluss::speichern::ToSave for RichtungAnschlüsse {
+            impl<Anschluss> #base_ident::anschluss::speichern::ToSave<Anschluss> for RichtungAnschlüsse {
                 type Save = RichtungAnschlüsseSave;
                 fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
             }
-            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+            impl<Anschluss> #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse, Anschluss> for RichtungAnschlüsseSave {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,

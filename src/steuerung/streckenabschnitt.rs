@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use ::serde::{Deserialize, Serialize};
 use log::error;
+use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     speichern::{self, Reserviere, Reserviert, ToSave},
@@ -29,7 +29,7 @@ impl Streckenabschnitt<OutputAnschluss> {
     }
 }
 
-impl ToSave for Streckenabschnitt {
+impl ToSave<OutputAnschluss> for Streckenabschnitt {
     type Save = StreckenabschnittSave;
 
     fn to_save(&self) -> Streckenabschnitt<OutputSave> {
@@ -37,12 +37,12 @@ impl ToSave for Streckenabschnitt {
     }
 }
 
-impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
+impl Reserviere<Streckenabschnitt, OutputAnschluss> for StreckenabschnittSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Streckenabschnitt>,
-    ) -> speichern::Result<Streckenabschnitt> {
+    ) -> speichern::Result<Streckenabschnitt, OutputAnschluss> {
         let (save, output_anschlüsse) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
                 acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());

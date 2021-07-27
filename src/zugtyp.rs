@@ -2,9 +2,11 @@
 
 use std::fmt::{Debug, Display};
 
-use crate::anschluss::speichern::ToSave;
-use crate::application::geschwindigkeit::LeiterAnzeige;
-use crate::application::gleis::*;
+use crate::{
+    anschluss::speichern::ToSave,
+    application::{geschwindigkeit::LeiterAnzeige, gleis::*},
+    steuerung::geschwindigkeit::GeschwindigkeitAnschluss,
+};
 
 pub mod lego;
 pub use lego::Lego;
@@ -22,7 +24,7 @@ pub trait Zugtyp: Sized {
     const NAME: &'static str;
 
     /// Art der Stromzufuhr.
-    type Leiter: ToSave + LeiterAnzeige + Display;
+    type Leiter: ToSave<GeschwindigkeitAnschluss> + LeiterAnzeige + Display;
 
     fn geraden() -> Vec<GeradeUnit<Self>>;
     fn kurven() -> Vec<KurveUnit<Self>>;

@@ -2,8 +2,8 @@
 
 use std::{collections::HashMap, fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 
-use ::serde::{Deserialize, Serialize};
 use log::error;
+use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     speichern::{self, Reserviere, Reserviert, ToSave},
@@ -40,11 +40,11 @@ where
     }
 }
 
-impl<Richtung, T> ToSave for Weiche<Richtung, T>
+impl<Richtung, T, Anschluss> ToSave<Anschluss> for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    T: ToSave + Debug,
-    <T as ToSave>::Save: Hash + Eq + Debug,
+    T: ToSave<Anschluss> + Debug,
+    <T as ToSave<Anschluss>>::Save: Hash + Eq + Debug,
 {
     type Save = Weiche<Richtung, T::Save>;
 
@@ -57,18 +57,18 @@ where
         }
     }
 }
-impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
+impl<Richtung, T, R, Anschluss> Reserviere<Weiche<Richtung, R>, Anschluss> for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    R: ToSave + Debug,
-    T: Reserviere<R> + Hash,
-    <R as ToSave>::Save: Hash + Eq + Debug,
+    R: ToSave<Anschluss> + Debug,
+    T: Reserviere<R, Anschluss> + Hash,
+    <R as ToSave<Anschluss>>::Save: Hash + Eq + Debug,
 {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Weiche<Richtung, R>>,
-    ) -> speichern::Result<Weiche<Richtung, R>> {
+    ) -> speichern::Result<Weiche<Richtung, R>, Anschluss> {
         let (save, rs) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, weiche| {
                 acc.0.insert(weiche.anschlüsse.to_save(), weiche.to_save());

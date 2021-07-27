@@ -8,8 +8,8 @@ use std::{
     usize,
 };
 
-use ::serde::{Deserialize, Serialize};
 use log::error;
+use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     self, pwm,
@@ -23,7 +23,13 @@ pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
 
-impl<T: ToSave> ToSave for Geschwindigkeit<T> {
+#[derive(Debug)]
+pub enum GeschwindigkeitAnschluss {
+    Pwm(pwm::Pin),
+    Anschluss(OutputAnschluss),
+}
+
+impl<Anschluss, T: ToSave<Anschluss>> ToSave<Anschluss> for Geschwindigkeit<T> {
     type Save = Geschwindigkeit<T::Save>;
 
     fn to_save(&self) -> Geschwindigkeit<T::Save> {
@@ -31,16 +37,18 @@ impl<T: ToSave> ToSave for Geschwindigkeit<T> {
     }
 }
 
-impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
+impl<Anschluss, T: Reserviere<R, Anschluss>, R> Reserviere<Geschwindigkeit<R>, Anschluss>
+    for Geschwindigkeit<T>
+{
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Geschwindigkeit<R>>,
-    ) -> speichern::Result<Geschwindigkeit<R>> {
+    ) -> speichern::Result<Geschwindigkeit<R>, Anschluss> {
         let konvertiere_leiter = |leiter_vec: Vec<R>| {
             leiter_vec.into_iter().map(|leiter| Geschwindigkeit { leiter }).collect()
         };
-        let Reserviert { anschluss: leiter, nicht_benötigt: nicht_benötigte_leiter } = self
+        let Reserviert { anschluss: leiter, nicht_benötigt } = self
             .leiter
             .reserviere(anschlüsse, bisherige_anschlüsse.map(|Geschwindigkeit { leiter }| leiter))
             .map_err(|speichern::Error { fehler, bisherige_anschlüsse: bisherige_leiter }| {
@@ -49,10 +57,7 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
                     bisherige_anschlüsse: konvertiere_leiter(bisherige_leiter),
                 }
             })?;
-        Ok(Reserviert {
-            anschluss: Geschwindigkeit { leiter },
-            nicht_benötigt: konvertiere_leiter(nicht_benötigte_leiter),
-        })
+        Ok(Reserviert { anschluss: Geschwindigkeit { leiter }, nicht_benötigt })
     }
 }
 
@@ -137,7 +142,7 @@ impl Display for Mittelleiter {
     }
 }
 
-impl ToSave for Mittelleiter {
+impl ToSave<GeschwindigkeitAnschluss> for Mittelleiter {
     type Save = MittelleiterSave;
 
     fn to_save(&self) -> MittelleiterSave {
@@ -159,12 +164,12 @@ impl ToSave for Mittelleiter {
         }
     }
 }
-impl Reserviere<Mittelleiter> for MittelleiterSave {
+impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Mittelleiter>,
-    ) -> speichern::Result<Mittelleiter> {
+    ) -> speichern::Result<Mittelleiter, GeschwindigkeitAnschluss> {
         let (pwm_pins, ks_anschlüsse, save) =
             bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
                 acc.2.push(mittelleiter.to_save());
@@ -223,7 +228,11 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                     )?;
                 Reserviert {
                     anschluss: Mittelleiter::Pwm { pin, polarität },
-                    nicht_benötigt: anschluss_sammlung(nicht_benötigt, ks_anschlüsse),
+                    nicht_benötigt: nicht_benötigt
+                        .into_iter()
+                        .map(GeschwindigkeitAnschluss::Pwm)
+                        .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
+                        .collect(),
                 }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
@@ -277,7 +286,11 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                         letzter_wert: 0,
                         umdrehen,
                     },
-                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
+                    nicht_benötigt: nicht_benötigt
+                        .into_iter()
+                        .map(GeschwindigkeitAnschluss::Anschluss)
+                        .chain(pwm_pins.into_iter().map(GeschwindigkeitAnschluss::Pwm))
+                        .collect(),
                 }
             }
         })
@@ -400,7 +413,7 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
-impl ToSave for Zweileiter {
+impl ToSave<GeschwindigkeitAnschluss> for Zweileiter {
     type Save = ZweileiterSave;
 
     fn to_save(&self) -> ZweileiterSave {
@@ -424,12 +437,12 @@ impl ToSave for Zweileiter {
         }
     }
 }
-impl Reserviere<Zweileiter> for ZweileiterSave {
+impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Zweileiter>,
-    ) -> speichern::Result<Zweileiter> {
+    ) -> speichern::Result<Zweileiter, GeschwindigkeitAnschluss> {
         let (pwm_pins, ks_anschlüsse, save) =
             bisherige_anschlüsse.fold((Vec::new(), Vec::new(), Vec::new()), |acc, mittelleiter| {
                 acc.2.push(mittelleiter.to_save());

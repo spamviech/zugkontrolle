@@ -47,7 +47,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::speichern::ToSave for #ident<#(#params),*> {
+                    impl<Anschluss, #(#params),*> #base_ident::anschluss::speichern::ToSave<Anschluss> for #ident<#(#params),*> {
                         type Save = #save_ident<#(#params),*>;
                         fn to_save(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -61,8 +61,8 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                             }
                         }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
-                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse) -> Result<#ident<#(#params),*>, #base_ident::anschluss::Error> {
+                    impl<Anschluss, #(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>, Anschluss> for #save_ident<#(#params),*> {
+                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse) -> Result<#ident<#(#params),*, Anschluss>, #base_ident::anschluss::Error> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             Ok(#ident {
                                 #(#other_fields),*,

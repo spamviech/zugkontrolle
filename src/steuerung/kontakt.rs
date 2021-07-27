@@ -2,12 +2,15 @@
 
 use std::collections::HashMap;
 
-use ::serde::{Deserialize, Serialize};
 use log::error;
+use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    speichern::{self, Reserviere, Reserviert, ToSave},
-    Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
+use crate::{
+    anschluss::{
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        Anschlüsse, Error, InputAnschluss, InputSave, Level, Trigger,
+    },
+    application::anschluss::Input,
 };
 
 /// Name eines Kontaktes.
@@ -38,7 +41,7 @@ impl Kontakt<InputAnschluss> {
     }
 }
 
-impl ToSave for Kontakt<InputAnschluss> {
+impl ToSave<InputAnschluss> for Kontakt<InputAnschluss> {
     type Save = Kontakt<InputSave>;
 
     fn to_save(&self) -> Kontakt<InputSave> {
@@ -50,12 +53,12 @@ impl ToSave for Kontakt<InputAnschluss> {
     }
 }
 
-impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
+impl Reserviere<Kontakt<InputAnschluss>, InputAnschluss> for Kontakt<InputSave> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         bisherige_anschlüsse: impl Iterator<Item = Kontakt<InputAnschluss>>,
-    ) -> speichern::Result<Kontakt<InputAnschluss>> {
+    ) -> speichern::Result<Kontakt<InputAnschluss>, InputAnschluss> {
         let (save, input_anschlüsse) =
             bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
                 acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
