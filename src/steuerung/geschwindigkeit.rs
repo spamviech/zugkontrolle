@@ -11,22 +11,18 @@ use std::{
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    self, pwm,
-    speichern::{self, Reserviere, Reserviert, ToSave},
-    Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität,
+use crate::{
+    anschluss::{
+        self, pwm,
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSave, Polarität,
+    },
+    non_empty::{MaybeEmpty, NonEmpty},
 };
-use crate::non_empty::{MaybeEmpty, NonEmpty};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
-}
-
-#[derive(Debug)]
-pub enum GeschwindigkeitAnschluss {
-    Pwm(pwm::Pin),
-    Anschluss(OutputAnschluss),
 }
 
 impl<Anschluss, T: ToSave> ToSave for Geschwindigkeit<T> {
@@ -37,17 +33,26 @@ impl<Anschluss, T: ToSave> ToSave for Geschwindigkeit<T> {
     }
 }
 
-impl<Anschluss, T: Reserviere<R, Anschluss>, R> Reserviere<Geschwindigkeit<R>, Anschluss>
-    for Geschwindigkeit<T>
-{
+impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Anschluss>,
-    ) -> speichern::Result<Geschwindigkeit<R>, Anschluss> {
-        let Reserviert { anschluss: leiter, nicht_benötigt } =
-            self.leiter.reserviere(anschlüsse, bisherige_anschlüsse)?;
-        Ok(Reserviert { anschluss: Geschwindigkeit { leiter }, nicht_benötigt })
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Geschwindigkeit<R>> {
+        let Reserviert {
+            anschluss: leiter,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.leiter.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        Ok(Reserviert {
+            anschluss: Geschwindigkeit { leiter },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
     }
 }
 
@@ -154,96 +159,98 @@ impl ToSave for Mittelleiter {
         }
     }
 }
-impl Reserviere<Mittelleiter, GeschwindigkeitAnschluss> for MittelleiterSave {
+impl Reserviere<Mittelleiter> for MittelleiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = GeschwindigkeitAnschluss>,
-    ) -> speichern::Result<Mittelleiter, GeschwindigkeitAnschluss> {
-        let (pwm_pins, ks_anschlüsse) =
-            bisherige_anschlüsse.fold((Vec::new(), Vec::new()), |acc, anschluss| {
-                match anschluss {
-                    GeschwindigkeitAnschluss::Pwm(pin) => acc.0.push(pin),
-                    GeschwindigkeitAnschluss::Anschluss(anschluss) => acc.1.push(anschluss),
-                }
-                acc
-            });
-        let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
-            pwm_pins
-                .into_iter()
-                .map(GeschwindigkeitAnschluss::Pwm)
-                .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
-                .collect::<Vec<GeschwindigkeitAnschluss>>()
-        };
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Mittelleiter> {
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                let Reserviert { anschluss: pin, nicht_benötigt } =
-                    pin.reserviere(anschlüsse, pwm_pins.into_iter()).map_err(
-                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                bisherige_anschlüsse,
-                                ks_anschlüsse,
-                            ),
-                        },
-                    )?;
+                let Reserviert {
+                    anschluss: pin,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = pin.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
                 Reserviert {
                     anschluss: Mittelleiter::Pwm { pin, polarität },
-                    nicht_benötigt: anschluss_sammlung(nicht_benötigt, ks_anschlüsse),
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
-                let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
-                    .head
-                    .reserviere(anschlüsse, ks_anschlüsse.into_iter())
-                    .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| {
-                        speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                pwm_pins,
-                                bisherige_anschlüsse,
-                            ),
-                        }
-                    })?;
-                let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
-                    Ok((Vec::new(), nicht_benötigt)),
-                    |acc_res, save| match acc_res {
-                        Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
-                            Ok(Reserviert { anschluss, nicht_benötigt }) => {
-                                acc.0.push(anschluss);
-                                Ok((acc.0, nicht_benötigt))
-                            }
-                            Err(speichern::Error { fehler, mut bisherige_anschlüsse }) => {
-                                acc.0.extend(bisherige_anschlüsse.into_iter());
+                let Reserviert {
+                    anschluss: head,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.head.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let (tail, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt) =
+                    geschwindigkeit.tail.into_iter().fold(
+                        Ok((
+                            Vec::new(),
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        )),
+                        |acc_res, save| match acc_res {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                                Ok(Reserviert {
+                                    anschluss,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                }) => {
+                                    acc.0.push(anschluss);
+                                    Ok(acc)
+                                }
                                 Err(speichern::Error {
                                     fehler,
-                                    bisherige_anschlüsse: anschluss_sammlung(
+                                    pwm_pins,
+                                    output_anschlüsse,
+                                    input_anschlüsse,
+                                }) => {
+                                    output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(speichern::Error {
+                                        fehler,
                                         pwm_pins,
-                                        bisherige_anschlüsse,
-                                    ),
-                                })
-                            }
-                        },
-                        error => error,
-                    },
-                )?;
-                let Reserviert { anschluss: umdrehen, nicht_benötigt } =
-                    umdrehen.reserviere(anschlüsse, nicht_benötigt.into_iter()).map_err(
-                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                pwm_pins,
-                                bisherige_anschlüsse,
-                            ),
+                                        output_anschlüsse,
+                                        input_anschlüsse,
+                                    })
+                                }
+                            },
+                            error => error,
                         },
                     )?;
+                let Reserviert {
+                    anschluss: umdrehen,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = umdrehen.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
                 Reserviert {
                     anschluss: Mittelleiter::KonstanteSpannung {
                         geschwindigkeit: NonEmpty { head, tail },
                         letzter_wert: 0,
                         umdrehen,
                     },
-                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
         })
@@ -390,109 +397,114 @@ impl ToSave for Zweileiter {
         }
     }
 }
-impl Reserviere<Zweileiter, GeschwindigkeitAnschluss> for ZweileiterSave {
+impl Reserviere<Zweileiter> for ZweileiterSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = GeschwindigkeitAnschluss>,
-    ) -> speichern::Result<Zweileiter, GeschwindigkeitAnschluss> {
-        let (pwm_pins, ks_anschlüsse) =
-            bisherige_anschlüsse.fold((Vec::new(), Vec::new()), |mut acc, anschluss| {
-                match anschluss {
-                    GeschwindigkeitAnschluss::Pwm(pin) => acc.0.push(pin),
-                    GeschwindigkeitAnschluss::Anschluss(anschluss) => acc.1.push(anschluss),
-                }
-                acc
-            });
-        let anschluss_sammlung = |pwm_pins: Vec<pwm::Pin>, ks_anschlüsse: Vec<OutputAnschluss>| {
-            pwm_pins
-                .into_iter()
-                .map(GeschwindigkeitAnschluss::Pwm)
-                .chain(ks_anschlüsse.into_iter().map(GeschwindigkeitAnschluss::Anschluss))
-                .collect::<Vec<GeschwindigkeitAnschluss>>()
-        };
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Zweileiter> {
         Ok(match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
-                let Reserviert { anschluss: geschwindigkeit, nicht_benötigt: pwm_nicht_benötigt } =
-                    geschwindigkeit.reserviere(anschlüsse, pwm_pins.into_iter()).map_err(
-                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                bisherige_anschlüsse,
-                                ks_anschlüsse,
-                            ),
-                        },
-                    )?;
-                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt: ks_nicht_benötigt } =
-                    fahrtrichtung.reserviere(anschlüsse, ks_anschlüsse.into_iter()).map_err(
-                        |speichern::Error { fehler, bisherige_anschlüsse }| {
-                            pwm_nicht_benötigt.push(geschwindigkeit);
-                            speichern::Error {
-                                fehler,
-                                bisherige_anschlüsse: anschluss_sammlung(
-                                    pwm_nicht_benötigt,
-                                    bisherige_anschlüsse,
-                                ),
-                            }
-                        },
-                    )?;
+                let Reserviert {
+                    anschluss: geschwindigkeit,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let Reserviert {
+                    anschluss: fahrtrichtung,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = fahrtrichtung.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
                 Reserviert {
                     anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
-                    nicht_benötigt: anschluss_sammlung(pwm_nicht_benötigt, ks_nicht_benötigt),
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
-                let Reserviert { anschluss: head, nicht_benötigt } = geschwindigkeit
-                    .head
-                    .reserviere(anschlüsse, ks_anschlüsse.into_iter())
-                    .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| {
-                        speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                pwm_pins,
-                                bisherige_anschlüsse,
-                            ),
-                        }
-                    })?;
-                let (tail, nicht_benötigt) = geschwindigkeit.tail.into_iter().fold(
-                    Ok((Vec::new(), nicht_benötigt)),
-                    |acc_res, save| match acc_res {
-                        Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
-                            Ok(Reserviert { anschluss, nicht_benötigt }) => {
-                                acc.0.push(anschluss);
-                                Ok((acc.0, nicht_benötigt))
-                            }
-                            Err(speichern::Error { fehler, mut bisherige_anschlüsse }) => {
-                                bisherige_anschlüsse.extend(acc.0.into_iter());
+                let Reserviert {
+                    anschluss: head,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.head.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let (tail, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt) =
+                    geschwindigkeit.tail.into_iter().fold(
+                        Ok((
+                            Vec::new(),
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        )),
+                        |acc_res, save| match acc_res {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                                Ok(Reserviert {
+                                    anschluss,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                }) => {
+                                    acc.0.push(anschluss);
+                                    Ok(acc)
+                                }
                                 Err(speichern::Error {
                                     fehler,
-                                    bisherige_anschlüsse: anschluss_sammlung(
+                                    pwm_pins,
+                                    output_anschlüsse,
+                                    input_anschlüsse,
+                                }) => {
+                                    output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(speichern::Error {
+                                        fehler,
                                         pwm_pins,
-                                        bisherige_anschlüsse,
-                                    ),
-                                })
-                            }
-                        },
-                        error => error,
-                    },
-                )?;
-                let Reserviert { anschluss: fahrtrichtung, nicht_benötigt } =
-                    fahrtrichtung.reserviere(anschlüsse, nicht_benötigt.into_iter()).map_err(
-                        |speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                            fehler,
-                            bisherige_anschlüsse: anschluss_sammlung(
-                                pwm_pins,
-                                bisherige_anschlüsse,
-                            ),
+                                        output_anschlüsse,
+                                        input_anschlüsse,
+                                    })
+                                }
+                            },
+                            error => error,
                         },
                     )?;
+                let Reserviert {
+                    anschluss: fahrtrichtung,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = fahrtrichtung.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
                 Reserviert {
                     anschluss: Zweileiter::KonstanteSpannung {
                         geschwindigkeit: NonEmpty { head, tail },
                         letzter_wert: 0,
                         fahrtrichtung,
                     },
-                    nicht_benötigt: anschluss_sammlung(pwm_pins, nicht_benötigt),
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
         })
