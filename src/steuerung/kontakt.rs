@@ -46,6 +46,10 @@ impl ToSave for Kontakt<InputAnschluss> {
             trigger: self.trigger,
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschluss.anschlüsse()
+    }
 }
 
 impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {

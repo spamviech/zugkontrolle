@@ -237,6 +237,10 @@ impl ToSave for OutputAnschluss {
             }
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (Vec::new(), vec![self], Vec::new())
+    }
 }
 impl Reserviere<OutputAnschluss> for OutputSave {
     fn reserviere(
@@ -410,6 +414,10 @@ impl ToSave for InputAnschluss {
                 }
             }
         }
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (Vec::new(), Vec::new(), vec![self])
     }
 }
 impl Reserviere<InputAnschluss> for InputSave {

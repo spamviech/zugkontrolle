@@ -37,6 +37,10 @@ impl ToSave for Streckenabschnitt {
     fn to_save(&self) -> Streckenabschnitt<OutputSave> {
         Streckenabschnitt { farbe: self.farbe, anschluss: self.anschluss.to_save() }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschluss.anschlüsse()
+    }
 }
 
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {

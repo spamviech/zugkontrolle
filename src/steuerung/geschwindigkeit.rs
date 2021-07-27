@@ -31,6 +31,10 @@ impl<T: ToSave> ToSave for Geschwindigkeit<T> {
     fn to_save(&self) -> Geschwindigkeit<T::Save> {
         Geschwindigkeit { leiter: self.leiter.to_save() }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.leiter.anschlüsse()
+    }
 }
 
 impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
@@ -155,6 +159,22 @@ impl ToSave for Mittelleiter {
                     letzter_wert: *letzter_wert,
                     umdrehen: umdrehen.to_save(),
                 }
+            }
+        }
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        match self {
+            Mittelleiter::Pwm { pin, polarität: _ } => pin.anschlüsse(),
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                let acc = umdrehen.anschlüsse();
+                geschwindigkeit.into_iter().fold(acc, |acc @ (pwm0, output0, input0), anschluss| {
+                    let (pwm1, output1, input1) = anschluss.anschlüsse();
+                    pwm0.extend(pwm1.into_iter());
+                    output0.extend(output1.into_iter());
+                    input0.extend(input1.into_iter());
+                    acc
+                })
             }
         }
     }
@@ -398,6 +418,29 @@ impl ToSave for Zweileiter {
                     letzter_wert: *letzter_wert,
                     fahrtrichtung: fahrtrichtung.to_save(),
                 }
+            }
+        }
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        match self {
+            Zweileiter::Pwm { geschwindigkeit, polarität: _, fahrtrichtung } => {
+                let (pwm0, output0, input0) = geschwindigkeit.anschlüsse();
+                let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
+                pwm0.extend(pwm1.into_iter());
+                output0.extend(output1.into_iter());
+                input0.extend(input1.into_iter());
+                (pwm0, output0, input0)
+            }
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                let acc = fahrtrichtung.anschlüsse();
+                geschwindigkeit.into_iter().fold(acc, |acc @ (pwm0, output0, input0), anschluss| {
+                    let (pwm1, output1, input1) = anschluss.anschlüsse();
+                    pwm0.extend(pwm1.into_iter());
+                    output0.extend(output1.into_iter());
+                    input0.extend(input1.into_iter());
+                    acc
+                })
             }
         }
     }

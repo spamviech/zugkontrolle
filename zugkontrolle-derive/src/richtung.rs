@@ -71,6 +71,18 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
+                fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                    let mut pwm0 = Vec::new();
+                    let mut output0 = Vec::new();
+                    let mut input0 = Vec::new();
+                    #(
+                        let (pwm1, output1, input1) = self.#struct_fields.anschlüsse();
+                        pwm0.extend(pwm1.into_iter());
+                        output0.extend(output1.into_iter());
+                        input0.extend(input1.into_iter());
+                    )*
+                    (pwm0, output0, input0)
+                }
             }
             impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
                 fn reserviere(

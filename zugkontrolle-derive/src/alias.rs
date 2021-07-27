@@ -60,6 +60,20 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                                 ),*
                             }
                         }
+                        fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                            let mut pwm0 = Vec::new();
+                            let mut output0 = Vec::new();
+                            let mut input0 = Vec::new();
+                            #(
+                                if let Some(steuerung) = self.#param_fields {
+                                    let (pwm1, output1, input1) = steuerung.anschlüsse();
+                                    pwm0.extend(pwm1.into_iter());
+                                    output0.extend(output1.into_iter());
+                                    input0.extend(input1.into_iter());
+                                }
+                            )*
+                            (pwm0, output0, input0)
+                        }
                     }
                     impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
                         fn reserviere(

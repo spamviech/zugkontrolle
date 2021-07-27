@@ -258,6 +258,10 @@ impl ToSave for Pin {
     fn to_save(&self) -> Save {
         Save(self.pin())
     }
+
+    fn anschlüsse(self) -> (Vec<self::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (vec![self], Vec::new(), Vec::new())
+    }
 }
 impl Reserviere<Pin> for Save {
     fn reserviere(

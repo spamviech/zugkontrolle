@@ -42,8 +42,8 @@ where
 
 impl<Richtung, T> ToSave for Weiche<Richtung, T>
 where
-    Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Debug,
-    T: ToSave + Debug,
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    T: ToSave,
 {
     type Save = Weiche<Richtung, T::Save>;
 
@@ -54,6 +54,10 @@ where
             letzte_richtung: self.letzte_richtung.clone(),
             anschlüsse: self.anschlüsse.to_save(),
         }
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschlüsse.anschlüsse()
     }
 }
 impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
