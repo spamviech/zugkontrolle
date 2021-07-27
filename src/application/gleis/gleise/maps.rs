@@ -10,7 +10,7 @@ use crate::{
     anschluss::{OutputSave, ToSave},
     application::{gleis::*, typen::*},
     steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitAnschluss},
+        geschwindigkeit,
         plan::Plan,
         streckenabschnitt::{self, Streckenabschnitt},
     },

@@ -250,8 +250,9 @@ impl Reserviere<OutputAnschluss> for OutputSave {
             OutputSave::Pin { polarität, .. } => polarität,
             OutputSave::Pcf8574Port { polarität, .. } => polarität,
         };
-        let (gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) =
-            output_anschlüsse.partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
+        let (gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) = output_anschlüsse
+            .into_iter()
+            .partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             match anschluss {
                 OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
@@ -263,7 +264,7 @@ impl Reserviere<OutputAnschluss> for OutputSave {
             macro_rules! konvertiere_fehler {
                 () => {
                     |fehler| speichern::Error {
-                        fehler,
+                        fehler: fehler.into(),
                         pwm_pins,
                         output_anschlüsse: output_nicht_benötigt,
                         input_anschlüsse,
@@ -419,18 +420,21 @@ impl Reserviere<InputAnschluss> for InputSave {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> speichern::Result<InputAnschluss> {
-        let (gesuchter_anschluss, output_nicht_benötigt) =
-            output_anschlüsse.fold((None, Vec::new()), |acc @ (gesucht, ersetzbar), anschluss| {
+        let (gesuchter_anschluss, input_nicht_benötigt) = input_anschlüsse.into_iter().fold(
+            (None, Vec::new()),
+            |acc @ (gesucht, ersetzbar), anschluss| {
                 if self.selber_anschluss(&anschluss.to_save()) {
                     gesucht = Some(anschluss)
                 } else {
                     ersetzbar.push(anschluss)
                 }
                 acc
-            });
+            },
+        );
         let self_interrupt = self.interrupt();
-        let (gesuchter_interrupt, input_nicht_benötigt) =
-            input_anschlüsse.fold((None, Vec::new()), |acc @ (interrupt, ersetzbar), anschluss| {
+        let (gesuchter_interrupt, input_nicht_benötigt) = input_nicht_benötigt.into_iter().fold(
+            (None, Vec::new()),
+            |acc @ (interrupt, ersetzbar), anschluss| {
                 match (anschluss, self_interrupt) {
                     (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
                         interrupt = Some(pin)
@@ -438,7 +442,8 @@ impl Reserviere<InputAnschluss> for InputSave {
                     _ => ersetzbar.push(anschluss),
                 }
                 acc
-            });
+            },
+        );
         let interrupt_konfigurieren = |anschluss| -> Result<_, Error> {
             if let Some(interrupt) = gesuchter_interrupt {
                 if let InputAnschluss::Pcf8574Port(port) = anschluss {
@@ -494,7 +499,7 @@ impl Reserviere<InputAnschluss> for InputSave {
         Ok(Reserviert {
             anschluss,
             pwm_nicht_benötigt: pwm_pins,
-            output_nicht_benötigt,
+            output_nicht_benötigt: output_anschlüsse,
             input_nicht_benötigt,
         })
     }

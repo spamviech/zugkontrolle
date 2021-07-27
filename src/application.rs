@@ -30,7 +30,7 @@ use crate::{
     args::Args,
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{self, geschwindigkeit::GeschwindigkeitAnschluss},
+    steuerung,
 };
 
 pub mod anschluss;

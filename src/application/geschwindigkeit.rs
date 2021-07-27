@@ -20,9 +20,7 @@ use crate::{
     anschluss::{polarity::Polarität, pwm, OutputSave, ToSave},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
-    steuerung::geschwindigkeit::{
-        Fahrtrichtung, GeschwindigkeitAnschluss, Mittelleiter, Zweileiter,
-    },
+    steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter},
 };
 
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;

@@ -72,20 +72,23 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
             }
-            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse, #base_ident::anschluss::OutputAnschluss> for RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
-                    bisherige_anschlüsse: impl Iterator<Item=#base_ident::anschluss::OutputAnschluss>
-                ) -> #base_ident::anschluss::speichern::Result<RichtungAnschlüsse, #base_ident::anschluss::OutputAnschluss> {
+                    pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                    output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
+                    input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
+                ) -> #base_ident::anschluss::speichern::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
-                    let nicht_benötigt: Vec<_> = bisherige_anschlüsse.collect();
-                    #(let #base_ident::anschluss::speichern::Reserviert {anschluss: #struct_fields, nicht_benötigt} = #struct_fields.reserviere(anschlüsse, nicht_benötigt.into_iter())?; )*
+                    #(let #base_ident::anschluss::speichern::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
                     Ok(#base_ident::anschluss::speichern::Reserviert {
                         anschluss: RichtungAnschlüsse {
                             #(#struct_fields),*
                         },
-                        nicht_benötigt
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
                     })
                 }
             }

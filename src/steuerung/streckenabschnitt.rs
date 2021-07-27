@@ -2,14 +2,16 @@
 
 use std::collections::HashMap;
 
-use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    speichern::{self, Reserviere, Reserviert, ToSave},
-    Anschlüsse, Error, Fließend, OutputAnschluss, OutputSave,
+use crate::{
+    anschluss::{
+        pin::pwm,
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSave,
+    },
+    farbe::Farbe,
 };
-use crate::farbe::Farbe;
 
 pub type StreckenabschnittSave = Streckenabschnitt<OutputSave>;
 /// Steuerung der Stromzufuhr.
@@ -37,46 +39,25 @@ impl ToSave for Streckenabschnitt {
     }
 }
 
-impl Reserviere<Streckenabschnitt, OutputAnschluss> for StreckenabschnittSave {
+impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_anschlüsse: impl Iterator<Item = Streckenabschnitt>,
-    ) -> speichern::Result<Streckenabschnitt, OutputAnschluss> {
-        let (save, output_anschlüsse) =
-            bisherige_anschlüsse.fold((HashMap::new(), Vec::new()), |mut acc, kontakt| {
-                acc.0.insert(kontakt.anschluss.to_save(), kontakt.to_save());
-                acc.1.push(kontakt.anschluss);
-                acc
-            });
-        // Nicht gefundene Anschlüsse werden über drop-Handler ans Singleton zurückgegeben
-        // Es sollten alle Anschlüsse gefunden werden
-        let konvertiere_anschlüsse = |vec: Vec<OutputAnschluss>| {
-            vec.into_iter()
-                .filter_map(|anschluss| match save.remove(&anschluss.to_save()) {
-                    Some(Streckenabschnitt { farbe, anschluss: _ }) => {
-                        Some(Streckenabschnitt { farbe, anschluss })
-                    }
-                    None => {
-                        error!(
-                            "Anschluss {:?} nicht in Map bisheriger Kontakte {:?} gefunden!",
-                            anschluss, save
-                        );
-                        None
-                    }
-                })
-                .collect::<Vec<Streckenabschnitt>>()
-        };
-        let Reserviert { anschluss, nicht_benötigt } = self
-            .anschluss
-            .reserviere(anschlüsse, output_anschlüsse.into_iter())
-            .map_err(|speichern::Error { fehler, bisherige_anschlüsse }| speichern::Error {
-                fehler,
-                bisherige_anschlüsse: konvertiere_anschlüsse(bisherige_anschlüsse),
-            })?;
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Streckenabschnitt> {
+        let Reserviert {
+            anschluss,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.anschluss.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Streckenabschnitt { farbe: self.farbe, anschluss },
-            nicht_benötigt,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
         })
     }
 }

@@ -61,15 +61,25 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                             }
                         }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>, #base_ident::anschluss::OutputAnschluss> for #save_ident<#(#params),*> {
-                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse, bisherige_anschlüsse: impl Iterator<Item=#base_ident::anschluss::OutputAnschluss>) -> #base_ident::anschluss::speichern::Result<#ident<#(#params),*>, #base_ident::anschluss::OutputAnschluss> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                        fn reserviere(
+                            self,
+                            anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
+                            pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                            output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
+                            input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
+                        ) -> #base_ident::anschluss::speichern::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            let mut acc: Vec<_> = bisherige_anschlüsse.collect();
+                            let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                             #(
-                                let #param_fields = if let Some(save) = #param_fields {
-                                    // if let statt map, damit ? richtig funktioniert
-                                    let #base_ident::anschluss::speichern::Reserviert {anschluss, nicht_benötigt} = save.reserviere(anschlüsse, acc.into_iter())?;
-                                    acc = nicht_benötigt;
+                               let #param_fields = if let Some(save) = #param_fields {
+                                    let #base_ident::anschluss::speichern::Reserviert {
+                                        anschluss,
+                                        pwm_nicht_benötigt,
+                                        output_nicht_benötigt,
+                                        input_nicht_benötigt
+                                    } = save.reserviere(anschlüsse, acc.0, acc.1, acc.2)?;
+                                    acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                                     Some(anschluss)
                                 } else {
                                     None
@@ -80,7 +90,9 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                                     #(#other_fields),*,
                                     #(#param_fields),*
                                 },
-                                nicht_benötigt:acc
+                                pwm_nicht_benötigt: acc.0,
+                                output_nicht_benötigt: acc.1,
+                                input_nicht_benötigt: acc.2,
                             })
                         }
                     }

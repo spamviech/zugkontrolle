@@ -12,10 +12,7 @@ use crate::{
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitAnschluss},
-        streckenabschnitt, weiche, Streckenabschnitt,
-    },
+    steuerung::{geschwindigkeit, streckenabschnitt, weiche, Streckenabschnitt},
 };
 
 pub mod id;

@@ -268,14 +268,17 @@ impl Reserviere<Pin> for Save {
         input_nicht_benötigt: Vec<InputAnschluss>,
     ) -> speichern::Result<Pin> {
         let (gesucht, mut pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
-            pwm_pins.partition(|pin| pin.to_save() == self);
+            pwm_pins.into_iter().partition(|pin| pin.to_save() == self);
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             anschluss
         } else {
-            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|mut err| {
-                err.output_anschlüsse = output_nicht_benötigt;
-                err.input_anschlüsse = input_nicht_benötigt;
-                err
+            anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(|error| {
+                speichern::Error {
+                    fehler: error.into(),
+                    pwm_pins: pwm_nicht_benötigt,
+                    output_anschlüsse: output_nicht_benötigt,
+                    input_anschlüsse: input_nicht_benötigt,
+                }
             })?
         };
         Ok(Reserviert {

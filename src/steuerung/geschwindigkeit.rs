@@ -25,7 +25,7 @@ pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
 
-impl<Anschluss, T: ToSave> ToSave for Geschwindigkeit<T> {
+impl<T: ToSave> ToSave for Geschwindigkeit<T> {
     type Save = Geschwindigkeit<T::Save>;
 
     fn to_save(&self) -> Geschwindigkeit<T::Save> {
@@ -203,7 +203,12 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                            Ok(mut acc) => match save.reserviere(
+                                anschlüsse,
+                                pwm_nicht_benötigt,
+                                output_nicht_benötigt,
+                                input_nicht_benötigt,
+                            ) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,
@@ -457,7 +462,12 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1.into_iter()) {
+                            Ok(mut acc) => match save.reserviere(
+                                anschlüsse,
+                                pwm_nicht_benötigt,
+                                output_nicht_benötigt,
+                                input_nicht_benötigt,
+                            ) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,

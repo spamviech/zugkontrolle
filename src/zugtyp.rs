@@ -5,7 +5,6 @@ use std::fmt::{Debug, Display};
 use crate::{
     anschluss::speichern::ToSave,
     application::{geschwindigkeit::LeiterAnzeige, gleis::*},
-    steuerung::geschwindigkeit::GeschwindigkeitAnschluss,
 };
 
 pub mod lego;
