@@ -11,10 +11,22 @@ use std::{
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    self, pwm, Anschlüsse, Fließend, OutputAnschluss, OutputSave, Polarität, Reserviere, ToSave,
+use crate::{
+    anschluss::{
+        self, pwm,
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSave, Polarität,
+    },
+    non_empty::{MaybeEmpty, NonEmpty},
 };
-use crate::non_empty::{MaybeEmpty, NonEmpty};
+
+pub trait Leiter {
+    /// 0 deaktiviert die Stromzufuhr.
+    /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
+    /// Pwm: 0-u8::MAX
+    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error>;
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
@@ -27,14 +39,32 @@ impl<T: ToSave> ToSave for Geschwindigkeit<T> {
     fn to_save(&self) -> Geschwindigkeit<T::Save> {
         Geschwindigkeit { leiter: self.leiter.to_save() }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.leiter.anschlüsse()
+    }
 }
 
 impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
-    ) -> Result<Geschwindigkeit<R>, anschluss::Error> {
-        Ok(Geschwindigkeit { leiter: self.leiter.reserviere(anschlüsse)? })
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Geschwindigkeit<R>> {
+        let Reserviert {
+            anschluss: leiter,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.leiter.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        Ok(Reserviert {
+            anschluss: Geschwindigkeit { leiter },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
     }
 }
 
@@ -140,22 +170,108 @@ impl ToSave for Mittelleiter {
             }
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        match self {
+            Mittelleiter::Pwm { pin, polarität: _ } => pin.anschlüsse(),
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                let acc = umdrehen.anschlüsse();
+                geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
+                    let (pwm, output, input) = anschluss.anschlüsse();
+                    acc.0.extend(pwm.into_iter());
+                    acc.1.extend(output.into_iter());
+                    acc.2.extend(input.into_iter());
+                    acc
+                })
+            }
+        }
+    }
 }
 impl Reserviere<Mittelleiter> for MittelleiterSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Mittelleiter, anschluss::Error> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Mittelleiter> {
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                Mittelleiter::Pwm { pin: pin.reserviere(anschlüsse)?, polarität }
+                let Reserviert {
+                    anschluss: pin,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = pin.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+                Reserviert {
+                    anschluss: Mittelleiter::Pwm { pin, polarität },
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
-                Mittelleiter::KonstanteSpannung {
-                    geschwindigkeit: geschwindigkeit
-                        .into_iter()
-                        .map(|anschluss| anschluss.reserviere(anschlüsse))
-                        .collect::<Result<MaybeEmpty<_>, _>>()?
-                        .unwrap(),
-                    letzter_wert: 0,
-                    umdrehen: umdrehen.reserviere(anschlüsse)?,
+                let Reserviert {
+                    anschluss: head,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.head.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let (tail, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt) =
+                    geschwindigkeit.tail.into_iter().fold(
+                        Ok((
+                            Vec::new(),
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        )),
+                        |acc_res, save| match acc_res {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
+                                Ok(Reserviert {
+                                    anschluss,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                }) => {
+                                    acc.0.push(anschluss);
+                                    acc.1 = pwm_nicht_benötigt;
+                                    acc.2 = output_nicht_benötigt;
+                                    acc.3 = input_nicht_benötigt;
+                                    Ok(acc)
+                                }
+                                Err(mut error) => {
+                                    error.output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(error)
+                                }
+                            },
+                            error => error,
+                        },
+                    )?;
+                let Reserviert {
+                    anschluss: umdrehen,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = umdrehen.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
+                Reserviert {
+                    anschluss: Mittelleiter::KonstanteSpannung {
+                        geschwindigkeit: NonEmpty { head, tail },
+                        letzter_wert: 0,
+                        umdrehen,
+                    },
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
         })
@@ -170,12 +286,12 @@ const PWM_FREQUENZ: f64 = 50.;
 const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: f64 = 16. / 25.;
 const UMDREHENZEIT: Duration = Duration::from_millis(500);
 
-impl Geschwindigkeit<Mittelleiter> {
+impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
-    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
@@ -185,7 +301,9 @@ impl Geschwindigkeit<Mittelleiter> {
             }
         }
     }
+}
 
+impl Geschwindigkeit<Mittelleiter> {
     pub fn umdrehen(&mut self) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
@@ -245,8 +363,8 @@ impl Display for Zweileiter {
     }
 }
 
-impl Geschwindigkeit<Zweileiter> {
-    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+impl Leiter for Geschwindigkeit<Zweileiter> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
@@ -256,7 +374,9 @@ impl Geschwindigkeit<Zweileiter> {
             }
         }
     }
+}
 
+impl Geschwindigkeit<Zweileiter> {
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
@@ -301,24 +421,131 @@ impl ToSave for Zweileiter {
             }
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        match self {
+            Zweileiter::Pwm { geschwindigkeit, polarität: _, fahrtrichtung } => {
+                let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
+                let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
+                pwm0.extend(pwm1.into_iter());
+                output0.extend(output1.into_iter());
+                input0.extend(input1.into_iter());
+                (pwm0, output0, input0)
+            }
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                let acc = fahrtrichtung.anschlüsse();
+                geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
+                    let (pwm, output, input) = anschluss.anschlüsse();
+                    acc.0.extend(pwm.into_iter());
+                    acc.1.extend(output.into_iter());
+                    acc.2.extend(input.into_iter());
+                    acc
+                })
+            }
+        }
+    }
 }
 impl Reserviere<Zweileiter> for ZweileiterSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Zweileiter, anschluss::Error> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Zweileiter> {
         Ok(match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
-                geschwindigkeit: geschwindigkeit.reserviere(anschlüsse)?,
-                polarität,
-                fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
-            },
+            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                let Reserviert {
+                    anschluss: geschwindigkeit,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let Reserviert {
+                    anschluss: fahrtrichtung,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = fahrtrichtung.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
+                Reserviert {
+                    anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                }
+            }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
-                Zweileiter::KonstanteSpannung {
-                    geschwindigkeit: geschwindigkeit
-                        .into_iter()
-                        .map(|anschluss| anschluss.reserviere(anschlüsse))
-                        .collect::<Result<MaybeEmpty<_>, _>>()?
-                        .unwrap(),
-                    letzter_wert: 0,
-                    fahrtrichtung: fahrtrichtung.reserviere(anschlüsse)?,
+                let Reserviert {
+                    anschluss: head,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = geschwindigkeit.head.reserviere(
+                    anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )?;
+                let (tail, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt) =
+                    geschwindigkeit.tail.into_iter().fold(
+                        Ok((
+                            Vec::new(),
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        )),
+                        |acc_res, save| match acc_res {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
+                                Ok(Reserviert {
+                                    anschluss,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                }) => {
+                                    acc.0.push(anschluss);
+                                    acc.1 = pwm_nicht_benötigt;
+                                    acc.2 = output_nicht_benötigt;
+                                    acc.3 = input_nicht_benötigt;
+                                    Ok(acc)
+                                }
+                                Err(mut error) => {
+                                    error.output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(error)
+                                }
+                            },
+                            error => error,
+                        },
+                    )?;
+                let Reserviert {
+                    anschluss: fahrtrichtung,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = fahrtrichtung.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
+                Reserviert {
+                    anschluss: Zweileiter::KonstanteSpannung {
+                        geschwindigkeit: NonEmpty { head, tail },
+                        letzter_wert: 0,
+                        fahrtrichtung,
+                    },
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
                 }
             }
         })

@@ -47,7 +47,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::serde::ToSave for #ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern::ToSave for #ident<#(#params),*> {
                         type Save = #save_ident<#(#params),*>;
                         fn to_save(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -60,17 +60,53 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                                 ),*
                             }
                         }
+                        fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                            let mut pwm0 = Vec::new();
+                            let mut output0 = Vec::new();
+                            let mut input0 = Vec::new();
+                            #(
+                                if let Some(steuerung) = self.#param_fields {
+                                    let (pwm1, output1, input1) = steuerung.anschlüsse();
+                                    pwm0.extend(pwm1.into_iter());
+                                    output0.extend(output1.into_iter());
+                                    input0.extend(input1.into_iter());
+                                }
+                            )*
+                            (pwm0, output0, input0)
+                        }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::serde::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
-                        fn reserviere(self, anschlüsse: &mut #base_ident::anschluss::Anschlüsse) -> Result<#ident<#(#params),*>, #base_ident::anschluss::Error> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                        fn reserviere(
+                            self,
+                            anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
+                            pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                            output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
+                            input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
+                        ) -> #base_ident::anschluss::speichern::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            Ok(#ident {
-                                #(#other_fields),*,
-                                #(
-                                    #param_fields: #param_fields.map(
-                                        |steuerung| steuerung.reserviere(anschlüsse)
-                                    ).transpose()?
-                                ),*
+                            let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
+                            #(
+                               let #param_fields = if let Some(save) = #param_fields {
+                                    let #base_ident::anschluss::speichern::Reserviert {
+                                        anschluss,
+                                        pwm_nicht_benötigt,
+                                        output_nicht_benötigt,
+                                        input_nicht_benötigt
+                                    } = save.reserviere(anschlüsse, acc.0, acc.1, acc.2)?;
+                                    acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
+                                    Some(anschluss)
+                                } else {
+                                    None
+                                };
+                            )*
+                            Ok(#base_ident::anschluss::speichern::Reserviert {
+                                anschluss: #ident {
+                                    #(#other_fields),*,
+                                    #(#param_fields),*
+                                },
+                                pwm_nicht_benötigt: acc.0,
+                                output_nicht_benötigt: acc.1,
+                                input_nicht_benötigt: acc.2,
                             })
                         }
                     }
@@ -108,7 +144,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
         return quote! {
             compile_error!(#error_message);
             #item
-        }
+        };
     }
 
     quote! {

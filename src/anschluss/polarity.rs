@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::level::Level;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {
     Normal,
     Invertiert,

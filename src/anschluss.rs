@@ -2,8 +2,9 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use ::serde::{Deserialize, Serialize};
+use log::error;
 use num_x::u3;
+use serde::{Deserialize, Serialize};
 
 pub mod level;
 pub use level::*;
@@ -26,8 +27,8 @@ pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
 use anschlüsse::SyncError;
 
-pub mod serde;
-pub use self::serde::*;
+pub mod speichern;
+pub use self::speichern::{Reserviere, Reserviert, ToSave};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -172,7 +173,7 @@ impl OutputAnschluss {
 }
 
 /// Serealisierbare Informationen eines OutputAnschlusses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSave {
     Pin {
         pin: u8,
@@ -186,6 +187,39 @@ pub enum OutputSave {
         port: u8,
         polarität: Polarität,
     },
+}
+impl OutputSave {
+    // Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
+    pub fn selber_anschluss(&self, other: &OutputSave) -> bool {
+        match (self, other) {
+            (OutputSave::Pin { pin: p0, .. }, OutputSave::Pin { pin: p1, .. }) => p0 == p1,
+            (
+                OutputSave::Pcf8574Port {
+                    a0: a0_a,
+                    a1: a1_a,
+                    a2: a2_a,
+                    variante: variante_a,
+                    port: port_a,
+                    ..
+                },
+                OutputSave::Pcf8574Port {
+                    a0: a0_b,
+                    a1: a1_b,
+                    a2: a2_b,
+                    variante: variante_b,
+                    port: port_b,
+                    ..
+                },
+            ) => {
+                a0_a == a0_b
+                    && a1_a == a1_b
+                    && a2_a == a2_b
+                    && variante_a == variante_b
+                    && port_a == port_b
+            }
+            _ => false,
+        }
+    }
 }
 impl ToSave for OutputAnschluss {
     type Save = OutputSave;
@@ -209,19 +243,76 @@ impl ToSave for OutputAnschluss {
             }
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (Vec::new(), vec![self], Vec::new())
+    }
 }
 impl Reserviere<OutputAnschluss> for OutputSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<OutputAnschluss, Error> {
-        let (anschluss, polarität) = match self {
-            OutputSave::Pin { pin, polarität } => {
-                (Anschluss::from(anschlüsse.reserviere_pin(pin)?), polarität)
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<OutputAnschluss> {
+        let polarität = match self {
+            OutputSave::Pin { polarität, .. } => polarität,
+            OutputSave::Pcf8574Port { polarität, .. } => polarität,
+        };
+        let (mut gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) = output_anschlüsse
+            .into_iter()
+            .partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
+        let anschluss = if let Some(anschluss) = gesucht.pop() {
+            match anschluss {
+                OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
+                OutputAnschluss::Pcf8574Port { port, .. } => {
+                    OutputAnschluss::Pcf8574Port { port, polarität }
+                }
             }
-            OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
-                let port = u3::new(port);
-                (anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port)?.into(), polarität)
+        } else {
+            macro_rules! fehler {
+                ($error:expr) => {
+                    return Err(speichern::Error {
+                        fehler: $error.into(),
+                        pwm_pins,
+                        output_anschlüsse: output_nicht_benötigt,
+                        input_anschlüsse,
+                    })
+                };
+            }
+            let (anschluss, polarität) = match self {
+                OutputSave::Pin { pin, polarität } => (
+                    Anschluss::Pin(match anschlüsse.reserviere_pin(pin) {
+                        Ok(pin) => pin,
+                        Err(error) => fehler!(error),
+                    }),
+                    polarität,
+                ),
+                OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+                    let port = u3::new(port);
+                    (
+                        Anschluss::Pcf8574Port(
+                            match anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port) {
+                                Ok(port) => port,
+                                Err(error) => fehler!(error),
+                            },
+                        ),
+                        polarität,
+                    )
+                }
+            };
+            match anschluss.into_output(polarität) {
+                Ok(anschluss) => anschluss,
+                Err(error) => fehler!(error),
             }
         };
-        anschluss.into_output(polarität)
+        Ok(Reserviert {
+            anschluss,
+            pwm_nicht_benötigt: pwm_pins,
+            output_nicht_benötigt,
+            input_nicht_benötigt: input_anschlüsse,
+        })
     }
 }
 
@@ -268,7 +359,7 @@ impl InputAnschluss {
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSave {
     Pin {
         pin: u8,
@@ -281,6 +372,47 @@ pub enum InputSave {
         port: u8,
         interrupt: Option<u8>,
     },
+}
+impl InputSave {
+    // Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
+    pub fn selber_anschluss(&self, other: &InputSave) -> bool {
+        match (self, other) {
+            (InputSave::Pin { pin: p0 }, InputSave::Pin { pin: p1 }) => p0 == p1,
+            (
+                InputSave::Pcf8574Port {
+                    a0: a0_a,
+                    a1: a1_a,
+                    a2: a2_a,
+                    variante: variante_a,
+                    port: port_a,
+                    ..
+                },
+                InputSave::Pcf8574Port {
+                    a0: a0_b,
+                    a1: a1_b,
+                    a2: a2_b,
+                    variante: variante_b,
+                    port: port_b,
+                    ..
+                },
+            ) => {
+                a0_a == a0_b
+                    && a1_a == a1_b
+                    && a2_a == a2_b
+                    && variante_a == variante_b
+                    && port_a == port_b
+            }
+            _ => false,
+        }
+    }
+
+    pub fn interrupt(&self) -> Option<u8> {
+        if let InputSave::Pcf8574Port { interrupt, .. } = self {
+            interrupt.clone()
+        } else {
+            None
+        }
+    }
 }
 impl ToSave for InputAnschluss {
     type Save = InputSave;
@@ -303,25 +435,111 @@ impl ToSave for InputAnschluss {
             }
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (Vec::new(), Vec::new(), vec![self])
+    }
 }
 impl Reserviere<InputAnschluss> for InputSave {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<InputAnschluss, Error> {
-        Ok(match self {
-            InputSave::Pin { pin } => {
-                InputAnschluss::Pin(anschlüsse.reserviere_pin(pin)?.into_input())
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<InputAnschluss> {
+        let (gesuchter_anschluss, input_nicht_benötigt) =
+            input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
+                if self.selber_anschluss(&anschluss.to_save()) {
+                    acc.0 = Some(anschluss)
+                } else {
+                    acc.1.push(anschluss)
+                }
+                acc
+            });
+        let self_interrupt = self.interrupt();
+        let (gesuchter_interrupt, input_nicht_benötigt) =
+            input_nicht_benötigt.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
+                match (anschluss, self_interrupt) {
+                    (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
+                        acc.0 = Some(pin)
+                    }
+                    (anschluss, _self_interrupt) => acc.1.push(anschluss),
+                }
+                acc
+            });
+        let interrupt_konfigurieren =
+            |anschlüsse: &mut Anschlüsse, mut anschluss| -> Result<_, Error> {
+                if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
+                    if let Some(interrupt) = gesuchter_interrupt {
+                        port.set_interrupt_pin(interrupt)?;
+                    } else if let Some(pin) = self_interrupt {
+                        if Some(pin) != port.interrupt_pin()? {
+                            let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
+                            port.set_interrupt_pin(interrupt)?;
+                        }
+                    }
+                } else if let Some(interrupt) = self_interrupt {
+                    error!(
+                        "Interrupt Pin {} für einen InputPin {:?} konfiguriert.",
+                        interrupt, anschluss
+                    )
+                }
+                Ok(anschluss)
+            };
+        macro_rules! fehler {
+            ($error:expr) => {
+                return Err(speichern::Error {
+                    fehler: $error.into(),
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse: input_nicht_benötigt,
+                })
+            };
+        }
+        let anschluss = if let Some(anschluss) = gesuchter_anschluss {
+            match interrupt_konfigurieren(anschlüsse, anschluss) {
+                Ok(anschluss) => anschluss,
+                Err(error) => fehler!(error),
             }
-            InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
-                let port =
-                    anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, u3::new(port))?;
-                let mut input_port = port.into_input()?;
-                if input_port.interrupt_pin()? != interrupt {
-                    if let Some(pin) = interrupt {
-                        let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
-                        let _ = input_port.set_interrupt_pin(interrupt);
+        } else {
+            match self {
+                InputSave::Pin { pin } => {
+                    InputAnschluss::Pin(match anschlüsse.reserviere_pin(pin) {
+                        Ok(anschluss) => anschluss.into_input(),
+                        Err(error) => fehler!(error),
+                    })
+                }
+                InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt: _ } => {
+                    let port = match anschlüsse.reserviere_pcf8574_port(
+                        a0,
+                        a1,
+                        a2,
+                        variante,
+                        u3::new(port),
+                    ) {
+                        Ok(port) => port,
+                        Err(error) => fehler!(error),
+                    };
+                    let input_port = match port.into_input() {
+                        Ok(input_port) => input_port,
+                        Err(error) => fehler!(error),
+                    };
+                    match interrupt_konfigurieren(
+                        anschlüsse,
+                        InputAnschluss::Pcf8574Port(input_port),
+                    ) {
+                        Ok(anschluss) => anschluss,
+                        Err(error) => fehler!(error),
                     }
                 }
-                InputAnschluss::Pcf8574Port(input_port)
             }
+        };
+        Ok(Reserviert {
+            anschluss,
+            pwm_nicht_benötigt: pwm_pins,
+            output_nicht_benötigt: output_anschlüsse,
+            input_nicht_benötigt,
         })
     }
 }

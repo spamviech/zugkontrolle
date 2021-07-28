@@ -3,7 +3,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    Anschlüsse, Error, InputAnschluss, InputSave, Level, Reserviere, ToSave, Trigger,
+    pwm,
+    speichern::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Error, InputAnschluss, InputSave, Level, OutputAnschluss, Trigger,
 };
 
 /// Name eines Kontaktes.
@@ -44,14 +46,31 @@ impl ToSave for Kontakt<InputAnschluss> {
             trigger: self.trigger,
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschluss.anschlüsse()
+    }
 }
 
 impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Kontakt<InputAnschluss>, Error> {
-        Ok(Kontakt {
-            name: self.name,
-            anschluss: self.anschluss.reserviere(anschlüsse)?,
-            trigger: self.trigger,
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Kontakt<InputAnschluss>> {
+        let Reserviert {
+            anschluss,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.anschluss.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        Ok(Reserviert {
+            anschluss: Kontakt { name: self.name, anschluss, trigger: self.trigger },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
         })
     }
 }

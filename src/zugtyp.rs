@@ -2,9 +2,10 @@
 
 use std::fmt::{Debug, Display};
 
-use crate::anschluss::serde::ToSave;
-use crate::application::geschwindigkeit::LeiterAnzeige;
-use crate::application::gleis::*;
+use crate::{
+    anschluss::speichern::ToSave,
+    application::{geschwindigkeit::LeiterAnzeige, gleis::*},
+};
 
 pub mod lego;
 pub use lego::Lego;

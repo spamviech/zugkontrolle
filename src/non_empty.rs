@@ -13,6 +13,15 @@ pub struct NonEmpty<T> {
 }
 
 impl<T> NonEmpty<T> {
+    pub fn from_vec(mut vec: Vec<T>) -> Option<Self> {
+        if vec.len() > 0 {
+            let head = vec.remove(0);
+            Some(NonEmpty { head, tail: vec })
+        } else {
+            None
+        }
+    }
+
     pub fn singleton(head: T) -> Self {
         NonEmpty { head, tail: Vec::new() }
     }
@@ -171,9 +180,6 @@ impl<T> MaybeEmpty<T> {
 impl<T> FromIterator<T> for MaybeEmpty<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut iterator = iter.into_iter();
-        match iterator.next() {
-            Some(head) => MaybeEmpty(Some(NonEmpty { head, tail: iterator.collect() })),
-            None => MaybeEmpty(None),
-        }
+        MaybeEmpty(iterator.next().map(|head| NonEmpty { head, tail: iterator.collect() }))
     }
 }

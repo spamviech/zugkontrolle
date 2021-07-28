@@ -1,10 +1,14 @@
 //! Schaltbare Gleise.
 
-use std::{thread::sleep, time::Duration};
+use std::{fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{Anschlüsse, Error, Fließend, OutputAnschluss, Reserviere, ToSave};
+use crate::anschluss::{
+    pwm,
+    speichern::{self, Reserviere, Reserviert, ToSave},
+    Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
+};
 use crate::lookup::Lookup;
 
 /// Name einer Weiche.
@@ -51,17 +55,48 @@ where
             anschlüsse: self.anschlüsse.to_save(),
         }
     }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschlüsse.anschlüsse()
+    }
 }
-impl<Richtung: Clone, T: Reserviere<R>, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T> {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Weiche<Richtung, R>, Error> {
-        Ok(Weiche {
-            name: self.name,
-            aktuelle_richtung: self.aktuelle_richtung.clone(),
-            letzte_richtung: self.letzte_richtung.clone(),
-            anschlüsse: self.anschlüsse.reserviere(anschlüsse)?,
+impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
+where
+    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    R: ToSave,
+    T: Reserviere<R>,
+{
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> speichern::Result<Weiche<Richtung, R>> {
+        let Reserviert {
+            anschluss: anschlüsse,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.anschlüsse.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
+        Ok(Reserviert {
+            anschluss: Weiche {
+                name: self.name,
+                aktuelle_richtung: self.aktuelle_richtung.clone(),
+                letzte_richtung: self.letzte_richtung.clone(),
+                anschlüsse,
+            },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
         })
     }
 }
 
 // TODO als Teil des Zugtyp-Traits?
-const SCHALTZEIT: Duration = Duration::from_millis(500);
+const SCHALTZEIT: Duration = Duration::from_millis(400);

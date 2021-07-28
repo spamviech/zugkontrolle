@@ -47,7 +47,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
             #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*
             }
@@ -65,21 +65,42 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     )
                 }
             }
-            impl #base_ident::anschluss::serde::ToSave for RichtungAnschlüsse {
+            impl #base_ident::anschluss::speichern::ToSave for RichtungAnschlüsse {
                 type Save = RichtungAnschlüsseSave;
                 fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
                 }
+                fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                    let mut pwm0 = Vec::new();
+                    let mut output0 = Vec::new();
+                    let mut input0 = Vec::new();
+                    #(
+                        let (pwm1, output1, input1) = self.#struct_fields.anschlüsse();
+                        pwm0.extend(pwm1.into_iter());
+                        output0.extend(output1.into_iter());
+                        input0.extend(input1.into_iter());
+                    )*
+                    (pwm0, output0, input0)
+                }
             }
-            impl #base_ident::anschluss::serde::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
-                ) -> Result<RichtungAnschlüsse, #base_ident::anschluss::Error> {
+                    pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                    output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
+                    input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
+                ) -> #base_ident::anschluss::speichern::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
-                    Ok(RichtungAnschlüsse {
-                        #(#struct_fields: #struct_fields.reserviere(anschlüsse)?),*
+                    #(let #base_ident::anschluss::speichern::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
+                    Ok(#base_ident::anschluss::speichern::Reserviert {
+                        anschluss: RichtungAnschlüsse {
+                            #(#struct_fields),*
+                        },
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
                     })
                 }
             }
@@ -107,7 +128,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
         return quote! {
             compile_error!(#error_message);
             #item
-        }
+        };
     }
 
     quote! {

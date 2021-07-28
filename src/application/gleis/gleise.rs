@@ -1,18 +1,27 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::fmt::Debug;
-use std::time::{Duration, Instant};
+use std::{
+    fmt::Debug,
+    time::{Duration, Instant},
+};
 
 use log::error;
 use serde::{Deserialize, Serialize};
 
 use self::id::with_any_id;
 use crate::{
-    anschluss::{self, Anschlüsse, Fließend, Reserviere, ToSave},
+    anschluss::{
+        self,
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        Anschlüsse, Fließend,
+    },
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{geschwindigkeit, streckenabschnitt, weiche, Streckenabschnitt},
+    steuerung::{
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        streckenabschnitt, weiche, Streckenabschnitt,
+    },
 };
 
 pub mod id;
@@ -943,13 +952,70 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
+    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
+{
     #[must_use]
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
+        geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<geschwindigkeit::Map<Z::Leiter>, Error> {
+    ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Error> {
+        let mut pwm_pins = Vec::new();
+        let mut output_anschlüsse = Vec::new();
+        let mut input_anschlüsse = Vec::new();
+        macro_rules! fold_anschlüsse {
+            ($iterator:expr) => {
+                for struktur in $iterator {
+                    let (pwm, output, input) = struktur.anschlüsse();
+                    pwm_pins.extend(pwm.into_iter());
+                    output_anschlüsse.extend(output.into_iter());
+                    input_anschlüsse.extend(input.into_iter());
+                }
+            };
+        }
+        macro_rules! fold_gleis_anschlüsse {
+            ($map:ident) => {
+                fold_anschlüsse! {
+                    self.maps.$map.drain().map(|(_id, Gleis { definition, .. })| definition)
+                }
+            };
+        }
+        fold_anschlüsse! {geschwindigkeiten.map(|mut geschwindigkeit| {
+            if let Err(error) = geschwindigkeit.geschwindigkeit(0){
+                error!("Fehler beim Geschwindigkeit ausstellen: {:?}", error)
+            }
+            geschwindigkeit
+        })}
+        fold_gleis_anschlüsse! {geraden}
+        fold_gleis_anschlüsse! {kurven}
+        fold_gleis_anschlüsse! {weichen}
+        fold_gleis_anschlüsse! {dreiwege_weichen}
+        fold_gleis_anschlüsse! {kurven_weichen}
+        fold_gleis_anschlüsse! {s_kurven_weichen}
+        fold_gleis_anschlüsse! {kreuzungen}
+        fold_anschlüsse! {
+            self.maps.streckenabschnitte.drain().map(
+                |(_id, (mut streckenabschnitt, _fließend))| {
+                    if let Err(error) = streckenabschnitt.strom(Fließend::Gesperrt) {
+                        error!("Fehler beim Streckenabschnitt ausstellen: {:?}", error)
+                    }
+                    streckenabschnitt
+                }
+            )
+        }
+
+        // aktuellen status zurücksetzen
+        self.canvas.clear();
+        // TODO pivot, skalieren, Modus?
+        // last_mouse, last_size nicht anpassen
+        self.maps = GleiseMaps::neu();
+        self.anchor_points = anchor::rstar::RTree::new();
+        self.next_id = 0;
+
         let file = std::fs::File::open(pfad)?;
         let GleiseVecs {
             name,
@@ -969,23 +1035,22 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             return Err(Error::FalscherZugtyp(name));
         }
 
-        // reset current state
-        self.canvas.clear();
-        // TODO pivot, skalieren?
-        self.maps = GleiseMaps::neu();
-        self.anchor_points = anchor::rstar::RTree::new();
-        self.next_id = 0;
-        // don't reset last_mouse, last_size
-        // TODO Modus?
-
         macro_rules! reserviere_anschlüsse {
-            ($name:ident, $source:ident, $(:: $weiche:ident ::)? $module:ident, $data:ident {$steuerung:ident, $($data_feld:ident),*}) => {
+            (
+                $name:ident,
+                $source:ident,
+                $(:: $weiche:ident ::)? $module:ident,
+                $data:ident {$steuerung:ident, $($data_feld:ident),*},
+                $pwm_pins:tt,
+                $output_anschlüsse:tt,
+                $input_anschlüsse:tt$(,)?
+            ) => {
                 // collect to Vec to fail on first error
-                // match to fix error type of closure
-                let $name: Vec<_> = match $source
+                let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) = $source
                     .into_iter()
-                    .map(
-                        |Gleis {
+                    .fold(
+                        Ok((Vec::new(), $pwm_pins, $output_anschlüsse, $input_anschlüsse)),
+                        |acc_res: Result<_, anschluss::Error>, Gleis {
                             definition:
                                 super::$($weiche::)?$module::$data {
                                     $steuerung,
@@ -994,56 +1059,78 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                             position,
                             streckenabschnitt,
                         }| {
-                            let steuerung_result: Option<Result<_, anschluss::Error>> = $steuerung.map(
-                                |steuerung| Ok(steuerung.reserviere(anschlüsse)?)
-                            );
-                            let steuerung_reserviert = steuerung_result.transpose()?;
-                            Ok(Gleis {
+                            let mut acc = acc_res?;
+                            let (steuerung_reserviert, pwm, output, input)
+                                = if let Some(steuerung) = $steuerung {
+                                    let Reserviert {
+                                        anschluss,
+                                        pwm_nicht_benötigt,
+                                        output_nicht_benötigt,
+                                        input_nicht_benötigt
+                                    } = steuerung
+                                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+                                        .map_err(|speichern::Error {fehler,..}| fehler)?;
+                                    (Some(anschluss), pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
+                                } else {
+                                    (None, acc.1, acc.2, acc.3)
+                                };
+                            acc.0.push(Gleis {
                                 definition: super::$($weiche::)?$module::$data {
                                     $steuerung: steuerung_reserviert,
                                     $($data_feld),*
                                 },
                                 position,
                                 streckenabschnitt,
-                            })
+                            });
+                            Ok((acc.0, pwm, output, input))
                         },
-                    )
-                    .collect()
-                {
-                    Ok(vec) => vec,
-                    Err(error) => return Err(error),
-                };
+                    )?;
             };
         }
         reserviere_anschlüsse!(
             geraden_reserviert,
             geraden,
             gerade,
-            Gerade { kontakt, zugtyp, länge, beschreibung }
+            Gerade { kontakt, zugtyp, länge, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             kurven_reserviert,
             kurven,
             kurve,
-            Kurve { kontakt, zugtyp, radius, winkel, beschreibung }
+            Kurve { kontakt, zugtyp, radius, winkel, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             weichen_reserviert,
             weichen,
             ::weiche::gerade,
-            Weiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung }
+            Weiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             dreiwege_weichen_reserviert,
             dreiwege_weichen,
             ::weiche::dreiwege,
-            DreiwegeWeiche { steuerung, zugtyp, länge, radius, winkel, beschreibung }
+            DreiwegeWeiche { steuerung, zugtyp, länge, radius, winkel, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             kurven_weichen_reserviert,
             kurven_weichen,
             ::weiche::kurve,
-            KurvenWeiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung }
+            KurvenWeiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             s_kurven_weichen_reserviert,
@@ -1059,15 +1146,55 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
                 winkel_reverse,
                 orientierung,
                 beschreibung
-            }
+            },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
         reserviere_anschlüsse!(
             kreuzungen_reserviert,
             kreuzungen,
             kreuzung,
-            Kreuzung { steuerung, zugtyp, länge, radius, variante, beschreibung }
+            Kreuzung { steuerung, zugtyp, länge, radius, variante, beschreibung },
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
         );
-        // restore state from data
+        let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
+            streckenabschnitte.into_iter().fold(
+                Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
+                |acc_res: Result<_, anschluss::Error>, (name, streckenabschnitt)| {
+                    let mut acc = acc_res?;
+                    let Reserviert {
+                        anschluss: streckenabschnitt,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    } = streckenabschnitt
+                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+                        .map_err(|speichern::Error { fehler, .. }| fehler)?;
+                    acc.0.push((name, streckenabschnitt));
+                    Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
+                },
+            )?;
+        let (geschwindigkeiten_reserviert, _pwm_pins, _output_anschlüsse, _input_anschlüsse) =
+            geschwindigkeiten.into_iter().fold(
+                Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
+                |acc_res: Result<_, anschluss::Error>, (name, geschwindigkeit)| {
+                    let mut acc = acc_res?;
+                    let Reserviert {
+                        anschluss: geschwindigkeit,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    } = geschwindigkeit
+                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+                        .map_err(|speichern::Error { fehler, .. }| fehler)?;
+                    acc.0.push((name, geschwindigkeit));
+                    Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
+                },
+            )?;
+        // füge anschlüsse zu maps hinzu
         macro_rules! add_gleise {
             ($($gleise: ident,)*) => {
                 $(
@@ -1086,27 +1213,9 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
             s_kurven_weichen_reserviert,
             kreuzungen_reserviert,
         );
-        let streckenabschnitte_reserviert: Vec<_> = match streckenabschnitte
-            .into_iter()
-            .map(|(name, Streckenabschnitt { farbe, anschluss })| {
-                Ok((
-                    name,
-                    Streckenabschnitt { farbe, anschluss: anschluss.reserviere(anschlüsse)? },
-                ))
-            })
-            .collect()
-        {
-            Ok(map) => map,
-            Err(error) => return Err(error),
-        };
         for (name, streckenabschnitt) in streckenabschnitte_reserviert {
             self.neuer_streckenabschnitt(name, streckenabschnitt);
         }
-
-        let geschwindigkeiten_reserviert = geschwindigkeiten
-            .into_iter()
-            .map(|(name, geschwindigkeit)| Ok((name, geschwindigkeit.reserviere(anschlüsse)?)))
-            .collect::<Result<_, anschluss::Error>>()?;
         Ok(geschwindigkeiten_reserviert)
     }
 }

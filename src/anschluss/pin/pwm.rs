@@ -10,7 +10,12 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
 use super::Wrapper;
-use crate::anschluss::{anschlüsse::Anschlüsse, polarity::Polarität, serde::*};
+use crate::anschluss::{
+    anschlüsse::Anschlüsse,
+    polarity::Polarität,
+    speichern::{self, Reserviere, Reserviert, ToSave},
+    InputAnschluss, OutputAnschluss,
+};
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
@@ -245,7 +250,7 @@ impl From<pwm::Error> for Error {
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Save(pub u8);
 impl ToSave for Pin {
     type Save = Save;
@@ -253,9 +258,43 @@ impl ToSave for Pin {
     fn to_save(&self) -> Save {
         Save(self.pin())
     }
+
+    fn anschlüsse(self) -> (Vec<self::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        (vec![self], Vec::new(), Vec::new())
+    }
 }
 impl Reserviere<Pin> for Save {
-    fn reserviere(self, anschlüsse: &mut Anschlüsse) -> Result<Pin, crate::anschluss::Error> {
-        anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm).map_err(Into::into)
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<Pin>,
+        output_nicht_benötigt: Vec<OutputAnschluss>,
+        input_nicht_benötigt: Vec<InputAnschluss>,
+    ) -> speichern::Result<Pin> {
+        let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
+            pwm_pins.into_iter().partition(|pin| pin.to_save() == self);
+        if let Some(anschluss) = gesucht.pop() {
+            Ok(Reserviert {
+                anschluss,
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            })
+        } else {
+            match anschlüsse.reserviere_pin(self.0).map(super::Pin::into_pwm) {
+                Ok(anschluss) => Ok(Reserviert {
+                    anschluss,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                }),
+                Err(error) => Err(speichern::Error {
+                    fehler: error.into(),
+                    pwm_pins: pwm_nicht_benötigt,
+                    output_anschlüsse: output_nicht_benötigt,
+                    input_anschlüsse: input_nicht_benötigt,
+                }),
+            }
+        }
     }
 }
