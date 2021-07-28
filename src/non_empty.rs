@@ -13,7 +13,7 @@ pub struct NonEmpty<T> {
 }
 
 impl<T> NonEmpty<T> {
-    pub fn from_vec(vec: Vec<T>) -> Option<Self> {
+    pub fn from_vec(mut vec: Vec<T>) -> Option<Self> {
         if vec.len() > 0 {
             let head = vec.remove(0);
             Some(NonEmpty { head, tail: vec })
