@@ -9,6 +9,9 @@
 - Aktuelle Richtung einer Weiche wird über Transparenz der Füllung angezeigt
 - Neue Kommandozeilen-Argumente zoom, x, y, winkel
 - Verbesserte Widgets zum einstellen von Position und Rotation
+- Erlaube entfernen von Weichen-Steuerung
+- Bisherige Anschlüsse werden beim Anpassen  von z.B. Weichen berücksichtigt
+- Bei fehlgeschlagenem Laden wird immer ein leerer Zustand erzeugt
 
 ## 2.0.1
 
