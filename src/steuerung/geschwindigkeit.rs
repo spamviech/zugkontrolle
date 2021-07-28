@@ -176,11 +176,11 @@ impl ToSave for Mittelleiter {
             Mittelleiter::Pwm { pin, polarität: _ } => pin.anschlüsse(),
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 let acc = umdrehen.anschlüsse();
-                geschwindigkeit.into_iter().fold(acc, |acc @ (pwm0, output0, input0), anschluss| {
-                    let (pwm1, output1, input1) = anschluss.anschlüsse();
-                    pwm0.extend(pwm1.into_iter());
-                    output0.extend(output1.into_iter());
-                    input0.extend(input1.into_iter());
+                geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
+                    let (pwm, output, input) = anschluss.anschlüsse();
+                    acc.0.extend(pwm.into_iter());
+                    acc.1.extend(output.into_iter());
+                    acc.2.extend(input.into_iter());
                     acc
                 })
             }
@@ -231,12 +231,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(
-                                anschlüsse,
-                                pwm_nicht_benötigt,
-                                output_nicht_benötigt,
-                                input_nicht_benötigt,
-                            ) {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,
@@ -244,21 +239,14 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
                                     input_nicht_benötigt,
                                 }) => {
                                     acc.0.push(anschluss);
+                                    acc.1 = pwm_nicht_benötigt;
+                                    acc.2 = output_nicht_benötigt;
+                                    acc.3 = input_nicht_benötigt;
                                     Ok(acc)
                                 }
-                                Err(speichern::Error {
-                                    fehler,
-                                    pwm_pins,
-                                    output_anschlüsse,
-                                    input_anschlüsse,
-                                }) => {
-                                    output_anschlüsse.extend(acc.0.into_iter());
-                                    Err(speichern::Error {
-                                        fehler,
-                                        pwm_pins,
-                                        output_anschlüsse,
-                                        input_anschlüsse,
-                                    })
+                                Err(mut error) => {
+                                    error.output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(error)
                                 }
                             },
                             error => error,
@@ -437,7 +425,7 @@ impl ToSave for Zweileiter {
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität: _, fahrtrichtung } => {
-                let (pwm0, output0, input0) = geschwindigkeit.anschlüsse();
+                let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
                 let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
                 pwm0.extend(pwm1.into_iter());
                 output0.extend(output1.into_iter());
@@ -446,11 +434,11 @@ impl ToSave for Zweileiter {
             }
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 let acc = fahrtrichtung.anschlüsse();
-                geschwindigkeit.into_iter().fold(acc, |acc @ (pwm0, output0, input0), anschluss| {
-                    let (pwm1, output1, input1) = anschluss.anschlüsse();
-                    pwm0.extend(pwm1.into_iter());
-                    output0.extend(output1.into_iter());
-                    input0.extend(input1.into_iter());
+                geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
+                    let (pwm, output, input) = anschluss.anschlüsse();
+                    acc.0.extend(pwm.into_iter());
+                    acc.1.extend(output.into_iter());
+                    acc.2.extend(input.into_iter());
                     acc
                 })
             }
@@ -517,12 +505,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(
-                                anschlüsse,
-                                pwm_nicht_benötigt,
-                                output_nicht_benötigt,
-                                input_nicht_benötigt,
-                            ) {
+                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,
@@ -530,21 +513,14 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
                                     input_nicht_benötigt,
                                 }) => {
                                     acc.0.push(anschluss);
+                                    acc.1 = pwm_nicht_benötigt;
+                                    acc.2 = output_nicht_benötigt;
+                                    acc.3 = input_nicht_benötigt;
                                     Ok(acc)
                                 }
-                                Err(speichern::Error {
-                                    fehler,
-                                    pwm_pins,
-                                    output_anschlüsse,
-                                    input_anschlüsse,
-                                }) => {
-                                    output_anschlüsse.extend(acc.0.into_iter());
-                                    Err(speichern::Error {
-                                        fehler,
-                                        pwm_pins,
-                                        output_anschlüsse,
-                                        input_anschlüsse,
-                                    })
+                                Err(mut error) => {
+                                    error.output_anschlüsse.extend(acc.0.into_iter());
+                                    Err(error)
                                 }
                             },
                             error => error,

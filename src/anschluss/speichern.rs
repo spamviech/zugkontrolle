@@ -14,18 +14,18 @@ pub trait ToSave: Sized {
 
 #[derive(Debug)]
 pub struct Reserviert<R> {
-    anschluss: R,
-    pwm_nicht_benötigt: Vec<pwm::Pin>,
-    output_nicht_benötigt: Vec<OutputAnschluss>,
-    input_nicht_benötigt: Vec<InputAnschluss>,
+    pub anschluss: R,
+    pub pwm_nicht_benötigt: Vec<pwm::Pin>,
+    pub output_nicht_benötigt: Vec<OutputAnschluss>,
+    pub input_nicht_benötigt: Vec<InputAnschluss>,
 }
 
 #[derive(Debug)]
 pub struct Error {
-    fehler: anschluss::Error,
-    pwm_pins: Vec<pwm::Pin>,
-    output_anschlüsse: Vec<OutputAnschluss>,
-    input_anschlüsse: Vec<InputAnschluss>,
+    pub fehler: anschluss::Error,
+    pub pwm_pins: Vec<pwm::Pin>,
+    pub output_anschlüsse: Vec<OutputAnschluss>,
+    pub input_anschlüsse: Vec<InputAnschluss>,
 }
 
 pub type Result<R> = std::result::Result<Reserviert<R>, Error>;
