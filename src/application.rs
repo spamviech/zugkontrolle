@@ -10,6 +10,7 @@ use std::{
 
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
+use take_mut::take;
 use version::version;
 
 use self::{
@@ -29,7 +30,7 @@ use crate::{
     anschluss::{
         anschlüsse::Anschlüsse,
         speichern::{Reserviere, Reserviert, ToSave},
-        OutputAnschluss, OutputSave,
+        Fließend, OutputAnschluss, OutputSave,
     },
     args::Args,
     farbe::Farbe,
@@ -627,41 +628,68 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             }
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                match anschluss_definition.reserviere(&mut self.anschlüsse) {
-                    Ok(anschluss) => {
-                        self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
-                        let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
-                        match self.modal_state.inner_mut() {
-                            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
-                                streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
+                let anschluss = match self.gleise.streckenabschnitt_mut(&name) {
+                    Some((streckenabschnitt, fließend))
+                        if streckenabschnitt.anschluss.to_save() == anschluss_definition =>
+                    {
+                        streckenabschnitt.farbe = farbe;
+                        *fließend = Fließend::Gesperrt;
+                        self.zeige_message_box(
+                            format!("Streckenabschnitt {} anpassen", name.0),
+                            if let Err(err) = streckenabschnitt.strom(Fließend::Gesperrt) {
+                                format!("{:?}", err)
+                            } else {
+                                format!("Streckenabschnitt {} angepasst.", name.0)
+                            },
+                        )
+                    }
+                    _ => {
+                        match anschluss_definition.reserviere(
+                            &mut self.anschlüsse,
+                            Vec::new(),
+                            Vec::new(),
+                            Vec::new(),
+                        ) {
+                            Ok(Reserviert { anschluss, .. }) => {
+                                self.streckenabschnitt_aktuell.aktuell =
+                                    Some((name.clone(), farbe));
+                                let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
+                                match self.modal_state.inner_mut() {
+                                    Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
+                                        streckenabschnitt_auswahl
+                                            .hinzufügen(&name, &streckenabschnitt);
+                                    }
+                                    modal => {
+                                        error!(
+                                            "Falscher Modal-State bei HinzufügenStreckenabschnitt!"
+                                        );
+                                        *modal = Modal::Streckenabschnitt(
+                                            streckenabschnitt::AuswahlStatus::neu(
+                                                self.gleise.streckenabschnitte(),
+                                            ),
+                                        );
+                                    }
+                                }
+                                let name_string = name.0.clone();
+                                if let Some(ersetzt) =
+                                    self.gleise.neuer_streckenabschnitt(name, streckenabschnitt)
+                                {
+                                    self.zeige_message_box(
+                                        "Hinzufügen Streckenabschnitt".to_string(),
+                                        format!(
+                                            "Vorherigen Streckenabschnitt {} ersetzt: {:?}",
+                                            name_string, ersetzt
+                                        ),
+                                    )
+                                }
                             }
-                            modal => {
-                                error!("Falscher Modal-State bei HinzufügenStreckenabschnitt!");
-                                *modal = Modal::Streckenabschnitt(
-                                    streckenabschnitt::AuswahlStatus::neu(
-                                        self.gleise.streckenabschnitte(),
-                                    ),
-                                );
-                            }
-                        }
-                        let name_string = name.0.clone();
-                        if let Some(ersetzt) =
-                            self.gleise.neuer_streckenabschnitt(name, streckenabschnitt)
-                        {
-                            self.zeige_message_box(
+                            Err(error) => self.zeige_message_box(
                                 "Hinzufügen Streckenabschnitt".to_string(),
-                                format!(
-                                    "Vorherigen Streckenabschnitt {} ersetzt: {:?}",
-                                    name_string, ersetzt
-                                ),
-                            )
+                                format!("Fehler beim Hinzufügen: {:?}", error),
+                            ),
                         }
                     }
-                    Err(error) => self.zeige_message_box(
-                        "Hinzufügen Streckenabschnitt".to_string(),
-                        format!("Fehler beim Hinzufügen: {:?}", error),
-                    ),
-                }
+                };
             }
             Message::LöscheStreckenabschnitt(name) => {
                 if self
