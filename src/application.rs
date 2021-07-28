@@ -1,7 +1,7 @@
 //! iced::Application für die Gleis-Anzeige
 
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     convert::identity,
     fmt::Debug,
     sync::Arc,
@@ -364,7 +364,7 @@ where
         }
     }
 
-    fn gleis_anschlüsse_anpassen<T, W: ToSave>(
+    fn gleis_anschlüsse_anpassen<T, W>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -373,13 +373,17 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<&'t mut Option<W>, GleisEntferntError>,
-    ) -> Option<Message<Z>> {
+    ) -> Option<Message<Z>>
+    where
+        W: ToSave,
+        <W as ToSave>::Save: Debug + Clone,
+    {
         let mut message = None;
 
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             // TODO korrigieren, bei Fehler wiederherstellen
             let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-                if let Some(s) = steuerung {
+                if let Some(s) = steuerung.take() {
                     (Some(s.to_save()), s.anschlüsse())
                 } else {
                     (None, (Vec::new(), Vec::new(), Vec::new()))
@@ -395,10 +399,29 @@ where
                     self.gleise.erzwinge_neuzeichnen();
                     message = Some(Message::SchließeModal)
                 }
-                Err(error) => self.zeige_message_box(
-                    "Anschlüsse Weiche anpassen".to_string(),
-                    format!("{:?}", error),
-                ),
+                Err(speichern::Error {
+                    fehler, pwm_pins, output_anschlüsse, input_anschlüsse
+                }) => {
+                    let mut fehlermeldung = format!("{:?}", fehler);
+                    if let Some(save) = steuerung_save {
+                        let save_clone = save.clone();
+                        match save.reserviere(
+                            &mut self.anschlüsse,
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse,
+                        ) {
+                            Ok(Reserviert { anschluss, .. }) => *steuerung = Some(anschluss),
+                            Err(error) => {
+                                fehlermeldung.push_str(&format!(
+                                    "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
+                                    error, save_clone
+                                ));
+                            }
+                        }
+                    }
+                    self.zeige_message_box("Anschlüsse anpassen".to_string(), fehlermeldung)
+                }
             }
         } else {
             self.zeige_message_box(
@@ -529,7 +552,7 @@ where
             kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
             s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
             kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
-            geschwindigkeiten: BTreeMap::new(),
+            geschwindigkeiten: HashMap::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             streckenabschnitt_aktuell_festlegen: false,
@@ -631,19 +654,21 @@ where
                 self.streckenabschnitt_aktuell.aktuell = aktuell;
             }
             Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                let anschluss = match self.gleise.streckenabschnitt_mut(&name) {
+                match self.gleise.streckenabschnitt_mut(&name) {
                     Some((streckenabschnitt, fließend))
                         if streckenabschnitt.anschluss.to_save() == anschluss_definition =>
                     {
                         streckenabschnitt.farbe = farbe;
                         *fließend = Fließend::Gesperrt;
-                        self.zeige_message_box(
-                            format!("Streckenabschnitt {} anpassen", name.0),
+                        let fehlermeldung =
                             if let Err(err) = streckenabschnitt.strom(Fließend::Gesperrt) {
                                 format!("{:?}", err)
                             } else {
                                 format!("Streckenabschnitt {} angepasst.", name.0)
-                            },
+                            };
+                        self.zeige_message_box(
+                            format!("Streckenabschnitt {} anpassen", name.0),
+                            fehlermeldung,
                         )
                     }
                     _ => {
@@ -771,7 +796,7 @@ where
             Message::Laden(pfad) => match self.gleise.laden(
                 &mut self.anschlüsse,
                 self.geschwindigkeiten
-                    .into_iter()
+                    .drain()
                     .map(|(_name, (geschwindigkeit, _anzeige_status))| geschwindigkeit),
                 &pfad,
             ) {
@@ -784,13 +809,10 @@ where
                         .collect();
                     self.streckenabschnitt_aktuell.aktuell = None;
                 }
-                Err(err) => {
-                    self.geschwindigkeiten = BTreeMap::new();
-                    self.zeige_message_box(
-                        format!("Fehler beim Laden von {}", pfad),
-                        format!("{:?}", err),
-                    )
-                }
+                Err(err) => self.zeige_message_box(
+                    format!("Fehler beim Laden von {}", pfad),
+                    format!("{:?}", err),
+                ),
             },
             Message::GeschwindigkeitAnzeige { name, nachricht } => {
                 if let Some((geschwindigkeit, anzeige_status)) =
@@ -876,6 +898,7 @@ where
                     }) => {
                         let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
                         if let Some(save) = alt_save {
+                            let save_clone = save.clone();
                             match save.reserviere(
                                 &mut self.anschlüsse,
                                 pwm_pins,
@@ -909,7 +932,7 @@ where
                                     }
                                     fehlermeldung.push_str(&format!(
                                         "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
-                                        fehler, save
+                                        fehler, save_clone
                                     ));
                                 }
                             }

@@ -1,7 +1,7 @@
 //! Anzeige & Erstellen einer Geschwindigkeit.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::{Debug, Display},
     iter,
     num::NonZeroUsize,
@@ -23,7 +23,7 @@ use crate::{
     steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
 };
 
-pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
+pub type Map<Leiter> = HashMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
 
 #[derive(Debug)]
 pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
