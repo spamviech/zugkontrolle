@@ -93,37 +93,47 @@ impl Modus {
 pub enum AnschlüsseAnpassen<Z> {
     Weiche(
         GleisId<Weiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        Option<
+            steuerung::Weiche<
+                gleis::weiche::gerade::Richtung,
+                gleis::weiche::gerade::RichtungAnschlüsseSave,
+            >,
         >,
     ),
     DreiwegeWeiche(
         GleisId<DreiwegeWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::dreiwege::Richtung,
-            gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+        Option<
+            steuerung::Weiche<
+                gleis::weiche::dreiwege::Richtung,
+                gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+            >,
         >,
     ),
     KurvenWeiche(
         GleisId<KurvenWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::kurve::Richtung,
-            gleis::weiche::kurve::RichtungAnschlüsseSave,
+        Option<
+            steuerung::Weiche<
+                gleis::weiche::kurve::Richtung,
+                gleis::weiche::kurve::RichtungAnschlüsseSave,
+            >,
         >,
     ),
     SKurvenWeiche(
         GleisId<SKurvenWeiche<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        Option<
+            steuerung::Weiche<
+                gleis::weiche::gerade::Richtung,
+                gleis::weiche::gerade::RichtungAnschlüsseSave,
+            >,
         >,
     ),
     Kreuzung(
         GleisId<Kreuzung<Z>>,
-        steuerung::Weiche<
-            gleis::weiche::gerade::Richtung,
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
+        Option<
+            steuerung::Weiche<
+                gleis::weiche::gerade::Richtung,
+                gleis::weiche::gerade::RichtungAnschlüsseSave,
+            >,
         >,
     ),
 }
@@ -242,9 +252,11 @@ where
         >,
         Arc<
             dyn Fn(
-                steuerung::Weiche<
-                    gleis::weiche::gerade::Richtung,
-                    gleis::weiche::gerade::RichtungAnschlüsseSave,
+                Option<
+                    steuerung::Weiche<
+                        gleis::weiche::gerade::Richtung,
+                        gleis::weiche::gerade::RichtungAnschlüsseSave,
+                    >,
                 >,
             ) -> Message<Z>,
         >,
@@ -256,9 +268,11 @@ where
         >,
         Arc<
             dyn Fn(
-                steuerung::Weiche<
-                    gleis::weiche::dreiwege::Richtung,
-                    gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+                Option<
+                    steuerung::Weiche<
+                        gleis::weiche::dreiwege::Richtung,
+                        gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+                    >,
                 >,
             ) -> Message<Z>,
         >,
@@ -270,9 +284,11 @@ where
         >,
         Arc<
             dyn Fn(
-                steuerung::Weiche<
-                    gleis::weiche::kurve::Richtung,
-                    gleis::weiche::kurve::RichtungAnschlüsseSave,
+                Option<
+                    steuerung::Weiche<
+                        gleis::weiche::kurve::Richtung,
+                        gleis::weiche::kurve::RichtungAnschlüsseSave,
+                    >,
                 >,
             ) -> Message<Z>,
         >,
@@ -344,8 +360,12 @@ where
             &GleisId<T>,
         ) -> Result<&'t mut Option<W>, GleisEntferntError>,
         erzeuge_modal_status: impl Fn(Option<<W as ToSave>::Save>) -> Status,
-        erzeuge_modal: impl Fn(Status, Arc<dyn Fn(<W as ToSave>::Save) -> Message<Z>>) -> Modal<Z>,
-        als_nachricht: impl Fn(GleisId<T>, <W as ToSave>::Save) -> AnschlüsseAnpassen<Z> + 'static,
+        erzeuge_modal: impl Fn(
+            Status,
+            Arc<dyn Fn(Option<<W as ToSave>::Save>) -> Message<Z>>,
+        ) -> Modal<Z>,
+        als_nachricht: impl Fn(GleisId<T>, Option<<W as ToSave>::Save>) -> AnschlüsseAnpassen<Z>
+            + 'static,
     ) {
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.to_save());
@@ -368,7 +388,7 @@ where
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
-        anschlüsse_save: <W as ToSave>::Save,
+        anschlüsse_save: Option<<W as ToSave>::Save>,
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
@@ -381,47 +401,55 @@ where
         let mut message = None;
 
         if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            // TODO korrigieren, bei Fehler wiederherstellen
-            let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-                if let Some(s) = steuerung.take() {
-                    (Some(s.to_save()), s.anschlüsse())
-                } else {
-                    (None, (Vec::new(), Vec::new(), Vec::new()))
-                };
-            match anschlüsse_save.reserviere(
-                &mut self.anschlüsse,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-            ) {
-                Ok(Reserviert { anschluss, .. }) => {
-                    *steuerung = Some(anschluss);
-                    self.gleise.erzwinge_neuzeichnen();
-                    message = Some(Message::SchließeModal)
-                }
-                Err(speichern::Error {
-                    fehler, pwm_pins, output_anschlüsse, input_anschlüsse
-                }) => {
-                    let mut fehlermeldung = format!("{:?}", fehler);
-                    if let Some(save) = steuerung_save {
-                        let save_clone = save.clone();
-                        match save.reserviere(
-                            &mut self.anschlüsse,
-                            pwm_pins,
-                            output_anschlüsse,
-                            input_anschlüsse,
-                        ) {
-                            Ok(Reserviert { anschluss, .. }) => *steuerung = Some(anschluss),
-                            Err(error) => {
-                                fehlermeldung.push_str(&format!(
+            if let Some(anschlüsse_save) = anschlüsse_save {
+                let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+                    if let Some(s) = steuerung.take() {
+                        (Some(s.to_save()), s.anschlüsse())
+                    } else {
+                        (None, (Vec::new(), Vec::new(), Vec::new()))
+                    };
+                match anschlüsse_save.reserviere(
+                    &mut self.anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                ) {
+                    Ok(Reserviert { anschluss, .. }) => {
+                        *steuerung = Some(anschluss);
+                        self.gleise.erzwinge_neuzeichnen();
+                        message = Some(Message::SchließeModal)
+                    }
+                    Err(speichern::Error {
+                        fehler,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                    }) => {
+                        let mut fehlermeldung = format!("{:?}", fehler);
+                        if let Some(steuerung_save) = steuerung_save {
+                            let save_clone = steuerung_save.clone();
+                            match steuerung_save.reserviere(
+                                &mut self.anschlüsse,
+                                pwm_pins,
+                                output_anschlüsse,
+                                input_anschlüsse,
+                            ) {
+                                Ok(Reserviert { anschluss, .. }) => *steuerung = Some(anschluss),
+                                Err(error) => {
+                                    fehlermeldung.push_str(&format!(
                                     "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
                                     error, save_clone
                                 ));
+                                }
                             }
                         }
+                        self.zeige_message_box("Anschlüsse anpassen".to_string(), fehlermeldung)
                     }
-                    self.zeige_message_box("Anschlüsse anpassen".to_string(), fehlermeldung)
                 }
+            } else {
+                *steuerung = None;
+                self.gleise.erzwinge_neuzeichnen();
+                message = Some(Message::SchließeModal);
             }
         } else {
             self.zeige_message_box(

@@ -22,6 +22,8 @@ pub struct Status<AnschlüsseSave, AnschlüsseAuswahlStatus> {
     anschlüsse_save: AnschlüsseSave,
     anschlüsse_state: AnschlüsseAuswahlStatus,
     festlegen_state: button::State,
+    entfernen_state: button::State,
+    hat_steuerung: bool,
 }
 
 impl<AnschlüsseSave, AnschlüsseAuswahlStatus> Status<AnschlüsseSave, AnschlüsseAuswahlStatus>
@@ -29,12 +31,12 @@ where
     AnschlüsseSave: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
     pub fn neu<Richtung>(option_weiche: Option<Weiche<Richtung, AnschlüsseSave>>) -> Self {
-        let (name, anschlüsse_save) = if let Some(Weiche { name, anschlüsse, .. }) = option_weiche
-        {
-            (name.0, anschlüsse)
-        } else {
-            (String::new(), Default::default())
-        };
+        let (name, anschlüsse_save, hat_steuerung) =
+            if let Some(Weiche { name, anschlüsse, .. }) = option_weiche {
+                (name.0, anschlüsse, true)
+            } else {
+                (String::new(), Default::default(), false)
+            };
         let anschlüsse_state = anschlüsse_save.clone().into();
         Status {
             name,
@@ -42,6 +44,8 @@ where
             anschlüsse_save,
             anschlüsse_state,
             festlegen_state: button::State::new(),
+            entfernen_state: button::State::new(),
+            hat_steuerung,
         }
     }
 }
@@ -51,6 +55,7 @@ enum InterneNachricht<Richtung> {
     Name(String),
     Anschluss(Richtung, OutputSave),
     Festlegen,
+    Entfernen,
     Schließen,
 }
 
@@ -81,8 +86,15 @@ where
     pub fn neu<AnschlüsseAuswahlStatus: Lookup<Richtung, anschluss::Status<anschluss::Output>>>(
         status: &'t mut Status<AnschlüsseSave, AnschlüsseAuswahlStatus>,
     ) -> Self {
-        let Status { name, name_state, anschlüsse_save, anschlüsse_state, festlegen_state } =
-            status;
+        let Status {
+            name,
+            name_state,
+            anschlüsse_save,
+            anschlüsse_state,
+            festlegen_state,
+            entfernen_state,
+            hat_steuerung,
+        } = status;
         let mut column = Column::new().push(
             TextInput::new(name_state, "<Name>", name, InterneNachricht::Name)
                 .width(Length::Units(200)),
@@ -97,8 +109,18 @@ where
             ))
         }
         column = column.push(
-            Button::new(festlegen_state, Text::new("Festlegen"))
-                .on_press(InterneNachricht::Festlegen),
+            Row::new()
+                .push(
+                    Button::new(festlegen_state, Text::new("Festlegen"))
+                        .on_press(InterneNachricht::Festlegen),
+                )
+                .push(
+                    Button::new(
+                        entfernen_state,
+                        Text::new(if *hat_steuerung { "Entfernen" } else { "Keine Anschlüsse" }),
+                    )
+                    .on_press(InterneNachricht::Entfernen),
+                ),
         );
         let card = Card::new(Text::new("Weiche"), column)
             .on_close(InterneNachricht::Schließen)
@@ -110,7 +132,7 @@ where
 
 #[derive(Debug, Clone)]
 pub enum Nachricht<Richtung, AnschlüsseSave> {
-    Festlegen(Weiche<Richtung, AnschlüsseSave>),
+    Festlegen(Option<Weiche<Richtung, AnschlüsseSave>>),
     Schließen,
 }
 
@@ -153,12 +175,13 @@ where
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *self.anschlüsse.get_mut(&richtung) = anschluss
                 }
-                InterneNachricht::Festlegen => messages.push(Nachricht::Festlegen(Weiche {
+                InterneNachricht::Festlegen => messages.push(Nachricht::Festlegen(Some(Weiche {
                     name: Name(self.name.clone()),
                     aktuelle_richtung: Default::default(),
                     letzte_richtung: Default::default(),
                     anschlüsse: self.anschlüsse.clone(),
-                })),
+                }))),
+                InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
         }
