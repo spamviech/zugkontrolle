@@ -1045,7 +1045,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced_aw?rev=c1d18aedcca94e989281e728576a40a583db97f6#c1d18aedcca94e989281e728576a40a583db97f6"
+source = "git+https://github.com/iced-rs/iced_aw?rev=53e87f244766a056723fda9116cc3f662e1f9a68#53e87f244766a056723fda9116cc3f662e1f9a68"
 dependencies = [
  "dodrio",
  "iced_graphics",
