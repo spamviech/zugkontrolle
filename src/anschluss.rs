@@ -195,22 +195,28 @@ impl OutputSave {
             (OutputSave::Pin { pin: p0, .. }, OutputSave::Pin { pin: p1, .. }) => p0 == p1,
             (
                 OutputSave::Pcf8574Port {
-                    a0: a0A,
-                    a1: a1A,
-                    a2: a2A,
-                    variante: varianteA,
-                    port: portA,
+                    a0: a0_a,
+                    a1: a1_a,
+                    a2: a2_a,
+                    variante: variante_a,
+                    port: port_a,
                     ..
                 },
                 OutputSave::Pcf8574Port {
-                    a0: a0B,
-                    a1: a1B,
-                    a2: a2B,
-                    variante: varianteB,
-                    port: portB,
+                    a0: a0_b,
+                    a1: a1_b,
+                    a2: a2_b,
+                    variante: variante_b,
+                    port: port_b,
                     ..
                 },
-            ) => a0A == a0B && a1A == a1B && a2A == a2B && varianteA == varianteB && portA == portB,
+            ) => {
+                a0_a == a0_b
+                    && a1_a == a1_b
+                    && a2_a == a2_b
+                    && variante_a == variante_b
+                    && port_a == port_b
+            }
             _ => false,
         }
     }
@@ -374,22 +380,28 @@ impl InputSave {
             (InputSave::Pin { pin: p0 }, InputSave::Pin { pin: p1 }) => p0 == p1,
             (
                 InputSave::Pcf8574Port {
-                    a0: a0A,
-                    a1: a1A,
-                    a2: a2A,
-                    variante: varianteA,
-                    port: portA,
+                    a0: a0_a,
+                    a1: a1_a,
+                    a2: a2_a,
+                    variante: variante_a,
+                    port: port_a,
                     ..
                 },
                 InputSave::Pcf8574Port {
-                    a0: a0B,
-                    a1: a1B,
-                    a2: a2B,
-                    variante: varianteB,
-                    port: portB,
+                    a0: a0_b,
+                    a1: a1_b,
+                    a2: a2_b,
+                    variante: variante_b,
+                    port: port_b,
                     ..
                 },
-            ) => a0A == a0B && a1A == a1B && a2A == a2B && varianteA == varianteB && portA == portB,
+            ) => {
+                a0_a == a0_b
+                    && a1_a == a1_b
+                    && a2_a == a2_b
+                    && variante_a == variante_b
+                    && port_a == port_b
+            }
             _ => false,
         }
     }
