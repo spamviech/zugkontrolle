@@ -15,7 +15,7 @@ use version::version;
 use self::{
     bewegen::{Bewegen, Bewegung},
     drehen::Drehen,
-    geschwindigkeit::{Geschwindigkeit, LeiterAnzeige},
+    geschwindigkeit::LeiterAnzeige,
     gleis::{
         gleise::{id::with_any_id, *},
         *,
@@ -34,7 +34,10 @@ use crate::{
     args::Args,
     farbe::Farbe,
     lookup::Lookup,
-    steuerung,
+    steuerung::{
+        self,
+        geschwindigkeit::{Geschwindigkeit, Leiter},
+    },
 };
 
 pub mod anschluss;
@@ -482,6 +485,7 @@ where
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message: Unpin,
     <<Z as Zugtyp>::Leiter as ToSave>::Save: Unpin,
+    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Args);
@@ -764,7 +768,13 @@ where
                     }
                 }
             }
-            Message::Laden(pfad) => match self.gleise.laden(&mut self.anschlüsse, &pfad) {
+            Message::Laden(pfad) => match self.gleise.laden(
+                &mut self.anschlüsse,
+                self.geschwindigkeiten
+                    .into_iter()
+                    .map(|(_name, (geschwindigkeit, _anzeige_status))| geschwindigkeit),
+                &pfad,
+            ) {
                 Ok(geschwindigkeiten) => {
                     self.geschwindigkeiten = geschwindigkeiten
                         .into_iter()
@@ -774,10 +784,13 @@ where
                         .collect();
                     self.streckenabschnitt_aktuell.aktuell = None;
                 }
-                Err(err) => self.zeige_message_box(
-                    format!("Fehler beim Laden von {}", pfad),
-                    format!("{:?}", err),
-                ),
+                Err(err) => {
+                    self.geschwindigkeiten = BTreeMap::new();
+                    self.zeige_message_box(
+                        format!("Fehler beim Laden von {}", pfad),
+                        format!("{:?}", err),
+                    )
+                }
             },
             Message::GeschwindigkeitAnzeige { name, nachricht } => {
                 if let Some((geschwindigkeit, anzeige_status)) =

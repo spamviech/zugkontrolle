@@ -15,12 +15,12 @@ use iced_native::{
 };
 use log::error;
 
-pub use crate::steuerung::geschwindigkeit::{Error, Geschwindigkeit, Name};
+pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
     anschluss::{polarity::Polarität, pwm, OutputSave, ToSave},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
-    steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter},
+    steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
 };
 
 pub type Map<Leiter> = BTreeMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;

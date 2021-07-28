@@ -20,6 +20,14 @@ use crate::{
     non_empty::{MaybeEmpty, NonEmpty},
 };
 
+pub trait Leiter {
+    /// 0 deaktiviert die Stromzufuhr.
+    /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
+    /// Pwm: 0-u8::MAX
+    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error>;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
@@ -290,12 +298,12 @@ const PWM_FREQUENZ: f64 = 50.;
 const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: f64 = 16. / 25.;
 const UMDREHENZEIT: Duration = Duration::from_millis(500);
 
-impl Geschwindigkeit<Mittelleiter> {
+impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
-    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
@@ -305,7 +313,9 @@ impl Geschwindigkeit<Mittelleiter> {
             }
         }
     }
+}
 
+impl Geschwindigkeit<Mittelleiter> {
     pub fn umdrehen(&mut self) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
@@ -365,8 +375,8 @@ impl Display for Zweileiter {
     }
 }
 
-impl Geschwindigkeit<Zweileiter> {
-    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+impl Leiter for Geschwindigkeit<Zweileiter> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
         match &mut self.leiter {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
@@ -376,7 +386,9 @@ impl Geschwindigkeit<Zweileiter> {
             }
         }
     }
+}
 
+impl Geschwindigkeit<Zweileiter> {
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);

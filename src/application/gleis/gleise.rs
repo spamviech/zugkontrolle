@@ -12,7 +12,10 @@ use crate::{
     application::{anchor, typen::*},
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{geschwindigkeit, streckenabschnitt, weiche, Streckenabschnitt},
+    steuerung::{
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        streckenabschnitt, weiche, Streckenabschnitt,
+    },
 };
 
 pub mod id;
@@ -943,13 +946,100 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+impl<Z> Gleise<Z>
+where
+    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
+    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
+{
     #[must_use]
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
+        geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
     ) -> std::result::Result<geschwindigkeit::Map<Z::Leiter>, Error> {
+        macro_rules! fold_anschlüsse {
+            ($iterator:expr, $pwm_pins:expr, $output_pins:expr, $input_pins:expr) => {
+                $iterator.fold(
+                    ($pwm_pins, $output_pins, $input_pins),
+                    |mut acc @ (pwm_acc, output_acc, input_acc), struktur| {
+                        let (pwm, output, input) = struktur.anschlüsse();
+                        pwm_acc.extend(pwm.into_iter());
+                        output_acc.extend(output.into_iter());
+                        input_acc.extend(input.into_iter());
+                        acc
+                    },
+                );
+            };
+        }
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            geschwindigkeiten.map(|geschwindigkeit| {
+                geschwindigkeit.geschwindigkeit(0);
+                geschwindigkeit
+            }),
+            Vec::new(),
+            Vec::new(),
+            Vec::new()
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.geraden.into_iter().map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.kurven.into_iter().map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.weichen.into_iter().map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps
+                .dreiwege_weichen
+                .into_iter()
+                .map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.kurven_weichen.into_iter().map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps
+                .s_kurven_weichen
+                .into_iter()
+                .map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.kreuzungen.into_iter().map(|(_id, Gleis { definition, .. })| definition),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
+        let (pwm_pins, output_pins, input_pins) = fold_anschlüsse!(
+            self.maps.streckenabschnitte.into_iter().map(
+                |(_id, (streckenabschnitt, _fließend))| {
+                    streckenabschnitt.strom(Fließend::Gesperrt);
+                    streckenabschnitt
+                }
+            ),
+            pwm_pins,
+            output_pins,
+            input_pins
+        );
         let file = std::fs::File::open(pfad)?;
         let GleiseVecs {
             name,
