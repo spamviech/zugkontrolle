@@ -10,7 +10,6 @@ use std::{
 
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
-use take_mut::take;
 use version::version;
 
 use self::{
@@ -29,7 +28,7 @@ use self::{
 use crate::{
     anschluss::{
         anschlüsse::Anschlüsse,
-        speichern::{Reserviere, Reserviert, ToSave},
+        speichern::{self, Reserviere, Reserviert, ToSave},
         Fließend, OutputAnschluss, OutputSave,
     },
     args::Args,
@@ -675,9 +674,9 @@ where
                                     self.gleise.neuer_streckenabschnitt(name, streckenabschnitt)
                                 {
                                     self.zeige_message_box(
-                                        "Hinzufügen Streckenabschnitt".to_string(),
+                                        format!("Streckenabschnitt {} anpassen", name_string),
                                         format!(
-                                            "Vorherigen Streckenabschnitt {} ersetzt: {:?}",
+                                            "Streckenabschnitt {} angepasst: {:?}",
                                             name_string, ersetzt
                                         ),
                                     )
@@ -815,8 +814,21 @@ where
                 self.modal_state.show(true);
             }
             Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
-                match geschwindigkeit_save.reserviere(&mut self.anschlüsse) {
-                    Ok(geschwindigkeit) => {
+                let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+                    if let Some((geschwindigkeit, _anzeige_status)) =
+                        self.geschwindigkeiten.remove(&name)
+                    {
+                        (Some(geschwindigkeit.to_save()), geschwindigkeit.anschlüsse())
+                    } else {
+                        (None, (Vec::new(), Vec::new(), Vec::new()))
+                    };
+                match geschwindigkeit_save.reserviere(
+                    &mut self.anschlüsse,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                ) {
+                    Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                         match self.modal_state.inner_mut() {
                             Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                                 geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
@@ -829,26 +841,71 @@ where
                                     ));
                             }
                         }
-                        if let Some(ersetzt) = self.geschwindigkeiten.insert(
+                        self.geschwindigkeiten.insert(
                             name.clone(),
                             (
                                 geschwindigkeit,
                                 <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
                             ),
-                        ) {
+                        );
+                        if let Some(ersetzt) = alt_save {
                             self.zeige_message_box(
-                                "Hinzufügen Geschwindigkeit".to_string(),
-                                format!(
-                                    "Vorherige Geschwindigkeit {} ersetzt: {:?}",
-                                    name.0, ersetzt
-                                ),
+                                format!("Geschwindigkeit {} anpassen", name.0),
+                                format!("Geschwindigkeit {} angepasst: {:?}", name.0, ersetzt),
                             )
                         }
                     }
-                    Err(error) => self.zeige_message_box(
-                        "Hinzufügen Geschwindigkeit".to_string(),
-                        format!("Fehler beim Hinzufügen: {:?}", error),
-                    ),
+                    Err(speichern::Error {
+                        fehler,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                    }) => {
+                        let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
+                        if let Some(save) = alt_save {
+                            match save.reserviere(
+                                &mut self.anschlüsse,
+                                pwm_pins,
+                                output_anschlüsse,
+                                input_anschlüsse,
+                            ) {
+                                Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
+                                    // Modal muss nicht angepasst werden,
+                                    // nachdem nur wiederhergestellt wird
+                                    self.geschwindigkeiten.insert(
+                                        name.clone(),
+                                        (
+                                            geschwindigkeit,
+                                            <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
+                                        ),
+                                    );
+                                }
+                                Err(speichern::Error { fehler, .. }) => {
+                                    match self.modal_state.inner_mut() {
+                                        Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                                            geschwindigkeit_auswahl.entfernen(&name)
+                                        }
+                                        modal => {
+                                            error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
+                                            *modal = Modal::Geschwindigkeit(
+                                                geschwindigkeit::AuswahlStatus::neu(
+                                                    self.geschwindigkeiten.iter(),
+                                                ),
+                                            );
+                                        }
+                                    }
+                                    fehlermeldung.push_str(&format!(
+                                        "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
+                                        fehler, save
+                                    ));
+                                }
+                            }
+                        }
+                        self.zeige_message_box(
+                            "Hinzufügen Geschwindigkeit".to_string(),
+                            fehlermeldung,
+                        );
+                    }
                 }
             }
             Message::LöscheGeschwindigkeit(name) => {
