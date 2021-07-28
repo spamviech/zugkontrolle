@@ -961,9 +961,37 @@ where
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
-        geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
+        bisherige_geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
     ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Error> {
+        // aktuellen Zustand zurücksetzen
+        self.canvas.clear();
+        // TODO pivot, skalieren, Modus?
+        // last_mouse, last_size nicht anpassen
+        self.maps = GleiseMaps::neu();
+        self.anchor_points = anchor::rstar::RTree::new();
+        self.next_id = 0;
+
+        // lese & parse Datei
+        let file = std::fs::File::open(pfad)?;
+        let GleiseVecs {
+            name,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            streckenabschnitte,
+            geschwindigkeiten,
+            pläne: _, // TODO verwenden, sobald Plan implementiert ist
+        } = bincode::deserialize_from(file)?;
+        if name != Z::NAME {
+            return Err(Error::FalscherZugtyp(name));
+        }
+
+        // sammle bisherige Anschlüsse
         let mut pwm_pins = Vec::new();
         let mut output_anschlüsse = Vec::new();
         let mut input_anschlüsse = Vec::new();
@@ -984,7 +1012,7 @@ where
                 }
             };
         }
-        fold_anschlüsse! {geschwindigkeiten.map(|mut geschwindigkeit| {
+        fold_anschlüsse! {bisherige_geschwindigkeiten.map(|mut geschwindigkeit| {
             if let Err(error) = geschwindigkeit.geschwindigkeit(0){
                 error!("Fehler beim Geschwindigkeit ausstellen: {:?}", error)
             }
@@ -1008,33 +1036,7 @@ where
             )
         }
 
-        // aktuellen status zurücksetzen
-        self.canvas.clear();
-        // TODO pivot, skalieren, Modus?
-        // last_mouse, last_size nicht anpassen
-        self.maps = GleiseMaps::neu();
-        self.anchor_points = anchor::rstar::RTree::new();
-        self.next_id = 0;
-
-        let file = std::fs::File::open(pfad)?;
-        let GleiseVecs {
-            name,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            streckenabschnitte,
-            geschwindigkeiten,
-            pläne: _, // TODO verwenden, sobald Plan implementiert ist
-        } = bincode::deserialize_from(file)?;
-
-        if name != Z::NAME {
-            return Err(Error::FalscherZugtyp(name));
-        }
-
+        // reserviere Anschlüsse
         macro_rules! reserviere_anschlüsse {
             (
                 $name:ident,
