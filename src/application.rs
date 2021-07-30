@@ -8,7 +8,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use version::version;
 
@@ -16,24 +15,15 @@ use self::{
     bewegen::{Bewegen, Bewegung},
     drehen::Drehen,
     geschwindigkeit::LeiterAnzeige,
-    gleis::{
-        gleise::{id::with_any_id, *},
-        *,
-    },
+    gleis::{gleise::*, *},
     sleep::Sleep,
-    streckenabschnitt::Streckenabschnitt,
     style::*,
     typen::*,
 };
 use crate::{
-    anschluss::{
-        anschlüsse::Anschlüsse,
-        speichern::{self, Reserviere, Reserviert, ToSave},
-        Fließend, OutputAnschluss, OutputSave,
-    },
+    anschluss::{anschlüsse::Anschlüsse, speichern::ToSave, OutputSave},
     args::Args,
     farbe::Farbe,
-    lookup::Lookup,
     steuerung::{
         self,
         geschwindigkeit::{Geschwindigkeit, Leiter},
@@ -167,7 +157,7 @@ where
     Speichern(String),
     EntferneSpeichernFarbe(Instant),
     Laden(String),
-    GeschwindigkeitAnzeige {
+    GeschwindigkeitAuswahl {
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Message,
     },
@@ -452,313 +442,23 @@ where
                 self.entferne_speichern_farbe(nachricht_zeit)
             }
             Message::Laden(pfad) => self.laden(pfad),
-            Message::GeschwindigkeitAnzeige { name, nachricht } => {
-                if let Some((geschwindigkeit, anzeige_status)) =
-                    self.geschwindigkeiten.get_mut(&name)
-                {
-                    match <Z::Leiter as LeiterAnzeige>::anzeige_update(
-                        geschwindigkeit,
-                        anzeige_status,
-                        nachricht,
-                    ) {
-                        Ok(cmd) => {
-                            let name_clone = name.clone();
-                            command = cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
-                                name: name_clone.clone(),
-                                nachricht,
-                            })
-                        }
-                        Err(error) => self.zeige_message_box(
-                            format!("Fehler Geschwindigkeit {}", name.0),
-                            format!("{:?}", error),
-                        ),
-                    }
-                } else {
-                    error!(
-                        "Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}",
-                        name.0, nachricht
-                    )
+            Message::GeschwindigkeitAuswahl { name, nachricht } => {
+                if let Some(cmd) = self.geschwindigkeit_auswahl_nachricht(name, nachricht) {
+                    command = cmd
                 }
             }
-            Message::ZeigeAuswahlGeschwindigkeit => {
-                *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
-                    geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.iter()),
-                );
-                self.modal_state.show(true);
-            }
+            Message::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
             Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
-                let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-                    if let Some((geschwindigkeit, _anzeige_status)) =
-                        self.geschwindigkeiten.remove(&name)
-                    {
-                        (Some(geschwindigkeit.to_save()), geschwindigkeit.anschlüsse())
-                    } else {
-                        (None, (Vec::new(), Vec::new(), Vec::new()))
-                    };
-                match geschwindigkeit_save.reserviere(
-                    &mut self.anschlüsse,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                ) {
-                    Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                        match self.modal_state.inner_mut() {
-                            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                                geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
-                            }
-                            modal => {
-                                error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
-                                *modal =
-                                    Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                                        self.geschwindigkeiten.iter(),
-                                    ));
-                            }
-                        }
-                        self.geschwindigkeiten.insert(
-                            name.clone(),
-                            (
-                                geschwindigkeit,
-                                <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
-                            ),
-                        );
-                        if let Some(ersetzt) = alt_save {
-                            self.zeige_message_box(
-                                format!("Geschwindigkeit {} anpassen", name.0),
-                                format!("Geschwindigkeit {} angepasst: {:?}", name.0, ersetzt),
-                            )
-                        }
-                    }
-                    Err(speichern::Error {
-                        fehler,
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                    }) => {
-                        let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
-                        if let Some(save) = alt_save {
-                            let save_clone = save.clone();
-                            match save.reserviere(
-                                &mut self.anschlüsse,
-                                pwm_pins,
-                                output_anschlüsse,
-                                input_anschlüsse,
-                            ) {
-                                Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                                    // Modal muss nicht angepasst werden,
-                                    // nachdem nur wiederhergestellt wird
-                                    self.geschwindigkeiten.insert(
-                                        name.clone(),
-                                        (
-                                            geschwindigkeit,
-                                            <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
-                                        ),
-                                    );
-                                }
-                                Err(speichern::Error { fehler, .. }) => {
-                                    match self.modal_state.inner_mut() {
-                                        Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                                            geschwindigkeit_auswahl.entfernen(&name)
-                                        }
-                                        modal => {
-                                            error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
-                                            *modal = Modal::Geschwindigkeit(
-                                                geschwindigkeit::AuswahlStatus::neu(
-                                                    self.geschwindigkeiten.iter(),
-                                                ),
-                                            );
-                                        }
-                                    }
-                                    fehlermeldung.push_str(&format!(
-                                        "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
-                                        fehler, save_clone
-                                    ));
-                                }
-                            }
-                        }
-                        self.zeige_message_box(
-                            "Hinzufügen Geschwindigkeit".to_string(),
-                            fehlermeldung,
-                        );
-                    }
-                }
+                self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             }
-            Message::LöscheGeschwindigkeit(name) => {
-                self.geschwindigkeiten.remove(&name);
-                match self.modal_state.inner_mut() {
-                    Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                        geschwindigkeit_auswahl.entfernen(&name);
-                    }
-                    modal => {
-                        error!("Falscher Modal-State bei LöscheGeschwindigkeit!");
-                        *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                            self.geschwindigkeiten.iter(),
-                        ));
-                    }
-                }
-            }
-            Message::ZeigeAnschlüsseAnpassen(any_id) => match any_id {
-                AnyId::Gerade(id) => {
-                    debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-                }
-                AnyId::Kurve(id) => {
-                    debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-                }
-                AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen(
-                    "Weiche",
-                    id,
-                    Gleise::steuerung_weiche,
-                    weiche::Status::neu,
-                    Modal::Weiche,
-                    AnschlüsseAnpassen::Weiche,
-                ),
-                AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen(
-                    "DreiwegeWeiche",
-                    id,
-                    Gleise::steuerung_dreiwege_weiche,
-                    weiche::Status::neu,
-                    Modal::DreiwegeWeiche,
-                    AnschlüsseAnpassen::DreiwegeWeiche,
-                ),
-                AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen(
-                    "KurvenWeiche",
-                    id,
-                    Gleise::steuerung_kurven_weiche,
-                    weiche::Status::neu,
-                    Modal::KurvenWeiche,
-                    AnschlüsseAnpassen::KurvenWeiche,
-                ),
-                AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen(
-                    "SKurvenWeiche",
-                    id,
-                    Gleise::steuerung_s_kurven_weiche,
-                    weiche::Status::neu,
-                    Modal::Weiche,
-                    AnschlüsseAnpassen::SKurvenWeiche,
-                ),
-                AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen(
-                    "Kreuzung",
-                    id,
-                    Gleise::steuerung_kreuzung,
-                    weiche::Status::neu,
-                    Modal::Weiche,
-                    AnschlüsseAnpassen::Kreuzung,
-                ),
-            },
+            Message::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
+            Message::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Message::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                if let Some(message) = match anschlüsse_anpassen {
-                    AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self
-                        .gleis_anschlüsse_anpassen(
-                            "Weiche",
-                            id,
-                            anschlüsse_save,
-                            Gleise::steuerung_weiche,
-                        ),
-                    AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_save) => self
-                        .gleis_anschlüsse_anpassen(
-                            "DreiwegeWeiche",
-                            id,
-                            anschlüsse_save,
-                            Gleise::steuerung_dreiwege_weiche,
-                        ),
-                    AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_save) => self
-                        .gleis_anschlüsse_anpassen(
-                            "KurvenWeiche",
-                            id,
-                            anschlüsse_save,
-                            Gleise::steuerung_kurven_weiche,
-                        ),
-                    AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_save) => self
-                        .gleis_anschlüsse_anpassen(
-                            "SKurvenWeiche",
-                            id,
-                            anschlüsse_save,
-                            Gleise::steuerung_s_kurven_weiche,
-                        ),
-                    AnschlüsseAnpassen::Kreuzung(id, anschlüsse_save) => self
-                        .gleis_anschlüsse_anpassen(
-                            "Kreuzung",
-                            id,
-                            anschlüsse_save,
-                            Gleise::steuerung_kreuzung,
-                        ),
-                } {
+                if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = message.as_command()
                 }
             }
-            Message::FahrenAktion(any_id) => match any_id {
-                // TODO in Methode auslagern
-                AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
-                AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
-                AnyId::Weiche(id) => self.weiche_stellen(
-                    "Weiche",
-                    id,
-                    Gleise::steuerung_weiche,
-                    |aktuelle_richtung, _letzte_richtung| {
-                        use gleis::weiche::gerade::Richtung;
-                        if aktuelle_richtung == &Richtung::Gerade {
-                            Richtung::Kurve
-                        } else {
-                            Richtung::Gerade
-                        }
-                    },
-                ),
-                AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
-                    "DreiwegeWeiche",
-                    id,
-                    Gleise::steuerung_dreiwege_weiche,
-                    |aktuelle_richtung, letzte_richtung| {
-                        use gleis::weiche::dreiwege::Richtung;
-                        if aktuelle_richtung == &Richtung::Gerade {
-                            if letzte_richtung == &Richtung::Links {
-                                Richtung::Rechts
-                            } else {
-                                Richtung::Links
-                            }
-                        } else {
-                            Richtung::Gerade
-                        }
-                    },
-                ),
-                AnyId::KurvenWeiche(id) => self.weiche_stellen(
-                    "KurvenWeiche",
-                    id,
-                    Gleise::steuerung_kurven_weiche,
-                    |aktuelle_richtung, _letzte_richtung| {
-                        use gleis::weiche::kurve::Richtung;
-                        if aktuelle_richtung == &Richtung::Außen {
-                            Richtung::Innen
-                        } else {
-                            Richtung::Außen
-                        }
-                    },
-                ),
-                AnyId::SKurvenWeiche(id) => self.weiche_stellen(
-                    "SKurvenWeiche",
-                    id,
-                    Gleise::steuerung_s_kurven_weiche,
-                    |aktuelle_richtung, _letzte_richtung| {
-                        use gleis::weiche::gerade::Richtung;
-                        if aktuelle_richtung == &Richtung::Gerade {
-                            Richtung::Kurve
-                        } else {
-                            Richtung::Gerade
-                        }
-                    },
-                ),
-                AnyId::Kreuzung(id) => self.weiche_stellen(
-                    "Kreuzung",
-                    id,
-                    Gleise::steuerung_kreuzung,
-                    |aktuelle_richtung, _letzte_richtung| {
-                        use gleis::weiche::gerade::Richtung;
-                        if aktuelle_richtung == &Richtung::Gerade {
-                            Richtung::Kurve
-                        } else {
-                            Richtung::Gerade
-                        }
-                    },
-                ),
-            },
+            Message::FahrenAktion(any_id) => self.fahren_aktion(any_id),
         }
 
         command
@@ -1076,7 +776,7 @@ where
                         geschwindigkeit,
                         anzeige_status,
                     ))
-                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                    .map(move |nachricht| Message::GeschwindigkeitAuswahl {
                         name: name_clone.clone(),
                         nachricht,
                     }),
