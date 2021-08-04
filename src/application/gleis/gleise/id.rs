@@ -20,13 +20,19 @@ use crate::application::gleis::{
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct GleisId<T>(u64, PhantomData<fn() -> T>);
 impl<T> GleisId<T> {
-    pub(crate) fn new(gleis_id: u64) -> Self {
-        GleisId(gleis_id, PhantomData)
-    }
-
     // defined a method so it stays private
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId(self.0, self.1)
+    }
+
+    /// kleinst-mögliche GleisId
+    pub(super) fn initial() -> Self {
+        GleisId(0, PhantomData)
+    }
+
+    /// nächst-größere GleisId
+    pub(super) fn nachfolger(&self) -> Self {
+        GleisId(self.0 + 1, self.1)
     }
 }
 
@@ -38,6 +44,16 @@ impl<T> PartialEq for GleisId<T> {
     }
 }
 impl<T> Eq for GleisId<T> {}
+impl<T> PartialOrd for GleisId<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+impl<T> Ord for GleisId<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
 impl<T> Hash for GleisId<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state)

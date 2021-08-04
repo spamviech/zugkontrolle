@@ -53,7 +53,6 @@ pub struct Gleise<Z> {
     skalieren: Skalar,
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree<Z>,
-    next_id: u64,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
@@ -67,18 +66,18 @@ impl<Z> Gleise<Z> {
             skalieren: Skalar(1.),
             maps: GleiseMaps::neu(),
             anchor_points: anchor::rstar::RTree::new(),
-            next_id: 0,
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
         }
     }
 
-    fn next_id<T: Debug>(&mut self) -> GleisId<T> {
-        let gleis_id: u64 = self.next_id;
-        // increase next id
-        self.next_id += 1;
-        GleisId::new(gleis_id)
+    fn next_id<T: Debug + GleiseMap<Z>>(&mut self) -> GleisId<T> {
+        T::get_map_mut(&mut self.maps)
+            .keys()
+            .max()
+            .map(GleisId::nachfolger)
+            .unwrap_or_else(GleisId::initial)
     }
 
     fn relocate_grabbed<T: Debug + Zeichnen>(
@@ -750,8 +749,6 @@ impl<Z: Zugtyp> Gleise<Z> {
             },
         );
         let gleis_id = self.next_id();
-        // increase next id
-        self.next_id += 1;
         // add to anchor_points
         anchor_points.for_each(|_name, anchor| {
             self.anchor_points.insert(AnyId::from_ref(&gleis_id), anchor.clone())
@@ -975,7 +972,6 @@ where
         // last_mouse, last_size nicht anpassen
         self.maps = GleiseMaps::neu();
         self.anchor_points = anchor::rstar::RTree::new();
-        self.next_id = 0;
 
         // lese & parse Datei
         let file = std::fs::File::open(pfad)?;
