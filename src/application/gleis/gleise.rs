@@ -52,7 +52,7 @@ pub struct Gleise<Z> {
     pivot: Position,
     skalieren: Skalar,
     maps: GleiseMaps<Z>,
-    anchor_points: anchor::rstar::RTree,
+    anchor_points: anchor::rstar::RTree<Z>,
     next_id: u64,
     last_mouse: Vektor,
     last_size: Vektor,
@@ -93,6 +93,7 @@ impl<Z> Gleise<Z> {
     where
         Z: Zugtyp,
         T: GleiseMap<Z>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { position, .. } =
             T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
@@ -101,13 +102,11 @@ impl<Z> Gleise<Z> {
         Ok(())
     }
 
-    fn snap_to_anchor<T: Debug + Zeichnen>(
-        &mut self,
-        gleis_id: GleisId<T>,
-    ) -> Result<(), GleisEntferntError>
+    fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntError>
     where
         Z: Zugtyp,
-        T: GleiseMap<Z>,
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
             T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
@@ -123,7 +122,7 @@ impl<Z> Gleise<Z> {
             if snap.is_none() {
                 snap = self
                     .anchor_points
-                    .get_other_id_at_point(gleis_id.as_any(), anchor)
+                    .get_other_id_at_point(AnyId::from_ref(&gleis_id), anchor)
                     .map(|snap_anchor| (anchor_name, snap_anchor))
             }
         });
@@ -287,12 +286,15 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn fülle_alle_gleise<T: Zeichnen>(
+fn fülle_alle_gleise<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    transparent: impl Fn(GleisId<Any>, Fließend) -> Transparenz,
+    transparent: impl Fn(AnyId<Z>, Fließend) -> Transparenz,
     streckenabschnitte: &streckenabschnitt::Map,
-) {
+) where
+    T: Zeichnen,
+    GleisId<T>: Into<AnyId<Z>>,
+{
     for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
         if let Some((Streckenabschnitt { farbe, .. }, fließend)) =
             streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
@@ -301,16 +303,12 @@ fn fülle_alle_gleise<T: Zeichnen>(
                 move_to_position(frame, position);
                 // einfärben
                 for (path, transparenz) in definition.fülle() {
+                    let a = transparent(AnyId::from_ref(gleis_id), *fließend)
+                        .kombiniere(transparenz)
+                        .alpha();
                     frame.with_save(|frame| {
                         let Farbe { r, g, b } = *farbe;
-                        let color = iced::Color {
-                            r,
-                            g,
-                            b,
-                            a: transparent(gleis_id.as_any(), *fließend)
-                                .kombiniere(transparenz)
-                                .alpha(),
-                        };
+                        let color = iced::Color { r, g, b, a };
                         frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                     });
                 }
@@ -319,26 +317,26 @@ fn fülle_alle_gleise<T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_gleise<T: Zeichnen>(
+fn zeichne_alle_gleise<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    is_grabbed: impl Fn(GleisId<Any>) -> bool,
-) {
+    is_grabbed: impl Fn(AnyId<Z>) -> bool,
+) where
+    T: Zeichnen,
+    GleisId<T>: Into<AnyId<Z>>,
+{
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
-                    // TODO aktuelle Richtung für Weichen-artige Gleise anzeigen
+                    let a =
+                        Transparenz::true_reduziert(is_grabbed(AnyId::from_ref(gleis_id))).alpha();
                     frame.stroke(
                         &path,
                         canvas::Stroke {
-                            color: canvas::Color {
-                                a: Transparenz::true_reduziert(is_grabbed(gleis_id.as_any()))
-                                    .alpha(),
-                                ..canvas::Color::BLACK
-                            },
+                            color: canvas::Color { a, ..canvas::Color::BLACK },
                             width: 1.5,
                             ..Default::default()
                         },
@@ -349,12 +347,15 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_anchor_points<T: Zeichnen>(
+fn zeichne_alle_anchor_points<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    has_other_and_grabbed_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> (bool, bool),
-    is_grabbed: impl Fn(GleisId<Any>) -> bool,
-) {
+    has_other_and_grabbed_id_at_point: impl Fn(AnyId<Z>, anchor::Anchor) -> (bool, bool),
+    is_grabbed: impl Fn(AnyId<Z>) -> bool,
+) where
+    T: Zeichnen,
+    GleisId<T>: Into<AnyId<Z>>,
+{
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
@@ -362,18 +363,16 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
             definition.anchor_points().for_each(|_name, &anchor| {
                 frame.with_save(|frame| {
                     let (opposing, grabbed) = has_other_and_grabbed_id_at_point(
-                        gleis_id.as_any(),
+                        AnyId::from_ref(gleis_id),
                         anchor::Anchor {
                             position: position.transformation(anchor.position),
                             richtung: position.winkel + anchor.richtung,
                         },
                     );
-                    let a = Transparenz::true_reduziert(is_grabbed(gleis_id.as_any())).alpha();
-                    let color = if opposing {
-                        canvas::Color { r: 0., g: 1., b: 0., a }
-                    } else {
-                        canvas::Color { r: 0., g: 0., b: 1., a }
-                    };
+                    let a =
+                        Transparenz::true_reduziert(is_grabbed(AnyId::from_ref(gleis_id))).alpha();
+                    let g = if opposing { 1. } else { 0. };
+                    let color = canvas::Color { r: 0., g, b: 1. - g, a };
                     let direction: Vektor = Vektor::polar_koordinaten(Skalar(5.), anchor.richtung);
                     let direction_side: Vektor = Skalar(0.5) * direction.rotiert(winkel::FRAC_PI_2);
                     let anchor_position: Vektor = anchor.position;
@@ -393,11 +392,14 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     }
 }
 
-fn schreibe_alle_beschreibungen<T: Zeichnen>(
+fn schreibe_alle_beschreibungen<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    is_grabbed: impl Fn(GleisId<Any>) -> bool,
-) {
+    is_grabbed: impl Fn(AnyId<Z>) -> bool,
+) where
+    T: Zeichnen,
+    GleisId<T>: Into<AnyId<Z>>,
+{
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         let (relative_position, beschreibung, name) = definition.beschreibung_und_name();
         if let Some(content) = match (beschreibung, name) {
@@ -412,13 +414,11 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
             let absolute_position = Position { punkt, winkel };
             frame.with_save(|frame| {
                 move_to_position(frame, &absolute_position);
+                let a = Transparenz::true_reduziert(is_grabbed(AnyId::from_ref(gleis_id))).alpha();
                 frame.fill_text(canvas::Text {
                     content,
                     position: iced::Point::ORIGIN,
-                    color: canvas::Color {
-                        a: Transparenz::true_reduziert(is_grabbed(gleis_id.as_any())).alpha(),
-                        ..canvas::Color::BLACK
-                    },
+                    color: canvas::Color { a, ..canvas::Color::BLACK },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
                     vertical_alignment: canvas::VerticalAlignment::Center,
                     ..Default::default()
@@ -559,11 +559,11 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
         vec![canvas.draw_skaliert_von_pivot(bounds.size(), &self.pivot, &self.skalieren, |frame| {
             // TODO zeichne keine out-of-bounds Gleise
             // Zeichne Gleise
-            let grabbed_id: Option<GleisId<Any>>;
+            let grabbed_id: Option<AnyId<Z>>;
             let modus_bauen: bool;
             match modus {
                 ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } => {
-                    grabbed_id = Some(gleis_id.id_as_any());
+                    grabbed_id = Some(gleis_id.clone());
                     modus_bauen = true;
                 }
                 ModusDaten::Bauen { grabbed: None, .. } => {
@@ -580,7 +580,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
             let has_other_and_grabbed_id_at_point = |gleis_id, position| {
                 anchor_points.has_other_and_grabbed_id_at_point(
                     &gleis_id,
-                    |id| is_grabbed(id.as_any()),
+                    |id| is_grabbed(id.clone()),
                     &position,
                 )
             };
@@ -741,6 +741,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } = &gleis;
         // calculate absolute position for AnchorPoints
@@ -754,8 +755,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         // increase next id
         self.next_id += 1;
         // add to anchor_points
-        anchor_points
-            .for_each(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
+        anchor_points.for_each(|_name, anchor| {
+            self.anchor_points.insert(AnyId::from_ref(&gleis_id), anchor.clone())
+        });
         // add to HashMap
         T::get_map_mut(&mut self.maps).insert(gleis_id.clone(), gleis);
         // trigger redraw
@@ -818,6 +820,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         // calculate new position
         let position = Position::attach_position(&definition, anchor_name, target_anchor_point);
@@ -836,6 +839,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
             T::get_map_mut(&mut self.maps).get_mut(&gleis_id).ok_or(GleisEntferntError)?;
@@ -857,11 +861,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         *position = position_neu;
         // delete old from anchor_points
         anchor_points.for_each(|_name, anchor| {
-            self.anchor_points.remove(gleis_id.as_any(), &anchor);
+            self.anchor_points.remove(AnyId::from_ref(gleis_id), &anchor);
         });
         // add new to anchor_points
-        anchor_points_neu
-            .for_each(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
+        anchor_points_neu.for_each(|_name, anchor| {
+            self.anchor_points.insert(AnyId::from_ref(gleis_id), anchor.clone())
+        });
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -878,6 +883,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         let position = {
             let Gleis { definition, .. } =
@@ -896,6 +902,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        GleisId<T>: Into<AnyId<Z>>,
     {
         if let Some(Gleis { definition, position, .. }) =
             T::get_map_mut(&mut self.maps).remove(&gleis_id)
@@ -903,7 +910,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
                 self.anchor_points.remove(
-                    gleis_id.as_any(),
+                    AnyId::from_ref(&gleis_id),
                     &anchor::Anchor {
                         position: position.transformation(anchor.position),
                         richtung: position.winkel + anchor.richtung,

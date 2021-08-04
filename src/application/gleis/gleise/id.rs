@@ -1,7 +1,6 @@
 //! Ids zum Speichern der Gleise
 
 use std::{
-    fmt::Debug,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
@@ -15,9 +14,6 @@ use crate::application::gleis::{
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Any;
-
 /// Identifier for a Gleis.  Will probably change between restarts.
 ///
 /// The API will only provide &GleisIdLock<Z>.
@@ -26,10 +22,6 @@ pub struct GleisId<T>(u64, PhantomData<fn() -> T>);
 impl<T> GleisId<T> {
     pub(crate) fn new(gleis_id: u64) -> Self {
         GleisId(gleis_id, PhantomData)
-    }
-
-    pub(crate) fn as_any(&self) -> GleisId<Any> {
-        GleisId::new(self.0)
     }
 
     // defined a method so it stays private
@@ -62,6 +54,25 @@ pub enum AnyId<Z> {
     SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
     Kreuzung(GleisId<Kreuzung<Z>>),
 }
+
+// explicit implementation needed due to phantom type
+// derived instead required corresponding Trait implemented on phantom type
+impl<Z> PartialEq for AnyId<Z> {
+    fn eq(&self, other: &Self) -> bool {
+        use AnyId::*;
+        match (self, other) {
+            (Gerade(id0), Gerade(id1)) => id0 == id1,
+            (Kurve(id0), Kurve(id1)) => id0 == id1,
+            (Weiche(id0), Weiche(id1)) => id0 == id1,
+            (DreiwegeWeiche(id0), DreiwegeWeiche(id1)) => id0 == id1,
+            (KurvenWeiche(id0), KurvenWeiche(id1)) => id0 == id1,
+            (SKurvenWeiche(id0), SKurvenWeiche(id1)) => id0 == id1,
+            (Kreuzung(id0), Kreuzung(id1)) => id0 == id1,
+            _ => false,
+        }
+    }
+}
+impl<Z> Eq for AnyId<Z> {}
 macro_rules! with_any_id {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {
@@ -92,10 +103,6 @@ macro_rules! with_any_id {
 pub(crate) use with_any_id;
 
 impl<Z> AnyId<Z> {
-    pub(crate) fn id_as_any(&self) -> GleisId<Any> {
-        with_any_id!(self, GleisId::as_any)
-    }
-
     pub(super) fn from_ref<T>(gleis_id: &GleisId<T>) -> Self
     where
         GleisId<T>: Into<Self>,

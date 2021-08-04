@@ -2,32 +2,30 @@
 
 pub(crate) use rstar::primitives::PointWithData;
 
-use super::point::Anchor;
-use crate::application::gleis::gleise::{Any, GleisId};
-use crate::application::typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel};
+use crate::application::{
+    anchor::point::Anchor,
+    gleis::gleise::id::AnyId,
+    typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
+};
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
-#[derive(Debug)]
-pub(crate) struct RTree(rstar::RTree<PointWithData<(GleisId<Any>, Winkel), Vektor>>);
-impl RTree {
+#[derive(zugkontrolle_derive::Debug)]
+pub(crate) struct RTree<Z>(rstar::RTree<PointWithData<(AnyId<Z>, Winkel), Vektor>>);
+impl<Z> RTree<Z> {
     /// create a new RTree to store anchors with position data
     pub(crate) fn new() -> Self {
         RTree(rstar::RTree::new())
     }
 
     /// insert an anchor into the RTree
-    pub(crate) fn insert(&mut self, gleis_id: GleisId<Any>, Anchor { position, richtung }: Anchor) {
+    pub(crate) fn insert(&mut self, gleis_id: AnyId<Z>, Anchor { position, richtung }: Anchor) {
         self.0.insert(PointWithData::new((gleis_id, richtung), position))
     }
 
     /// remove one copy of the specified anchor from the RTree
-    pub(crate) fn remove(
-        &mut self,
-        gleis_id: GleisId<Any>,
-        &Anchor { position, richtung }: &Anchor,
-    ) {
+    pub(crate) fn remove(&mut self, gleis_id: AnyId<Z>, &Anchor { position, richtung }: &Anchor) {
         self.0.remove(&PointWithData::new((gleis_id, richtung), position));
     }
 
@@ -35,7 +33,7 @@ impl RTree {
     /// returning the first found.
     pub(crate) fn get_other_id_at_point(
         &self,
-        gleis_id: GleisId<Any>,
+        gleis_id: AnyId<Z>,
         &Anchor { position, richtung: _ }: &Anchor,
     ) -> Option<Anchor> {
         self.0.locate_within_distance(position, SEARCH_RADIUS.0).find_map(|point_with_data| {
@@ -53,8 +51,8 @@ impl RTree {
     /// returning the first pointing in the opposite direction.
     pub(crate) fn has_other_and_grabbed_id_at_point(
         &self,
-        gleis_id: &GleisId<Any>,
-        is_grabbed: impl Fn(&GleisId<Any>) -> bool,
+        gleis_id: &AnyId<Z>,
+        is_grabbed: impl Fn(&AnyId<Z>) -> bool,
         &Anchor { position, richtung }: &Anchor,
     ) -> (bool, bool) {
         let mut opposing: bool = false;
