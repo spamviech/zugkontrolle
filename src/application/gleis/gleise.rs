@@ -74,10 +74,6 @@ impl<Z> Gleise<Z> {
         }
     }
 
-    pub(in crate::application) fn erzwinge_neuzeichnen(&mut self) {
-        self.canvas.clear()
-    }
-
     fn next_id<T: Debug>(&mut self) -> GleisId<T> {
         let gleis_id: u64 = self.next_id;
         // increase next id
@@ -246,7 +242,9 @@ impl<Z> Gleise<Z> {
             s_kurven_weichen,
             kreuzungen
         }
-        self.maps.streckenabschnitte.remove(&name)
+        let result = self.maps.streckenabschnitte.remove(&name);
+        self.canvas.clear();
+        result
     }
 
     /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
@@ -1229,21 +1227,65 @@ where
     }
 }
 
-macro_rules! steuerung {
+/// Mutable Referenz auf die Steuerung eines Gleises.
+/// Mit dem Drop-Handler wird ein Neuzeichen des Canvas (Cache) ausgelöst.
+pub(in crate::application) struct Steuerung<'t, T> {
+    steuerung: &'t mut Option<T>,
+    canvas: &'t mut Cache,
+    verändert: bool,
+}
+impl<'t, T> Drop for Steuerung<'t, T> {
+    fn drop(&mut self) {
+        if self.verändert {
+            self.canvas.clear()
+        }
+    }
+}
+impl<'t, T> Steuerung<'t, T> {
+    pub fn neu(steuerung: &'t mut Option<T>, canvas: &'t mut Cache) -> Self {
+        Steuerung { steuerung, canvas, verändert: false }
+    }
+    /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse None.
+    pub fn take(&mut self) -> Option<T> {
+        self.verändert = true;
+        self.steuerung.take()
+    }
+
+    /// Füge einen Wert in die zugehörige Option-Referenz ein.
+    /// Enthält diese bereits einen Wert wird dieser überschrieben.
+    pub fn insert(&mut self, steuerung: T) -> &mut T {
+        self.verändert = true;
+        self.steuerung.insert(steuerung)
+    }
+
+    /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
+    pub fn as_ref(&self) -> Option<&T> {
+        self.steuerung.as_ref()
+    }
+
+    /// Erhalte eine mutable Referenz, falls ein Wert vorhanden ist.
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        self.verändert = true;
+        self.steuerung.as_mut()
+    }
+}
+
+macro_rules! steuerung_weiche {
     ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
-        pub(in crate::application) fn $name(
-            &mut self,
+        pub(in crate::application) fn $name<'t>(
+            &'t mut self,
             gleis_id: &GleisId<$type>,
-        ) -> Result<&mut Option<weiche::Weiche<$richtung, $anschlüsse>>, GleisEntferntError> {
+        ) -> Result<Steuerung<'t, weiche::Weiche<$richtung, $anschlüsse>>, GleisEntferntError> {
+            let Gleise { maps, canvas, .. } = self;
             let Gleis { definition, .. } =
-                self.maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntError)?;
-            Ok(&mut definition.steuerung)
+                maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntError)?;
+            Ok(Steuerung::neu(&mut definition.steuerung, canvas))
         }
     };
 }
 
 impl<Z: Zugtyp> Gleise<Z> {
-    steuerung! {
+    steuerung_weiche! {
         steuerung_weiche,
         super::Weiche<Z>,
         weichen,
@@ -1251,7 +1293,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         super::weiche::gerade::RichtungAnschlüsse
     }
 
-    steuerung! {
+    steuerung_weiche! {
         steuerung_dreiwege_weiche,
         super::DreiwegeWeiche<Z>,
         dreiwege_weichen,
@@ -1259,7 +1301,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         super::weiche::dreiwege::RichtungAnschlüsse
     }
 
-    steuerung! {
+    steuerung_weiche! {
         steuerung_kurven_weiche,
         super::KurvenWeiche<Z>,
         kurven_weichen,
@@ -1267,7 +1309,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         super::weiche::kurve::RichtungAnschlüsse
     }
 
-    steuerung! {
+    steuerung_weiche! {
         steuerung_s_kurven_weiche,
         super::SKurvenWeiche<Z>,
         s_kurven_weichen,
@@ -1275,7 +1317,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         super::weiche::gerade::RichtungAnschlüsse
     }
 
-    steuerung! {
+    steuerung_weiche! {
         steuerung_kreuzung,
         super::Kreuzung<Z>,
         kreuzungen,

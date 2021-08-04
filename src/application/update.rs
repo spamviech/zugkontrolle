@@ -17,7 +17,7 @@ use crate::{
         gleis::gleise::{
             id::{with_any_id, AnyId, GleisId},
             maps::GleiseMap,
-            GleisEntferntError, Gleise,
+            GleisEntferntError, Gleise, Steuerung,
         },
         steuerung, streckenabschnitt,
         typen::*,
@@ -57,7 +57,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<&'t mut Option<W>, GleisEntferntError>,
+        ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
         erzeuge_modal_status: impl Fn(Option<<W as ToSave>::Save>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
@@ -66,7 +66,8 @@ where
         als_nachricht: impl Fn(GleisId<T>, Option<<W as ToSave>::Save>) -> AnschlüsseAnpassen<Z>
             + 'static,
     ) {
-        if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+        let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
+        if let Ok(steuerung) = steuerung_res {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.to_save());
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
@@ -76,6 +77,7 @@ where
             );
             self.modal_state.show(true)
         } else {
+            drop(steuerung_res);
             self.zeige_message_box(
                 "Gleis entfernt!".to_string(),
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
@@ -83,7 +85,7 @@ where
         }
     }
 
-    pub fn gleis_anschlüsse_anpassen<T, W>(
+    fn gleis_anschlüsse_anpassen<T, W>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -91,7 +93,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<&'t mut Option<W>, GleisEntferntError>,
+        ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
     ) -> Option<Message<Z>>
     where
         W: ToSave,
@@ -99,7 +101,8 @@ where
     {
         let mut message = None;
 
-        if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+        let mut error_message = None;
+        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             if let Some(anschlüsse_save) = anschlüsse_save {
                 let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
                     if let Some(s) = steuerung.take() {
@@ -114,8 +117,7 @@ where
                     input_anschlüsse,
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
-                        *steuerung = Some(anschluss);
-                        self.gleise.erzwinge_neuzeichnen();
+                        steuerung.insert(anschluss);
                         message = Some(Message::SchließeModal)
                     }
                     Err(speichern::Error {
@@ -133,7 +135,9 @@ where
                                 output_anschlüsse,
                                 input_anschlüsse,
                             ) {
-                                Ok(Reserviert { anschluss, .. }) => *steuerung = Some(anschluss),
+                                Ok(Reserviert { anschluss, .. }) => {
+                                    steuerung.insert(anschluss);
+                                }
                                 Err(error) => {
                                     fehlermeldung.push_str(&format!(
                                     "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
@@ -142,19 +146,21 @@ where
                                 }
                             }
                         }
-                        self.zeige_message_box("Anschlüsse anpassen".to_string(), fehlermeldung)
+                        error_message.insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
                     }
                 }
             } else {
-                *steuerung = None;
-                self.gleise.erzwinge_neuzeichnen();
+                steuerung.take();
                 message = Some(Message::SchließeModal);
             }
         } else {
-            self.zeige_message_box(
+            error_message.insert((
                 "Gleis entfernt!".to_string(),
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
-            )
+            ));
+        }
+        if let Some((titel, nachricht)) = error_message {
+            self.zeige_message_box(titel, nachricht)
         }
 
         message
@@ -190,7 +196,7 @@ where
         }
     }
 
-    pub fn weiche_stellen<T, Richtung, Anschlüsse>(
+    fn weiche_stellen<T, Richtung, Anschlüsse>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -198,7 +204,7 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<
-            &'t mut Option<steuerung::Weiche<Richtung, Anschlüsse>>,
+            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
             GleisEntferntError,
         >,
         nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
@@ -206,27 +212,29 @@ where
         Richtung: Clone,
         Anschlüsse: Lookup<Richtung, OutputAnschluss>,
     {
-        if let Ok(steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(weiche) = steuerung {
+        let mut error_message = None;
+        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+            if let Some(weiche) = steuerung.as_mut() {
                 let richtung =
                     nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
                 if let Err(error) = weiche.schalten(&richtung) {
-                    self.zeige_message_box(
-                        format!("{} schalten", gleis_art),
-                        format!("{:?}", error),
-                    )
+                    error_message
+                        .insert((format!("{} schalten", gleis_art), format!("{:?}", error)));
                 }
             } else {
-                self.zeige_message_box(
+                error_message.insert((
                     "Keine Richtungs-Anschlüsse!".to_string(),
                     format!("{} hat keine Anschlüsse!", gleis_art),
-                )
+                ));
             }
         } else {
-            self.zeige_message_box(
+            error_message.insert((
                 "Gleis entfernt!".to_string(),
                 format!("FahrenAktion für entfernte {}!", gleis_art),
-            )
+            ));
+        }
+        if let Some((titel, nachricht)) = error_message {
+            self.zeige_message_box(titel, nachricht)
         }
     }
 
@@ -396,7 +404,6 @@ where
             }
         }
         self.gleise.entferne_streckenabschnitt(name);
-        self.gleise.erzwinge_neuzeichnen();
     }
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
