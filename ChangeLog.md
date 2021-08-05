@@ -12,7 +12,7 @@
 - Erlaube entfernen von Weichen-Steuerung
 - Bisherige Anschlüsse werden beim Anpassen  von z.B. Weichen berücksichtigt
 - Bei fehlgeschlagenem Laden wird immer ein leerer Zustand erzeugt
-- Refactoring: Aufsplitten von application.rs
+- Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
     Ids unterschiedlicher Gleise sind jetzt wirklich unabhängig
 - Refactoring: Alle Module sind public
