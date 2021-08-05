@@ -14,7 +14,7 @@ pub mod draw;
 pub mod id;
 pub mod maps;
 pub mod speichern_laden;
-pub(in crate::application) mod steuerung;
+pub mod steuerung;
 pub mod update;
 
 #[derive(zugkontrolle_derive::Debug)]

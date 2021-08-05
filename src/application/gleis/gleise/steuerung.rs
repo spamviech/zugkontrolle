@@ -13,7 +13,7 @@ use crate::{
 
 /// Mutable Referenz auf die Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein Neuzeichen des Canvas (Cache) ausgelöst.
-pub(in crate::application) struct Steuerung<'t, T> {
+pub struct Steuerung<'t, T> {
     steuerung: &'t mut Option<T>,
     canvas: &'t mut Cache,
     verändert: bool,
@@ -56,7 +56,7 @@ impl<'t, T> Steuerung<'t, T> {
 
 macro_rules! steuerung_weiche {
     ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
-        pub(in crate::application) fn $name<'t>(
+        pub fn $name<'t>(
             &'t mut self,
             gleis_id: &GleisId<$type>,
         ) -> Result<
