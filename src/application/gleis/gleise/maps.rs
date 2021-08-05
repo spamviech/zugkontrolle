@@ -5,10 +5,15 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use super::id::GleisId;
 use crate::{
-    anschluss::{OutputSave, ToSave},
-    application::{gleis::*, typen::*},
+    anschluss::{
+        speichern::{self, Reserviere, Reserviert, ToSave},
+        OutputSave,
+    },
+    application::{
+        gleis::{gleise::id::GleisId, *},
+        typen::*,
+    },
     steuerung::{
         geschwindigkeit,
         plan::Plan,
@@ -21,6 +26,60 @@ pub struct Gleis<T> {
     pub definition: T,
     pub position: Position,
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
+}
+
+impl<T: ToSave> ToSave for Gleis<T> {
+    type Save = Gleis<T::Save>;
+
+    fn to_save(&self) -> Self::Save {
+        Gleis {
+            definition: self.definition.to_save(),
+            position: self.position.clone(),
+            streckenabschnitt: self.streckenabschnitt.clone(),
+        }
+    }
+
+    fn anschlüsse(
+        self,
+    ) -> (
+        Vec<crate::anschluss::pwm::Pin>,
+        Vec<crate::anschluss::OutputAnschluss>,
+        Vec<crate::anschluss::InputAnschluss>,
+    ) {
+        self.definition.anschlüsse()
+    }
+}
+
+impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut crate::anschluss::Anschlüsse,
+        pwm_pins: Vec<crate::anschluss::pwm::Pin>,
+        output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
+        input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
+    ) -> speichern::Result<Gleis<R>> {
+        let Reserviert {
+            anschluss: definition_reserviert,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self.definition.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
+        Ok(Reserviert {
+            anschluss: Gleis {
+                definition: definition_reserviert,
+                position: self.position,
+                streckenabschnitt: self.streckenabschnitt,
+            },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
+    }
 }
 
 pub type Map<T> = HashMap<GleisId<T>, Gleis<T>>;

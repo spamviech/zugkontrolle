@@ -12,8 +12,9 @@ use self::id::with_any_id;
 use crate::{
     anschluss::{
         self,
+        pin::pwm,
         speichern::{self, Reserviere, Reserviert, ToSave},
-        Anschlüsse, Fließend,
+        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
     },
     application::{anchor, typen::*},
     farbe::Farbe,
@@ -954,6 +955,34 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
+fn reserviere_anschlüsse<T: ToSave>(
+    anschlüsse: &mut Anschlüsse,
+    source: Vec<Gleis<<T as ToSave>::Save>>,
+    pwm_pins: Vec<pwm::Pin>,
+    output_anschlüsse: Vec<OutputAnschluss>,
+    input_anschlüsse: Vec<InputAnschluss>,
+) -> Result<
+    (Vec<Gleis<T>>, Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>),
+    anschluss::Error,
+> {
+    source.into_iter().fold(
+        Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
+        |acc_res: Result<_, anschluss::Error>, gleis_save| {
+            let mut acc = acc_res?;
+            let Reserviert {
+                anschluss: gleis,
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            } = gleis_save
+                .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+                .map_err(|speichern::Error { fehler, .. }| fehler)?;
+            acc.0.push(gleis);
+            Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
+        },
+    )
+}
+
 impl<Z> Gleise<Z>
 where
     Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
@@ -1040,129 +1069,64 @@ where
         // reserviere Anschlüsse
         macro_rules! reserviere_anschlüsse {
             (
-                $name:ident,
-                $source:ident,
-                $(:: $weiche:ident ::)? $module:ident,
-                $data:ident {$steuerung:ident, $($data_feld:ident),*},
+                $name:tt::<$type:ident>,
                 $pwm_pins:tt,
                 $output_anschlüsse:tt,
                 $input_anschlüsse:tt$(,)?
             ) => {
                 // collect to Vec to fail on first error
-                let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) = $source
-                    .into_iter()
-                    .fold(
-                        Ok((Vec::new(), $pwm_pins, $output_anschlüsse, $input_anschlüsse)),
-                        |acc_res: Result<_, anschluss::Error>, Gleis {
-                            definition:
-                                super::$($weiche::)?$module::$data {
-                                    $steuerung,
-                                    $($data_feld),*
-                                },
-                            position,
-                            streckenabschnitt,
-                        }| {
-                            let mut acc = acc_res?;
-                            let (steuerung_reserviert, pwm, output, input)
-                                = if let Some(steuerung) = $steuerung {
-                                    let Reserviert {
-                                        anschluss,
-                                        pwm_nicht_benötigt,
-                                        output_nicht_benötigt,
-                                        input_nicht_benötigt
-                                    } = steuerung
-                                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                                        .map_err(|speichern::Error {fehler,..}| fehler)?;
-                                    (Some(anschluss), pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
-                                } else {
-                                    (None, acc.1, acc.2, acc.3)
-                                };
-                            acc.0.push(Gleis {
-                                definition: super::$($weiche::)?$module::$data {
-                                    $steuerung: steuerung_reserviert,
-                                    $($data_feld),*
-                                },
-                                position,
-                                streckenabschnitt,
-                            });
-                            Ok((acc.0, pwm, output, input))
-                        },
+                let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) =
+                    reserviere_anschlüsse::<super::$type<Z>>(
+                        anschlüsse,
+                        $name,
+                        $pwm_pins,
+                        $output_anschlüsse,
+                        $input_anschlüsse,
                     )?;
             };
         }
-        reserviere_anschlüsse!(
-            geraden_reserviert,
-            geraden,
-            gerade,
-            Gerade { kontakt, zugtyp, länge, beschreibung },
+        reserviere_anschlüsse! {
+            geraden::<Gerade>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            kurven_reserviert,
-            kurven,
-            kurve,
-            Kurve { kontakt, zugtyp, radius, winkel, beschreibung },
+        }
+        reserviere_anschlüsse! {
+            kurven::<Kurve>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            weichen_reserviert,
-            weichen,
-            ::weiche::gerade,
-            Weiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung },
+        }
+        reserviere_anschlüsse! {
+            weichen::<Weiche>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            dreiwege_weichen_reserviert,
-            dreiwege_weichen,
-            ::weiche::dreiwege,
-            DreiwegeWeiche { steuerung, zugtyp, länge, radius, winkel, beschreibung },
+        }
+        reserviere_anschlüsse! {
+            dreiwege_weichen::<DreiwegeWeiche>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            kurven_weichen_reserviert,
-            kurven_weichen,
-            ::weiche::kurve,
-            KurvenWeiche { steuerung, zugtyp, länge, radius, winkel, orientierung, beschreibung },
+        }
+        reserviere_anschlüsse! {
+            kurven_weichen::<KurvenWeiche>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            s_kurven_weichen_reserviert,
-            s_kurven_weichen,
-            ::weiche::s_kurve,
-            SKurvenWeiche {
-                steuerung,
-                zugtyp,
-                länge,
-                radius,
-                winkel,
-                radius_reverse,
-                winkel_reverse,
-                orientierung,
-                beschreibung
-            },
+        }
+        reserviere_anschlüsse! {
+            s_kurven_weichen::<SKurvenWeiche>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
-        reserviere_anschlüsse!(
-            kreuzungen_reserviert,
-            kreuzungen,
-            kreuzung,
-            Kreuzung { steuerung, zugtyp, länge, radius, variante, beschreibung },
+        }
+        reserviere_anschlüsse! {
+            kreuzungen::<Kreuzung>,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-        );
+        }
         let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
             streckenabschnitte.into_iter().fold(
                 Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
@@ -1208,13 +1172,13 @@ where
             }
         }
         add_gleise!(
-            geraden_reserviert,
-            kurven_reserviert,
-            weichen_reserviert,
-            dreiwege_weichen_reserviert,
-            kurven_weichen_reserviert,
-            s_kurven_weichen_reserviert,
-            kreuzungen_reserviert,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
         );
         for (name, streckenabschnitt) in streckenabschnitte_reserviert {
             self.neuer_streckenabschnitt(name, streckenabschnitt);
