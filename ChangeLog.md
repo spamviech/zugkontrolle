@@ -18,6 +18,7 @@
 - Refactoring: Alle Module sind public
 - Refactoring: Modul umbenannt serde.rs -> speichern.rs
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
+- Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
 
 ## 2.0.1
 

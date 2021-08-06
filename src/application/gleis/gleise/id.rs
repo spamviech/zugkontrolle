@@ -18,7 +18,7 @@ use crate::application::gleis::{
 ///
 /// The API will only provide &GleisIdLock<Z>.
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleisId<T>(u64, PhantomData<fn() -> T>);
+pub struct GleisId<T>(u32, PhantomData<fn() -> T>);
 impl<T> GleisId<T> {
     // defined a method so it stays private
     pub(in crate::application) fn clone(&self) -> Self {
