@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    anschluss::polarity::Fließend,
+    anschluss::polarität::Fließend,
     application::{
         gleis::{
             anchor,

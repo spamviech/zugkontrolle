@@ -10,7 +10,7 @@ use iced_native::{
 
 use super::{macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{
-    level::Level, pcf8574::Variante, pin::pwm, polarity::Polarität, InputSave, OutputSave,
+    level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSave, OutputSave,
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use super::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
-    polarity::Polarität,
+    polarität::Polarität,
     speichern::{self, Reserviere, Reserviert, ToSave},
     InputAnschluss, OutputAnschluss,
 };

@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 pub mod level;
 pub use level::*;
 
-pub mod polarity;
-pub use polarity::*;
+#[path = "anschluss/polarität.rs"]
+pub mod polarität;
+pub use polarität::*;
 
 pub mod trigger;
 pub use trigger::*;

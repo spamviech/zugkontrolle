@@ -17,7 +17,7 @@ use log::error;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
-    anschluss::{polarity::Polarität, pwm, OutputSave, ToSave},
+    anschluss::{polarität::Polarität, pwm, OutputSave, ToSave},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
     steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
