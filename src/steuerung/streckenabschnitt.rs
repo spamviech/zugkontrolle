@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         pin::pwm,
-        speichern::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, ToSave},
         Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSave,
     },
     farbe::Farbe,
@@ -50,7 +50,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Streckenabschnitt> {
+    ) -> speichern_laden::Result<Streckenabschnitt> {
         let Reserviert {
             anschluss,
             pwm_nicht_benötigt,

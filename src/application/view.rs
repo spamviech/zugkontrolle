@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    anschluss::speichern::ToSave,
+    anschluss::speichern_laden::ToSave,
     application::{
         bewegen::Bewegen,
         button::Button,

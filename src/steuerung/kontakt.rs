@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     pwm,
-    speichern::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Error, InputAnschluss, InputSave, Level, OutputAnschluss, Trigger,
 };
 
@@ -59,7 +59,7 @@ impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSave> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Kontakt<InputAnschluss>> {
+    ) -> speichern_laden::Result<Kontakt<InputAnschluss>> {
         let Reserviert {
             anschluss,
             pwm_nicht_benötigt,

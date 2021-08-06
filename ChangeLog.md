@@ -16,7 +16,7 @@
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
     Ids unterschiedlicher Gleise sind jetzt wirklich unabhängig
 - Refactoring: Alle Module sind public
-- Refactoring: Modul umbenannt serde.rs -> speichern.rs
+- Refactoring: Modul umbenannt serde.rs -> speichern_laden.rs
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
 - Refactoring: Modul umbenannt polarity.rs -> polarität.rs

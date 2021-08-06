@@ -28,8 +28,8 @@ pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
 use anschlüsse::SyncError;
 
-pub mod speichern;
-pub use self::speichern::{Reserviere, Reserviert, ToSave};
+pub mod speichern_laden;
+pub use self::speichern_laden::{Reserviere, Reserviert, ToSave};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -256,7 +256,7 @@ impl Reserviere<OutputAnschluss> for OutputSave {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<OutputAnschluss> {
+    ) -> speichern_laden::Result<OutputAnschluss> {
         let polarität = match self {
             OutputSave::Pin { polarität, .. } => polarität,
             OutputSave::Pcf8574Port { polarität, .. } => polarität,
@@ -274,7 +274,7 @@ impl Reserviere<OutputAnschluss> for OutputSave {
         } else {
             macro_rules! fehler {
                 ($error:expr) => {
-                    return Err(speichern::Error {
+                    return Err(speichern_laden::Error {
                         fehler: $error.into(),
                         pwm_pins,
                         output_anschlüsse: output_nicht_benötigt,
@@ -448,7 +448,7 @@ impl Reserviere<InputAnschluss> for InputSave {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<InputAnschluss> {
+    ) -> speichern_laden::Result<InputAnschluss> {
         let (gesuchter_anschluss, input_nicht_benötigt) =
             input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
                 if self.selber_anschluss(&anschluss.to_save()) {
@@ -490,7 +490,7 @@ impl Reserviere<InputAnschluss> for InputSave {
             };
         macro_rules! fehler {
             ($error:expr) => {
-                return Err(speichern::Error {
+                return Err(speichern_laden::Error {
                     fehler: $error.into(),
                     pwm_pins,
                     output_anschlüsse,

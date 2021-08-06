@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self, pwm,
-        speichern::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, ToSave},
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSave, Polarität,
     },
     non_empty::{MaybeEmpty, NonEmpty},
@@ -52,7 +52,7 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Geschwindigkeit<R>> {
+    ) -> speichern_laden::Result<Geschwindigkeit<R>> {
         let Reserviert {
             anschluss: leiter,
             pwm_nicht_benötigt,
@@ -194,7 +194,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSave {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Mittelleiter> {
+    ) -> speichern_laden::Result<Mittelleiter> {
         Ok(match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 let Reserviert {
@@ -452,7 +452,7 @@ impl Reserviere<Zweileiter> for ZweileiterSave {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Zweileiter> {
+    ) -> speichern_laden::Result<Zweileiter> {
         Ok(match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 let Reserviert {

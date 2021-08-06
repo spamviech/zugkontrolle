@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        speichern::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, ToSave},
         Fließend, OutputAnschluss, OutputSave,
     },
     application::{
@@ -121,7 +121,7 @@ where
                         steuerung.insert(anschluss);
                         message = Some(Message::SchließeModal)
                     }
-                    Err(speichern::Error {
+                    Err(speichern_laden::Error {
                         fehler,
                         pwm_pins,
                         output_anschlüsse,
@@ -491,7 +491,12 @@ where
                     )
                 }
             }
-            Err(speichern::Error { fehler, pwm_pins, output_anschlüsse, input_anschlüsse }) => {
+            Err(speichern_laden::Error {
+                fehler,
+                pwm_pins,
+                output_anschlüsse,
+                input_anschlüsse,
+            }) => {
                 let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
                 if let Some(save) = alt_save {
                     let save_clone = save.clone();
@@ -512,7 +517,7 @@ where
                                 ),
                             );
                         }
-                        Err(speichern::Error { fehler, .. }) => {
+                        Err(speichern_laden::Error { fehler, .. }) => {
                             match self.modal_state.inner_mut() {
                                 Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                                     geschwindigkeit_auswahl.entfernen(&name)

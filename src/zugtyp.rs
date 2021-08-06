@@ -3,7 +3,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    anschluss::speichern::ToSave,
+    anschluss::speichern_laden::ToSave,
     application::{geschwindigkeit::LeiterAnzeige, gleis::*},
 };
 

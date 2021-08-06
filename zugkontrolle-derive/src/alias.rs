@@ -47,7 +47,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::speichern::ToSave for #ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::ToSave for #ident<#(#params),*> {
                         type Save = #save_ident<#(#params),*>;
                         fn to_save(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -75,19 +75,19 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                             (pwm0, output0, input0)
                         }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::speichern::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
                         fn reserviere(
                             self,
                             anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                             pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
                             output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
-                        ) -> #base_ident::anschluss::speichern::Result<#ident<#(#params),*>> {
+                        ) -> #base_ident::anschluss::speichern_laden::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                             #(
                                let #param_fields = if let Some(save) = #param_fields {
-                                    let #base_ident::anschluss::speichern::Reserviert {
+                                    let #base_ident::anschluss::speichern_laden::Reserviert {
                                         anschluss,
                                         pwm_nicht_benötigt,
                                         output_nicht_benötigt,
@@ -99,7 +99,7 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                                     None
                                 };
                             )*
-                            Ok(#base_ident::anschluss::speichern::Reserviert {
+                            Ok(#base_ident::anschluss::speichern_laden::Reserviert {
                                 anschluss: #ident {
                                     #(#other_fields),*,
                                     #(#param_fields),*

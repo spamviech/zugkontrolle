@@ -13,7 +13,7 @@ use super::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
     polarität::Polarität,
-    speichern::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, ToSave},
     InputAnschluss, OutputAnschluss,
 };
 
@@ -270,7 +270,7 @@ impl Reserviere<Pin> for Save {
         pwm_pins: Vec<Pin>,
         output_nicht_benötigt: Vec<OutputAnschluss>,
         input_nicht_benötigt: Vec<InputAnschluss>,
-    ) -> speichern::Result<Pin> {
+    ) -> speichern_laden::Result<Pin> {
         let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.to_save() == self);
         if let Some(anschluss) = gesucht.pop() {
@@ -288,7 +288,7 @@ impl Reserviere<Pin> for Save {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }),
-                Err(error) => Err(speichern::Error {
+                Err(error) => Err(speichern_laden::Error {
                     fehler: error.into(),
                     pwm_pins: pwm_nicht_benötigt,
                     output_anschlüsse: output_nicht_benötigt,

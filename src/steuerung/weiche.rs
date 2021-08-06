@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     pwm,
-    speichern::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, ToSave},
     Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
@@ -72,7 +72,7 @@ where
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern::Result<Weiche<Richtung, R>> {
+    ) -> speichern_laden::Result<Weiche<Richtung, R>> {
         let Reserviert {
             anschluss: anschlüsse,
             pwm_nicht_benötigt,

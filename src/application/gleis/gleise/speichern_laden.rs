@@ -7,7 +7,7 @@ use crate::{
     anschluss::{
         self,
         pin::pwm,
-        speichern::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, ToSave},
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
     },
     application::{
@@ -54,7 +54,7 @@ fn reserviere_anschlüsse<T: ToSave>(
                 input_nicht_benötigt,
             } = gleis_save
                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                .map_err(|speichern::Error { fehler, .. }| fehler)?;
+                .map_err(|speichern_laden::Error { fehler, .. }| fehler)?;
             acc.0.push(gleis);
             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
         },
@@ -217,7 +217,7 @@ where
                         input_nicht_benötigt,
                     } = streckenabschnitt
                         .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|speichern::Error { fehler, .. }| fehler)?;
+                        .map_err(|speichern_laden::Error { fehler, .. }| fehler)?;
                     acc.0.push((name, streckenabschnitt));
                     Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
                 },
@@ -234,7 +234,7 @@ where
                         input_nicht_benötigt,
                     } = geschwindigkeit
                         .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|speichern::Error { fehler, .. }| fehler)?;
+                        .map_err(|speichern_laden::Error { fehler, .. }| fehler)?;
                     acc.0.push((name, geschwindigkeit));
                     Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
                 },

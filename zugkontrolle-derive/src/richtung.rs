@@ -65,7 +65,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     )
                 }
             }
-            impl #base_ident::anschluss::speichern::ToSave for RichtungAnschlüsse {
+            impl #base_ident::anschluss::speichern_laden::ToSave for RichtungAnschlüsse {
                 type Save = RichtungAnschlüsseSave;
                 fn to_save(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
@@ -84,17 +84,17 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     (pwm0, output0, input0)
                 }
             }
-            impl #base_ident::anschluss::speichern::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern_laden::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                     pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
                     output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
-                ) -> #base_ident::anschluss::speichern::Result<RichtungAnschlüsse> {
+                ) -> #base_ident::anschluss::speichern_laden::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
-                    #(let #base_ident::anschluss::speichern::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
-                    Ok(#base_ident::anschluss::speichern::Reserviert {
+                    #(let #base_ident::anschluss::speichern_laden::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
+                    Ok(#base_ident::anschluss::speichern_laden::Reserviert {
                         anschluss: RichtungAnschlüsse {
                             #(#struct_fields),*
                         },

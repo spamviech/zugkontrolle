@@ -21,7 +21,7 @@ use self::{
     typen::*,
 };
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, speichern::ToSave, OutputSave},
+    anschluss::{anschlüsse::Anschlüsse, speichern_laden::ToSave, OutputSave},
     args::Args,
     farbe::Farbe,
     steuerung::{

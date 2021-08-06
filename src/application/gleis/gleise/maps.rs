@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        speichern::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, ToSave},
         OutputSave,
     },
     application::{
@@ -57,7 +57,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
         pwm_pins: Vec<crate::anschluss::pwm::Pin>,
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
-    ) -> speichern::Result<Gleis<R>> {
+    ) -> speichern_laden::Result<Gleis<R>> {
         let Reserviert {
             anschluss: definition_reserviert,
             pwm_nicht_benötigt,
