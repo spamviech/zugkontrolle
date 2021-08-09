@@ -157,7 +157,7 @@ where
     Speichern(String),
     EntferneSpeichernFarbe(Instant),
     Laden(String),
-    GeschwindigkeitAuswahl {
+    GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Message,
     },
@@ -427,8 +427,8 @@ where
                 self.entferne_speichern_farbe(nachricht_zeit)
             }
             Message::Laden(pfad) => self.laden(pfad),
-            Message::GeschwindigkeitAuswahl { name, nachricht } => {
-                if let Some(cmd) = self.geschwindigkeit_auswahl_nachricht(name, nachricht) {
+            Message::GeschwindigkeitAnzeige { name, nachricht } => {
+                if let Some(cmd) = self.geschwindigkeit_anzeige_nachricht(name, nachricht) {
                     command = cmd
                 }
             }

@@ -333,13 +333,13 @@ where
                         geschwindigkeit,
                         anzeige_status,
                     ))
-                    .map(move |nachricht| Message::GeschwindigkeitAuswahl {
+                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
                         name: name_clone.clone(),
                         nachricht,
                     }),
                 );
             }
-            // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?, Separator dazwischen?
+            // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         }
     }
     iced::Row::new()

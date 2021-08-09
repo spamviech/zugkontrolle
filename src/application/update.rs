@@ -682,7 +682,7 @@ where
     Z::Leiter: LeiterAnzeige,
     <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
 {
-    pub fn geschwindigkeit_auswahl_nachricht(
+    pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
         name: geschwindigkeit::Name,
         nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message,
@@ -696,7 +696,7 @@ where
             ) {
                 Ok(cmd) => {
                     let name_clone = name.clone();
-                    command = Some(cmd.map(move |nachricht| Message::GeschwindigkeitAuswahl {
+                    command = Some(cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
                         name: name_clone.clone(),
                         nachricht,
                     }))

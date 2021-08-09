@@ -133,12 +133,14 @@ impl LeiterAnzeige for Mittelleiter {
     ) -> Result<iced::Command<Self::Message>, Error> {
         match message {
             MessageMittelleiter::Geschwindigkeit(wert) => {
+                geschwindigkeit.geschwindigkeit(wert)?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
-                geschwindigkeit.geschwindigkeit(wert)
+                Ok(())
             }
             MessageMittelleiter::Umdrehen => {
+                geschwindigkeit.umdrehen()?;
                 anzeige_status.aktuelle_geschwindigkeit = 0;
-                geschwindigkeit.umdrehen()
+                Ok(())
             }
         }
         .map(|()| iced::Command::none())
@@ -241,13 +243,15 @@ impl LeiterAnzeige for Zweileiter {
     ) -> Result<iced::Command<Self::Message>, Error> {
         match message {
             MessageZweileiter::Geschwindigkeit(wert) => {
+                geschwindigkeit.geschwindigkeit(wert)?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
-                geschwindigkeit.geschwindigkeit(wert)
+                Ok(())
             }
             MessageZweileiter::Fahrtrichtung(fahrtrichtung) => {
+                geschwindigkeit.fahrtrichtung(fahrtrichtung)?;
                 anzeige_status.aktuelle_geschwindigkeit = 0;
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
-                geschwindigkeit.fahrtrichtung(fahrtrichtung)
+                Ok(())
             }
         }
         .map(|()| iced::Command::none())
