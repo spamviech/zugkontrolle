@@ -44,7 +44,7 @@ pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
 pub enum Transparenz {
     Voll,
     Reduziert,
-    Unsichtbar,
+    Minimal,
 }
 
 impl Transparenz {
@@ -59,8 +59,8 @@ impl Transparenz {
     pub fn kombiniere(self, other: Transparenz) -> Transparenz {
         use Transparenz::*;
         match (self, other) {
-            (Unsichtbar, _) | (_, Unsichtbar) => Unsichtbar,
-            (Reduziert, Reduziert) => Unsichtbar,
+            (Minimal, _) | (_, Minimal) => Minimal,
+            (Reduziert, Reduziert) => Minimal,
             (Voll, Reduziert) | (Reduziert, Voll) => Reduziert,
             (Transparenz::Voll, Transparenz::Voll) => Voll,
         }
@@ -68,8 +68,8 @@ impl Transparenz {
 
     pub fn alpha(self) -> f32 {
         match self {
-            Transparenz::Unsichtbar => 0.,
-            Transparenz::Reduziert => 0.5,
+            Transparenz::Minimal => 0.3,
+            Transparenz::Reduziert => 0.6,
             Transparenz::Voll => 1.,
         }
     }
