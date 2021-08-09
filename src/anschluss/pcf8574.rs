@@ -170,7 +170,7 @@ impl Pcf8574 {
 
     /*
     /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
-    #[inline]
+    #[inline(always)]
     fn adresse(&self) -> (Level, Level, Level, Variante) {
         (self.a0, self.a1, self.a2, self.variante)
     }
@@ -334,12 +334,12 @@ impl Port {
         Port { pcf8574, port, nachricht, sender }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn adresse(&self) -> &Nachricht {
         &self.nachricht
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn port(&self) -> u3 {
         self.port
     }
@@ -375,12 +375,12 @@ impl Port {
 pub struct OutputPort(Port);
 
 impl OutputPort {
-    #[inline]
+    #[inline(always)]
     pub fn adresse(&self) -> &Nachricht {
         self.0.adresse()
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn port(&self) -> u3 {
         self.0.port()
     }
@@ -425,12 +425,12 @@ impl OutputPort {
 pub struct InputPort(Port);
 
 impl InputPort {
-    #[inline]
+    #[inline(always)]
     pub fn adresse(&self) -> &Nachricht {
         self.0.adresse()
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn port(&self) -> u3 {
         self.0.port()
     }
@@ -477,7 +477,7 @@ impl InputPort {
     /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared when
     /// set_async_interrupt is called, or when InputPin goes out of scope.
     #[cfg_attr(not(raspi), allow(unused_variables))]
-    #[inline]
+    #[inline(always)]
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
@@ -489,7 +489,7 @@ impl InputPort {
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
-    #[inline]
+    #[inline(always)]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         let port = self.port();
         let pcf8574 = &mut *self.0.pcf8574.lock()?;

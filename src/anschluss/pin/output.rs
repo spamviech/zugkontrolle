@@ -17,7 +17,7 @@ impl Pin {
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
-    #[inline]
+    #[inline(always)]
     pub fn pin(&self) -> u8 {
         #[cfg(raspi)]
         {
@@ -33,7 +33,7 @@ impl Pin {
 
     /// Sets the pin’s output state.
     #[cfg_attr(not(raspi), allow(unused_variables))]
-    #[inline]
+    #[inline(always)]
     pub fn write(&mut self, level: Level) -> Result<(), Error> {
         #[cfg(raspi)]
         {
@@ -48,7 +48,7 @@ impl Pin {
     }
 
     /// Returns `true` if the pin's output state is set to `Level::Low`.
-    #[inline]
+    #[inline(always)]
     pub fn is_set_low(&self) -> Result<bool, Error> {
         #[cfg(raspi)]
         {
@@ -62,7 +62,7 @@ impl Pin {
     }
 
     /// Returns `true` if the pin's output state is set to `Level::High`.
-    #[inline]
+    #[inline(always)]
     pub fn is_set_high(&self) -> Result<bool, Error> {
         #[cfg(raspi)]
         {
@@ -76,7 +76,7 @@ impl Pin {
     }
 
     /// Toggles the pin’s output state between Low and High.
-    #[inline]
+    #[inline(always)]
     pub fn toggle(&mut self) -> Result<(), Error> {
         #[cfg(raspi)]
         {

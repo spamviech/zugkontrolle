@@ -46,7 +46,7 @@ where
         self.message_box.show(true)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn schließe_message_box(&mut self) {
         self.message_box.show(false)
     }
@@ -268,17 +268,17 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) {
         self.bewegung = Some((Instant::now(), bewegung))
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn bewegung_beenden(&mut self) {
         self.bewegung = None
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn bewegung_zurücksetzen(&mut self) {
         self.gleise.setze_pivot(Vektor::null_vektor())
     }
@@ -294,7 +294,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn schließe_modal(&mut self) {
         self.modal_state.show(false)
     }
@@ -306,7 +306,7 @@ where
         self.modal_state.show(true);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn streckenabschnitt_wählen(
         &mut self,
         streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
@@ -423,7 +423,7 @@ where
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
         self.streckenabschnitt_aktuell_festlegen = festlegen
     }
@@ -799,7 +799,7 @@ where
     <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
-    #[inline]
+    #[inline(always)]
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(
             &mut self.anschlüsse,

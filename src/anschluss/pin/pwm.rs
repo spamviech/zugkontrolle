@@ -68,7 +68,7 @@ impl Config {
     /// Es muss gelten:
     /// - period >= pulse_width
     /// - 0 <= duty_cycle <= 1
-    #[inline]
+    #[inline(always)]
     pub fn valide(&self) -> bool {
         self.time.valide()
     }

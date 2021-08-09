@@ -35,7 +35,7 @@ pub struct Input<'t> {
     interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
 }
 impl<'t> Status<Input<'t>> {
-    #[inline]
+    #[inline(always)]
     pub fn neu_input(interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>) -> Self {
         Self::neu_mit_interrupt(Input {
             number_input_state: number_input::State::new(),
@@ -44,7 +44,7 @@ impl<'t> Status<Input<'t>> {
         })
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn von_input_save(
         initial: InputSave,
         interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
@@ -66,7 +66,7 @@ impl<'t> Status<Input<'t>> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn input_anschluss(&self) -> InputSave {
         self.anschluss(
             |pin, _input| InputSave::Pin { pin },
@@ -93,12 +93,12 @@ pub struct Output {
     polarität: Polarität,
 }
 impl Status<Output> {
-    #[inline]
+    #[inline(always)]
     pub fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output { polarität: Polarität::Normal })
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn von_output_save(initial: OutputSave) -> Self {
         match initial {
             OutputSave::Pin { pin, polarität } => {
@@ -110,7 +110,7 @@ impl Status<Output> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn output_anschluss(&self) -> OutputSave {
         self.anschluss(
             |pin, Output { polarität }| OutputSave::Pin { pin, polarität: *polarität },

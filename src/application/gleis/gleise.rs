@@ -254,7 +254,7 @@ impl<Z> Gleise<Z> {
     }
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
-    #[inline]
+    #[inline(always)]
     pub(in crate::application) fn setze_streckenabschnitt_unit<T: GleiseMap<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
@@ -273,7 +273,7 @@ pub enum Message<Z> {
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
-    #[inline]
+    #[inline(always)]
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -282,7 +282,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
         self.draw(bounds, cursor)
     }
 
-    #[inline]
+    #[inline(always)]
     fn update(
         &mut self,
         event: iced::canvas::Event,

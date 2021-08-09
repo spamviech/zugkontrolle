@@ -17,7 +17,7 @@ impl Pin {
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
-    #[inline]
+    #[inline(always)]
     pub fn pin(&self) -> u8 {
         #[cfg(raspi)]
         {
@@ -32,7 +32,7 @@ impl Pin {
     }
 
     /// Reads the pin’s logic level.
-    #[inline]
+    #[inline(always)]
     pub fn read(&mut self) -> Result<Level, Error> {
         #[cfg(raspi)]
         {
@@ -59,7 +59,7 @@ impl Pin {
     /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared when
     /// set_async_interrupt is called, or when InputPin goes out of scope.
     #[cfg_attr(not(raspi), allow(unused_variables))]
-    #[inline]
+    #[inline(always)]
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
@@ -77,7 +77,7 @@ impl Pin {
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
-    #[inline]
+    #[inline(always)]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         #[cfg(raspi)]
         {

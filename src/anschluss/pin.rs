@@ -50,7 +50,7 @@ impl Pin {
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
-    #[inline]
+    #[inline(always)]
     pub fn pin(&self) -> u8 {
         #[cfg(raspi)]
         {
@@ -66,7 +66,7 @@ impl Pin {
 
     /// Consumes the Pin, returns an input::Pin, sets its mode to Input, and disables the pin’s
     /// built-in pull-up/pull-down resistors.
-    #[inline]
+    #[inline(always)]
     pub fn into_input(self) -> input::Pin {
         input::Pin(
             #[cfg(raspi)]
@@ -81,7 +81,7 @@ impl Pin {
     ///
     /// The pull-down resistor is disabled when input::Pin goes out of scope if reset_on_drop is set
     /// to true (default).
-    #[inline]
+    #[inline(always)]
     pub fn into_input_pulldown(self) -> input::Pin {
         input::Pin(
             #[cfg(raspi)]
@@ -96,7 +96,7 @@ impl Pin {
     ///
     /// The pull-up resistor is disabled when input::Pin goes out of scope if reset_on_drop is set
     /// to true (default).
-    #[inline]
+    #[inline(always)]
     pub fn into_input_pullup(self) -> input::Pin {
         input::Pin(
             #[cfg(raspi)]
@@ -107,7 +107,7 @@ impl Pin {
     }
 
     ///Consumes the Pin, returns an output::Pin and sets its mode to Output.
-    #[inline]
+    #[inline(always)]
     #[cfg_attr(not(raspi), allow(unused_variables))]
     pub fn into_output(self, level: Level) -> output::Pin {
         output::Pin(
@@ -123,7 +123,7 @@ impl Pin {
     }
 
     #[cfg(raspi)]
-    #[inline]
+    #[inline(always)]
     fn pwm_channel(&self) -> Option<rppal::pwm::Channel> {
         match self.0.pin() {
             18 => Some(rppal::pwm::Channel::Pwm0),
