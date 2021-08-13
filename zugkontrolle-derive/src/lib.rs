@@ -72,3 +72,15 @@ pub fn alias_save_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     alias::alias_save_unit(attr.into(), ast).into()
 }
+
+mod maps_methoden;
+#[proc_macro_attribute]
+/// Internes Macro mit sehr spezifischen Vorraussetzungen.
+///
+/// Es wird erwartet, dass die Funktion genau einen generic Typ hat,
+// das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
+pub fn erstelle_maps_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(item);
+
+    maps_methoden::erstelle_methoden(ast).into()
+}

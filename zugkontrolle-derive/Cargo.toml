@@ -15,5 +15,5 @@ Inflector = "0.11.4"
 proc-macro-crate = "1.0.0"
 
 [dependencies.syn]
-version = "1.0.72"
+version = "1.0.74"
 features = ["full", "extra-traits"]
