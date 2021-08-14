@@ -7,7 +7,7 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated,
-    token::{And, Comma, Gt, Lt, Mut, RArrow, SelfValue},
+    token::{And, Comma, Gt, Lt, Mut, SelfValue},
     Type, *,
 };
 
@@ -48,7 +48,56 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
                 .collect();
             Type::Tuple(type_tuple)
         }
-        Type::Path(TypePath { qself, path: Path { leading_colon, segments } }) => todo!(),
+        Type::Path(mut type_path) => {
+            type_path.path.segments = type_path.path.segments.into_iter().fold(
+                Punctuated::new(),
+                |mut acc, mut path_segment| {
+                    path_segment.arguments = match path_segment.arguments {
+                        PathArguments::None => PathArguments::None,
+                        PathArguments::AngleBracketed(mut angle_bracketed) => {
+                            angle_bracketed.args = angle_bracketed
+                                .args
+                                .into_iter()
+                                .map(|generic_arg| {
+                                    if let GenericArgument::Type(ty) = generic_arg {
+                                        GenericArgument::Type(ersetze_generic(
+                                            generic,
+                                            insert.clone(),
+                                            ty,
+                                        ))
+                                    } else {
+                                        generic_arg
+                                    }
+                                })
+                                .collect();
+                            PathArguments::AngleBracketed(angle_bracketed)
+                        }
+                        PathArguments::Parenthesized(mut parenthesized) => {
+                            parenthesized.inputs = parenthesized
+                                .inputs
+                                .into_iter()
+                                .map(|ty| ersetze_generic(generic, insert.clone(), ty))
+                                .collect();
+                            parenthesized.output = match parenthesized.output {
+                                ReturnType::Default => ReturnType::Default,
+                                ReturnType::Type(r_arrow, ty) => ReturnType::Type(
+                                    r_arrow,
+                                    Box::new(ersetze_generic(generic, insert.clone(), *ty)),
+                                ),
+                            };
+                            PathArguments::Parenthesized(parenthesized)
+                        }
+                    };
+                    if &path_segment.ident == generic {
+                        acc.extend(insert.iter().cloned())
+                    } else {
+                        acc.push(path_segment)
+                    }
+                    acc
+                },
+            );
+            Type::Path(type_path)
+        }
         /*
         Type::BareFn(TypeBareFn {
             lifetimes,
