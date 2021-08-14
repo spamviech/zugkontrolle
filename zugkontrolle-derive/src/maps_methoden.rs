@@ -7,51 +7,63 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated,
-    token::{And, Comma, Gt, Lt, Mut, SelfValue},
+    token::{And, As, Comma, Gt, Lt, Mut, SelfValue},
     Type, *,
 };
 
-fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type {
+fn ersetze_generic(
+    generic: &Ident,
+    insert: Vec<PathSegment>,
+    trait_segments: Vec<PathSegment>,
+    ty: Type,
+) -> Type {
     match ty {
         Type::Infer(infer) => Type::Infer(infer),
         Type::Macro(mac) => Type::Macro(mac),
         Type::Never(never) => Type::Never(never),
         Type::Array(mut type_array) => {
-            type_array.elem = Box::new(ersetze_generic(generic, insert, *type_array.elem));
+            type_array.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_array.elem));
             Type::Array(type_array)
         }
         Type::Group(mut type_group) => {
-            type_group.elem = Box::new(ersetze_generic(generic, insert, *type_group.elem));
+            type_group.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_group.elem));
             Type::Group(type_group)
         }
         Type::Paren(mut type_paren) => {
-            type_paren.elem = Box::new(ersetze_generic(generic, insert, *type_paren.elem));
+            type_paren.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_paren.elem));
             Type::Paren(type_paren)
         }
         Type::Ptr(mut type_ptr) => {
-            type_ptr.elem = Box::new(ersetze_generic(generic, insert, *type_ptr.elem));
+            type_ptr.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_ptr.elem));
             Type::Ptr(type_ptr)
         }
         Type::Slice(mut type_slice) => {
-            type_slice.elem = Box::new(ersetze_generic(generic, insert, *type_slice.elem));
+            type_slice.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_slice.elem));
             Type::Slice(type_slice)
         }
         Type::Reference(mut type_reference) => {
-            type_reference.elem = Box::new(ersetze_generic(generic, insert, *type_reference.elem));
+            type_reference.elem =
+                Box::new(ersetze_generic(generic, insert, trait_segments, *type_reference.elem));
             Type::Reference(type_reference)
         }
         Type::Tuple(mut type_tuple) => {
             type_tuple.elems = type_tuple
                 .elems
                 .into_iter()
-                .map(|elem| ersetze_generic(generic, insert.clone(), elem))
+                .map(|elem| ersetze_generic(generic, insert.clone(), trait_segments.clone(), elem))
                 .collect();
             Type::Tuple(type_tuple)
         }
         Type::Path(mut type_path) => {
+            let num_segments = type_path.path.segments.len();
             // TODO muss evtl. in qself verschoben werden
-            type_path.path.segments = type_path.path.segments.into_iter().fold(
-                Punctuated::new(),
+            let (segments, segment, qself) = type_path.path.segments.into_iter().fold(
+                (Punctuated::new(), 0usize, None),
                 |mut acc, mut path_segment| {
                     path_segment.arguments = match path_segment.arguments {
                         PathArguments::None => PathArguments::None,
@@ -64,6 +76,7 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
                                         GenericArgument::Type(ersetze_generic(
                                             generic,
                                             insert.clone(),
+                                            trait_segments.clone(),
                                             ty,
                                         ))
                                     } else {
@@ -77,26 +90,61 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
                             parenthesized.inputs = parenthesized
                                 .inputs
                                 .into_iter()
-                                .map(|ty| ersetze_generic(generic, insert.clone(), ty))
+                                .map(|ty| {
+                                    ersetze_generic(
+                                        generic,
+                                        insert.clone(),
+                                        trait_segments.clone(),
+                                        ty,
+                                    )
+                                })
                                 .collect();
                             parenthesized.output = match parenthesized.output {
                                 ReturnType::Default => ReturnType::Default,
                                 ReturnType::Type(r_arrow, ty) => ReturnType::Type(
                                     r_arrow,
-                                    Box::new(ersetze_generic(generic, insert.clone(), *ty)),
+                                    Box::new(ersetze_generic(
+                                        generic,
+                                        insert.clone(),
+                                        trait_segments.clone(),
+                                        *ty,
+                                    )),
                                 ),
                             };
                             PathArguments::Parenthesized(parenthesized)
                         }
                     };
+                    acc.1 += 1;
                     if &path_segment.ident == generic {
-                        acc.extend(insert.iter().cloned())
+                        if acc.1 < num_segments {
+                            acc.0.extend(trait_segments.iter().cloned());
+                            // use type associated with trait Zeichnen
+                            acc.2 = Some(QSelf {
+                                lt_token: Lt { spans: [Span::mixed_site()] },
+                                ty: Box::new(Type::Path(TypePath {
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: insert.iter().cloned().collect(),
+                                    },
+                                })),
+                                position: acc.0.len(),
+                                as_token: Some(As { span: Span::mixed_site() }),
+                                gt_token: Gt { spans: [Span::mixed_site()] },
+                            });
+                        } else {
+                            // generic is the last (and probably only) path segment
+                            acc.0.extend(insert.iter().cloned())
+                        }
                     } else {
-                        acc.push(path_segment)
+                        acc.0.push(path_segment)
                     }
                     acc
                 },
             );
+            assert!(segment == num_segments);
+            type_path.qself = qself;
+            type_path.path.segments = segments;
             Type::Path(type_path)
         }
         /*
@@ -128,6 +176,12 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
+        let zeichen_segments = vec![
+            PathSegment { ident: base_ident.clone(), arguments: PathArguments::None },
+            PathSegment { ident: format_ident!("application"), arguments: PathArguments::None },
+            PathSegment { ident: format_ident!("typen"), arguments: PathArguments::None },
+            PathSegment { ident: format_ident!("Zeichnen"), arguments: PathArguments::None },
+        ];
         let start_segments = vec![
             PathSegment { ident: base_ident, arguments: PathArguments::None },
             PathSegment { ident: format_ident!("application"), arguments: PathArguments::None },
@@ -211,6 +265,7 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
                             Box::new(ersetze_generic(
                                 generic_ident,
                                 insert_ty.clone(),
+                                zeichen_segments.clone(),
                                 ty.as_ref().clone(),
                             )),
                         )
@@ -257,36 +312,43 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
                         gerade_types.push(ersetze_generic(
                             generic_ident,
                             gerade.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         kurve_types.push(ersetze_generic(
                             generic_ident,
                             kurve.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         weiche_types.push(ersetze_generic(
                             generic_ident,
                             weiche.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         dreiwege_weiche_types.push(ersetze_generic(
                             generic_ident,
                             dreiwege_weiche.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         kurven_weiche_types.push(ersetze_generic(
                             generic_ident,
                             kurven_weiche.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         s_kurven_weiche_types.push(ersetze_generic(
                             generic_ident,
                             s_kurven_weiche.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                         kreuzung_types.push(ersetze_generic(
                             generic_ident,
                             kreuzung.clone(),
+                            zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
                     }

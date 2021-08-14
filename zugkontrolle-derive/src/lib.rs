@@ -79,6 +79,7 @@ mod maps_methoden;
 ///
 /// Es wird erwartet, dass die Funktion genau einen generic Typ hat,
 // das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
+// Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
 pub fn erstelle_maps_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item);
 
