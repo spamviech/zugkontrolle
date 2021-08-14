@@ -21,6 +21,8 @@
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
 - Refactoring: Modul umbenannt polarity.rs -> polarität.rs
+- Refactoring: GleiseMap-Trait ist nicht mehr public.
+    Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
 
 ## 2.0.1
 
