@@ -21,6 +21,8 @@ fn ersetze_generic(
         Type::Infer(infer) => Type::Infer(infer),
         Type::Macro(mac) => Type::Macro(mac),
         Type::Never(never) => Type::Never(never),
+        Type::TraitObject(trait_object) => Type::TraitObject(trait_object),
+        Type::ImplTrait(impl_trait) => Type::ImplTrait(impl_trait),
         Type::Array(mut type_array) => {
             type_array.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_array.elem));
@@ -59,9 +61,31 @@ fn ersetze_generic(
                 .collect();
             Type::Tuple(type_tuple)
         }
+        Type::BareFn(mut type_bar_fn) => {
+            type_bar_fn.inputs = type_bar_fn
+                .inputs
+                .into_iter()
+                .map(|mut bare_fn_arg| {
+                    bare_fn_arg.ty = ersetze_generic(
+                        generic,
+                        insert.clone(),
+                        trait_segments.clone(),
+                        bare_fn_arg.ty,
+                    );
+                    bare_fn_arg
+                })
+                .collect();
+            type_bar_fn.output = match type_bar_fn.output {
+                ReturnType::Default => ReturnType::Default,
+                ReturnType::Type(r_arrow, ty) => ReturnType::Type(
+                    r_arrow,
+                    Box::new(ersetze_generic(generic, insert.clone(), trait_segments.clone(), *ty)),
+                ),
+            };
+            Type::BareFn(type_bar_fn)
+        }
         Type::Path(mut type_path) => {
             let num_segments = type_path.path.segments.len();
-            // TODO muss evtl. in qself verschoben werden
             let (segments, segment, qself) = type_path.path.segments.into_iter().fold(
                 (Punctuated::new(), 0usize, None),
                 |mut acc, mut path_segment| {
@@ -147,21 +171,7 @@ fn ersetze_generic(
             type_path.path.segments = segments;
             Type::Path(type_path)
         }
-        /*
-        Type::BareFn(TypeBareFn {
-            lifetimes,
-            unsafety,
-            abi,
-            fn_token,
-            paren_token,
-            inputs,
-            variadic,
-            output,
-        }) => todo!(),
-        Type::TraitObject(TypeTraitObject { dyn_token, bounds }) => todo!(),
-        Type::ImplTrait(TypeImplTrait { impl_token, bounds }) => todo!(),
-        Type::Verbatim(_verb) => todo!(),
-        */
+        // Type::Verbatim(_verb) => Type::Verbatim(_verb),
         _ => unimplemented!("Unsupported Argument type: {:?}", ty),
     }
 }
