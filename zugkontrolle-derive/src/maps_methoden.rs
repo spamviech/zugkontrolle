@@ -49,6 +49,7 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
             Type::Tuple(type_tuple)
         }
         Type::Path(mut type_path) => {
+            // TODO muss evtl. in qself verschoben werden
             type_path.path.segments = type_path.path.segments.into_iter().fold(
                 Punctuated::new(),
                 |mut acc, mut path_segment| {
@@ -166,7 +167,17 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
         let s_kurven_weiche = erzeuge_typ_segments("SKurvenWeiche");
         let kreuzung = erzeuge_typ_segments("Kreuzung");
 
-        let ImplItemMethod { sig: Signature { ident, generics, inputs, output, .. }, .. } = &item;
+        let ImplItemMethod {
+            sig: Signature { ident, generics, inputs, output, .. }, attrs, ..
+        } = &item;
+        let doc_attrs: Vec<&Attribute> = attrs
+            .iter()
+            .filter(|attr| {
+                attr.path.segments.len() == 1
+                    && attr.path.segments.first().map(|path_segment| path_segment.ident.to_string())
+                        == Some("doc".to_string())
+            })
+            .collect();
         let gerade_ident = format_ident!("{}_gerade", ident);
         let kurve_ident = format_ident!("{}_kurve", ident);
         let weiche_ident = format_ident!("{}_weiche", ident);
@@ -297,6 +308,7 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
                 quote! {
+                    #(#doc_attrs)*
                     pub fn #new_ident(&mut self, #(#input_names: #types),*) #output {
                         self.#ident(#(#input_names),*)
                     }
