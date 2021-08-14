@@ -23,6 +23,7 @@ fn ersetze_generic(
         Type::Never(never) => Type::Never(never),
         Type::TraitObject(trait_object) => Type::TraitObject(trait_object),
         Type::ImplTrait(impl_trait) => Type::ImplTrait(impl_trait),
+        Type::Verbatim(verb) => Type::Verbatim(verb),
         Type::Array(mut type_array) => {
             type_array.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_array.elem));
@@ -171,7 +172,6 @@ fn ersetze_generic(
             type_path.path.segments = segments;
             Type::Path(type_path)
         }
-        // Type::Verbatim(_verb) => Type::Verbatim(_verb),
         _ => unimplemented!("Unsupported Argument type: {:?}", ty),
     }
 }
@@ -179,7 +179,6 @@ fn ersetze_generic(
 pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
     let mut errors = Vec::new();
 
-    // TODO doc comment
     let mut methoden_definitionen: Option<TokenStream> = None;
     if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
         let base_ident = match zugkontrolle {
@@ -380,6 +379,7 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
                 quote! {
+                    #[inline(always)]
                     #(#doc_attrs)*
                     pub fn #new_ident(&mut self, #(#input_names: #types),*) #output {
                         self.#ident(#(#input_names),*)
