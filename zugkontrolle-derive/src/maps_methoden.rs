@@ -120,6 +120,7 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
 pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
     let mut errors = Vec::new();
 
+    // TODO doc comment
     let mut methoden_definitionen: Option<TokenStream> = None;
     if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
         let base_ident = match zugkontrolle {
@@ -296,7 +297,7 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
                 quote! {
-                    pub fn #new_ident(&mut self, #(#input_names, #types),*) -> #output {
+                    pub fn #new_ident(&mut self, #(#input_names: #types),*) #output {
                         self.#ident(#(#input_names),*)
                     }
                 }
@@ -334,14 +335,14 @@ pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
 
     if !errors.is_empty() {
         let error_message = errors.join("\n");
-        return quote! {
+        quote! {
             compile_error!(#error_message);
             #item
-        };
-    }
-
-    quote! {
-        #item
-        #methoden_definitionen
+        }
+    } else {
+        quote! {
+            #item
+            #methoden_definitionen
+        }
     }
 }
