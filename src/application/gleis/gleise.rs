@@ -242,9 +242,10 @@ impl<Z> Gleise<Z> {
         self.maps.streckenabschnitte.iter()
     }
 
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     /// Der bisherige Wert wird zurückgegeben.
-    pub fn setze_streckenabschnitt<T: GleiseMap<Z>>(
+    pub(crate) fn setze_streckenabschnitt<T: GleiseMap<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,

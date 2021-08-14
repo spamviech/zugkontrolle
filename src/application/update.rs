@@ -167,7 +167,8 @@ where
         message
     }
 
-    pub fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(
+    #[zugkontrolle_derive::erstelle_maps_methoden]
+    pub(crate) fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,

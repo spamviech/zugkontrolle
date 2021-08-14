@@ -21,8 +21,9 @@ use crate::{
 };
 
 impl<Z: Zugtyp> Gleise<Z> {
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Add a new gleis to its position.
-    pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
+    pub(crate) fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -92,8 +93,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         result
     }
 
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
-    pub fn add_attach<T>(
+    pub(crate) fn add_attach<T>(
         &mut self,
         definition: T,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -111,10 +113,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.add(Gleis { definition, position, streckenabschnitt })
     }
 
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate<T>(
+    pub(crate) fn relocate<T>(
         &mut self,
         gleis_id: &GleisId<T>,
         position_neu: Position,
@@ -156,8 +159,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(anchor_points_neu)
     }
 
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Move an existing gleis gleis with anchor_name adjacent to the target_anchor_point.
-    pub fn relocate_attach<T>(
+    pub(crate) fn relocate_attach<T>(
         &mut self,
         gleis_id: &GleisId<T>,
         anchor_name: &T::AnchorName,
@@ -177,11 +181,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.relocate(gleis_id, position)
     }
 
+    #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Remove the Gleis associated the the GleisId.
     ///
     /// Only the first remove has an effect.
     /// Regardless, after a remove the associated Gleis is guaranteed to be removed.
-    pub fn remove<T>(&mut self, gleis_id: GleisId<T>)
+    pub(crate) fn remove<T>(&mut self, gleis_id: GleisId<T>)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,

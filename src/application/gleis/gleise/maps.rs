@@ -109,7 +109,7 @@ impl<Z> GleiseMaps<Z> {
     }
 }
 
-pub trait GleiseMap<Z>: Sized {
+pub(crate) trait GleiseMap<Z>: Sized {
     fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut Map<Self>;
 }
 impl<Z> GleiseMap<Z> for Gerade<Z> {
