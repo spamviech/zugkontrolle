@@ -9,7 +9,7 @@ use crate::{
             anchor,
             gleise::{
                 id::{AnyId, GleisId},
-                maps::{Gleis, GleiseMap},
+                maps::{Gleis, MapSelector},
                 GleisEntferntError, Gleise, Grabbed, ModusDaten,
             },
         },
@@ -25,7 +25,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
     pub(crate) fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -59,7 +59,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> (GleisId<T>, T::AnchorPoints)
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
@@ -103,7 +103,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         target_anchor_point: anchor::Anchor,
     ) -> (GleisId<T>, T::AnchorPoints)
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -123,7 +123,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         position_neu: Position,
     ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -168,7 +168,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         target_anchor_point: anchor::Anchor,
     ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -188,7 +188,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Regardless, after a remove the associated Gleis is guaranteed to be removed.
     pub(crate) fn remove<T>(&mut self, gleis_id: GleisId<T>)
     where
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -209,7 +209,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    pub(crate) fn streckenabschnitt_für_id<T: GleiseMap<Z>>(
+    pub(crate) fn streckenabschnitt_für_id<T: MapSelector<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntError> {

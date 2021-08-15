@@ -16,7 +16,7 @@ use crate::{
         gleis,
         gleis::gleise::{
             id::{with_any_id, AnyId, GleisId},
-            maps::GleiseMap,
+            maps::MapSelector,
             steuerung::Steuerung,
             GleisEntferntError, Gleise,
         },
@@ -168,7 +168,7 @@ where
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
-    pub(crate) fn streckenabschnitt_umschalten<T: GleiseMap<Z>>(
+    pub(crate) fn streckenabschnitt_umschalten<T: MapSelector<Z>>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,

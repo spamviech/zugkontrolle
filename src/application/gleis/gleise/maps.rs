@@ -111,21 +111,21 @@ impl<Z> GleiseMaps<Z> {
 
 /// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
 /// Kein schönes API, daher nur crate-public.
-pub(crate) trait GleiseMap<Z>: Sized {
+pub(crate) trait MapSelector<Z>: Sized {
     fn get_map(gleise: &GleiseMaps<Z>) -> &Map<Self>;
     fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut Map<Self>;
 }
 impl<Z> GleiseMaps<Z> {
     #[inline(always)]
-    pub(crate) fn get_map<T: GleiseMap<Z>>(&self) -> &Map<T> {
+    pub(crate) fn get_map<T: MapSelector<Z>>(&self) -> &Map<T> {
         T::get_map(self)
     }
     #[inline(always)]
-    pub(crate) fn get_map_mut<T: GleiseMap<Z>>(&mut self) -> &mut Map<T> {
+    pub(crate) fn get_map_mut<T: MapSelector<Z>>(&mut self) -> &mut Map<T> {
         T::get_map_mut(self)
     }
 }
-impl<Z> GleiseMap<Z> for Gerade<Z> {
+impl<Z> MapSelector<Z> for Gerade<Z> {
     fn get_map(GleiseMaps { geraden, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         geraden
     }
@@ -133,7 +133,7 @@ impl<Z> GleiseMap<Z> for Gerade<Z> {
         geraden
     }
 }
-impl<Z> GleiseMap<Z> for Kurve<Z> {
+impl<Z> MapSelector<Z> for Kurve<Z> {
     fn get_map(GleiseMaps { kurven, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         kurven
     }
@@ -141,7 +141,7 @@ impl<Z> GleiseMap<Z> for Kurve<Z> {
         kurven
     }
 }
-impl<Z> GleiseMap<Z> for Weiche<Z> {
+impl<Z> MapSelector<Z> for Weiche<Z> {
     fn get_map(GleiseMaps { weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         weichen
     }
@@ -149,7 +149,7 @@ impl<Z> GleiseMap<Z> for Weiche<Z> {
         weichen
     }
 }
-impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
+impl<Z> MapSelector<Z> for DreiwegeWeiche<Z> {
     fn get_map(GleiseMaps { dreiwege_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         dreiwege_weichen
     }
@@ -157,7 +157,7 @@ impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
         dreiwege_weichen
     }
 }
-impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
+impl<Z> MapSelector<Z> for KurvenWeiche<Z> {
     fn get_map(GleiseMaps { kurven_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         kurven_weichen
     }
@@ -165,7 +165,7 @@ impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
         kurven_weichen
     }
 }
-impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
+impl<Z> MapSelector<Z> for SKurvenWeiche<Z> {
     fn get_map(GleiseMaps { s_kurven_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         s_kurven_weichen
     }
@@ -173,7 +173,7 @@ impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
         s_kurven_weichen
     }
 }
-impl<Z> GleiseMap<Z> for Kreuzung<Z> {
+impl<Z> MapSelector<Z> for Kreuzung<Z> {
     fn get_map(GleiseMaps { kreuzungen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
         kreuzungen
     }

@@ -61,7 +61,7 @@ impl<Z> Gleise<Z> {
         }
     }
 
-    fn next_id<T: Debug + GleiseMap<Z>>(&mut self) -> GleisId<T> {
+    fn next_id<T: Debug + MapSelector<Z>>(&mut self) -> GleisId<T> {
         self.maps
             .get_map_mut()
             .keys()
@@ -77,7 +77,7 @@ impl<Z> Gleise<Z> {
     ) -> Result<(), GleisEntferntError>
     where
         Z: Zugtyp,
-        T: GleiseMap<Z>,
+        T: MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { position, .. } =
@@ -90,7 +90,7 @@ impl<Z> Gleise<Z> {
     fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntError>
     where
         Z: Zugtyp,
-        T: Debug + Zeichnen + GleiseMap<Z>,
+        T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
@@ -246,7 +246,7 @@ impl<Z> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     /// Der bisherige Wert wird zurückgegeben.
-    pub(crate) fn setze_streckenabschnitt<T: GleiseMap<Z>>(
+    pub(crate) fn setze_streckenabschnitt<T: MapSelector<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
@@ -257,7 +257,7 @@ impl<Z> Gleise<Z> {
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
-    pub(in crate::application) fn setze_streckenabschnitt_unit<T: GleiseMap<Z>>(
+    pub(in crate::application) fn setze_streckenabschnitt_unit<T: MapSelector<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
