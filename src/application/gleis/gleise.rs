@@ -62,7 +62,8 @@ impl<Z> Gleise<Z> {
     }
 
     fn next_id<T: Debug + GleiseMap<Z>>(&mut self) -> GleisId<T> {
-        T::get_map_mut(&mut self.maps)
+        self.maps
+            .get_map_mut()
             .keys()
             .max()
             .map(GleisId::nachfolger)
@@ -80,7 +81,7 @@ impl<Z> Gleise<Z> {
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { position, .. } =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
         let position_neu = Position { punkt, winkel: position.winkel };
         self.relocate(&gleis_id, position_neu)?;
         Ok(())
@@ -93,7 +94,7 @@ impl<Z> Gleise<Z> {
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
@@ -250,7 +251,7 @@ impl<Z> Gleise<Z> {
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntError> {
-        let gleis = T::get_map_mut(&mut self.maps).get_mut(gleis_id).ok_or(GleisEntferntError)?;
+        let gleis = self.maps.get_map_mut().get_mut(gleis_id).ok_or(GleisEntferntError)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
 

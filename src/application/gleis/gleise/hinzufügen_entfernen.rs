@@ -43,7 +43,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             self.anchor_points.insert(AnyId::from_ref(&gleis_id), anchor.clone())
         });
         // add to HashMap
-        T::get_map_mut(&mut self.maps).insert(gleis_id.clone(), gleis);
+        self.maps.get_map_mut().insert(gleis_id.clone(), gleis);
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -128,7 +128,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
-            T::get_map_mut(&mut self.maps).get_mut(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
@@ -174,7 +174,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let position = {
             let Gleis { definition, .. } =
-                T::get_map_mut(&mut self.maps).get(&gleis_id).ok_or(GleisEntferntError)?;
+                self.maps.get_map().get(&gleis_id).ok_or(GleisEntferntError)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
@@ -192,8 +192,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        if let Some(Gleis { definition, position, .. }) =
-            T::get_map_mut(&mut self.maps).remove(&gleis_id)
+        if let Some(Gleis { definition, position, .. }) = self.maps.get_map_mut().remove(&gleis_id)
         {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
@@ -210,15 +209,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    pub(crate) fn streckenabschnitt_für_id<T>(
+    pub(crate) fn streckenabschnitt_für_id<T: GleiseMap<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
-    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntError>
-    where
-        T: GleiseMap<Z>,
-    {
-        if let Some(Gleis { streckenabschnitt, .. }) = T::get_map_mut(&mut self.maps).get(&gleis_id)
-        {
+    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntError> {
+        if let Some(Gleis { streckenabschnitt, .. }) = self.maps.get_map().get(&gleis_id) {
             Ok(if let Some(name) = streckenabschnitt {
                 let name_clone = name.clone();
                 drop(name);
