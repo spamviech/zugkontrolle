@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-// TODO
+/// TODO Dummy-Typ; wenn fertig wird er einen automatischen Fahrplan darstellen.
+/// Die erste Anpassung in einen sinnvollen Wert (wahrscheinlich ein Record struct)
+/// wird die SemVer nicht zwingen berücksichtigen (kann ohne erhöhen der major version erfolgen).
 #[derive(Serialize, Deserialize)]
 pub struct Plan;
