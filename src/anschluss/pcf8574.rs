@@ -221,9 +221,9 @@ impl Pcf8574 {
         #[cfg(raspi)]
         {
             let beschreibung = self.beschreibung();
-            let map_fehler = |fehler| Error::I2c { beschreibung, fehler };
+            let map_fehler = |fehler| Error::I2c { beschreibung: beschreibung.clone(), fehler };
             if let Ok(mut i2c_channel) = self.i2c.lock() {
-                i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(map_fehler)?;
+                i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
                 let mut buf = [0; 1];
                 let bytes_read = i2c_channel.read(&mut buf).map_err(map_fehler)?;
                 if bytes_read != 1 {
@@ -282,8 +282,8 @@ impl Pcf8574 {
                 error!("I2C-Mutex poisoned!");
                 return Err(Error::PoisonError);
             };
-            let map_fehler = |fehler| Error::I2c { beschreibung, fehler };
-            i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(map_fehler)?;
+            let map_fehler = |fehler| Error::I2c { beschreibung: beschreibung.clone(), fehler };
+            i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
             let mut wert = 0;
             for (port, modus) in self.ports.iter().enumerate() {
                 wert |= match modus {
