@@ -82,7 +82,7 @@ pub struct Beschreibung {
 
 impl Pcf8574 {
     fn beschreibung(&self) -> Beschreibung {
-        let Pcf8574 { a0, a1, a2, variante, ports: _, interrupt: _ } = self;
+        let Pcf8574 { a0, a1, a2, variante, .. } = self;
         Beschreibung { a0: *a0, a1: *a1, a2: *a2, variante: *variante }
     }
 
@@ -280,7 +280,7 @@ impl Pcf8574 {
                 i2c_channel
             } else {
                 error!("I2C-Mutex poisoned!");
-                Err(Error::PoisonError)
+                return Err(Error::PoisonError);
             };
             let map_fehler = |fehler| Error::I2c { beschreibung, fehler };
             i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(map_fehler)?;

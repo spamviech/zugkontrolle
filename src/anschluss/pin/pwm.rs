@@ -175,20 +175,20 @@ impl Pin {
                 Ok(pwm_channel.enable().map_err(map_fehler)?)
             }
             #[cfg(raspi)]
-            Pwm::Software(pin) => {
+            Pwm::Software(pwm_pin) => {
                 let map_fehler = |fehler| Error::Gpio { pin, fehler };
                 match config.time {
                     Time::Period { period, mut pulse_width } => {
                         if config.polarity == Polarität::Invertiert {
                             pulse_width = period - pulse_width;
                         }
-                        Ok(pin.set_pwm(period, pulse_width).map_err(map_fehler)?)
+                        Ok(pwm_pin.set_pwm(period, pulse_width).map_err(map_fehler)?)
                     }
                     Time::Frequency { frequency, mut duty_cycle } => {
                         if config.polarity == Polarität::Invertiert {
                             duty_cycle = 1. - duty_cycle;
                         }
-                        Ok(pin.set_pwm_frequency(frequency, duty_cycle).map_err(map_fehler)?)
+                        Ok(pwm_pin.set_pwm_frequency(frequency, duty_cycle).map_err(map_fehler)?)
                     }
                 }
             }
@@ -209,8 +209,8 @@ impl Pin {
                 pwm_channel.disable().map_err(|fehler| Error::Pwm { pin, fehler })?;
             }
             #[cfg(raspi)]
-            Pwm::Software(pin) => {
-                pin.clear_pwm().map_err(|fehler| Error::Gpio { pin, fehler })?;
+            Pwm::Software(pwm_pin) => {
+                pwm_pin.clear_pwm().map_err(|fehler| Error::Gpio { pin, fehler })?;
             }
             #[cfg(not(raspi))]
             _pin => {
