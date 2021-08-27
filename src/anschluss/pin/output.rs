@@ -43,7 +43,7 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.write({:?})", self, level);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -57,7 +57,7 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.is_set_low()", self);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -71,7 +71,7 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.is_set_high()", self);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -86,7 +86,7 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.toggle()", self);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -97,5 +97,5 @@ impl Pin {
 #[derive(Debug)]
 pub enum Error {
     #[cfg(not(raspi))]
-    KeinRaspberryPi,
+    KeinRaspberryPi(u8),
 }

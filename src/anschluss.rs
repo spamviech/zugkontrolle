@@ -63,7 +63,7 @@ fn write_variante(f: &mut Formatter<'_>, variante: &pcf8574::Variante) -> fmt::R
 }
 fn write_adresse(
     f: &mut Formatter<'_>,
-    (a0, a1, a2, variante): &(Level, Level, Level, pcf8574::Variante),
+    pcf8574::Beschreibung { a0, a1, a2, variante }: &pcf8574::Beschreibung,
 ) -> fmt::Result {
     write_level(f, a0)?;
     write_level(f, a1)?;
@@ -231,7 +231,7 @@ impl ToSave for OutputAnschluss {
                 OutputSave::Pin { pin: pin.pin(), polarität: *polarität }
             }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                let (a0, a1, a2, variante) = port.adresse();
+                let pcf8574::Beschreibung { a0, a1, a2, variante } = port.adresse();
                 let port = port.port();
                 OutputSave::Pcf8574Port {
                     a0: *a0,
@@ -422,7 +422,7 @@ impl ToSave for InputAnschluss {
         match self {
             InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
-                let (a0, a1, a2, variante) = port.adresse();
+                let pcf8574::Beschreibung { a0, a1, a2, variante } = port.adresse();
                 let interrupt = port.interrupt_pin().unwrap_or(None);
                 let port = port.port();
                 InputSave::Pcf8574Port {

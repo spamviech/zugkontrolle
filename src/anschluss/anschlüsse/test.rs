@@ -28,7 +28,15 @@ fn drop_semantics() {
             u3::new(0),
         )
         .expect("1. Aufruf von llln.");
-    assert_eq!(llln.adresse(), &(Level::Low, Level::Low, Level::Low, pcf8574::Variante::Normal));
+    assert_eq!(
+        llln.adresse(),
+        &pcf8574::Beschreibung {
+            a0: Level::Low,
+            a1: Level::Low,
+            a2: Level::Low,
+            variante: pcf8574::Variante::Normal
+        }
+    );
     assert_eq!(llln.port(), u3::new(0));
     assert_eq!(
         anschlüsse.reserviere_pcf8574_port(

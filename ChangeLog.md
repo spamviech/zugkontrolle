@@ -10,8 +10,9 @@
 - Neue Kommandozeilen-Argumente zoom, x, y, winkel
 - Verbesserte Widgets zum einstellen von Position und Rotation
 - Erlaube entfernen von Weichen-Steuerung
-- Bisherige Anschlüsse werden beim Anpassen  von z.B. Weichen berücksichtigt
+- Bisherige Anschlüsse werden beim Anpassen von z.B. Weichen berücksichtigt
 - Bei fehlgeschlagenem Laden wird immer ein leerer Zustand erzeugt
+- Fehlermeldungen enthalten falls möglich den betroffenen Anschluss
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.

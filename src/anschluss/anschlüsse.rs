@@ -97,7 +97,12 @@ impl AnschlüsseData {
                 paste! {
                     match port.adresse() {
                         $(
-                            (level!($k), level!($l), level!($m), variante!($n)) => {
+                            pcf8574::Beschreibung {
+                                a0: level!{$k},
+                                a1: level!{$l},
+                                a2: level!{$m},
+                                variante: variante!{$n}
+                            } => {
                                 debug!("rückgabe pcf8574 {:?}-{:?}-{:?}-{:?}-{:?}"
                                     , level!($k), level!($l), level!($m), variante!($n), port.port());
                                 match u8::from(port.port()) {
@@ -189,8 +194,8 @@ impl Anschlüsse {
     }
 
     fn listen_restore_messages(
-        sender: Sender<(pcf8574::Nachricht, u3)>,
-        receiver: Receiver<(pcf8574::Nachricht, u3)>,
+        sender: Sender<(pcf8574::Beschreibung, u3)>,
+        receiver: Receiver<(pcf8574::Beschreibung, u3)>,
         inner: AnschlüsseInternal,
     ) {
         loop {
@@ -203,7 +208,12 @@ impl Anschlüsse {
                                 paste! {
                                     Port::neu(
                                         anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
-                                        (level!{$a0}, level!{$a1}, level!{$a2}, variante!{$var}),
+                                        pcf8574::Beschreibung {
+                                            a0:level!{$a0},
+                                            a1:level!{$a1},
+                                            a2:level!{$a2},
+                                            variante:variante!{$var}
+                                        },
                                         $port,
                                         sender.clone()
                                     )
@@ -215,7 +225,12 @@ impl Anschlüsse {
                                 paste! {
                                     match nachricht {
                                         $(
-                                            (level!($k),level!($l),level!($m),variante!($n)) => {
+                                            pcf8574::Beschreibung {
+                                                a0: level!{$k},
+                                                a1: level!{$l},
+                                                a2: level!{$m},
+                                                variante: variante!{$n}
+                                            } => {
                                                 $value! {$k $l $m $n port}
                                             }
                                         )*
@@ -344,7 +359,12 @@ impl Anschlüsse {
                             Some(
                                 Port::neu(
                                     anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
-                                    (level!{$a0}, level!{$a1}, level!{$a2}, variante!{$var}),
+                                    pcf8574::Beschreibung {
+                                        a0:level!{$a0},
+                                        a1:level!{$a1},
+                                        a2:level!{$a2},
+                                        variante:variante!{$var}
+                                    },
                                     u3::new($port),
                                     sender.clone()
                                 )

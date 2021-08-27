@@ -40,7 +40,7 @@ impl Pin {
         }
         #[cfg(not(raspi))]
         {
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -65,28 +65,33 @@ impl Pin {
         trigger: Trigger,
         #[cfg_attr(not(raspi), allow(unused_mut))] mut callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
+        let pin = self.pin();
         #[cfg(raspi)]
         {
-            Ok(self.0.set_async_interrupt(trigger.into(), move |level| callback(level.into()))?)
+            Ok(self
+                .0
+                .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
+                .map_err(|fehler| Error::Gpio { pin, fehler })?)
         }
         #[cfg(not(raspi))]
         {
             debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(pin))
         }
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
     #[inline(always)]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
+        let pin = self.pin();
         #[cfg(raspi)]
         {
-            Ok(self.0.clear_async_interrupt()?)
+            Ok(self.0.clear_async_interrupt().map_err(|fehler| Error::Gpio { pin, fehler })?)
         }
         #[cfg(not(raspi))]
         {
             debug!("{:?}.clear_async_interrupt()", self);
-            Err(Error::KeinRaspberryPi)
+            Err(Error::KeinRaspberryPi(pin))
         }
     }
 }
@@ -94,13 +99,7 @@ impl Pin {
 #[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
-    Gpio(gpio::Error),
+    Gpio { pin: u8, fehler: gpio::Error },
     #[cfg(not(raspi))]
-    KeinRaspberryPi,
-}
-#[cfg(raspi)]
-impl From<gpio::Error> for Error {
-    fn from(error: gpio::Error) -> Self {
-        Error::Gpio(error)
-    }
+    KeinRaspberryPi(u8),
 }

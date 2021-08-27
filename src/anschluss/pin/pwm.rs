@@ -133,85 +133,89 @@ impl Pin {
         match &self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
-                Ok(if pwm_channel.is_enabled()? {
-                    &self.config
-                } else {
-                    // TODO
-                    &None
-                })
+                let enabled = pwm_channel
+                    .is_enabled()
+                    .map_err(|fehler| Error::Pwm { pin: self.pin(), fehler })?;
+                Ok(if enabled { &self.config } else { &None })
             }
             #[cfg(raspi)]
             Pwm::Software(_pin) => Ok(&self.config),
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.is_enabled()", self);
-                Err(Error::KeinRaspberryPi)
+                Err(Error::KeinRaspberryPi(self.pin()))
             }
         }
     }
 
     /// Aktiviere den Pwm-Puls.
     pub fn enable_with_config(&mut self, config: Config) -> Result<(), Error> {
+        let pin = self.pin();
         match &mut self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
+                let map_fehler = |fehler| Error::Pwm { pin, fehler };
                 // update nur, sofern sich Parameter geändert haben.
                 if self.config.as_ref().map(|Config { polarity, .. }| polarity)
                     != Some(&config.polarity)
                 {
-                    pwm_channel.set_polarity(config.polarity.into())?;
+                    pwm_channel.set_polarity(config.polarity.into()).map_err(map_fehler)?;
                 }
                 if self.config.as_ref().map(|Config { time, .. }| time) != Some(&config.time) {
                     match config.time {
                         Time::Period { period, pulse_width } => {
-                            pwm_channel.set_period(period)?;
-                            pwm_channel.set_pulse_width(pulse_width)?;
+                            pwm_channel.set_period(period).map_err(map_fehler)?;
+                            pwm_channel.set_pulse_width(pulse_width).map_err(map_fehler)?;
                         }
                         Time::Frequency { frequency, duty_cycle } => {
-                            pwm_channel.set_frequency(frequency, duty_cycle)?;
+                            pwm_channel.set_frequency(frequency, duty_cycle).map_err(map_fehler)?;
                         }
                     }
                 }
-                Ok(pwm_channel.enable()?)
+                Ok(pwm_channel.enable().map_err(map_fehler)?)
             }
             #[cfg(raspi)]
-            Pwm::Software(pin) => match config.time {
-                Time::Period { period, mut pulse_width } => {
-                    if config.polarity == Polarität::Invertiert {
-                        pulse_width = period - pulse_width;
+            Pwm::Software(pin) => {
+                let map_fehler = |fehler| Error::Gpio { pin, fehler };
+                match config.time {
+                    Time::Period { period, mut pulse_width } => {
+                        if config.polarity == Polarität::Invertiert {
+                            pulse_width = period - pulse_width;
+                        }
+                        Ok(pin.set_pwm(period, pulse_width).map_err(map_fehler)?)
                     }
-                    Ok(pin.set_pwm(period, pulse_width)?)
-                }
-                Time::Frequency { frequency, mut duty_cycle } => {
-                    if config.polarity == Polarität::Invertiert {
-                        duty_cycle = 1. - duty_cycle;
+                    Time::Frequency { frequency, mut duty_cycle } => {
+                        if config.polarity == Polarität::Invertiert {
+                            duty_cycle = 1. - duty_cycle;
+                        }
+                        Ok(pin.set_pwm_frequency(frequency, duty_cycle).map_err(map_fehler)?)
                     }
-                    Ok(pin.set_pwm_frequency(frequency, duty_cycle)?)
                 }
-            },
+            }
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.enable_with_config({:?})", self, config);
-                Err(Error::KeinRaspberryPi)
+                Err(Error::KeinRaspberryPi(pin))
             }
         }
     }
 
     /// Deaktiviere den Pwm-Puls
     pub fn disable(&mut self) -> Result<(), Error> {
+        let pin = self.pin();
         match &mut self.pin {
             #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
-                pwm_channel.disable()?;
+                pwm_channel.disable().map_err(|fehler| Error::Pwm { pin, fehler })?;
             }
             #[cfg(raspi)]
             Pwm::Software(pin) => {
-                pin.clear_pwm()?;
+                pin.clear_pwm().map_err(|fehler| Error::Gpio { pin, fehler })?;
             }
             #[cfg(not(raspi))]
             _pin => {
                 debug!("{:?}.disable()", self);
-                return Err(Error::KeinRaspberryPi);
+                return Err(Error::KeinRaspberryPi(pin));
             }
         }
         #[cfg_attr(not(raspi), allow(unreachable_code))]
@@ -229,24 +233,21 @@ impl Pin {
 #[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
-    Gpio(gpio::Error),
+    Gpio {
+        pin: u8,
+        fehler: gpio::Error,
+    },
     #[cfg(raspi)]
-    Pwm(pwm::Error),
+    Pwm {
+        pin: u8,
+        fehler: pwm::Error,
+    },
     #[cfg(not(raspi))]
-    KeinRaspberryPi,
-    InvalideConfig(Config),
-}
-#[cfg(raspi)]
-impl From<gpio::Error> for Error {
-    fn from(error: gpio::Error) -> Self {
-        Error::Gpio(error)
-    }
-}
-#[cfg(raspi)]
-impl From<pwm::Error> for Error {
-    fn from(error: pwm::Error) -> Self {
-        Error::Pwm(error)
-    }
+    KeinRaspberryPi(u8),
+    InvalideConfig {
+        pin: u8,
+        config: Config,
+    },
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.
