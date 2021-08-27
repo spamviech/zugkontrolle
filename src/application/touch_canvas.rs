@@ -116,15 +116,10 @@ where
 
 pub mod wrapper {
     // TODO decide if switching to this is worth it
-    pub use iced_graphics::canvas::{Cursor, Geometry};
-    pub use iced_native::{Event, Rectangle};
-
-    pub mod event {
-        pub use iced_native::event::{Event, Status};
-    }
-    pub mod mouse {
-        pub use iced_native::mouse::Interaction;
-    }
+    use iced_graphics::canvas::{Cursor, Geometry};
+    use iced_native::{
+        Rectangle, {event, mouse},
+    };
 
     pub trait Program<Message> {
         fn draw(&self, bounds: Rectangle<f32>, cursor: Cursor) -> Vec<Geometry>;
