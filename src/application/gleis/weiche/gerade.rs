@@ -66,7 +66,7 @@ pub enum Orientierung {
     Rechts,
 }
 #[create_richtung]
-#[impl_lookup(verbindung::Anchor, Points)]
+#[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -237,12 +237,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
         AnchorPoints {
-            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: verbindung::Anchor {
+            anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Verbindung {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            kurve: verbindung::Anchor {
+            kurve: verbindung::Verbindung {
                 position: anfang
                     + Vektor {
                         x: self.winkel.sin() * self.radius,

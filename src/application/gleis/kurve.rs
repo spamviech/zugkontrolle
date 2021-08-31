@@ -49,7 +49,7 @@ impl<Z> KurveUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Anchor, Points)]
+#[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -111,11 +111,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         AnchorPoints {
-            anfang: verbindung::Anchor {
+            anfang: verbindung::Verbindung {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
                 richtung: winkel::PI,
             },
-            ende: verbindung::Anchor {
+            ende: verbindung::Verbindung {
                 position: Vektor {
                     x: self.radius * self.winkel.sin(),
                     y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),

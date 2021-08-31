@@ -97,9 +97,11 @@ impl<Z> Gleise<Z> {
             self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&verbindung::Anchor { position: anchor_position, richtung }| verbindung::Anchor {
-                position: position.transformation(anchor_position),
-                richtung: position.winkel + richtung,
+            |&verbindung::Verbindung { position: anchor_position, richtung }| {
+                verbindung::Verbindung {
+                    position: position.transformation(anchor_position),
+                    richtung: position.winkel + richtung,
+                }
             },
         );
         let mut snap = None;
@@ -309,11 +311,11 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
 }
 
 impl Position {
-    /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
+    /// Position damit anchor::Verbindung übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
         anchor_name: &T::AnchorName,
-        target_anchor_point: verbindung::Anchor,
+        target_anchor_point: verbindung::Verbindung,
     ) -> Self
     where
         T: Zeichnen,

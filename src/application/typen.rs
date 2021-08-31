@@ -98,7 +98,7 @@ where
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type AnchorName;
-    /// Speicher-Typ für /anchor::Anchor/. Muss /anchor::Lookup<Self::AnchorName>/ implementieren.
+    /// Speicher-Typ für /anchor::Verbindung/. Muss /anchor::Lookup<Self::AnchorName>/ implementieren.
     type AnchorPoints;
     /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
     ///

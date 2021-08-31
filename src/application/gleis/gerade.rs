@@ -39,7 +39,7 @@ impl<Z> GeradeUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Anchor, Points)]
+#[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -85,11 +85,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = beschränkung::<Z>().halbiert();
         AnchorPoints {
-            anfang: verbindung::Anchor {
+            anfang: verbindung::Verbindung {
                 position: Vektor { x: gleis_links, y: beschränkung_mitte },
                 richtung: winkel::PI,
             },
-            ende: verbindung::Anchor {
+            ende: verbindung::Verbindung {
                 position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
                 richtung: winkel::ZERO,
             },

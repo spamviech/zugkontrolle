@@ -405,12 +405,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         };
         AnchorPoints {
-            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: verbindung::Anchor {
+            anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Verbindung {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            kurve: verbindung::Anchor {
+            kurve: verbindung::Verbindung {
                 position: anfang
                     + Vektor {
                         x: self.radius * self.winkel.sin()

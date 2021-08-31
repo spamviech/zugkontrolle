@@ -75,7 +75,7 @@ impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
     }
 }
 
-#[impl_lookup(verbindung::Anchor, Points)]
+#[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang0,
@@ -269,10 +269,10 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
         AnchorPoints {
-            anfang_0: verbindung::Anchor { position: anfang0, richtung: winkel::PI },
-            ende_0: verbindung::Anchor { position: ende0, richtung: winkel::ZERO },
-            anfang_1: verbindung::Anchor { position: anfang1, richtung: winkel::PI + winkel },
-            ende_1: verbindung::Anchor { position: ende1, richtung: winkel },
+            anfang_0: verbindung::Verbindung { position: anfang0, richtung: winkel::PI },
+            ende_0: verbindung::Verbindung { position: ende0, richtung: winkel::ZERO },
+            anfang_1: verbindung::Verbindung { position: anfang1, richtung: winkel::PI + winkel },
+            ende_1: verbindung::Verbindung { position: ende1, richtung: winkel },
         }
     }
 }

@@ -5,7 +5,7 @@ pub(crate) use rstar::primitives::PointWithData;
 use crate::application::{
     gleis::gleise::id::AnyId,
     typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
-    verbindung::Anchor,
+    verbindung::Verbindung,
 };
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);
@@ -20,12 +20,20 @@ impl<Z> RTree<Z> {
     }
 
     /// insert an anchor into the RTree
-    pub(crate) fn insert(&mut self, gleis_id: AnyId<Z>, Anchor { position, richtung }: Anchor) {
+    pub(crate) fn insert(
+        &mut self,
+        gleis_id: AnyId<Z>,
+        Verbindung { position, richtung }: Verbindung,
+    ) {
         self.0.insert(PointWithData::new((gleis_id, richtung), position))
     }
 
     /// remove one copy of the specified anchor from the RTree
-    pub(crate) fn remove(&mut self, gleis_id: AnyId<Z>, &Anchor { position, richtung }: &Anchor) {
+    pub(crate) fn remove(
+        &mut self,
+        gleis_id: AnyId<Z>,
+        &Verbindung { position, richtung }: &Verbindung,
+    ) {
         self.0.remove(&PointWithData::new((gleis_id, richtung), position));
     }
 
@@ -34,13 +42,13 @@ impl<Z> RTree<Z> {
     pub(crate) fn get_other_id_at_point(
         &self,
         gleis_id: AnyId<Z>,
-        &Anchor { position, richtung: _ }: &Anchor,
-    ) -> Option<Anchor> {
+        &Verbindung { position, richtung: _ }: &Verbindung,
+    ) -> Option<Verbindung> {
         self.0.locate_within_distance(position, SEARCH_RADIUS.0).find_map(|point_with_data| {
             let stored_position = point_with_data.position();
             let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
             if stored_id != &gleis_id {
-                Some(Anchor { position: *stored_position, richtung: *stored_direction })
+                Some(Verbindung { position: *stored_position, richtung: *stored_direction })
             } else {
                 None
             }
@@ -53,7 +61,7 @@ impl<Z> RTree<Z> {
         &self,
         gleis_id: &AnyId<Z>,
         is_grabbed: impl Fn(&AnyId<Z>) -> bool,
-        &Anchor { position, richtung }: &Anchor,
+        &Verbindung { position, richtung }: &Verbindung,
     ) -> (bool, bool) {
         let mut opposing: bool = false;
         let mut grabbed: bool = false;

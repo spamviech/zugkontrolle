@@ -56,7 +56,7 @@ impl<Z> DreiwegeWeicheUnit<Z> {
 }
 
 #[create_richtung]
-#[impl_lookup(verbindung::Anchor, Points)]
+#[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -211,12 +211,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let radius: Skalar = self.radius;
         let anfang = Vektor { x: Skalar(0.), y: half_height };
         AnchorPoints {
-            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: verbindung::Anchor {
+            anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Verbindung {
                 position: anfang + Vektor { x: länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            links: verbindung::Anchor {
+            links: verbindung::Verbindung {
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),
@@ -224,7 +224,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                     },
                 richtung: self.winkel,
             },
-            rechts: verbindung::Anchor {
+            rechts: verbindung::Verbindung {
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),
