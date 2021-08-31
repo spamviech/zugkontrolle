@@ -139,9 +139,9 @@ impl Pcf8574 {
     ///
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
     fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
+        let beschreibung = self.beschreibung();
         #[cfg(raspi)]
         {
-            let beschreibung = self.beschreibung();
             let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
             if let Ok(mut i2c_channel) = self.i2c.lock() {
                 i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
@@ -162,13 +162,13 @@ impl Pcf8574 {
                 Ok(result)
             } else {
                 error!("I2C-Mutex poisoned!");
-                Err(Fehler::PoisonFehler)
+                Err(Fehler::PoisonFehler(beschreibung))
             }
         }
         #[cfg(not(raspi))]
         {
             debug!("{:?}.read()", self);
-            Err(Fehler::KeinRaspberryPi(self.beschreibung()))
+            Err(Fehler::KeinRaspberryPi(beschreibung))
         }
     }
 
