@@ -5,7 +5,7 @@ pub(crate) use rstar::primitives::PointWithData;
 use crate::application::{
     gleis::gleise::id::AnyId,
     typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
-    verbindung::point::Anchor,
+    verbindung::Anchor,
 };
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);
