@@ -3,17 +3,18 @@
 use std::fmt::Debug;
 
 use crate::{
-    anschluss::speichern_laden::Serialisiere,
+    anschluss::de_serialisieren::Serialisiere,
     application::{
         bewegen::Bewegen,
         button::Button,
+        de_serialisieren,
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
         gleis::{
             DreiwegeWeicheUnit, GeradeUnit, KreuzungUnit, KurveUnit, KurvenWeicheUnit,
             SKurvenWeicheUnit, WeicheUnit,
         },
-        scrollable, speichern_laden, streckenabschnitt,
+        scrollable, streckenabschnitt,
         style::rule,
         touch_canvas,
         typen::*,
@@ -202,7 +203,7 @@ fn top_row<'t, Z>(
     drehen: &'t mut Drehen,
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
-    speichern_laden: &'t mut speichern_laden::Status,
+    speichern_laden: &'t mut de_serialisieren::Status,
 ) -> iced::Row<'t, Message<Z>>
 where
     Z: 'static + Zugtyp,
@@ -227,7 +228,7 @@ where
             .width(iced::Length::Units(100)),
         )
         .align_items(iced::Align::Center);
-    let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
+    let speichern_laden = de_serialisieren::SpeichernLaden::neu(speichern_laden);
     let mut row = iced::Row::new()
         .push(modus_radios.mit_teil_nachricht(Message::Modus))
         .push(bewegen.mit_teil_nachricht(Message::Bewegen))
@@ -262,8 +263,8 @@ where
 
     row.push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(iced::Element::from(speichern_laden).map(|message| match message {
-            speichern_laden::Nachricht::Speichern(pfad) => Message::Speichern(pfad),
-            speichern_laden::Nachricht::Laden(pfad) => Message::Laden(pfad),
+            de_serialisieren::Nachricht::Speichern(pfad) => Message::Speichern(pfad),
+            de_serialisieren::Nachricht::Laden(pfad) => Message::Laden(pfad),
         }))
         .padding(5)
         .spacing(5)

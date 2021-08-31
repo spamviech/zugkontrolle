@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         Fließend, OutputAnschluss, OutputSerialisiert,
     },
     application::{
@@ -121,7 +121,7 @@ where
                         steuerung.insert(anschluss);
                         message = Some(Message::SchließeModal)
                     }
-                    Err(speichern_laden::Error {
+                    Err(de_serialisieren::Error {
                         fehler,
                         pwm_pins,
                         output_anschlüsse,
@@ -494,7 +494,7 @@ where
                     )
                 }
             }
-            Err(speichern_laden::Error {
+            Err(de_serialisieren::Error {
                 fehler,
                 pwm_pins,
                 output_anschlüsse,
@@ -520,7 +520,7 @@ where
                                 ),
                             );
                         }
-                        Err(speichern_laden::Error { fehler, .. }) => {
+                        Err(de_serialisieren::Error { fehler, .. }) => {
                             match self.modal_state.inner_mut() {
                                 Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                                     geschwindigkeit_auswahl.entfernen(&name)

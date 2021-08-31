@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use super::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
+    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
     polarität::Polarität,
-    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
     InputAnschluss, OutputAnschluss,
 };
 
@@ -271,7 +271,7 @@ impl Reserviere<Pin> for Serialisiert {
         pwm_pins: Vec<Pin>,
         output_nicht_benötigt: Vec<OutputAnschluss>,
         input_nicht_benötigt: Vec<InputAnschluss>,
-    ) -> speichern_laden::Result<Pin> {
+    ) -> de_serialisieren::Result<Pin> {
         let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);
         if let Some(anschluss) = gesucht.pop() {
@@ -289,7 +289,7 @@ impl Reserviere<Pin> for Serialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }),
-                Err(error) => Err(speichern_laden::Error {
+                Err(error) => Err(de_serialisieren::Error {
                     fehler: error.into(),
                     pwm_pins: pwm_nicht_benötigt,
                     output_anschlüsse: output_nicht_benötigt,

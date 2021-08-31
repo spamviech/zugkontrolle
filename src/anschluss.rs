@@ -28,8 +28,8 @@ pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
 use anschlüsse::SyncError;
 
-pub mod speichern_laden;
-pub use self::speichern_laden::{Reserviere, Reserviert, Serialisiere};
+pub mod de_serialisieren;
+pub use self::de_serialisieren::{Reserviere, Reserviert, Serialisiere};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -258,7 +258,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern_laden::Result<OutputAnschluss> {
+    ) -> de_serialisieren::Result<OutputAnschluss> {
         let polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
             OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
@@ -276,7 +276,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         } else {
             macro_rules! fehler {
                 ($error:expr) => {
-                    return Err(speichern_laden::Error {
+                    return Err(de_serialisieren::Error {
                         fehler: $error.into(),
                         pwm_pins,
                         output_anschlüsse: output_nicht_benötigt,
@@ -450,7 +450,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern_laden::Result<InputAnschluss> {
+    ) -> de_serialisieren::Result<InputAnschluss> {
         let (gesuchter_anschluss, input_nicht_benötigt) =
             input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
                 if self.selber_anschluss(&anschluss.serialisiere()) {
@@ -492,7 +492,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             };
         macro_rules! fehler {
             ($error:expr) => {
-                return Err(speichern_laden::Error {
+                return Err(de_serialisieren::Error {
                     fehler: $error.into(),
                     pwm_pins,
                     output_anschlüsse,

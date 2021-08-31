@@ -2708,7 +2708,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-derive"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "Inflector",
  "proc-macro-crate 1.0.0",

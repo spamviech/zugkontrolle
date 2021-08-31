@@ -3,7 +3,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    anschluss::speichern_laden::Serialisiere,
+    anschluss::de_serialisieren::Serialisiere,
     application::{geschwindigkeit::LeiterAnzeige, gleis::*},
 };
 

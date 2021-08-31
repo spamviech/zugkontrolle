@@ -10,12 +10,12 @@ use crate::{
     steuerung::{streckenabschnitt, Streckenabschnitt},
 };
 
+pub mod de_serialisieren;
 pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
 pub mod id;
 pub mod maps;
-pub mod speichern_laden;
 pub mod steuerung;
 pub mod update;
 

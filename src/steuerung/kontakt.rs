@@ -3,9 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    pwm,
-    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-    Anschlüsse, Error, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
+    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+    pwm, Anschlüsse, Error, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
 };
 
 /// Name eines Kontaktes.
@@ -59,7 +58,7 @@ impl Reserviere<Kontakt<InputAnschluss>> for Kontakt<InputSerialisiert> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern_laden::Result<Kontakt<InputAnschluss>> {
+    ) -> de_serialisieren::Result<Kontakt<InputAnschluss>> {
         let Reserviert {
             anschluss,
             pwm_nicht_benötigt,

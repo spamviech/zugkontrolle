@@ -5,9 +5,8 @@ use std::{fmt::Debug, hash::Hash, thread::sleep, time::Duration};
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    pwm,
-    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-    Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
+    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+    pwm, Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
 
@@ -72,7 +71,7 @@ where
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> speichern_laden::Result<Weiche<Richtung, R>> {
+    ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
         let Reserviert {
             anschluss: anschlüsse,
             pwm_nicht_benötigt,

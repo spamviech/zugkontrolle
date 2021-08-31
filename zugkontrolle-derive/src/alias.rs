@@ -47,7 +47,7 @@ pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> Token
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::Serialisiere for #ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere for #ident<#(#params),*> {
                         type Serialisiert = #save_ident<#(#params),*>;
                         fn serialisiere(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
@@ -75,19 +75,19 @@ pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> Token
                             (pwm0, output0, input0)
                         }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
                         fn reserviere(
                             self,
                             anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                             pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
                             output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
-                        ) -> #base_ident::anschluss::speichern_laden::Result<#ident<#(#params),*>> {
+                        ) -> #base_ident::anschluss::de_serialisieren::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                             #(
                                let #param_fields = if let Some(save) = #param_fields {
-                                    let #base_ident::anschluss::speichern_laden::Reserviert {
+                                    let #base_ident::anschluss::de_serialisieren::Reserviert {
                                         anschluss,
                                         pwm_nicht_benötigt,
                                         output_nicht_benötigt,
@@ -99,7 +99,7 @@ pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> Token
                                     None
                                 };
                             )*
-                            Ok(#base_ident::anschluss::speichern_laden::Reserviert {
+                            Ok(#base_ident::anschluss::de_serialisieren::Reserviert {
                                 anschluss: #ident {
                                     #(#other_fields),*,
                                     #(#param_fields),*
