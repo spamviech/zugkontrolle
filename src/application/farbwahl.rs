@@ -8,12 +8,14 @@ use iced_native::{
     Length, Point, Rectangle, Renderer, Size, Widget,
 };
 
-use super::typen::{
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::{self, Trigonometrie},
+use crate::{
+    application::typen::{
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie},
+    },
+    farbe::Farbe,
 };
-use crate::farbe::Farbe;
 
 /// Widget zur Farbwahl.
 /// Im Gegensatz zum `iced_aw::ColorPicker` wird kein `overlay` verwendet, so dass es innerhalb

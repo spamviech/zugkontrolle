@@ -8,10 +8,12 @@ use iced_native::{
     Length, Point, Radio, Renderer, Row, Text, Widget,
 };
 
-use super::{macros::reexport_no_event_methods, style::tab_bar::TabBar};
-use crate::anschluss::{
-    level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSerialisiert,
-    OutputSerialisiert,
+use crate::{
+    anschluss::{
+        level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSerialisiert,
+        OutputSerialisiert,
+    },
+    application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.

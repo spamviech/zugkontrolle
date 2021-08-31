@@ -5,7 +5,7 @@ use std::ops::Not;
 
 use serde::{Deserialize, Serialize};
 
-use super::level::Level;
+use crate::anschluss::level::Level;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {

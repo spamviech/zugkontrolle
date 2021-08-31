@@ -9,12 +9,14 @@ use iced_native::{
     Renderer, Row, Scrollable, Text, TextInput, Widget,
 };
 
-use super::{
-    anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
-};
-use crate::anschluss::{Fließend, OutputSerialisiert, Polarität};
-use crate::farbe::Farbe;
 pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
+use crate::{
+    anschluss::{Fließend, OutputSerialisiert, Polarität},
+    application::{
+        anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
+    },
+    farbe::Farbe,
+};
 
 pub mod style;
 

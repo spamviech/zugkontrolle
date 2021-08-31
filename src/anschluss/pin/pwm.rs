@@ -9,7 +9,7 @@ use rppal::{gpio, pwm};
 use serde::{Deserialize, Serialize};
 
 #[cfg(not(raspi))]
-use super::Wrapper;
+use crate::anschluss::pin::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
     de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},

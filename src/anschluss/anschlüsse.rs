@@ -13,7 +13,7 @@ use num_x::u3;
 use once_cell::sync::Lazy;
 use paste::paste;
 
-use super::{
+use crate::anschluss::{
     level::Level,
     pcf8574::{self, Pcf8574, Port},
     pin::Pin,

@@ -7,13 +7,13 @@ pub use std::time::Duration;
 #[cfg(raspi)]
 use rppal::{self, gpio};
 
-use super::level::Level;
+#[cfg(raspi)]
+use self::pwm::Pwm;
+use crate::anschluss::level::Level;
 
 pub mod input;
 pub mod output;
 pub mod pwm;
-#[cfg(raspi)]
-use pwm::Pwm;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]

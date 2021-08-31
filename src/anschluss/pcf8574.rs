@@ -16,8 +16,10 @@ use num_x::u7;
 use rppal::{gpio, i2c};
 use serde::{Deserialize, Serialize};
 
-use super::pin::input;
-use super::{level::Level, trigger::Trigger};
+use crate::anschluss::{
+    pin::input,
+    {level::Level, trigger::Trigger},
+};
 
 pub(super) enum Modus {
     Input { trigger: Trigger, callback: Option<Box<dyn FnMut(Level) + Send + 'static>> },

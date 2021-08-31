@@ -7,7 +7,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use super::skalar::Skalar;
+use crate::application::typen::skalar::Skalar;
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {

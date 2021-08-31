@@ -13,9 +13,11 @@ pub use winkel::*;
 pub mod vektor;
 pub use vektor::Vektor;
 
-use super::verbindung;
-use crate::steuerung::{kontakt::Kontakt, weiche::Weiche};
 pub use crate::zugtyp::Zugtyp;
+use crate::{
+    application::gleis::verbindung,
+    steuerung::{kontakt::Kontakt, weiche::Weiche},
+};
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
 /// Abstand beider Schienen

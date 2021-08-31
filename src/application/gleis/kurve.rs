@@ -5,10 +5,12 @@ use std::{f32::consts::PI, fmt::Debug, marker::PhantomData};
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
-use super::verbindung;
-use crate::anschluss::{InputAnschluss, InputSerialisiert};
-use crate::steuerung::kontakt::Kontakt;
-use crate::{application::typen::*, lookup::impl_lookup};
+use crate::{
+    anschluss::{InputAnschluss, InputSerialisiert},
+    application::{typen::*, verbindung},
+    lookup::impl_lookup,
+    steuerung::kontakt::Kontakt,
+};
 
 /// Definition einer Kurve
 ///

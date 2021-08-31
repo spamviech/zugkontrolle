@@ -6,8 +6,11 @@ use std::time::Duration;
 use num_x::u3;
 use simple_logger::SimpleLogger;
 
-use super::{AnschlussBeschreibung, Anschlüsse, SyncFehler};
-use crate::anschluss::{level::Level, pcf8574};
+use crate::anschluss::{
+    anschlüsse::{AnschlussBeschreibung, Anschlüsse, SyncFehler},
+    level::Level,
+    pcf8574,
+};
 
 #[test]
 fn drop_semantics() {

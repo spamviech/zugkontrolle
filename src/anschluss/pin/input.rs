@@ -6,7 +6,7 @@ use log::debug;
 use rppal::gpio;
 
 #[cfg(not(raspi))]
-use super::Wrapper;
+use crate::anschluss::pin::Wrapper;
 use crate::anschluss::{level::Level, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.

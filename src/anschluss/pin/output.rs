@@ -5,9 +5,9 @@ use log::debug;
 #[cfg(raspi)]
 use rppal::gpio;
 
-#[cfg(not(raspi))]
-use super::Wrapper;
 use crate::anschluss::level::Level;
+#[cfg(not(raspi))]
+use crate::anschluss::pin::Wrapper;
 
 /// Ein Gpio Pin konfiguriert für Output.
 #[derive(Debug, PartialEq)]
