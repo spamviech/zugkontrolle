@@ -29,7 +29,7 @@ fn drop_semantics() {
         )
         .expect("1. Aufruf von llln.");
     assert_eq!(
-        llln.adresse(),
+        llln.beschreibung(),
         &pcf8574::Beschreibung {
             a0: Level::Low,
             a1: Level::Low,

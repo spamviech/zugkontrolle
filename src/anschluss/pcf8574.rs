@@ -5,7 +5,7 @@
 //! so dass es zu keinen Deadlocks kommen sollte.
 
 use std::fmt::Debug;
-use std::sync::{mpsc::Sender, Arc, Mutex, PoisonError};
+use std::sync::{mpsc::Sender, Arc, Mutex};
 
 use log::debug;
 use log::error;
@@ -113,85 +113,6 @@ impl Pcf8574 {
             i2c,
         }
     }
-
-    /// Assoziiere den angeschlossenen InterruptPin.
-    /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
-    /// Interrupt-Callbacks von Ports werden nicht zurückgesetzt!
-    fn set_interrupt_pin(
-        arc: &mut Arc<Mutex<Self>>,
-        mut interrupt: input::Pin,
-    ) -> Result<Option<input::Pin>, Error> {
-        let mut previous = {
-            // set up callback.
-            let pcf8574 = &mut *arc.lock()?;
-            let mut last = pcf8574.read()?;
-            let arc_clone = arc.clone();
-            interrupt.set_async_interrupt(Trigger::FallingEdge, move |_level| {
-                let mut pcf8574 = match arc_clone.lock() {
-                    Ok(guard) => guard,
-                    Err(_fehler) => {
-                        error!(
-                            "Poison error der pcf8574-Mutex bei der Reaktion auf einen interrupt!"
-                        );
-                        return;
-                    }
-                };
-                let current = match pcf8574.read() {
-                    Ok(current) => current,
-                    Err(fehler) => {
-                        error!(
-                            "Fehler beim lesen des Pcf8574 bei der Reaktion auf einen interrupt: {:?}",
-                            fehler
-                        );
-                        return;
-                    }
-                };
-                for i in 0..8 {
-                    match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
-                        (
-                            Modus::Input {
-                                trigger: Trigger::Both | Trigger::FallingEdge,
-                                callback: Some(callback),
-                            },
-                            Some(current),
-                            Some(last),
-                        ) if last == &mut Level::High && current == Level::Low => {
-                            callback(current);
-                        }
-                        (
-                            Modus::Input {
-                                trigger: Trigger::Both | Trigger::RisingEdge,
-                                callback: Some(callback),
-                            },
-                            Some(current),
-                            Some(last),
-                        ) if last == &mut Level::High && current == Level::Low => {
-                            callback(current);
-                        }
-                        _ => {}
-                    }
-                    last[i] = current[i];
-                }
-            }).map_err(|fehler| match fehler {
-                #[cfg(raspi)]
-                input::Error::Gpio {pin:_, fehler} => Error::Gpio {beschreibung: pcf8574.beschreibung(), fehler},
-                #[cfg(not(raspi))]
-                input::Error::KeinRaspberryPi(_interrupt) => Error::KeinRaspberryPi(pcf8574.beschreibung()),
-            })?;
-            std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
-        };
-        // clear interrupt on previous pin.
-        previous.as_mut().map(input::Pin::clear_async_interrupt);
-        Ok(previous)
-    }
-
-    /*
-    /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
-    #[inline(always)]
-    fn adresse(&self) -> (Level, Level, Level, Variante) {
-        (self.a0, self.a1, self.a2, self.variante)
-    }
-    */
 
     #[cfg(raspi)]
     /// 7-bit i2c-Adresse ohne R/W-Bit
@@ -325,23 +246,23 @@ pub enum Variante {
 #[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
-    nachricht: Beschreibung,
+    beschreibung: Beschreibung,
     port: u3,
     sender: Sender<(Beschreibung, u3)>,
 }
 impl PartialEq for Port {
     fn eq(&self, other: &Self) -> bool {
-        self.port == other.port && self.nachricht == other.nachricht
+        self.port == other.port && self.beschreibung == other.beschreibung
     }
 }
 impl Eq for Port {}
 impl Drop for Port {
     fn drop(&mut self) {
-        let Port { port, nachricht, sender, .. } = self;
-        debug!("dropped {:?} {:?} ", nachricht, port);
+        let Port { port, beschreibung, sender, .. } = self;
+        debug!("dropped {:?} {:?} ", beschreibung, port);
         // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
         // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
-        if let Err(err) = sender.send((nachricht.clone(), port.clone())) {
+        if let Err(err) = sender.send((beschreibung.clone(), port.clone())) {
             debug!("send error while dropping: {}", err)
         }
     }
@@ -349,16 +270,16 @@ impl Drop for Port {
 impl Port {
     pub(super) fn neu(
         pcf8574: Arc<Mutex<Pcf8574>>,
-        nachricht: Beschreibung,
+        beschreibung: Beschreibung,
         port: u3,
         sender: Sender<(Beschreibung, u3)>,
     ) -> Self {
-        Port { pcf8574, port, nachricht, sender }
+        Port { pcf8574, port, beschreibung, sender }
     }
 
     #[inline(always)]
-    pub fn adresse(&self) -> &Beschreibung {
-        &self.nachricht
+    pub fn beschreibung(&self) -> &Beschreibung {
+        &self.beschreibung
     }
 
     #[inline(always)]
@@ -369,7 +290,11 @@ impl Port {
     /// Konfiguriere den Port für Output.
     pub fn into_output(self, level: Level) -> Result<OutputPort, Error> {
         {
-            let pcf8574 = &mut *self.pcf8574.lock()?;
+            let beschreibung = self.beschreibung().clone();
+            let pcf8574 = &mut *self
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::PoisonError(beschreibung))?;
             #[cfg(raspi)]
             {
                 pcf8574.write_port(self.port, level)?;
@@ -385,7 +310,11 @@ impl Port {
     /// Konfiguriere den Port für Input.
     pub fn into_input(self) -> Result<InputPort, Error> {
         {
-            let pcf8574 = &mut *self.pcf8574.lock()?;
+            let beschreibung = self.beschreibung().clone();
+            let pcf8574 = &mut *self
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
             pcf8574.port_as_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
         }
         Ok(InputPort(self))
@@ -399,7 +328,7 @@ pub struct OutputPort(Port);
 impl OutputPort {
     #[inline(always)]
     pub fn adresse(&self) -> &Beschreibung {
-        self.0.adresse()
+        self.0.beschreibung()
     }
 
     #[inline(always)]
@@ -409,25 +338,45 @@ impl OutputPort {
 
     pub fn write(&mut self, level: Level) -> Result<(), Error> {
         {
-            let pcf8574 = &mut *self.0.pcf8574.lock()?;
+            let beschreibung = self.adresse().clone();
+            let pcf8574 = &mut *self
+                .0
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
             pcf8574.write_port(self.0.port, level)?;
         }
         Ok(())
     }
 
     pub fn is_set_high(&mut self) -> Result<bool, Error> {
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        let beschreibung = self.adresse().clone();
+        let pcf8574 = &mut *self
+            .0
+            .pcf8574
+            .lock()
+            .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
         Ok(pcf8574.ports[usize::from(self.port())] == Modus::High)
     }
 
     pub fn is_set_low(&mut self) -> Result<bool, Error> {
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        let beschreibung = self.adresse().clone();
+        let pcf8574 = &mut *self
+            .0
+            .pcf8574
+            .lock()
+            .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
         Ok(pcf8574.ports[usize::from(self.port())] == Modus::Low)
     }
 
     pub fn toggle(&mut self) -> Result<(), Error> {
         let level = {
-            let pcf8574 = &*self.0.pcf8574.lock()?;
+            let beschreibung = self.adresse().clone();
+            let pcf8574 = &*self
+                .0
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
             let modus = &pcf8574.ports[usize::from(self.port())];
             match modus {
                 Modus::High => Level::Low,
@@ -449,7 +398,7 @@ pub struct InputPort(Port);
 impl InputPort {
     #[inline(always)]
     pub fn adresse(&self) -> &Beschreibung {
-        self.0.adresse()
+        self.0.beschreibung()
     }
 
     #[inline(always)]
@@ -459,7 +408,12 @@ impl InputPort {
 
     pub fn read(&self) -> Result<Level, Error> {
         let values = {
-            let pcf8574 = &mut *self.0.pcf8574.lock()?;
+            let beschreibung = self.adresse().clone();
+            let pcf8574 = &mut *self
+                .0
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
             pcf8574.read()?
         };
         if let Some(value) = values[usize::from(self.0.port)] {
@@ -468,7 +422,12 @@ impl InputPort {
             error!("{:?} war nicht als input korrigiert!", self);
             // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
             {
-                let pcf8574 = &mut *self.0.pcf8574.lock()?;
+                let beschreibung = self.adresse().clone();
+                let pcf8574 = &mut *self
+                    .0
+                    .pcf8574
+                    .lock()
+                    .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
                 pcf8574.port_as_input::<fn(Level)>(self.0.port, Trigger::Disabled, None)?;
             }
             self.read()
@@ -477,7 +436,12 @@ impl InputPort {
 
     /// Aktuell konfigurierter Interrupt Pin.
     pub(super) fn interrupt_pin(&self) -> Result<Option<u8>, Error> {
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        let beschreibung = self.adresse().clone();
+        let pcf8574 = &mut *self
+            .0
+            .pcf8574
+            .lock()
+            .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
         Ok(pcf8574.interrupt.as_ref().map(input::Pin::pin))
     }
 
@@ -486,9 +450,75 @@ impl InputPort {
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
     pub fn set_interrupt_pin(
         &mut self,
-        interrupt: input::Pin,
+        mut interrupt: input::Pin,
     ) -> Result<Option<input::Pin>, Error> {
-        Pcf8574::set_interrupt_pin(&mut self.0.pcf8574, interrupt)
+        let mut previous = {
+            // set up callback.
+            let beschreibung = self.adresse().clone();
+            let pcf8574 = &mut *self
+                .0
+                .pcf8574
+                .lock()
+                .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
+            let mut last = pcf8574.read()?;
+            let arc_clone = self.0.pcf8574.clone();
+            interrupt.set_async_interrupt(Trigger::FallingEdge, move |_level| {
+                let mut pcf8574 = match arc_clone.lock() {
+                    Ok(guard) => guard,
+                    Err(_fehler) => {
+                        error!(
+                            "Poison error der pcf8574-Mutex bei der Reaktion auf einen interrupt!"
+                        );
+                        return;
+                    }
+                };
+                let current = match pcf8574.read() {
+                    Ok(current) => current,
+                    Err(fehler) => {
+                        error!(
+                            "Fehler beim lesen des Pcf8574 bei der Reaktion auf einen interrupt: {:?}",
+                            fehler
+                        );
+                        return;
+                    }
+                };
+                for i in 0..8 {
+                    match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
+                        (
+                            Modus::Input {
+                                trigger: Trigger::Both | Trigger::FallingEdge,
+                                callback: Some(callback),
+                            },
+                            Some(current),
+                            Some(last),
+                        ) if last == &mut Level::High && current == Level::Low => {
+                            callback(current);
+                        }
+                        (
+                            Modus::Input {
+                                trigger: Trigger::Both | Trigger::RisingEdge,
+                                callback: Some(callback),
+                            },
+                            Some(current),
+                            Some(last),
+                        ) if last == &mut Level::High && current == Level::Low => {
+                            callback(current);
+                        }
+                        _ => {}
+                    }
+                    last[i] = current[i];
+                }
+            }).map_err(|fehler| match fehler {
+                #[cfg(raspi)]
+                input::Error::Gpio {pin:_, fehler} => Error::Gpio {beschreibung: pcf8574.beschreibung(), fehler},
+                #[cfg(not(raspi))]
+                input::Error::KeinRaspberryPi(_interrupt) => Error::KeinRaspberryPi(pcf8574.beschreibung()),
+            })?;
+            std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
+        };
+        // clear interrupt on previous pin.
+        previous.as_mut().map(input::Pin::clear_async_interrupt);
+        Ok(previous)
     }
 
     /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
@@ -506,7 +536,12 @@ impl InputPort {
         callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
         let port = self.port();
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        let beschreibung = self.adresse().clone();
+        let pcf8574 = &mut *self
+            .0
+            .pcf8574
+            .lock()
+            .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
         pcf8574.port_as_input(port, trigger, Some(callback))
     }
 
@@ -514,7 +549,12 @@ impl InputPort {
     #[inline(always)]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         let port = self.port();
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        let beschreibung = self.adresse().clone();
+        let pcf8574 = &mut *self
+            .0
+            .pcf8574
+            .lock()
+            .map_err(|_poison_error| Error::KeinInterruptPin(beschreibung))?;
         pcf8574.port_as_input::<fn(Level)>(port, Trigger::Disabled, None)
     }
 }
@@ -534,12 +574,6 @@ pub enum Error {
     },
     #[cfg(not(raspi))]
     KeinRaspberryPi(Beschreibung),
-    PoisonError,
+    PoisonError(Beschreibung),
     KeinInterruptPin(Beschreibung),
-}
-
-impl<T> From<PoisonError<T>> for Error {
-    fn from(_: PoisonError<T>) -> Self {
-        Error::PoisonError
-    }
 }

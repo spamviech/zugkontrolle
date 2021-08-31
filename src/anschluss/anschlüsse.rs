@@ -95,7 +95,7 @@ impl AnschlüsseData {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
-                    match port.adresse() {
+                    match port.beschreibung() {
                         $(
                             pcf8574::Beschreibung {
                                 a0: level!{$k},

@@ -77,7 +77,7 @@ impl Display for Anschluss {
             Anschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
             Anschluss::Pcf8574Port(port) => {
                 write!(f, "Pcf8574Port(")?;
-                write_adresse(f, port.adresse())?;
+                write_adresse(f, port.beschreibung())?;
                 write!(f, "-{})", port.port())
             }
         }
