@@ -25,7 +25,7 @@ pub trait Leiter {
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error>;
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,7 +73,7 @@ fn geschwindigkeit_pwm(
     wert: u8,
     faktor: f64,
     polarity: Polarität,
-) -> Result<(), pwm::Error> {
+) -> Result<(), pwm::Fehler> {
     debug_assert!(0. < faktor && faktor <= 1., "Faktor muss zwischen 0 und 1 liegen: {}", faktor);
     pin.enable_with_config(pwm::Config {
         polarity,
@@ -87,11 +87,11 @@ fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
     letzter_wert: &mut usize,
     wert: u8,
-) -> Result<(), Error> {
+) -> Result<(), Fehler> {
     let wert_usize = wert as usize;
     let length = geschwindigkeit.len();
     if wert_usize > length {
-        return Err(Error::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length });
+        return Err(Fehler::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length });
     }
     // aktuellen Anschluss ausstellen
     if *letzter_wert == 0 {
@@ -291,7 +291,7 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
         match &mut self.leiter {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
@@ -304,7 +304,7 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
 }
 
 impl Geschwindigkeit<Mittelleiter> {
-    pub fn umdrehen(&mut self) -> Result<(), Error> {
+    pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
         Ok(match &mut self.leiter {
@@ -364,7 +364,7 @@ impl Display for Zweileiter {
 }
 
 impl Leiter for Geschwindigkeit<Zweileiter> {
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Error> {
+    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
         match &mut self.leiter {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
@@ -377,7 +377,7 @@ impl Leiter for Geschwindigkeit<Zweileiter> {
 }
 
 impl Geschwindigkeit<Zweileiter> {
-    pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Error> {
+    pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
         let fahrtrichtung = match &mut self.leiter {
@@ -387,7 +387,7 @@ impl Geschwindigkeit<Zweileiter> {
         Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
     }
 
-    pub fn umdrehen(&mut self) -> Result<(), Error> {
+    pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
         let fahrtrichtung = match &mut self.leiter {
@@ -579,19 +579,19 @@ impl Display for Fahrtrichtung {
 }
 
 #[derive(Debug)]
-pub enum Error {
-    Anschluss(anschluss::Error),
-    Pwm(pwm::Error),
+pub enum Fehler {
+    Anschluss(anschluss::Fehler),
+    Pwm(pwm::Fehler),
     ZuWenigAnschlüsse { benötigt: u8, vorhanden: usize },
 }
-impl From<anschluss::Error> for Error {
-    fn from(error: anschluss::Error) -> Self {
-        Error::Anschluss(error)
+impl From<anschluss::Fehler> for Fehler {
+    fn from(error: anschluss::Fehler) -> Self {
+        Fehler::Anschluss(error)
     }
 }
-impl From<pwm::Error> for Error {
-    fn from(error: pwm::Error) -> Self {
-        Error::Pwm(error)
+impl From<pwm::Fehler> for Fehler {
+    fn from(error: pwm::Fehler) -> Self {
+        Fehler::Pwm(error)
     }
 }
 

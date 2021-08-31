@@ -20,7 +20,7 @@ use crate::{
     anschluss::{polarität::Polarität, pwm, OutputSerialisiert, Serialisiere},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
-    steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
+    steuerung::geschwindigkeit::{Fahrtrichtung, Fehler, Leiter, Mittelleiter, Zweileiter},
 };
 
 pub type Map<Leiter> = HashMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
@@ -56,7 +56,7 @@ pub trait LeiterAnzeige: Serialisiere + Sized {
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> Result<iced::Command<Self::Message>, Error>;
+    ) -> Result<iced::Command<Self::Message>, Fehler>;
 
     fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
     where
@@ -130,7 +130,7 @@ impl LeiterAnzeige for Mittelleiter {
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> Result<iced::Command<Self::Message>, Error> {
+    ) -> Result<iced::Command<Self::Message>, Fehler> {
         match message {
             MessageMittelleiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;
@@ -240,7 +240,7 @@ impl LeiterAnzeige for Zweileiter {
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         message: Self::Message,
-    ) -> Result<iced::Command<Self::Message>, Error> {
+    ) -> Result<iced::Command<Self::Message>, Fehler> {
         match message {
             MessageZweileiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;

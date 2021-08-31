@@ -6,7 +6,7 @@ use std::time::Duration;
 use num_x::u3;
 use simple_logger::SimpleLogger;
 
-use super::{AnschlussBeschreibung, Anschlüsse, SyncError};
+use super::{AnschlussBeschreibung, Anschlüsse, SyncFehler};
 use crate::anschluss::{level::Level, pcf8574};
 
 #[test]
@@ -46,7 +46,7 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
+        Err(SyncFehler::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
             a0: Level::Low,
             a1: Level::Low,
             a2: Level::Low,
@@ -79,7 +79,7 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
+        Err(SyncFehler::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
             a0: Level::Low,
             a1: Level::Low,
             a2: Level::Low,

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-    pwm, Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
+    pwm, Anschlüsse, Fehler, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
 
@@ -28,7 +28,7 @@ where
     Richtung: Clone,
     Anschlüsse: Lookup<Richtung, OutputAnschluss>,
 {
-    pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Error> {
+    pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Fehler> {
         let anschluss = self.anschlüsse.get_mut(richtung);
         anschluss.einstellen(Fließend::Fließend)?;
         sleep(SCHALTZEIT);

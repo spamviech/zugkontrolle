@@ -9,7 +9,7 @@ use crate::{
             gleise::{
                 id::{AnyId, GleisId},
                 maps::{Gleis, MapSelector},
-                GleisEntferntError, Gleise, Grabbed, ModusDaten,
+                GleisEntferntFehler, Gleise, Grabbed, ModusDaten,
             },
             verbindung,
         },
@@ -123,14 +123,14 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         position_neu: Position,
-    ) -> Result<T::AnchorPoints, GleisEntferntError>
+    ) -> Result<T::AnchorPoints, GleisEntferntFehler>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
-            self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntFehler)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
@@ -172,7 +172,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis_id: &GleisId<T>,
         anchor_name: &T::AnchorName,
         target_anchor_point: verbindung::Verbindung,
-    ) -> Result<T::AnchorPoints, GleisEntferntError>
+    ) -> Result<T::AnchorPoints, GleisEntferntFehler>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
@@ -180,7 +180,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let position = {
             let Gleis { definition, .. } =
-                self.maps.get_map().get(&gleis_id).ok_or(GleisEntferntError)?;
+                self.maps.get_map().get(&gleis_id).ok_or(GleisEntferntFehler)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
@@ -218,7 +218,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn streckenabschnitt_für_id<T: MapSelector<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
-    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntError> {
+    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntFehler> {
         if let Some(Gleis { streckenabschnitt, .. }) = self.maps.get_map().get(&gleis_id) {
             Ok(if let Some(name) = streckenabschnitt {
                 let name_clone = name.clone();
@@ -228,7 +228,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 None
             })
         } else {
-            Err(GleisEntferntError)
+            Err(GleisEntferntFehler)
         }
     }
 }

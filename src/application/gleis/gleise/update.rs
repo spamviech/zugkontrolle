@@ -6,7 +6,9 @@ use log::error;
 
 use crate::{
     application::{
-        gleis::gleise::{id::*, maps::*, GleisEntferntError, Gleise, Grabbed, Message, ModusDaten},
+        gleis::gleise::{
+            id::*, maps::*, GleisEntferntFehler, Gleise, Grabbed, Message, ModusDaten,
+        },
         typen::*,
     },
     zugtyp::Zugtyp,
@@ -140,7 +142,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                         *grabbed = None;
                         if moved_copy {
                             if cursor.is_over(&bounds) {
-                                if let Err(GleisEntferntError) =
+                                if let Err(GleisEntferntFehler) =
                                     with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self)
                                 {
                                     error!("Ende Drag&Drop für entferntes Gleis!")
@@ -165,7 +167,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                         if let Some(Grabbed { gleis_id, grab_location, moved }) = grabbed {
                             *moved = true;
                             let point = canvas_pos - grab_location;
-                            if let Err(GleisEntferntError) = with_any_id!(
+                            if let Err(GleisEntferntFehler) = with_any_id!(
                                 gleis_id.clone(),
                                 Gleise::relocate_grabbed,
                                 self,

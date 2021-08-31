@@ -6,6 +6,11 @@ use log::error;
 use num_x::u3;
 use serde::{Deserialize, Serialize};
 
+pub use self::{
+    anschlüsse::SyncFehler,
+    de_serialisieren::{Reserviere, Reserviert, Serialisiere},
+};
+
 pub mod level;
 pub use level::*;
 
@@ -26,10 +31,8 @@ pub use pcf8574::Pcf8574;
 #[path = "anschluss/anschlüsse.rs"]
 pub mod anschlüsse;
 pub use anschlüsse::Anschlüsse;
-use anschlüsse::SyncError;
 
 pub mod de_serialisieren;
-pub use self::de_serialisieren::{Reserviere, Reserviert, Serialisiere};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -85,7 +88,7 @@ impl Display for Anschluss {
 }
 
 impl Anschluss {
-    pub fn into_output(self, polarität: Polarität) -> Result<OutputAnschluss, Error> {
+    pub fn into_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
         let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
         Ok(match self {
             Anschluss::Pin(pin) => {
@@ -97,7 +100,7 @@ impl Anschluss {
         })
     }
 
-    pub fn into_input(self) -> Result<InputAnschluss, Error> {
+    pub fn into_input(self) -> Result<InputAnschluss, Fehler> {
         Ok(match self {
             Anschluss::Pin(pin) => InputAnschluss::Pin(pin.into_input()),
             Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.into_input()?),
@@ -128,7 +131,7 @@ impl Display for OutputAnschluss {
 }
 
 impl OutputAnschluss {
-    pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Error> {
+    pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 pin.write(fließend.with_polarity(*polarität))?
@@ -139,7 +142,7 @@ impl OutputAnschluss {
         })
     }
 
-    pub fn ist_fließend(&mut self) -> Result<bool, Error> {
+    pub fn ist_fließend(&mut self) -> Result<bool, Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
                 Polarität::Normal => pin.is_set_high()?,
@@ -152,7 +155,7 @@ impl OutputAnschluss {
         })
     }
 
-    pub fn ist_gesperrt(&mut self) -> Result<bool, Error> {
+    pub fn ist_gesperrt(&mut self) -> Result<bool, Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
                 Polarität::Normal => pin.is_set_low()?,
@@ -165,7 +168,7 @@ impl OutputAnschluss {
         })
     }
 
-    pub fn umstellen(&mut self) -> Result<(), Error> {
+    pub fn umstellen(&mut self) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, .. } => pin.toggle()?,
             OutputAnschluss::Pcf8574Port { port, .. } => port.toggle()?,
@@ -276,7 +279,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         } else {
             macro_rules! fehler {
                 ($error:expr) => {
-                    return Err(de_serialisieren::Error {
+                    return Err(de_serialisieren::Fehler {
                         fehler: $error.into(),
                         pwm_pins,
                         output_anschlüsse: output_nicht_benötigt,
@@ -344,7 +347,7 @@ macro_rules! match_method {
         match_method! {$method$(($($arg : $arg_ty),+))? -> ()}
     };
     ($method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty) => {
-        pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Error> {
+        pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Fehler> {
             Ok(match self {
                 InputAnschluss::Pin(pin) => pin.$method($($($arg),+)?)?,
                 InputAnschluss::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
@@ -472,7 +475,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 acc
             });
         let interrupt_konfigurieren =
-            |anschlüsse: &mut Anschlüsse, mut anschluss| -> Result<_, Error> {
+            |anschlüsse: &mut Anschlüsse, mut anschluss| -> Result<_, Fehler> {
                 if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
                     if let Some(interrupt) = gesuchter_interrupt {
                         port.set_interrupt_pin(interrupt)?;
@@ -492,7 +495,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             };
         macro_rules! fehler {
             ($error:expr) => {
-                return Err(de_serialisieren::Error {
+                return Err(de_serialisieren::Fehler {
                     fehler: $error.into(),
                     pwm_pins,
                     output_anschlüsse,
@@ -548,34 +551,34 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 }
 
 #[derive(Debug)]
-pub enum Error {
-    Anschlüsse(anschlüsse::Error),
-    Output(output::Error),
-    Input(input::Error),
-    Pcf8574(pcf8574::Error),
+pub enum Fehler {
+    Anschlüsse(anschlüsse::Fehler),
+    Output(output::Fehler),
+    Input(input::Fehler),
+    Pcf8574(pcf8574::Fehler),
 }
-impl From<SyncError> for Error {
-    fn from(error: SyncError) -> Self {
-        Error::Anschlüsse(error.into())
+impl From<SyncFehler> for Fehler {
+    fn from(error: SyncFehler) -> Self {
+        Fehler::Anschlüsse(error.into())
     }
 }
-impl From<anschlüsse::Error> for Error {
-    fn from(error: anschlüsse::Error) -> Self {
-        Error::Anschlüsse(error)
+impl From<anschlüsse::Fehler> for Fehler {
+    fn from(error: anschlüsse::Fehler) -> Self {
+        Fehler::Anschlüsse(error)
     }
 }
-impl From<output::Error> for Error {
-    fn from(error: output::Error) -> Self {
-        Error::Output(error)
+impl From<output::Fehler> for Fehler {
+    fn from(error: output::Fehler) -> Self {
+        Fehler::Output(error)
     }
 }
-impl From<input::Error> for Error {
-    fn from(error: input::Error) -> Self {
-        Error::Input(error)
+impl From<input::Fehler> for Fehler {
+    fn from(error: input::Fehler) -> Self {
+        Fehler::Input(error)
     }
 }
-impl From<pcf8574::Error> for Error {
-    fn from(error: pcf8574::Error) -> Self {
-        Error::Pcf8574(error)
+impl From<pcf8574::Fehler> for Fehler {
+    fn from(error: pcf8574::Fehler) -> Self {
+        Fehler::Pcf8574(error)
     }
 }

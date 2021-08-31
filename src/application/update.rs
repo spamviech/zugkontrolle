@@ -18,7 +18,7 @@ use crate::{
             id::{with_any_id, AnyId, GleisId},
             maps::MapSelector,
             steuerung::Steuerung,
-            GleisEntferntError, Gleise,
+            GleisEntferntFehler, Gleise,
         },
         steuerung, streckenabschnitt,
         typen::*,
@@ -58,7 +58,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
+        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
         erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
@@ -94,7 +94,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
+        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
     ) -> Option<Message<Z>>
     where
         W: Serialisiere,
@@ -121,7 +121,7 @@ where
                         steuerung.insert(anschluss);
                         message = Some(Message::SchließeModal)
                     }
-                    Err(de_serialisieren::Error {
+                    Err(de_serialisieren::Fehler {
                         fehler,
                         pwm_pins,
                         output_anschlüsse,
@@ -207,7 +207,7 @@ where
             &GleisId<T>,
         ) -> Result<
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
-            GleisEntferntError,
+            GleisEntferntFehler,
         >,
         nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
     ) where
@@ -410,7 +410,7 @@ where
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(GleisEntferntError) = with_any_id!(
+            if let Err(GleisEntferntFehler) = with_any_id!(
                 &any_id,
                 Gleise::setze_streckenabschnitt_unit,
                 &mut self.gleise,
@@ -494,7 +494,7 @@ where
                     )
                 }
             }
-            Err(de_serialisieren::Error {
+            Err(de_serialisieren::Fehler {
                 fehler,
                 pwm_pins,
                 output_anschlüsse,
@@ -520,7 +520,7 @@ where
                                 ),
                             );
                         }
-                        Err(de_serialisieren::Error { fehler, .. }) => {
+                        Err(de_serialisieren::Fehler { fehler, .. }) => {
                             match self.modal_state.inner_mut() {
                                 Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
                                     geschwindigkeit_auswahl.entfernen(&name)

@@ -74,27 +74,27 @@ impl<Z> Gleise<Z> {
         &mut self,
         gleis_id: GleisId<T>,
         punkt: Vektor,
-    ) -> Result<(), GleisEntferntError>
+    ) -> Result<(), GleisEntferntFehler>
     where
         Z: Zugtyp,
         T: MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { position, .. } =
-            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntFehler)?;
         let position_neu = Position { punkt, winkel: position.winkel };
         self.relocate(&gleis_id, position_neu)?;
         Ok(())
     }
 
-    fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntError>
+    fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntFehler>
     where
         Z: Zugtyp,
         T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
-            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
+            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntFehler)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
@@ -252,8 +252,8 @@ impl<Z> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntError> {
-        let gleis = self.maps.get_map_mut().get_mut(gleis_id).ok_or(GleisEntferntError)?;
+    ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntFehler> {
+        let gleis = self.maps.get_map_mut().get_mut(gleis_id).ok_or(GleisEntferntFehler)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
 
@@ -263,7 +263,7 @@ impl<Z> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) -> Result<(), GleisEntferntError> {
+    ) -> Result<(), GleisEntferntFehler> {
         self.setze_streckenabschnitt(gleis_id, name)?;
         Ok(())
     }
@@ -338,33 +338,33 @@ impl Position {
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum Fehler {
     IO(std::io::Error),
     Bincode(bincode::Error),
     FalscherZugtyp(String),
-    Anschluss(anschluss::Error),
+    Anschluss(anschluss::Fehler),
     GleisEntfernt,
 }
-impl From<std::io::Error> for Error {
+impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
-        Error::IO(error)
+        Fehler::IO(error)
     }
 }
-impl From<bincode::Error> for Error {
+impl From<bincode::Error> for Fehler {
     fn from(error: bincode::Error) -> Self {
-        Error::Bincode(error)
+        Fehler::Bincode(error)
     }
 }
-impl From<anschluss::Error> for Error {
-    fn from(error: anschluss::Error) -> Self {
-        Error::Anschluss(error)
+impl From<anschluss::Fehler> for Fehler {
+    fn from(error: anschluss::Fehler) -> Self {
+        Fehler::Anschluss(error)
     }
 }
 
 #[derive(Debug)]
-pub struct GleisEntferntError;
-impl From<GleisEntferntError> for Error {
-    fn from(GleisEntferntError: GleisEntferntError) -> Self {
-        Error::GleisEntfernt
+pub struct GleisEntferntFehler;
+impl From<GleisEntferntFehler> for Fehler {
+    fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
+        Fehler::GleisEntfernt
     }
 }

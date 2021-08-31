@@ -4,7 +4,7 @@ use crate::{
     application::{
         gleis::{
             self,
-            gleise::{id::GleisId, maps::Gleis, GleisEntferntError, Gleise},
+            gleise::{id::GleisId, maps::Gleis, GleisEntferntFehler, Gleise},
         },
         typen::*,
     },
@@ -61,11 +61,11 @@ macro_rules! steuerung_weiche {
             gleis_id: &GleisId<$type>,
         ) -> Result<
             Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>,
-            GleisEntferntError,
+            GleisEntferntFehler,
         > {
             let Gleise { maps, canvas, .. } = self;
             let Gleis { definition, .. } =
-                maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntError)?;
+                maps.$map.get_mut(&gleis_id).ok_or(GleisEntferntFehler)?;
             Ok(Steuerung::neu(&mut definition.steuerung, canvas))
         }
     };

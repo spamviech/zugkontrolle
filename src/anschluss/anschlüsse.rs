@@ -91,7 +91,7 @@ impl AnschlüsseData {
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
-    fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncError> {
+    fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncFehler> {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
@@ -174,7 +174,7 @@ impl Drop for Anschlüsse {
         let Anschlüsse(option_data) = self;
         if let Ok(mut guard) = ANSCHLÜSSE.lock() {
             let static_anschlüsse = &mut *guard;
-            if let Err(Error::Sync(SyncError::SingletonInVerwendung)) = static_anschlüsse {
+            if let Err(Fehler::Sync(SyncFehler::SingletonInVerwendung)) = static_anschlüsse {
                 if let Some(anschlüsse) = std::mem::replace(option_data, None) {
                     *static_anschlüsse = Ok(anschlüsse);
                 } else {
@@ -185,11 +185,11 @@ impl Drop for Anschlüsse {
     }
 }
 impl Anschlüsse {
-    pub fn neu() -> Result<Anschlüsse, Error> {
+    pub fn neu() -> Result<Anschlüsse, Fehler> {
         let mut guard = ANSCHLÜSSE.lock()?;
         let anschlüsse = &mut *guard;
         let data =
-            std::mem::replace(anschlüsse, Err(Error::Sync(SyncError::SingletonInVerwendung)))?;
+            std::mem::replace(anschlüsse, Err(Fehler::Sync(SyncFehler::SingletonInVerwendung)))?;
         Ok(Anschlüsse(Some(data)))
     }
 
@@ -240,7 +240,7 @@ impl Anschlüsse {
                         }
                         let port = llln_to_hhha! {match_nachricht: port_value};
                         if let Err(err) = anschlüsse.rückgabe(port) {
-                            error!("Error bei rückgabe: {:?}", err);
+                            error!("Fehler bei rückgabe: {:?}", err);
                             break;
                         }
                     }
@@ -401,23 +401,23 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    pub fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncError> {
+    pub fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncFehler> {
         if let Some(arc) = &self.0 {
             arc.lock()?.rückgabe(port)
         } else {
-            Err(SyncError::SingletonInVerwendung)
+            Err(SyncFehler::SingletonInVerwendung)
         }
     }
 
     /// Reserviere den spezifizierten Pin zur exklusiven Nutzung.
     /// Rückgabe über den Drop-Handler (nur bei Raspi).
-    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Error> {
+    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Fehler> {
         debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
-            return Err(Error::Sync(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pin(
-                pin,
-            ))));
+            return Err(Fehler::Sync(SyncFehler::AnschlussInVerwendung(
+                AnschlussBeschreibung::Pin(pin),
+            )));
         }
         if let Some(arc) = self.0.as_ref() {
             #[cfg_attr(raspi, allow(unused_mut))]
@@ -431,13 +431,13 @@ impl Anschlüsse {
                 if anschlüsse.ausgegebene_pins.insert(pin) {
                     Ok(Pin::neu(pin, anschlüsse.pin_rückgabe.clone()))
                 } else {
-                    Err(Error::Sync(SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pin(
-                        pin,
-                    ))))
+                    Err(Fehler::Sync(SyncFehler::AnschlussInVerwendung(
+                        AnschlussBeschreibung::Pin(pin),
+                    )))
                 }
             }
         } else {
-            Err(Error::Sync(SyncError::SingletonInVerwendung))
+            Err(Fehler::Sync(SyncFehler::SingletonInVerwendung))
         }
     }
 
@@ -449,12 +449,12 @@ impl Anschlüsse {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Result<pcf8574::Port, SyncError> {
-        self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
+    ) -> Result<pcf8574::Port, SyncFehler> {
+        self.0.as_mut().ok_or(SyncFehler::WertDropped).and_then(|arc| {
             // TODO besserer Fehler (welche Port wurde angefragt)
-            arc.lock().map_err(SyncError::from).and_then(|mut guard| {
+            arc.lock().map_err(SyncFehler::from).and_then(|mut guard| {
                 guard.reserviere_pcf8574_port(a0, a1, a2, variante, port).ok_or(
-                    SyncError::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
+                    SyncFehler::AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
                         a0,
                         a1,
                         a2,
@@ -468,46 +468,46 @@ impl Anschlüsse {
 }
 
 type AnschlüsseInternal = Arc<Mutex<AnschlüsseData>>;
-type AnschlüsseResult = Result<AnschlüsseInternal, Error>;
+type AnschlüsseResult = Result<AnschlüsseInternal, Fehler>;
 type AnschlüsseStatic = Arc<Mutex<AnschlüsseResult>>;
 static ANSCHLÜSSE: Lazy<AnschlüsseStatic> = Lazy::new(Anschlüsse::erstelle_static);
 
 #[derive(Debug)]
-pub enum Error {
+pub enum Fehler {
     #[cfg(raspi)]
     Gpio(rppal::gpio::Error),
     #[cfg(raspi)]
     I2c(rppal::i2c::Error),
     #[cfg(raspi)]
     Pwm(rppal::pwm::Error),
-    Sync(SyncError),
+    Sync(SyncFehler),
 }
-impl From<SyncError> for Error {
-    fn from(error: SyncError) -> Self {
-        Error::Sync(error)
+impl From<SyncFehler> for Fehler {
+    fn from(error: SyncFehler) -> Self {
+        Fehler::Sync(error)
     }
 }
-impl<T> From<PoisonError<T>> for Error {
+impl<T> From<PoisonError<T>> for Fehler {
     fn from(error: PoisonError<T>) -> Self {
-        SyncError::from(error).into()
+        SyncFehler::from(error).into()
     }
 }
 #[cfg(raspi)]
-impl From<rppal::gpio::Error> for Error {
+impl From<rppal::gpio::Error> for Fehler {
     fn from(error: rppal::gpio::Error) -> Self {
-        Error::Gpio(error)
+        Fehler::Gpio(error)
     }
 }
 #[cfg(raspi)]
-impl From<rppal::i2c::Error> for Error {
+impl From<rppal::i2c::Error> for Fehler {
     fn from(error: rppal::i2c::Error) -> Self {
-        Error::I2c(error)
+        Fehler::I2c(error)
     }
 }
 #[cfg(raspi)]
-impl From<rppal::pwm::Error> for Error {
+impl From<rppal::pwm::Error> for Fehler {
     fn from(error: rppal::pwm::Error) -> Self {
-        Error::Pwm(error)
+        Fehler::Pwm(error)
     }
 }
 
@@ -517,15 +517,15 @@ pub enum AnschlussBeschreibung {
     Pcf8574Port { a0: Level, a1: Level, a2: Level, variante: pcf8574::Variante, port: u3 },
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SyncError {
-    PoisonError,
+pub enum SyncFehler {
+    PoisonFehler,
     SingletonInVerwendung,
     AnschlussInVerwendung(AnschlussBeschreibung),
     WertDropped,
 }
-impl<T> From<PoisonError<T>> for SyncError {
+impl<T> From<PoisonError<T>> for SyncFehler {
     fn from(_: PoisonError<T>) -> Self {
-        SyncError::PoisonError
+        SyncFehler::PoisonFehler
     }
 }
 

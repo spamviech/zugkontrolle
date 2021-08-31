@@ -21,14 +21,14 @@ pub struct Reserviert<R> {
 }
 
 #[derive(Debug)]
-pub struct Error {
-    pub fehler: anschluss::Error,
+pub struct Fehler {
+    pub fehler: anschluss::Fehler,
     pub pwm_pins: Vec<pwm::Pin>,
     pub output_anschlüsse: Vec<OutputAnschluss>,
     pub input_anschlüsse: Vec<InputAnschluss>,
 }
 
-pub type Result<R> = std::result::Result<Reserviert<R>, Error>;
+pub type Result<R> = std::result::Result<Reserviert<R>, Fehler>;
 
 pub trait Reserviere<R> {
     fn reserviere(

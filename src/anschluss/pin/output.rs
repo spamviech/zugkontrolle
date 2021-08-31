@@ -34,7 +34,7 @@ impl Pin {
     /// Sets the pin’s output state.
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[inline(always)]
-    pub fn write(&mut self, level: Level) -> Result<(), Error> {
+    pub fn write(&mut self, level: Level) -> Result<(), Fehler> {
         #[cfg(raspi)]
         {
             self.0.write(level.into());
@@ -43,13 +43,13 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.write({:?})", self, level);
-            Err(Error::KeinRaspberryPi(self.pin()))
+            Err(Fehler::KeinRaspberryPi(self.pin()))
         }
     }
 
     /// Returns `true` if the pin's output state is set to `Level::Low`.
     #[inline(always)]
-    pub fn is_set_low(&self) -> Result<bool, Error> {
+    pub fn is_set_low(&self) -> Result<bool, Fehler> {
         #[cfg(raspi)]
         {
             Ok(self.0.is_set_low())
@@ -57,13 +57,13 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.is_set_low()", self);
-            Err(Error::KeinRaspberryPi(self.pin()))
+            Err(Fehler::KeinRaspberryPi(self.pin()))
         }
     }
 
     /// Returns `true` if the pin's output state is set to `Level::High`.
     #[inline(always)]
-    pub fn is_set_high(&self) -> Result<bool, Error> {
+    pub fn is_set_high(&self) -> Result<bool, Fehler> {
         #[cfg(raspi)]
         {
             Ok(self.0.is_set_high())
@@ -71,13 +71,13 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.is_set_high()", self);
-            Err(Error::KeinRaspberryPi(self.pin()))
+            Err(Fehler::KeinRaspberryPi(self.pin()))
         }
     }
 
     /// Toggles the pin’s output state between Low and High.
     #[inline(always)]
-    pub fn toggle(&mut self) -> Result<(), Error> {
+    pub fn toggle(&mut self) -> Result<(), Fehler> {
         #[cfg(raspi)]
         {
             self.0.toggle();
@@ -86,7 +86,7 @@ impl Pin {
         #[cfg(not(raspi))]
         {
             debug!("{:?}.toggle()", self);
-            Err(Error::KeinRaspberryPi(self.pin()))
+            Err(Fehler::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -95,7 +95,7 @@ impl Pin {
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum Fehler {
     #[cfg(not(raspi))]
     KeinRaspberryPi(u8),
 }

@@ -33,14 +33,14 @@ impl Pin {
 
     /// Reads the pin’s logic level.
     #[inline(always)]
-    pub fn read(&mut self) -> Result<Level, Error> {
+    pub fn read(&mut self) -> Result<Level, Fehler> {
         #[cfg(raspi)]
         {
             Ok(self.0.read().into())
         }
         #[cfg(not(raspi))]
         {
-            Err(Error::KeinRaspberryPi(self.pin()))
+            Err(Fehler::KeinRaspberryPi(self.pin()))
         }
     }
 
@@ -64,40 +64,40 @@ impl Pin {
         &mut self,
         trigger: Trigger,
         #[cfg_attr(not(raspi), allow(unused_mut))] mut callback: impl FnMut(Level) + Send + 'static,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Fehler> {
         let pin = self.pin();
         #[cfg(raspi)]
         {
             Ok(self
                 .0
                 .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
-                .map_err(|fehler| Error::Gpio { pin, fehler })?)
+                .map_err(|fehler| Fehler::Gpio { pin, fehler })?)
         }
         #[cfg(not(raspi))]
         {
             debug!("{:?}.set_async_interrupt({}, callback)", self, trigger);
-            Err(Error::KeinRaspberryPi(pin))
+            Err(Fehler::KeinRaspberryPi(pin))
         }
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
     #[inline(always)]
-    pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
+    pub fn clear_async_interrupt(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
         #[cfg(raspi)]
         {
-            Ok(self.0.clear_async_interrupt().map_err(|fehler| Error::Gpio { pin, fehler })?)
+            Ok(self.0.clear_async_interrupt().map_err(|fehler| Fehler::Gpio { pin, fehler })?)
         }
         #[cfg(not(raspi))]
         {
             debug!("{:?}.clear_async_interrupt()", self);
-            Err(Error::KeinRaspberryPi(pin))
+            Err(Fehler::KeinRaspberryPi(pin))
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum Fehler {
     #[cfg(raspi)]
     Gpio { pin: u8, fehler: gpio::Error },
     #[cfg(not(raspi))]

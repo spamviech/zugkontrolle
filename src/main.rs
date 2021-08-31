@@ -9,7 +9,7 @@ use zugkontrolle::{
     Lego, Märklin, Zugkontrolle,
 };
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Fehler> {
     let args = Args::from_env();
     let verbose = args.verbose;
     let zugtyp = args.zugtyp;
@@ -21,35 +21,37 @@ fn main() -> Result<(), Error> {
         .init()
         .expect("failed to initialize error logging");
 
-    Anschlüsse::neu().map_err(Error::from).and_then(|anschlüsse| {
-        let settings = Settings {
-            window: iced::window::Settings {
-                size: (1024, 768),
-                icon: Some(icon()),
-                ..Default::default()
-            },
-            ..Settings::with_flags((anschlüsse, args))
-        };
-        match zugtyp {
-            args::Zugtyp::Märklin => Zugkontrolle::<Märklin>::run(settings),
-            args::Zugtyp::Lego => Zugkontrolle::<Lego>::run(settings),
-        }
-        .map_err(Error::from)
-    })
+    let anschlüsse = Anschlüsse::neu()?;
+
+    let settings = Settings {
+        window: iced::window::Settings {
+            size: (1024, 768),
+            icon: Some(icon()),
+            ..Default::default()
+        },
+        ..Settings::with_flags((anschlüsse, args))
+    };
+
+    match zugtyp {
+        args::Zugtyp::Märklin => Zugkontrolle::<Märklin>::run(settings)?,
+        args::Zugtyp::Lego => Zugkontrolle::<Lego>::run(settings)?,
+    }
+
+    Ok(())
 }
 
 #[derive(Debug)]
-enum Error {
+enum Fehler {
     Iced(iced::Error),
-    Anschlüsse(anschlüsse::Error),
+    Anschlüsse(anschlüsse::Fehler),
 }
-impl From<iced::Error> for Error {
+impl From<iced::Error> for Fehler {
     fn from(error: iced::Error) -> Self {
-        Error::Iced(error)
+        Fehler::Iced(error)
     }
 }
-impl From<anschlüsse::Error> for Error {
-    fn from(error: anschlüsse::Error) -> Self {
-        Error::Anschlüsse(error)
+impl From<anschlüsse::Fehler> for Fehler {
+    fn from(error: anschlüsse::Fehler) -> Self {
+        Fehler::Anschlüsse(error)
     }
 }

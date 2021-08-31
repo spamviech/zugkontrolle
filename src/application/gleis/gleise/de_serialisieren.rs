@@ -11,7 +11,7 @@ use crate::{
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
     },
     application::{
-        gleis::gleise::{maps::*, Error, Gleise},
+        gleis::gleise::{maps::*, Fehler, Gleise},
         typen::*,
         verbindung,
     },
@@ -24,7 +24,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
         &self,
         pfad: impl AsRef<std::path::Path>,
         geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
-    ) -> std::result::Result<(), Error> {
+    ) -> std::result::Result<(), Fehler> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();
         let file = std::fs::File::create(pfad)?;
@@ -41,11 +41,11 @@ fn reserviere_anschlüsse<T: Serialisiere>(
     input_anschlüsse: Vec<InputAnschluss>,
 ) -> Result<
     (Vec<Gleis<T>>, Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>),
-    anschluss::Error,
+    anschluss::Fehler,
 > {
     source.into_iter().fold(
         Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-        |acc_res: Result<_, anschluss::Error>, gleis_save| {
+        |acc_res: Result<_, anschluss::Fehler>, gleis_save| {
             let mut acc = acc_res?;
             let Reserviert {
                 anschluss: gleis,
@@ -54,7 +54,7 @@ fn reserviere_anschlüsse<T: Serialisiere>(
                 input_nicht_benötigt,
             } = gleis_save
                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                .map_err(|de_serialisieren::Error { fehler, .. }| fehler)?;
+                .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
             acc.0.push(gleis);
             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
         },
@@ -72,7 +72,7 @@ where
         anschlüsse: &mut Anschlüsse,
         bisherige_geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Error> {
+    ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Fehler> {
         // aktuellen Zustand zurücksetzen
         self.canvas.leeren();
         // TODO pivot, skalieren, Modus?
@@ -96,7 +96,7 @@ where
             pläne: _, // TODO verwenden, sobald Plan implementiert ist
         } = bincode::deserialize_from(file)?;
         if name != Z::NAME {
-            return Err(Error::FalscherZugtyp(name));
+            return Err(Fehler::FalscherZugtyp(name));
         }
 
         // sammle bisherige Anschlüsse
@@ -208,7 +208,7 @@ where
         let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
             streckenabschnitte.into_iter().fold(
                 Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-                |acc_res: Result<_, anschluss::Error>, (name, streckenabschnitt)| {
+                |acc_res: Result<_, anschluss::Fehler>, (name, streckenabschnitt)| {
                     let mut acc = acc_res?;
                     let Reserviert {
                         anschluss: streckenabschnitt,
@@ -217,7 +217,7 @@ where
                         input_nicht_benötigt,
                     } = streckenabschnitt
                         .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|de_serialisieren::Error { fehler, .. }| fehler)?;
+                        .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
                     acc.0.push((name, streckenabschnitt));
                     Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
                 },
@@ -225,7 +225,7 @@ where
         let (geschwindigkeiten_reserviert, _pwm_pins, _output_anschlüsse, _input_anschlüsse) =
             geschwindigkeiten.into_iter().fold(
                 Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-                |acc_res: Result<_, anschluss::Error>, (name, geschwindigkeit)| {
+                |acc_res: Result<_, anschluss::Fehler>, (name, geschwindigkeit)| {
                     let mut acc = acc_res?;
                     let Reserviert {
                         anschluss: geschwindigkeit,
@@ -234,7 +234,7 @@ where
                         input_nicht_benötigt,
                     } = geschwindigkeit
                         .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|de_serialisieren::Error { fehler, .. }| fehler)?;
+                        .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
                     acc.0.push((name, geschwindigkeit));
                     Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
                 },

@@ -8,7 +8,7 @@ use crate::{
     anschluss::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        Anschlüsse, Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
     farbe::Farbe,
 };
@@ -22,11 +22,11 @@ pub struct Streckenabschnitt<Anschluss = OutputAnschluss> {
 }
 
 impl Streckenabschnitt<OutputAnschluss> {
-    pub fn strom(&mut self, fließend: Fließend) -> Result<(), Error> {
+    pub fn strom(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         self.anschluss.einstellen(fließend)
     }
 
-    pub fn strom_umschalten(&mut self) -> Result<(), Error> {
+    pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
         self.anschluss.umstellen()
     }
 }

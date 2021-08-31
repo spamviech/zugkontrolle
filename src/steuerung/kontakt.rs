@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-    pwm, Anschlüsse, Error, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
+    pwm, Anschlüsse, Fehler, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
 };
 
 /// Name eines Kontaktes.
@@ -19,18 +19,18 @@ pub struct Kontakt<Anschluss> {
 }
 
 impl Kontakt<InputAnschluss> {
-    pub fn read(&mut self) -> Result<Level, Error> {
+    pub fn read(&mut self) -> Result<Level, Fehler> {
         self.anschluss.read()
     }
 
     pub fn set_async_interrupt(
         &mut self,
         callback: impl FnMut(Level) + Send + 'static,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Fehler> {
         self.anschluss.set_async_interrupt(self.trigger, callback)
     }
 
-    pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
+    pub fn clear_async_interrupt(&mut self) -> Result<(), Fehler> {
         self.anschluss.clear_async_interrupt()
     }
 }
