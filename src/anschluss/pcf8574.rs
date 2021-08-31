@@ -201,7 +201,7 @@ impl Pcf8574 {
                 i2c_channel
             } else {
                 error!("I2C-Mutex poisoned!");
-                return Err(Fehler::PoisonFehler);
+                return Err(Fehler::PoisonFehler(beschreibung));
             };
             let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
             i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
