@@ -21,6 +21,7 @@
 - Refactoring: Modul umbenannt serde.rs -> de_serialisieren.rs
 - Refactoring: Modul umbenannt anchor.rs -> verbindung.rs
 - Refactoring: Modul umbenannt polarity.rs -> polarität.rs
+- Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
 - Refactoring: GleiseMap-Trait ist nicht mehr public.

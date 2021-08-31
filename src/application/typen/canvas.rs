@@ -48,8 +48,9 @@ impl<'t> Frame<'t> {
 
     /// Draws the characters of the given Text on the Frame, filling them with the given color.
     ///
-    /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/
+    /// **Warning:** problems regarding transformation/rotation/scaling from `iced::canvas::Frame`
     /// apply here as well!
+    #[inline(always)]
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text)
     }
@@ -59,6 +60,7 @@ impl<'t> Frame<'t> {
     ///
     /// This method is useful to compose transforms and perform drawing operations in different
     /// coordinate systems.
+    #[inline(always)]
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
         self.0.with_save(|frame| action(&mut Frame(frame)))
     }
@@ -86,15 +88,17 @@ impl<'t> Frame<'t> {
 #[derive(Debug)]
 pub struct Cache(iced::canvas::Cache);
 impl Cache {
-    pub fn new() -> Self {
+    pub fn neu() -> Self {
         Cache(iced::canvas::Cache::new())
     }
 
-    pub fn clear(&mut self) {
+    /// Leere den Cache, so dass er neu gezeichnet wird.
+    #[inline(always)]
+    pub fn leeren(&mut self) {
         self.0.clear()
     }
 
-    pub(crate) fn draw_skaliert_von_pivot(
+    pub(crate) fn zeichnen_skaliert_von_pivot(
         &self,
         bounds: iced::Size<f32>,
         pivot: &Position,
@@ -114,12 +118,13 @@ impl Cache {
         })
     }
 
-    pub fn draw(
+    /// Zeichne die `Geometry` über die übergebenen Closure und speichere sie im `Cache`.
+    pub fn zeichnen(
         &self,
         bounds: iced::Size<f32>,
         draw_fn: impl Fn(&mut Frame),
     ) -> iced::canvas::Geometry {
-        self.draw_skaliert_von_pivot(
+        self.zeichnen_skaliert_von_pivot(
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             &Skalar::multiplikativ_neutral(),

@@ -185,36 +185,40 @@ impl<Z: Zugtyp> Gleise<Z> {
             modus,
             ..
         } = self;
-        vec![canvas.draw_skaliert_von_pivot(bounds.size(), &self.pivot, &self.skalieren, |frame| {
-            // TODO zeichne keine out-of-bounds Gleise
-            // Zeichne Gleise
-            let grabbed_id: Option<AnyId<Z>>;
-            let modus_bauen: bool;
-            match modus {
-                ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } => {
-                    grabbed_id = Some(gleis_id.clone());
-                    modus_bauen = true;
-                }
-                ModusDaten::Bauen { grabbed: None, .. } => {
-                    grabbed_id = None;
-                    modus_bauen = true;
-                }
-                ModusDaten::Fahren => {
-                    grabbed_id = None;
-                    modus_bauen = false;
-                }
-            };
-            // TODO markiere grabbed als "wird-gelöscht", falls cursor out of bounds ist
-            let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
-            let has_other_and_grabbed_id_at_point = |gleis_id, position| {
-                anchor_points.has_other_and_grabbed_id_at_point(
-                    &gleis_id,
-                    |id| is_grabbed(id.clone()),
-                    &position,
-                )
-            };
+        vec![canvas.zeichnen_skaliert_von_pivot(
+            bounds.size(),
+            &self.pivot,
+            &self.skalieren,
+            |frame| {
+                // TODO zeichne keine out-of-bounds Gleise
+                // Zeichne Gleise
+                let grabbed_id: Option<AnyId<Z>>;
+                let modus_bauen: bool;
+                match modus {
+                    ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } => {
+                        grabbed_id = Some(gleis_id.clone());
+                        modus_bauen = true;
+                    }
+                    ModusDaten::Bauen { grabbed: None, .. } => {
+                        grabbed_id = None;
+                        modus_bauen = true;
+                    }
+                    ModusDaten::Fahren => {
+                        grabbed_id = None;
+                        modus_bauen = false;
+                    }
+                };
+                // TODO markiere grabbed als "wird-gelöscht", falls cursor out of bounds ist
+                let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
+                let has_other_and_grabbed_id_at_point = |gleis_id, position| {
+                    anchor_points.hat_andere_id_und_grabbed_an_position(
+                        &gleis_id,
+                        |id| is_grabbed(id.clone()),
+                        &position,
+                    )
+                };
 
-            macro_rules! mit_allen_gleisen {
+                macro_rules! mit_allen_gleisen {
                 ($funktion:expr$(, $($extra_args:expr),+)?) => {
                     $funktion(frame, geraden$(, $($extra_args),+)?);
                     $funktion(frame, kurven$(, $($extra_args),+)?);
@@ -225,26 +229,27 @@ impl<Z: Zugtyp> Gleise<Z> {
                     $funktion(frame, kreuzungen$(, $($extra_args),+)?);
                 };
             }
-            // Hintergrund
-            mit_allen_gleisen!(
-                fülle_alle_gleise,
-                |gleis_id, fließend| Transparenz::true_reduziert(if modus_bauen {
-                    is_grabbed(gleis_id)
-                } else {
-                    fließend == Fließend::Gesperrt
-                }),
-                streckenabschnitte
-            );
-            // Kontur
-            mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
-            // AnchorPoints
-            mit_allen_gleisen!(
-                zeichne_alle_anchor_points,
-                has_other_and_grabbed_id_at_point,
-                &is_grabbed
-            );
-            // Beschreibung
-            mit_allen_gleisen!(schreibe_alle_beschreibungen, is_grabbed);
-        })]
+                // Hintergrund
+                mit_allen_gleisen!(
+                    fülle_alle_gleise,
+                    |gleis_id, fließend| Transparenz::true_reduziert(if modus_bauen {
+                        is_grabbed(gleis_id)
+                    } else {
+                        fließend == Fließend::Gesperrt
+                    }),
+                    streckenabschnitte
+                );
+                // Kontur
+                mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
+                // AnchorPoints
+                mit_allen_gleisen!(
+                    zeichne_alle_anchor_points,
+                    has_other_and_grabbed_id_at_point,
+                    &is_grabbed
+                );
+                // Beschreibung
+                mit_allen_gleisen!(schreibe_alle_beschreibungen, is_grabbed);
+            },
+        )]
     }
 }

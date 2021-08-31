@@ -12,7 +12,7 @@ pub struct Drehen {
 
 impl Drehen {
     pub fn neu() -> Self {
-        Drehen { canvas: Cache::new(), winkel: winkel::ZERO, grabbed: false }
+        Drehen { canvas: Cache::neu(), winkel: winkel::ZERO, grabbed: false }
     }
 }
 
@@ -23,7 +23,7 @@ impl Program<Winkel> for Drehen {
         cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
         let size = bounds.size();
-        vec![self.canvas.draw(size, |frame| {
+        vec![self.canvas.zeichnen(size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
@@ -102,13 +102,13 @@ impl Program<Winkel> for Drehen {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) if self.grabbed => {
-                self.canvas.clear();
+                self.canvas.leeren();
                 self.grabbed = false;
                 status = iced::canvas::event::Status::Captured;
             }
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
                 if self.grabbed {
-                    self.canvas.clear();
+                    self.canvas.leeren();
                     let relative_position = Vektor {
                         x: Skalar(position.x - bounds.x),
                         y: Skalar(position.y - bounds.y),
@@ -125,7 +125,7 @@ impl Program<Winkel> for Drehen {
                     self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
                     winkel = Some(self.winkel);
                 } else if cursor.is_over(&bounds) {
-                    self.canvas.clear()
+                    self.canvas.leeren()
                 }
             }
             _ => {}

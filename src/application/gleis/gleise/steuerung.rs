@@ -21,7 +21,7 @@ pub struct Steuerung<'t, T> {
 impl<'t, T> Drop for Steuerung<'t, T> {
     fn drop(&mut self) {
         if self.verändert {
-            self.canvas.clear()
+            self.canvas.leeren()
         }
     }
 }

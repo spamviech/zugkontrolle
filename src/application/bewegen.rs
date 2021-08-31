@@ -47,7 +47,7 @@ pub struct Bewegen {
 
 impl Bewegen {
     pub fn neu() -> Self {
-        Bewegen { canvas: Cache::new(), bewegung: false }
+        Bewegen { canvas: Cache::neu(), bewegung: false }
     }
 }
 
@@ -100,7 +100,7 @@ impl Program<Nachricht> for Bewegen {
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
         let pfad = erbauer.baue();
-        vec![self.canvas.draw(size, |frame| frame.stroke(&pfad, canvas::Stroke::default()))]
+        vec![self.canvas.zeichnen(size, |frame| frame.stroke(&pfad, canvas::Stroke::default()))]
     }
 
     fn update(

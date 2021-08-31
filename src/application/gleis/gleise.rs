@@ -41,7 +41,7 @@ pub struct Gleise<Z> {
     pivot: Position,
     skalieren: Skalar,
     maps: GleiseMaps<Z>,
-    anchor_points: verbindung::rstern::RTree<Z>,
+    anchor_points: verbindung::rstern::RStern<Z>,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
@@ -50,11 +50,11 @@ pub struct Gleise<Z> {
 impl<Z> Gleise<Z> {
     pub fn neu() -> Self {
         Gleise {
-            canvas: canvas::Cache::new(),
+            canvas: canvas::Cache::neu(),
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             skalieren: Skalar(1.),
             maps: GleiseMaps::neu(),
-            anchor_points: verbindung::rstern::RTree::new(),
+            anchor_points: verbindung::rstern::RStern::neu(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
@@ -109,7 +109,7 @@ impl<Z> Gleise<Z> {
             if snap.is_none() {
                 snap = self
                     .anchor_points
-                    .get_other_id_at_point(AnyId::from_ref(&gleis_id), anchor)
+                    .andere_id_an_position(AnyId::from_ref(&gleis_id), anchor)
                     .map(|snap_anchor| (anchor_name, snap_anchor))
             }
         });
@@ -143,25 +143,25 @@ impl<Z> Gleise<Z> {
     /// Bewege aktuellen Pivot-Punkt nach /pivot/.
     pub fn setze_pivot(&mut self, pivot: Vektor) {
         self.pivot.punkt = pivot;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Bewege aktuellen Pivot-Punkt um /bewegung/.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Setze den /winkel/ für die aktuelle Darstellung.
     pub fn winkel(&mut self, winkel: Winkel) {
         self.pivot.winkel = winkel;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Drehe die aktuelle Darstellung um /winkel/.
     pub fn drehen(&mut self, winkel: Winkel) {
         self.pivot.winkel += winkel;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Aktueller Skalierfaktor zur Darstellung.
@@ -172,13 +172,13 @@ impl<Z> Gleise<Z> {
     /// Setze den aktueller Skalierfaktor zur Darstellung.
     pub fn setze_skalierfaktor(&mut self, skalieren: Skalar) {
         self.skalieren = skalieren;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Multipliziere die aktuelle Darstellung mit /skalieren/.
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
-        self.canvas.clear();
+        self.canvas.leeren();
     }
 
     /// Füge einen Streckenabschnitt hinzu.
@@ -234,7 +234,7 @@ impl<Z> Gleise<Z> {
             kreuzungen
         }
         let result = self.maps.streckenabschnitte.remove(&name);
-        self.canvas.clear();
+        self.canvas.leeren();
         result
     }
 

@@ -32,20 +32,22 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { definition, position, .. } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&verbindung::Verbindung { position: anchor_position, richtung }| verbindung::Verbindung {
-                position: position.transformation(anchor_position),
-                richtung: position.winkel + richtung,
+            |&verbindung::Verbindung { position: anchor_position, richtung }| {
+                verbindung::Verbindung {
+                    position: position.transformation(anchor_position),
+                    richtung: position.winkel + richtung,
+                }
             },
         );
         let gleis_id = self.next_id();
         // add to anchor_points
         anchor_points.for_each(|_name, anchor| {
-            self.anchor_points.insert(AnyId::from_ref(&gleis_id), anchor.clone())
+            self.anchor_points.hinzufügen(AnyId::from_ref(&gleis_id), anchor.clone())
         });
         // add to HashMap
         self.maps.get_map_mut().insert(gleis_id.clone(), gleis);
         // trigger redraw
-        self.canvas.clear();
+        self.canvas.leeren();
         // return value
         (gleis_id, anchor_points)
     }
@@ -131,30 +133,34 @@ impl<Z: Zugtyp> Gleise<Z> {
             self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&verbindung::Verbindung { position: anchor_position, richtung }| verbindung::Verbindung {
-                position: position.transformation(anchor_position),
-                richtung: position.winkel + richtung,
+            |&verbindung::Verbindung { position: anchor_position, richtung }| {
+                verbindung::Verbindung {
+                    position: position.transformation(anchor_position),
+                    richtung: position.winkel + richtung,
+                }
             },
         );
         // calculate absolute position for new AnchorPoints
         let anchor_points_neu = definition.anchor_points().map(
-            |&verbindung::Verbindung { position: anchor_position, richtung }| verbindung::Verbindung {
-                position: position_neu.transformation(anchor_position),
-                richtung: position_neu.winkel + richtung,
+            |&verbindung::Verbindung { position: anchor_position, richtung }| {
+                verbindung::Verbindung {
+                    position: position_neu.transformation(anchor_position),
+                    richtung: position_neu.winkel + richtung,
+                }
             },
         );
         // store new position
         *position = position_neu;
         // delete old from anchor_points
         anchor_points.for_each(|_name, anchor| {
-            self.anchor_points.remove(AnyId::from_ref(gleis_id), &anchor);
+            self.anchor_points.entfernen(AnyId::from_ref(gleis_id), &anchor);
         });
         // add new to anchor_points
         anchor_points_neu.for_each(|_name, anchor| {
-            self.anchor_points.insert(AnyId::from_ref(gleis_id), anchor.clone())
+            self.anchor_points.hinzufügen(AnyId::from_ref(gleis_id), anchor.clone())
         });
         // trigger redraw
-        self.canvas.clear();
+        self.canvas.leeren();
         // return value
         Ok(anchor_points_neu)
     }
@@ -196,7 +202,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
-                self.anchor_points.remove(
+                self.anchor_points.entfernen(
                     AnyId::from_ref(&gleis_id),
                     &verbindung::Verbindung {
                         position: position.transformation(anchor.position),
@@ -205,7 +211,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 );
             });
             // trigger redraw
-            self.canvas.clear();
+            self.canvas.leeren();
         }
     }
 

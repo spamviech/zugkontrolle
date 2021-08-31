@@ -74,11 +74,11 @@ where
         pfad: impl AsRef<std::path::Path>,
     ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Error> {
         // aktuellen Zustand zurücksetzen
-        self.canvas.clear();
+        self.canvas.leeren();
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
         self.maps = GleiseMaps::neu();
-        self.anchor_points = verbindung::rstern::RTree::new();
+        self.anchor_points = verbindung::rstern::RStern::neu();
 
         // lese & parse Datei
         let file = std::fs::File::open(pfad)?;

@@ -12,15 +12,15 @@ const SEARCH_RADIUS: Skalar = Skalar(5.0);
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
 #[derive(zugkontrolle_derive::Debug)]
-pub(crate) struct RTree<Z>(rstar::RTree<PointWithData<(AnyId<Z>, Winkel), Vektor>>);
-impl<Z> RTree<Z> {
+pub(crate) struct RStern<Z>(rstar::RTree<PointWithData<(AnyId<Z>, Winkel), Vektor>>);
+impl<Z> RStern<Z> {
     /// create a new RTree to store anchors with position data
-    pub(crate) fn new() -> Self {
-        RTree(rstar::RTree::new())
+    pub(crate) fn neu() -> Self {
+        RStern(rstar::RTree::new())
     }
 
     /// insert an anchor into the RTree
-    pub(crate) fn insert(
+    pub(crate) fn hinzufügen(
         &mut self,
         gleis_id: AnyId<Z>,
         Verbindung { position, richtung }: Verbindung,
@@ -29,7 +29,7 @@ impl<Z> RTree<Z> {
     }
 
     /// remove one copy of the specified anchor from the RTree
-    pub(crate) fn remove(
+    pub(crate) fn entfernen(
         &mut self,
         gleis_id: AnyId<Z>,
         &Verbindung { position, richtung }: &Verbindung,
@@ -39,7 +39,7 @@ impl<Z> RTree<Z> {
 
     /// Check if an anchor with a different id is present at the specified position,
     /// returning the first found.
-    pub(crate) fn get_other_id_at_point(
+    pub(crate) fn andere_id_an_position(
         &self,
         gleis_id: AnyId<Z>,
         &Verbindung { position, richtung: _ }: &Verbindung,
@@ -55,9 +55,9 @@ impl<Z> RTree<Z> {
         })
     }
 
-    /// Check if an anchor with a different id is present at the specified position,
-    /// returning the first pointing in the opposite direction.
-    pub(crate) fn has_other_and_grabbed_id_at_point(
+    /// Check if an anchor with a different id pointing in opposite direction is present
+    /// at the specified position, and if a grabbed id is present pointing in any direction.
+    pub(crate) fn hat_andere_id_und_grabbed_an_position(
         &self,
         gleis_id: &AnyId<Z>,
         is_grabbed: impl Fn(&AnyId<Z>) -> bool,

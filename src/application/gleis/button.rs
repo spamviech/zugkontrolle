@@ -25,7 +25,7 @@ pub struct Button<T> {
 }
 impl<T> Button<T> {
     pub fn new(gleis: T) -> Self {
-        Button { gleis, canvas: canvas::Cache::new(), in_bounds: false }
+        Button { gleis, canvas: canvas::Cache::neu(), in_bounds: false }
     }
 }
 impl<T: Zeichnen> Button<T> {
@@ -61,7 +61,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
-        vec![self.canvas.draw(bounds.size(), |frame| {
+        vec![self.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(
@@ -127,7 +127,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
     ) -> (iced::canvas::event::Status, Option<Message>) {
         let in_bounds = cursor.is_over(&bounds);
         if self.in_bounds != in_bounds {
-            self.canvas.clear();
+            self.canvas.leeren();
             self.in_bounds = in_bounds;
         }
         match event {

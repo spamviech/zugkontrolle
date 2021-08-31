@@ -181,7 +181,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             _otherwise => {}
         };
         if event_status == iced::canvas::event::Status::Captured {
-            self.canvas.clear()
+            self.canvas.leeren()
         }
         (event_status, message)
     }
