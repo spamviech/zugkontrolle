@@ -20,3 +20,4 @@ target/
 /Issues.txt
 /deps.dot
 /deps.png
+build_all.sh
