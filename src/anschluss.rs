@@ -175,7 +175,7 @@ impl OutputAnschluss {
 
 /// Serealisierbare Informationen eines OutputAnschlusses.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum OutputSave {
+pub enum OutputSerialisiert {
     Pin {
         pin: u8,
         polarität: Polarität,
@@ -189,13 +189,15 @@ pub enum OutputSave {
         polarität: Polarität,
     },
 }
-impl OutputSave {
+impl OutputSerialisiert {
     // Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
-    pub fn selber_anschluss(&self, other: &OutputSave) -> bool {
+    pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {
         match (self, other) {
-            (OutputSave::Pin { pin: p0, .. }, OutputSave::Pin { pin: p1, .. }) => p0 == p1,
+            (OutputSerialisiert::Pin { pin: p0, .. }, OutputSerialisiert::Pin { pin: p1, .. }) => {
+                p0 == p1
+            }
             (
-                OutputSave::Pcf8574Port {
+                OutputSerialisiert::Pcf8574Port {
                     a0: a0_a,
                     a1: a1_a,
                     a2: a2_a,
@@ -203,7 +205,7 @@ impl OutputSave {
                     port: port_a,
                     ..
                 },
-                OutputSave::Pcf8574Port {
+                OutputSerialisiert::Pcf8574Port {
                     a0: a0_b,
                     a1: a1_b,
                     a2: a2_b,
@@ -223,17 +225,17 @@ impl OutputSave {
     }
 }
 impl Serialisiere for OutputAnschluss {
-    type Serialisiert = OutputSave;
+    type Serialisiert = OutputSerialisiert;
 
-    fn serialisiere(&self) -> OutputSave {
+    fn serialisiere(&self) -> OutputSerialisiert {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                OutputSave::Pin { pin: pin.pin(), polarität: *polarität }
+                OutputSerialisiert::Pin { pin: pin.pin(), polarität: *polarität }
             }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 let pcf8574::Beschreibung { a0, a1, a2, variante } = port.adresse();
                 let port = port.port();
-                OutputSave::Pcf8574Port {
+                OutputSerialisiert::Pcf8574Port {
                     a0: *a0,
                     a1: *a1,
                     a2: *a2,
@@ -249,7 +251,7 @@ impl Serialisiere for OutputAnschluss {
         (Vec::new(), vec![self], Vec::new())
     }
 }
-impl Reserviere<OutputAnschluss> for OutputSave {
+impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -258,8 +260,8 @@ impl Reserviere<OutputAnschluss> for OutputSave {
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> speichern_laden::Result<OutputAnschluss> {
         let polarität = match self {
-            OutputSave::Pin { polarität, .. } => polarität,
-            OutputSave::Pcf8574Port { polarität, .. } => polarität,
+            OutputSerialisiert::Pin { polarität, .. } => polarität,
+            OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
         };
         let (mut gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
@@ -283,14 +285,14 @@ impl Reserviere<OutputAnschluss> for OutputSave {
                 };
             }
             let (anschluss, polarität) = match self {
-                OutputSave::Pin { pin, polarität } => (
+                OutputSerialisiert::Pin { pin, polarität } => (
                     Anschluss::Pin(match anschlüsse.reserviere_pin(pin) {
                         Ok(pin) => pin,
                         Err(error) => fehler!(error),
                     }),
                     polarität,
                 ),
-                OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+                OutputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
                     let port = u3::new(port);
                     (
                         Anschluss::Pcf8574Port(
@@ -361,7 +363,7 @@ impl InputAnschluss {
 
 /// Serealisierbare Informationen eines InputAnschlusses.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum InputSave {
+pub enum InputSerialisiert {
     Pin {
         pin: u8,
     },
@@ -374,13 +376,13 @@ pub enum InputSave {
         interrupt: Option<u8>,
     },
 }
-impl InputSave {
+impl InputSerialisiert {
     // Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
-    pub fn selber_anschluss(&self, other: &InputSave) -> bool {
+    pub fn selber_anschluss(&self, other: &InputSerialisiert) -> bool {
         match (self, other) {
-            (InputSave::Pin { pin: p0 }, InputSave::Pin { pin: p1 }) => p0 == p1,
+            (InputSerialisiert::Pin { pin: p0 }, InputSerialisiert::Pin { pin: p1 }) => p0 == p1,
             (
-                InputSave::Pcf8574Port {
+                InputSerialisiert::Pcf8574Port {
                     a0: a0_a,
                     a1: a1_a,
                     a2: a2_a,
@@ -388,7 +390,7 @@ impl InputSave {
                     port: port_a,
                     ..
                 },
-                InputSave::Pcf8574Port {
+                InputSerialisiert::Pcf8574Port {
                     a0: a0_b,
                     a1: a1_b,
                     a2: a2_b,
@@ -408,7 +410,7 @@ impl InputSave {
     }
 
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSave::Pcf8574Port { interrupt, .. } = self {
+        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
             interrupt.clone()
         } else {
             None
@@ -416,16 +418,16 @@ impl InputSave {
     }
 }
 impl Serialisiere for InputAnschluss {
-    type Serialisiert = InputSave;
+    type Serialisiert = InputSerialisiert;
 
-    fn serialisiere(&self) -> InputSave {
+    fn serialisiere(&self) -> InputSerialisiert {
         match self {
-            InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
+            InputAnschluss::Pin(pin) => InputSerialisiert::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
                 let pcf8574::Beschreibung { a0, a1, a2, variante } = port.adresse();
                 let interrupt = port.interrupt_pin().unwrap_or(None);
                 let port = port.port();
-                InputSave::Pcf8574Port {
+                InputSerialisiert::Pcf8574Port {
                     a0: *a0,
                     a1: *a1,
                     a2: *a2,
@@ -441,7 +443,7 @@ impl Serialisiere for InputAnschluss {
         (Vec::new(), Vec::new(), vec![self])
     }
 }
-impl Reserviere<InputAnschluss> for InputSave {
+impl Reserviere<InputAnschluss> for InputSerialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -505,13 +507,13 @@ impl Reserviere<InputAnschluss> for InputSave {
             }
         } else {
             match self {
-                InputSave::Pin { pin } => {
+                InputSerialisiert::Pin { pin } => {
                     InputAnschluss::Pin(match anschlüsse.reserviere_pin(pin) {
                         Ok(anschluss) => anschluss.into_input(),
                         Err(error) => fehler!(error),
                     })
                 }
-                InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt: _ } => {
+                InputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, interrupt: _ } => {
                     let port = match anschlüsse.reserviere_pcf8574_port(
                         a0,
                         a1,

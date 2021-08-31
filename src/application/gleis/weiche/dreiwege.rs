@@ -3,7 +3,7 @@
 use std::{fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::{alias_save_unit, create_richtung};
+use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 
 use crate::{
     application::gleis::{anchor, gerade, kurve},
@@ -15,7 +15,7 @@ use crate::{
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_save_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSave>)]
+#[alias_serialisiert_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct DreiwegeWeiche
 <Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {

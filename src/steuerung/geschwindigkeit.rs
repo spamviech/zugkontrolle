@@ -15,7 +15,7 @@ use crate::{
     anschluss::{
         self, pwm,
         speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSave, Polarität,
+        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert, Polarität,
     },
     non_empty::{MaybeEmpty, NonEmpty},
 };
@@ -112,7 +112,7 @@ fn geschwindigkeit_ks(
     Ok(())
 }
 
-pub type MittelleiterSave = Mittelleiter<pwm::Save, OutputSave>;
+pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
@@ -150,9 +150,9 @@ impl Display for Mittelleiter {
 }
 
 impl Serialisiere for Mittelleiter {
-    type Serialisiert = MittelleiterSave;
+    type Serialisiert = MittelleiterSerialisiert;
 
-    fn serialisiere(&self) -> MittelleiterSave {
+    fn serialisiere(&self) -> MittelleiterSerialisiert {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Mittelleiter::Pwm { pin: pin.serialisiere(), polarität: *polarität }
@@ -187,7 +187,7 @@ impl Serialisiere for Mittelleiter {
         }
     }
 }
-impl Reserviere<Mittelleiter> for MittelleiterSave {
+impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -325,7 +325,7 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 }
 
-pub type ZweileiterSave = Zweileiter<pwm::Save, OutputSave>;
+pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisiert>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
@@ -399,9 +399,9 @@ impl Geschwindigkeit<Zweileiter> {
 }
 
 impl Serialisiere for Zweileiter {
-    type Serialisiert = ZweileiterSave;
+    type Serialisiert = ZweileiterSerialisiert;
 
-    fn serialisiere(&self) -> ZweileiterSave {
+    fn serialisiere(&self) -> ZweileiterSerialisiert {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
                 geschwindigkeit: geschwindigkeit.serialisiere(),
@@ -445,7 +445,7 @@ impl Serialisiere for Zweileiter {
         }
     }
 }
-impl Reserviere<Zweileiter> for ZweileiterSave {
+impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,

@@ -5,7 +5,7 @@ pub mod gerade;
 pub mod kurve;
 pub mod s_kurve;
 
-pub use dreiwege::{DreiwegeWeiche, DreiwegeWeicheSave, DreiwegeWeicheUnit};
-pub use gerade::{Orientierung, Weiche, WeicheSave, WeicheUnit};
-pub use kurve::{KurvenWeiche, KurvenWeicheSave, KurvenWeicheUnit};
-pub use s_kurve::{SKurvenWeiche, SKurvenWeicheSave, SKurvenWeicheUnit};
+pub use dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert, DreiwegeWeicheUnit};
+pub use gerade::{Orientierung, Weiche, WeicheSerialisiert, WeicheUnit};
+pub use kurve::{KurvenWeiche, KurvenWeicheSerialisiert, KurvenWeicheUnit};
+pub use s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert, SKurvenWeicheUnit};

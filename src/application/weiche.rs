@@ -9,28 +9,29 @@ use iced_native::{
 };
 
 use crate::{
-    anschluss::OutputSave,
+    anschluss::OutputSerialisiert,
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     lookup::Lookup,
     steuerung::weiche::{Name, Weiche},
 };
 
 #[derive(Debug, Clone)]
-pub struct Status<AnschlüsseSave, AnschlüsseAuswahlStatus> {
+pub struct Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus> {
     name: String,
     name_state: text_input::State,
-    anschlüsse_save: AnschlüsseSave,
+    anschlüsse_save: AnschlüsseSerialisiert,
     anschlüsse_state: AnschlüsseAuswahlStatus,
     festlegen_state: button::State,
     entfernen_state: button::State,
     hat_steuerung: bool,
 }
 
-impl<AnschlüsseSave, AnschlüsseAuswahlStatus> Status<AnschlüsseSave, AnschlüsseAuswahlStatus>
+impl<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
+    Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
 where
-    AnschlüsseSave: Default + Clone + Into<AnschlüsseAuswahlStatus>,
+    AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
-    pub fn neu<Richtung>(option_weiche: Option<Weiche<Richtung, AnschlüsseSave>>) -> Self {
+    pub fn neu<Richtung>(option_weiche: Option<Weiche<Richtung, AnschlüsseSerialisiert>>) -> Self {
         let (name, anschlüsse_save, hat_steuerung) =
             if let Some(Weiche { name, anschlüsse, .. }) = option_weiche {
                 (name.0, anschlüsse, true)
@@ -53,22 +54,22 @@ where
 #[derive(Debug, Clone)]
 enum InterneNachricht<Richtung> {
     Name(String),
-    Anschluss(Richtung, OutputSave),
+    Anschluss(Richtung, OutputSerialisiert),
     Festlegen,
     Entfernen,
     Schließen,
 }
 
-pub struct Auswahl<'t, Richtung, AnschlüsseSave, R: card::Renderer> {
+pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R: card::Renderer> {
     card: Card<'t, InterneNachricht<Richtung>, R>,
     name: &'t mut String,
-    anschlüsse: &'t mut AnschlüsseSave,
+    anschlüsse: &'t mut AnschlüsseSerialisiert,
 }
 
-impl<'t, Richtung, AnschlüsseSave, R> Auswahl<'t, Richtung, AnschlüsseSave, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: 'static + Clone + Display,
-    AnschlüsseSave: Lookup<Richtung, OutputSave>,
+    AnschlüsseSerialisiert: Lookup<Richtung, OutputSerialisiert>,
     R: 't
         + Renderer
         + container::Renderer
@@ -84,7 +85,7 @@ where
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     pub fn neu<AnschlüsseAuswahlStatus: Lookup<Richtung, anschluss::Status<anschluss::Output>>>(
-        status: &'t mut Status<AnschlüsseSave, AnschlüsseAuswahlStatus>,
+        status: &'t mut Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>,
     ) -> Self {
         let Status {
             name,
@@ -131,16 +132,16 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum Nachricht<Richtung, AnschlüsseSave> {
-    Festlegen(Option<Weiche<Richtung, AnschlüsseSave>>),
+pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
+    Festlegen(Option<Weiche<Richtung, AnschlüsseSerialisiert>>),
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSave, R> Widget<Nachricht<Richtung, AnschlüsseSave>, R>
-    for Auswahl<'t, Richtung, AnschlüsseSave, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+    for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: Clone + Default,
-    AnschlüsseSave: Clone + Lookup<Richtung, OutputSave>,
+    AnschlüsseSerialisiert: Clone + Lookup<Richtung, OutputSerialisiert>,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {
@@ -157,7 +158,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht<Richtung, AnschlüsseSave>>,
+        messages: &mut Vec<Nachricht<Richtung, AnschlüsseSerialisiert>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
         let mut status = self.card.on_event(
@@ -189,14 +190,14 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSave, R> From<Auswahl<'t, Richtung, AnschlüsseSave, R>>
-    for Element<'t, Nachricht<Richtung, AnschlüsseSave>, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
+    for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
 where
     Richtung: 't + Clone + Default,
-    AnschlüsseSave: Clone + Lookup<Richtung, OutputSave>,
+    AnschlüsseSerialisiert: Clone + Lookup<Richtung, OutputSerialisiert>,
     R: 't + Renderer + card::Renderer,
 {
-    fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSave, R>) -> Self {
+    fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
         Element::new(anzeige)
     }
 }

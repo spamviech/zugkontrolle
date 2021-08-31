@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::alias_save_unit;
+use zugkontrolle_derive::alias_serialisiert_unit;
 
 use crate::{
     application::{
@@ -11,7 +11,7 @@ use crate::{
             anchor, gerade, kurve,
             weiche::gerade::{
                 AnchorName, AnchorPoints, Orientierung, Richtung, RichtungAnschlüsse,
-                RichtungAnschlüsseSave,
+                RichtungAnschlüsseSerialisiert,
             },
         },
         typen::*,
@@ -24,7 +24,7 @@ use crate::{
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[alias_save_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSave>)]
+#[alias_serialisiert_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche
 <Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {

@@ -8,12 +8,12 @@ use crate::{
     anschluss::{
         pin::pwm,
         speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-        Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSave,
+        Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
     farbe::Farbe,
 };
 
-pub type StreckenabschnittSave = Streckenabschnitt<OutputSave>;
+pub type StreckenabschnittSerialisiert = Streckenabschnitt<OutputSerialisiert>;
 /// Steuerung der Stromzufuhr.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = OutputAnschluss> {
@@ -32,9 +32,9 @@ impl Streckenabschnitt<OutputAnschluss> {
 }
 
 impl Serialisiere for Streckenabschnitt {
-    type Serialisiert = StreckenabschnittSave;
+    type Serialisiert = StreckenabschnittSerialisiert;
 
-    fn serialisiere(&self) -> Streckenabschnitt<OutputSave> {
+    fn serialisiere(&self) -> Streckenabschnitt<OutputSerialisiert> {
         Streckenabschnitt { farbe: self.farbe, anschluss: self.anschluss.serialisiere() }
     }
 
@@ -43,7 +43,7 @@ impl Serialisiere for Streckenabschnitt {
     }
 }
 
-impl Reserviere<Streckenabschnitt> for StreckenabschnittSave {
+impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,

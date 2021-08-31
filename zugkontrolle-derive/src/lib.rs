@@ -65,12 +65,12 @@ mod alias;
 #[proc_macro_attribute]
 /// Internes Macro mit sehr spezifischen Vorraussetzungen.
 ///
-/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Save-Typ
-/// (Argument) über eine `to_save`-Methode möglich ist!
-pub fn alias_save_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
+/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
+/// (Argument) über eine `serialisiere`-Methode möglich ist!
+pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item);
 
-    alias::alias_save_unit(attr.into(), ast).into()
+    alias::alias_serialisiert_unit(attr.into(), ast).into()
 }
 
 mod maps_methoden;

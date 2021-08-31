@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-        OutputSave,
+        OutputSerialisiert,
     },
     application::{
         gleis::{gleise::id::GleisId, *},
@@ -185,14 +185,15 @@ impl<Z> MapSelector<Z> for Kreuzung<Z> {
 #[derive(Serialize, Deserialize)]
 pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) name: String,
-    pub(crate) geraden: Vec<Gleis<GeradeSave<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSave<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSave<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSave<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSave<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
-    pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSave>>,
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+    pub(crate) streckenabschnitte:
+        HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSerialisiert>>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
     pub(crate) pläne: Vec<Plan>,
 }

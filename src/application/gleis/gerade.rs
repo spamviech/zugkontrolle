@@ -3,15 +3,15 @@
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::alias_save_unit;
+use zugkontrolle_derive::alias_serialisiert_unit;
 
 use super::anchor;
-use crate::anschluss::{InputAnschluss, InputSave};
+use crate::anschluss::{InputAnschluss, InputSerialisiert};
 use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
 /// Definition einer Gerade
-#[alias_save_unit(Kontakt<InputSave>)]
+#[alias_serialisiert_unit(Kontakt<InputSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
     pub zugtyp: PhantomData<fn() -> Z>,

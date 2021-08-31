@@ -3,10 +3,10 @@
 use std::{f32::consts::PI, fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::alias_save_unit;
+use zugkontrolle_derive::alias_serialisiert_unit;
 
 use super::anchor;
-use crate::anschluss::{InputAnschluss, InputSave};
+use crate::anschluss::{InputAnschluss, InputSerialisiert};
 use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
 
@@ -14,7 +14,7 @@ use crate::{application::typen::*, lookup::impl_lookup};
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_save_unit(Kontakt<InputSave>)]
+#[alias_serialisiert_unit(Kontakt<InputSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kurve<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
     pub zugtyp: PhantomData<fn() -> Z>,

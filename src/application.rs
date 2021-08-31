@@ -21,7 +21,7 @@ use self::{
     typen::*,
 };
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, speichern_laden::Serialisiere, OutputSave},
+    anschluss::{anschlüsse::Anschlüsse, speichern_laden::Serialisiere, OutputSerialisiert},
     args::Args,
     farbe::Farbe,
     steuerung::{
@@ -88,7 +88,7 @@ pub enum AnschlüsseAnpassen<Z> {
         Option<
             steuerung::Weiche<
                 gleis::weiche::gerade::Richtung,
-                gleis::weiche::gerade::RichtungAnschlüsseSave,
+                gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
         >,
     ),
@@ -97,7 +97,7 @@ pub enum AnschlüsseAnpassen<Z> {
         Option<
             steuerung::Weiche<
                 gleis::weiche::dreiwege::Richtung,
-                gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+                gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
             >,
         >,
     ),
@@ -106,7 +106,7 @@ pub enum AnschlüsseAnpassen<Z> {
         Option<
             steuerung::Weiche<
                 gleis::weiche::kurve::Richtung,
-                gleis::weiche::kurve::RichtungAnschlüsseSave,
+                gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
             >,
         >,
     ),
@@ -115,7 +115,7 @@ pub enum AnschlüsseAnpassen<Z> {
         Option<
             steuerung::Weiche<
                 gleis::weiche::gerade::Richtung,
-                gleis::weiche::gerade::RichtungAnschlüsseSave,
+                gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
         >,
     ),
@@ -124,7 +124,7 @@ pub enum AnschlüsseAnpassen<Z> {
         Option<
             steuerung::Weiche<
                 gleis::weiche::gerade::Richtung,
-                gleis::weiche::gerade::RichtungAnschlüsseSave,
+                gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
         >,
     ),
@@ -150,7 +150,7 @@ where
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
-    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSave),
+    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSerialisiert),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
     SetzeStreckenabschnitt(AnyId<Z>),
     StreckenabschnittFestlegen(bool),
@@ -224,7 +224,7 @@ where
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
     Weiche(
         weiche::Status<
-            gleis::weiche::gerade::RichtungAnschlüsseSave,
+            gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
         >,
         Arc<
@@ -232,7 +232,7 @@ where
                 Option<
                     steuerung::Weiche<
                         gleis::weiche::gerade::Richtung,
-                        gleis::weiche::gerade::RichtungAnschlüsseSave,
+                        gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
                     >,
                 >,
             ) -> Message<Z>,
@@ -240,7 +240,7 @@ where
     ),
     DreiwegeWeiche(
         weiche::Status<
-            gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+            gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
             gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
         >,
         Arc<
@@ -248,7 +248,7 @@ where
                 Option<
                     steuerung::Weiche<
                         gleis::weiche::dreiwege::Richtung,
-                        gleis::weiche::dreiwege::RichtungAnschlüsseSave,
+                        gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
                     >,
                 >,
             ) -> Message<Z>,
@@ -256,7 +256,7 @@ where
     ),
     KurvenWeiche(
         weiche::Status<
-            gleis::weiche::kurve::RichtungAnschlüsseSave,
+            gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
             gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
         >,
         Arc<
@@ -264,7 +264,7 @@ where
                 Option<
                     steuerung::Weiche<
                         gleis::weiche::kurve::Richtung,
-                        gleis::weiche::kurve::RichtungAnschlüsseSave,
+                        gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
                     >,
                 >,
             ) -> Message<Z>,

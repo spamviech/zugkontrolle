@@ -10,7 +10,8 @@ use iced_native::{
 
 use super::{macros::reexport_no_event_methods, style::tab_bar::TabBar};
 use crate::anschluss::{
-    level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSave, OutputSave,
+    level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSerialisiert,
+    OutputSerialisiert,
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
@@ -46,14 +47,14 @@ impl<'t> Status<Input<'t>> {
 
     #[inline(always)]
     pub fn von_input_save(
-        initial: InputSave,
+        initial: InputSerialisiert,
         interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
     ) -> Self {
         let make_modus =
             |pin: u8| Input { number_input_state: number_input::State::new(), pin, interrupt_pins };
         match initial {
-            InputSave::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
-            InputSave::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
+            InputSerialisiert::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
+            InputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
                 Self::neu_mit_initial_port(
                     a0,
                     a1,
@@ -67,11 +68,11 @@ impl<'t> Status<Input<'t>> {
     }
 
     #[inline(always)]
-    pub fn input_anschluss(&self) -> InputSave {
+    pub fn input_anschluss(&self) -> InputSerialisiert {
         self.anschluss(
-            |pin, _input| InputSave::Pin { pin },
+            |pin, _input| InputSerialisiert::Pin { pin },
             |a0, a1, a2, variante, port, Input { pin, interrupt_pins, .. }| {
-                InputSave::Pcf8574Port {
+                InputSerialisiert::Pcf8574Port {
                     a0,
                     a1,
                     a2,
@@ -99,22 +100,22 @@ impl Status<Output> {
     }
 
     #[inline(always)]
-    pub fn von_output_save(initial: OutputSave) -> Self {
+    pub fn von_output_save(initial: OutputSerialisiert) -> Self {
         match initial {
-            OutputSave::Pin { pin, polarität } => {
+            OutputSerialisiert::Pin { pin, polarität } => {
                 Self::neu_mit_initial_pin(pin, Output { polarität })
             }
-            OutputSave::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
+            OutputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
                 Self::neu_mit_initial_port(a0, a1, a2, variante, port, Output { polarität })
             }
         }
     }
 
     #[inline(always)]
-    pub fn output_anschluss(&self) -> OutputSave {
+    pub fn output_anschluss(&self) -> OutputSerialisiert {
         self.anschluss(
-            |pin, Output { polarität }| OutputSave::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, Output { polarität }| OutputSave::Pcf8574Port {
+            |pin, Output { polarität }| OutputSerialisiert::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, Output { polarität }| OutputSerialisiert::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -227,7 +228,7 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     make_port: Box<dyn Fn(Level, Level, Level, Variante, u8, &T) -> M>,
 }
 
-impl<'a, R> Auswahl<'a, u8, InputMessage, InputSave, R>
+impl<'a, R> Auswahl<'a, u8, InputMessage, InputSerialisiert, R>
 where
     R: 'a
         + Renderer
@@ -257,8 +258,8 @@ where
                 )
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
-            &|pin, _input| InputSave::Pin { pin },
-            move |a0, a1, a2, variante, port, pin| InputSave::Pcf8574Port {
+            &|pin, _input| InputSerialisiert::Pin { pin },
+            move |a0, a1, a2, variante, port, pin| InputSerialisiert::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -274,7 +275,7 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputMessage, OutputSave, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputMessage, OutputSerialisiert, R>
 where
     R: 'a
         + Renderer
@@ -312,8 +313,8 @@ where
                 )
             },
             &|modus, OutputMessage::Polarität(polarität)| *modus = polarität,
-            &|pin, polarität| OutputSave::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, polarität| OutputSave::Pcf8574Port {
+            &|pin, polarität| OutputSerialisiert::Pin { pin, polarität: *polarität },
+            |a0, a1, a2, variante, port, polarität| OutputSerialisiert::Pcf8574Port {
                 a0,
                 a1,
                 a2,
@@ -536,7 +537,7 @@ impl PwmState {
 }
 
 pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
-    number_input: NumberInput<'a, u8, pwm::Save, R>,
+    number_input: NumberInput<'a, u8, pwm::Serialisiert, R>,
     pin: &'a mut u8,
 }
 
@@ -552,11 +553,11 @@ where
         + number_input::Renderer,
 {
     pub fn neu(PwmState { pin, number_input_state }: &'a mut PwmState) -> Self {
-        Pwm { number_input: NumberInput::new(number_input_state, *pin, 32, pwm::Save), pin }
+        Pwm { number_input: NumberInput::new(number_input_state, *pin, 32, pwm::Serialisiert), pin }
     }
 }
 
-impl<'a, R> Widget<pwm::Save, R> for Pwm<'a, R>
+impl<'a, R> Widget<pwm::Serialisiert, R> for Pwm<'a, R>
 where
     R: 'a
         + Renderer
@@ -565,7 +566,7 @@ where
         + row::Renderer
         + number_input::Renderer,
 {
-    reexport_no_event_methods! {NumberInput<'a, u8, pwm::Save, R>, number_input, pwm::Save, R}
+    reexport_no_event_methods! {NumberInput<'a, u8, pwm::Serialisiert, R>, number_input, pwm::Serialisiert, R}
 
     fn on_event(
         &mut self,
@@ -574,7 +575,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<pwm::Save>,
+        messages: &mut Vec<pwm::Serialisiert>,
     ) -> event::Status {
         let mut status = self.number_input.on_event(
             event,
@@ -584,7 +585,7 @@ where
             clipboard,
             messages,
         );
-        if let Some(pwm::Save(pin)) = messages.last() {
+        if let Some(pwm::Serialisiert(pin)) = messages.last() {
             *self.pin = *pin;
             status = event::Status::Captured;
         }
@@ -592,7 +593,7 @@ where
     }
 }
 
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Save, R>
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
 where
     R: 'a
         + Renderer

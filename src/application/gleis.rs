@@ -10,13 +10,13 @@ pub mod weiche;
 
 pub use {
     button::{Button, ButtonMessage},
-    gerade::{Gerade, GeradeSave, GeradeUnit},
+    gerade::{Gerade, GeradeSerialisiert, GeradeUnit},
     gleise::Gleise,
-    kreuzung::{Kreuzung, KreuzungSave, KreuzungUnit},
-    kurve::{Kurve, KurveSave, KurveUnit},
+    kreuzung::{Kreuzung, KreuzungSerialisiert, KreuzungUnit},
+    kurve::{Kurve, KurveSerialisiert, KurveUnit},
     weiche::{
-        DreiwegeWeiche, DreiwegeWeicheSave, DreiwegeWeicheUnit, KurvenWeiche, KurvenWeicheSave,
-        KurvenWeicheUnit, SKurvenWeiche, SKurvenWeicheSave, SKurvenWeicheUnit, Weiche, WeicheSave,
-        WeicheUnit,
+        DreiwegeWeiche, DreiwegeWeicheSerialisiert, DreiwegeWeicheUnit, KurvenWeiche,
+        KurvenWeicheSerialisiert, KurvenWeicheUnit, SKurvenWeiche, SKurvenWeicheSerialisiert,
+        SKurvenWeicheUnit, Weiche, WeicheSerialisiert, WeicheUnit,
     },
 };

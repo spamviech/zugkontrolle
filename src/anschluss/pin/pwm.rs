@@ -252,19 +252,19 @@ pub enum Error {
 
 /// Serealisierbare Informationen einen Pwm-Pins.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Save(pub u8);
+pub struct Serialisiert(pub u8);
 impl Serialisiere for Pin {
-    type Serialisiert = Save;
+    type Serialisiert = Serialisiert;
 
-    fn serialisiere(&self) -> Save {
-        Save(self.pin())
+    fn serialisiere(&self) -> Serialisiert {
+        Serialisiert(self.pin())
     }
 
     fn anschlüsse(self) -> (Vec<self::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         (vec![self], Vec::new(), Vec::new())
     }
 }
-impl Reserviere<Pin> for Save {
+impl Reserviere<Pin> for Serialisiert {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,

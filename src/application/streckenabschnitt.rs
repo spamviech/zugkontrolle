@@ -12,7 +12,7 @@ use iced_native::{
 use super::{
     anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
 };
-use crate::anschluss::{Fließend, OutputSave, Polarität};
+use crate::anschluss::{Fließend, OutputSerialisiert, Polarität};
 use crate::farbe::Farbe;
 pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
 
@@ -109,7 +109,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
 pub struct AuswahlStatus {
     neu_name: String,
     neu_farbe: Farbe,
-    neu_anschluss: OutputSave,
+    neu_anschluss: OutputSerialisiert,
     neu_name_state: text_input::State,
     neu_anschluss_state: anschluss::Status<anschluss::Output>,
     neu_button_state: button::State,
@@ -125,7 +125,7 @@ impl AuswahlStatus {
         AuswahlStatus {
             neu_name: String::new(),
             neu_farbe: Farbe { r: 1., g: 1., b: 1. },
-            neu_anschluss: OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+            neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),
             neu_button_state: button::State::new(),
@@ -174,7 +174,7 @@ impl AuswahlStatus {
         self.streckenabschnitte.insert(key, value);
     }
 
-    pub fn streckenabschnitt(&self) -> (Name, Farbe, OutputSave) {
+    pub fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
         (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_state.output_anschluss())
     }
 }
@@ -187,14 +187,14 @@ enum InterneAuswahlNachricht {
     Lösche(Name),
     Name(String),
     FarbeBestimmen(Farbe),
-    Anschluss(OutputSave),
+    Anschluss(OutputSerialisiert),
 }
 
 #[derive(Debug, Clone)]
 pub enum AuswahlNachricht {
     Schließe,
     Wähle(Option<(Name, Farbe)>),
-    Hinzufügen(Name, Farbe, OutputSave),
+    Hinzufügen(Name, Farbe, OutputSerialisiert),
     Lösche(Name),
 }
 
@@ -202,7 +202,7 @@ pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
     neu_farbe: &'a mut Farbe,
-    neu_anschluss: &'a mut OutputSave,
+    neu_anschluss: &'a mut OutputSerialisiert,
 }
 
 impl<'a, R> Auswahl<'a, R>

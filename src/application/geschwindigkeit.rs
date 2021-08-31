@@ -17,7 +17,7 @@ use log::error;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
-    anschluss::{polarität::Polarität, pwm, OutputSave, Serialisiere},
+    anschluss::{polarität::Polarität, pwm, OutputSerialisiert, Serialisiere},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
     steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
@@ -398,13 +398,14 @@ pub struct AuswahlStatus {
     neu_name: String,
     neu_name_state: text_input::State,
     aktueller_tab: usize,
-    umdrehen_anschluss: OutputSave,
+    umdrehen_anschluss: OutputSerialisiert,
     umdrehen_state: anschluss::Status<anschluss::Output>,
-    pwm_pin: pwm::Save,
+    pwm_pin: pwm::Serialisiert,
     pwm_polarität: Polarität,
     pwm_state: anschluss::PwmState,
     ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
-    ks_anschlüsse: NonEmpty<(OutputSave, anschluss::Status<anschluss::Output>, button::State)>,
+    ks_anschlüsse:
+        NonEmpty<(OutputSerialisiert, anschluss::Status<anschluss::Output>, button::State)>,
     ks_scrollable_state: scrollable::State,
     hinzufügen_button_state: button::State,
     geschwindigkeiten: BTreeMap<Name, (String, button::State)>,
@@ -419,14 +420,14 @@ impl AuswahlStatus {
             neu_name: String::new(),
             neu_name_state: text_input::State::new(),
             aktueller_tab: 0,
-            umdrehen_anschluss: OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+            umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             umdrehen_state: anschluss::Status::neu_output(),
-            pwm_pin: pwm::Save(0),
+            pwm_pin: pwm::Serialisiert(0),
             pwm_polarität: Polarität::Normal,
             pwm_state: anschluss::PwmState::neu(),
             ks_anschlüsse_anpassen: None,
             ks_anschlüsse: NonEmpty::singleton((
-                OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+                OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
                 anschluss::Status::neu_output(),
                 button::State::new(),
             )),
@@ -465,10 +466,10 @@ enum InterneAuswahlNachricht {
     Schließen,
     WähleTab(usize),
     Name(String),
-    UmdrehenAnschluss(OutputSave),
-    PwmPin(pwm::Save),
+    UmdrehenAnschluss(OutputSerialisiert),
+    PwmPin(pwm::Serialisiert),
     PwmPolarität(Polarität),
-    KonstanteSpannungAnschluss(usize, OutputSave),
+    KonstanteSpannungAnschluss(usize, OutputSerialisiert),
     NeuerKonstanteSpannungAnschluss,
     LöscheKonstanteSpannungAnschluss(NonZeroUsize),
     Hinzufügen,
@@ -494,15 +495,20 @@ where
     card: Card<'t, InterneAuswahlNachricht, R>,
     neu_name: &'t mut String,
     aktueller_tab: &'t mut usize,
-    umdrehen_anschluss: &'t mut OutputSave,
-    pwm_pin: &'t mut pwm::Save,
+    umdrehen_anschluss: &'t mut OutputSerialisiert,
+    pwm_pin: &'t mut pwm::Serialisiert,
     pwm_polarität: &'t mut Polarität,
     ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
-    ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht:
-        &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as Serialisiere>::Serialisiert,
-    ks_nachricht:
-        &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as Serialisiere>::Serialisiert,
+    ks_anschlüsse: NonEmpty<&'t mut OutputSerialisiert>,
+    pwm_nachricht: &'t dyn Fn(
+        OutputSerialisiert,
+        pwm::Serialisiert,
+        Polarität,
+    ) -> <Leiter as Serialisiere>::Serialisiert,
+    ks_nachricht: &'t dyn Fn(
+        OutputSerialisiert,
+        NonEmpty<OutputSerialisiert>,
+    ) -> <Leiter as Serialisiere>::Serialisiert,
 }
 
 enum UmdrehenAnzeige {
@@ -533,13 +539,13 @@ where
         umdrehen_anzeige: UmdrehenAnzeige,
         umdrehen_beschreibung: impl Into<String>,
         pwm_nachricht: &'t impl Fn(
-            OutputSave,
-            pwm::Save,
+            OutputSerialisiert,
+            pwm::Serialisiert,
             Polarität,
         ) -> <Leiter as Serialisiere>::Serialisiert,
         ks_nachricht: &'t impl Fn(
-            OutputSave,
-            NonEmpty<OutputSave>,
+            OutputSerialisiert,
+            NonEmpty<OutputSerialisiert>,
         ) -> <Leiter as Serialisiere>::Serialisiert,
     ) -> Self {
         let AuswahlStatus {
@@ -561,7 +567,7 @@ where
         if let Some(anpassen) = ks_anschlüsse_anpassen {
             match anpassen {
                 KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse.push((
-                    OutputSave::Pin { pin: 0, polarität: Polarität::Normal },
+                    OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
                     anschluss::Status::neu_output(),
                     button::State::new(),
                 )),

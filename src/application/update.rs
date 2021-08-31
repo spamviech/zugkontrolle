@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
-        Fließend, OutputAnschluss, OutputSave,
+        Fließend, OutputAnschluss, OutputSerialisiert,
     },
     application::{
         bewegen::Bewegung,
@@ -319,7 +319,7 @@ where
         &mut self,
         name: streckenabschnitt::Name,
         farbe: Farbe,
-        anschluss_definition: OutputSave,
+        anschluss_definition: OutputSerialisiert,
     ) {
         match self.gleise.streckenabschnitt_mut(&name) {
             Some((streckenabschnitt, fließend))

@@ -1,4 +1,4 @@
-//! Erzeuge Richtung enum und RichtungAnschlüsse(Save) Strukturen mit Lookup-Implementierung.
+//! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit Lookup-Implementierung.
 
 use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
@@ -45,7 +45,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
         enum_definition = Some(quote! {
             type OutputAuswahl = #base_ident::application::anschluss::Status<#base_ident::application::anschluss::Output>;
             #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
-            #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSave, AnschlüsseSave, Debug, Clone, Serialize, Deserialize)]
+            #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSerialisiert, AnschlüsseSerialisiert, Debug, Clone, Serialize, Deserialize)]
             #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
@@ -66,10 +66,10 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                 }
             }
             impl #base_ident::anschluss::speichern_laden::Serialisiere for RichtungAnschlüsse {
-                type Serialisiert = RichtungAnschlüsseSave;
-                fn serialisiere(&self) -> RichtungAnschlüsseSave {
+                type Serialisiert = RichtungAnschlüsseSerialisiert;
+                fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
-                    RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.serialisiere()),* }
+                    RichtungAnschlüsseSerialisiert { #(#struct_fields: #struct_fields.serialisiere()),* }
                 }
                 fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
                     let mut pwm0 = Vec::new();
@@ -84,7 +84,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     (pwm0, output0, input0)
                 }
             }
-            impl #base_ident::anschluss::speichern_laden::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern_laden::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
                 fn reserviere(
                     self,
                     anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
@@ -92,7 +92,7 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
                 ) -> #base_ident::anschluss::speichern_laden::Result<RichtungAnschlüsse> {
-                    let RichtungAnschlüsseSave {  #(#struct_fields),* } = self;
+                    let RichtungAnschlüsseSerialisiert {  #(#struct_fields),* } = self;
                     #(let #base_ident::anschluss::speichern_laden::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
                     Ok(#base_ident::anschluss::speichern_laden::Reserviert {
                         anschluss: RichtungAnschlüsse {
@@ -104,15 +104,15 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     })
                 }
             }
-            impl Default for RichtungAnschlüsseSave {
+            impl Default for RichtungAnschlüsseSerialisiert {
                 fn default() -> Self {
-                    RichtungAnschlüsseSave {
-                        #(#struct_fields: #base_ident::anschluss::OutputSave::Pin {pin:0, polarität: #base_ident::anschluss::Polarität::Normal}),*
+                    RichtungAnschlüsseSerialisiert {
+                        #(#struct_fields: #base_ident::anschluss::OutputSerialisiert::Pin {pin:0, polarität: #base_ident::anschluss::Polarität::Normal}),*
                     }
                 }
             }
-            impl From<RichtungAnschlüsseSave> for RichtungAnschlüsseAuswahlStatus {
-                fn from(anschlüsse_save: RichtungAnschlüsseSave) -> Self {
+            impl From<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsseAuswahlStatus {
+                fn from(anschlüsse_save: RichtungAnschlüsseSerialisiert) -> Self {
                     RichtungAnschlüsseAuswahlStatus {
                         #(#struct_fields: #base_ident::application::anschluss::Status::von_output_save(anschlüsse_save.#struct_fields)),*
                     }
