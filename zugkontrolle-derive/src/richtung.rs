@@ -65,11 +65,11 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
                     )
                 }
             }
-            impl #base_ident::anschluss::speichern_laden::ToSave for RichtungAnschlüsse {
-                type Save = RichtungAnschlüsseSave;
-                fn to_save(&self) -> RichtungAnschlüsseSave {
+            impl #base_ident::anschluss::speichern_laden::Serialisiere for RichtungAnschlüsse {
+                type Serialisiert = RichtungAnschlüsseSave;
+                fn serialisiere(&self) -> RichtungAnschlüsseSave {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
-                    RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.to_save()),* }
+                    RichtungAnschlüsseSave { #(#struct_fields: #struct_fields.serialisiere()),* }
                 }
                 fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
                     let mut pwm0 = Vec::new();

@@ -47,15 +47,15 @@ pub fn alias_save_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
                 type_definitionen = Some(quote! {
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::ToSave for #ident<#(#params),*> {
-                        type Save = #save_ident<#(#params),*>;
-                        fn to_save(&self) -> #save_ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::speichern_laden::Serialisiere for #ident<#(#params),*> {
+                        type Serialisiert = #save_ident<#(#params),*>;
+                        fn serialisiere(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             #save_ident {
                                 #(#other_fields: #other_fields.clone()),*,
                                 #(
                                     #param_fields: #param_fields.as_ref().map(
-                                        |steuerung| steuerung.to_save()
+                                        |steuerung| steuerung.serialisiere()
                                     )
                                 ),*
                             }

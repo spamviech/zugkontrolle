@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self, pwm,
-        speichern_laden::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSave, Polarität,
     },
     non_empty::{MaybeEmpty, NonEmpty},
@@ -33,11 +33,11 @@ pub struct Geschwindigkeit<Leiter> {
     pub leiter: Leiter,
 }
 
-impl<T: ToSave> ToSave for Geschwindigkeit<T> {
-    type Save = Geschwindigkeit<T::Save>;
+impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
+    type Serialisiert = Geschwindigkeit<T::Serialisiert>;
 
-    fn to_save(&self) -> Geschwindigkeit<T::Save> {
-        Geschwindigkeit { leiter: self.leiter.to_save() }
+    fn serialisiere(&self) -> Geschwindigkeit<T::Serialisiert> {
+        Geschwindigkeit { leiter: self.leiter.serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
@@ -149,23 +149,23 @@ impl Display for Mittelleiter {
     }
 }
 
-impl ToSave for Mittelleiter {
-    type Save = MittelleiterSave;
+impl Serialisiere for Mittelleiter {
+    type Serialisiert = MittelleiterSave;
 
-    fn to_save(&self) -> MittelleiterSave {
+    fn serialisiere(&self) -> MittelleiterSave {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
-                Mittelleiter::Pwm { pin: pin.to_save(), polarität: *polarität }
+                Mittelleiter::Pwm { pin: pin.serialisiere(), polarität: *polarität }
             }
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
                 Mittelleiter::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
                         .iter()
-                        .map(OutputAnschluss::to_save)
+                        .map(OutputAnschluss::serialisiere)
                         .collect::<MaybeEmpty<_>>()
                         .unwrap(),
                     letzter_wert: *letzter_wert,
-                    umdrehen: umdrehen.to_save(),
+                    umdrehen: umdrehen.serialisiere(),
                 }
             }
         }
@@ -398,25 +398,25 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
-impl ToSave for Zweileiter {
-    type Save = ZweileiterSave;
+impl Serialisiere for Zweileiter {
+    type Serialisiert = ZweileiterSave;
 
-    fn to_save(&self) -> ZweileiterSave {
+    fn serialisiere(&self) -> ZweileiterSave {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
-                geschwindigkeit: geschwindigkeit.to_save(),
+                geschwindigkeit: geschwindigkeit.serialisiere(),
                 polarität: *polarität,
-                fahrtrichtung: fahrtrichtung.to_save(),
+                fahrtrichtung: fahrtrichtung.serialisiere(),
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, fahrtrichtung } => {
                 Zweileiter::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
                         .iter()
-                        .map(OutputAnschluss::to_save)
+                        .map(OutputAnschluss::serialisiere)
                         .collect::<MaybeEmpty<_>>()
                         .unwrap(),
                     letzter_wert: *letzter_wert,
-                    fahrtrichtung: fahrtrichtung.to_save(),
+                    fahrtrichtung: fahrtrichtung.serialisiere(),
                 }
             }
         }

@@ -17,7 +17,7 @@ use log::error;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
-    anschluss::{polarität::Polarität, pwm, OutputSave, ToSave},
+    anschluss::{polarität::Polarität, pwm, OutputSave, Serialisiere},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
     steuerung::geschwindigkeit::{Error, Fahrtrichtung, Leiter, Mittelleiter, Zweileiter},
@@ -32,7 +32,7 @@ pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
     fahrtrichtung_state: Leiter::Fahrtrichtung,
 }
 
-pub trait LeiterAnzeige: ToSave + Sized {
+pub trait LeiterAnzeige: Serialisiere + Sized {
     type Fahrtrichtung;
     type Message: Debug + Clone + Send;
 
@@ -476,19 +476,19 @@ enum InterneAuswahlNachricht {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AuswahlNachricht<Leiter: ToSave>
+pub enum AuswahlNachricht<Leiter: Serialisiere>
 where
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
 {
     Schließen,
-    Hinzufügen(Name, <Geschwindigkeit<Leiter> as ToSave>::Save),
+    Hinzufügen(Name, <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert),
     Löschen(Name),
 }
 
 pub struct Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
+    Leiter: Serialisiere,
+    <Leiter as Serialisiere>::Serialisiert: 't,
     R: card::Renderer,
 {
     card: Card<'t, InterneAuswahlNachricht, R>,
@@ -499,8 +499,10 @@ where
     pwm_polarität: &'t mut Polarität,
     ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<&'t mut OutputSave>,
-    pwm_nachricht: &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
-    ks_nachricht: &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
+    pwm_nachricht:
+        &'t dyn Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as Serialisiere>::Serialisiert,
+    ks_nachricht:
+        &'t dyn Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as Serialisiere>::Serialisiert,
 }
 
 enum UmdrehenAnzeige {
@@ -510,8 +512,8 @@ enum UmdrehenAnzeige {
 
 impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
+    Leiter: Serialisiere,
+    <Leiter as Serialisiere>::Serialisiert: 't,
     R: 't
         + container::Renderer
         + column::Renderer
@@ -530,8 +532,15 @@ where
         status: &'t mut AuswahlStatus,
         umdrehen_anzeige: UmdrehenAnzeige,
         umdrehen_beschreibung: impl Into<String>,
-        pwm_nachricht: &'t impl Fn(OutputSave, pwm::Save, Polarität) -> <Leiter as ToSave>::Save,
-        ks_nachricht: &'t impl Fn(OutputSave, NonEmpty<OutputSave>) -> <Leiter as ToSave>::Save,
+        pwm_nachricht: &'t impl Fn(
+            OutputSave,
+            pwm::Save,
+            Polarität,
+        ) -> <Leiter as Serialisiere>::Serialisiert,
+        ks_nachricht: &'t impl Fn(
+            OutputSave,
+            NonEmpty<OutputSave>,
+        ) -> <Leiter as Serialisiere>::Serialisiert,
     ) -> Self {
         let AuswahlStatus {
             neu_name,
@@ -663,9 +672,9 @@ where
 
 impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
 where
-    Leiter: ToSave,
-    <Leiter as ToSave>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    Leiter: Serialisiere,
+    <Leiter as Serialisiere>::Serialisiert: 't,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -753,9 +762,9 @@ where
 
 impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
 where
-    Leiter: 't + ToSave,
-    <Leiter as ToSave>::Save: 't,
-    <Geschwindigkeit<Leiter> as ToSave>::Save: Debug + Clone,
+    Leiter: 't + Serialisiere,
+    <Leiter as Serialisiere>::Serialisiert: 't,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {

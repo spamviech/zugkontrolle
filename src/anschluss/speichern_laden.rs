@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, Anschlüsse, InputAnschluss, OutputAnschluss};
 
-pub trait ToSave: Sized {
-    type Save: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
+pub trait Serialisiere: Sized {
+    type Serialisiert: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
 
-    fn to_save(&self) -> Self::Save;
+    fn serialisiere(&self) -> Self::Serialisiert;
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>);
 }

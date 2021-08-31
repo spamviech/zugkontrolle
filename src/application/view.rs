@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    anschluss::speichern_laden::ToSave,
+    anschluss::speichern_laden::Serialisiere,
     application::{
         bewegen::Bewegen,
         button::Button,
@@ -29,7 +29,7 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
     ) -> iced::Element<'t, Message<Z>>
     where
         Z: 'static + Zugtyp,
-        <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+        <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
     {
         self.into().map(konstruktor)
     }
@@ -42,7 +42,7 @@ where
     Z: Zugtyp + Debug + 'static,
     Z::Leiter: LeiterAnzeige,
     <Z as Zugtyp>::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn view(&mut self) -> iced::Element<Message<Z>> {
         let Zugkontrolle {
@@ -206,7 +206,7 @@ fn top_row<'t, Z>(
 ) -> iced::Row<'t, Message<Z>>
 where
     Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.make_radio(aktueller_modus))
@@ -286,7 +286,7 @@ fn row_with_scrollable<'t, Z>(
 where
     Z: 'static + Zugtyp,
     Z::Leiter: Debug + LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     // TODO Save/Load/Move?/Rotate?
     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)

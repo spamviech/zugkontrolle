@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        speichern_laden::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
         Fließend, OutputAnschluss, OutputSave,
     },
     application::{
@@ -37,7 +37,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
@@ -51,7 +51,7 @@ where
         self.message_box.show(false)
     }
 
-    fn zeige_anschlüsse_anpassen_aux<T: 'static, W: ToSave, Status>(
+    fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Status>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -59,17 +59,17 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
-        erzeuge_modal_status: impl Fn(Option<<W as ToSave>::Save>) -> Status,
+        erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
-            Arc<dyn Fn(Option<<W as ToSave>::Save>) -> Message<Z>>,
+            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Message<Z>>,
         ) -> Modal<Z>,
-        als_nachricht: impl Fn(GleisId<T>, Option<<W as ToSave>::Save>) -> AnschlüsseAnpassen<Z>
+        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
             + 'static,
     ) {
         let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
         if let Ok(steuerung) = steuerung_res {
-            let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.to_save());
+            let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.serialisiere());
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
                 Arc::new(move |steuerung| {
@@ -90,15 +90,15 @@ where
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
-        anschlüsse_save: Option<<W as ToSave>::Save>,
+        anschlüsse_save: Option<<W as Serialisiere>::Serialisiert>,
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisEntferntError>,
     ) -> Option<Message<Z>>
     where
-        W: ToSave,
-        <W as ToSave>::Save: Debug + Clone,
+        W: Serialisiere,
+        <W as Serialisiere>::Serialisiert: Debug + Clone,
     {
         let mut message = None;
 
@@ -107,7 +107,7 @@ where
             if let Some(anschlüsse_save) = anschlüsse_save {
                 let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
                     if let Some(s) = steuerung.take() {
-                        (Some(s.to_save()), s.anschlüsse())
+                        (Some(s.serialisiere()), s.anschlüsse())
                     } else {
                         (None, (Vec::new(), Vec::new(), Vec::new()))
                     };
@@ -323,7 +323,7 @@ where
     ) {
         match self.gleise.streckenabschnitt_mut(&name) {
             Some((streckenabschnitt, fließend))
-                if streckenabschnitt.anschluss.to_save() == anschluss_definition =>
+                if streckenabschnitt.anschluss.serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
                 *fließend = Fließend::Gesperrt;
@@ -448,7 +448,9 @@ where
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: Geschwindigkeit<<<Z as Zugtyp>::Leiter as ToSave>::Save>,
+        geschwindigkeit_save: Geschwindigkeit<
+            <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert,
+        >,
     ) {
         let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) = if let Some((
             geschwindigkeit,
@@ -456,7 +458,7 @@ where
         )) =
             self.geschwindigkeiten.remove(&name)
         {
-            (Some(geschwindigkeit.to_save()), geschwindigkeit.anschlüsse())
+            (Some(geschwindigkeit.serialisiere()), geschwindigkeit.anschlüsse())
         } else {
             (None, (Vec::new(), Vec::new(), Vec::new()))
         };
@@ -681,7 +683,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + 'static,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
@@ -769,7 +771,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + Serialize,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn speichern(&mut self, pfad: String) {
         match self.gleise.speichern(
@@ -777,7 +779,7 @@ where
             self.geschwindigkeiten
                 .iter()
                 .map(|(name, (geschwindigkeit, _anzeige_status))| {
-                    (name.clone(), geschwindigkeit.to_save())
+                    (name.clone(), geschwindigkeit.serialisiere())
                 })
                 .collect(),
         ) {
@@ -797,7 +799,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + PartialEq + Debug + for<'de> Deserialize<'de>,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
     #[inline(always)]

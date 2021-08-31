@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        speichern_laden::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
         OutputSave,
     },
     application::{
@@ -28,12 +28,12 @@ pub struct Gleis<T> {
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
-impl<T: ToSave> ToSave for Gleis<T> {
-    type Save = Gleis<T::Save>;
+impl<T: Serialisiere> Serialisiere for Gleis<T> {
+    type Serialisiert = Gleis<T::Serialisiert>;
 
-    fn to_save(&self) -> Self::Save {
+    fn serialisiere(&self) -> Self::Serialisiert {
         Gleis {
-            definition: self.definition.to_save(),
+            definition: self.definition.serialisiere(),
             position: self.position.clone(),
             streckenabschnitt: self.streckenabschnitt.clone(),
         }
@@ -193,17 +193,18 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSave<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSave<Z>>>,
     pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSave>>,
-    pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>)>
+impl<Z: Zugtyp>
+    From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>)>
     for GleiseVecs<Z>
 {
     fn from(
         (maps, geschwindigkeiten): (
             &GleiseMaps<Z>,
-            geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
+            geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
         ),
     ) -> Self {
         macro_rules! hashmaps_to_vecs {
@@ -212,7 +213,7 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>
                     name: Z::NAME.to_string(),
                     streckenabschnitte: maps.streckenabschnitte.iter().map(
                         |(name, (Streckenabschnitt {farbe, anschluss}, _fließend))|
-                            (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.to_save()} )
+                            (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.serialisiere()} )
                         ).collect(),
                     geschwindigkeiten,
                     // TODO wirkliche Konvertierung, sobald Plan implementiert ist
@@ -221,7 +222,7 @@ impl<Z: Zugtyp> From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as ToSave>
                         |Gleis {position, definition, streckenabschnitt}|
                         Gleis {
                             position: position.clone(),
-                            definition: definition.to_save(),
+                            definition: definition.serialisiere(),
                             streckenabschnitt: streckenabschnitt.clone()
                         })
                         .collect()

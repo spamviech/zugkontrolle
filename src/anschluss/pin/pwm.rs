@@ -13,7 +13,7 @@ use super::Wrapper;
 use crate::anschluss::{
     anschlüsse::Anschlüsse,
     polarität::Polarität,
-    speichern_laden::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
     InputAnschluss, OutputAnschluss,
 };
 
@@ -253,10 +253,10 @@ pub enum Error {
 /// Serealisierbare Informationen einen Pwm-Pins.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Save(pub u8);
-impl ToSave for Pin {
-    type Save = Save;
+impl Serialisiere for Pin {
+    type Serialisiert = Save;
 
-    fn to_save(&self) -> Save {
+    fn serialisiere(&self) -> Save {
         Save(self.pin())
     }
 
@@ -273,7 +273,7 @@ impl Reserviere<Pin> for Save {
         input_nicht_benötigt: Vec<InputAnschluss>,
     ) -> speichern_laden::Result<Pin> {
         let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
-            pwm_pins.into_iter().partition(|pin| pin.to_save() == self);
+            pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);
         if let Some(anschluss) = gesucht.pop() {
             Ok(Reserviert {
                 anschluss,

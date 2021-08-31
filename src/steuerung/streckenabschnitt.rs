@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         pin::pwm,
-        speichern_laden::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
         Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss, OutputSave,
     },
     farbe::Farbe,
@@ -31,11 +31,11 @@ impl Streckenabschnitt<OutputAnschluss> {
     }
 }
 
-impl ToSave for Streckenabschnitt {
-    type Save = StreckenabschnittSave;
+impl Serialisiere for Streckenabschnitt {
+    type Serialisiert = StreckenabschnittSave;
 
-    fn to_save(&self) -> Streckenabschnitt<OutputSave> {
-        Streckenabschnitt { farbe: self.farbe, anschluss: self.anschluss.to_save() }
+    fn serialisiere(&self) -> Streckenabschnitt<OutputSave> {
+        Streckenabschnitt { farbe: self.farbe, anschluss: self.anschluss.serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {

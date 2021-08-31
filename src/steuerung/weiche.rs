@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     pwm,
-    speichern_laden::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
     Anschlüsse, Error, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
@@ -40,19 +40,19 @@ where
     }
 }
 
-impl<Richtung, T> ToSave for Weiche<Richtung, T>
+impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
-    T: ToSave,
+    T: Serialisiere,
 {
-    type Save = Weiche<Richtung, T::Save>;
+    type Serialisiert = Weiche<Richtung, T::Serialisiert>;
 
-    fn to_save(&self) -> Weiche<Richtung, T::Save> {
+    fn serialisiere(&self) -> Weiche<Richtung, T::Serialisiert> {
         Weiche {
             name: self.name.clone(),
             aktuelle_richtung: self.aktuelle_richtung.clone(),
             letzte_richtung: self.letzte_richtung.clone(),
-            anschlüsse: self.anschlüsse.to_save(),
+            anschlüsse: self.anschlüsse.serialisiere(),
         }
     }
 
@@ -63,7 +63,7 @@ where
 impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
-    R: ToSave,
+    R: Serialisiere,
     T: Reserviere<R>,
 {
     fn reserviere(

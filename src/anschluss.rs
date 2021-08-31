@@ -29,7 +29,7 @@ pub use anschlüsse::Anschlüsse;
 use anschlüsse::SyncError;
 
 pub mod speichern_laden;
-pub use self::speichern_laden::{Reserviere, Reserviert, ToSave};
+pub use self::speichern_laden::{Reserviere, Reserviert, Serialisiere};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -222,10 +222,10 @@ impl OutputSave {
         }
     }
 }
-impl ToSave for OutputAnschluss {
-    type Save = OutputSave;
+impl Serialisiere for OutputAnschluss {
+    type Serialisiert = OutputSave;
 
-    fn to_save(&self) -> OutputSave {
+    fn serialisiere(&self) -> OutputSave {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 OutputSave::Pin { pin: pin.pin(), polarität: *polarität }
@@ -263,7 +263,7 @@ impl Reserviere<OutputAnschluss> for OutputSave {
         };
         let (mut gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
-            .partition(|anschluss| self.selber_anschluss(&anschluss.to_save()));
+            .partition(|anschluss| self.selber_anschluss(&anschluss.serialisiere()));
         let anschluss = if let Some(anschluss) = gesucht.pop() {
             match anschluss {
                 OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
@@ -415,10 +415,10 @@ impl InputSave {
         }
     }
 }
-impl ToSave for InputAnschluss {
-    type Save = InputSave;
+impl Serialisiere for InputAnschluss {
+    type Serialisiert = InputSave;
 
-    fn to_save(&self) -> InputSave {
+    fn serialisiere(&self) -> InputSave {
         match self {
             InputAnschluss::Pin(pin) => InputSave::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
@@ -451,7 +451,7 @@ impl Reserviere<InputAnschluss> for InputSave {
     ) -> speichern_laden::Result<InputAnschluss> {
         let (gesuchter_anschluss, input_nicht_benötigt) =
             input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
-                if self.selber_anschluss(&anschluss.to_save()) {
+                if self.selber_anschluss(&anschluss.serialisiere()) {
                     acc.0 = Some(anschluss)
                 } else {
                     acc.1.push(anschluss)

@@ -3,7 +3,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    anschluss::speichern_laden::ToSave,
+    anschluss::speichern_laden::Serialisiere,
     application::{geschwindigkeit::LeiterAnzeige, gleis::*},
 };
 
@@ -23,7 +23,7 @@ pub trait Zugtyp: Sized {
     const NAME: &'static str;
 
     /// Art der Stromzufuhr.
-    type Leiter: ToSave + LeiterAnzeige + Display;
+    type Leiter: Serialisiere + LeiterAnzeige + Display;
 
     fn geraden() -> Vec<GeradeUnit<Self>>;
     fn kurven() -> Vec<KurveUnit<Self>>;

@@ -7,7 +7,7 @@ use crate::{
     anschluss::{
         self,
         pin::pwm,
-        speichern_laden::{self, Reserviere, Reserviert, ToSave},
+        speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
     },
     application::{
@@ -23,7 +23,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     pub fn speichern(
         &self,
         pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as ToSave>::Save>,
+        geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
     ) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();
@@ -33,9 +33,9 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-fn reserviere_anschlüsse<T: ToSave>(
+fn reserviere_anschlüsse<T: Serialisiere>(
     anschlüsse: &mut Anschlüsse,
-    source: Vec<Gleis<<T as ToSave>::Save>>,
+    source: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
     output_anschlüsse: Vec<OutputAnschluss>,
     input_anschlüsse: Vec<InputAnschluss>,

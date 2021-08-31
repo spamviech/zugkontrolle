@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     pwm,
-    speichern_laden::{self, Reserviere, Reserviert, ToSave},
+    speichern_laden::{self, Reserviere, Reserviert, Serialisiere},
     Anschlüsse, Error, InputAnschluss, InputSave, Level, OutputAnschluss, Trigger,
 };
 
@@ -36,13 +36,13 @@ impl Kontakt<InputAnschluss> {
     }
 }
 
-impl ToSave for Kontakt<InputAnschluss> {
-    type Save = Kontakt<InputSave>;
+impl Serialisiere for Kontakt<InputAnschluss> {
+    type Serialisiert = Kontakt<InputSave>;
 
-    fn to_save(&self) -> Kontakt<InputSave> {
+    fn serialisiere(&self) -> Kontakt<InputSave> {
         Kontakt {
             name: self.name.clone(),
-            anschluss: self.anschluss.to_save(),
+            anschluss: self.anschluss.serialisiere(),
             trigger: self.trigger,
         }
     }

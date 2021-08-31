@@ -21,7 +21,7 @@ use self::{
     typen::*,
 };
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, speichern_laden::ToSave, OutputSave},
+    anschluss::{anschlüsse::Anschlüsse, speichern_laden::Serialisiere, OutputSave},
     args::Args,
     farbe::Farbe,
     steuerung::{
@@ -134,7 +134,7 @@ pub enum AnschlüsseAnpassen<Z> {
 pub enum Message<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     Gleis {
         gleis: AnyGleis<Z>,
@@ -164,7 +164,7 @@ where
     ZeigeAuswahlGeschwindigkeit,
     HinzufügenGeschwindigkeit(
         geschwindigkeit::Name,
-        Geschwindigkeit<<<Z as Zugtyp>::Leiter as ToSave>::Save>,
+        Geschwindigkeit<<<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert>,
     ),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
@@ -175,7 +175,7 @@ where
 impl<Z> From<gleise::Message<Z>> for Message<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
@@ -194,7 +194,7 @@ impl<T, Z> ButtonMessage<Message<Z>> for T
 where
     T: Clone + Into<AnyGleis<Z>>,
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     fn to_message(&self, grab_location: Vektor) -> Message<Z> {
         Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
@@ -208,7 +208,7 @@ async fn async_identity<T>(t: T) -> T {
 impl<Z> Message<Z>
 where
     Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
     fn as_command(self) -> iced::Command<Message<Z>> {
         iced::Command::perform(async_identity(self), identity)
@@ -218,7 +218,7 @@ where
 pub enum Modal<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
@@ -283,7 +283,7 @@ pub struct Zugkontrolle<Z>
 where
     Z: Zugtyp,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
@@ -314,10 +314,10 @@ impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message: Unpin,
-    <<Z as Zugtyp>::Leiter as ToSave>::Save: Unpin,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Unpin,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
     type Executor = iced::executor::Default;
