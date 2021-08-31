@@ -32,7 +32,6 @@ use crate::{
 
 pub mod anschluss;
 pub mod bewegen;
-pub mod de_serialisieren;
 pub mod drehen;
 pub mod farbwahl;
 pub mod geschwindigkeit;
@@ -40,6 +39,7 @@ pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
 pub mod sleep;
+pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
 pub mod touch_canvas;
@@ -304,7 +304,7 @@ where
     bewegen: Bewegen,
     drehen: Drehen,
     zoom: iced::slider::State,
-    speichern_laden: de_serialisieren::Status,
+    speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<(Instant, Bewegung)>,
     // TODO Wegstrecke, Plan
@@ -375,7 +375,7 @@ where
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
             zoom: iced::slider::State::new(),
-            speichern_laden: de_serialisieren::Status::neu(aktueller_pfad),
+            speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
             bewegung: None,
         };
