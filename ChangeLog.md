@@ -18,10 +18,11 @@
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
     Ids unterschiedlicher Gleise sind jetzt wirklich unabhängig
 - Refactoring: Alle Module sind public
-- Refactoring: Modul umbenannt serde.rs -> speichern_laden.rs
+- Refactoring: Modul umbenannt serde.rs -> de_serialisieren.rs
+- Refactoring: Modul umbenannt anchor.rs -> verbindung.rs
+- Refactoring: Modul umbenannt polarity.rs -> polarität.rs
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
-- Refactoring: Modul umbenannt polarity.rs -> polarität.rs
 - Refactoring: GleiseMap-Trait ist nicht mehr public.
     Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
 

@@ -6,12 +6,12 @@ use crate::{
     anschluss::polarität::Fließend,
     application::{
         gleis::{
-            anchor,
             gleise::{
                 id::{AnyId, GleisId},
                 maps::{Gleis, MapSelector},
                 GleisEntferntError, Gleise, Grabbed, ModusDaten,
             },
+            verbindung,
         },
         typen::*,
     },
@@ -26,13 +26,13 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + MapSelector<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+            |&verbindung::Anchor { position: anchor_position, richtung }| verbindung::Anchor {
                 position: position.transformation(anchor_position),
                 richtung: position.winkel + richtung,
             },
@@ -61,7 +61,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
     {
         let mut canvas_position = self.last_mouse;
         let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
@@ -100,11 +100,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         anchor_name: &T::AnchorName,
-        target_anchor_point: anchor::Anchor,
+        target_anchor_point: verbindung::Anchor,
     ) -> (GleisId<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + MapSelector<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         // calculate new position
@@ -124,21 +124,21 @@ impl<Z: Zugtyp> Gleise<Z> {
     ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } =
             self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+            |&verbindung::Anchor { position: anchor_position, richtung }| verbindung::Anchor {
                 position: position.transformation(anchor_position),
                 richtung: position.winkel + richtung,
             },
         );
         // calculate absolute position for new AnchorPoints
         let anchor_points_neu = definition.anchor_points().map(
-            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+            |&verbindung::Anchor { position: anchor_position, richtung }| verbindung::Anchor {
                 position: position_neu.transformation(anchor_position),
                 richtung: position_neu.winkel + richtung,
             },
@@ -165,11 +165,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         anchor_name: &T::AnchorName,
-        target_anchor_point: anchor::Anchor,
+        target_anchor_point: verbindung::Anchor,
     ) -> Result<T::AnchorPoints, GleisEntferntError>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let position = {
@@ -189,7 +189,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn remove<T>(&mut self, gleis_id: GleisId<T>)
     where
         T: Debug + Zeichnen + MapSelector<Z>,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         if let Some(Gleis { definition, position, .. }) = self.maps.get_map_mut().remove(&gleis_id)
@@ -198,7 +198,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             definition.anchor_points().for_each(|_name, anchor| {
                 self.anchor_points.remove(
                     AnyId::from_ref(&gleis_id),
-                    &anchor::Anchor {
+                    &verbindung::Anchor {
                         position: position.transformation(anchor.position),
                         richtung: position.winkel + anchor.richtung,
                     },

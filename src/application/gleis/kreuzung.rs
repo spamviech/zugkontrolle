@@ -8,7 +8,7 @@ use zugkontrolle_derive::alias_serialisiert_unit;
 use crate::{
     application::{
         gleis::{
-            anchor, gerade, kurve,
+            gerade, kurve, verbindung,
             weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert},
         },
         typen::*,
@@ -75,7 +75,7 @@ impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
     }
 }
 
-#[impl_lookup(anchor::Anchor, Points)]
+#[impl_lookup(verbindung::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang0,
@@ -269,10 +269,10 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
         AnchorPoints {
-            anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },
-            ende_0: anchor::Anchor { position: ende0, richtung: winkel::ZERO },
-            anfang_1: anchor::Anchor { position: anfang1, richtung: winkel::PI + winkel },
-            ende_1: anchor::Anchor { position: ende1, richtung: winkel },
+            anfang_0: verbindung::Anchor { position: anfang0, richtung: winkel::PI },
+            ende_0: verbindung::Anchor { position: ende0, richtung: winkel::ZERO },
+            anfang_1: verbindung::Anchor { position: anfang1, richtung: winkel::PI + winkel },
+            ende_1: verbindung::Anchor { position: ende1, richtung: winkel },
         }
     }
 }

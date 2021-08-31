@@ -13,7 +13,7 @@ pub use winkel::*;
 pub mod vektor;
 pub use vektor::Vektor;
 
-use super::anchor;
+use super::verbindung;
 use crate::steuerung::{kontakt::Kontakt, weiche::Weiche};
 pub use crate::zugtyp::Zugtyp;
 
@@ -77,7 +77,7 @@ impl Transparenz {
 
 pub trait Zeichnen
 where
-    Self::AnchorPoints: anchor::Lookup<Self::AnchorName>,
+    Self::AnchorPoints: verbindung::Lookup<Self::AnchorName>,
 {
     /// Maximale x,y-Werte
     fn size(&self) -> Vektor;

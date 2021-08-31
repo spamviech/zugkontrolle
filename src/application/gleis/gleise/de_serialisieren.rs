@@ -11,9 +11,9 @@ use crate::{
         Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
     },
     application::{
-        anchor,
         gleis::gleise::{maps::*, Error, Gleise},
         typen::*,
+        verbindung,
     },
     steuerung::geschwindigkeit::{self, Geschwindigkeit, Leiter},
 };
@@ -78,7 +78,7 @@ where
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
         self.maps = GleiseMaps::neu();
-        self.anchor_points = anchor::rstar::RTree::new();
+        self.anchor_points = verbindung::rstern::RTree::new();
 
         // lese & parse Datei
         let file = std::fs::File::open(pfad)?;

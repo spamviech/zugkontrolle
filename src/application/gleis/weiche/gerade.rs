@@ -7,7 +7,7 @@ use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 
 use crate::{
     application::{
-        gleis::{anchor, gerade, kurve},
+        gleis::{gerade, kurve, verbindung},
         typen::*,
     },
     lookup::impl_lookup,
@@ -66,7 +66,7 @@ pub enum Orientierung {
     Rechts,
 }
 #[create_richtung]
-#[impl_lookup(anchor::Anchor, Points)]
+#[impl_lookup(verbindung::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -237,12 +237,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
         AnchorPoints {
-            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: anchor::Anchor {
+            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            kurve: anchor::Anchor {
+            kurve: verbindung::Anchor {
                 position: anfang
                     + Vektor {
                         x: self.winkel.sin() * self.radius,

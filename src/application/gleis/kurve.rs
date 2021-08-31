@@ -5,7 +5,7 @@ use std::{f32::consts::PI, fmt::Debug, marker::PhantomData};
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
-use super::anchor;
+use super::verbindung;
 use crate::anschluss::{InputAnschluss, InputSerialisiert};
 use crate::steuerung::kontakt::Kontakt;
 use crate::{application::typen::*, lookup::impl_lookup};
@@ -49,7 +49,7 @@ impl<Z> KurveUnit<Z> {
     }
 }
 
-#[impl_lookup(anchor::Anchor, Points)]
+#[impl_lookup(verbindung::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -111,11 +111,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         AnchorPoints {
-            anfang: anchor::Anchor {
+            anfang: verbindung::Anchor {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
                 richtung: winkel::PI,
             },
-            ende: anchor::Anchor {
+            ende: verbindung::Anchor {
                 position: Vektor {
                     x: self.radius * self.winkel.sin(),
                     y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),

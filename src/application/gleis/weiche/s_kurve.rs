@@ -8,7 +8,7 @@ use zugkontrolle_derive::alias_serialisiert_unit;
 use crate::{
     application::{
         gleis::{
-            anchor, gerade, kurve,
+            gerade, kurve, verbindung,
             weiche::gerade::{
                 AnchorName, AnchorPoints, Orientierung, Richtung, RichtungAnschlüsse,
                 RichtungAnschlüsseSerialisiert,
@@ -405,12 +405,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         };
         AnchorPoints {
-            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: anchor::Anchor {
+            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Anchor {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            kurve: anchor::Anchor {
+            kurve: verbindung::Anchor {
                 position: anfang
                     + Vektor {
                         x: self.radius * self.winkel.sin()

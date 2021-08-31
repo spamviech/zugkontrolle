@@ -5,7 +5,7 @@ use std::{fmt::Debug, time::Instant};
 pub use self::{id::*, maps::*};
 use crate::{
     anschluss::{self, Fließend},
-    application::{anchor, typen::*},
+    application::{typen::*, verbindung},
     lookup::Lookup,
     steuerung::{streckenabschnitt, Streckenabschnitt},
 };
@@ -41,7 +41,7 @@ pub struct Gleise<Z> {
     pivot: Position,
     skalieren: Skalar,
     maps: GleiseMaps<Z>,
-    anchor_points: anchor::rstar::RTree<Z>,
+    anchor_points: verbindung::rstern::RTree<Z>,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
@@ -54,7 +54,7 @@ impl<Z> Gleise<Z> {
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             skalieren: Skalar(1.),
             maps: GleiseMaps::neu(),
-            anchor_points: anchor::rstar::RTree::new(),
+            anchor_points: verbindung::rstern::RTree::new(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
@@ -97,7 +97,7 @@ impl<Z> Gleise<Z> {
             self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntError)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+            |&verbindung::Anchor { position: anchor_position, richtung }| verbindung::Anchor {
                 position: position.transformation(anchor_position),
                 richtung: position.winkel + richtung,
             },
@@ -313,11 +313,11 @@ impl Position {
     fn attach_position<T>(
         definition: &T,
         anchor_name: &T::AnchorName,
-        target_anchor_point: anchor::Anchor,
+        target_anchor_point: verbindung::Anchor,
     ) -> Self
     where
         T: Zeichnen,
-        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
     {
         let anchor_points = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);

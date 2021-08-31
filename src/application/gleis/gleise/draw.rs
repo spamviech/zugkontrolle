@@ -3,9 +3,9 @@
 use crate::{
     anschluss::Fließend,
     application::{
-        anchor,
         gleis::gleise::{id::*, maps::*, Gleise, Grabbed, ModusDaten},
         typen::*,
+        verbindung,
     },
     farbe::Farbe,
     lookup::Lookup,
@@ -84,7 +84,7 @@ fn zeichne_alle_gleise<T, Z>(
 fn zeichne_alle_anchor_points<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
-    has_other_and_grabbed_id_at_point: impl Fn(AnyId<Z>, anchor::Anchor) -> (bool, bool),
+    has_other_and_grabbed_id_at_point: impl Fn(AnyId<Z>, verbindung::Anchor) -> (bool, bool),
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,
@@ -98,7 +98,7 @@ fn zeichne_alle_anchor_points<T, Z>(
                 frame.with_save(|frame| {
                     let (opposing, grabbed) = has_other_and_grabbed_id_at_point(
                         AnyId::from_ref(gleis_id),
-                        anchor::Anchor {
+                        verbindung::Anchor {
                             position: position.transformation(anchor.position),
                             richtung: position.winkel + anchor.richtung,
                         },

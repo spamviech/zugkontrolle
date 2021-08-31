@@ -1,11 +1,11 @@
 //! Anzeige von Gleisen.
 
-pub mod anchor;
 pub mod button;
 pub mod gerade;
 pub mod gleise;
 pub mod kreuzung;
 pub mod kurve;
+pub mod verbindung;
 pub mod weiche;
 
 pub use {

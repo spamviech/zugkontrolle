@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 
 use crate::{
-    application::gleis::{anchor, gerade, kurve},
+    application::gleis::{gerade, kurve, verbindung},
     steuerung,
     {application::typen::*, lookup::impl_lookup},
 };
@@ -56,7 +56,7 @@ impl<Z> DreiwegeWeicheUnit<Z> {
 }
 
 #[create_richtung]
-#[impl_lookup(anchor::Anchor, Points)]
+#[impl_lookup(verbindung::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -211,12 +211,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let radius: Skalar = self.radius;
         let anfang = Vektor { x: Skalar(0.), y: half_height };
         AnchorPoints {
-            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
-            gerade: anchor::Anchor {
+            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
+            gerade: verbindung::Anchor {
                 position: anfang + Vektor { x: länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
-            links: anchor::Anchor {
+            links: verbindung::Anchor {
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),
@@ -224,7 +224,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                     },
                 richtung: self.winkel,
             },
-            rechts: anchor::Anchor {
+            rechts: verbindung::Anchor {
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),

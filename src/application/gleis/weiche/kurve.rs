@@ -7,7 +7,7 @@ use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 
 use crate::{
     application::{
-        gleis::{anchor, gerade, kurve, weiche::gerade::Orientierung},
+        gleis::{gerade, kurve, verbindung, weiche::gerade::Orientierung},
         typen::*,
     },
     lookup::impl_lookup,
@@ -61,7 +61,7 @@ impl<Z> KurvenWeicheUnit<Z> {
     }
 }
 #[create_richtung]
-#[impl_lookup(anchor::Anchor, Points)]
+#[impl_lookup(verbindung::Anchor, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum AnchorName {
     Anfang,
@@ -307,9 +307,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
             };
         AnchorPoints {
-            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
-            innen: anchor::Anchor { position: innen, richtung: multiplier.0 * self.winkel },
-            außen: anchor::Anchor {
+            anfang: verbindung::Anchor { position: anfang, richtung: winkel::PI },
+            innen: verbindung::Anchor { position: innen, richtung: multiplier.0 * self.winkel },
+            außen: verbindung::Anchor {
                 position: innen + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: multiplier.0 * self.winkel,
             },
