@@ -33,6 +33,8 @@ use crate::{
 pub mod anschluss;
 pub mod bewegen;
 pub mod drehen;
+#[path = "application/empfänger.rs"]
+pub mod empfänger;
 pub mod farbwahl;
 pub mod geschwindigkeit;
 pub mod gleis;
