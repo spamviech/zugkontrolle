@@ -1,12 +1,6 @@
 //! iced::Application für die Gleis-Anzeige
 
-use std::{
-    collections::HashMap,
-    convert::identity,
-    fmt::Debug,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{collections::HashMap, convert::identity, fmt::Debug, sync::Arc, time::Instant};
 
 use serde::{Deserialize, Serialize};
 use version::version;
@@ -16,7 +10,6 @@ use self::{
     drehen::Drehen,
     geschwindigkeit::LeiterAnzeige,
     gleis::{gleise::*, *},
-    sleep::Sleep,
     style::*,
     typen::*,
 };
@@ -40,7 +33,6 @@ pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
-pub mod sleep;
 pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
@@ -308,7 +300,7 @@ where
     zoom: iced::slider::State,
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
-    bewegung: Option<(Instant, Bewegung)>,
+    bewegung: Option<Bewegung>,
     // TODO Wegstrecke, Plan
 }
 
@@ -404,11 +396,15 @@ where
             Message::Gleis { gleis, grab_height } => self.gleis_hinzufügen(gleis, grab_height),
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
             Message::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
-                self.bewegung_starten(bewegung)
+                command = self.bewegung_starten(bewegung)
             }
             Message::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung_beenden(),
             Message::Bewegen(bewegen::Nachricht::Zurücksetzen) => self.bewegung_zurücksetzen(),
-            Message::BewegungAusführen => self.bewegung_ausführen(),
+            Message::BewegungAusführen => {
+                if let Some(cmd) = self.bewegung_ausführen() {
+                    command = cmd
+                }
+            }
             Message::Position(position) => self.gleise.setze_pivot(position),
             Message::Winkel(winkel) => self.gleise.winkel(winkel),
             Message::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
@@ -453,18 +449,6 @@ where
         }
 
         command
-    }
-
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
-        if let Some((instant, _bewegung)) = self.bewegung {
-            iced::Subscription::from_recipe(Sleep::neu(
-                instant,
-                Duration::from_millis(20),
-                Message::BewegungAusführen,
-            ))
-        } else {
-            iced::Subscription::none()
-        }
     }
 
     fn view(&mut self) -> iced::Element<Self::Message> {

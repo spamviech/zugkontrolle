@@ -291,32 +291,6 @@ where
     }
 
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) {
-        self.bewegung = Some((Instant::now(), bewegung))
-    }
-
-    #[inline(always)]
-    pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
-    }
-
-    #[inline(always)]
-    pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
-    }
-
-    pub fn bewegung_ausführen(&mut self) {
-        if let Some((_letzte_zeit, bewegung)) = self.bewegung {
-            self.bewegung = Some((Instant::now(), bewegung));
-            self.gleise.bewege_pivot(
-                bewegung
-                    .vektor(Skalar(1.) / self.gleise.skalierfaktor())
-                    .rotiert(-self.gleise.pivot().winkel),
-            )
-        }
-    }
-
-    #[inline(always)]
     pub fn schließe_modal(&mut self) {
         self.modal_state.show(false)
     }
@@ -696,6 +670,43 @@ where
                     }
                 },
             ),
+        }
+    }
+
+    #[inline(always)]
+    pub fn bewegung_beenden(&mut self) {
+        self.bewegung = None
+    }
+
+    #[inline(always)]
+    pub fn bewegung_zurücksetzen(&mut self) {
+        self.gleise.setze_pivot(Vektor::null_vektor())
+    }
+}
+
+impl<Z> Zugkontrolle<Z>
+where
+    Z: Zugtyp + 'static,
+    Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+{
+    #[inline(always)]
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Message<Z>> {
+        self.bewegung = Some(bewegung);
+        Message::BewegungAusführen.as_sleep_command(Duration::from_millis(20))
+    }
+
+    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Message<Z>>> {
+        if let Some(bewegung) = self.bewegung {
+            self.bewegung = Some(bewegung);
+            self.gleise.bewege_pivot(
+                bewegung
+                    .vektor(Skalar(1.) / self.gleise.skalierfaktor())
+                    .rotiert(-self.gleise.pivot().winkel),
+            );
+            Some(Message::BewegungAusführen.as_sleep_command(Duration::from_millis(20)))
+        } else {
+            None
         }
     }
 }
