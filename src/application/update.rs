@@ -1,6 +1,12 @@
 //! Methoden für die update-Methode des iced::Application-Traits
 
-use std::{fmt::Debug, sync::Arc, time::Instant};
+use std::{
+    convert::identity,
+    fmt::Debug,
+    sync::Arc,
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
@@ -32,6 +38,21 @@ use crate::{
     },
     zugtyp::Zugtyp,
 };
+
+impl<Z> Message<Z>
+where
+    Z: 'static + Zugtyp,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+{
+    async fn nach_sleep(self, dauer: Duration) -> Self {
+        sleep(dauer);
+        self
+    }
+
+    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Message<Z>> {
+        iced::Command::perform(self.nach_sleep(dauer), identity)
+    }
+}
 
 impl<Z> Zugkontrolle<Z>
 where
@@ -769,12 +790,12 @@ where
 
 impl<Z> Zugkontrolle<Z>
 where
-    Z: Zugtyp + Serialize,
+    Z: Zugtyp + Serialize + 'static,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
-    pub fn speichern(&mut self, pfad: String) {
-        match self.gleise.speichern(
+    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Message<Z>>> {
+        let ergebnis = self.gleise.speichern(
             &pfad,
             self.geschwindigkeiten
                 .iter()
@@ -782,15 +803,23 @@ where
                     (name.clone(), geschwindigkeit.serialisiere())
                 })
                 .collect(),
-        ) {
+        );
+        match ergebnis {
             Ok(()) => {
                 self.speichern_laden.färbe_speichern(true);
-                self.speichern_gefärbt = Some(Instant::now());
+                let speicher_zeit = Instant::now();
+                self.speichern_gefärbt = Some(speicher_zeit.clone());
+                let command = Message::EntferneSpeichernFarbe(speicher_zeit)
+                    .as_sleep_command(Duration::from_secs(2));
+                Some(command)
             }
-            Err(err) => self.zeige_message_box(
-                format!("Fehler beim Speichern in {}", pfad),
-                format!("{:?}", err),
-            ),
+            Err(err) => {
+                self.zeige_message_box(
+                    format!("Fehler beim Speichern in {}", pfad),
+                    format!("{:?}", err),
+                );
+                None
+            }
         }
     }
 }

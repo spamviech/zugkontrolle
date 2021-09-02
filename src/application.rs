@@ -424,7 +424,11 @@ where
                 self.streckenabschnitt_festlegen(festlegen)
             }
             Message::SchließeMessageBox => self.schließe_message_box(),
-            Message::Speichern(pfad) => self.speichern(pfad),
+            Message::Speichern(pfad) => {
+                if let Some(cmd) = self.speichern(pfad) {
+                    command = cmd
+                }
+            }
             Message::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit)
             }
@@ -452,25 +456,14 @@ where
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        let mut subscriptions = Vec::new();
-        if let Some(speicher_zeit) = self.speichern_gefärbt {
-            subscriptions.push(iced::Subscription::from_recipe(Sleep::neu(
-                speicher_zeit,
-                Duration::from_secs(2),
-                Message::EntferneSpeichernFarbe(speicher_zeit),
-            )))
-        }
         if let Some((instant, _bewegung)) = self.bewegung {
-            subscriptions.push(iced::Subscription::from_recipe(Sleep::neu(
+            iced::Subscription::from_recipe(Sleep::neu(
                 instant,
                 Duration::from_millis(20),
                 Message::BewegungAusführen,
-            )))
-        }
-        if subscriptions.is_empty() {
-            iced::Subscription::none()
+            ))
         } else {
-            iced::Subscription::batch(subscriptions)
+            iced::Subscription::none()
         }
     }
 
