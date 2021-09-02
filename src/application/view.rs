@@ -68,6 +68,8 @@ where
             speichern_laden,
             speichern_gefärbt: _,
             bewegung: _,
+            sender: _,
+            empfänger: _,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();

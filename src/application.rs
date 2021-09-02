@@ -1,6 +1,15 @@
 //! iced::Application für die Gleis-Anzeige
 
-use std::{collections::HashMap, convert::identity, fmt::Debug, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap,
+    convert::identity,
+    fmt::Debug,
+    sync::{
+        mpsc::{channel, Sender},
+        Arc,
+    },
+    time::Instant,
+};
 
 use serde::{Deserialize, Serialize};
 use version::version;
@@ -8,6 +17,7 @@ use version::version;
 use self::{
     bewegen::{Bewegen, Bewegung},
     drehen::Drehen,
+    empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
     gleis::{gleise::*, *},
     style::*,
@@ -301,6 +311,8 @@ where
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
+    sender: Sender<Message<Z>>,
+    empfänger: Empfänger<Message<Z>>,
     // TODO Wegstrecke, Plan
 }
 
@@ -345,6 +357,7 @@ where
         if let Some(winkel) = winkel {
             messages.push(Message::Winkel(Winkel(winkel)))
         }
+        let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
             anschlüsse,
             gleise,
@@ -372,6 +385,8 @@ where
             speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
             speichern_gefärbt: None,
             bewegung: None,
+            sender,
+            empfänger: Empfänger::neu(receiver),
         };
         let command = if messages.is_empty() {
             iced::Command::none()
@@ -449,6 +464,10 @@ where
         }
 
         command
+    }
+
+    fn subscription(&self) -> iced::Subscription<Self::Message> {
+        iced::Subscription::from_recipe(self.empfänger.clone())
     }
 
     fn view(&mut self) -> iced::Element<Self::Message> {
