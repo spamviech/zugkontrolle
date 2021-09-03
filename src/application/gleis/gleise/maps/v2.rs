@@ -15,3 +15,30 @@ pub mod steuerung {
         pub anschlüsse: Anschlüsse,
     }
 }
+
+pub mod gleis {
+    use std::marker::PhantomData;
+
+    use super::*;
+
+    pub mod weiche {
+        use super::*;
+        use crate::application::{
+            gleis::weiche::{dreiwege, gerade, kurve, s_kurve, Orientierung},
+            typen::*,
+        };
+
+        #[derive(
+            zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize,
+        )]
+        pub struct Weiche<Z> {
+            pub zugtyp: PhantomData<fn() -> Z>,
+            pub länge: Skalar,
+            pub radius: Skalar,
+            pub winkel: Winkel,
+            pub orientierung: Orientierung,
+            pub beschreibung: Option<String>,
+            pub steuerung: Option<steuerung::Weiche<gerade::Richtung, gerade::RichtungAnschlüsse>>,
+        }
+    }
+}

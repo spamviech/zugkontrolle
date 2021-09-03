@@ -21,6 +21,8 @@ use crate::{
     },
 };
 
+pub mod v2;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
     pub definition: T,
