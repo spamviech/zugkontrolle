@@ -6,19 +6,18 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
 use crate::{
-    anschluss::{InputAnschluss, InputSerialisiert},
     application::{typen::*, verbindung},
     lookup::impl_lookup,
-    steuerung::kontakt::Kontakt,
+    steuerung::kontakt::{Kontakt, KontaktSerialisiert},
 };
 
 /// Definition einer Kurve
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_serialisiert_unit(Kontakt<InputSerialisiert>)]
+#[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kurve<Z, Anschluss = Option<Kontakt<InputAnschluss>>> {
+pub struct Kurve<Z, Anschluss = Option<Kontakt>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub radius: Skalar,
     pub winkel: Winkel,

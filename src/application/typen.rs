@@ -16,7 +16,10 @@ pub use vektor::Vektor;
 pub use crate::zugtyp::Zugtyp;
 use crate::{
     application::gleis::verbindung,
-    steuerung::{kontakt::Kontakt, weiche::Weiche},
+    steuerung::{
+        kontakt::{Kontakt, KontaktSerialisiert},
+        weiche::Weiche,
+    },
 };
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
@@ -122,7 +125,12 @@ impl<R, A> MitName for Option<Weiche<R, A>> {
         self.as_ref().map(|weiche| &weiche.name.0)
     }
 }
-impl<A> MitName for Option<Kontakt<A>> {
+impl MitName for Option<Kontakt> {
+    fn name(&self) -> Option<&String> {
+        self.as_ref().map(|kontakt| &kontakt.name.0)
+    }
+}
+impl MitName for Option<KontaktSerialisiert> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|kontakt| &kontakt.name.0)
     }
