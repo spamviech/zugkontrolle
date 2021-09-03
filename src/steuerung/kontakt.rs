@@ -2,7 +2,7 @@
 
 use std::sync::{
     mpsc::{channel, Receiver, RecvError, SendError, Sender},
-    Arc, Mutex,
+    Arc, Mutex, PoisonError,
 };
 
 use log::error;
@@ -21,18 +21,53 @@ pub struct Name(pub String);
 #[derive(Debug)]
 pub struct Kontakt {
     pub name: Name,
-    pub anschluss: InputAnschluss,
     pub trigger: Trigger,
+    anschluss: Arc<Mutex<KontaktAnschluss>>,
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
+}
+
+#[derive(Debug)]
+enum KontaktAnschluss {
+    Anschluss(InputAnschluss),
+    Serialisiert(InputSerialisiert),
+}
+
+impl KontaktAnschluss {
+    fn entferne_anschluss(&mut self) -> KontaktAnschluss {
+        let serialisiert = self.serialisiere();
+        std::mem::replace(self, KontaktAnschluss::Serialisiert(serialisiert))
+    }
+
+    fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
+        if let Err(fehler) = anschluss.clear_async_interrupt() {
+            error!(
+                "Fehler beim zurücksetzten des interrupts des Kontaktes {}: {:?}",
+                kontakt_name.0, fehler
+            )
+        }
+    }
+
+    fn serialisiere(&self) -> InputSerialisiert {
+        match self {
+            KontaktAnschluss::Anschluss(anschluss) => anschluss.serialisiere(),
+            KontaktAnschluss::Serialisiert(serialisiert) => serialisiert.clone(),
+        }
+    }
+}
+
+fn heile_poison<T>(poison_error: PoisonError<T>, mutex_name: &str, kontakt_name: &Name) -> T {
+    error!("{}-Mutex für Kontakt {} poisoned!", mutex_name, kontakt_name.0);
+    poison_error.into_inner()
 }
 
 impl Drop for Kontakt {
     fn drop(&mut self) {
-        if let Err(fehler) = self.anschluss.clear_async_interrupt() {
-            error!(
-                "Fehler beim zurücksetzten des interrupts des Kontaktes {}: {:?}",
-                self.name.0, fehler
-            )
+        let mut kontakt_anschluss = self
+            .anschluss
+            .lock()
+            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
+        if let KontaktAnschluss::Anschluss(anschluss) = &mut *kontakt_anschluss {
+            KontaktAnschluss::interrupt_zurücksetzen(anschluss, &self.name)
         }
     }
 }
@@ -48,10 +83,9 @@ impl Kontakt {
         let name_clone = name.clone();
         let senders_clone = senders.clone();
         let set_async_interrupt_result = anschluss.set_async_interrupt(trigger, move |level| {
-            let senders = &mut *senders_clone.lock().unwrap_or_else(|poison_error| {
-                error!("Sender-Mutex für Kontakt {} poisoned!", name_clone.0);
-                poison_error.into_inner()
-            });
+            let senders = &mut *senders_clone
+                .lock()
+                .unwrap_or_else(|poison_error| heile_poison(poison_error, "Sender", &name_clone));
             // iterate over all registered channels, sending them the level
             // start at the end to avoid shifting channels as much as possible
             let mut next = senders.len().checked_sub(1);
@@ -66,25 +100,24 @@ impl Kontakt {
             }
         });
         match set_async_interrupt_result {
-            Ok(()) => Ok(Kontakt { name, anschluss, trigger, senders }),
+            Ok(()) => Ok(Kontakt {
+                name,
+                anschluss: Arc::new(Mutex::new(KontaktAnschluss::Anschluss(anschluss))),
+                trigger,
+                senders,
+            }),
             Err(fehler) => Err((fehler, anschluss)),
         }
-    }
-
-    /// Erhalte den aktuellen Wert
-    #[inline(always)]
-    pub fn lese(&mut self) -> Result<Level, Fehler> {
-        self.anschluss.read()
     }
 
     /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
     /// Rückgabewert ist der zugehörige `Receiver`.
     pub fn registriere_trigger_channel(&mut self) -> Receiver<Level> {
         let (sender, receiver) = channel();
-        let senders = &mut *self.senders.lock().unwrap_or_else(|poison_error| {
-            error!("Sender-Mutex für Kontakt {} poisoned!", self.name.0);
-            poison_error.into_inner()
-        });
+        let senders = &mut *self
+            .senders
+            .lock()
+            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Sender", &self.name));
         senders.push(sender);
         receiver
     }
@@ -110,14 +143,26 @@ impl Serialisiere for Kontakt {
     fn serialisiere(&self) -> KontaktSerialisiert {
         KontaktSerialisiert {
             name: self.name.clone(),
-            anschluss: self.anschluss.serialisiere(),
+            anschluss: self
+                .anschluss
+                .lock()
+                .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name))
+                .serialisiere(),
             trigger: self.trigger,
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        // self.anschluss.anschlüsse()
-        todo!("Can't split up Kontakt with Drop-Trait implemented")
+        let mut kontakt_anschluss = self
+            .anschluss
+            .lock()
+            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
+        if let KontaktAnschluss::Anschluss(mut anschluss) = kontakt_anschluss.entferne_anschluss() {
+            KontaktAnschluss::interrupt_zurücksetzen(&mut anschluss, &self.name);
+            anschluss.anschlüsse()
+        } else {
+            (Vec::new(), Vec::new(), Vec::new())
+        }
     }
 }
 
