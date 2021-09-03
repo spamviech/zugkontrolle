@@ -18,7 +18,7 @@ use crate::{
     application::gleis::verbindung,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
-        weiche::Weiche,
+        weiche::{BenannteWeiche, Weiche},
     },
 };
 
@@ -120,7 +120,7 @@ impl MitName for () {
         None
     }
 }
-impl<R, A> MitName for Option<Weiche<R, A>> {
+impl<R, A> MitName for Option<BenannteWeiche<R, A>> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|weiche| &weiche.name.0)
     }
@@ -147,5 +147,10 @@ impl<R> MitRichtung<R> for () {
 impl<R, A> MitRichtung<R> for Option<Weiche<R, A>> {
     fn aktuelle_richtung(&self) -> Option<&R> {
         self.as_ref().map(|Weiche { aktuelle_richtung, .. }| aktuelle_richtung)
+    }
+}
+impl<R, A> MitRichtung<R> for Option<BenannteWeiche<R, A>> {
+    fn aktuelle_richtung(&self) -> Option<&R> {
+        self.as_ref().and_then(|BenannteWeiche { weiche, .. }| weiche.aktuelle_richtung())
     }
 }

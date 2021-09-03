@@ -4,7 +4,7 @@ pub mod streckenabschnitt;
 pub use streckenabschnitt::Streckenabschnitt;
 
 pub mod weiche;
-pub use weiche::Weiche;
+pub use weiche::{BenannteWeiche, Weiche};
 
 pub mod geschwindigkeit;
 pub use geschwindigkeit::Geschwindigkeit;
