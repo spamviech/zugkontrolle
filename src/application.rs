@@ -95,6 +95,19 @@ pub enum AnschlüsseAnpassen<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+pub enum ZustandZurücksetzen<Z> {
+    Weiche(GleisId<Weiche<Z>>, gleis::weiche::gerade::Richtung),
+    DreiwegeWeiche(
+        GleisId<DreiwegeWeiche<Z>>,
+        gleis::weiche::dreiwege::Richtung,
+        gleis::weiche::dreiwege::Richtung,
+    ),
+    KurvenWeiche(GleisId<KurvenWeiche<Z>>, gleis::weiche::kurve::Richtung),
+    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, gleis::weiche::s_kurve::Richtung),
+    Kreuzung(GleisId<Kreuzung<Z>>, gleis::kreuzung::Richtung),
+}
+
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z>
 where
     Z: Zugtyp,
@@ -134,6 +147,11 @@ where
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
     AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
     FahrenAktion(AnyId<Z>),
+    AsyncFehler {
+        titel: String,
+        nachricht: String,
+        zustand_zurücksetzen: ZustandZurücksetzen<Z>,
+    },
 }
 
 impl<Z> From<gleise::Message<Z>> for Message<Z>
@@ -410,6 +428,9 @@ where
                 }
             }
             Message::FahrenAktion(any_id) => self.fahren_aktion(any_id),
+            Message::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
+                self.async_fehler(titel, nachricht, zustand_zurücksetzen)
+            }
         }
 
         command

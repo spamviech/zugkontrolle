@@ -3,7 +3,7 @@
 use std::{
     convert::identity,
     fmt::Debug,
-    sync::Arc,
+    sync::{Arc, PoisonError},
     thread::{self, sleep},
     time::{Duration, Instant},
 };
@@ -29,6 +29,7 @@ use crate::{
         steuerung, streckenabschnitt,
         typen::*,
         weiche, AnschlüsseAnpassen, AnyGleis, Message, MessageBox, Modal, Zugkontrolle,
+        ZustandZurücksetzen,
     },
     farbe::Farbe,
     lookup::Lookup,
@@ -563,6 +564,92 @@ where
     #[inline(always)]
     pub fn bewegung_zurücksetzen(&mut self) {
         self.gleise.setze_pivot(Vektor::null_vektor())
+    }
+
+    fn zustand_zurücksetzen_aux<T, W>(
+        &mut self,
+        id: GleisId<T>,
+        gleise_steuerung: impl for<'t> Fn(
+            &'t mut Gleise<Z>,
+            &GleisId<T>,
+        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
+        anpassen: impl for<'t> FnOnce(&'t mut W),
+    ) {
+        // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
+        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+            if let Some(w) = steuerung.as_mut() {
+                anpassen(w)
+            }
+        }
+    }
+
+    pub fn async_fehler(
+        &mut self,
+        titel: String,
+        nachricht: String,
+        zustand_zurücksetzen: ZustandZurücksetzen<Z>,
+    ) {
+        fn heile_poison<T>(poison_error: PoisonError<T>, art: &str, name: &String) -> T {
+            error!("Anschlüsse-Mutex für {} {} poisoned!", art, name);
+            poison_error.into_inner()
+        }
+        match zustand_zurücksetzen {
+            ZustandZurücksetzen::Weiche(id, aktuelle_richtung) => self.zustand_zurücksetzen_aux(
+                id,
+                Gleise::steuerung_weiche,
+                |steuerung::BenannteWeiche { name, weiche: mutex }| {
+                    let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
+                        heile_poison(poison_error, "Weiche", &name.0)
+                    });
+                    weiche.aktuelle_richtung = aktuelle_richtung;
+                },
+            ),
+            ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung) => self
+                .zustand_zurücksetzen_aux(
+                    id,
+                    Gleise::steuerung_dreiwege_weiche,
+                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
+                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
+                            heile_poison(poison_error, "Weiche", &name.0)
+                        });
+                        weiche.aktuelle_richtung = aktuelle_richtung;
+                        weiche.letzte_richtung = letzte_richtung
+                    },
+                ),
+            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung) => self
+                .zustand_zurücksetzen_aux(
+                    id,
+                    Gleise::steuerung_kurven_weiche,
+                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
+                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
+                            heile_poison(poison_error, "Weiche", &name.0)
+                        });
+                        weiche.aktuelle_richtung = aktuelle_richtung;
+                    },
+                ),
+            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung) => self
+                .zustand_zurücksetzen_aux(
+                    id,
+                    Gleise::steuerung_s_kurven_weiche,
+                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
+                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
+                            heile_poison(poison_error, "Weiche", &name.0)
+                        });
+                        weiche.aktuelle_richtung = aktuelle_richtung;
+                    },
+                ),
+            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung) => self.zustand_zurücksetzen_aux(
+                id,
+                Gleise::steuerung_kreuzung,
+                |steuerung::BenannteWeiche { name, weiche: mutex }| {
+                    let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
+                        heile_poison(poison_error, "Weiche", &name.0)
+                    });
+                    weiche.aktuelle_richtung = aktuelle_richtung;
+                },
+            ),
+        }
+        self.zeige_message_box(titel, nachricht)
     }
 }
 
