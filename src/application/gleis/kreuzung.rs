@@ -5,12 +5,12 @@ use std::{fmt::Debug, marker::PhantomData};
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
+pub use crate::application::gleis::weiche::gerade::{
+    Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
+};
 use crate::{
     application::{
-        gleis::{
-            gerade, kurve, verbindung,
-            weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert},
-        },
+        gleis::{gerade, kurve, verbindung},
         typen::*,
     },
     lookup::impl_lookup,
@@ -20,7 +20,8 @@ use crate::{
 /// Definition einer Kreuzung
 #[alias_serialisiert_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::BenannteWeiche<Richtung, RichtungAnschlüsse>>>
+{
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,

@@ -19,18 +19,16 @@ pub mod steuerung {
 pub mod gleis {
     use std::marker::PhantomData;
 
+    use zugkontrolle_derive as zug_derive;
+
     use super::*;
+    use crate::application::typen::*;
 
     pub mod weiche {
         use super::*;
-        use crate::application::{
-            gleis::weiche::{dreiwege, gerade, kurve, s_kurve, Orientierung},
-            typen::*,
-        };
+        use crate::application::gleis::weiche::{dreiwege, gerade, kurve, s_kurve, Orientierung};
 
-        #[derive(
-            zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize,
-        )]
+        #[derive(zug_derive::Clone, zug_derive::Debug, Serialize, Deserialize)]
         pub struct Weiche<Z> {
             pub zugtyp: PhantomData<fn() -> Z>,
             pub länge: Skalar,
@@ -38,7 +36,64 @@ pub mod gleis {
             pub winkel: Winkel,
             pub orientierung: Orientierung,
             pub beschreibung: Option<String>,
-            pub steuerung: Option<steuerung::Weiche<gerade::Richtung, gerade::RichtungAnschlüsse>>,
+            pub steuerung:
+                Option<steuerung::Weiche<gerade::Richtung, gerade::RichtungAnschlüsseSerialisiert>>,
+        }
+
+        #[derive(zug_derive::Clone, zug_derive::Debug, Serialize, Deserialize)]
+        pub struct DreiwegeWeiche<Z> {
+            pub zugtyp: PhantomData<fn() -> Z>,
+            pub länge: Skalar,
+            pub radius: Skalar,
+            pub winkel: Winkel,
+            pub beschreibung: Option<String>,
+            pub steuerung: Option<
+                steuerung::Weiche<dreiwege::Richtung, dreiwege::RichtungAnschlüsseSerialisiert>,
+            >,
+        }
+
+        #[derive(zug_derive::Clone, zug_derive::Debug, Serialize, Deserialize)]
+        pub struct KurvenWeiche<Z> {
+            pub zugtyp: PhantomData<fn() -> Z>,
+            pub länge: Skalar,
+            pub radius: Skalar,
+            pub winkel: Winkel,
+            pub orientierung: Orientierung,
+            pub beschreibung: Option<String>,
+            pub steuerung:
+                Option<steuerung::Weiche<kurve::Richtung, kurve::RichtungAnschlüsseSerialisiert>>,
+        }
+
+        #[derive(zug_derive::Clone, zug_derive::Debug, Serialize, Deserialize)]
+        pub struct SKurvenWeiche<Z> {
+            pub zugtyp: PhantomData<fn() -> Z>,
+            pub länge: Skalar,
+            pub radius: Skalar,
+            pub winkel: Winkel,
+            pub radius_reverse: Skalar,
+            pub winkel_reverse: Winkel,
+            pub orientierung: Orientierung,
+            pub beschreibung: Option<String>,
+            pub steuerung: Option<
+                steuerung::Weiche<s_kurve::Richtung, s_kurve::RichtungAnschlüsseSerialisiert>,
+            >,
+        }
+    }
+
+    pub mod kreuzung {
+        use super::*;
+        use crate::application::gleis::kreuzung::{
+            Richtung, RichtungAnschlüsseSerialisiert, Variante,
+        };
+
+        #[derive(zug_derive::Clone, zug_derive::Debug, Serialize, Deserialize)]
+        pub struct Kreuzung<Z> {
+            pub zugtyp: PhantomData<fn() -> Z>,
+            pub länge: Skalar,
+            pub radius: Skalar,
+            pub variante: kreuzung::Variante,
+            pub beschreibung: Option<String>,
+            pub steuerung: Option<steuerung::Weiche<Richtung, RichtungAnschlüsseSerialisiert>>,
         }
     }
 }

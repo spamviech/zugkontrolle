@@ -3,7 +3,7 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::mpsc::Sender,
+    sync::{mpsc::Sender, Arc, Mutex},
     thread::{self, sleep},
     time::Duration,
 };
@@ -28,10 +28,10 @@ pub struct Weiche<Richtung, Anschlüsse> {
     pub anschlüsse: Anschlüsse,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct BenannteWeiche<Richtung, Anschlüsse> {
     pub name: Name,
-    pub weiche: Weiche<Richtung, Anschlüsse>,
+    pub weiche: Arc<Mutex<Weiche<Richtung, Anschlüsse>>>,
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
@@ -70,6 +70,12 @@ where
             }
         });
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BenannteWeicheSerialisiert<Richtung, Anschlüsse> {
+    pub name: Name,
+    pub weiche: Weiche<Richtung, Anschlüsse>,
 }
 
 impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
@@ -133,17 +139,18 @@ where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
     T: Serialisiere,
 {
-    type Serialisiert = BenannteWeiche<Richtung, T::Serialisiert>;
+    type Serialisiert = BenannteWeicheSerialisiert<Richtung, T::Serialisiert>;
 
-    fn serialisiere(&self) -> BenannteWeiche<Richtung, T::Serialisiert> {
-        BenannteWeiche { name: self.name.clone(), weiche: self.weiche.serialisiere() }
+    fn serialisiere(&self) -> BenannteWeicheSerialisiert<Richtung, T::Serialisiert> {
+        BenannteWeicheSerialisiert { name: self.name.clone(), weiche: self.weiche.serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         self.weiche.anschlüsse()
     }
 }
-impl<Richtung, T, R> Reserviere<BenannteWeiche<Richtung, R>> for BenannteWeiche<Richtung, T>
+impl<Richtung, T, R> Reserviere<BenannteWeiche<Richtung, R>>
+    for BenannteWeicheSerialisiert<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
     R: Serialisiere,
@@ -163,7 +170,10 @@ where
             input_nicht_benötigt,
         } = self.weiche.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
-            anschluss: BenannteWeiche { name: self.name.clone(), weiche },
+            anschluss: BenannteWeiche {
+                name: self.name.clone(),
+                weiche: Arc::new(Mutex::new(weiche)),
+            },
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
