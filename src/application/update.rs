@@ -4,7 +4,7 @@ use std::{
     convert::identity,
     fmt::Debug,
     sync::Arc,
-    thread::sleep,
+    thread::{self, sleep},
     time::{Duration, Instant},
 };
 
@@ -574,7 +574,7 @@ where
 {
     fn weiche_stellen<T, Richtung, Anschlüsse>(
         &mut self,
-        gleis_art: &str,
+        gleis_art: &'static str,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
@@ -583,20 +583,30 @@ where
             Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
             GleisEntferntFehler,
         >,
-        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
+        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung + Send + 'static,
     ) where
-        Richtung: Clone,
-        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send,
+        Richtung: Clone + Send + 'static,
+        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
     {
         let mut error_message = None;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(steuerung::BenannteWeiche { name: _, weiche }) = steuerung.as_mut() {
-                let richtung =
-                    nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
-                if let Err(error) = weiche.schalten(&richtung) {
-                    error_message
-                        .insert((format!("{} schalten", gleis_art), format!("{:?}", error)));
-                }
+            if let Some(steuerung::BenannteWeiche { name, weiche: mutex }) = steuerung.as_mut() {
+                let mutex_clone = mutex.clone();
+                let name_clone = name.clone();
+                thread::spawn(move || {
+                    let weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
+                        error!("Weiche-Mutex von {} poisoned!", name_clone.0);
+                        poison_error.into_inner()
+                    });
+                    let richtung =
+                        nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
+                    if let Err(error) = weiche.schalten(&richtung) {
+                        todo!(
+                            "An UI-Thread mit bisherigem Zustand schicken: {:?}",
+                            (format!("{} schalten", gleis_art), format!("{:?}", error))
+                        );
+                    }
+                });
             } else {
                 error_message.insert((
                     "Keine Richtungs-Anschlüsse!".to_string(),

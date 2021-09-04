@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -142,11 +143,36 @@ where
     type Serialisiert = BenannteWeicheSerialisiert<Richtung, T::Serialisiert>;
 
     fn serialisiere(&self) -> BenannteWeicheSerialisiert<Richtung, T::Serialisiert> {
-        BenannteWeicheSerialisiert { name: self.name.clone(), weiche: self.weiche.serialisiere() }
+        BenannteWeicheSerialisiert {
+            name: self.name.clone(),
+            weiche: self
+                .weiche
+                .lock()
+                .unwrap_or_else(|poison_error| {
+                    error!("Weiche-Mutex für {} poisoned!", self.name.0);
+                    poison_error.into_inner()
+                })
+                .serialisiere(),
+        }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        self.weiche.anschlüsse()
+        let name = self.name;
+        match Arc::try_unwrap(self.weiche) {
+            Ok(mutex) => mutex
+                .into_inner()
+                .unwrap_or_else(|poison_error| {
+                    error!("Weiche-Mutex für {} poisoned!", name.0);
+                    poison_error.into_inner()
+                })
+                .anschlüsse(),
+            Err(_arc) => {
+                // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
+                // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
+                // Gebe stattdessen keine Anschlüsse zurück
+                (Vec::new(), Vec::new(), Vec::new())
+            }
+        }
     }
 }
 impl<Richtung, T, R> Reserviere<BenannteWeiche<Richtung, R>>
