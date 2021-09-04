@@ -670,10 +670,10 @@ where
             Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
             GleisEntferntFehler,
         >,
-        nächste_richtung: impl Fn(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
+        nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
             + Send
             + 'static,
-        erzeuge_fehler_nachricht: impl Fn(
+        erzeuge_fehler_nachricht: impl FnOnce(
                 String,
                 String,
                 steuerung::BenannteWeicheSerialisiert<Richtung, Anschlüsse::Serialisiert>,
@@ -735,7 +735,7 @@ where
             AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
             AnyId::Weiche(id) => self.weiche_stellen(
                 "Weiche",
-                id,
+                id.clone(),
                 Gleise::steuerung_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
@@ -745,11 +745,18 @@ where
                         Richtung::Gerade
                     }
                 },
-                |_, _, _| todo!(),
+                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
+                    titel,
+                    nachricht,
+                    zustand_zurücksetzen: ZustandZurücksetzen::Weiche(
+                        id,
+                        benannte_weiche.weiche.aktuelle_richtung,
+                    ),
+                },
             ),
             AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
                 "DreiwegeWeiche",
-                id,
+                id.clone(),
                 Gleise::steuerung_dreiwege_weiche,
                 |steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
                     use gleis::weiche::dreiwege::Richtung;
@@ -767,11 +774,19 @@ where
                         Richtung::Gerade
                     }
                 },
-                |_, _, _| todo!(),
+                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
+                    titel,
+                    nachricht,
+                    zustand_zurücksetzen: ZustandZurücksetzen::DreiwegeWeiche(
+                        id,
+                        benannte_weiche.weiche.aktuelle_richtung,
+                        benannte_weiche.weiche.letzte_richtung,
+                    ),
+                },
             ),
             AnyId::KurvenWeiche(id) => self.weiche_stellen(
                 "KurvenWeiche",
-                id,
+                id.clone(),
                 Gleise::steuerung_kurven_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::kurve::Richtung;
@@ -781,11 +796,18 @@ where
                         Richtung::Außen
                     }
                 },
-                |_, _, _| todo!(),
+                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
+                    titel,
+                    nachricht,
+                    zustand_zurücksetzen: ZustandZurücksetzen::KurvenWeiche(
+                        id,
+                        benannte_weiche.weiche.aktuelle_richtung,
+                    ),
+                },
             ),
             AnyId::SKurvenWeiche(id) => self.weiche_stellen(
                 "SKurvenWeiche",
-                id,
+                id.clone(),
                 Gleise::steuerung_s_kurven_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
@@ -795,11 +817,18 @@ where
                         Richtung::Gerade
                     }
                 },
-                |_, _, _| todo!(),
+                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
+                    titel,
+                    nachricht,
+                    zustand_zurücksetzen: ZustandZurücksetzen::SKurvenWeiche(
+                        id,
+                        benannte_weiche.weiche.aktuelle_richtung,
+                    ),
+                },
             ),
             AnyId::Kreuzung(id) => self.weiche_stellen(
                 "Kreuzung",
-                id,
+                id.clone(),
                 Gleise::steuerung_kreuzung,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
@@ -809,7 +838,14 @@ where
                         Richtung::Gerade
                     }
                 },
-                |_, _, _| todo!(),
+                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
+                    titel,
+                    nachricht,
+                    zustand_zurücksetzen: ZustandZurücksetzen::Kreuzung(
+                        id,
+                        benannte_weiche.weiche.aktuelle_richtung,
+                    ),
+                },
             ),
         }
     }
