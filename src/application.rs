@@ -96,15 +96,23 @@ pub enum AnschlüsseAnpassen<Z> {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum ZustandZurücksetzen<Z> {
-    Weiche(GleisId<Weiche<Z>>, gleis::weiche::gerade::Richtung),
+    Weiche(GleisId<Weiche<Z>>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
     DreiwegeWeiche(
         GleisId<DreiwegeWeiche<Z>>,
         gleis::weiche::dreiwege::Richtung,
         gleis::weiche::dreiwege::Richtung,
     ),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>, gleis::weiche::kurve::Richtung),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, gleis::weiche::s_kurve::Richtung),
-    Kreuzung(GleisId<Kreuzung<Z>>, gleis::kreuzung::Richtung),
+    KurvenWeiche(
+        GleisId<KurvenWeiche<Z>>,
+        gleis::weiche::kurve::Richtung,
+        gleis::weiche::kurve::Richtung,
+    ),
+    SKurvenWeiche(
+        GleisId<SKurvenWeiche<Z>>,
+        gleis::weiche::s_kurve::Richtung,
+        gleis::weiche::s_kurve::Richtung,
+    ),
+    Kreuzung(GleisId<Kreuzung<Z>>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]

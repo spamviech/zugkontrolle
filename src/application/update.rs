@@ -40,6 +40,11 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
+fn heile_poison<T>(poison_error: PoisonError<T>, art: &str, name: &String) -> T {
+    error!("Anschlüsse-Mutex für {} {} poisoned!", art, name);
+    poison_error.into_inner()
+}
+
 impl<Z> Message<Z>
 where
     Z: 'static + Zugtyp,
@@ -566,19 +571,27 @@ where
         self.gleise.setze_pivot(Vektor::null_vektor())
     }
 
-    fn zustand_zurücksetzen_aux<T, W>(
+    fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
-        anpassen: impl for<'t> FnOnce(&'t mut W),
+        ) -> Result<
+            Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
+            GleisEntferntFehler,
+        >,
+        aktuelle_richtung: Richtung,
+        letzte_richtung: Richtung,
     ) {
         // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(w) = steuerung.as_mut() {
-                anpassen(w)
+            if let Some(steuerung::BenannteWeiche { name, weiche: mutex }) = steuerung.as_mut() {
+                let mut weiche = &mut *mutex
+                    .lock()
+                    .unwrap_or_else(|poison_error| heile_poison(poison_error, "Weiche", &name.0));
+                weiche.aktuelle_richtung = aktuelle_richtung;
+                weiche.letzte_richtung = letzte_richtung;
             }
         }
     }
@@ -589,65 +602,42 @@ where
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Z>,
     ) {
-        fn heile_poison<T>(poison_error: PoisonError<T>, art: &str, name: &String) -> T {
-            error!("Anschlüsse-Mutex für {} {} poisoned!", art, name);
-            poison_error.into_inner()
-        }
         match zustand_zurücksetzen {
-            ZustandZurücksetzen::Weiche(id, aktuelle_richtung) => self.zustand_zurücksetzen_aux(
-                id,
-                Gleise::steuerung_weiche,
-                |steuerung::BenannteWeiche { name, weiche: mutex }| {
-                    let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
-                        heile_poison(poison_error, "Weiche", &name.0)
-                    });
-                    weiche.aktuelle_richtung = aktuelle_richtung;
-                },
-            ),
+            ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
+                .weiche_zurücksetzen(
+                    id,
+                    Gleise::steuerung_weiche,
+                    aktuelle_richtung,
+                    letzte_richtung,
+                ),
             ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung) => self
-                .zustand_zurücksetzen_aux(
+                .weiche_zurücksetzen(
                     id,
                     Gleise::steuerung_dreiwege_weiche,
-                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
-                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
-                            heile_poison(poison_error, "Weiche", &name.0)
-                        });
-                        weiche.aktuelle_richtung = aktuelle_richtung;
-                        weiche.letzte_richtung = letzte_richtung
-                    },
+                    aktuelle_richtung,
+                    letzte_richtung,
                 ),
-            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung) => self
-                .zustand_zurücksetzen_aux(
+            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung, letzte_richtung) => self
+                .weiche_zurücksetzen(
                     id,
                     Gleise::steuerung_kurven_weiche,
-                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
-                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
-                            heile_poison(poison_error, "Weiche", &name.0)
-                        });
-                        weiche.aktuelle_richtung = aktuelle_richtung;
-                    },
+                    aktuelle_richtung,
+                    letzte_richtung,
                 ),
-            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung) => self
-                .zustand_zurücksetzen_aux(
+            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung, letzte_richtung) => self
+                .weiche_zurücksetzen(
                     id,
                     Gleise::steuerung_s_kurven_weiche,
-                    |steuerung::BenannteWeiche { name, weiche: mutex }| {
-                        let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
-                            heile_poison(poison_error, "Weiche", &name.0)
-                        });
-                        weiche.aktuelle_richtung = aktuelle_richtung;
-                    },
+                    aktuelle_richtung,
+                    letzte_richtung,
                 ),
-            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung) => self.zustand_zurücksetzen_aux(
-                id,
-                Gleise::steuerung_kreuzung,
-                |steuerung::BenannteWeiche { name, weiche: mutex }| {
-                    let mut weiche = &mut *mutex.lock().unwrap_or_else(|poison_error| {
-                        heile_poison(poison_error, "Weiche", &name.0)
-                    });
-                    weiche.aktuelle_richtung = aktuelle_richtung;
-                },
-            ),
+            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung) => self
+                .weiche_zurücksetzen(
+                    id,
+                    Gleise::steuerung_kreuzung,
+                    aktuelle_richtung,
+                    letzte_richtung,
+                ),
         }
         self.zeige_message_box(titel, nachricht)
     }
@@ -673,14 +663,11 @@ where
         nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
             + Send
             + 'static,
-        erzeuge_fehler_nachricht: impl FnOnce(
-                String,
-                String,
-                steuerung::BenannteWeicheSerialisiert<Richtung, Anschlüsse::Serialisiert>,
-            ) -> Message<Z>
+        zustand_zurücksetzen: impl FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Z>
             + Send
             + 'static,
     ) where
+        T: 'static,
         Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Send + 'static,
         Anschlüsse: Lookup<Richtung, OutputAnschluss> + Serialisiere + Send + 'static,
         <Anschlüsse as Serialisiere>::Serialisiert: Send + 'static,
@@ -696,17 +683,18 @@ where
                         error!("Weiche-Mutex von {} poisoned!", name_clone.0);
                         poison_error.into_inner()
                     });
+                    let bisheriger_zustand = weiche.serialisiere();
                     let richtung = nächste_richtung(&mut weiche);
                     if let Err(fehler) = weiche.schalten(&richtung) {
-                        let serialisiert = weiche.serialisiere();
-                        let send_result = sender_clone.send(erzeuge_fehler_nachricht(
-                            format!("{} schalten", gleis_art),
-                            format!("{:?}", fehler),
-                            steuerung::BenannteWeicheSerialisiert {
-                                name: name_clone.clone(),
-                                weiche: serialisiert,
-                            },
-                        ));
+                        let send_result = sender_clone.send(Message::AsyncFehler {
+                            titel: format!("{} schalten", gleis_art),
+                            nachricht: format!("{:?}", fehler),
+                            zustand_zurücksetzen: zustand_zurücksetzen(
+                                id,
+                                bisheriger_zustand.aktuelle_richtung,
+                                bisheriger_zustand.letzte_richtung,
+                            ),
+                        });
                         if let Err(fehler) = send_result {
                             error!("Message-Channel geschlossen: {:?}", fehler)
                         }
@@ -745,14 +733,7 @@ where
                         Richtung::Gerade
                     }
                 },
-                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
-                    titel,
-                    nachricht,
-                    zustand_zurücksetzen: ZustandZurücksetzen::Weiche(
-                        id,
-                        benannte_weiche.weiche.aktuelle_richtung,
-                    ),
-                },
+                ZustandZurücksetzen::Weiche,
             ),
             AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
                 "DreiwegeWeiche",
@@ -774,15 +755,7 @@ where
                         Richtung::Gerade
                     }
                 },
-                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
-                    titel,
-                    nachricht,
-                    zustand_zurücksetzen: ZustandZurücksetzen::DreiwegeWeiche(
-                        id,
-                        benannte_weiche.weiche.aktuelle_richtung,
-                        benannte_weiche.weiche.letzte_richtung,
-                    ),
-                },
+                ZustandZurücksetzen::DreiwegeWeiche,
             ),
             AnyId::KurvenWeiche(id) => self.weiche_stellen(
                 "KurvenWeiche",
@@ -796,14 +769,7 @@ where
                         Richtung::Außen
                     }
                 },
-                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
-                    titel,
-                    nachricht,
-                    zustand_zurücksetzen: ZustandZurücksetzen::KurvenWeiche(
-                        id,
-                        benannte_weiche.weiche.aktuelle_richtung,
-                    ),
-                },
+                ZustandZurücksetzen::KurvenWeiche,
             ),
             AnyId::SKurvenWeiche(id) => self.weiche_stellen(
                 "SKurvenWeiche",
@@ -817,14 +783,7 @@ where
                         Richtung::Gerade
                     }
                 },
-                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
-                    titel,
-                    nachricht,
-                    zustand_zurücksetzen: ZustandZurücksetzen::SKurvenWeiche(
-                        id,
-                        benannte_weiche.weiche.aktuelle_richtung,
-                    ),
-                },
+                ZustandZurücksetzen::SKurvenWeiche,
             ),
             AnyId::Kreuzung(id) => self.weiche_stellen(
                 "Kreuzung",
@@ -838,14 +797,7 @@ where
                         Richtung::Gerade
                     }
                 },
-                |titel, nachricht, benannte_weiche| Message::AsyncFehler {
-                    titel,
-                    nachricht,
-                    zustand_zurücksetzen: ZustandZurücksetzen::Kreuzung(
-                        id,
-                        benannte_weiche.weiche.aktuelle_richtung,
-                    ),
-                },
+                ZustandZurücksetzen::Kreuzung,
             ),
         }
     }
