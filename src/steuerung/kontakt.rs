@@ -9,7 +9,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
-    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+    de_serialisieren::{self, AnschlussOderSerialisiert, Reserviere, Reserviert, Serialisiere},
     pwm, Anschlüsse, Fehler, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
 };
 
@@ -22,35 +22,17 @@ pub struct Name(pub String);
 pub struct Kontakt {
     pub name: Name,
     pub trigger: Trigger,
-    anschluss: Arc<Mutex<KontaktAnschluss>>,
+    anschluss: Arc<Mutex<AnschlussOderSerialisiert<InputAnschluss>>>,
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
 }
 
-#[derive(Debug)]
-enum KontaktAnschluss {
-    Anschluss(InputAnschluss),
-    Serialisiert(InputSerialisiert),
-}
-
-impl KontaktAnschluss {
-    fn entferne_anschluss(&mut self) -> KontaktAnschluss {
-        let serialisiert = self.serialisiere();
-        std::mem::replace(self, KontaktAnschluss::Serialisiert(serialisiert))
-    }
-
+impl AnschlussOderSerialisiert<InputAnschluss> {
     fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
         if let Err(fehler) = anschluss.clear_async_interrupt() {
             error!(
-                "Fehler beim zurücksetzten des interrupts des Kontaktes {}: {:?}",
+                "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {:?}",
                 kontakt_name.0, fehler
             )
-        }
-    }
-
-    fn serialisiere(&self) -> InputSerialisiert {
-        match self {
-            KontaktAnschluss::Anschluss(anschluss) => anschluss.serialisiere(),
-            KontaktAnschluss::Serialisiert(serialisiert) => serialisiert.clone(),
         }
     }
 }
@@ -66,8 +48,8 @@ impl Drop for Kontakt {
             .anschluss
             .lock()
             .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
-        if let KontaktAnschluss::Anschluss(anschluss) = &mut *kontakt_anschluss {
-            KontaktAnschluss::interrupt_zurücksetzen(anschluss, &self.name)
+        if let AnschlussOderSerialisiert::Anschluss(anschluss) = &mut *kontakt_anschluss {
+            AnschlussOderSerialisiert::interrupt_zurücksetzen(anschluss, &self.name)
         }
     }
 }
@@ -102,7 +84,7 @@ impl Kontakt {
         match set_async_interrupt_result {
             Ok(()) => Ok(Kontakt {
                 name,
-                anschluss: Arc::new(Mutex::new(KontaktAnschluss::Anschluss(anschluss))),
+                anschluss: Arc::new(Mutex::new(AnschlussOderSerialisiert::Anschluss(anschluss))),
                 trigger,
                 senders,
             }),
@@ -157,8 +139,10 @@ impl Serialisiere for Kontakt {
             .anschluss
             .lock()
             .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
-        if let KontaktAnschluss::Anschluss(mut anschluss) = kontakt_anschluss.entferne_anschluss() {
-            KontaktAnschluss::interrupt_zurücksetzen(&mut anschluss, &self.name);
+        if let AnschlussOderSerialisiert::Anschluss(mut anschluss) =
+            kontakt_anschluss.entferne_anschluss()
+        {
+            AnschlussOderSerialisiert::interrupt_zurücksetzen(&mut anschluss, &self.name);
             anschluss.anschlüsse()
         } else {
             (Vec::new(), Vec::new(), Vec::new())

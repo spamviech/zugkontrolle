@@ -39,3 +39,23 @@ pub trait Reserviere<R> {
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> Result<R>;
 }
+
+#[derive(Debug)]
+pub enum AnschlussOderSerialisiert<T: Serialisiere> {
+    Anschluss(T),
+    Serialisiert(T::Serialisiert),
+}
+
+impl<T: Serialisiere> AnschlussOderSerialisiert<T> {
+    pub(crate) fn entferne_anschluss(&mut self) -> AnschlussOderSerialisiert<T> {
+        let serialisiert = self.serialisiere();
+        std::mem::replace(self, T::Serialisiert(serialisiert))
+    }
+
+    pub fn serialisiere(&self) -> T::Serialisiert {
+        match self {
+            AnschlussOderSerialisiert::Anschluss(anschluss) => anschluss.serialisiere(),
+            AnschlussOderSerialisiert::Serialisiert(serialisiert) => serialisiert.clone(),
+        }
+    }
+}
