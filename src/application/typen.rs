@@ -1,19 +1,7 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
-pub mod canvas;
-pub mod mm;
-pub mod skalar;
-pub mod winkel;
+use log::error;
 
-// re-exports
-pub use canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation};
-pub use mm::*;
-pub use skalar::Skalar;
-pub use winkel::*;
-pub mod vektor;
-pub use vektor::Vektor;
-
-pub use crate::zugtyp::Zugtyp;
 use crate::{
     application::gleis::verbindung,
     steuerung::{
@@ -21,6 +9,22 @@ use crate::{
         weiche::{BenannteWeiche, Weiche},
     },
 };
+
+// re-exports
+pub use self::{
+    canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
+    mm::*,
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::*,
+};
+pub use crate::zugtyp::Zugtyp;
+
+pub mod canvas;
+pub mod mm;
+pub mod skalar;
+pub mod vektor;
+pub mod winkel;
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
 /// Abstand beider Schienen
@@ -144,13 +148,22 @@ impl<R> MitRichtung<R> for () {
         None
     }
 }
-impl<R, A> MitRichtung<R> for Option<Weiche<R, A>> {
+impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
     fn aktuelle_richtung(&self) -> Option<&R> {
-        self.as_ref().map(|Weiche { aktuelle_richtung, .. }| aktuelle_richtung)
+        self.as_ref().and_then(|t| t.aktuelle_richtung())
     }
 }
-impl<R, A> MitRichtung<R> for Option<BenannteWeiche<R, A>> {
+impl<R, A> MitRichtung<R> for Weiche<R, A> {
     fn aktuelle_richtung(&self) -> Option<&R> {
-        self.as_ref().and_then(|BenannteWeiche { weiche, .. }| weiche.aktuelle_richtung())
+        Some(&self.aktuelle_richtung)
+    }
+}
+impl<R, A> MitRichtung<R> for BenannteWeiche<R, A> {
+    fn aktuelle_richtung(&self) -> Option<&R> {
+        let weiche = self.weiche.lock().unwrap_or_else(|poison_error| {
+            error!("");
+            poison_error.into_inner()
+        });
+        weiche.aktuelle_richtung()
     }
 }
