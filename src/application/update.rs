@@ -583,7 +583,9 @@ where
             Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
             GleisEntferntFehler,
         >,
-        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung + Send + 'static,
+        nächste_richtung: impl Fn(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
+            + Send
+            + 'static,
     ) where
         Richtung: Clone + Send + 'static,
         Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
@@ -594,12 +596,11 @@ where
                 let mutex_clone = mutex.clone();
                 let name_clone = name.clone();
                 thread::spawn(move || {
-                    let weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
+                    let mut weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
                         error!("Weiche-Mutex von {} poisoned!", name_clone.0);
                         poison_error.into_inner()
                     });
-                    let richtung =
-                        nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
+                    let richtung = nächste_richtung(&mut weiche);
                     if let Err(error) = weiche.schalten(&richtung) {
                         todo!(
                             "An UI-Thread mit bisherigem Zustand schicken: {:?}",
@@ -632,7 +633,7 @@ where
                 "Weiche",
                 id,
                 Gleise::steuerung_weiche,
-                |aktuelle_richtung, _letzte_richtung| {
+                |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve
@@ -645,7 +646,7 @@ where
                 "DreiwegeWeiche",
                 id,
                 Gleise::steuerung_dreiwege_weiche,
-                |aktuelle_richtung, letzte_richtung| {
+                |steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
                     use gleis::weiche::dreiwege::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         match letzte_richtung {
@@ -653,6 +654,7 @@ where
                             Richtung::Rechts => Richtung::Links,
                             Richtung::Gerade => {
                                 error!("Invalider Zustand bei Dreiwegeweiche! Schalte auf Gerade.");
+                                *aktuelle_richtung = Richtung::Links;
                                 Richtung::Gerade
                             }
                         }
@@ -665,7 +667,7 @@ where
                 "KurvenWeiche",
                 id,
                 Gleise::steuerung_kurven_weiche,
-                |aktuelle_richtung, _letzte_richtung| {
+                |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::kurve::Richtung;
                     if aktuelle_richtung == &Richtung::Außen {
                         Richtung::Innen
@@ -678,7 +680,7 @@ where
                 "SKurvenWeiche",
                 id,
                 Gleise::steuerung_s_kurven_weiche,
-                |aktuelle_richtung, _letzte_richtung| {
+                |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve
@@ -691,7 +693,7 @@ where
                 "Kreuzung",
                 id,
                 Gleise::steuerung_kreuzung,
-                |aktuelle_richtung, _letzte_richtung| {
+                |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve
@@ -775,24 +777,6 @@ where
             AnyId::Kurve(id) => {
                 debug!("Anschlüsse für Kurve {:?} anpassen.", id)
             }
-            /*
-            zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Status>(
-                &mut self,
-                gleis_art: &str,
-                id: GleisId<T>,
-                gleise_steuerung: impl for<'t> Fn(
-                    &'t mut Gleise<Z>,
-                    &GleisId<T>,
-                ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
-                erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
-                erzeuge_modal: impl Fn(
-                    Status,
-                    Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Message<Z>>,
-                ) -> Modal<Z>,
-                als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
-                    + 'static,
-            )
-            */
             AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "Weiche",
                 id,

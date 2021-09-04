@@ -52,27 +52,6 @@ where
     }
 }
 
-impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
-where
-    Richtung: Clone + Send + 'static,
-    Anschlüsse: Lookup<Richtung, OutputAnschluss> + Clone + Send + 'static,
-{
-    /// Schalte eine `Weiche` auf die übergebene `Richtung`.
-    /// Ein dabei auftretender Fehler wird konvertiert und über den `Sender` geschickt.
-    pub fn thread_schalten<Nachricht: From<Fehler> + Send + 'static>(
-        &mut self,
-        richtung: Richtung,
-        sender: Sender<Nachricht>,
-    ) {
-        let clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.schalten(&richtung) {
-                sender.send(fehler.into());
-            }
-        });
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenannteWeicheSerialisiert<Richtung, Anschlüsse> {
     pub name: Name,

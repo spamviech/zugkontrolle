@@ -141,25 +141,25 @@ impl MitName for Option<KontaktSerialisiert> {
 }
 
 pub trait MitRichtung<Richtung> {
-    fn aktuelle_richtung(&self) -> Option<&Richtung>;
+    fn aktuelle_richtung(&self) -> Option<Richtung>;
 }
 impl<R> MitRichtung<R> for () {
-    fn aktuelle_richtung(&self) -> Option<&R> {
+    fn aktuelle_richtung(&self) -> Option<R> {
         None
     }
 }
 impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
-    fn aktuelle_richtung(&self) -> Option<&R> {
+    fn aktuelle_richtung(&self) -> Option<R> {
         self.as_ref().and_then(|t| t.aktuelle_richtung())
     }
 }
-impl<R, A> MitRichtung<R> for Weiche<R, A> {
-    fn aktuelle_richtung(&self) -> Option<&R> {
-        Some(&self.aktuelle_richtung)
+impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        Some(self.aktuelle_richtung.clone())
     }
 }
-impl<R, A> MitRichtung<R> for BenannteWeiche<R, A> {
-    fn aktuelle_richtung(&self) -> Option<&R> {
+impl<R: Clone, A> MitRichtung<R> for BenannteWeiche<R, A> {
+    fn aktuelle_richtung(&self) -> Option<R> {
         let weiche = self.weiche.lock().unwrap_or_else(|poison_error| {
             error!("");
             poison_error.into_inner()
