@@ -655,9 +655,9 @@ where
 
 impl<Z> Zugkontrolle<Z>
 where
-    Z: Zugtyp,
+    Z: Zugtyp + 'static,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
     fn weiche_stellen<T, Richtung, Anschlüsse>(
         &mut self,
@@ -673,26 +673,43 @@ where
         nächste_richtung: impl Fn(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
             + Send
             + 'static,
+        erzeuge_fehler_nachricht: impl Fn(
+                String,
+                String,
+                steuerung::BenannteWeicheSerialisiert<Richtung, Anschlüsse::Serialisiert>,
+            ) -> Message<Z>
+            + Send
+            + 'static,
     ) where
-        Richtung: Clone + Send + 'static,
-        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
+        Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Send + 'static,
+        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Serialisiere + Send + 'static,
+        <Anschlüsse as Serialisiere>::Serialisiert: Send + 'static,
     {
         let mut error_message = None;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             if let Some(steuerung::BenannteWeiche { name, weiche: mutex }) = steuerung.as_mut() {
                 let mutex_clone = mutex.clone();
                 let name_clone = name.clone();
+                let sender_clone = self.sender.clone();
                 thread::spawn(move || {
                     let mut weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
                         error!("Weiche-Mutex von {} poisoned!", name_clone.0);
                         poison_error.into_inner()
                     });
                     let richtung = nächste_richtung(&mut weiche);
-                    if let Err(error) = weiche.schalten(&richtung) {
-                        todo!(
-                            "An UI-Thread mit bisherigem Zustand schicken: {:?}",
-                            (format!("{} schalten", gleis_art), format!("{:?}", error))
-                        );
+                    if let Err(fehler) = weiche.schalten(&richtung) {
+                        let serialisiert = weiche.serialisiere();
+                        let send_result = sender_clone.send(erzeuge_fehler_nachricht(
+                            format!("{} schalten", gleis_art),
+                            format!("{:?}", fehler),
+                            steuerung::BenannteWeicheSerialisiert {
+                                name: name_clone.clone(),
+                                weiche: serialisiert,
+                            },
+                        ));
+                        if let Err(fehler) = send_result {
+                            error!("Message-Channel geschlossen: {:?}", fehler)
+                        }
                     }
                 });
             } else {
@@ -728,6 +745,7 @@ where
                         Richtung::Gerade
                     }
                 },
+                |_, _, _| todo!(),
             ),
             AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
                 "DreiwegeWeiche",
@@ -749,6 +767,7 @@ where
                         Richtung::Gerade
                     }
                 },
+                |_, _, _| todo!(),
             ),
             AnyId::KurvenWeiche(id) => self.weiche_stellen(
                 "KurvenWeiche",
@@ -762,6 +781,7 @@ where
                         Richtung::Außen
                     }
                 },
+                |_, _, _| todo!(),
             ),
             AnyId::SKurvenWeiche(id) => self.weiche_stellen(
                 "SKurvenWeiche",
@@ -775,6 +795,7 @@ where
                         Richtung::Gerade
                     }
                 },
+                |_, _, _| todo!(),
             ),
             AnyId::Kreuzung(id) => self.weiche_stellen(
                 "Kreuzung",
@@ -788,6 +809,7 @@ where
                         Richtung::Gerade
                     }
                 },
+                |_, _, _| todo!(),
             ),
         }
     }
