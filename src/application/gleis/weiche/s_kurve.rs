@@ -24,7 +24,7 @@ use crate::{
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[alias_serialisiert_unit(steuerung::Weiche<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(steuerung::BenannteWeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche<
     Z,

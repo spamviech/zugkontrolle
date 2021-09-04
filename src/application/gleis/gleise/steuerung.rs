@@ -60,7 +60,7 @@ macro_rules! steuerung_weiche {
             &'t mut self,
             gleis_id: &GleisId<$type>,
         ) -> Result<
-            Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>,
+            Steuerung<'t, steuerung::weiche::BenannteWeiche<$richtung, $anschlüsse>>,
             GleisEntferntFehler,
         > {
             let Gleise { maps, canvas, .. } = self;
@@ -100,15 +100,15 @@ impl<Z: Zugtyp> Gleise<Z> {
         steuerung_s_kurven_weiche,
         gleis::SKurvenWeiche<Z>,
         s_kurven_weichen,
-        gleis::weiche::gerade::Richtung,
-        gleis::weiche::gerade::RichtungAnschlüsse
+        gleis::weiche::s_kurve::Richtung,
+        gleis::weiche::s_kurve::RichtungAnschlüsse
     }
 
     steuerung_weiche! {
         steuerung_kreuzung,
         gleis::Kreuzung<Z>,
         kreuzungen,
-        gleis::weiche::gerade::Richtung,
-        gleis::weiche::gerade::RichtungAnschlüsse
+        gleis::kreuzung::Richtung,
+        gleis::kreuzung::RichtungAnschlüsse
     }
 }

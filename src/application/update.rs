@@ -219,48 +219,6 @@ where
         }
     }
 
-    fn weiche_stellen<T, Richtung, Anschlüsse>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Z>,
-            &GleisId<T>,
-        ) -> Result<
-            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
-            GleisEntferntFehler,
-        >,
-        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
-    ) where
-        Richtung: Clone,
-        Anschlüsse: Lookup<Richtung, OutputAnschluss>,
-    {
-        let mut error_message = None;
-        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(weiche) = steuerung.as_mut() {
-                let richtung =
-                    nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
-                if let Err(error) = weiche.schalten(&richtung) {
-                    error_message
-                        .insert((format!("{} schalten", gleis_art), format!("{:?}", error)));
-                }
-            } else {
-                error_message.insert((
-                    "Keine Richtungs-Anschlüsse!".to_string(),
-                    format!("{} hat keine Anschlüsse!", gleis_art),
-                ));
-            }
-        } else {
-            error_message.insert((
-                "Gleis entfernt!".to_string(),
-                format!("FahrenAktion für entfernte {}!", gleis_art),
-            ));
-        }
-        if let Some((titel, nachricht)) = error_message {
-            self.zeige_message_box(titel, nachricht)
-        }
-    }
-
     pub fn gleis_hinzufügen(&mut self, gleis: AnyGleis<Z>, grab_height: Skalar) {
         let streckenabschnitt =
             self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone());
@@ -597,6 +555,65 @@ where
         }
     }
 
+    #[inline(always)]
+    pub fn bewegung_beenden(&mut self) {
+        self.bewegung = None
+    }
+
+    #[inline(always)]
+    pub fn bewegung_zurücksetzen(&mut self) {
+        self.gleise.setze_pivot(Vektor::null_vektor())
+    }
+}
+
+impl<Z> Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+{
+    fn weiche_stellen<T, Richtung, Anschlüsse>(
+        &mut self,
+        gleis_art: &str,
+        id: GleisId<T>,
+        gleise_steuerung: impl for<'t> Fn(
+            &'t mut Gleise<Z>,
+            &GleisId<T>,
+        ) -> Result<
+            Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
+            GleisEntferntFehler,
+        >,
+        nächste_richtung: impl Fn(&Richtung, &Richtung) -> Richtung,
+    ) where
+        Richtung: Clone,
+        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send,
+    {
+        let mut error_message = None;
+        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+            if let Some(steuerung::BenannteWeiche { name: _, weiche }) = steuerung.as_mut() {
+                let richtung =
+                    nächste_richtung(&weiche.aktuelle_richtung, &weiche.letzte_richtung);
+                if let Err(error) = weiche.schalten(&richtung) {
+                    error_message
+                        .insert((format!("{} schalten", gleis_art), format!("{:?}", error)));
+                }
+            } else {
+                error_message.insert((
+                    "Keine Richtungs-Anschlüsse!".to_string(),
+                    format!("{} hat keine Anschlüsse!", gleis_art),
+                ));
+            }
+        } else {
+            error_message.insert((
+                "Gleis entfernt!".to_string(),
+                format!("FahrenAktion für entfernte {}!", gleis_art),
+            ));
+        }
+        if let Some((titel, nachricht)) = error_message {
+            self.zeige_message_box(titel, nachricht)
+        }
+    }
+
     pub fn fahren_aktion(&mut self, any_id: AnyId<Z>) {
         match any_id {
             AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
@@ -621,10 +638,13 @@ where
                 |aktuelle_richtung, letzte_richtung| {
                     use gleis::weiche::dreiwege::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
-                        if letzte_richtung == &Richtung::Links {
-                            Richtung::Rechts
-                        } else {
-                            Richtung::Links
+                        match letzte_richtung {
+                            Richtung::Links => Richtung::Rechts,
+                            Richtung::Rechts => Richtung::Links,
+                            Richtung::Gerade => {
+                                error!("Invalider Zustand bei Dreiwegeweiche! Schalte auf Gerade.");
+                                Richtung::Gerade
+                            }
                         }
                     } else {
                         Richtung::Gerade
@@ -671,16 +691,6 @@ where
                 },
             ),
         }
-    }
-
-    #[inline(always)]
-    pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
-    }
-
-    #[inline(always)]
-    pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
     }
 }
 
@@ -755,6 +765,24 @@ where
             AnyId::Kurve(id) => {
                 debug!("Anschlüsse für Kurve {:?} anpassen.", id)
             }
+            /*
+            zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Status>(
+                &mut self,
+                gleis_art: &str,
+                id: GleisId<T>,
+                gleise_steuerung: impl for<'t> Fn(
+                    &'t mut Gleise<Z>,
+                    &GleisId<T>,
+                ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
+                erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
+                erzeuge_modal: impl Fn(
+                    Status,
+                    Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Message<Z>>,
+                ) -> Modal<Z>,
+                als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
+                    + 'static,
+            )
+            */
             AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "Weiche",
                 id,

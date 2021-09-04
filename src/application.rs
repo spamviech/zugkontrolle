@@ -90,7 +90,7 @@ pub enum AnschlüsseAnpassen<Z> {
     Weiche(
         GleisId<Weiche<Z>>,
         Option<
-            steuerung::Weiche<
+            steuerung::BenannteWeicheSerialisiert<
                 gleis::weiche::gerade::Richtung,
                 gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
@@ -99,7 +99,7 @@ pub enum AnschlüsseAnpassen<Z> {
     DreiwegeWeiche(
         GleisId<DreiwegeWeiche<Z>>,
         Option<
-            steuerung::Weiche<
+            steuerung::BenannteWeicheSerialisiert<
                 gleis::weiche::dreiwege::Richtung,
                 gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
             >,
@@ -108,7 +108,7 @@ pub enum AnschlüsseAnpassen<Z> {
     KurvenWeiche(
         GleisId<KurvenWeiche<Z>>,
         Option<
-            steuerung::Weiche<
+            steuerung::BenannteWeicheSerialisiert<
                 gleis::weiche::kurve::Richtung,
                 gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
             >,
@@ -117,7 +117,7 @@ pub enum AnschlüsseAnpassen<Z> {
     SKurvenWeiche(
         GleisId<SKurvenWeiche<Z>>,
         Option<
-            steuerung::Weiche<
+            steuerung::BenannteWeicheSerialisiert<
                 gleis::weiche::gerade::Richtung,
                 gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
@@ -126,7 +126,7 @@ pub enum AnschlüsseAnpassen<Z> {
     Kreuzung(
         GleisId<Kreuzung<Z>>,
         Option<
-            steuerung::Weiche<
+            steuerung::BenannteWeicheSerialisiert<
                 gleis::weiche::gerade::Richtung,
                 gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
             >,
@@ -234,7 +234,7 @@ where
         Arc<
             dyn Fn(
                 Option<
-                    steuerung::Weiche<
+                    steuerung::BenannteWeicheSerialisiert<
                         gleis::weiche::gerade::Richtung,
                         gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
                     >,
@@ -250,7 +250,7 @@ where
         Arc<
             dyn Fn(
                 Option<
-                    steuerung::Weiche<
+                    steuerung::BenannteWeicheSerialisiert<
                         gleis::weiche::dreiwege::Richtung,
                         gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
                     >,
@@ -266,7 +266,7 @@ where
         Arc<
             dyn Fn(
                 Option<
-                    steuerung::Weiche<
+                    steuerung::BenannteWeicheSerialisiert<
                         gleis::weiche::kurve::Richtung,
                         gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
                     >,

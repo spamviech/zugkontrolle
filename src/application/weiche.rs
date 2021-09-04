@@ -12,7 +12,7 @@ use crate::{
     anschluss::OutputSerialisiert,
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     lookup::Lookup,
-    steuerung::weiche::{Name, Weiche},
+    steuerung::weiche::{BenannteWeicheSerialisiert, Name, Weiche},
 };
 
 #[derive(Debug, Clone)]
@@ -31,9 +31,13 @@ impl<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
 where
     AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
-    pub fn neu<Richtung>(option_weiche: Option<Weiche<Richtung, AnschlüsseSerialisiert>>) -> Self {
+    pub fn neu<Richtung>(
+        option_weiche: Option<BenannteWeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+    ) -> Self {
         let (name, anschlüsse_save, hat_steuerung) =
-            if let Some(Weiche { name, anschlüsse, .. }) = option_weiche {
+            if let Some(BenannteWeicheSerialisiert { name, weiche: Weiche { anschlüsse, .. } }) =
+                option_weiche
+            {
                 (name.0, anschlüsse, true)
             } else {
                 (String::new(), Default::default(), false)
@@ -133,7 +137,7 @@ where
 
 #[derive(Debug, Clone)]
 pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
-    Festlegen(Option<Weiche<Richtung, AnschlüsseSerialisiert>>),
+    Festlegen(Option<BenannteWeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>),
     Schließen,
 }
 
@@ -176,12 +180,16 @@ where
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *self.anschlüsse.get_mut(&richtung) = anschluss
                 }
-                InterneNachricht::Festlegen => messages.push(Nachricht::Festlegen(Some(Weiche {
-                    name: Name(self.name.clone()),
-                    aktuelle_richtung: Default::default(),
-                    letzte_richtung: Default::default(),
-                    anschlüsse: self.anschlüsse.clone(),
-                }))),
+                InterneNachricht::Festlegen => {
+                    messages.push(Nachricht::Festlegen(Some(BenannteWeicheSerialisiert {
+                        name: Name(self.name.clone()),
+                        weiche: Weiche {
+                            aktuelle_richtung: Default::default(),
+                            letzte_richtung: Default::default(),
+                            anschlüsse: self.anschlüsse.clone(),
+                        },
+                    })))
+                }
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
