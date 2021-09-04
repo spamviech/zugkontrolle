@@ -3,8 +3,8 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::{mpsc::Sender, Arc, Mutex},
-    thread::{self, sleep},
+    sync::{Arc, Mutex},
+    thread::sleep,
     time::Duration,
 };
 
