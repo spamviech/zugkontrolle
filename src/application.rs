@@ -219,6 +219,34 @@ where
     }
 }
 
+// Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
+type WeicheStatus = weiche::Status<
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
+>;
+type WeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+>;
+
+type DreiwegeWeicheStatus = weiche::Status<
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
+>;
+type DreiwegeWeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+    gleis::weiche::dreiwege::Richtung,
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+
+type KurvenWeicheStatus = weiche::Status<
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
+>;
+type KurvenWeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+>;
+
 pub enum Modal<Z>
 where
     Z: Zugtyp,
@@ -226,54 +254,12 @@ where
 {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(
-        weiche::Status<
-            gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
-            gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
-        >,
-        Arc<
-            dyn Fn(
-                Option<
-                    steuerung::BenannteWeicheSerialisiert<
-                        gleis::weiche::gerade::Richtung,
-                        gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
-                    >,
-                >,
-            ) -> Message<Z>,
-        >,
-    ),
+    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Message<Z>>),
     DreiwegeWeiche(
-        weiche::Status<
-            gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
-            gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
-        >,
-        Arc<
-            dyn Fn(
-                Option<
-                    steuerung::BenannteWeicheSerialisiert<
-                        gleis::weiche::dreiwege::Richtung,
-                        gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
-                    >,
-                >,
-            ) -> Message<Z>,
-        >,
+        DreiwegeWeicheStatus,
+        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Message<Z>>,
     ),
-    KurvenWeiche(
-        weiche::Status<
-            gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
-            gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
-        >,
-        Arc<
-            dyn Fn(
-                Option<
-                    steuerung::BenannteWeicheSerialisiert<
-                        gleis::weiche::kurve::Richtung,
-                        gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
-                    >,
-                >,
-            ) -> Message<Z>,
-        >,
-    ),
+    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Message<Z>>),
 }
 
 #[derive(Debug)]
