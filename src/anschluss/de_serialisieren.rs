@@ -46,10 +46,14 @@ pub enum AnschlussOderSerialisiert<T: Serialisiere> {
     Serialisiert(T::Serialisiert),
 }
 
-impl<T: Serialisiere> AnschlussOderSerialisiert<T> {
+impl<T> AnschlussOderSerialisiert<T>
+where
+    T: Serialisiere,
+    <T as Serialisiere>::Serialisiert: Clone,
+{
     pub(crate) fn entferne_anschluss(&mut self) -> AnschlussOderSerialisiert<T> {
         let serialisiert = self.serialisiere();
-        std::mem::replace(self, T::Serialisiert(serialisiert))
+        std::mem::replace(self, AnschlussOderSerialisiert::Serialisiert(serialisiert))
     }
 
     pub fn serialisiere(&self) -> T::Serialisiert {
