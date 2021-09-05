@@ -134,10 +134,10 @@ fn geschwindigkeit_ks(
         )
     }
     // neuen anstellen
-    *letzter_wert = wert_usize;
     if wert_usize > 0 {
         geschwindigkeit.get_mut(wert_usize - 1).unwrap().einstellen(Fließend::Fließend)?;
     }
+    *letzter_wert = wert_usize;
     Ok(())
 }
 
