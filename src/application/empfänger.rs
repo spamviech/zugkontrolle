@@ -4,14 +4,14 @@ use std::{
     hash::{Hash, Hasher},
     pin::Pin,
     sync::{
-        mpsc::{Receiver, TryRecvError},
-        Arc, Mutex, TryLockError,
+        mpsc::{Receiver, RecvError},
+        Arc, Mutex,
     },
     task::{Context, Poll},
 };
 
 use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
-use log::error;
+use log::{debug, error};
 
 /// Warte auf eine Nachricht
 #[derive(Debug, Clone)]
@@ -33,10 +33,8 @@ where
     type Output = Nachricht;
 
     fn hash(&self, state: &mut H) {
-        // always return a new hash, copied from download_progress-example
-        // https://github.com/hecrj/iced/blob/master/examples/download_progress/src/download.rs
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
+        // Add some string to differentiate from other possible subscriptions without hashable state.
+        "Empfänger".hash(state);
     }
 
     fn stream(self: Box<Self>, _input: BoxStream<Event>) -> BoxStream<Self::Output> {
@@ -49,21 +47,20 @@ impl<Nachricht: Unpin> Stream for Empfänger<Nachricht> {
 
     fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let unpinned = Pin::into_inner(self);
-        let receiver = match unpinned.receiver.try_lock() {
+        let receiver = match unpinned.receiver.lock() {
             Ok(receiver) => receiver,
-            Err(TryLockError::WouldBlock) => return Poll::Pending,
-            Err(TryLockError::Poisoned(poisoned)) => {
-                error!("Mutex containing Channel for Message subscription poisoned!");
-                poisoned.into_inner()
+            Err(poison_error) => {
+                error!("Receiver-Mutex von Empfänger poisoned!");
+                poison_error.into_inner()
             }
         };
-        match receiver.try_recv() {
+        let r = match receiver.recv() {
             Ok(nachricht) => Poll::Ready(Some(nachricht)),
-            Err(TryRecvError::Empty) => Poll::Pending,
-            Err(TryRecvError::Disconnected) => {
-                error!("Channel for Message subscription disconnected!");
+            Err(RecvError) => {
+                debug!("Channel for Message subscription disconnected!");
                 Poll::Ready(None)
             }
-        }
+        };
+        r
     }
 }
