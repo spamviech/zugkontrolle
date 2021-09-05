@@ -1,12 +1,10 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
-use log::error;
-
 use crate::{
     application::gleis::verbindung,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
-        weiche::{BenannteWeiche, Weiche},
+        weiche::Weiche,
     },
 };
 
@@ -124,7 +122,7 @@ impl MitName for () {
         None
     }
 }
-impl<R, A> MitName for Option<BenannteWeiche<R, A>> {
+impl<R, A> MitName for Option<Weiche<R, A>> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|weiche| &weiche.name.0)
     }
@@ -156,14 +154,5 @@ impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
 impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
     fn aktuelle_richtung(&self) -> Option<R> {
         Some(self.aktuelle_richtung.clone())
-    }
-}
-impl<R: Clone, A> MitRichtung<R> for BenannteWeiche<R, A> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        let weiche = self.weiche.lock().unwrap_or_else(|poison_error| {
-            error!("");
-            poison_error.into_inner()
-        });
-        weiche.aktuelle_richtung()
     }
 }

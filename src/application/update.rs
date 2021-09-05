@@ -578,7 +578,7 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<
-            Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
+            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
             GleisEntferntFehler,
         >,
         aktuelle_richtung: Richtung,
@@ -586,12 +586,19 @@ where
     ) {
         // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(steuerung::BenannteWeiche { name, weiche: mutex }) = steuerung.as_mut() {
-                let mut weiche = &mut *mutex
-                    .lock()
-                    .unwrap_or_else(|poison_error| heile_poison(poison_error, "Weiche", &name.0));
-                weiche.aktuelle_richtung = aktuelle_richtung;
-                weiche.letzte_richtung = letzte_richtung;
+            if let Some(steuerung::Weiche {
+                name,
+                aktuelle_richtung,
+                letzte_richtung,
+                anschlüsse: mutex,
+            }) = steuerung.as_mut()
+            {
+                todo!()
+                // let mut weiche = &mut *mutex
+                //     .lock()
+                //     .unwrap_or_else(|poison_error| heile_poison(poison_error, "Weiche", &name.0));
+                // weiche.aktuelle_richtung = aktuelle_richtung;
+                // weiche.letzte_richtung = letzte_richtung;
             }
         }
     }
@@ -657,7 +664,7 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<
-            Steuerung<'t, steuerung::BenannteWeiche<Richtung, Anschlüsse>>,
+            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
             GleisEntferntFehler,
         >,
         nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
@@ -674,32 +681,44 @@ where
     {
         let mut error_message = None;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(steuerung::BenannteWeiche { name, weiche: mutex }) = steuerung.as_mut() {
-                let mutex_clone = mutex.clone();
-                let name_clone = name.clone();
-                let sender_clone = self.sender.clone();
-                thread::spawn(move || {
-                    let mut weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
-                        error!("Weiche-Mutex von {} poisoned!", name_clone.0);
-                        poison_error.into_inner()
-                    });
-                    let bisheriger_zustand = weiche.serialisiere();
-                    let richtung = nächste_richtung(&mut weiche);
-                    if let Err(fehler) = weiche.schalten(&richtung) {
-                        let send_result = sender_clone.send(Message::AsyncFehler {
-                            titel: format!("{} schalten", gleis_art),
-                            nachricht: format!("{:?}", fehler),
-                            zustand_zurücksetzen: zustand_zurücksetzen(
-                                id,
-                                bisheriger_zustand.aktuelle_richtung,
-                                bisheriger_zustand.letzte_richtung,
-                            ),
-                        });
-                        if let Err(fehler) = send_result {
-                            error!("Message-Channel geschlossen: {:?}", fehler)
-                        }
-                    }
-                });
+            if let Some(steuerung::Weiche {
+                name,
+                aktuelle_richtung,
+                letzte_richtung,
+                anschlüsse: mutex,
+            }) = steuerung.as_mut()
+            {
+                todo!()
+                // let mutex_clone = mutex.clone();
+                // let name_clone = name.clone();
+                // let sender_clone = self.sender.clone();
+                // let mut weiche = mutex.lock().unwrap_or_else(|poison_error| {
+                //     error!("Weiche-Mutex von {} poisoned!", name_clone.0);
+                //     poison_error.into_inner()
+                // });
+                // let bisheriger_zustand = weiche.serialisiere();
+                // let richtung = nächste_richtung(&mut weiche);
+                // let bisherige_richtung = weiche.aktuelle_richtung.clone();
+                // thread::spawn(move || {
+                //     let mut weiche = mutex_clone.lock().unwrap_or_else(|poison_error| {
+                //         error!("Weiche-Mutex von {} poisoned!", name_clone.0);
+                //         poison_error.into_inner()
+                //     });
+                //     if let Err(fehler) = weiche.schalten(&richtung) {
+                //         let send_result = sender_clone.send(Message::AsyncFehler {
+                //             titel: format!("{} schalten", gleis_art),
+                //             nachricht: format!("{:?}", fehler),
+                //             zustand_zurücksetzen: zustand_zurücksetzen(
+                //                 id,
+                //                 bisheriger_zustand.aktuelle_richtung,
+                //                 bisheriger_zustand.letzte_richtung,
+                //             ),
+                //         });
+                //         if let Err(fehler) = send_result {
+                //             error!("Message-Channel geschlossen: {:?}", fehler)
+                //         }
+                //     }
+                // });
             } else {
                 error_message.insert((
                     "Keine Richtungs-Anschlüsse!".to_string(),

@@ -18,10 +18,9 @@ use crate::{
 };
 
 /// Definition einer Kreuzung
-#[alias_serialisiert_unit(steuerung::BenannteWeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::BenannteWeiche<Richtung, RichtungAnschlüsse>>>
-{
+pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub zugtyp: PhantomData<fn() -> Z>,
     pub länge: Skalar,
     pub radius: Skalar,

@@ -60,7 +60,7 @@ macro_rules! steuerung_weiche {
             &'t mut self,
             gleis_id: &GleisId<$type>,
         ) -> Result<
-            Steuerung<'t, steuerung::weiche::BenannteWeiche<$richtung, $anschlüsse>>,
+            Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>,
             GleisEntferntFehler,
         > {
             let Gleise { maps, canvas, .. } = self;

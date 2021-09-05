@@ -87,11 +87,11 @@ impl Modus {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnschlüsseAnpassen<Z> {
-    Weiche(GleisId<Weiche<Z>>, Option<BenannteWeicheSerialisiert>),
-    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>, Option<BenannteDreiwegeWeicheSerialisiert>),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>, Option<BenannteKurvenWeicheSerialisiert>),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, Option<BenannteWeicheSerialisiert>),
-    Kreuzung(GleisId<Kreuzung<Z>>, Option<BenannteWeicheSerialisiert>),
+    Weiche(GleisId<Weiche<Z>>, Option<WeicheSerialisiert>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>, Option<DreiwegeWeicheSerialisiert>),
+    KurvenWeiche(GleisId<KurvenWeiche<Z>>, Option<KurvenWeicheSerialisiert>),
+    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, Option<WeicheSerialisiert>),
+    Kreuzung(GleisId<Kreuzung<Z>>, Option<WeicheSerialisiert>),
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
@@ -210,7 +210,7 @@ type WeicheStatus = weiche::Status<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
     gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
 >;
-type BenannteWeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+type WeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
@@ -219,7 +219,7 @@ type DreiwegeWeicheStatus = weiche::Status<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
     gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
 >;
-type BenannteDreiwegeWeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+type DreiwegeWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
@@ -228,7 +228,7 @@ type KurvenWeicheStatus = weiche::Status<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
     gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
 >;
-type BenannteKurvenWeicheSerialisiert = steuerung::BenannteWeicheSerialisiert<
+type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
@@ -240,15 +240,12 @@ where
 {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, Arc<dyn Fn(Option<BenannteWeicheSerialisiert>) -> Message<Z>>),
+    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Message<Z>>),
     DreiwegeWeiche(
         DreiwegeWeicheStatus,
-        Arc<dyn Fn(Option<BenannteDreiwegeWeicheSerialisiert>) -> Message<Z>>,
+        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Message<Z>>,
     ),
-    KurvenWeiche(
-        KurvenWeicheStatus,
-        Arc<dyn Fn(Option<BenannteKurvenWeicheSerialisiert>) -> Message<Z>>,
-    ),
+    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Message<Z>>),
 }
 
 #[derive(Debug)]
