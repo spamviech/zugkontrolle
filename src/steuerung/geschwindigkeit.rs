@@ -3,13 +3,13 @@
 use std::{
     collections::BTreeMap,
     fmt::{self, Display, Formatter},
-    sync::{Arc, Mutex, MutexGuard, PoisonError},
-    thread::sleep,
+    sync::{mpsc::Sender, Arc, Mutex, MutexGuard, PoisonError},
+    thread::{self, sleep},
     time::Duration,
     usize,
 };
 
-use log::error;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -34,9 +34,15 @@ fn heile_poison<T>(poison_error: PoisonError<T>) -> T {
     poison_error.into_inner()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, zugkontrolle_derive::Clone)]
 pub struct Geschwindigkeit<Leiter> {
     leiter: Arc<Mutex<Leiter>>,
+}
+
+impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", Self::lock_leiter(&self.leiter))
+    }
 }
 
 impl<Leiter> Geschwindigkeit<Leiter> {
@@ -44,8 +50,8 @@ impl<Leiter> Geschwindigkeit<Leiter> {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
 
-    pub fn lock_leiter(&self) -> MutexGuard<Leiter> {
-        self.leiter.lock().unwrap_or_else(heile_poison)
+    pub(crate) fn lock_leiter(leiter: &Arc<Mutex<Leiter>>) -> MutexGuard<Leiter> {
+        leiter.lock().unwrap_or_else(heile_poison)
     }
 }
 
@@ -58,7 +64,7 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
     type Serialisiert = GeschwindigkeitSerialisiert<T::Serialisiert>;
 
     fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T::Serialisiert> {
-        GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
+        GeschwindigkeitSerialisiert { leiter: Self::lock_leiter(&self.leiter).serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
@@ -321,7 +327,7 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *self.lock_leiter() {
+        match &mut *Self::lock_leiter(&self.leiter) {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
             }
@@ -336,7 +342,7 @@ impl Geschwindigkeit<Mittelleiter> {
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        Ok(match &mut *self.lock_leiter() {
+        match &mut *Self::lock_leiter(&self.leiter) {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.enable_with_config(pwm::Config {
                     polarity: *polarität,
@@ -350,7 +356,31 @@ impl Geschwindigkeit<Mittelleiter> {
                 sleep(UMDREHENZEIT);
                 umdrehen.einstellen(Fließend::Gesperrt)?
             }
-        })
+        }
+        Ok(())
+    }
+
+    pub fn async_umdrehen<Nachricht: Send + 'static>(
+        &mut self,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        let mut clone = self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.umdrehen() {
+                let send_result = sender.send(erzeuge_nachricht(fehler));
+                if let Err(fehler) = send_result {
+                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            }
+        });
+    }
+
+    pub(crate) fn ks_länge(&self) -> Option<usize> {
+        match &*Self::lock_leiter(&self.leiter) {
+            Mittelleiter::Pwm { .. } => None,
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
+        }
     }
 }
 
@@ -394,7 +424,7 @@ impl Display for Zweileiter {
 
 impl Leiter for Geschwindigkeit<Zweileiter> {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *self.lock_leiter() {
+        match &mut *Self::lock_leiter(&self.leiter) {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
             }
@@ -409,7 +439,7 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let mut guard = self.lock_leiter();
+        let mut guard = Self::lock_leiter(&self.leiter);
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
@@ -417,15 +447,55 @@ impl Geschwindigkeit<Zweileiter> {
         Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
     }
 
+    pub fn async_fahrtrichtung<Nachricht: Send + 'static>(
+        &mut self,
+        neue_fahrtrichtung: Fahrtrichtung,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        let mut clone = self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung) {
+                let send_result = sender.send(erzeuge_nachricht(fehler));
+                if let Err(fehler) = send_result {
+                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            }
+        });
+    }
+
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let mut guard = self.lock_leiter();
+        let mut guard = Self::lock_leiter(&self.leiter);
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
         };
         Ok(fahrtrichtung.umstellen()?)
+    }
+
+    pub fn async_umdrehen<Nachricht: Send + 'static>(
+        &mut self,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        let mut clone = self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.umdrehen() {
+                let send_result = sender.send(erzeuge_nachricht(fehler));
+                if let Err(fehler) = send_result {
+                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            }
+        });
+    }
+
+    pub(crate) fn ks_länge(&self) -> Option<usize> {
+        match &*Self::lock_leiter(&self.leiter) {
+            Zweileiter::Pwm { .. } => None,
+            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
+        }
     }
 }
 

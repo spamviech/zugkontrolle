@@ -108,12 +108,6 @@ impl LeiterAnzeige for Mittelleiter {
             + slider::Renderer
             + radio::Renderer,
     {
-        let ks_iter = |geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>| match &*geschwindigkeit
-            .lock_leiter()
-        {
-            Mittelleiter::Pwm { .. } => None,
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
-        };
         let zeige_fahrtrichtung = |button_state: &'t mut button::State| {
             Button::new(button_state, Text::new("Umdrehen"))
                 .on_press(MessageMittelleiter::Umdrehen)
@@ -123,7 +117,7 @@ impl LeiterAnzeige for Mittelleiter {
             name,
             geschwindigkeit,
             status,
-            ks_iter,
+            Geschwindigkeit::<Mittelleiter>::ks_länge,
             MessageMittelleiter::Geschwindigkeit,
             zeige_fahrtrichtung,
         )
@@ -211,12 +205,6 @@ impl LeiterAnzeige for Zweileiter {
             + slider::Renderer
             + radio::Renderer,
     {
-        let ks_länge = |geschwindigkeit: &'t Geschwindigkeit<Zweileiter>| match &*geschwindigkeit
-            .lock_leiter()
-        {
-            Zweileiter::Pwm { .. } => None,
-            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
-        };
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
                 fahrtrichtung,
@@ -235,7 +223,7 @@ impl LeiterAnzeige for Zweileiter {
             name,
             geschwindigkeit,
             status,
-            ks_länge,
+            Geschwindigkeit::<Zweileiter>::ks_länge,
             MessageZweileiter::Geschwindigkeit,
             zeige_fahrtrichtung,
         )
@@ -446,7 +434,7 @@ impl AuswahlStatus {
     fn iter_map<'t, Leiter: 't + Display>(
         (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
     ) -> (Name, (String, button::State)) {
-        (name.clone(), (format!("{}", &*geschwindigkeit.lock_leiter()), button::State::new()))
+        (name.clone(), (geschwindigkeit.to_string(), button::State::new()))
     }
 
     pub fn hinzufügen<Leiter: Display>(

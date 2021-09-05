@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use log::error;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -109,7 +109,7 @@ where
             {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
-                    error!("Message-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
+                    debug!("Message-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
                 }
             }
         });
