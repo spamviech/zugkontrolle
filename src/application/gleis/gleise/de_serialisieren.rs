@@ -1,5 +1,7 @@
 //! speichern und laden Methode für Gleise
 
+use std::io::Read;
+
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -30,8 +32,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
         let Gleise { maps, .. } = self;
         let vecs = GleiseVecs::from((maps, geschwindigkeiten));
         let file = std::fs::File::create(pfad)?;
-        bincode::serialize_into(file, &vecs)?;
-        Ok(())
+        bincode::serialize_into(file, &vecs).map_err(Fehler::BincodeSerialisieren)
     }
 }
 
@@ -83,7 +84,10 @@ where
         self.anchor_points = verbindung::rstern::RStern::neu();
 
         // lese & parse Datei
-        let file = std::fs::File::open(pfad)?;
+        let mut file = std::fs::File::open(pfad)?;
+        let mut content = Vec::new();
+        file.read_to_end(&mut content)?;
+        let slice = content.as_slice();
         let GleiseVecs {
             name,
             geraden,
@@ -96,7 +100,11 @@ where
             streckenabschnitte,
             geschwindigkeiten,
             pläne: _, // TODO verwenden, sobald Plan implementiert ist
-        } = bincode::deserialize_from(file)?;
+        } = bincode::deserialize(slice).or_else(|aktuell| {
+            bincode::deserialize(slice)
+                .map(v2::GleiseVecs::into)
+                .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
+        })?;
         if name != Z::NAME {
             return Err(Fehler::FalscherZugtyp(name));
         }

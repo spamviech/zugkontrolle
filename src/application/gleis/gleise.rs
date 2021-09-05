@@ -340,7 +340,8 @@ impl Position {
 #[derive(Debug)]
 pub enum Fehler {
     IO(std::io::Error),
-    Bincode(bincode::Error),
+    BincodeSerialisieren(bincode::Error),
+    BincodeDeserialisieren { aktuell: bincode::Error, v2: bincode::Error },
     FalscherZugtyp(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
@@ -348,11 +349,6 @@ pub enum Fehler {
 impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
         Fehler::IO(error)
-    }
-}
-impl From<bincode::Error> for Fehler {
-    fn from(error: bincode::Error) -> Self {
-        Fehler::Bincode(error)
     }
 }
 impl From<anschluss::Fehler> for Fehler {
