@@ -32,7 +32,23 @@ pub struct Weiche<Richtung, Anschlüsse> {
     pub name: Name,
     pub aktuelle_richtung: Richtung,
     pub letzte_richtung: Richtung,
-    pub anschlüsse: Arc<Mutex<Anschlüsse>>,
+    anschlüsse: Arc<Mutex<Anschlüsse>>,
+}
+
+impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+    pub fn neu(
+        name: Name,
+        aktuelle_richtung: Richtung,
+        letzte_richtung: Richtung,
+        anschlüsse: Anschlüsse,
+    ) -> Self {
+        Weiche {
+            name,
+            aktuelle_richtung,
+            letzte_richtung,
+            anschlüsse: Arc::new(Mutex::new(anschlüsse)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,12 +179,12 @@ where
             input_anschlüsse,
         )?;
         Ok(Reserviert {
-            anschluss: Weiche {
-                name: self.name,
-                aktuelle_richtung: self.aktuelle_richtung,
-                letzte_richtung: self.letzte_richtung,
-                anschlüsse: Arc::new(Mutex::new(anschlüsse)),
-            },
+            anschluss: Weiche::neu(
+                self.name,
+                self.aktuelle_richtung,
+                self.letzte_richtung,
+                anschlüsse,
+            ),
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
