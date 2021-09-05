@@ -83,7 +83,7 @@ where
         &mut self,
         richtung: Richtung,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl Fn(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let name_clone = self.name.clone();
         let mut mutex_clone = self.anschlüsse.clone();
