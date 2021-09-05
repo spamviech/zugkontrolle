@@ -34,7 +34,7 @@ use crate::{
     farbe::Farbe,
     lookup::Lookup,
     steuerung::{
-        geschwindigkeit::{Geschwindigkeit, Leiter},
+        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         streckenabschnitt::Streckenabschnitt,
     },
     zugtyp::Zugtyp,
@@ -402,7 +402,7 @@ where
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: Geschwindigkeit<
+        geschwindigkeit_save: GeschwindigkeitSerialisiert<
             <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert,
         >,
     ) {

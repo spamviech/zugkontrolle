@@ -196,18 +196,21 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
     pub(crate) streckenabschnitte:
         HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSerialisiert>>,
-    pub(crate) geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
+    pub(crate) geschwindigkeiten:
+        geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
     pub(crate) pläne: Vec<Plan>,
 }
 
 impl<Z: Zugtyp>
-    From<(&GleiseMaps<Z>, geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>)>
-    for GleiseVecs<Z>
+    From<(
+        &GleiseMaps<Z>,
+        geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
+    )> for GleiseVecs<Z>
 {
     fn from(
         (maps, geschwindigkeiten): (
             &GleiseMaps<Z>,
-            geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
+            geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
         ),
     ) -> Self {
         macro_rules! hashmaps_to_vecs {

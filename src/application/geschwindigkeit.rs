@@ -3,7 +3,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::{Debug, Display},
-    iter,
     num::NonZeroUsize,
 };
 
@@ -20,7 +19,9 @@ use crate::{
     anschluss::{polarität::Polarität, pwm, OutputSerialisiert, Serialisiere},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
-    steuerung::geschwindigkeit::{Fahrtrichtung, Fehler, Leiter, Mittelleiter, Zweileiter},
+    steuerung::geschwindigkeit::{
+        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Leiter, Mittelleiter, Zweileiter,
+    },
 };
 
 pub type Map<Leiter> = HashMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
@@ -107,9 +108,11 @@ impl LeiterAnzeige for Mittelleiter {
             + slider::Renderer
             + radio::Renderer,
     {
-        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Mittelleiter>| match leiter {
+        let ks_iter = |geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>| match &*geschwindigkeit
+            .lock_leiter()
+        {
             Mittelleiter::Pwm { .. } => None,
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
         };
         let zeige_fahrtrichtung = |button_state: &'t mut button::State| {
             Button::new(button_state, Text::new("Umdrehen"))
@@ -208,9 +211,11 @@ impl LeiterAnzeige for Zweileiter {
             + slider::Renderer
             + radio::Renderer,
     {
-        let ks_iter = |Geschwindigkeit { leiter }: &'t Geschwindigkeit<Zweileiter>| match leiter {
+        let ks_länge = |geschwindigkeit: &'t Geschwindigkeit<Zweileiter>| match &*geschwindigkeit
+            .lock_leiter()
+        {
             Zweileiter::Pwm { .. } => None,
-            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.iter()),
+            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
         };
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
@@ -230,7 +235,7 @@ impl LeiterAnzeige for Zweileiter {
             name,
             geschwindigkeit,
             status,
-            ks_iter,
+            ks_länge,
             MessageZweileiter::Geschwindigkeit,
             zeige_fahrtrichtung,
         )
@@ -299,30 +304,27 @@ where
     M: 'static + Clone,
     R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
 {
-    pub fn neu_mit_leiter<Leiter, Iter>(
+    pub fn neu_mit_leiter<Leiter>(
         name: &'t Name,
         geschwindigkeit: &'t Geschwindigkeit<Leiter>,
         status: &'t mut AnzeigeStatus<Leiter>,
-        ks_iter: impl FnOnce(&'t Geschwindigkeit<Leiter>) -> Option<Iter>,
+        ks_länge: impl FnOnce(&'t Geschwindigkeit<Leiter>) -> Option<usize>,
         geschwindigkeits_nachricht: impl Fn(u8) -> M + Clone + 'static,
         zeige_fahrtrichtung: impl FnOnce(&'t mut Leiter::Fahrtrichtung) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
     ) -> Self
     where
         Leiter: LeiterAnzeige,
-        Iter: Iterator,
     {
         let AnzeigeStatus { aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
             status;
         // TODO Anschluss-Anzeige (Expander über Overlay?)
         let mut column = Column::new().spacing(1).push(Text::new(&name.0));
-        column = if let Some(iter) = ks_iter(geschwindigkeit) {
+        column = if let Some(länge) = ks_länge(geschwindigkeit) {
             column.push(
                 Row::with_children(
-                    iter::once(())
-                        .chain(iter.map(|_| ()))
-                        .enumerate()
-                        .map(|(i, ())| {
+                    (0..=länge)
+                        .map(|i| {
                             let i_u8 = i as u8;
                             Radio::new(
                                 i_u8,
@@ -444,7 +446,7 @@ impl AuswahlStatus {
     fn iter_map<'t, Leiter: 't + Display>(
         (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
     ) -> (Name, (String, button::State)) {
-        (name.clone(), (format!("{}", geschwindigkeit.leiter), button::State::new()))
+        (name.clone(), (format!("{}", &*geschwindigkeit.lock_leiter()), button::State::new()))
     }
 
     pub fn hinzufügen<Leiter: Display>(
@@ -737,7 +739,7 @@ where
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(
                         Name(self.neu_name.clone()),
-                        Geschwindigkeit {
+                        GeschwindigkeitSerialisiert {
                             leiter: if self.aktueller_tab == &0 {
                                 (self.pwm_nachricht)(
                                     self.umdrehen_anschluss.clone(),

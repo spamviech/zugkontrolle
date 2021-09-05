@@ -3,6 +3,7 @@
 use std::{
     collections::BTreeMap,
     fmt::{self, Display, Formatter},
+    sync::{Arc, Mutex, MutexGuard, PoisonError},
     thread::sleep,
     time::Duration,
     usize,
@@ -28,24 +29,52 @@ pub trait Leiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+fn heile_poison<T>(poison_error: PoisonError<T>) -> T {
+    error!("Leiter-Mutex für Geschwindigkeit poisoned!");
+    poison_error.into_inner()
+}
+
+#[derive(Debug, Clone)]
 pub struct Geschwindigkeit<Leiter> {
+    leiter: Arc<Mutex<Leiter>>,
+}
+
+impl<Leiter> Geschwindigkeit<Leiter> {
+    pub fn neu(leiter: Leiter) -> Self {
+        Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
+    }
+
+    pub fn lock_leiter(&self) -> MutexGuard<Leiter> {
+        self.leiter.lock().unwrap_or_else(heile_poison)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeschwindigkeitSerialisiert<Leiter> {
     pub leiter: Leiter,
 }
 
 impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
-    type Serialisiert = Geschwindigkeit<T::Serialisiert>;
+    type Serialisiert = GeschwindigkeitSerialisiert<T::Serialisiert>;
 
-    fn serialisiere(&self) -> Geschwindigkeit<T::Serialisiert> {
-        Geschwindigkeit { leiter: self.leiter.serialisiere() }
+    fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T::Serialisiert> {
+        GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        self.leiter.anschlüsse()
+        match Arc::try_unwrap(self.leiter) {
+            Ok(mutex) => mutex.into_inner().unwrap_or_else(heile_poison).anschlüsse(),
+            Err(_arc) => {
+                // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
+                // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
+                // Gebe stattdessen keine Anschlüsse zurück
+                (Vec::new(), Vec::new(), Vec::new())
+            }
+        }
     }
 }
 
-impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> {
+impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for GeschwindigkeitSerialisiert<T> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -60,7 +89,7 @@ impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for Geschwindigkeit<T> 
             input_nicht_benötigt,
         } = self.leiter.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
-            anschluss: Geschwindigkeit { leiter },
+            anschluss: Geschwindigkeit::neu(leiter),
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
@@ -79,7 +108,7 @@ fn geschwindigkeit_pwm(
         polarity,
         time: pwm::Time::Frequency {
             frequency: PWM_FREQUENZ,
-            duty_cycle: faktor * wert as f64 / u8::MAX as f64,
+            duty_cycle: faktor * f64::from(wert) / f64::from(u8::MAX),
         },
     })
 }
@@ -292,7 +321,7 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut self.leiter {
+        match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
             }
@@ -307,7 +336,7 @@ impl Geschwindigkeit<Mittelleiter> {
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        Ok(match &mut self.leiter {
+        Ok(match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.enable_with_config(pwm::Config {
                     polarity: *polarität,
@@ -365,7 +394,7 @@ impl Display for Zweileiter {
 
 impl Leiter for Geschwindigkeit<Zweileiter> {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut self.leiter {
+        match &mut *self.lock_leiter() {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
             }
@@ -380,7 +409,8 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let fahrtrichtung = match &mut self.leiter {
+        let mut guard = self.lock_leiter();
+        let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
         };
@@ -390,7 +420,8 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let fahrtrichtung = match &mut self.leiter {
+        let mut guard = self.lock_leiter();
+        let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
         };
@@ -599,3 +630,4 @@ impl From<pwm::Fehler> for Fehler {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 pub type Map<Leiter> = BTreeMap<Name, Geschwindigkeit<Leiter>>;
+pub type MapSerialisiert<Leiter> = BTreeMap<Name, GeschwindigkeitSerialisiert<Leiter>>;

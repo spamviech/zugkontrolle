@@ -29,7 +29,7 @@ use crate::{
     farbe::Farbe,
     steuerung::{
         self,
-        geschwindigkeit::{Geschwindigkeit, Leiter},
+        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
     },
 };
 
@@ -149,7 +149,7 @@ where
     ZeigeAuswahlGeschwindigkeit,
     HinzufügenGeschwindigkeit(
         geschwindigkeit::Name,
-        Geschwindigkeit<<<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert>,
+        GeschwindigkeitSerialisiert<<<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert>,
     ),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),

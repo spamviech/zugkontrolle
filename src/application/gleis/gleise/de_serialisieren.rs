@@ -23,10 +23,12 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     pub fn speichern(
         &self,
         pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: geschwindigkeit::Map<<Z::Leiter as Serialisiere>::Serialisiert>,
+        geschwindigkeiten: geschwindigkeit::MapSerialisiert<
+            <Z::Leiter as Serialisiere>::Serialisiert,
+        >,
     ) -> std::result::Result<(), Fehler> {
         let Gleise { maps, .. } = self;
-        let vecs: GleiseVecs<Z> = (maps, geschwindigkeiten).into();
+        let vecs = GleiseVecs::from((maps, geschwindigkeiten));
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &vecs)?;
         Ok(())
