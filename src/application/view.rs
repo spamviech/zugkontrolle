@@ -330,15 +330,11 @@ where
             for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
-                    iced::Element::from(Z::Leiter::anzeige_neu(
-                        name,
-                        geschwindigkeit,
-                        anzeige_status,
-                    ))
-                    .map(move |nachricht| Message::GeschwindigkeitAnzeige {
-                        name: name_clone.clone(),
-                        nachricht,
-                    }),
+                    iced::Element::from(Z::Leiter::anzeige_neu(geschwindigkeit, anzeige_status))
+                        .map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                            name: name_clone.clone(),
+                            nachricht,
+                        }),
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?

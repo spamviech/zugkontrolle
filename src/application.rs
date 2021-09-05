@@ -95,7 +95,7 @@ pub enum AnschlüsseAnpassen<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum ZustandZurücksetzen<Z> {
+pub enum ZustandZurücksetzen<Z: Zugtyp> {
     Weiche(GleisId<Weiche<Z>>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
     DreiwegeWeiche(
         GleisId<DreiwegeWeiche<Z>>,
@@ -113,6 +113,10 @@ pub enum ZustandZurücksetzen<Z> {
         gleis::weiche::s_kurve::Richtung,
     ),
     Kreuzung(GleisId<Kreuzung<Z>>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
+    GeschwindigkeitAnzeige(
+        geschwindigkeit::Name,
+        <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
+    ),
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
@@ -144,12 +148,12 @@ where
     Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
-        nachricht: <Z::Leiter as LeiterAnzeige>::Message,
+        nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
     },
     ZeigeAuswahlGeschwindigkeit,
     HinzufügenGeschwindigkeit(
         geschwindigkeit::Name,
-        GeschwindigkeitSerialisiert<<<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert>,
+        GeschwindigkeitSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
     ),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
@@ -293,8 +297,6 @@ where
     Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
-    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Fahrtrichtung: Debug,
-    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message: Unpin,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Unpin,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
@@ -434,7 +436,9 @@ where
             }
             Message::FahrenAktion(any_id) => self.fahren_aktion(any_id),
             Message::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
-                self.async_fehler(titel, nachricht, zustand_zurücksetzen)
+                if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
+                    command = cmd
+                }
             }
         }
 

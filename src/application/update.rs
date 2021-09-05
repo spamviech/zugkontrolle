@@ -438,7 +438,7 @@ where
                     name.clone(),
                     (
                         geschwindigkeit,
-                        <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
+                        <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
                     ),
                 );
                 if let Some(ersetzt) = alt_save {
@@ -470,7 +470,9 @@ where
                                 name.clone(),
                                 (
                                     geschwindigkeit,
-                                    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(),
+                                    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(
+                                        name.clone(),
+                                    ),
                                 ),
                             );
                         }
@@ -565,7 +567,15 @@ where
     pub fn bewegung_zurücksetzen(&mut self) {
         self.gleise.setze_pivot(Vektor::null_vektor())
     }
+}
 
+impl<Z> Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    Z::Leiter: LeiterAnzeige,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht: 'static,
+{
     fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
@@ -588,12 +598,34 @@ where
         }
     }
 
+    fn geschwindigkeit_anzeige_zurücksetzen(
+        &mut self,
+        name: geschwindigkeit::Name,
+        zustand_zurücksetzen: <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
+    ) -> Option<iced::Command<Message<Z>>> {
+        // Entferntes Geschwindigkeit wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
+        if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
+            let cmd = <Z::Leiter as LeiterAnzeige>::zustand_zurücksetzen(
+                geschwindigkeit,
+                anzeige_status,
+                zustand_zurücksetzen,
+            );
+            Some(cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                name: name.clone(),
+                nachricht,
+            }))
+        } else {
+            None
+        }
+    }
+
     pub fn async_fehler(
         &mut self,
         titel: String,
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Z>,
-    ) {
+    ) -> Option<iced::Command<Message<Z>>> {
+        let mut command = None;
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
                 .weiche_zurücksetzen(
@@ -630,8 +662,12 @@ where
                     aktuelle_richtung,
                     letzte_richtung,
                 ),
+            ZustandZurücksetzen::GeschwindigkeitAnzeige(name, zustand_zurücksetzen) => {
+                command = self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
+            }
         }
-        self.zeige_message_box(titel, nachricht)
+        self.zeige_message_box(titel, nachricht);
+        command
     }
 }
 
@@ -814,20 +850,31 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + 'static,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
     pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
         name: geschwindigkeit::Name,
-        nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Message,
+        nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht,
     ) -> Option<iced::Command<Message<Z>>> {
         let mut command = None;
         if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
-            match <Z::Leiter as LeiterAnzeige>::anzeige_update(
+            let name_clone = name.clone();
+            let update_result = <Z::Leiter as LeiterAnzeige>::anzeige_update(
                 geschwindigkeit,
                 anzeige_status,
                 nachricht,
-            ) {
+                self.sender.clone(),
+                move |titel, fehler, zustand_zurücksetzen| Message::AsyncFehler {
+                    titel,
+                    nachricht: format!("{:?}", fehler),
+                    zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
+                        name_clone,
+                        zustand_zurücksetzen,
+                    ),
+                },
+            );
+            match update_result {
                 Ok(cmd) => {
                     let name_clone = name.clone();
                     command = Some(cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
@@ -954,7 +1001,7 @@ where
                 self.geschwindigkeiten = geschwindigkeiten
                     .into_iter()
                     .map(|(name, geschwindigkeit)| {
-                        (name, (geschwindigkeit, Z::Leiter::anzeige_status_neu()))
+                        (name.clone(), (geschwindigkeit, Z::Leiter::anzeige_status_neu(name)))
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;

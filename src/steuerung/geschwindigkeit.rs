@@ -41,7 +41,7 @@ pub struct Geschwindigkeit<Leiter> {
 
 impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Self::lock_leiter(&self.leiter))
+        write!(f, "{}", self.lock_leiter())
     }
 }
 
@@ -50,8 +50,8 @@ impl<Leiter> Geschwindigkeit<Leiter> {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
 
-    pub(crate) fn lock_leiter(leiter: &Arc<Mutex<Leiter>>) -> MutexGuard<Leiter> {
-        leiter.lock().unwrap_or_else(heile_poison)
+    pub(crate) fn lock_leiter<'t>(&'t self) -> MutexGuard<'t, Leiter> {
+        self.leiter.lock().unwrap_or_else(heile_poison)
     }
 }
 
@@ -64,7 +64,7 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
     type Serialisiert = GeschwindigkeitSerialisiert<T::Serialisiert>;
 
     fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T::Serialisiert> {
-        GeschwindigkeitSerialisiert { leiter: Self::lock_leiter(&self.leiter).serialisiere() }
+        GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
@@ -331,7 +331,7 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *Self::lock_leiter(&self.leiter) {
+        match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
             }
@@ -346,7 +346,7 @@ impl Geschwindigkeit<Mittelleiter> {
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        match &mut *Self::lock_leiter(&self.leiter) {
+        match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.enable_with_config(pwm::Config {
                     polarity: *polarität,
@@ -381,7 +381,7 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {
-        match &*Self::lock_leiter(&self.leiter) {
+        match &*self.lock_leiter() {
             Mittelleiter::Pwm { .. } => None,
             Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
         }
@@ -428,7 +428,7 @@ impl Display for Zweileiter {
 
 impl Leiter for Geschwindigkeit<Zweileiter> {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *Self::lock_leiter(&self.leiter) {
+        match &mut *self.lock_leiter() {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
             }
@@ -443,7 +443,7 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let mut guard = Self::lock_leiter(&self.leiter);
+        let mut guard = self.lock_leiter();
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
@@ -471,7 +471,7 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn umdrehen(&mut self) -> Result<(), Fehler> {
         self.geschwindigkeit(0)?;
         sleep(STOPPZEIT);
-        let mut guard = Self::lock_leiter(&self.leiter);
+        let mut guard = self.lock_leiter();
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
@@ -496,7 +496,7 @@ impl Geschwindigkeit<Zweileiter> {
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {
-        match &*Self::lock_leiter(&self.leiter) {
+        match &*self.lock_leiter() {
             Zweileiter::Pwm { .. } => None,
             Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
         }
