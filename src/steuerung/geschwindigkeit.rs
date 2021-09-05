@@ -109,7 +109,11 @@ fn geschwindigkeit_pwm(
     faktor: f64,
     polarity: Polarität,
 ) -> Result<(), pwm::Fehler> {
-    debug_assert!(0. < faktor && faktor <= 1., "Faktor muss zwischen 0 und 1 liegen: {}", faktor);
+    debug_assert!(
+        0. < faktor && faktor <= 1.,
+        "Pwm-Faktor muss zwischen 0 und 1 liegen: {}",
+        faktor
+    );
     pin.enable_with_config(pwm::Config {
         polarity,
         time: pwm::Time::Frequency {
