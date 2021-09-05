@@ -147,7 +147,7 @@ impl AuswahlStatus {
         (
             name.clone(),
             (
-                format!("{}", streckenabschnitt.anschluss),
+                format!("{}", &*streckenabschnitt.lock_anschluss()),
                 streckenabschnitt.farbe.clone(),
                 button::State::new(),
                 button::State::new(),

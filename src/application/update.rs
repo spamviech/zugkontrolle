@@ -277,7 +277,7 @@ where
     ) {
         match self.gleise.streckenabschnitt_mut(&name) {
             Some((streckenabschnitt, fließend))
-                if streckenabschnitt.anschluss.serialisiere() == anschluss_definition =>
+                if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
                 *fließend = Fließend::Gesperrt;
@@ -300,7 +300,7 @@ where
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
-                        let streckenabschnitt = Streckenabschnitt { farbe, anschluss };
+                        let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
                         match self.modal_state.inner_mut() {
                             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
                                 streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);

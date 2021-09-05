@@ -1,7 +1,5 @@
 //! Serialisierte Strukturen von Version 2.X, die mit Version 3.0.0 geändert wurden
 
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,11 +7,7 @@ use crate::{
     application::gleis::{
         gerade::GeradeSerialisiert, gleise::maps::Gleis, kurve::KurveSerialisiert,
     },
-    steuerung::{
-        geschwindigkeit,
-        plan::Plan,
-        streckenabschnitt::{self, StreckenabschnittSerialisiert},
-    },
+    steuerung::{geschwindigkeit, plan::Plan, streckenabschnitt},
     zugtyp::Zugtyp,
 };
 
@@ -29,7 +23,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
-    pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>,
+    pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
     pub(crate) geschwindigkeiten:
         geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
     pub(crate) pläne: Vec<Plan>,

@@ -6,19 +6,12 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-        OutputSerialisiert,
-    },
+    anschluss::de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
     application::{
         gleis::{gleise::id::GleisId, *},
         typen::*,
     },
-    steuerung::{
-        geschwindigkeit,
-        plan::Plan,
-        streckenabschnitt::{self, Streckenabschnitt},
-    },
+    steuerung::{geschwindigkeit, plan::Plan, streckenabschnitt},
 };
 
 pub mod v2;
@@ -194,8 +187,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
-    pub(crate) streckenabschnitte:
-        HashMap<streckenabschnitt::Name, Streckenabschnitt<OutputSerialisiert>>,
+    pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
     pub(crate) geschwindigkeiten:
         geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
     pub(crate) pläne: Vec<Plan>,
@@ -218,8 +210,8 @@ impl<Z: Zugtyp>
                 GleiseVecs {
                     name: Z::NAME.to_string(),
                     streckenabschnitte: maps.streckenabschnitte.iter().map(
-                        |(name, (Streckenabschnitt {farbe, anschluss}, _fließend))|
-                            (name.clone(), Streckenabschnitt {farbe: *farbe, anschluss: anschluss.serialisiere()} )
+                        |(name, (streckenabschnitt, _fließend))|
+                            (name.clone(), streckenabschnitt.serialisiere())
                         ).collect(),
                     geschwindigkeiten,
                     // TODO wirkliche Konvertierung, sobald Plan implementiert ist
