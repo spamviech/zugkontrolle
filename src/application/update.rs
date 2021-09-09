@@ -169,7 +169,8 @@ where
                                 }
                             }
                         }
-                        error_message.insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
+                        let _ = error_message
+                            .insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
                     }
                 }
             } else {
@@ -177,7 +178,7 @@ where
                 message = Some(Message::SchließeModal);
             }
         } else {
-            error_message.insert((
+            let _ = error_message.insert((
                 "Gleis entfernt!".to_string(),
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
             ));
@@ -717,13 +718,13 @@ where
                     }
                 })
             } else {
-                error_message.insert((
+                let _ = error_message.insert((
                     "Keine Richtungs-Anschlüsse!".to_string(),
                     format!("{} hat keine Anschlüsse!", gleis_art),
                 ));
             }
         } else {
-            error_message.insert((
+            let _ = error_message.insert((
                 "Gleis entfernt!".to_string(),
                 format!("FahrenAktion für entfernte {}!", gleis_art),
             ));
