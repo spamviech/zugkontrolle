@@ -5,8 +5,6 @@ use std::{
     marker::PhantomData,
 };
 
-use serde::{Deserialize, Serialize};
-
 use crate::application::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
@@ -14,10 +12,8 @@ use crate::application::gleis::{
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 
-/// Identifier for a Gleis.  Will probably change between restarts.
-///
-/// The API will only provide &GleisIdLock<Z>.
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+/// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
+#[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T>(u32, PhantomData<fn() -> T>);
 impl<T> GleisId<T> {
     // defined a method so it stays private
@@ -36,8 +32,8 @@ impl<T> GleisId<T> {
     }
 }
 
-// explicit implementation needed due to phantom type
-// derived instead required corresponding Trait implemented on phantom type
+// Explizite Implementierung wegen Phantomtyp benötigt.
+// Die automatisch erzeugte Instanz (derive) würden den jeweiligen Trait für den Phantomtyp benötigen.
 impl<T> PartialEq for GleisId<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
@@ -71,8 +67,8 @@ pub enum AnyId<Z> {
     Kreuzung(GleisId<Kreuzung<Z>>),
 }
 
-// explicit implementation needed due to phantom type
-// derived instead required corresponding Trait implemented on phantom type
+// Explizite Implementierung wegen Phantomtyp benötigt.
+// Die automatisch erzeugte Instanz (derive) würden den jeweiligen Trait für den Phantomtyp benötigen.
 impl<Z> PartialEq for AnyId<Z> {
     fn eq(&self, other: &Self) -> bool {
         use AnyId::*;
