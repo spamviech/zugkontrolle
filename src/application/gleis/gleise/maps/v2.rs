@@ -4,19 +4,34 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
-    application::gleis::{
-        gerade::GeradeSerialisiert,
-        gleise::maps::{self as aktuell, Gleis},
-        kreuzung::KreuzungSerialisiert,
-        kurve::KurveSerialisiert,
-        weiche::{
-            dreiwege::DreiwegeWeicheSerialisiert, gerade::WeicheSerialisiert,
-            kurve::KurvenWeicheSerialisiert, s_kurve::SKurvenWeicheSerialisiert,
+    application::{
+        gleis::{
+            gerade::GeradeSerialisiert,
+            gleise::maps::{self as aktuell},
+            kreuzung::KreuzungSerialisiert,
+            kurve::KurveSerialisiert,
+            weiche::{
+                dreiwege::DreiwegeWeicheSerialisiert, gerade::WeicheSerialisiert,
+                kurve::KurvenWeicheSerialisiert, s_kurve::SKurvenWeicheSerialisiert,
+            },
         },
+        typen::canvas::Position,
     },
     steuerung::{geschwindigkeit, plan::Plan, streckenabschnitt},
     zugtyp::Zugtyp,
 };
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gleis<T> {
+    pub definition: T,
+    pub position: Position,
+    pub streckenabschnitt: Option<streckenabschnitt::Name>,
+}
+impl<T> From<Gleis<T>> for aktuell::Gleis<T> {
+    fn from(Gleis { definition, position, streckenabschnitt }: Gleis<T>) -> Self {
+        aktuell::Gleis { definition, position, streckenabschnitt }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct GleiseVecs<Z: Zugtyp> {
@@ -38,13 +53,13 @@ impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::GleiseVecs<Z> {
     fn from(v2: GleiseVecs<Z>) -> Self {
         aktuell::GleiseVecs {
             name: v2.name,
-            geraden: v2.geraden,
-            kurven: v2.kurven,
-            weichen: v2.weichen,
-            dreiwege_weichen: v2.dreiwege_weichen,
-            kurven_weichen: v2.kurven_weichen,
-            s_kurven_weichen: v2.s_kurven_weichen,
-            kreuzungen: v2.kreuzungen,
+            geraden: v2.geraden.into_iter().map(Into::into).collect(),
+            kurven: v2.kurven.into_iter().map(Into::into).collect(),
+            weichen: v2.weichen.into_iter().map(Into::into).collect(),
+            dreiwege_weichen: v2.dreiwege_weichen.into_iter().map(Into::into).collect(),
+            kurven_weichen: v2.kurven_weichen.into_iter().map(Into::into).collect(),
+            s_kurven_weichen: v2.s_kurven_weichen.into_iter().map(Into::into).collect(),
+            kreuzungen: v2.kreuzungen.into_iter().map(Into::into).collect(),
             streckenabschnitte: v2.streckenabschnitte,
             geschwindigkeiten: v2.geschwindigkeiten,
             pläne: v2.pläne,
