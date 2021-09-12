@@ -9,7 +9,7 @@ use crate::{
     },
     farbe::Farbe,
     lookup::Lookup,
-    steuerung::{streckenabschnitt, Streckenabschnitt},
+    steuerung::streckenabschnitt::Streckenabschnitt,
     zugtyp::Zugtyp,
 };
 
@@ -24,30 +24,27 @@ fn fülle_alle_gleise<T, Z>(
     frame: &mut canvas::Frame,
     map: &Map<T>,
     transparent: impl Fn(AnyId<Z>, Fließend) -> Transparenz,
-    streckenabschnitte: &streckenabschnitt::Map,
+    streckenabschnitt_farbe: &Farbe,
+    streckenabschnitt_fließend: &Fließend,
 ) where
     T: Zeichnen,
     GleisId<T>: Into<AnyId<Z>>,
 {
     for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
-        if let Some((Streckenabschnitt { farbe, .. }, fließend)) =
-            streckenabschnitt.as_ref().and_then(|name| streckenabschnitte.get(name))
-        {
-            frame.with_save(|frame| {
-                move_to_position(frame, position);
-                // einfärben
-                for (path, transparenz) in definition.fülle() {
-                    let a = transparent(AnyId::from_ref(gleis_id), *fließend)
-                        .kombiniere(transparenz)
-                        .alpha();
-                    frame.with_save(|frame| {
-                        let Farbe { r, g, b } = *farbe;
-                        let color = iced::Color { r, g, b, a };
-                        frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
-                    });
-                }
-            })
-        }
+        frame.with_save(|frame| {
+            move_to_position(frame, position);
+            // einfärben
+            for (path, transparenz) in definition.fülle() {
+                let a = transparent(AnyId::from_ref(gleis_id), *streckenabschnitt_fließend)
+                    .kombiniere(transparenz)
+                    .alpha();
+                frame.with_save(|frame| {
+                    let Farbe { r, g, b } = *streckenabschnitt_farbe;
+                    let color = iced::Color { r, g, b, a };
+                    frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
+                });
+            }
+        })
     }
 }
 
@@ -168,23 +165,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
-        let Gleise {
-            canvas,
-            maps:
-                GleiseMaps {
-                    geraden,
-                    kurven,
-                    weichen,
-                    kurven_weichen,
-                    dreiwege_weichen,
-                    s_kurven_weichen,
-                    kreuzungen,
-                    streckenabschnitte,
-                },
-            anchor_points,
-            modus,
-            ..
-        } = self;
+        let Gleise { canvas, zustand, anchor_points, modus, .. } = self;
         vec![canvas.zeichnen_skaliert_von_pivot(
             bounds.size(),
             &self.pivot,
@@ -219,36 +200,57 @@ impl<Z: Zugtyp> Gleise<Z> {
                 };
 
                 macro_rules! mit_allen_gleisen {
-                ($funktion:expr$(, $($extra_args:expr),+)?) => {
-                    $funktion(frame, geraden$(, $($extra_args),+)?);
-                    $funktion(frame, kurven$(, $($extra_args),+)?);
-                    $funktion(frame, weichen$(, $($extra_args),+)?);
-                    $funktion(frame, kurven_weichen$(, $($extra_args),+)?);
-                    $funktion(frame, s_kurven_weichen$(, $($extra_args),+)?);
-                    $funktion(frame, dreiwege_weichen$(, $($extra_args),+)?);
-                    $funktion(frame, kreuzungen$(, $($extra_args),+)?);
-                };
-            }
+                    ($maps:expr, $funktion:expr$(, $($extra_args:expr),+)?) => {
+                        $funktion(frame, &$maps.geraden$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.kurven$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.weichen$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.kurven_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.s_kurven_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.dreiwege_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, &$maps.kreuzungen$(, $($extra_args),+)?);
+                    };
+                }
                 // Hintergrund
-                mit_allen_gleisen!(
-                    fülle_alle_gleise,
-                    |gleis_id, fließend| Transparenz::true_reduziert(if modus_bauen {
-                        is_grabbed(gleis_id)
-                    } else {
-                        fließend == Fließend::Gesperrt
-                    }),
-                    streckenabschnitte
-                );
+                for (Streckenabschnitt { farbe, .. }, fließend, maps) in
+                    self.zustand.streckenabschnitte.values()
+                {
+                    mit_allen_gleisen! {
+                        maps,
+                        fülle_alle_gleise,
+                        |gleis_id, fließend| Transparenz::true_reduziert(if modus_bauen {
+                            is_grabbed(gleis_id)
+                        } else {
+                            fließend == Fließend::Gesperrt
+                        }),
+                        farbe,
+                        fließend
+                    }
+                }
                 // Kontur
-                mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
+                for maps in self.zustand.alle_gleise_maps() {
+                    mit_allen_gleisen! {
+                        maps,
+                        zeichne_alle_gleise,
+                        is_grabbed
+                    }
+                }
                 // AnchorPoints
-                mit_allen_gleisen!(
-                    zeichne_alle_anchor_points,
-                    has_other_and_grabbed_id_at_point,
-                    &is_grabbed
-                );
+                for maps in self.zustand.alle_gleise_maps() {
+                    mit_allen_gleisen! {
+                        maps,
+                        zeichne_alle_anchor_points,
+                        has_other_and_grabbed_id_at_point,
+                        &is_grabbed
+                    }
+                }
                 // Beschreibung
-                mit_allen_gleisen!(schreibe_alle_beschreibungen, is_grabbed);
+                for maps in self.zustand.alle_gleise_maps() {
+                    mit_allen_gleisen! {
+                        maps,
+                        schreibe_alle_beschreibungen,
+                        is_grabbed
+                    }
+                }
             },
         )]
     }
