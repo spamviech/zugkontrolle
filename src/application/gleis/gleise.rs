@@ -81,8 +81,12 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     fn next_id<T: Debug + MapSelector<Z>>(&self) -> GleisId<T> {
         let get_max_id = |maps: &GleiseMaps<Z>| maps.get_map().keys().next_back();
-        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
-            .chain(self.zustand.streckenabschnitte.values());
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt).chain(
+            self.zustand
+                .streckenabschnitte
+                .values()
+                .map(|(_streckenabschnitt, _fließend, maps)| maps),
+        );
         let max_id = maps_iter.map(get_max_id).filter_map(identity).max();
         max_id.map(GleisId::nachfolger).unwrap_or_else(GleisId::initial)
     }
@@ -97,8 +101,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
-            .chain(self.zustand.streckenabschnitte.values());
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt).chain(
+            self.zustand
+                .streckenabschnitte
+                .values()
+                .map(|(_streckenabschnitt, _fließend, maps)| maps),
+        );
         let Gleis { position, .. } = maps_iter
             .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
             .ok_or(GleisEntferntFehler)?;
@@ -113,8 +121,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
-            .chain(self.zustand.streckenabschnitte.values());
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt).chain(
+            self.zustand
+                .streckenabschnitte
+                .values()
+                .map(|(_streckenabschnitt, _fließend, maps)| maps),
+        );
         let Gleis { definition, position, .. } = maps_iter
             .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
             .ok_or(GleisEntferntFehler)?;

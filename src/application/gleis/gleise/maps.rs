@@ -8,12 +8,19 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+    anschluss::{
+        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        polarität::Fließend,
+    },
     application::{
         gleis::{gleise::id::GleisId, *},
         typen::*,
     },
-    steuerung::{geschwindigkeit, plan::Plan, streckenabschnitt},
+    steuerung::{
+        geschwindigkeit,
+        plan::Plan,
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
 };
 
 pub mod v2;
@@ -81,7 +88,8 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
 
 pub struct Zustand<Z: Zugtyp> {
     pub(crate) ohne_streckenabschnitt: GleiseMaps<Z>,
-    pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, GleiseMaps<Z>>,
+    pub(crate) streckenabschnitte:
+        HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseMaps<Z>)>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
 }
 impl<Z: Zugtyp> Zustand<Z> {
