@@ -3,6 +3,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Debug,
+    iter,
 };
 
 use serde::{Deserialize, Serialize};
@@ -99,6 +100,12 @@ impl<Z: Zugtyp> Zustand<Z> {
             streckenabschnitte: HashMap::new(),
             geschwindigkeiten: geschwindigkeit::Map::new(),
         }
+    }
+
+    pub(crate) fn alle_gleise_maps(&self) -> impl Iterator<Item = &GleiseMaps<Z>> {
+        iter::once(&self.ohne_streckenabschnitt).chain(
+            self.streckenabschnitte.values().map(|(_streckenabschnitt, _fließend, maps)| maps),
+        )
     }
 }
 
