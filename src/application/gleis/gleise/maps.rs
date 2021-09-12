@@ -136,7 +136,7 @@ pub(crate) struct GleiseMaps<Z> {
     pub(crate) kreuzungen: Map<Kreuzung<Z>>,
 }
 impl<Z> GleiseMaps<Z> {
-    pub(crate) fn neu() -> Self {
+    pub fn neu() -> Self {
         GleiseMaps {
             geraden: Map::new(),
             kurven: Map::new(),
@@ -145,6 +145,23 @@ impl<Z> GleiseMaps<Z> {
             kurven_weichen: Map::new(),
             s_kurven_weichen: Map::new(),
             kreuzungen: Map::new(),
+        }
+    }
+
+    pub fn merge(&mut self, other: GleiseMaps<Z>) {
+        macro_rules! extend {
+            ($($map: ident),*) => {
+                $(self.$map.extend(other.$map.into_iter()));*
+            };
+        }
+        extend! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen
         }
     }
 }

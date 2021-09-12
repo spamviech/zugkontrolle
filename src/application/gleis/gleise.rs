@@ -1,6 +1,6 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::{convert::identity, fmt::Debug, iter, time::Instant};
+use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, time::Instant};
 
 pub use self::{id::*, maps::*};
 use crate::{
@@ -209,14 +209,20 @@ impl<Z: Zugtyp> Gleise<Z> {
         name: streckenabschnitt::Name,
         streckenabschnitt: Streckenabschnitt,
     ) -> Option<(Streckenabschnitt, Fließend)> {
-        if let Some((streckenabschnitt, fließend, maps)) = self
-            .zustand
-            .streckenabschnitte
-            .insert(name, (streckenabschnitt, Fließend::Gesperrt, GleiseMaps::neu()))
-        {
-            todo!()
-        } else {
-            None
+        let entry = self.zustand.streckenabschnitte.entry(name);
+        match entry {
+            Entry::Occupied(occupied) => {
+                let value = occupied.get_mut();
+                let bisheriger_streckenabschnitt = value.0;
+                let bisherig_fließend = value.1;
+                value.0 = streckenabschnitt;
+                value.1 = Fließend::Gesperrt;
+                Some((bisheriger_streckenabschnitt, bisherig_fließend))
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseMaps::neu()));
+                None
+            }
         }
     }
 
@@ -248,36 +254,24 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         name: streckenabschnitt::Name,
     ) -> Option<(Streckenabschnitt, Fließend)> {
-        macro_rules! clean_maps {
-            ($($map:ident),*) => {
-                $(
-                    for Gleis { streckenabschnitt, .. } in self.maps.$map.values_mut() {
-                        if streckenabschnitt.as_ref() == Some(&name) {
-                            *streckenabschnitt = None;
-                        }
-                    }
-                )*
-            };
-        }
-        clean_maps! {
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen
-        }
-        let result = self.maps.streckenabschnitte.remove(&name);
         self.canvas.leeren();
-        result
+        if let Some((streckenabschnitt, fließend, maps)) =
+            self.zustand.streckenabschnitte.remove(&name)
+        {
+            self.zustand.ohne_streckenabschnitt.merge(maps);
+            Some((streckenabschnitt, fließend))
+        } else {
+            None
+        }
     }
 
     /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte(
         &self,
-    ) -> impl Iterator<Item = (&streckenabschnitt::Name, &(Streckenabschnitt, Fließend))> {
-        self.maps.streckenabschnitte.iter()
+    ) -> impl Iterator<Item = (&streckenabschnitt::Name, (&Streckenabschnitt, &Fließend))> {
+        self.zustand.streckenabschnitte.iter().map(
+            |(name, (streckenabschnitt, fließend, _maps))| (name, (streckenabschnitt, fließend)),
+        )
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
@@ -288,7 +282,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntFehler> {
-        let gleis = self.maps.get_map_mut().get_mut(gleis_id).ok_or(GleisEntferntFehler)?;
+        let gleis = self
+            .zustand
+            .alle_gleise_maps()
+            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(gleis_id)))
+            .ok_or(GleisEntferntFehler)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
 
