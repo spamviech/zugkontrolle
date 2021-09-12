@@ -1,7 +1,9 @@
 //! Struktur zum Speichern aller Gleise
 
-use std::collections::HashMap;
-use std::fmt::Debug;
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt::Debug,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -77,9 +79,39 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     }
 }
 
-pub type Map<T> = HashMap<GleisId<T>, Gleis<T>>;
+pub struct Zustand<Z: Zugtyp> {
+    pub(crate) ohne_streckenabschnitt: GleiseMaps<Z>,
+    pub(crate) streckenabschnitte: HashMap<streckenabschnitt::Name, GleiseMaps<Z>>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
+}
+impl<Z: Zugtyp> Zustand<Z> {
+    pub fn neu() -> Self {
+        Zustand {
+            ohne_streckenabschnitt: GleiseMaps::neu(),
+            streckenabschnitte: HashMap::new(),
+            geschwindigkeiten: geschwindigkeit::Map::new(),
+        }
+    }
+}
+
+impl<Z> Debug for Zustand<Z>
+where
+    Z: Zugtyp,
+    <Z as Zugtyp>::Leiter: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Zustand")
+            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
+            .field("streckenabschnitte", &self.streckenabschnitte)
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
+            .finish()
+    }
+}
+
+// BTreeMap could use `split_off(GleisId::initial())` instead of `drain()`
+pub(crate) type Map<T> = BTreeMap<GleisId<T>, Gleis<T>>;
 #[derive(zugkontrolle_derive::Debug)]
-pub struct GleiseMaps<Z> {
+pub(crate) struct GleiseMaps<Z> {
     pub(crate) geraden: Map<Gerade<Z>>,
     pub(crate) kurven: Map<Kurve<Z>>,
     pub(crate) weichen: Map<Weiche<Z>>,
@@ -87,19 +119,17 @@ pub struct GleiseMaps<Z> {
     pub(crate) kurven_weichen: Map<KurvenWeiche<Z>>,
     pub(crate) s_kurven_weichen: Map<SKurvenWeiche<Z>>,
     pub(crate) kreuzungen: Map<Kreuzung<Z>>,
-    pub(crate) streckenabschnitte: streckenabschnitt::Map,
 }
 impl<Z> GleiseMaps<Z> {
     pub(crate) fn neu() -> Self {
         GleiseMaps {
-            geraden: HashMap::new(),
-            kurven: HashMap::new(),
-            weichen: HashMap::new(),
-            dreiwege_weichen: HashMap::new(),
-            kurven_weichen: HashMap::new(),
-            s_kurven_weichen: HashMap::new(),
-            kreuzungen: HashMap::new(),
-            streckenabschnitte: HashMap::new(),
+            geraden: Map::new(),
+            kurven: Map::new(),
+            weichen: Map::new(),
+            dreiwege_weichen: Map::new(),
+            kurven_weichen: Map::new(),
+            s_kurven_weichen: Map::new(),
+            kreuzungen: Map::new(),
         }
     }
 }
@@ -178,8 +208,8 @@ impl<Z> MapSelector<Z> for Kreuzung<Z> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Z: Zugtyp> {
-    pub(crate) name: String,
+pub(crate) struct Serialisiert<Z: Zugtyp> {
+    pub(crate) zugtyp: String,
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
     pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
     pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
@@ -193,49 +223,64 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp>
-    From<(
-        &GleiseMaps<Z>,
-        geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
-    )> for GleiseVecs<Z>
+impl<Z> Debug for Serialisiert<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Serialisiert")
+            .field("zugtyp", &self.zugtyp)
+            .field("geraden", &self.geraden)
+            .field("kurven", &self.kurven)
+            .field("weichen", &self.weichen)
+            .field("dreiwege_weichen", &self.dreiwege_weichen)
+            .field("kurven_weichen", &self.kurven_weichen)
+            .field("s_kurven_weichen", &self.s_kurven_weichen)
+            .field("kreuzungen", &self.kreuzungen)
+            .field("streckenabschnitte", &self.streckenabschnitte)
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
+            .field("pläne", &self.pläne)
+            .finish()
+    }
+}
+
+impl<Z: Zugtyp> From<&Zustand<Z>> for Serialisiert<Z> {
     fn from(
-        (maps, geschwindigkeiten): (
-            &GleiseMaps<Z>,
-            geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
-        ),
+        Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,
     ) -> Self {
-        macro_rules! hashmaps_to_vecs {
-            ($($map:ident),* $(,)?) => {
-                GleiseVecs {
-                    name: Z::NAME.to_string(),
-                    streckenabschnitte: maps.streckenabschnitte.iter().map(
-                        |(name, (streckenabschnitt, _fließend))|
-                            (name.clone(), streckenabschnitt.serialisiere())
-                        ).collect(),
-                    geschwindigkeiten,
-                    // TODO wirkliche Konvertierung, sobald Plan implementiert ist
-                    pläne: Vec::new(),
-                    $($map: maps.$map.values().map(
-                        |Gleis {position, definition, streckenabschnitt}|
-                        Gleis {
-                            position: position.clone(),
-                            definition: definition.serialisiere(),
-                            streckenabschnitt: streckenabschnitt.clone()
-                        })
-                        .collect()
-                    ),*
-                }
-            };
-        }
-        hashmaps_to_vecs!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        )
+        // macro_rules! hashmaps_to_vecs {
+        //     ($($map:ident),* $(,)?) => {
+        //         Serialisiert {
+        //             zugtyp: Z::NAME.to_string(),
+        //             streckenabschnitte: maps.streckenabschnitte.iter().map(
+        //                 |(name, (streckenabschnitt, _fließend))|
+        //                     (name.clone(), streckenabschnitt.serialisiere())
+        //                 ).collect(),
+        //             geschwindigkeiten,
+        //             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
+        //             pläne: Vec::new(),
+        //             $($map: maps.$map.values().map(
+        //                 |Gleis {position, definition, streckenabschnitt}|
+        //                 Gleis {
+        //                     position: position.clone(),
+        //                     definition: definition.serialisiere(),
+        //                     streckenabschnitt: streckenabschnitt.clone()
+        //                 })
+        //                 .collect()
+        //             ),*
+        //         }
+        //     };
+        // }
+        // hashmaps_to_vecs!(
+        //     geraden,
+        //     kurven,
+        //     weichen,
+        //     dreiwege_weichen,
+        //     kurven_weichen,
+        //     s_kurven_weichen,
+        //     kreuzungen,
+        // )
+        todo!()
     }
 }

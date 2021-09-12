@@ -1,6 +1,6 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::{fmt::Debug, time::Instant};
+use std::{convert::identity, fmt::Debug, iter, time::Instant};
 
 pub use self::{id::*, maps::*};
 use crate::{
@@ -35,25 +35,43 @@ enum ModusDaten<Z> {
 }
 
 /// Anzeige aller Gleise.
-#[derive(zugkontrolle_derive::Debug)]
-pub struct Gleise<Z> {
+pub struct Gleise<Z: Zugtyp> {
     canvas: canvas::Cache,
     pivot: Position,
     skalieren: Skalar,
-    maps: GleiseMaps<Z>,
+    zustand: Zustand<Z>,
     anchor_points: verbindung::rstern::RStern<Z>,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
 }
 
-impl<Z> Gleise<Z> {
+impl<Z> Debug for Gleise<Z>
+where
+    Z: Zugtyp,
+    <Z as Zugtyp>::Leiter: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Gleise")
+            .field("canvas", &self.canvas)
+            .field("pivot", &self.pivot)
+            .field("skalieren", &self.skalieren)
+            .field("zustand", &self.zustand)
+            .field("anchor_points", &self.anchor_points)
+            .field("last_mouse", &self.last_mouse)
+            .field("last_size", &self.last_size)
+            .field("modus", &self.modus)
+            .finish()
+    }
+}
+
+impl<Z: Zugtyp> Gleise<Z> {
     pub fn neu() -> Self {
         Gleise {
             canvas: canvas::Cache::neu(),
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             skalieren: Skalar(1.),
-            maps: GleiseMaps::neu(),
+            zustand: Zustand::neu(),
             anchor_points: verbindung::rstern::RStern::neu(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
@@ -61,13 +79,12 @@ impl<Z> Gleise<Z> {
         }
     }
 
-    fn next_id<T: Debug + MapSelector<Z>>(&mut self) -> GleisId<T> {
-        self.maps
-            .get_map_mut()
-            .keys()
-            .max()
-            .map(GleisId::nachfolger)
-            .unwrap_or_else(GleisId::initial)
+    fn next_id<T: Debug + MapSelector<Z>>(&self) -> GleisId<T> {
+        let get_max_id = |maps: &GleiseMaps<Z>| maps.get_map().keys().next_back();
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
+            .chain(self.zustand.streckenabschnitte.values());
+        let max_id = maps_iter.map(get_max_id).filter_map(identity).max();
+        max_id.map(GleisId::nachfolger).unwrap_or_else(GleisId::initial)
     }
 
     fn relocate_grabbed<T: Debug + Zeichnen>(
@@ -80,8 +97,11 @@ impl<Z> Gleise<Z> {
         T: MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let Gleis { position, .. } =
-            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntFehler)?;
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
+            .chain(self.zustand.streckenabschnitte.values());
+        let Gleis { position, .. } = maps_iter
+            .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
+            .ok_or(GleisEntferntFehler)?;
         let position_neu = Position { punkt, winkel: position.winkel };
         self.relocate(&gleis_id, position_neu)?;
         Ok(())
@@ -93,8 +113,11 @@ impl<Z> Gleise<Z> {
         T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let Gleis { definition, position, .. } =
-            self.maps.get_map_mut().get(&gleis_id).ok_or(GleisEntferntFehler)?;
+        let maps_iter = iter::once(&self.zustand.ohne_streckenabschnitt)
+            .chain(self.zustand.streckenabschnitte.values());
+        let Gleis { definition, position, .. } = maps_iter
+            .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
+            .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
