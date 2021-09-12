@@ -209,23 +209,37 @@ impl<Z: Zugtyp> Gleise<Z> {
         name: streckenabschnitt::Name,
         streckenabschnitt: Streckenabschnitt,
     ) -> Option<(Streckenabschnitt, Fließend)> {
-        self.maps.streckenabschnitte.insert(name, (streckenabschnitt, Fließend::Gesperrt))
+        if let Some((streckenabschnitt, fließend, maps)) = self
+            .zustand
+            .streckenabschnitte
+            .insert(name, (streckenabschnitt, Fließend::Gesperrt, GleiseMaps::neu()))
+        {
+            todo!()
+        } else {
+            None
+        }
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt(
         &self,
         name: &streckenabschnitt::Name,
-    ) -> Option<&(Streckenabschnitt, Fließend)> {
-        self.maps.streckenabschnitte.get(name)
+    ) -> Option<(&Streckenabschnitt, &Fließend)> {
+        self.zustand
+            .streckenabschnitte
+            .get(name)
+            .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt_mut<'s, 't>(
         &'s mut self,
         name: &'t streckenabschnitt::Name,
-    ) -> Option<&'s mut (Streckenabschnitt, Fließend)> {
-        self.maps.streckenabschnitte.get_mut(name)
+    ) -> Option<(&'s mut Streckenabschnitt, &'s mut Fließend)> {
+        self.zustand
+            .streckenabschnitte
+            .get_mut(name)
+            .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
     }
 
     /// Entferne einen Streckenabschnitt.
