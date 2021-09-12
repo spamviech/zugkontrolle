@@ -49,10 +49,10 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::GleiseVecs<Z> {
+impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::Serialisiert<Z> {
     fn from(v2: GleiseVecs<Z>) -> Self {
-        aktuell::GleiseVecs {
-            name: v2.name,
+        aktuell::Serialisiert {
+            zugtyp: v2.name,
             geraden: v2.geraden.into_iter().map(Into::into).collect(),
             kurven: v2.kurven.into_iter().map(Into::into).collect(),
             weichen: v2.weichen.into_iter().map(Into::into).collect(),
