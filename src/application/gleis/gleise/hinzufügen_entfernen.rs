@@ -145,7 +145,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { definition, position, .. } = self
             .zustand
             .alle_gleise_maps_mut()
-            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(&gleis_id)))
+            .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id)))
             .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
@@ -198,7 +198,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             let Gleis { definition, .. } = self
                 .zustand
                 .alle_gleise_maps_mut()
-                .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(&gleis_id)))
+                .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id)))
                 .ok_or(GleisEntferntFehler)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
@@ -244,18 +244,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         if self.zustand.ohne_streckenabschnitt.get_map().contains_key(&gleis_id) {
             Ok(None)
         } else {
-            self.zustand.streckenabschnitte.values_mut().fold(
-                Err(GleisEntferntFehler),
-                move |acc, (streckenabschnitt, fließend, maps)| {
-                    acc.or_else(move |fehler| {
-                        if maps.get_map().contains_key(&gleis_id) {
-                            Ok(Some((streckenabschnitt, fließend)))
-                        } else {
-                            Err(fehler)
-                        }
-                    })
-                },
-            )
+            for (streckenabschnitt, fließend, maps) in self.zustand.streckenabschnitte.values_mut()
+            {
+                if maps.get_map().contains_key(&gleis_id) {
+                    return Ok(Some((streckenabschnitt, fließend)));
+                }
+            }
+            Err(GleisEntferntFehler)
         }
     }
 }

@@ -2,7 +2,6 @@
 
 use std::io::Read;
 
-use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -10,7 +9,7 @@ use crate::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        Anschlüsse, Fließend, InputAnschluss, OutputAnschluss,
+        Anschlüsse, InputAnschluss, OutputAnschluss,
     },
     application::{
         gleis::gleise::{maps::*, Fehler, Gleise},

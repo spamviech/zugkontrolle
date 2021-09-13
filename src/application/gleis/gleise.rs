@@ -79,9 +79,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
+    fn get_max_id<T: MapSelector<Z>>(maps: &GleiseMaps<Z>) -> Option<&GleisId<T>> {
+        maps.get_map().keys().next_back()
+    }
+
     fn next_id<T: Debug + MapSelector<Z>>(&self) -> GleisId<T> {
-        let get_max_id = |maps: &GleiseMaps<Z>| maps.get_map().keys().next_back();
-        let max_id = self.zustand.alle_gleise_maps().map(get_max_id).filter_map(identity).max();
+        let max_id =
+            self.zustand.alle_gleise_maps().map(Self::get_max_id).filter_map(identity).max();
         max_id.map(GleisId::nachfolger).unwrap_or_else(GleisId::initial)
     }
 
@@ -207,17 +211,16 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn neuer_streckenabschnitt(
         &mut self,
         name: streckenabschnitt::Name,
-        streckenabschnitt: Streckenabschnitt,
+        mut streckenabschnitt: Streckenabschnitt,
     ) -> Option<(Streckenabschnitt, Fließend)> {
         let entry = self.zustand.streckenabschnitte.entry(name);
         match entry {
-            Entry::Occupied(occupied) => {
+            Entry::Occupied(mut occupied) => {
                 let value = occupied.get_mut();
-                let bisheriger_streckenabschnitt = value.0;
+                std::mem::swap(&mut value.0, &mut streckenabschnitt);
                 let bisherig_fließend = value.1;
-                value.0 = streckenabschnitt;
                 value.1 = Fließend::Gesperrt;
-                Some((bisheriger_streckenabschnitt, bisherig_fließend))
+                Some((streckenabschnitt, bisherig_fließend))
             }
             Entry::Vacant(vacant) => {
                 vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseMaps::neu()));
@@ -284,8 +287,8 @@ impl<Z: Zugtyp> Gleise<Z> {
     ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntFehler> {
         let gleis = self
             .zustand
-            .alle_gleise_maps()
-            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(gleis_id)))
+            .alle_gleise_maps_mut()
+            .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(gleis_id)))
             .ok_or(GleisEntferntFehler)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
