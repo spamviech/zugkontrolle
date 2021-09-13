@@ -151,10 +151,7 @@ where
         nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
     },
     ZeigeAuswahlGeschwindigkeit,
-    HinzufügenGeschwindigkeit(
-        geschwindigkeit::Name,
-        GeschwindigkeitSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
-    ),
+    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Z::Leiter>),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId<Z>),
     AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),

@@ -2,7 +2,7 @@
 
 use std::{
     collections::BTreeMap,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     sync::{mpsc::Sender, Arc, Mutex, MutexGuard, PoisonError},
     thread::{self, sleep},
     time::Duration,
@@ -55,15 +55,35 @@ impl<Leiter> Geschwindigkeit<Leiter> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GeschwindigkeitSerialisiert<Leiter> {
-    pub leiter: Leiter,
+#[derive(Serialize, Deserialize)]
+pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
+    pub leiter: Leiter::Serialisiert,
+}
+
+impl<Leiter> Clone for GeschwindigkeitSerialisiert<Leiter>
+where
+    Leiter: Serialisiere,
+    Leiter::Serialisiert: Clone,
+{
+    fn clone(&self) -> Self {
+        Self { leiter: self.leiter.clone() }
+    }
+}
+
+impl<Leiter> Debug for GeschwindigkeitSerialisiert<Leiter>
+where
+    Leiter: Serialisiere,
+    Leiter::Serialisiert: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GeschwindigkeitSerialisiert").field("leiter", &self.leiter).finish()
+    }
 }
 
 impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
-    type Serialisiert = GeschwindigkeitSerialisiert<T::Serialisiert>;
+    type Serialisiert = GeschwindigkeitSerialisiert<T>;
 
-    fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T::Serialisiert> {
+    fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T> {
         GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
 
@@ -80,14 +100,14 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
     }
 }
 
-impl<T: Reserviere<R>, R> Reserviere<Geschwindigkeit<R>> for GeschwindigkeitSerialisiert<T> {
+impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<T> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<Geschwindigkeit<R>> {
+    ) -> de_serialisieren::Result<Geschwindigkeit<T>> {
         let Reserviert {
             anschluss: leiter,
             pwm_nicht_benötigt,

@@ -44,8 +44,7 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
     pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
-    pub(crate) geschwindigkeiten:
-        geschwindigkeit::MapSerialisiert<<Z::Leiter as Serialisiere>::Serialisiert>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
     pub(crate) pläne: Vec<Plan>,
 }
 

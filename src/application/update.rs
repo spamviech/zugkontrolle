@@ -403,9 +403,7 @@ where
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: GeschwindigkeitSerialisiert<
-            <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert,
-        >,
+        geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
     ) {
         let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) = if let Some((
             geschwindigkeit,
