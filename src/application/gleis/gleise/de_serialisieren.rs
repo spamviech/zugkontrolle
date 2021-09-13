@@ -21,13 +21,7 @@ use crate::{
 
 impl<Z: Zugtyp + Serialize> Gleise<Z> {
     #[must_use]
-    pub fn speichern(
-        &self,
-        pfad: impl AsRef<std::path::Path>,
-        geschwindigkeiten: geschwindigkeit::MapSerialisiert<
-            <Z::Leiter as Serialisiere>::Serialisiert,
-        >,
-    ) -> std::result::Result<(), Fehler> {
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Fehler> {
         let serialisiert = Serialisiert::from(&self.zustand);
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)

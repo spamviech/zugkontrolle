@@ -30,7 +30,7 @@ fn fülle_alle_gleise<T, Z>(
     T: Zeichnen,
     GleisId<T>: Into<AnyId<Z>>,
 {
-    for (gleis_id, Gleis { definition, position, streckenabschnitt }) in map.iter() {
+    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben

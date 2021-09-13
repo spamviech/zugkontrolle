@@ -953,15 +953,7 @@ where
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Message<Z>>> {
-        let ergebnis = self.gleise.speichern(
-            &pfad,
-            self.geschwindigkeiten
-                .iter()
-                .map(|(name, (geschwindigkeit, _anzeige_status))| {
-                    (name.clone(), geschwindigkeit.serialisiere())
-                })
-                .collect(),
-        );
+        let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
                 self.speichern_laden.färbe_speichern(true);
