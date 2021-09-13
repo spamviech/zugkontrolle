@@ -29,10 +29,9 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
             <Z::Leiter as Serialisiere>::Serialisiert,
         >,
     ) -> std::result::Result<(), Fehler> {
-        let Gleise { maps, .. } = self;
-        let vecs = GleiseVecs::from((maps, geschwindigkeiten));
+        let serialisiert = Serialisiert::from(&self.zustand);
         let file = std::fs::File::create(pfad)?;
-        bincode::serialize_into(file, &vecs).map_err(Fehler::BincodeSerialisieren)
+        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
 }
 
@@ -76,20 +75,65 @@ where
         bisherige_geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
     ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Fehler> {
+        // sammle bisherige Anschlüsse
+        let mut pwm_pins = Vec::new();
+        let mut output_anschlüsse = Vec::new();
+        let mut input_anschlüsse = Vec::new();
+        // todo!()
+        // macro_rules! fold_anschlüsse {
+        //     ($iterator:expr) => {
+        //         for struktur in $iterator {
+        //             let (pwm, output, input) = struktur.anschlüsse();
+        //             pwm_pins.extend(pwm.into_iter());
+        //             output_anschlüsse.extend(output.into_iter());
+        //             input_anschlüsse.extend(input.into_iter());
+        //         }
+        //     };
+        // }
+        // macro_rules! fold_gleis_anschlüsse {
+        //     ($map:ident) => {
+        //         fold_anschlüsse! {
+        //             self.maps.$map.drain().map(|(_id, Gleis { definition, .. })| definition)
+        //         }
+        //     };
+        // }
+        // fold_anschlüsse! {bisherige_geschwindigkeiten.map(|mut geschwindigkeit| {
+        //     if let Err(error) = geschwindigkeit.geschwindigkeit(0){
+        //         error!("Fehler beim Geschwindigkeit ausstellen: {:?}", error)
+        //     }
+        //     geschwindigkeit
+        // })}
+        // fold_gleis_anschlüsse! {geraden}
+        // fold_gleis_anschlüsse! {kurven}
+        // fold_gleis_anschlüsse! {weichen}
+        // fold_gleis_anschlüsse! {dreiwege_weichen}
+        // fold_gleis_anschlüsse! {kurven_weichen}
+        // fold_gleis_anschlüsse! {s_kurven_weichen}
+        // fold_gleis_anschlüsse! {kreuzungen}
+        // fold_anschlüsse! {
+        //     self.maps.streckenabschnitte.drain().map(
+        //         |(_id, (mut streckenabschnitt, _fließend))| {
+        //             if let Err(error) = streckenabschnitt.strom(Fließend::Gesperrt) {
+        //                 error!("Fehler beim Streckenabschnitt ausstellen: {:?}", error)
+        //             }
+        //             streckenabschnitt
+        //         }
+        //     )
+        // }
+
         // aktuellen Zustand zurücksetzen
         self.canvas.leeren();
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
-        self.maps = GleiseMaps::neu();
+        self.zustand = Zustand::neu();
         self.anchor_points = verbindung::rstern::RStern::neu();
-
         // lese & parse Datei
         let mut file = std::fs::File::open(pfad)?;
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
         let slice = content.as_slice();
-        let GleiseVecs {
-            name,
+        let Serialisiert {
+            zugtyp,
             geraden,
             kurven,
             weichen,
@@ -105,53 +149,8 @@ where
                 .map(v2::GleiseVecs::into)
                 .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
         })?;
-        if name != Z::NAME {
-            return Err(Fehler::FalscherZugtyp(name));
-        }
-
-        // sammle bisherige Anschlüsse
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        macro_rules! fold_anschlüsse {
-            ($iterator:expr) => {
-                for struktur in $iterator {
-                    let (pwm, output, input) = struktur.anschlüsse();
-                    pwm_pins.extend(pwm.into_iter());
-                    output_anschlüsse.extend(output.into_iter());
-                    input_anschlüsse.extend(input.into_iter());
-                }
-            };
-        }
-        macro_rules! fold_gleis_anschlüsse {
-            ($map:ident) => {
-                fold_anschlüsse! {
-                    self.maps.$map.drain().map(|(_id, Gleis { definition, .. })| definition)
-                }
-            };
-        }
-        fold_anschlüsse! {bisherige_geschwindigkeiten.map(|mut geschwindigkeit| {
-            if let Err(error) = geschwindigkeit.geschwindigkeit(0){
-                error!("Fehler beim Geschwindigkeit ausstellen: {:?}", error)
-            }
-            geschwindigkeit
-        })}
-        fold_gleis_anschlüsse! {geraden}
-        fold_gleis_anschlüsse! {kurven}
-        fold_gleis_anschlüsse! {weichen}
-        fold_gleis_anschlüsse! {dreiwege_weichen}
-        fold_gleis_anschlüsse! {kurven_weichen}
-        fold_gleis_anschlüsse! {s_kurven_weichen}
-        fold_gleis_anschlüsse! {kreuzungen}
-        fold_anschlüsse! {
-            self.maps.streckenabschnitte.drain().map(
-                |(_id, (mut streckenabschnitt, _fließend))| {
-                    if let Err(error) = streckenabschnitt.strom(Fließend::Gesperrt) {
-                        error!("Fehler beim Streckenabschnitt ausstellen: {:?}", error)
-                    }
-                    streckenabschnitt
-                }
-            )
+        if zugtyp != Z::NAME {
+            return Err(Fehler::FalscherZugtyp(zugtyp));
         }
 
         // reserviere Anschlüsse

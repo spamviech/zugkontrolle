@@ -9,7 +9,7 @@ use crate::{
             gleise::{
                 id::{AnyId, GleisId},
                 maps::{Gleis, MapSelector},
-                GleisEntferntFehler, Gleise, Grabbed, ModusDaten,
+                GleisEntferntFehler, Gleise, Grabbed, ModusDaten, StreckenabschnittEntferntFehler,
             },
             verbindung,
         },
@@ -23,13 +23,17 @@ use crate::{
 impl<Z: Zugtyp> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Add a new gleis to its position.
-    pub(crate) fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisId<T>, T::AnchorPoints)
+    pub(crate) fn add<T>(
+        &mut self,
+        gleis: Gleis<T>,
+    ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let Gleis { definition, position, .. } = &gleis;
+        // todo! aus Gleis entfernen & in eigenes Argument auslagern
+        let Gleis { definition, position, streckenabschnitt } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
@@ -45,11 +49,20 @@ impl<Z: Zugtyp> Gleise<Z> {
             self.anchor_points.hinzufügen(AnyId::from_ref(&gleis_id), anchor.clone())
         });
         // add to HashMap
-        self.maps.get_map_mut().insert(gleis_id.clone(), gleis);
+        let maps = if let Some(name) = streckenabschnitt {
+            self.zustand
+                .streckenabschnitte
+                .get_mut(&name)
+                .map(|(_streckenabschnitt, _fließend, maps)| maps)
+                .ok_or(StreckenabschnittEntferntFehler)?
+        } else {
+            &mut self.zustand.ohne_streckenabschnitt
+        };
+        maps.get_map_mut().insert(gleis_id.clone(), gleis);
         // trigger redraw
         self.canvas.leeren();
         // return value
-        (gleis_id, anchor_points)
+        Ok((gleis_id, anchor_points))
     }
 
     /// Add a gleis at the last known mouse position
@@ -59,7 +72,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         grab_location: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> (GleisId<T>, T::AnchorPoints)
+    ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         GleisId<T>: Into<AnyId<Z>>,
@@ -87,12 +100,12 @@ impl<Z: Zugtyp> Gleise<Z> {
                 winkel: -self.pivot.winkel,
             },
             streckenabschnitt,
-        });
+        })?;
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
             *grabbed = Some(Grabbed { gleis_id, grab_location, moved: true });
         }
-        result
+        Ok(result)
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
@@ -103,7 +116,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         anchor_name: &T::AnchorName,
         target_anchor_point: verbindung::Verbindung,
-    ) -> (GleisId<T>, T::AnchorPoints)
+    ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + MapSelector<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
@@ -129,8 +142,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let Gleis { definition, position, .. } =
-            self.maps.get_map_mut().get_mut(&gleis_id).ok_or(GleisEntferntFehler)?;
+        let Gleis { definition, position, .. } = self
+            .zustand
+            .alle_gleise_maps_mut()
+            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(&gleis_id)))
+            .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
@@ -179,8 +195,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         GleisId<T>: Into<AnyId<Z>>,
     {
         let position = {
-            let Gleis { definition, .. } =
-                self.maps.get_map().get(&gleis_id).ok_or(GleisEntferntFehler)?;
+            let Gleis { definition, .. } = self
+                .zustand
+                .alle_gleise_maps_mut()
+                .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().get_mut(&gleis_id)))
+                .ok_or(GleisEntferntFehler)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
@@ -198,7 +217,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        if let Some(Gleis { definition, position, .. }) = self.maps.get_map_mut().remove(&gleis_id)
+        if let Some(Gleis { definition, position, .. }) = self
+            .zustand
+            .alle_gleise_maps_mut()
+            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().remove(&gleis_id)))
         {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
@@ -218,17 +240,22 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn streckenabschnitt_für_id<T: MapSelector<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
-    ) -> Result<Option<&mut (Streckenabschnitt, Fließend)>, GleisEntferntFehler> {
-        if let Some(Gleis { streckenabschnitt, .. }) = self.maps.get_map().get(&gleis_id) {
-            Ok(if let Some(name) = streckenabschnitt {
-                let name_clone = name.clone();
-                drop(name);
-                self.streckenabschnitt_mut(&name_clone)
-            } else {
-                None
-            })
+    ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisEntferntFehler> {
+        if self.zustand.ohne_streckenabschnitt.get_map().contains_key(&gleis_id) {
+            Ok(None)
         } else {
-            Err(GleisEntferntFehler)
+            self.zustand.streckenabschnitte.values_mut().fold(
+                Err(GleisEntferntFehler),
+                move |acc, (streckenabschnitt, fließend, maps)| {
+                    acc.or_else(move |fehler| {
+                        if maps.get_map().contains_key(&gleis_id) {
+                            Ok(Some((streckenabschnitt, fließend)))
+                        } else {
+                            Err(fehler)
+                        }
+                    })
+                },
+            )
         }
     }
 }

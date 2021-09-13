@@ -122,7 +122,7 @@ pub struct AuswahlStatus {
 
 impl AuswahlStatus {
     pub fn neu<'t>(
-        streckenabschnitte: impl Iterator<Item = (&'t Name, &'t (Streckenabschnitt, Fließend))>,
+        streckenabschnitte: impl Iterator<Item = (&'t Name, (&'t Streckenabschnitt, &'t Fließend))>,
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),

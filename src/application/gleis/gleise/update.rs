@@ -32,7 +32,7 @@ fn get_canvas_position(
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-fn find_clicked<T, Z>(map: &mut Map<T>, canvas_pos: Vektor) -> Option<(AnyId<Z>, Vektor)>
+fn find_clicked<T, Z>(map: &Map<T>, canvas_pos: Vektor) -> Option<(AnyId<Z>, Vektor)>
 where
     T: Zeichnen,
     GleisId<T>: Into<AnyId<Z>>,
@@ -48,22 +48,13 @@ where
     None
 }
 
-fn aktion_gleis_an_position<Z>(
-    bounds: &iced::Rectangle,
-    cursor: &iced::canvas::Cursor,
-    modus: &mut ModusDaten<Z>,
-    GleiseMaps {
-        geraden,
-        kurven,
-        weichen,
-        kurven_weichen,
-        dreiwege_weichen,
-        s_kurven_weichen,
-        kreuzungen,
-        ..
-    }: &mut GleiseMaps<Z>,
-    pivot: &Position,
-    skalieren: &Skalar,
+fn aktion_gleis_an_position<'t, Z: 't>(
+    bounds: &'t iced::Rectangle,
+    cursor: &'t iced::canvas::Cursor,
+    modus: &'t mut ModusDaten<Z>,
+    maps_iter: impl Iterator<Item = &'t GleiseMaps<Z>>,
+    pivot: &'t Position,
+    skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Message<Z>>)
 where
     Z: Zugtyp,
@@ -72,13 +63,24 @@ where
     let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let find_clicked_result = find_clicked(geraden, canvas_pos)
-                .or(find_clicked(kurven, canvas_pos))
-                .or(find_clicked(weichen, canvas_pos))
-                .or(find_clicked(dreiwege_weichen, canvas_pos))
-                .or(find_clicked(kurven_weichen, canvas_pos))
-                .or(find_clicked(s_kurven_weichen, canvas_pos))
-                .or(find_clicked(kreuzungen, canvas_pos));
+            let find_clicked_result = maps_iter.fold(None, |acc, maps| {
+                let GleiseMaps {
+                    geraden,
+                    kurven,
+                    weichen,
+                    kurven_weichen,
+                    dreiwege_weichen,
+                    s_kurven_weichen,
+                    kreuzungen,
+                } = maps;
+                acc.or_else(|| find_clicked(geraden, canvas_pos))
+                    .or_else(|| find_clicked(kurven, canvas_pos))
+                    .or_else(|| find_clicked(weichen, canvas_pos))
+                    .or_else(|| find_clicked(dreiwege_weichen, canvas_pos))
+                    .or_else(|| find_clicked(kurven_weichen, canvas_pos))
+                    .or_else(|| find_clicked(s_kurven_weichen, canvas_pos))
+                    .or_else(|| find_clicked(kreuzungen, canvas_pos))
+            });
             match modus {
                 ModusDaten::Bauen { grabbed, last } => {
                     let now = Instant::now();
@@ -126,9 +128,15 @@ impl<Z: Zugtyp> Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
             )) => {
-                let Gleise { modus, maps, pivot, skalieren, .. } = self;
-                let click_result =
-                    aktion_gleis_an_position(&bounds, &cursor, modus, maps, pivot, skalieren);
+                let Gleise { modus, zustand, pivot, skalieren, .. } = self;
+                let click_result = aktion_gleis_an_position(
+                    &bounds,
+                    &cursor,
+                    modus,
+                    zustand.alle_gleise_maps(),
+                    pivot,
+                    skalieren,
+                );
                 event_status = click_result.0;
                 message = click_result.1;
             }

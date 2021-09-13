@@ -107,6 +107,13 @@ impl<Z: Zugtyp> Zustand<Z> {
             self.streckenabschnitte.values().map(|(_streckenabschnitt, _fließend, maps)| maps),
         )
     }
+
+    pub(crate) fn alle_gleise_maps_mut(&mut self) -> impl Iterator<Item = &mut GleiseMaps<Z>> {
+        let Zustand { ohne_streckenabschnitt, streckenabschnitte, .. } = self;
+        iter::once(ohne_streckenabschnitt).chain(
+            streckenabschnitte.values_mut().map(|(_streckenabschnitt, _fließend, maps)| maps),
+        )
+    }
 }
 
 impl<Z> Debug for Zustand<Z>

@@ -378,6 +378,7 @@ pub enum Fehler {
     FalscherZugtyp(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
+    StreckenabschnittEntfernt,
 }
 impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
@@ -395,5 +396,13 @@ pub struct GleisEntferntFehler;
 impl From<GleisEntferntFehler> for Fehler {
     fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
         Fehler::GleisEntfernt
+    }
+}
+
+#[derive(Debug)]
+pub struct StreckenabschnittEntferntFehler;
+impl From<StreckenabschnittEntferntFehler> for Fehler {
+    fn from(StreckenabschnittEntferntFehler: StreckenabschnittEntferntFehler) -> Self {
+        Fehler::StreckenabschnittEntfernt
     }
 }
