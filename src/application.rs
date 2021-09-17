@@ -120,7 +120,7 @@ pub enum ZustandZurücksetzen<Z: Zugtyp> {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Message<Z>
+pub enum Nachricht<Z>
 where
     Z: Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
@@ -163,34 +163,34 @@ where
     },
 }
 
-impl<Z> From<gleise::Message<Z>> for Message<Z>
+impl<Z> From<gleise::Nachricht<Z>> for Nachricht<Z>
 where
     Z: Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    fn from(message: gleise::Message<Z>) -> Self {
+    fn from(message: gleise::Nachricht<Z>) -> Self {
         match message {
-            gleise::Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
-                Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt)
+            gleise::Nachricht::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
+                Nachricht::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt)
             }
-            gleise::Message::AnschlüsseAnpassen(any_id, streckenabschnitt) => {
-                Message::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt)
+            gleise::Nachricht::AnschlüsseAnpassen(any_id, streckenabschnitt) => {
+                Nachricht::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt)
             }
-            gleise::Message::FahrenAktion(any_id, streckenabschnitt) => {
-                Message::FahrenAktion(any_id, streckenabschnitt)
+            gleise::Nachricht::FahrenAktion(any_id, streckenabschnitt) => {
+                Nachricht::FahrenAktion(any_id, streckenabschnitt)
             }
         }
     }
 }
 
-impl<T, Z> ButtonMessage<Message<Z>> for T
+impl<T, Z> ButtonMessage<Nachricht<Z>> for T
 where
     T: Clone + Into<AnyGleis<Z>>,
     Z: Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    fn to_message(&self, grab_location: Vektor) -> Message<Z> {
-        Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
+    fn to_message(&self, grab_location: Vektor) -> Nachricht<Z> {
+        Nachricht::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
     }
 }
 
@@ -198,12 +198,12 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<Z> Message<Z>
+impl<Z> Nachricht<Z>
 where
     Z: 'static + Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
-    fn as_command(self) -> iced::Command<Message<Z>> {
+    fn as_command(self) -> iced::Command<Nachricht<Z>> {
         iced::Command::perform(async_identity(self), identity)
     }
 }
@@ -243,12 +243,12 @@ where
 {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Message<Z>>),
+    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
     DreiwegeWeiche(
         DreiwegeWeicheStatus,
-        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Message<Z>>,
+        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
     ),
-    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Message<Z>>),
+    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
 }
 
 #[derive(Debug)]
@@ -286,8 +286,8 @@ where
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
-    sender: Sender<Message<Z>>,
-    empfänger: Empfänger<Message<Z>>,
+    sender: Sender<Nachricht<Z>>,
+    empfänger: Empfänger<Nachricht<Z>>,
     // TODO Wegstrecke, Plan
 }
 
@@ -301,34 +301,34 @@ where
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Args);
-    type Message = Message<Z>;
+    type Message = Nachricht<Z>;
 
     fn new((anschlüsse, args): Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
         let mut messages = Vec::new();
         if let Some(modus) = modus {
-            messages.push(Message::Modus(modus));
+            messages.push(Nachricht::Modus(modus));
         }
         let gleise = Gleise::neu();
         let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
-            messages.push(Message::Laden(pfad.clone()));
+            messages.push(Nachricht::Laden(pfad.clone()));
             aktueller_pfad = pfad;
         } else {
             aktueller_pfad = format!("{}.zug", Z::NAME);
         };
         if let Some(zoom) = zoom {
-            messages.push(Message::Skalieren(Skalar(zoom)))
+            messages.push(Nachricht::Skalieren(Skalar(zoom)))
         }
         if x.is_some() || y.is_some() {
-            messages.push(Message::Position(Vektor {
+            messages.push(Nachricht::Position(Vektor {
                 x: Skalar(x.unwrap_or(0.)),
                 y: Skalar(y.unwrap_or(0.)),
             }))
         }
         if let Some(winkel) = winkel {
-            messages.push(Message::Winkel(Winkel(winkel)))
+            messages.push(Nachricht::Winkel(Winkel(winkel)))
         }
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
@@ -364,7 +364,7 @@ where
         let command = if messages.is_empty() {
             iced::Command::none()
         } else {
-            iced::Command::batch(messages.into_iter().map(Message::as_command))
+            iced::Command::batch(messages.into_iter().map(Nachricht::as_command))
         };
         (zugkontrolle, command)
     }
@@ -381,66 +381,66 @@ where
         let mut command = iced::Command::none();
 
         match message {
-            Message::Gleis { gleis, grab_height } => self.gleis_hinzufügen(gleis, grab_height),
-            Message::Modus(modus) => self.gleise.moduswechsel(modus),
-            Message::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
+            Nachricht::Gleis { gleis, grab_height } => self.gleis_hinzufügen(gleis, grab_height),
+            Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
+            Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
                 command = self.bewegung_starten(bewegung)
             }
-            Message::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung_beenden(),
-            Message::Bewegen(bewegen::Nachricht::Zurücksetzen) => self.bewegung_zurücksetzen(),
-            Message::BewegungAusführen => {
+            Nachricht::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung_beenden(),
+            Nachricht::Bewegen(bewegen::Nachricht::Zurücksetzen) => self.bewegung_zurücksetzen(),
+            Nachricht::BewegungAusführen => {
                 if let Some(cmd) = self.bewegung_ausführen() {
                     command = cmd
                 }
             }
-            Message::Position(position) => self.gleise.setze_pivot(position),
-            Message::Winkel(winkel) => self.gleise.winkel(winkel),
-            Message::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
-            Message::SchließeModal => self.schließe_modal(),
-            Message::ZeigeAuswahlStreckenabschnitt => self.zeige_auswahl_streckenabschnitt(),
-            Message::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
-            Message::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
+            Nachricht::Position(position) => self.gleise.setze_pivot(position),
+            Nachricht::Winkel(winkel) => self.gleise.winkel(winkel),
+            Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
+            Nachricht::SchließeModal => self.schließe_modal(),
+            Nachricht::ZeigeAuswahlStreckenabschnitt => self.zeige_auswahl_streckenabschnitt(),
+            Nachricht::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
+            Nachricht::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
                 self.streckenabschnitt_hinzufügen(name, farbe, anschluss_definition)
             }
-            Message::LöscheStreckenabschnitt(name) => self.streckenabschnitt_löschen(name),
-            Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
+            Nachricht::LöscheStreckenabschnitt(name) => self.streckenabschnitt_löschen(name),
+            Nachricht::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
                 self.gleis_setzte_streckenabschnitt(any_id, bisheriger_streckenabschnitt)
             }
-            Message::StreckenabschnittFestlegen(festlegen) => {
+            Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
             }
-            Message::SchließeMessageBox => self.schließe_message_box(),
-            Message::Speichern(pfad) => {
+            Nachricht::SchließeMessageBox => self.schließe_message_box(),
+            Nachricht::Speichern(pfad) => {
                 if let Some(cmd) = self.speichern(pfad) {
                     command = cmd
                 }
             }
-            Message::EntferneSpeichernFarbe(nachricht_zeit) => {
+            Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit)
             }
-            Message::Laden(pfad) => self.laden(pfad),
-            Message::GeschwindigkeitAnzeige { name, nachricht } => {
+            Nachricht::Laden(pfad) => self.laden(pfad),
+            Nachricht::GeschwindigkeitAnzeige { name, nachricht } => {
                 if let Some(cmd) = self.geschwindigkeit_anzeige_nachricht(name, nachricht) {
                     command = cmd
                 }
             }
-            Message::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
-            Message::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
+            Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
+            Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             }
-            Message::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            Message::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt) => {
+            Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
+            Nachricht::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt) => {
                 self.zeige_anschlüsse_anpassen(any_id, streckenabschnitt)
             }
-            Message::AnschlüsseAnpassen(anschlüsse_anpassen) => {
+            Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = message.as_command()
                 }
             }
-            Message::FahrenAktion(any_id, streckenabschnitt) => {
+            Nachricht::FahrenAktion(any_id, streckenabschnitt) => {
                 self.fahren_aktion(any_id, streckenabschnitt)
             }
-            Message::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
+            Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
                 if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
                     command = cmd
                 }

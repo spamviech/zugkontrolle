@@ -315,13 +315,13 @@ impl<Z: Zugtyp> Gleise<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Message<Z> {
+pub enum Nachricht<Z> {
     SetzeStreckenabschnitt(AnyId<Z>, Option<streckenabschnitt::Name>),
     AnschlüsseAnpassen(AnyId<Z>, Option<streckenabschnitt::Name>),
     FahrenAktion(AnyId<Z>, Option<streckenabschnitt::Name>),
 }
 
-impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
+impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {
     #[inline(always)]
     fn draw(
         &self,
@@ -337,7 +337,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Message<Z>>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>) {
         self.update(event, bounds, cursor)
     }
 

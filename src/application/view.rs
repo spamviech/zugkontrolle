@@ -17,7 +17,7 @@ use crate::{
         style::rule,
         touch_canvas,
         typen::*,
-        weiche, Message, MessageBox, Modal, Modus, Zugkontrolle,
+        weiche, MessageBox, Modal, Modus, Nachricht, Zugkontrolle,
     },
     zugtyp::Zugtyp,
 };
@@ -25,8 +25,8 @@ use crate::{
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
     fn mit_teil_nachricht<Z>(
         self,
-        konstruktor: impl Fn(Msg) -> Message<Z> + 'static,
-    ) -> iced::Element<'t, Message<Z>>
+        konstruktor: impl Fn(Msg) -> Nachricht<Z> + 'static,
+    ) -> iced::Element<'t, Nachricht<Z>>
     where
         Z: 'static + Zugtyp,
         <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
@@ -44,7 +44,7 @@ where
     <Z as Zugtyp>::Leiter: Debug,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    pub fn view(&mut self) -> iced::Element<Message<Z>> {
+    pub fn view(&mut self) -> iced::Element<Nachricht<Z>> {
         let Zugkontrolle {
             anschlüsse: _,
             gleise,
@@ -98,7 +98,7 @@ where
             geschwindigkeiten,
         );
 
-        let column: iced::Element<Message<Z>> = iced::Column::new()
+        let column: iced::Element<Nachricht<Z>> = iced::Column::new()
             .push(top_row)
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
@@ -124,12 +124,12 @@ where
             .map(|message| {
                 use streckenabschnitt::AuswahlNachricht::*;
                 match message {
-                    Schließe => Message::SchließeModal,
-                    Wähle(wahl) => Message::WähleStreckenabschnitt(wahl),
+                    Schließe => Nachricht::SchließeModal,
+                    Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
                     Hinzufügen(name, farbe, anschluss) => {
-                        Message::HinzufügenStreckenabschnitt(name, farbe, anschluss)
+                        Nachricht::HinzufügenStreckenabschnitt(name, farbe, anschluss)
                     }
-                    Lösche(name) => Message::LöscheStreckenabschnitt(name),
+                    Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
             Modal::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
@@ -138,11 +138,11 @@ where
             .map(|message| {
                 use geschwindigkeit::AuswahlNachricht::*;
                 match message {
-                    Schließen => Message::SchließeModal,
+                    Schließen => Nachricht::SchließeModal,
                     Hinzufügen(name, geschwindigkeit) => {
-                        Message::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+                        Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
                     }
-                    Löschen(name) => Message::LöscheGeschwindigkeit(name),
+                    Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
                 }
             }),
             Modal::Weiche(status, als_message) => {
@@ -151,7 +151,7 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Message::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
@@ -161,7 +161,7 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Message::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
@@ -171,12 +171,12 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Message::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
         })
-        .on_esc(Message::SchließeModal);
+        .on_esc(Nachricht::SchließeModal);
 
         iced_aw::Modal::new(message_box, modal, |MessageBox { titel, nachricht, button_state }| {
             iced::Element::from(
@@ -184,13 +184,13 @@ where
                     iced::Text::new(&*titel),
                     iced::Column::new().push(iced::Text::new(&*nachricht)).push(
                         iced::Button::new(button_state, iced::Text::new("Ok"))
-                            .on_press(Message::SchließeMessageBox),
+                            .on_press(Nachricht::SchließeMessageBox),
                     ),
                 )
                 .width(iced::Length::Shrink),
             )
         })
-        .on_esc(Message::SchließeMessageBox)
+        .on_esc(Nachricht::SchließeMessageBox)
         .into()
     }
 }
@@ -205,7 +205,7 @@ fn top_row<'t, Z>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Status,
-) -> iced::Row<'t, Message<Z>>
+) -> iced::Row<'t, Nachricht<Z>>
 where
     Z: 'static + Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
@@ -223,7 +223,7 @@ where
         .push(iced::Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
             iced::Slider::new(zoom, -2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
-                Message::Skalieren(Skalar(exponent.exp()))
+                Nachricht::Skalieren(Skalar(exponent.exp()))
             })
             .step(0.01)
             .width(iced::Length::Units(100)),
@@ -231,9 +231,9 @@ where
         .align_items(iced::Align::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
     let mut row = iced::Row::new()
-        .push(modus_radios.mit_teil_nachricht(Message::Modus))
-        .push(bewegen.mit_teil_nachricht(Message::Bewegen))
-        .push(drehen.mit_teil_nachricht(Message::Winkel))
+        .push(modus_radios.mit_teil_nachricht(Nachricht::Modus))
+        .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
+        .push(drehen.mit_teil_nachricht(Nachricht::Winkel))
         .push(skalieren_slider);
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
@@ -246,10 +246,10 @@ where
                 ))
                 .map(|message| match message {
                     streckenabschnitt::AnzeigeNachricht::Auswählen => {
-                        Message::ZeigeAuswahlStreckenabschnitt
+                        Nachricht::ZeigeAuswahlStreckenabschnitt
                     }
                     streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
-                        Message::StreckenabschnittFestlegen(festlegen)
+                        Nachricht::StreckenabschnittFestlegen(festlegen)
                     }
                 }),
             )
@@ -258,14 +258,14 @@ where
                     geschwindigkeit_button_state,
                     iced::Text::new("Geschwindigkeiten"),
                 )
-                .on_press(Message::ZeigeAuswahlGeschwindigkeit),
+                .on_press(Nachricht::ZeigeAuswahlGeschwindigkeit),
             );
     }
 
     row.push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
         .push(iced::Element::from(speichern_laden).map(|message| match message {
-            speichern_laden::Nachricht::Speichern(pfad) => Message::Speichern(pfad),
-            speichern_laden::Nachricht::Laden(pfad) => Message::Laden(pfad),
+            speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
+            speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
         }))
         .padding(5)
         .spacing(5)
@@ -284,7 +284,7 @@ fn row_with_scrollable<'t, Z>(
     s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit<Z>>>,
     kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
-) -> iced::Row<'t, Message<Z>>
+) -> iced::Row<'t, Nachricht<Z>>
 where
     Z: 'static + Zugtyp,
     Z::Leiter: Debug + LeiterAnzeige,
@@ -331,7 +331,7 @@ where
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
                     iced::Element::from(Z::Leiter::anzeige_neu(geschwindigkeit, anzeige_status))
-                        .map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                        .map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
                             name: name_clone.clone(),
                             nachricht,
                         }),

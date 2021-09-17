@@ -28,7 +28,7 @@ use crate::{
         },
         steuerung, streckenabschnitt,
         typen::*,
-        weiche, AnschlüsseAnpassen, AnyGleis, Message, MessageBox, Modal, Zugkontrolle,
+        weiche, AnschlüsseAnpassen, AnyGleis, MessageBox, Modal, Nachricht, Zugkontrolle,
         ZustandZurücksetzen,
     },
     farbe::Farbe,
@@ -40,7 +40,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-impl<Z> Message<Z>
+impl<Z> Nachricht<Z>
 where
     Z: 'static + Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
@@ -50,7 +50,7 @@ where
         self
     }
 
-    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Message<Z>> {
+    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Z>> {
         iced::Command::perform(self.nach_sleep(dauer), identity)
     }
 }
@@ -84,7 +84,7 @@ where
         erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Message<Z>>,
+            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Z>>,
         ) -> Modal<Z>,
         als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
             + 'static,
@@ -95,7 +95,7 @@ where
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
                 Arc::new(move |steuerung| {
-                    Message::AnschlüsseAnpassen(als_nachricht(id.clone(), steuerung))
+                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.clone(), steuerung))
                 }),
             );
             self.modal_state.show(true)
@@ -117,7 +117,7 @@ where
             &'t mut Gleise<Z>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
-    ) -> Option<Message<Z>>
+    ) -> Option<Nachricht<Z>>
     where
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
@@ -141,7 +141,7 @@ where
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         steuerung.insert(anschluss);
-                        message = Some(Message::SchließeModal)
+                        message = Some(Nachricht::SchließeModal)
                     }
                     Err(de_serialisieren::Fehler {
                         fehler,
@@ -175,7 +175,7 @@ where
                 }
             } else {
                 steuerung.take();
-                message = Some(Message::SchließeModal);
+                message = Some(Nachricht::SchließeModal);
             }
         } else {
             let _ = error_message.insert((
@@ -523,7 +523,7 @@ where
     pub fn anschlüsse_anpassen(
         &mut self,
         anschlüsse_anpassen: AnschlüsseAnpassen<Z>,
-    ) -> Option<Message<Z>> {
+    ) -> Option<Nachricht<Z>> {
         match anschlüsse_anpassen {
             AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
                 "Weiche",
@@ -605,7 +605,7 @@ where
         &mut self,
         name: geschwindigkeit::Name,
         zustand_zurücksetzen: <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ) -> Option<iced::Command<Message<Z>>> {
+    ) -> Option<iced::Command<Nachricht<Z>>> {
         // Entferntes Geschwindigkeit wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
         if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
             let cmd = <Z::Leiter as LeiterAnzeige>::zustand_zurücksetzen(
@@ -613,7 +613,7 @@ where
                 anzeige_status,
                 zustand_zurücksetzen,
             );
-            Some(cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
+            Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
                 name: name.clone(),
                 nachricht,
             }))
@@ -627,7 +627,7 @@ where
         titel: String,
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Z>,
-    ) -> Option<iced::Command<Message<Z>>> {
+    ) -> Option<iced::Command<Nachricht<Z>>> {
         let mut command = None;
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
@@ -709,7 +709,7 @@ where
                 let richtung = nächste_richtung(&mut weiche);
                 let bisheriger_zustand = weiche.serialisiere();
                 weiche.async_schalten(richtung, self.sender.clone(), move |fehler| {
-                    Message::AsyncFehler {
+                    Nachricht::AsyncFehler {
                         titel: format!("{} schalten", gleis_art),
                         nachricht: format!("{:?}", fehler),
                         zustand_zurücksetzen: zustand_zurücksetzen(
@@ -833,12 +833,12 @@ where
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Message<Z>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Z>> {
         self.bewegung = Some(bewegung);
-        Message::BewegungAusführen.as_sleep_command(Duration::from_millis(20))
+        Nachricht::BewegungAusführen.as_sleep_command(Duration::from_millis(20))
     }
 
-    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Message<Z>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Nachricht<Z>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -846,7 +846,7 @@ where
                     .vektor(Skalar(1.) / self.gleise.skalierfaktor())
                     .rotiert(-self.gleise.pivot().winkel),
             );
-            Some(Message::BewegungAusführen.as_sleep_command(Duration::from_millis(20)))
+            Some(Nachricht::BewegungAusführen.as_sleep_command(Duration::from_millis(20)))
         } else {
             None
         }
@@ -863,7 +863,7 @@ where
         &mut self,
         name: geschwindigkeit::Name,
         nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht,
-    ) -> Option<iced::Command<Message<Z>>> {
+    ) -> Option<iced::Command<Nachricht<Z>>> {
         let mut command = None;
         if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
             let name_clone = name.clone();
@@ -872,7 +872,7 @@ where
                 anzeige_status,
                 nachricht,
                 self.sender.clone(),
-                move |titel, fehler, zustand_zurücksetzen| Message::AsyncFehler {
+                move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
                     titel,
                     nachricht: format!("{:?}", fehler),
                     zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
@@ -884,7 +884,7 @@ where
             match update_result {
                 Ok(cmd) => {
                     let name_clone = name.clone();
-                    command = Some(cmd.map(move |nachricht| Message::GeschwindigkeitAnzeige {
+                    command = Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
                         name: name_clone.clone(),
                         nachricht,
                     }))
@@ -962,14 +962,14 @@ where
     Z::Leiter: LeiterAnzeige,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
-    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Message<Z>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Z>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
                 self.speichern_laden.färbe_speichern(true);
                 let speicher_zeit = Instant::now();
                 self.speichern_gefärbt = Some(speicher_zeit.clone());
-                let command = Message::EntferneSpeichernFarbe(speicher_zeit)
+                let command = Nachricht::EntferneSpeichernFarbe(speicher_zeit)
                     .as_sleep_command(Duration::from_secs(2));
                 Some(command)
             }

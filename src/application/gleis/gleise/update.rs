@@ -7,7 +7,7 @@ use log::error;
 use crate::{
     application::{
         gleis::gleise::{
-            id::*, maps::*, GleisEntferntFehler, Gleise, Grabbed, Message, ModusDaten,
+            id::*, maps::*, GleisEntferntFehler, Gleise, Grabbed, ModusDaten, Nachricht,
         },
         typen::*,
     },
@@ -60,7 +60,7 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     maps_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseMaps<Z>)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
-) -> (iced::canvas::event::Status, Option<Message<Z>>)
+) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
 where
     Z: Zugtyp,
 {
@@ -109,7 +109,7 @@ where
                     });
                     if let Some(Grabbed { gleis_id, streckenabschnitt, .. }) = grabbed {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Message::AnschlüsseAnpassen(
+                            message = Some(Nachricht::AnschlüsseAnpassen(
                                 gleis_id.clone(),
                                 streckenabschnitt.clone(),
                             ))
@@ -120,7 +120,7 @@ where
                 ModusDaten::Fahren => {
                     if let Some((gleis_id, streckenabschnitt, _grab_location)) = find_clicked_result
                     {
-                        message = Some(Message::FahrenAktion(gleis_id, streckenabschnitt));
+                        message = Some(Nachricht::FahrenAktion(gleis_id, streckenabschnitt));
                         status = iced::canvas::event::Status::Captured
                     }
                 }
@@ -136,7 +136,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Message<Z>>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>) {
         let mut event_status = iced::canvas::event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
@@ -177,7 +177,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Message::SetzeStreckenabschnitt(
+                            message = Some(Nachricht::SetzeStreckenabschnitt(
                                 gleis_id_clone.into(),
                                 streckenabschnitt_clone,
                             ));
