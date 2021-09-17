@@ -197,10 +197,12 @@ impl<Z: Zugtyp> Gleise<Z> {
                         {
                             *moved = true;
                             let point = canvas_pos - grab_location;
+                            let streckenabschnitt_clone = streckenabschnitt.clone();
                             if let Err(GleisEntferntFehler) = with_any_id!(
                                 gleis_id.clone(),
                                 Gleise::relocate_grabbed,
                                 self,
+                                streckenabschnitt_clone,
                                 point
                             ) {
                                 error!("Drag&Drop für entferntes Gleis!")

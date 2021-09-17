@@ -95,6 +95,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     fn relocate_grabbed<T: Debug + Zeichnen>(
         &mut self,
         gleis_id: GleisId<T>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         punkt: Vektor,
     ) -> Result<(), GleisEntferntFehler>
     where

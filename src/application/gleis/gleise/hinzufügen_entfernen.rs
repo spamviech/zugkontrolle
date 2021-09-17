@@ -99,7 +99,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 punkt: canvas_position - grab_location,
                 winkel: -self.pivot.winkel,
             },
-            streckenabschnitt,
+            streckenabschnitt: streckenabschnitt.clone(),
         })?;
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
