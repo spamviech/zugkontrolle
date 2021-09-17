@@ -227,7 +227,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // Kontur
-                for maps in self.zustand.alle_gleise_maps() {
+                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
                     mit_allen_gleisen! {
                         maps,
                         zeichne_alle_gleise,
@@ -235,7 +235,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // AnchorPoints
-                for maps in self.zustand.alle_gleise_maps() {
+                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
                     mit_allen_gleisen! {
                         maps,
                         zeichne_alle_anchor_points,
@@ -244,7 +244,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // Beschreibung
-                for maps in self.zustand.alle_gleise_maps() {
+                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
                     mit_allen_gleisen! {
                         maps,
                         schreibe_alle_beschreibungen,

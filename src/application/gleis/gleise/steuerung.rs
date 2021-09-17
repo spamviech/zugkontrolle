@@ -66,7 +66,9 @@ macro_rules! steuerung_weiche {
             let Gleise { zustand, canvas, .. } = self;
             let Gleis { definition, .. } = zustand
                 .alle_gleise_maps_mut()
-                .fold(None, |acc, maps| acc.or_else(move || maps.$map.get_mut(&gleis_id)))
+                .fold(None, |acc, (streckenabschnitt, maps)| {
+                    acc.or_else(move || maps.$map.get_mut(&gleis_id))
+                })
                 .ok_or(GleisEntferntFehler)?;
             Ok(Steuerung::neu(&mut definition.steuerung, canvas))
         }

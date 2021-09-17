@@ -363,7 +363,11 @@ where
         self.gleise.entferne_streckenabschnitt(name);
     }
 
-    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
+    pub fn gleis_setzte_streckenabschnitt(
+        &mut self,
+        any_id: AnyId<Z>,
+        bisheriger_streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) {
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(GleisEntferntFehler) = with_any_id!(
                 &any_id,
@@ -732,7 +736,11 @@ where
         }
     }
 
-    pub fn fahren_aktion(&mut self, any_id: AnyId<Z>) {
+    pub fn fahren_aktion(
+        &mut self,
+        any_id: AnyId<Z>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) {
         match any_id {
             AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
             AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
@@ -761,7 +769,7 @@ where
                             Richtung::Links => Richtung::Rechts,
                             Richtung::Rechts => Richtung::Links,
                             Richtung::Gerade => {
-                                error!("Invalider Zustand bei Dreiwegeweiche! Schalte auf Gerade.");
+                                error!("Invalider Zustand bei DreiwegeWeiche! Schalte auf Gerade.");
                                 *aktuelle_richtung = Richtung::Links;
                                 Richtung::Gerade
                             }
@@ -892,7 +900,11 @@ where
         command
     }
 
-    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId<Z>) {
+    pub fn zeige_anschlüsse_anpassen(
+        &mut self,
+        any_id: AnyId<Z>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) {
         match any_id {
             AnyId::Gerade(id) => {
                 debug!("Anschlüsse für Gerade {:?} anpassen.", id)

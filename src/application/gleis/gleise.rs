@@ -22,6 +22,7 @@ pub mod update;
 #[derive(zugkontrolle_derive::Debug)]
 struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
+    streckenabschnitt: Option<streckenabschnitt::Name>,
     grab_location: Vektor,
     moved: bool,
 }
@@ -79,7 +80,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    fn get_max_id<T: MapSelector<Z>>(maps: &GleiseMaps<Z>) -> Option<&GleisId<T>> {
+    fn get_max_id<S, T: MapSelector<Z>>(
+        (_ignoriert, maps): (S, &GleiseMaps<Z>),
+    ) -> Option<&GleisId<T>> {
         maps.get_map().keys().next_back()
     }
 
@@ -102,7 +105,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { position, .. } = self
             .zustand
             .alle_gleise_maps()
-            .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
+            .fold(None, |acc, (streckenabschnitt, maps)| {
+                acc.or_else(|| maps.get_map().get(&gleis_id))
+            })
             .ok_or(GleisEntferntFehler)?;
         let position_neu = Position { punkt, winkel: position.winkel };
         self.relocate(&gleis_id, position_neu)?;
@@ -118,7 +123,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { definition, position, .. } = self
             .zustand
             .alle_gleise_maps()
-            .fold(None, |acc, maps| acc.or_else(|| maps.get_map().get(&gleis_id)))
+            .fold(None, |acc, (streckenabschnitt, maps)| {
+                acc.or_else(|| maps.get_map().get(&gleis_id))
+            })
             .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
@@ -288,7 +295,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         let gleis = self
             .zustand
             .alle_gleise_maps_mut()
-            .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(gleis_id)))
+            .fold(None, |acc, (streckenabschnitt, maps)| {
+                acc.or_else(move || maps.get_map_mut().get_mut(gleis_id))
+            })
             .ok_or(GleisEntferntFehler)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
     }
@@ -307,9 +316,9 @@ impl<Z: Zugtyp> Gleise<Z> {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
-    SetzeStreckenabschnitt(AnyId<Z>),
-    AnschlüsseAnpassen(AnyId<Z>),
-    FahrenAktion(AnyId<Z>),
+    SetzeStreckenabschnitt(AnyId<Z>, Option<streckenabschnitt::Name>),
+    AnschlüsseAnpassen(AnyId<Z>, Option<streckenabschnitt::Name>),
+    FahrenAktion(AnyId<Z>, Option<streckenabschnitt::Name>),
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Message<Z>> for Gleise<Z> {

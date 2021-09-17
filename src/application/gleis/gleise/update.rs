@@ -11,6 +11,7 @@ use crate::{
         },
         typen::*,
     },
+    steuerung::streckenabschnitt,
     zugtyp::Zugtyp,
 };
 
@@ -32,7 +33,11 @@ fn get_canvas_position(
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-fn find_clicked<T, Z>(map: &Map<T>, canvas_pos: Vektor) -> Option<(AnyId<Z>, Vektor)>
+fn find_clicked<T, Z>(
+    streckenabschnitt: Option<&streckenabschnitt::Name>,
+    map: &Map<T>,
+    canvas_pos: Vektor,
+) -> Option<(AnyId<Z>, Option<streckenabschnitt::Name>, Vektor)>
 where
     T: Zeichnen,
     GleisId<T>: Into<AnyId<Z>>,
@@ -42,7 +47,7 @@ where
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(rotated_pos) {
-            return Some((AnyId::from_ref(gleis_id), relative_pos));
+            return Some((AnyId::from_ref(gleis_id), streckenabschnitt.cloned(), relative_pos));
         }
     }
     None
@@ -52,7 +57,7 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
     modus: &'t mut ModusDaten<Z>,
-    maps_iter: impl Iterator<Item = &'t GleiseMaps<Z>>,
+    maps_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseMaps<Z>)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Message<Z>>)
@@ -63,7 +68,7 @@ where
     let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let find_clicked_result = maps_iter.fold(None, |acc, maps| {
+            let find_clicked_result = maps_iter.fold(None, |acc, (streckenabschnitt, maps)| {
                 let GleiseMaps {
                     geraden,
                     kurven,
@@ -73,13 +78,13 @@ where
                     s_kurven_weichen,
                     kreuzungen,
                 } = maps;
-                acc.or_else(|| find_clicked(geraden, canvas_pos))
-                    .or_else(|| find_clicked(kurven, canvas_pos))
-                    .or_else(|| find_clicked(weichen, canvas_pos))
-                    .or_else(|| find_clicked(dreiwege_weichen, canvas_pos))
-                    .or_else(|| find_clicked(kurven_weichen, canvas_pos))
-                    .or_else(|| find_clicked(s_kurven_weichen, canvas_pos))
-                    .or_else(|| find_clicked(kreuzungen, canvas_pos))
+                acc.or_else(|| find_clicked(streckenabschnitt, geraden, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, kurven, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, weichen, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, dreiwege_weichen, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, kurven_weichen, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, s_kurven_weichen, canvas_pos))
+                    .or_else(|| find_clicked(streckenabschnitt, kreuzungen, canvas_pos))
             });
             match modus {
                 ModusDaten::Bauen { grabbed, last } => {
@@ -88,23 +93,34 @@ where
                     *last = now;
                     take_mut::take(grabbed, |grabbed| {
                         grabbed.or({
-                            if let Some((gleis_id, grab_location)) = find_clicked_result {
-                                Some(Grabbed { gleis_id, grab_location, moved: false })
+                            if let Some((gleis_id, streckenabschnitt, grab_location)) =
+                                find_clicked_result
+                            {
+                                Some(Grabbed {
+                                    gleis_id,
+                                    streckenabschnitt,
+                                    grab_location,
+                                    moved: false,
+                                })
                             } else {
                                 None
                             }
                         })
                     });
-                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                    if let Some(Grabbed { gleis_id, streckenabschnitt, .. }) = grabbed {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Message::AnschlüsseAnpassen(gleis_id.clone()))
+                            message = Some(Message::AnschlüsseAnpassen(
+                                gleis_id.clone(),
+                                streckenabschnitt.clone(),
+                            ))
                         }
                         status = iced::canvas::event::Status::Captured
                     }
                 }
                 ModusDaten::Fahren => {
-                    if let Some((gleis_id, _grab_location)) = find_clicked_result {
-                        message = Some(Message::FahrenAktion(gleis_id));
+                    if let Some((gleis_id, streckenabschnitt, _grab_location)) = find_clicked_result
+                    {
+                        message = Some(Message::FahrenAktion(gleis_id, streckenabschnitt));
                         status = iced::canvas::event::Status::Captured
                     }
                 }
@@ -144,8 +160,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                    if let Some(Grabbed { gleis_id, moved, .. }) = &*grabbed {
+                    if let Some(Grabbed { gleis_id, streckenabschnitt, moved, .. }) = &*grabbed {
                         let gleis_id_clone = gleis_id.clone();
+                        let streckenabschnitt_clone = streckenabschnitt.clone();
                         let moved_copy = *moved;
                         *grabbed = None;
                         if moved_copy {
@@ -160,7 +177,10 @@ impl<Z: Zugtyp> Gleise<Z> {
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Message::SetzeStreckenabschnitt(gleis_id_clone.into()));
+                            message = Some(Message::SetzeStreckenabschnitt(
+                                gleis_id_clone.into(),
+                                streckenabschnitt_clone,
+                            ));
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
@@ -172,7 +192,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                 {
                     self.last_mouse = canvas_pos;
                     if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                        if let Some(Grabbed { gleis_id, grab_location, moved }) = grabbed {
+                        if let Some(Grabbed { gleis_id, streckenabschnitt, grab_location, moved }) =
+                            grabbed
+                        {
                             *moved = true;
                             let point = canvas_pos - grab_location;
                             if let Err(GleisEntferntFehler) = with_any_id!(

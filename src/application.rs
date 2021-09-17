@@ -141,7 +141,7 @@ where
     WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
     HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSerialisiert),
     LöscheStreckenabschnitt(streckenabschnitt::Name),
-    SetzeStreckenabschnitt(AnyId<Z>),
+    SetzeStreckenabschnitt(AnyId<Z>, Option<streckenabschnitt::Name>),
     StreckenabschnittFestlegen(bool),
     Speichern(String),
     EntferneSpeichernFarbe(Instant),
@@ -153,9 +153,9 @@ where
     ZeigeAuswahlGeschwindigkeit,
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Z::Leiter>),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
-    ZeigeAnschlüsseAnpassen(AnyId<Z>),
+    ZeigeAnschlüsseAnpassen(AnyId<Z>, Option<streckenabschnitt::Name>),
     AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
-    FahrenAktion(AnyId<Z>),
+    FahrenAktion(AnyId<Z>, Option<streckenabschnitt::Name>),
     AsyncFehler {
         titel: String,
         nachricht: String,
@@ -170,13 +170,15 @@ where
 {
     fn from(message: gleise::Message<Z>) -> Self {
         match message {
-            gleise::Message::SetzeStreckenabschnitt(any_id) => {
-                Message::SetzeStreckenabschnitt(any_id)
+            gleise::Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
+                Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt)
             }
-            gleise::Message::AnschlüsseAnpassen(any_id) => {
-                Message::ZeigeAnschlüsseAnpassen(any_id)
+            gleise::Message::AnschlüsseAnpassen(any_id, streckenabschnitt) => {
+                Message::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt)
             }
-            gleise::Message::FahrenAktion(any_id) => Message::FahrenAktion(any_id),
+            gleise::Message::FahrenAktion(any_id, streckenabschnitt) => {
+                Message::FahrenAktion(any_id, streckenabschnitt)
+            }
         }
     }
 }
@@ -401,7 +403,9 @@ where
                 self.streckenabschnitt_hinzufügen(name, farbe, anschluss_definition)
             }
             Message::LöscheStreckenabschnitt(name) => self.streckenabschnitt_löschen(name),
-            Message::SetzeStreckenabschnitt(any_id) => self.gleis_setzte_streckenabschnitt(any_id),
+            Message::SetzeStreckenabschnitt(any_id, bisheriger_streckenabschnitt) => {
+                self.gleis_setzte_streckenabschnitt(any_id, bisheriger_streckenabschnitt)
+            }
             Message::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
             }
@@ -425,13 +429,17 @@ where
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             }
             Message::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            Message::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
+            Message::ZeigeAnschlüsseAnpassen(any_id, streckenabschnitt) => {
+                self.zeige_anschlüsse_anpassen(any_id, streckenabschnitt)
+            }
             Message::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = message.as_command()
                 }
             }
-            Message::FahrenAktion(any_id) => self.fahren_aktion(any_id),
+            Message::FahrenAktion(any_id, streckenabschnitt) => {
+                self.fahren_aktion(any_id, streckenabschnitt)
+            }
             Message::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
                 if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
                     command = cmd

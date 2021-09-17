@@ -103,7 +103,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         })?;
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
-            *grabbed = Some(Grabbed { gleis_id, grab_location, moved: true });
+            *grabbed = Some(Grabbed { gleis_id, streckenabschnitt, grab_location, moved: true });
         }
         Ok(result)
     }
@@ -145,7 +145,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { definition, position, .. } = self
             .zustand
             .alle_gleise_maps_mut()
-            .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id)))
+            .fold(None, |acc, (streckenabschnitt, maps)| {
+                acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id))
+            })
             .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
@@ -198,7 +200,9 @@ impl<Z: Zugtyp> Gleise<Z> {
             let Gleis { definition, .. } = self
                 .zustand
                 .alle_gleise_maps_mut()
-                .fold(None, |acc, maps| acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id)))
+                .fold(None, |acc, (streckenabschnitt, maps)| {
+                    acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id))
+                })
                 .ok_or(GleisEntferntFehler)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
         };
@@ -217,10 +221,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        if let Some(Gleis { definition, position, .. }) = self
-            .zustand
-            .alle_gleise_maps_mut()
-            .fold(None, |acc, maps| acc.or_else(|| maps.get_map_mut().remove(&gleis_id)))
+        if let Some(Gleis { definition, position, .. }) =
+            self.zustand.alle_gleise_maps_mut().fold(None, |acc, (streckenabschnitt, maps)| {
+                acc.or_else(|| maps.get_map_mut().remove(&gleis_id))
+            })
         {
             // delete from anchor_points
             definition.anchor_points().for_each(|_name, anchor| {
