@@ -62,7 +62,7 @@
 ## 1.2.0.0
 
 - Neues StreckenObjekt: Kontakt
-    Ein Kontakt repräsentiert ein Einganssignal, typischerweise eine Kontakt-Schiene.
+    Ein Kontakt repräsentiert ein Eingangsignal, typischerweise eine Kontakt-Schiene.
     Es kann gewartet werden, bis bei einem Kontakt ein Signal eingeht.
     Eine Wegstrecke wartet, bis bei einem ihrer Kontakte ein Signal eingeht.
     Im Zuge dessen wurden Sammelseiten neu sortiert.
@@ -90,7 +90,7 @@
     Alte Speicherdateien können weiterverwendet werden.
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
-- Gtk-UI: Fenster wird bei Programstart maximiert.
+- Gtk-UI: Fenster wird bei Programmstart maximiert.
 - GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen (optional).
 - GTK-UI: Jeder Plan erhält seine eigene ProgressBar.
 - Gtk.UI: Wegstrecken-Elemente werden scrollbar angezeigt (weiterhin in einem Expander versteckt).
@@ -190,7 +190,7 @@
 - GTK-UI:
   - nameEntry erhält PlaceholderText (wird gezeigt, wenn Entry leer und nicht fokussiert)
 - Erlaube Kompilation ohne GTK-UI:
-    gtk3- und lens-Pakete setzen Cabal-Packet vorraus, dessen Installation sehr lange
+    gtk3- und lens-Pakete setzen Cabal-Packet voraus, dessen Installation sehr lange
       (und viel Arbeitsspeicher) braucht.
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
