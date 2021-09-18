@@ -7,7 +7,7 @@ use crate::{
     application::{
         gleis::{
             gerade::GeradeSerialisiert,
-            gleise::maps::{self as aktuell},
+            gleise::daten::{self as aktuell},
             kreuzung::KreuzungSerialisiert,
             kurve::KurveSerialisiert,
             weiche::{

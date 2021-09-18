@@ -7,8 +7,8 @@ use crate::{
     application::{
         gleis::{
             gleise::{
+                daten::{Gleis, MapSelector},
                 id::{AnyId, GleisId},
-                maps::{Gleis, MapSelector},
                 GleisEntferntFehler, Gleise, Grabbed, ModusDaten, StreckenabschnittEntferntFehler,
             },
             verbindung,

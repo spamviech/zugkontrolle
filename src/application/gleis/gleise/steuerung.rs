@@ -4,7 +4,7 @@ use crate::{
     application::{
         gleis::{
             self,
-            gleise::{id::GleisId, maps::Gleis, GleisEntferntFehler, Gleise},
+            gleise::{daten::Gleis, id::GleisId, GleisEntferntFehler, Gleise},
         },
         typen::*,
     },

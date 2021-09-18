@@ -2,7 +2,7 @@
 
 use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, time::Instant};
 
-pub use self::{id::*, maps::*};
+pub use self::{daten::*, id::*};
 use crate::{
     anschluss::{self, Fließend},
     application::{typen::*, verbindung},
@@ -10,12 +10,12 @@ use crate::{
     steuerung::{streckenabschnitt, Streckenabschnitt},
 };
 
+pub mod daten;
 pub mod de_serialisieren;
 pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
 pub mod id;
-pub mod maps;
 pub mod steuerung;
 pub mod update;
 
@@ -81,7 +81,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     fn get_max_id<S, T: MapSelector<Z>>(
-        (_ignoriert, maps): (S, &GleiseMaps<Z>),
+        (_ignoriert, maps): (S, &GleiseDaten<Z>),
     ) -> Option<&GleisId<T>> {
         maps.get_map().keys().next_back()
     }
@@ -231,7 +231,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 Some((streckenabschnitt, bisherig_fließend))
             }
             Entry::Vacant(vacant) => {
-                vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseMaps::neu()));
+                vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
                 None
             }
         }

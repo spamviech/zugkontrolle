@@ -12,7 +12,7 @@ use crate::{
         Anschlüsse, InputAnschluss, OutputAnschluss,
     },
     application::{
-        gleis::gleise::{maps::*, Fehler, Gleise},
+        gleis::gleise::{daten::*, Fehler, Gleise},
         typen::*,
         verbindung,
     },
@@ -73,6 +73,7 @@ where
         let mut output_anschlüsse = Vec::new();
         let mut input_anschlüsse = Vec::new();
         // todo!()
+        // RTree::bulk_load verwenden!
         // macro_rules! fold_anschlüsse {
         //     ($iterator:expr) => {
         //         for struktur in $iterator {

@@ -1,11 +1,8 @@
 //! Struktur zum Speichern aller Gleise
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    fmt::Debug,
-    iter,
-};
+use std::{collections::HashMap, fmt::Debug, iter};
 
+use rstar::{primitives::GeomWithData, RTree, RTreeObject, SelectionFunction};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,10 +10,7 @@ use crate::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         polarität::Fließend,
     },
-    application::{
-        gleis::{gleise::id::GleisId, *},
-        typen::*,
-    },
+    application::{gleis::*, typen::*},
     steuerung::{
         geschwindigkeit,
         plan::Plan,
@@ -88,15 +82,15 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
 }
 
 pub struct Zustand<Z: Zugtyp> {
-    pub(crate) ohne_streckenabschnitt: GleiseMaps<Z>,
+    pub(crate) ohne_streckenabschnitt: GleiseDaten<Z>,
     pub(crate) streckenabschnitte:
-        HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseMaps<Z>)>,
+        HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
 }
 impl<Z: Zugtyp> Zustand<Z> {
     pub fn neu() -> Self {
         Zustand {
-            ohne_streckenabschnitt: GleiseMaps::neu(),
+            ohne_streckenabschnitt: GleiseDaten::neu(),
             streckenabschnitte: HashMap::new(),
             geschwindigkeiten: geschwindigkeit::Map::new(),
         }
@@ -104,7 +98,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     pub(crate) fn alle_gleise_maps(
         &self,
-    ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &GleiseMaps<Z>)> {
+    ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt)).chain(
             self.streckenabschnitte
                 .iter()
@@ -114,7 +108,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     pub(crate) fn alle_gleise_maps_mut(
         &mut self,
-    ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &mut GleiseMaps<Z>)> {
+    ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &mut GleiseDaten<Z>)> {
         let Zustand { ohne_streckenabschnitt, streckenabschnitte, .. } = self;
         iter::once((None, ohne_streckenabschnitt)).chain(
             streckenabschnitte
@@ -138,35 +132,37 @@ where
     }
 }
 
-// BTreeMap could use `split_off(GleisId::initial())` instead of `drain()`
-pub(crate) type Map<T> = BTreeMap<GleisId<T>, Gleis<T>>;
+// FIXME Rechteck verwenden
+pub(crate) type RStern<T> = RTree<GeomWithData<Vektor, (T, Winkel)>>;
 #[derive(zugkontrolle_derive::Debug)]
-pub(crate) struct GleiseMaps<Z> {
-    pub(crate) geraden: Map<Gerade<Z>>,
-    pub(crate) kurven: Map<Kurve<Z>>,
-    pub(crate) weichen: Map<Weiche<Z>>,
-    pub(crate) dreiwege_weichen: Map<DreiwegeWeiche<Z>>,
-    pub(crate) kurven_weichen: Map<KurvenWeiche<Z>>,
-    pub(crate) s_kurven_weichen: Map<SKurvenWeiche<Z>>,
-    pub(crate) kreuzungen: Map<Kreuzung<Z>>,
+pub(crate) struct GleiseDaten<Z> {
+    pub(crate) geraden: RStern<Gerade<Z>>,
+    pub(crate) kurven: RStern<Kurve<Z>>,
+    pub(crate) weichen: RStern<Weiche<Z>>,
+    pub(crate) dreiwege_weichen: RStern<DreiwegeWeiche<Z>>,
+    pub(crate) kurven_weichen: RStern<KurvenWeiche<Z>>,
+    pub(crate) s_kurven_weichen: RStern<SKurvenWeiche<Z>>,
+    pub(crate) kreuzungen: RStern<Kreuzung<Z>>,
 }
-impl<Z> GleiseMaps<Z> {
+impl<Z> GleiseDaten<Z> {
     pub fn neu() -> Self {
-        GleiseMaps {
-            geraden: Map::new(),
-            kurven: Map::new(),
-            weichen: Map::new(),
-            dreiwege_weichen: Map::new(),
-            kurven_weichen: Map::new(),
-            s_kurven_weichen: Map::new(),
-            kreuzungen: Map::new(),
+        GleiseDaten {
+            geraden: RStern::new(),
+            kurven: RStern::new(),
+            weichen: RStern::new(),
+            dreiwege_weichen: RStern::new(),
+            kurven_weichen: RStern::new(),
+            s_kurven_weichen: RStern::new(),
+            kreuzungen: RStern::new(),
         }
     }
 
-    pub fn merge(&mut self, other: GleiseMaps<Z>) {
+    pub fn merge(&mut self, other: GleiseDaten<Z>) {
         macro_rules! extend {
-            ($($map: ident),*) => {
-                $(self.$map.extend(other.$map.into_iter()));*
+            ($($rstern: ident),*) => {
+                $(while let Some(gleis) = other.$rstern.remove_with_selection_function(SelectAll) {
+                    self.$rstern.insert(gleis)
+                })*
             };
         }
         extend! {
@@ -180,76 +176,84 @@ impl<Z> GleiseMaps<Z> {
         }
     }
 }
+/// SelectionFunction, die jedes Element akzeptiert.
+/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::merge`).
+struct SelectAll;
+impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
+        true
+    }
+}
 
 /// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
 /// Kein schönes API, daher nur crate-public.
 pub(crate) trait MapSelector<Z>: Sized {
-    fn get_map(gleise: &GleiseMaps<Z>) -> &Map<Self>;
-    fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut Map<Self>;
+    fn get_map(gleise: &GleiseDaten<Z>) -> &RStern<Self>;
+    fn get_map_mut(gleise: &mut GleiseDaten<Z>) -> &mut RStern<Self>;
 }
-impl<Z> GleiseMaps<Z> {
+impl<Z> GleiseDaten<Z> {
     #[inline(always)]
-    pub(crate) fn get_map<T: MapSelector<Z>>(&self) -> &Map<T> {
+    pub(crate) fn get_map<T: MapSelector<Z>>(&self) -> &RStern<T> {
         T::get_map(self)
     }
     #[inline(always)]
-    pub(crate) fn get_map_mut<T: MapSelector<Z>>(&mut self) -> &mut Map<T> {
+    pub(crate) fn get_map_mut<T: MapSelector<Z>>(&mut self) -> &mut RStern<T> {
         T::get_map_mut(self)
     }
 }
 impl<Z> MapSelector<Z> for Gerade<Z> {
-    fn get_map(GleiseMaps { geraden, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { geraden, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         geraden
     }
-    fn get_map_mut(GleiseMaps { geraden, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { geraden, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         geraden
     }
 }
 impl<Z> MapSelector<Z> for Kurve<Z> {
-    fn get_map(GleiseMaps { kurven, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { kurven, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kurven
     }
-    fn get_map_mut(GleiseMaps { kurven, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { kurven, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kurven
     }
 }
 impl<Z> MapSelector<Z> for Weiche<Z> {
-    fn get_map(GleiseMaps { weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         weichen
     }
-    fn get_map_mut(GleiseMaps { weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         weichen
     }
 }
 impl<Z> MapSelector<Z> for DreiwegeWeiche<Z> {
-    fn get_map(GleiseMaps { dreiwege_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { dreiwege_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         dreiwege_weichen
     }
-    fn get_map_mut(GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { dreiwege_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         dreiwege_weichen
     }
 }
 impl<Z> MapSelector<Z> for KurvenWeiche<Z> {
-    fn get_map(GleiseMaps { kurven_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kurven_weichen
     }
-    fn get_map_mut(GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kurven_weichen
     }
 }
 impl<Z> MapSelector<Z> for SKurvenWeiche<Z> {
-    fn get_map(GleiseMaps { s_kurven_weichen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { s_kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         s_kurven_weichen
     }
-    fn get_map_mut(GleiseMaps { s_kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { s_kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         s_kurven_weichen
     }
 }
 impl<Z> MapSelector<Z> for Kreuzung<Z> {
-    fn get_map(GleiseMaps { kreuzungen, .. }: &GleiseMaps<Z>) -> &Map<Self> {
+    fn get_map(GleiseDaten { kreuzungen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kreuzungen
     }
-    fn get_map_mut(GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
+    fn get_map_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kreuzungen
     }
 }

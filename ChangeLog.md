@@ -28,6 +28,9 @@
 - Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
 - Refactoring: GleiseMap-Trait ist nicht mehr public.
     Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
+- Refactoring: Modul umbenannt maps.rs -> daten.rs
+- Refactoring: Typ umbenannt GleiseMaps -> GleiseDaten
+    Dazu Änderung der internen Repräsentation auf einen RTree
 
 ## 2.0.1
 

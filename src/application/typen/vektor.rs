@@ -280,3 +280,30 @@ where
         self
     }
 }
+
+// copy+paste der Beispiel-Implementierung für IntegerPoint
+impl rstar::Point for Vektor {
+    type Scalar = f32;
+
+    const DIMENSIONS: usize = 2;
+
+    fn generate(generator: impl FnMut(usize) -> Self::Scalar) -> Self {
+        Vektor { x: Skalar(generator(0)), y: Skalar(generator(1)) }
+    }
+
+    fn nth(&self, index: usize) -> Self::Scalar {
+        match index {
+            0 => self.x.0,
+            1 => self.y.0,
+            _ => unreachable!(),
+        }
+    }
+
+    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+        match index {
+            0 => &mut self.x.0,
+            1 => &mut self.y.0,
+            _ => unreachable!(),
+        }
+    }
+}

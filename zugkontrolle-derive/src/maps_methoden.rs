@@ -1,4 +1,4 @@
-//! Erstelle Methoden für alle Typen in GleiseMaps
+//! Erstelle Methoden für alle Typen in GleiseDaten
 
 use std::iter;
 

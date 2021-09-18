@@ -3,7 +3,7 @@
 use crate::{
     anschluss::Fließend,
     application::{
-        gleis::gleise::{id::*, maps::*, Gleise, Grabbed, ModusDaten},
+        gleis::gleise::{daten::*, id::*, Gleise, Grabbed, ModusDaten},
         typen::*,
         verbindung,
     },
@@ -22,7 +22,7 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
 
 fn fülle_alle_gleise<T, Z>(
     frame: &mut canvas::Frame,
-    map: &Map<T>,
+    map: &RStern<T>,
     transparent: impl Fn(AnyId<Z>, Fließend) -> Transparenz,
     streckenabschnitt_farbe: &Farbe,
     streckenabschnitt_fließend: &Fließend,
@@ -50,7 +50,7 @@ fn fülle_alle_gleise<T, Z>(
 
 fn zeichne_alle_gleise<T, Z>(
     frame: &mut canvas::Frame,
-    map: &Map<T>,
+    map: &RStern<T>,
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,

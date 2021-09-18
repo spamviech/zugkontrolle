@@ -21,8 +21,8 @@ use crate::{
         geschwindigkeit::{self, LeiterAnzeige},
         gleis,
         gleis::gleise::{
+            daten::MapSelector,
             id::{with_any_id, AnyId, GleisId},
-            maps::MapSelector,
             steuerung::Steuerung,
             GleisEntferntFehler, Gleise,
         },

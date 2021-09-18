@@ -13,7 +13,7 @@ resolver = "2"
 path = "zugkontrolle-derive"
 
 [dependencies]
-rstar = "0.8.2"
+rstar = "0.9.1"
 log = "0.4.14"
 simple_logger = "1.11.0"
 take_mut = "0.2.2"

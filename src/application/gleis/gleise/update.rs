@@ -7,7 +7,7 @@ use log::error;
 use crate::{
     application::{
         gleis::gleise::{
-            id::*, maps::*, GleisEntferntFehler, Gleise, Grabbed, ModusDaten, Nachricht,
+            daten::*, id::*, GleisEntferntFehler, Gleise, Grabbed, ModusDaten, Nachricht,
         },
         typen::*,
     },
@@ -57,7 +57,7 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
     modus: &'t mut ModusDaten<Z>,
-    maps_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseMaps<Z>)>,
+    maps_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseDaten<Z>)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
@@ -69,7 +69,7 @@ where
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let find_clicked_result = maps_iter.fold(None, |acc, (streckenabschnitt, maps)| {
-                let GleiseMaps {
+                let GleiseDaten {
                     geraden,
                     kurven,
                     weichen,
