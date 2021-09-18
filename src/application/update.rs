@@ -21,7 +21,7 @@ use crate::{
         geschwindigkeit::{self, LeiterAnzeige},
         gleis,
         gleis::gleise::{
-            daten::MapSelector,
+            daten::DatenAuswahl,
             id::{with_any_id, AnyId, GleisId},
             steuerung::Steuerung,
             GleisEntferntFehler, Gleise,
@@ -191,7 +191,7 @@ where
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
-    pub(crate) fn streckenabschnitt_umschalten<T: MapSelector<Z>>(
+    pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,

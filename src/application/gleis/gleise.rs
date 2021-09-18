@@ -80,13 +80,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    fn get_max_id<S, T: MapSelector<Z>>(
+    fn get_max_id<S, T: DatenAuswahl<Z>>(
         (_ignoriert, maps): (S, &GleiseDaten<Z>),
     ) -> Option<&GleisId<T>> {
-        maps.get_map().keys().next_back()
+        maps.rstern().keys().next_back()
     }
 
-    fn next_id<T: Debug + MapSelector<Z>>(&self) -> GleisId<T> {
+    fn next_id<T: Debug + DatenAuswahl<Z>>(&self) -> GleisId<T> {
         let max_id =
             self.zustand.alle_gleise_maps().map(Self::get_max_id).filter_map(identity).max();
         max_id.map(GleisId::nachfolger).unwrap_or_else(GleisId::initial)
@@ -100,14 +100,14 @@ impl<Z: Zugtyp> Gleise<Z> {
     ) -> Result<(), GleisEntferntFehler>
     where
         Z: Zugtyp,
-        T: MapSelector<Z>,
+        T: DatenAuswahl<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { position, .. } = self
             .zustand
             .alle_gleise_maps()
             .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(|| maps.get_map().get(&gleis_id))
+                acc.or_else(|| maps.rstern().get(&gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
         let position_neu = Position { punkt, winkel: position.winkel };
@@ -118,14 +118,14 @@ impl<Z: Zugtyp> Gleise<Z> {
     fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntFehler>
     where
         Z: Zugtyp,
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } = self
             .zustand
             .alle_gleise_maps()
             .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(|| maps.get_map().get(&gleis_id))
+                acc.or_else(|| maps.rstern().get(&gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for AnchorPoints
@@ -288,7 +288,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     /// Der bisherige Wert wird zurückgegeben.
-    pub(crate) fn setze_streckenabschnitt<T: MapSelector<Z>>(
+    pub(crate) fn setze_streckenabschnitt<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
@@ -297,7 +297,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .zustand
             .alle_gleise_maps_mut()
             .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(move || maps.get_map_mut().get_mut(gleis_id))
+                acc.or_else(move || maps.rstern_mut().get_mut(gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
         Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
@@ -305,7 +305,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
-    pub(in crate::application) fn setze_streckenabschnitt_unit<T: MapSelector<Z>>(
+    pub(in crate::application) fn setze_streckenabschnitt_unit<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,

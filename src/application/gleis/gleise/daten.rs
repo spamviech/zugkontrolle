@@ -187,73 +187,73 @@ impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
 
 /// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
 /// Kein schönes API, daher nur crate-public.
-pub(crate) trait MapSelector<Z>: Sized {
-    fn get_map(gleise: &GleiseDaten<Z>) -> &RStern<Self>;
-    fn get_map_mut(gleise: &mut GleiseDaten<Z>) -> &mut RStern<Self>;
+pub(crate) trait DatenAuswahl<Z>: Sized {
+    fn rstern(gleise: &GleiseDaten<Z>) -> &RStern<Self>;
+    fn rstern_mut(gleise: &mut GleiseDaten<Z>) -> &mut RStern<Self>;
 }
 impl<Z> GleiseDaten<Z> {
     #[inline(always)]
-    pub(crate) fn get_map<T: MapSelector<Z>>(&self) -> &RStern<T> {
-        T::get_map(self)
+    pub(crate) fn rstern<T: DatenAuswahl<Z>>(&self) -> &RStern<T> {
+        T::rstern(self)
     }
     #[inline(always)]
-    pub(crate) fn get_map_mut<T: MapSelector<Z>>(&mut self) -> &mut RStern<T> {
-        T::get_map_mut(self)
+    pub(crate) fn rstern_mut<T: DatenAuswahl<Z>>(&mut self) -> &mut RStern<T> {
+        T::rstern_mut(self)
     }
 }
-impl<Z> MapSelector<Z> for Gerade<Z> {
-    fn get_map(GleiseDaten { geraden, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for Gerade<Z> {
+    fn rstern(GleiseDaten { geraden, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         geraden
     }
-    fn get_map_mut(GleiseDaten { geraden, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { geraden, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         geraden
     }
 }
-impl<Z> MapSelector<Z> for Kurve<Z> {
-    fn get_map(GleiseDaten { kurven, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for Kurve<Z> {
+    fn rstern(GleiseDaten { kurven, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kurven
     }
-    fn get_map_mut(GleiseDaten { kurven, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kurven, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kurven
     }
 }
-impl<Z> MapSelector<Z> for Weiche<Z> {
-    fn get_map(GleiseDaten { weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for Weiche<Z> {
+    fn rstern(GleiseDaten { weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         weichen
     }
-    fn get_map_mut(GleiseDaten { weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         weichen
     }
 }
-impl<Z> MapSelector<Z> for DreiwegeWeiche<Z> {
-    fn get_map(GleiseDaten { dreiwege_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for DreiwegeWeiche<Z> {
+    fn rstern(GleiseDaten { dreiwege_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         dreiwege_weichen
     }
-    fn get_map_mut(GleiseDaten { dreiwege_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { dreiwege_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         dreiwege_weichen
     }
 }
-impl<Z> MapSelector<Z> for KurvenWeiche<Z> {
-    fn get_map(GleiseDaten { kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for KurvenWeiche<Z> {
+    fn rstern(GleiseDaten { kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kurven_weichen
     }
-    fn get_map_mut(GleiseDaten { kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kurven_weichen
     }
 }
-impl<Z> MapSelector<Z> for SKurvenWeiche<Z> {
-    fn get_map(GleiseDaten { s_kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for SKurvenWeiche<Z> {
+    fn rstern(GleiseDaten { s_kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         s_kurven_weichen
     }
-    fn get_map_mut(GleiseDaten { s_kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { s_kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         s_kurven_weichen
     }
 }
-impl<Z> MapSelector<Z> for Kreuzung<Z> {
-    fn get_map(GleiseDaten { kreuzungen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl<Z> DatenAuswahl<Z> for Kreuzung<Z> {
+    fn rstern(GleiseDaten { kreuzungen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
         kreuzungen
     }
-    fn get_map_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kreuzungen
     }
 }

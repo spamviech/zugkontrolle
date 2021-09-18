@@ -7,7 +7,7 @@ use crate::{
     application::{
         gleis::{
             gleise::{
-                daten::{Gleis, MapSelector},
+                daten::{DatenAuswahl, Gleis},
                 id::{AnyId, GleisId},
                 GleisEntferntFehler, Gleise, Grabbed, ModusDaten, StreckenabschnittEntferntFehler,
             },
@@ -28,7 +28,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis: Gleis<T>,
     ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -58,7 +58,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else {
             &mut self.zustand.ohne_streckenabschnitt
         };
-        maps.get_map_mut().insert(gleis_id.clone(), gleis);
+        maps.rstern_mut().insert(gleis_id.clone(), gleis);
         // trigger redraw
         self.canvas.leeren();
         // return value
@@ -74,7 +74,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         GleisId<T>: Into<AnyId<Z>>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
     {
@@ -118,7 +118,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         target_anchor_point: verbindung::Verbindung,
     ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -138,7 +138,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         position_neu: Position,
     ) -> Result<T::AnchorPoints, GleisEntferntFehler>
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -146,7 +146,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .zustand
             .alle_gleise_maps_mut()
             .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id))
+                acc.or_else(move || maps.rstern_mut().get_mut(&gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
         // calculate absolute position for current AnchorPoints
@@ -192,7 +192,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         target_anchor_point: verbindung::Verbindung,
     ) -> Result<T::AnchorPoints, GleisEntferntFehler>
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
@@ -201,7 +201,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .zustand
                 .alle_gleise_maps_mut()
                 .fold(None, |acc, (streckenabschnitt, maps)| {
-                    acc.or_else(move || maps.get_map_mut().get_mut(&gleis_id))
+                    acc.or_else(move || maps.rstern_mut().get_mut(&gleis_id))
                 })
                 .ok_or(GleisEntferntFehler)?;
             Position::attach_position(definition, anchor_name, target_anchor_point)
@@ -217,13 +217,13 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Regardless, after a remove the associated Gleis is guaranteed to be removed.
     pub(crate) fn remove<T>(&mut self, gleis_id: GleisId<T>)
     where
-        T: Debug + Zeichnen + MapSelector<Z>,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
         if let Some(Gleis { definition, position, .. }) =
             self.zustand.alle_gleise_maps_mut().fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(|| maps.get_map_mut().remove(&gleis_id))
+                acc.or_else(|| maps.rstern_mut().remove(&gleis_id))
             })
         {
             // delete from anchor_points
@@ -241,16 +241,16 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    pub(crate) fn streckenabschnitt_für_id<T: MapSelector<Z>>(
+    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisEntferntFehler> {
-        if self.zustand.ohne_streckenabschnitt.get_map().contains_key(&gleis_id) {
+        if self.zustand.ohne_streckenabschnitt.rstern().contains_key(&gleis_id) {
             Ok(None)
         } else {
             for (streckenabschnitt, fließend, maps) in self.zustand.streckenabschnitte.values_mut()
             {
-                if maps.get_map().contains_key(&gleis_id) {
+                if maps.rstern().contains_key(&gleis_id) {
                     return Ok(Some((streckenabschnitt, fließend)));
                 }
             }
