@@ -8,7 +8,6 @@ use crate::{
     application::{typen::*, verbindung},
     lookup::Lookup,
     steuerung::{streckenabschnitt, Streckenabschnitt},
-    zugtyp::Zugtyp,
 };
 
 pub mod daten;
@@ -21,7 +20,7 @@ pub mod steuerung;
 pub mod update;
 
 #[derive(zugkontrolle_derive::Debug)]
-struct Grabbed<Z: Zugtyp> {
+struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     streckenabschnitt: Option<streckenabschnitt::Name>,
     grab_location: Vektor,
@@ -31,7 +30,7 @@ struct Grabbed<Z: Zugtyp> {
 // Aktueller Modus von `Gleise`
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
-enum ModusDaten<Z: Zugtyp> {
+enum ModusDaten<Z> {
     Bauen { grabbed: Option<Grabbed<Z>>, last: Instant },
     Fahren,
 }
@@ -274,7 +273,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     /// Der bisherige Wert wird zurückgegeben.
-    pub(crate) fn setze_streckenabschnitt<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn setze_streckenabschnitt<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
@@ -291,7 +290,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
-    pub(in crate::application) fn setze_streckenabschnitt_unit<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(in crate::application) fn setze_streckenabschnitt_unit<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &GleisId<T>,
         name: Option<streckenabschnitt::Name>,
@@ -302,7 +301,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Nachricht<Z: Zugtyp> {
+pub enum Nachricht<Z> {
     SetzeStreckenabschnitt(AnyId<Z>, Option<streckenabschnitt::Name>),
     AnschlüsseAnpassen(AnyId<Z>, Option<streckenabschnitt::Name>),
     FahrenAktion(AnyId<Z>, Option<streckenabschnitt::Name>),

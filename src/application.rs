@@ -86,7 +86,7 @@ impl Modus {
 }
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AnschlüsseAnpassen<Z: Zugtyp> {
+pub enum AnschlüsseAnpassen<Z> {
     Weiche(GleisId<Weiche<Z>>, Option<WeicheSerialisiert>),
     DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>, Option<DreiwegeWeicheSerialisiert>),
     KurvenWeiche(GleisId<KurvenWeiche<Z>>, Option<KurvenWeicheSerialisiert>),

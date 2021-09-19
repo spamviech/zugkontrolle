@@ -73,7 +73,7 @@ where
         self.message_box.show(false)
     }
 
-    fn zeige_anschlüsse_anpassen_aux<T: 'static + Zeichnen, W: Serialisiere, Status>(
+    fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Status>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -119,7 +119,6 @@ where
         ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
     ) -> Option<Nachricht<Z>>
     where
-        T: Zeichnen,
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
     {
@@ -192,7 +191,7 @@ where
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
-    pub(crate) fn streckenabschnitt_umschalten<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -580,7 +579,7 @@ where
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
     <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht: 'static,
 {
-    fn weiche_zurücksetzen<T: Zeichnen, Richtung, Anschlüsse>(
+    fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
@@ -699,7 +698,7 @@ where
             + Send
             + 'static,
     ) where
-        T: Zeichnen + 'static,
+        T: 'static,
         Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Send + 'static,
         Anschlüsse: Lookup<Richtung, OutputAnschluss> + Serialisiere + Send + 'static,
         <Anschlüsse as Serialisiere>::Serialisiert: Send + 'static,

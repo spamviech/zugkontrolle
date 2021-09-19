@@ -28,7 +28,6 @@ fn fülle_alle_gleise<T, Z>(
     streckenabschnitt_fließend: &Fließend,
 ) where
     T: Zeichnen,
-    Z: Zugtyp,
     GleisId<T>: Into<AnyId<Z>>,
 {
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
@@ -55,7 +54,6 @@ fn zeichne_alle_gleise<T, Z>(
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,
-    Z: Zugtyp,
     GleisId<T>: Into<AnyId<Z>>,
 {
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
@@ -82,17 +80,16 @@ fn zeichne_alle_gleise<T, Z>(
 
 fn zeichne_alle_anchor_points<T, Z>(
     frame: &mut canvas::Frame,
-    map: &RStern<T>,
+    map: &Map<T>,
     has_other_and_grabbed_id_at_point: impl Fn(AnyId<Z>, verbindung::Verbindung) -> (bool, bool),
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,
-    Z: Zugtyp,
     GleisId<T>: Into<AnyId<Z>>,
 {
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
         frame.with_save(|frame| {
-            move_to_position(frame, &position);
+            move_to_position(frame, position);
             // zeichne anchor points
             definition.anchor_points().for_each(|_name, &anchor| {
                 frame.with_save(|frame| {
@@ -128,11 +125,10 @@ fn zeichne_alle_anchor_points<T, Z>(
 
 fn schreibe_alle_beschreibungen<T, Z>(
     frame: &mut canvas::Frame,
-    map: &RStern<T>,
+    map: &Map<T>,
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,
-    Z: Zugtyp,
     GleisId<T>: Into<AnyId<Z>>,
 {
     for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
