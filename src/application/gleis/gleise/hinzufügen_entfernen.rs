@@ -11,7 +11,7 @@ use crate::{
             gleise::{
                 daten::{DatenAuswahl, Gleis},
                 id::{AnyId, GleisId},
-                GleisEntferntFehler, Gleise, Grabbed, ModusDaten, StreckenabschnittEntferntFehler,
+                Gehalten, GleisEntferntFehler, Gleise, ModusDaten, StreckenabschnittEntferntFehler,
             },
             verbindung,
         },
@@ -86,19 +86,14 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else if cp_y > self.last_size.y {
             canvas_position -= (cp_y - self.last_size.y) * ey;
         }
-        let result = self.add(
+        let result = self.hinzufügen(
             definition,
             Position { punkt: canvas_position - grab_position, winkel: -self.pivot.winkel },
             streckenabschnitt.clone(),
         )?;
-        if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
-            *grabbed = Some(Grabbed {
-                gleis_id,
-                streckenabschnitt,
-                grab_location: grab_position,
-                moved: true,
-            });
+            *gehalten = Some(Gehalten { gleis_id, grab_position, bewegt: true });
         }
         Ok(result)
     }

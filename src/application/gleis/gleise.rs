@@ -20,18 +20,17 @@ pub mod steuerung;
 pub mod update;
 
 #[derive(zugkontrolle_derive::Debug)]
-struct Grabbed<Z> {
+struct Gehalten<Z> {
     gleis_id: AnyId<Z>,
-    streckenabschnitt: Option<streckenabschnitt::Name>,
-    grab_location: Vektor,
-    moved: bool,
+    grab_position: Vektor,
+    bewegt: bool,
 }
 
 // Aktueller Modus von `Gleise`
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
-    Bauen { grabbed: Option<Grabbed<Z>>, last: Instant },
+    Bauen { gehalten: Option<Gehalten<Z>>, last: Instant },
     Fahren,
 }
 
@@ -73,7 +72,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             zustand: Zustand::neu(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
-            modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
+            modus: ModusDaten::Bauen { gehalten: None, last: Instant::now() },
         }
     }
 
@@ -148,7 +147,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Wechsel den aktuellen Modus zu `modus`.
     pub fn moduswechsel(&mut self, modus: Modus) {
         self.modus = match modus {
-            Modus::Bauen => ModusDaten::Bauen { grabbed: None, last: Instant::now() },
+            Modus::Bauen => ModusDaten::Bauen { gehalten: None, last: Instant::now() },
             Modus::Fahren => ModusDaten::Fahren,
         };
     }
@@ -333,7 +332,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {
         cursor: iced::canvas::Cursor,
     ) -> iced::mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { grabbed: Some(_grabbed), .. } if cursor.is_over(&bounds) => {
+            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
                 iced::mouse::Interaction::Pointer
             }
             _ => iced::mouse::Interaction::default(),

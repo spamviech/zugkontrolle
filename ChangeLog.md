@@ -19,21 +19,24 @@
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
     Ids unterschiedlicher Gleise sind jetzt wirklich unabhängig
 - Refactoring: Alle Module sind public
-- Refactoring: Modul umbenannt serde.rs -> de_serialisieren.rs
-- Refactoring: Modul umbenannt anchor.rs -> verbindung.rs
-- Refactoring: Modul umbenannt polarity.rs -> polarität.rs
+- Refactoring: Module umbenannt
+  - serde.rs -> de_serialisieren.rs
+  - anchor.rs -> verbindung.rs
+  - polarity.rs -> polarität.rs
+  - maps.rs -> daten.rs
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
 - Refactoring: diverse Nachrichten-Typen umbenannt Message->Error
-- Refactoring: diverse Verbindungs-Typen umbenannt AnchorName->VerbindungName
-- Refactoring: diverse Verbindungs-Typen umbenannt AnchorPoints->Verbindungen
-- Refactoring: Anpassung diverser Traits an neue Anforderungen
-- Refactoring: GleisId verwendet u32 statt u64 (raspi ist 32Bit System)
-- Refactoring: GleiseMap-Trait ist nicht mehr public.
-    Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
-- Refactoring: Modul umbenannt maps.rs -> daten.rs
+- Refactoring: diverse Verbindungs-Typen umbenannt
+  - AnchorName->VerbindungName
+  - AnchorPoints->Verbindungen
 - Refactoring: Typ umbenannt GleiseMaps -> GleiseDaten
     Dazu Änderung der internen Repräsentation auf einen RTree
+- Refactoring: Typ umbenannt Grabbed -> Gehalten
+- Refactoring: GleisId neu gedacht
+- Refactoring: Anpassung diverser Traits an neue Anforderungen
+- Refactoring: GleiseMap-Trait (jetzt DatenAuswahl) ist nicht mehr public.
+    Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
 
 ## 2.0.1
 
