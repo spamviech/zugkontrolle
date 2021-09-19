@@ -86,9 +86,9 @@ impl Transparenz {
 
 pub trait Zeichnen
 where
-    Self::AnchorPoints: verbindung::Lookup<Self::AnchorName>,
+    Self::Verbindungen: verbindung::Lookup<Self::VerbindungName>,
 {
-    /// Einschließendes Rechteck
+    /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self) -> Rechteck;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
@@ -98,23 +98,22 @@ where
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<Pfad>;
 
-    /// Position, Beschreibung und Name (falls verfügbar)
+    /// Position, Beschreibung und Name (falls verfügbar).
     fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>);
 
-    /// Zeigt der `Vektor` auf das Gleis?
+    /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool;
 
-    // TODO In Verbindung umbenennen?
-    /// Identifier for AnchorPoints.
+    /// Identifier for Verbindungen.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
-    type AnchorName;
-    /// Speicher-Typ für `anchor::Verbindung`. Muss `anchor::Lookup<Self::AnchorName>` implementieren.
-    type AnchorPoints;
-    /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
+    type VerbindungName;
+    /// Speicher-Typ für `verbindung::Verbindung`.
+    /// Muss `verbindung::Lookup<Self::VerbindungName>` implementieren.
+    type Verbindungen;
+    /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
-    /// Position ausgehend von zeichnen bei (0,0),
-    /// Richtung nach außen zeigend.
-    fn anchor_points(&self) -> Self::AnchorPoints;
+    /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
+    fn verbindungen(&self) -> Self::Verbindungen;
 }
 
 pub trait MitName {
