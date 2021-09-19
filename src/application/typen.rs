@@ -15,7 +15,7 @@ pub use self::{
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
-    winkel::{Winkel, WinkelGradmaß},
+    winkel::{Trigonometrie, Winkel, WinkelGradmaß},
 };
 pub use crate::zugtyp::Zugtyp;
 
