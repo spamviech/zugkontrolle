@@ -2,7 +2,10 @@
 
 use std::{collections::HashMap, fmt::Debug, iter};
 
-use rstar::{primitives::GeomWithData, RTree, RTreeObject, SelectionFunction};
+use rstar::{
+    primitives::{GeomWithData, Rectangle},
+    RTree, RTreeObject, SelectionFunction,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -132,8 +135,7 @@ where
     }
 }
 
-// FIXME Rechteck verwenden
-pub(crate) type RStern<T> = RTree<GeomWithData<Vektor, (T, Winkel)>>;
+pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, (T, Winkel)>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) struct GleiseDaten<Z> {
     pub(crate) geraden: RStern<Gerade<Z>>,

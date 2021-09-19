@@ -20,6 +20,7 @@ pub use crate::zugtyp::Zugtyp;
 
 pub mod canvas;
 pub mod mm;
+pub mod rechteck;
 pub mod skalar;
 pub mod vektor;
 pub mod winkel;
