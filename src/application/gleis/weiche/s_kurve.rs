@@ -89,64 +89,65 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn size(&self) -> Vektor {
-        let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
-        let angle_difference = winkel - winkel_reverse;
-        let size_gerade = gerade::size::<Z>(länge);
+    fn rechteck(&self) -> Rechteck {
+        todo!()
+        // let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
+        // let angle_difference = winkel - winkel_reverse;
+        // let size_gerade = gerade::size::<Z>(länge);
 
-        //Breiten-Berechnung
-        let factor_width = if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { Skalar(1.) };
-        let factor_width_reverse = if angle_difference.abs() < winkel::FRAC_PI_2 {
-            winkel.sin() - angle_difference.sin()
-        } else {
-            Skalar(1.)
-        }
-        .max(&Skalar(0.));
-        let radius_außen = radius_begrenzung_außen::<Z>(radius);
-        let radius_innen = radius_begrenzung_innen::<Z>(radius);
-        let radius_reverse_außen = radius_begrenzung_außen::<Z>(radius_reverse);
-        let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
-        // obere Beschränkung
-        let width_oben1: Skalar = radius_außen * factor_width;
-        let width_oben2: Skalar =
-            radius_außen * winkel.sin() + radius_reverse_innen * factor_width_reverse;
-        let width_oben: Skalar = width_oben1.max(&width_oben2);
-        // untere Beschränkung
-        let width_unten1: Skalar = radius_innen * factor_width;
-        let width_unten2: Skalar =
-            radius_innen * winkel.sin() + radius_reverse_außen * factor_width_reverse;
-        let width_unten: Skalar = width_unten1.max(&width_unten2);
+        // //Breiten-Berechnung
+        // let factor_width = if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { Skalar(1.) };
+        // let factor_width_reverse = if angle_difference.abs() < winkel::FRAC_PI_2 {
+        //     winkel.sin() - angle_difference.sin()
+        // } else {
+        //     Skalar(1.)
+        // }
+        // .max(&Skalar(0.));
+        // let radius_außen = radius_begrenzung_außen::<Z>(radius);
+        // let radius_innen = radius_begrenzung_innen::<Z>(radius);
+        // let radius_reverse_außen = radius_begrenzung_außen::<Z>(radius_reverse);
+        // let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
+        // // obere Beschränkung
+        // let width_oben1: Skalar = radius_außen * factor_width;
+        // let width_oben2: Skalar =
+        //     radius_außen * winkel.sin() + radius_reverse_innen * factor_width_reverse;
+        // let width_oben: Skalar = width_oben1.max(&width_oben2);
+        // // untere Beschränkung
+        // let width_unten1: Skalar = radius_innen * factor_width;
+        // let width_unten2: Skalar =
+        //     radius_innen * winkel.sin() + radius_reverse_außen * factor_width_reverse;
+        // let width_unten: Skalar = width_unten1.max(&width_unten2);
 
-        // Höhen-Berechnung
-        let factor_height =
-            if winkel.abs() < winkel::PI { Skalar(1.) - winkel.cos() } else { Skalar(1.) };
-        let factor_height_reverse = if angle_difference.abs() < winkel::PI {
-            angle_difference.cos() - winkel.cos()
-        } else {
-            Skalar(1.)
-        }
-        .max(&Skalar(0.));
-        let radius_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
-        let radius_reverse_innen: Skalar = radius_begrenzung_innen::<Z>(radius_reverse);
-        // obere Beschränkung
-        let height_oben1: Skalar = radius_außen * factor_height;
-        let height_oben2: Skalar = radius_außen * (Skalar(1.) - winkel.cos())
-            + radius_reverse_innen * factor_height_reverse;
-        let height_oben: Skalar = height_oben1.max(&height_oben2);
-        // untere Beschränkung
-        let gleis_unten_start = beschränkung::<Z>();
-        let radius_innen: Skalar = radius_begrenzung_innen::<Z>(radius);
-        let radius_reverse_außen: Skalar = radius_begrenzung_außen::<Z>(radius_reverse);
-        let height_unten1 = gleis_unten_start + radius_innen * factor_height;
-        let height_unten2 = gleis_unten_start
-            + radius_innen * (Skalar(1.) - winkel.cos())
-            + radius_reverse_außen * factor_height_reverse;
-        let height_unten = height_unten1.max(&height_unten2);
+        // // Höhen-Berechnung
+        // let factor_height =
+        //     if winkel.abs() < winkel::PI { Skalar(1.) - winkel.cos() } else { Skalar(1.) };
+        // let factor_height_reverse = if angle_difference.abs() < winkel::PI {
+        //     angle_difference.cos() - winkel.cos()
+        // } else {
+        //     Skalar(1.)
+        // }
+        // .max(&Skalar(0.));
+        // let radius_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
+        // let radius_reverse_innen: Skalar = radius_begrenzung_innen::<Z>(radius_reverse);
+        // // obere Beschränkung
+        // let height_oben1: Skalar = radius_außen * factor_height;
+        // let height_oben2: Skalar = radius_außen * (Skalar(1.) - winkel.cos())
+        //     + radius_reverse_innen * factor_height_reverse;
+        // let height_oben: Skalar = height_oben1.max(&height_oben2);
+        // // untere Beschränkung
+        // let gleis_unten_start = beschränkung::<Z>();
+        // let radius_innen: Skalar = radius_begrenzung_innen::<Z>(radius);
+        // let radius_reverse_außen: Skalar = radius_begrenzung_außen::<Z>(radius_reverse);
+        // let height_unten1 = gleis_unten_start + radius_innen * factor_height;
+        // let height_unten2 = gleis_unten_start
+        //     + radius_innen * (Skalar(1.) - winkel.cos())
+        //     + radius_reverse_außen * factor_height_reverse;
+        // let height_unten = height_unten1.max(&height_unten2);
 
-        Vektor {
-            x: size_gerade.x.max(&width_oben.max(&width_unten)),
-            y: height_oben.max(&height_unten),
-        }
+        // Vektor {
+        //     x: size_gerade.x.max(&width_oben.max(&width_unten)),
+        //     y: height_oben.max(&height_unten),
+        // }
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -386,42 +387,43 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
     }
 
-    fn anchor_points(&self) -> Self::Verbindungen {
-        let start_height: Skalar;
-        let multiplier: Skalar;
-        match self.orientierung {
-            Orientierung::Rechts => {
-                start_height = Skalar(0.);
-                multiplier = Skalar(1.);
-            }
-            Orientierung::Links => {
-                start_height = self.size().y;
-                multiplier = Skalar(-1.);
-            }
-        };
-        let angle_difference = self.winkel - self.winkel_reverse;
-        let anfang = Vektor {
-            x: Skalar(0.),
-            y: start_height + multiplier * beschränkung::<Z>().halbiert(),
-        };
-        Verbindungen {
-            anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
-            gerade: verbindung::Verbindung {
-                position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
-                richtung: winkel::ZERO,
-            },
-            kurve: verbindung::Verbindung {
-                position: anfang
-                    + Vektor {
-                        x: self.radius * self.winkel.sin()
-                            + self.radius_reverse * (self.winkel.sin() - angle_difference.sin()),
-                        y: multiplier
-                            * (self.radius * (Skalar(1.) - self.winkel.cos())
-                                + self.radius_reverse
-                                    * (angle_difference.cos() - self.winkel.cos())),
-                    },
-                richtung: multiplier.0 * angle_difference,
-            },
-        }
+    fn verbindungen(&self) -> Self::Verbindungen {
+        todo!()
+        // let start_height: Skalar;
+        // let multiplier: Skalar;
+        // match self.orientierung {
+        //     Orientierung::Rechts => {
+        //         start_height = Skalar(0.);
+        //         multiplier = Skalar(1.);
+        //     }
+        //     Orientierung::Links => {
+        //         start_height = self.size().y;
+        //         multiplier = Skalar(-1.);
+        //     }
+        // };
+        // let angle_difference = self.winkel - self.winkel_reverse;
+        // let anfang = Vektor {
+        //     x: Skalar(0.),
+        //     y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+        // };
+        // Verbindungen {
+        //     anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
+        //     gerade: verbindung::Verbindung {
+        //         position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
+        //         richtung: winkel::ZERO,
+        //     },
+        //     kurve: verbindung::Verbindung {
+        //         position: anfang
+        //             + Vektor {
+        //                 x: self.radius * self.winkel.sin()
+        //                     + self.radius_reverse * (self.winkel.sin() - angle_difference.sin()),
+        //                 y: multiplier
+        //                     * (self.radius * (Skalar(1.) - self.winkel.cos())
+        //                         + self.radius_reverse
+        //                             * (angle_difference.cos() - self.winkel.cos())),
+        //             },
+        //         richtung: multiplier.0 * angle_difference,
+        //     },
+        // }
     }
 }

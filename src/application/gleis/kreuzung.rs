@@ -75,7 +75,7 @@ impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, Points)]
+#[impl_lookup(verbindung::Verbindung, en)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang0,
@@ -88,11 +88,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn size(&self) -> Vektor {
-        let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
-        let height_beschränkung = beschränkung::<Z>();
-        let height_kurven = size_kurve.y.doppelt() - height_beschränkung;
-        Vektor { x: self.länge.max(&size_kurve.x), y: height_beschränkung.max(&height_kurven) }
+    fn rechteck(&self) -> Rechteck {
+        todo!()
+        // let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
+        // let height_beschränkung = beschränkung::<Z>();
+        // let height_kurven = size_kurve.y.doppelt() - height_beschränkung;
+        // Vektor { x: self.länge.max(&size_kurve.x), y: height_beschränkung.max(&height_kurven) }
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -259,20 +260,21 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
                     || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector)))
     }
 
-    fn anchor_points(&self) -> Self::Verbindungen {
-        let Vektor { x: _, y: height } = self.size();
-        let half_height = height.halbiert();
-        let anfang0 = Vektor { x: Skalar(0.), y: half_height };
-        let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
-        let winkel = self.winkel();
-        let kurve = self.radius * Vektor { x: winkel.sin(), y: Skalar(1.) - winkel.cos() };
-        let anfang1 = ende0 - kurve;
-        let ende1 = anfang0 + kurve;
-        Verbindungen {
-            anfang_0: verbindung::Verbindung { position: anfang0, richtung: winkel::PI },
-            ende_0: verbindung::Verbindung { position: ende0, richtung: winkel::ZERO },
-            anfang_1: verbindung::Verbindung { position: anfang1, richtung: winkel::PI + winkel },
-            ende_1: verbindung::Verbindung { position: ende1, richtung: winkel },
-        }
+    fn verbindungen(&self) -> Self::Verbindungen {
+        todo!()
+        // let Vektor { x: _, y: height } = self.size();
+        // let half_height = height.halbiert();
+        // let anfang0 = Vektor { x: Skalar(0.), y: half_height };
+        // let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
+        // let winkel = self.winkel();
+        // let kurve = self.radius * Vektor { x: winkel.sin(), y: Skalar(1.) - winkel.cos() };
+        // let anfang1 = ende0 - kurve;
+        // let ende1 = anfang0 + kurve;
+        // Verbindungen {
+        //     anfang_0: verbindung::Verbindung { position: anfang0, richtung: winkel::PI },
+        //     ende_0: verbindung::Verbindung { position: ende0, richtung: winkel::ZERO },
+        //     anfang_1: verbindung::Verbindung { position: anfang1, richtung: winkel::PI + winkel },
+        //     ende_1: verbindung::Verbindung { position: ende1, richtung: winkel },
+        // }
     }
 }

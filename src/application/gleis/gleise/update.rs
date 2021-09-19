@@ -35,11 +35,12 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
 fn find_clicked<T, Z>(
     streckenabschnitt: Option<&streckenabschnitt::Name>,
-    map: &Map<T>,
+    map: &RStern<T>,
     canvas_pos: Vektor,
 ) -> Option<(AnyId<Z>, Option<streckenabschnitt::Name>, Vektor)>
 where
     T: Zeichnen,
+    Z: Zugtyp,
     GleisId<T>: Into<AnyId<Z>>,
 {
     // TODO speichere bounding box ebenfalls in rstar, um nicht jedes Gleis durchsuchen zu müssen?

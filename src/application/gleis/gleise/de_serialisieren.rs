@@ -115,155 +115,156 @@ where
         //     )
         // }
 
-        // aktuellen Zustand zurücksetzen
-        self.canvas.leeren();
-        // TODO pivot, skalieren, Modus?
-        // last_mouse, last_size nicht anpassen
-        self.zustand = Zustand::neu();
-        self.anchor_points = verbindung::rstern::RStern::neu();
-        // lese & parse Datei
-        let mut file = std::fs::File::open(pfad)?;
-        let mut content = Vec::new();
-        file.read_to_end(&mut content)?;
-        let slice = content.as_slice();
-        let Serialisiert {
-            zugtyp,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            streckenabschnitte,
-            geschwindigkeiten,
-            pläne: _, // TODO verwenden, sobald Plan implementiert ist
-        } = bincode::deserialize(slice).or_else(|aktuell| {
-            bincode::deserialize(slice)
-                .map(v2::GleiseVecs::into)
-                .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
-        })?;
-        if zugtyp != Z::NAME {
-            return Err(Fehler::FalscherZugtyp(zugtyp));
-        }
+        // // aktuellen Zustand zurücksetzen
+        // self.canvas.leeren();
+        // // TODO pivot, skalieren, Modus?
+        // // last_mouse, last_size nicht anpassen
+        // self.zustand = Zustand::neu();
+        // self.anchor_points = verbindung::rstern::RStern::neu();
+        // // lese & parse Datei
+        // let mut file = std::fs::File::open(pfad)?;
+        // let mut content = Vec::new();
+        // file.read_to_end(&mut content)?;
+        // let slice = content.as_slice();
+        // let Serialisiert {
+        //     zugtyp,
+        //     geraden,
+        //     kurven,
+        //     weichen,
+        //     dreiwege_weichen,
+        //     kurven_weichen,
+        //     s_kurven_weichen,
+        //     kreuzungen,
+        //     streckenabschnitte,
+        //     geschwindigkeiten,
+        //     pläne: _, // TODO verwenden, sobald Plan implementiert ist
+        // } = bincode::deserialize(slice).or_else(|aktuell| {
+        //     bincode::deserialize(slice)
+        //         .map(v2::GleiseVecs::into)
+        //         .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
+        // })?;
+        // if zugtyp != Z::NAME {
+        //     return Err(Fehler::FalscherZugtyp(zugtyp));
+        // }
 
-        // reserviere Anschlüsse
-        macro_rules! reserviere_anschlüsse {
-            (
-                $name:tt::<$type:ident>,
-                $pwm_pins:tt,
-                $output_anschlüsse:tt,
-                $input_anschlüsse:tt$(,)?
-            ) => {
-                // collect to Vec to fail on first error
-                let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) =
-                    reserviere_anschlüsse::<crate::application::gleis::$type<Z>>(
-                        anschlüsse,
-                        $name,
-                        $pwm_pins,
-                        $output_anschlüsse,
-                        $input_anschlüsse,
-                    )?;
-            };
-        }
-        reserviere_anschlüsse! {
-            geraden::<Gerade>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            kurven::<Kurve>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            weichen::<Weiche>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            dreiwege_weichen::<DreiwegeWeiche>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            kurven_weichen::<KurvenWeiche>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            s_kurven_weichen::<SKurvenWeiche>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        reserviere_anschlüsse! {
-            kreuzungen::<Kreuzung>,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-        let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
-            streckenabschnitte.into_iter().fold(
-                Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-                |acc_res: Result<_, anschluss::Fehler>, (name, streckenabschnitt)| {
-                    let mut acc = acc_res?;
-                    let Reserviert {
-                        anschluss: streckenabschnitt,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = streckenabschnitt
-                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                    acc.0.push((name, streckenabschnitt));
-                    Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
-                },
-            )?;
-        let (geschwindigkeiten_reserviert, _pwm_pins, _output_anschlüsse, _input_anschlüsse) =
-            geschwindigkeiten.into_iter().fold(
-                Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-                |acc_res: Result<_, anschluss::Fehler>, (name, geschwindigkeit)| {
-                    let mut acc = acc_res?;
-                    let Reserviert {
-                        anschluss: geschwindigkeit,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = geschwindigkeit
-                        .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-                        .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                    acc.0.push((name, geschwindigkeit));
-                    Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
-                },
-            )?;
-        // füge anschlüsse zu maps hinzu
-        macro_rules! add_gleise {
-            ($($gleise: ident,)*) => {
-                $(
-                    for gleis in $gleise {
-                        self.add(gleis);
-                    }
-                );*
-            }
-        }
-        add_gleise!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        );
-        for (name, streckenabschnitt) in streckenabschnitte_reserviert {
-            self.neuer_streckenabschnitt(name, streckenabschnitt);
-        }
-        Ok(geschwindigkeiten_reserviert)
+        // // reserviere Anschlüsse
+        // macro_rules! reserviere_anschlüsse {
+        //     (
+        //         $name:tt::<$type:ident>,
+        //         $pwm_pins:tt,
+        //         $output_anschlüsse:tt,
+        //         $input_anschlüsse:tt$(,)?
+        //     ) => {
+        //         // collect to Vec to fail on first error
+        //         let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) =
+        //             reserviere_anschlüsse::<crate::application::gleis::$type<Z>>(
+        //                 anschlüsse,
+        //                 $name,
+        //                 $pwm_pins,
+        //                 $output_anschlüsse,
+        //                 $input_anschlüsse,
+        //             )?;
+        //     };
+        // }
+        // reserviere_anschlüsse! {
+        //     geraden::<Gerade>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     kurven::<Kurve>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     weichen::<Weiche>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     dreiwege_weichen::<DreiwegeWeiche>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     kurven_weichen::<KurvenWeiche>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     s_kurven_weichen::<SKurvenWeiche>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // reserviere_anschlüsse! {
+        //     kreuzungen::<Kreuzung>,
+        //     pwm_pins,
+        //     output_anschlüsse,
+        //     input_anschlüsse,
+        // }
+        // let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
+        //     streckenabschnitte.into_iter().fold(
+        //         Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
+        //         |acc_res: Result<_, anschluss::Fehler>, (name, streckenabschnitt)| {
+        //             let mut acc = acc_res?;
+        //             let Reserviert {
+        //                 anschluss: streckenabschnitt,
+        //                 pwm_nicht_benötigt,
+        //                 output_nicht_benötigt,
+        //                 input_nicht_benötigt,
+        //             } = streckenabschnitt
+        //                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+        //                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+        //             acc.0.push((name, streckenabschnitt));
+        //             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
+        //         },
+        //     )?;
+        // let (geschwindigkeiten_reserviert, _pwm_pins, _output_anschlüsse, _input_anschlüsse) =
+        //     geschwindigkeiten.into_iter().fold(
+        //         Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
+        //         |acc_res: Result<_, anschluss::Fehler>, (name, geschwindigkeit)| {
+        //             let mut acc = acc_res?;
+        //             let Reserviert {
+        //                 anschluss: geschwindigkeit,
+        //                 pwm_nicht_benötigt,
+        //                 output_nicht_benötigt,
+        //                 input_nicht_benötigt,
+        //             } = geschwindigkeit
+        //                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+        //                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+        //             acc.0.push((name, geschwindigkeit));
+        //             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
+        //         },
+        //     )?;
+        // // füge anschlüsse zu maps hinzu
+        // macro_rules! add_gleise {
+        //     ($($gleise: ident,)*) => {
+        //         $(
+        //             for gleis in $gleise {
+        //                 self.add(gleis);
+        //             }
+        //         );*
+        //     }
+        // }
+        // add_gleise!(
+        //     geraden,
+        //     kurven,
+        //     weichen,
+        //     dreiwege_weichen,
+        //     kurven_weichen,
+        //     s_kurven_weichen,
+        //     kreuzungen,
+        // );
+        // for (name, streckenabschnitt) in streckenabschnitte_reserviert {
+        //     self.neuer_streckenabschnitt(name, streckenabschnitt);
+        // }
+        // Ok(geschwindigkeiten_reserviert)
+        todo!()
     }
 }

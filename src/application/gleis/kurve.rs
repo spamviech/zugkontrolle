@@ -50,7 +50,7 @@ impl<Z> KurveUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, Points)]
+#[impl_lookup(verbindung::Verbindung, en)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
@@ -61,8 +61,9 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn size(&self) -> Vektor {
-        size::<Z>(self.radius, self.winkel)
+    fn rechteck(&self) -> Rechteck {
+        todo!()
+        // size::<Z>(self.radius, self.winkel)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -109,21 +110,22 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
         innerhalb::<Z>(self.radius, self.winkel, relative_position)
     }
 
-    fn anchor_points(&self) -> Self::Verbindungen {
-        let halbe_beschränkung = beschränkung::<Z>().halbiert();
-        Verbindungen {
-            anfang: verbindung::Verbindung {
-                position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
-                richtung: winkel::PI,
-            },
-            ende: verbindung::Verbindung {
-                position: Vektor {
-                    x: self.radius * self.winkel.sin(),
-                    y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),
-                },
-                richtung: self.winkel,
-            },
-        }
+    fn verbindungen(&self) -> Self::Verbindungen {
+        todo!()
+        // let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        // Verbindungen {
+        //     anfang: verbindung::Verbindung {
+        //         position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
+        //         richtung: winkel::PI,
+        //     },
+        //     ende: verbindung::Verbindung {
+        //         position: Vektor {
+        //             x: self.radius * self.winkel.sin(),
+        //             y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),
+        //         },
+        //         richtung: self.winkel,
+        //     },
+        // }
     }
 }
 
