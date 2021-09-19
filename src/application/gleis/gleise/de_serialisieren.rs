@@ -68,11 +68,11 @@ where
         bisherige_geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
     ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Fehler> {
-        // sammle bisherige Anschlüsse
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        // todo!()
+        todo!()
+        // // sammle bisherige Anschlüsse
+        // let mut pwm_pins = Vec::new();
+        // let mut output_anschlüsse = Vec::new();
+        // let mut input_anschlüsse = Vec::new();
         // RTree::bulk_load verwenden!
         // macro_rules! fold_anschlüsse {
         //     ($iterator:expr) => {
@@ -265,6 +265,5 @@ where
         //     self.neuer_streckenabschnitt(name, streckenabschnitt);
         // }
         // Ok(geschwindigkeiten_reserviert)
-        todo!()
     }
 }

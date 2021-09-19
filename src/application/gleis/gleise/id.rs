@@ -21,7 +21,11 @@ pub struct GleisId<T: Zeichnen> {
     streckenabschnitt: Option<streckenabschnitt::Name>,
     verbindungen: T::Verbindungen,
 }
-impl<T: Zeichnen> GleisId<T> {
+impl<T> GleisId<T>
+where
+    T: Zeichnen,
+    T::Verbindungen: Clone,
+{
     // Als Methode definiert, damit es privat bleibt.
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId {
@@ -30,7 +34,9 @@ impl<T: Zeichnen> GleisId<T> {
             verbindungen: self.verbindungen.clone(),
         }
     }
+}
 
+impl<T: Zeichnen> GleisId<T> {
     /// Alle Verbindungen des Assoziierten Gleises.
     pub fn verbindungen(&self) -> &T::Verbindungen {
         &self.verbindungen

@@ -50,7 +50,7 @@ impl<Z> KurveUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, en)]
+#[impl_lookup(verbindung::Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
