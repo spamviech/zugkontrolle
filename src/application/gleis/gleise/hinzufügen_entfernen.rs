@@ -25,7 +25,7 @@ use crate::{
 impl<Z: Zugtyp> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(crate) fn add<T>(
+    pub(crate) fn hinzufügen<T>(
         &mut self,
         definition: T,
         position: Position,
@@ -61,10 +61,10 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn add_grabbed_at_mouse<T>(
+    pub(crate) fn hinzufügen_grabbed_bei_maus<T>(
         &mut self,
         definition: T,
-        grab_location: Vektor,
+        grab_position: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
     where
@@ -88,12 +88,17 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
         let result = self.add(
             definition,
-            Position { punkt: canvas_position - grab_location, winkel: -self.pivot.winkel },
+            Position { punkt: canvas_position - grab_position, winkel: -self.pivot.winkel },
             streckenabschnitt.clone(),
         )?;
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
-            *grabbed = Some(Grabbed { gleis_id, streckenabschnitt, grab_location, moved: true });
+            *grabbed = Some(Grabbed {
+                gleis_id,
+                streckenabschnitt,
+                grab_location: grab_position,
+                moved: true,
+            });
         }
         Ok(result)
     }
