@@ -389,10 +389,29 @@ impl From<anschluss::Fehler> for Fehler {
 }
 
 #[derive(Debug)]
+pub enum GleisIdFehler {
+    GleisEntfernt,
+    StreckenabschnittEntfernt,
+}
+impl From<GleisIdFehler> for Fehler {
+    fn from(fehler: GleisIdFehler) -> Self {
+        match fehler {
+            GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
+            GleisIdFehler::StreckenabschnittEntfernt => Fehler::StreckenabschnittEntfernt,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct GleisEntferntFehler;
 impl From<GleisEntferntFehler> for Fehler {
     fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
         Fehler::GleisEntfernt
+    }
+}
+impl From<GleisEntferntFehler> for GleisIdFehler {
+    fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
+        GleisIdFehler::GleisEntfernt
     }
 }
 
@@ -401,5 +420,10 @@ pub struct StreckenabschnittEntferntFehler;
 impl From<StreckenabschnittEntferntFehler> for Fehler {
     fn from(StreckenabschnittEntferntFehler: StreckenabschnittEntferntFehler) -> Self {
         Fehler::StreckenabschnittEntfernt
+    }
+}
+impl From<StreckenabschnittEntferntFehler> for GleisIdFehler {
+    fn from(StreckenabschnittEntferntFehler: StreckenabschnittEntferntFehler) -> Self {
+        GleisIdFehler::StreckenabschnittEntfernt
     }
 }

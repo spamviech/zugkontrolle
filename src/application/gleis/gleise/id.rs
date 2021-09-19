@@ -19,9 +19,9 @@ use crate::{
 /// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T> {
-    position: Rectangle<Vektor>,
-    streckenabschnitt: Option<streckenabschnitt::Name>,
-    phantom: PhantomData<fn() -> T>,
+    pub(in crate::application::gleis::gleise) position: Rectangle<Vektor>,
+    pub(in crate::application::gleis::gleise) streckenabschnitt: Option<streckenabschnitt::Name>,
+    pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 impl<T> GleisId<T> {
     // Als Methode definiert, damit es privat bleibt.
