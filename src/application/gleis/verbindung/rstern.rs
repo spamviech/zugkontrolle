@@ -2,21 +2,18 @@
 
 pub(crate) use rstar::primitives::PointWithData;
 
-use crate::{
-    application::{
-        gleis::gleise::id::AnyId,
-        typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
-        verbindung::Verbindung,
-    },
-    zugtyp::Zugtyp,
+use crate::application::{
+    gleis::gleise::id::AnyId,
+    typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
+    verbindung::Verbindung,
 };
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
 #[derive(zugkontrolle_derive::Debug)]
-pub(crate) struct RStern<Z: Zugtyp>(rstar::RTree<PointWithData<(AnyId<Z>, Winkel), Vektor>>);
-impl<Z: Zugtyp> RStern<Z> {
+pub(crate) struct RStern<Z>(rstar::RTree<PointWithData<(AnyId<Z>, Winkel), Vektor>>);
+impl<Z> RStern<Z> {
     /// create a new RTree to store anchors with position data
     pub(crate) fn neu() -> Self {
         RStern(rstar::RTree::new())
