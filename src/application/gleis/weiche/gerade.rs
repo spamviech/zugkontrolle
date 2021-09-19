@@ -68,15 +68,15 @@ pub enum Orientierung {
 #[create_richtung]
 #[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum AnchorName {
+pub enum VerbindungName {
     Anfang,
     Gerade,
     Kurve,
 }
 
 impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Z, Anschlüsse> {
-    type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type VerbindungName = VerbindungName;
+    type Verbindungen = Verbindungen;
 
     fn size(&self) -> Vektor {
         let Weiche { länge, radius, winkel, .. } = *self;
@@ -221,7 +221,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
     }
 
-    fn anchor_points(&self) -> Self::AnchorPoints {
+    fn anchor_points(&self) -> Self::Verbindungen {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -236,7 +236,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         };
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
-        AnchorPoints {
+        Verbindungen {
             anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
             gerade: verbindung::Verbindung {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },

@@ -11,6 +11,7 @@ use crate::{
         typen::{vektor::Vektor, Zeichnen},
     },
     steuerung::streckenabschnitt,
+    zugtyp::Zugtyp,
 };
 
 /// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
@@ -62,7 +63,7 @@ impl<T: Zeichnen> GleisId<T> {
 // }
 
 #[derive(zugkontrolle_derive::Debug)]
-pub enum AnyId<Z> {
+pub enum AnyId<Z: Zugtyp> {
     Gerade(GleisId<Gerade<Z>>),
     Kurve(GleisId<Kurve<Z>>),
     Weiche(GleisId<Weiche<Z>>),
@@ -121,8 +122,8 @@ macro_rules! with_any_id {
 use rstar::primitives::Rectangle;
 pub(crate) use with_any_id;
 
-impl<Z> AnyId<Z> {
-    pub(super) fn from_ref<T>(gleis_id: &GleisId<T>) -> Self
+impl<Z: Zugtyp> AnyId<Z> {
+    pub(super) fn from_ref<T: Zeichnen>(gleis_id: &GleisId<T>) -> Self
     where
         GleisId<T>: Into<Self>,
     {
@@ -136,7 +137,7 @@ impl<Z> AnyId<Z> {
 
 macro_rules! impl_any_id_from {
     ($type:ident) => {
-        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
+        impl<Z: Zugtyp> From<GleisId<$type<Z>>> for AnyId<Z> {
             fn from(gleis_id: GleisId<$type<Z>>) -> Self {
                 AnyId::$type(gleis_id)
             }

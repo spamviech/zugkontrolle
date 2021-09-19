@@ -234,7 +234,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                         is_grabbed
                     }
                 }
-                // AnchorPoints
+                // Verbindungen
                 for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
                     mit_allen_gleisen! {
                         maps,

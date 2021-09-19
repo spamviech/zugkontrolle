@@ -63,7 +63,7 @@ impl<Z> KurvenWeicheUnit<Z> {
 #[create_richtung]
 #[impl_lookup(verbindung::Verbindung, Points)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum AnchorName {
+pub enum VerbindungName {
     Anfang,
     Innen,
     Außen,
@@ -72,8 +72,8 @@ pub enum AnchorName {
 impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     for KurvenWeiche<Z, Anschlüsse>
 {
-    type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type VerbindungName = VerbindungName;
+    type Verbindungen = Verbindungen;
 
     fn size(&self) -> Vektor {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
@@ -285,7 +285,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector)
     }
 
-    fn anchor_points(&self) -> Self::AnchorPoints {
+    fn anchor_points(&self) -> Self::Verbindungen {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -306,7 +306,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 x: self.radius * self.winkel.sin(),
                 y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
             };
-        AnchorPoints {
+        Verbindungen {
             anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
             innen: verbindung::Verbindung { position: innen, richtung: multiplier.0 * self.winkel },
             außen: verbindung::Verbindung {

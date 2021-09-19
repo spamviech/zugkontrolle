@@ -22,7 +22,7 @@ use crate::{
 
 impl<Z: Zugtyp> Gleise<Z> {
     #[zugkontrolle_derive::erstelle_maps_methoden]
-    /// Add a new gleis to its position.
+    /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn add<T>(
         &mut self,
         definition: T,
@@ -149,7 +149,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 acc.or_else(move || maps.rstern_mut().get_mut(&gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
-        // calculate absolute position for current AnchorPoints
+        // calculate absolute position for current Verbindungen
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
                 verbindung::Verbindung {
@@ -158,7 +158,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 }
             },
         );
-        // calculate absolute position for new AnchorPoints
+        // calculate absolute position for new Verbindungen
         let anchor_points_neu = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
                 verbindung::Verbindung {
@@ -241,7 +241,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
+    pub(crate) fn streckenabschnitt_für_id<T: Zeichnen + DatenAuswahl<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisEntferntFehler> {

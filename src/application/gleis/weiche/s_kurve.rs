@@ -12,7 +12,7 @@ use crate::{
     application::{
         gleis::{
             gerade, kurve, verbindung,
-            weiche::gerade::{AnchorName, AnchorPoints, Orientierung},
+            weiche::gerade::{Orientierung, VerbindungName, Verbindungen},
         },
         typen::*,
     },
@@ -86,8 +86,8 @@ impl<Z> SKurvenWeicheUnit<Z> {
 impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     for SKurvenWeiche<Z, Anschlüsse>
 {
-    type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type VerbindungName = VerbindungName;
+    type Verbindungen = Verbindungen;
 
     fn size(&self) -> Vektor {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
@@ -386,7 +386,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
     }
 
-    fn anchor_points(&self) -> Self::AnchorPoints {
+    fn anchor_points(&self) -> Self::Verbindungen {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -404,7 +404,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             x: Skalar(0.),
             y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         };
-        AnchorPoints {
+        Verbindungen {
             anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
             gerade: verbindung::Verbindung {
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },

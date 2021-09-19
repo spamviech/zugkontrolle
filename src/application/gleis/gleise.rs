@@ -113,7 +113,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 acc.or_else(|| maps.rstern().get(&gleis_id))
             })
             .ok_or(GleisEntferntFehler)?;
-        // calculate absolute position for AnchorPoints
+        // calculate absolute position for Verbindungen
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {
                 verbindung::Verbindung {
