@@ -105,7 +105,7 @@ Zur Installation von rustup wird empfohlen die Anleitung auf der
 Im Moment lautet der Befehl
     `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-### Installation von liblxkbcommon
+### Installation von libxkbcommon
 
 Obwohl angeblich nichts zusätzlich installiert wurde war der folgende Befehl notwendig
     `sudo apt install libxkbcommon-dev`
@@ -132,7 +132,7 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
     Wenn die Datei nicht existiert/das falsche Format hat wird mit Fehlermeldung
     und einem leeren Zustand gestartet.
 - -m MODUS | --modus MODUS
-    Bestimme den Modus bei Programstart.
+    Bestimme den Modus bei Programmstart.
     Aktuell sind `Bauen` und `Fahren` unterstützt.
 - -z ZOOM | --zoom ZOOM
     Bestimme den Zoom bei Programmstart.
