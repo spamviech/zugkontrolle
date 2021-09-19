@@ -1,5 +1,7 @@
 //! Ids zur Identifikation der Gleise.
 
+use std::marker::PhantomData;
+
 use crate::{
     application::{
         gleis::{
@@ -15,31 +17,20 @@ use crate::{
 };
 
 /// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
-#[derive(Debug)]
-pub struct GleisId<T: Zeichnen> {
+#[derive(zugkontrolle_derive::Debug)]
+pub struct GleisId<T> {
     position: Rectangle<Vektor>,
     streckenabschnitt: Option<streckenabschnitt::Name>,
-    verbindungen: T::Verbindungen,
+    phantom: PhantomData<fn() -> T>,
 }
-impl<T> GleisId<T>
-where
-    T: Zeichnen,
-    T::Verbindungen: Clone,
-{
+impl<T> GleisId<T> {
     // Als Methode definiert, damit es privat bleibt.
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId {
             position: self.position.clone(),
             streckenabschnitt: self.streckenabschnitt.clone(),
-            verbindungen: self.verbindungen.clone(),
+            phantom: self.phantom,
         }
-    }
-}
-
-impl<T: Zeichnen> GleisId<T> {
-    /// Alle Verbindungen des Assoziierten Gleises.
-    pub fn verbindungen(&self) -> &T::Verbindungen {
-        &self.verbindungen
     }
 }
 
@@ -69,7 +60,7 @@ impl<T: Zeichnen> GleisId<T> {
 // }
 
 #[derive(zugkontrolle_derive::Debug)]
-pub enum AnyId<Z: Zugtyp> {
+pub enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),
     Kurve(GleisId<Kurve<Z>>),
     Weiche(GleisId<Weiche<Z>>),
