@@ -34,25 +34,14 @@ impl<T> GleisId<T> {
     }
 }
 
+// Explizite Implementierung wegen Phantomtyp benötigt.
+impl<T> PartialEq for GleisId<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position && self.streckenabschnitt == other.streckenabschnitt
+    }
+}
+
 // FIXME remove
-// // Explizite Implementierung wegen Phantomtyp benötigt.
-// // Die automatisch erzeugte Instanz (derive) würden den jeweiligen Trait für den Phantomtyp benötigen.
-// impl<T> PartialEq for GleisId<T> {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.0 == other.0
-//     }
-// }
-// impl<T> Eq for GleisId<T> {}
-// impl<T> PartialOrd for GleisId<T> {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         self.0.partial_cmp(&other.0)
-//     }
-// }
-// impl<T> Ord for GleisId<T> {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.0.cmp(&other.0)
-//     }
-// }
 // impl<T> Hash for GleisId<T> {
 //     fn hash<H: Hasher>(&self, state: &mut H) {
 //         self.0.hash(state)
@@ -70,25 +59,21 @@ pub enum AnyId<Z> {
     Kreuzung(GleisId<Kreuzung<Z>>),
 }
 
-// FIXME remove
-// // Explizite Implementierung wegen Phantomtyp benötigt.
-// // Die automatisch erzeugte Instanz (derive) würden den jeweiligen Trait für den Phantomtyp benötigen.
-// impl<Z> PartialEq for AnyId<Z> {
-//     fn eq(&self, other: &Self) -> bool {
-//         use AnyId::*;
-//         match (self, other) {
-//             (Gerade(id0), Gerade(id1)) => id0 == id1,
-//             (Kurve(id0), Kurve(id1)) => id0 == id1,
-//             (Weiche(id0), Weiche(id1)) => id0 == id1,
-//             (DreiwegeWeiche(id0), DreiwegeWeiche(id1)) => id0 == id1,
-//             (KurvenWeiche(id0), KurvenWeiche(id1)) => id0 == id1,
-//             (SKurvenWeiche(id0), SKurvenWeiche(id1)) => id0 == id1,
-//             (Kreuzung(id0), Kreuzung(id1)) => id0 == id1,
-//             _ => false,
-//         }
-//     }
-// }
-// impl<Z> Eq for AnyId<Z> {}
+impl<Z> PartialEq for AnyId<Z> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (AnyId::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
+            (AnyId::Kurve(l0), AnyId::Kurve(r0)) => l0 == r0,
+            (AnyId::Weiche(l0), AnyId::Weiche(r0)) => l0 == r0,
+            (AnyId::DreiwegeWeiche(l0), AnyId::DreiwegeWeiche(r0)) => l0 == r0,
+            (AnyId::KurvenWeiche(l0), AnyId::KurvenWeiche(r0)) => l0 == r0,
+            (AnyId::SKurvenWeiche(l0), AnyId::SKurvenWeiche(r0)) => l0 == r0,
+            (AnyId::Kreuzung(l0), AnyId::Kreuzung(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
 macro_rules! with_any_id {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {

@@ -1,6 +1,8 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen
 
-use std::fmt::Debug;
+use std::{fmt::Debug, marker::PhantomData};
+
+use rstar::primitives::{GeomWithData, Rectangle};
 
 use crate::{
     anschluss::polarität::Fließend,
@@ -32,15 +34,14 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-        GleisId<T>: Into<AnyId<Z>>,
     {
         // Berechne Bounding Box.
         let mut rechteck = definition.rechteck();
         rechteck.verschiebe(&position.punkt);
         rechteck.respektiere_rotation(&position.winkel);
-        let rectangle = rechteck.into();
+        let rectangle = Rectangle::from(rechteck);
         // Füge zu RStern hinzu.
-        let rstern = if let Some(name) = streckenabschnitt {
+        let mut daten = if let Some(name) = streckenabschnitt {
             self.zustand
                 .streckenabschnitte
                 .get_mut(&name)
@@ -49,33 +50,25 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else {
             &mut self.zustand.ohne_streckenabschnitt
         };
-        rstern.rstern_mut().insert(rectangle.clone(), (position.winkel, definition));
-        // Berechne absolute Position der Verbindungen
-        let verbindungen = definition.anchor_points().map(
-            |&verbindung::Verbindung { position: anchor_position, richtung }| {
-                verbindung::Verbindung {
-                    position: position.transformation(anchor_position),
-                    richtung: position.winkel + richtung,
-                }
-            },
-        );
+        daten
+            .rstern_mut()
+            .insert(GeomWithData::new(rectangle.clone(), (definition, position.winkel)));
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert
-        Ok(GleisId { position: rectangle, streckenabschnitt, verbindungen })
+        Ok(GleisId { position: rectangle, streckenabschnitt, phantom: PhantomData })
     }
 
-    /// Add a gleis at the last known mouse position
-    /// capped at the last known canvas size.
+    /// Füge ein Gleis zur letzten bekannten Maus-Position,
+    /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
     pub(crate) fn add_grabbed_at_mouse<T>(
         &mut self,
         definition: T,
         grab_location: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> Result<(GleisId<T>, T::Verbindungen), StreckenabschnittEntferntFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
-        GleisId<T>: Into<AnyId<Z>>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let mut canvas_position = self.last_mouse;
@@ -93,14 +86,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else if cp_y > self.last_size.y {
             canvas_position -= (cp_y - self.last_size.y) * ey;
         }
-        let result = self.add(Gleis {
+        let result = self.add(
             definition,
-            position: Position {
-                punkt: canvas_position - grab_location,
-                winkel: -self.pivot.winkel,
-            },
-            streckenabschnitt: streckenabschnitt.clone(),
-        })?;
+            Position { punkt: canvas_position - grab_location, winkel: -self.pivot.winkel },
+            streckenabschnitt.clone(),
+        )?;
         if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
             let gleis_id = result.0.clone().into();
             *grabbed = Some(Grabbed { gleis_id, streckenabschnitt, grab_location, moved: true });
@@ -116,16 +106,15 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         anchor_name: &T::VerbindungName,
         target_anchor_point: verbindung::Verbindung,
-    ) -> Result<(GleisId<T>, T::Verbindungen), StreckenabschnittEntferntFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-        GleisId<T>: Into<AnyId<Z>>,
     {
         // calculate new position
         let position = Position::attach_position(&definition, anchor_name, target_anchor_point);
         // add new gleis
-        self.add(Gleis { definition, position, streckenabschnitt })
+        self.add(definition, position, streckenabschnitt)
     }
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
@@ -134,13 +123,12 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// This is called relocate instead of move since the latter is a reserved keyword.
     pub(crate) fn relocate<T>(
         &mut self,
-        gleis_id: &GleisId<T>,
+        gleis_id: &mut GleisId<T>,
         position_neu: Position,
-    ) -> Result<T::Verbindungen, GleisEntferntFehler>
+    ) -> Result<(), GleisEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-        GleisId<T>: Into<AnyId<Z>>,
     {
         let Gleis { definition, position, .. } = self
             .zustand
@@ -187,14 +175,13 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Move an existing gleis gleis with anchor_name adjacent to the target_anchor_point.
     pub(crate) fn relocate_attach<T>(
         &mut self,
-        gleis_id: &GleisId<T>,
+        gleis_id: &mut GleisId<T>,
         anchor_name: &T::VerbindungName,
         target_anchor_point: verbindung::Verbindung,
-    ) -> Result<T::Verbindungen, GleisEntferntFehler>
+    ) -> Result<(), GleisEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-        GleisId<T>: Into<AnyId<Z>>,
     {
         let position = {
             let Gleis { definition, .. } = self
@@ -219,7 +206,6 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-        GleisId<T>: Into<AnyId<Z>>,
     {
         if let Some(Gleis { definition, position, .. }) =
             self.zustand.alle_gleise_maps_mut().fold(None, |acc, (streckenabschnitt, maps)| {
@@ -241,7 +227,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    pub(crate) fn streckenabschnitt_für_id<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisEntferntFehler> {

@@ -2,6 +2,7 @@
 
 use crate::{
     application::gleis::verbindung,
+    lookup::Lookup,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
         weiche::Weiche,
@@ -113,7 +114,20 @@ where
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
+    /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
     fn verbindungen(&self) -> Self::Verbindungen;
+
+    /// Absolute Position der Verbindungen, wenn sich das Gleis an der `Position` befindet.
+    fn verbindungen_an_position(&self, position: Position) -> Self::Verbindungen {
+        self.verbindungen().map(
+            |&verbindung::Verbindung { position: verbindung_position, richtung }| {
+                verbindung::Verbindung {
+                    position: position.transformation(verbindung_position),
+                    richtung: position.winkel + richtung,
+                }
+            },
+        )
+    }
 }
 
 pub trait MitName {
