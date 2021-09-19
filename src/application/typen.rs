@@ -98,13 +98,13 @@ where
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<Pfad>;
 
-    /// Position, Beschreibung und Name (falls verfügbar).
+    /// Position für, sowie Beschreibung und Name (falls verfügbar).
     fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>);
 
     /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool;
 
-    /// Identifier for Verbindungen.
+    /// Identifier for `Verbindungen`.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
     /// Speicher-Typ für `verbindung::Verbindung`.
