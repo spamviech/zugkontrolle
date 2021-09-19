@@ -1,6 +1,6 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, time::Instant};
+use std::{collections::hash_map::Entry, fmt::Debug, time::Instant};
 
 pub use self::{daten::*, id::*};
 use crate::{
@@ -41,7 +41,6 @@ pub struct Gleise<Z: Zugtyp> {
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<Z>,
-    anchor_points: verbindung::rstern::RStern<Z>,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
@@ -58,7 +57,6 @@ where
             .field("pivot", &self.pivot)
             .field("skalieren", &self.skalieren)
             .field("zustand", &self.zustand)
-            .field("anchor_points", &self.anchor_points)
             .field("last_mouse", &self.last_mouse)
             .field("last_size", &self.last_size)
             .field("modus", &self.modus)
@@ -73,23 +71,10 @@ impl<Z: Zugtyp> Gleise<Z> {
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             skalieren: Skalar(1.),
             zustand: Zustand::neu(),
-            anchor_points: verbindung::rstern::RStern::neu(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { grabbed: None, last: Instant::now() },
         }
-    }
-
-    fn get_max_id<S, T: DatenAuswahl<Z>>(
-        (_ignoriert, maps): (S, &GleiseDaten<Z>),
-    ) -> Option<&GleisId<T>> {
-        maps.rstern().keys().next_back()
-    }
-
-    fn next_id<T: Debug + DatenAuswahl<Z>>(&self) -> GleisId<T> {
-        let max_id =
-            self.zustand.alle_gleise_maps().map(Self::get_max_id).filter_map(identity).max();
-        max_id.map(GleisId::nachfolger).unwrap_or_else(GleisId::initial)
     }
 
     fn relocate_grabbed<T: Debug + Zeichnen>(
@@ -360,12 +345,12 @@ impl Position {
     /// Position damit anchor::Verbindung übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
-        anchor_name: &T::AnchorName,
+        anchor_name: &T::VerbindungName,
         target_anchor_point: verbindung::Verbindung,
     ) -> Self
     where
         T: Zeichnen,
-        T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
+        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let anchor_points = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
