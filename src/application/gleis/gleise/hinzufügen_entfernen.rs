@@ -25,15 +25,15 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
     pub(crate) fn add<T>(
         &mut self,
-        gleis: Gleis<T>,
+        definition: T,
+        position: Position,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<(GleisId<T>, T::AnchorPoints), StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::AnchorPoints: verbindung::Lookup<T::AnchorName>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        // todo! aus Gleis entfernen & in eigenes Argument auslagern
-        let Gleis { definition, position, streckenabschnitt } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&verbindung::Verbindung { position: anchor_position, richtung }| {

@@ -12,9 +12,10 @@ use crate::{
 pub use self::{
     canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
     mm::*,
+    rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
-    winkel::*,
+    winkel::{Winkel, WinkelGradmaß},
 };
 pub use crate::zugtyp::Zugtyp;
 
@@ -87,8 +88,8 @@ pub trait Zeichnen
 where
     Self::AnchorPoints: verbindung::Lookup<Self::AnchorName>,
 {
-    /// Maximale x,y-Werte
-    fn size(&self) -> Vektor;
+    /// Einschließendes Rechteck
+    fn rechteck(&self) -> Rechteck;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
@@ -100,9 +101,10 @@ where
     /// Position, Beschreibung und Name (falls verfügbar)
     fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>);
 
-    /// Zeigt der /Vektor/ auf das Gleis?
-    fn innerhalb(&self, relative_position: Vektor) -> bool;
+    /// Zeigt der `Vektor` auf das Gleis?
+    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool;
 
+    // TODO In Verbindung umbenennen?
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type AnchorName;
