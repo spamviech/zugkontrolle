@@ -42,7 +42,7 @@ impl Vektor {
         Vektor { x: radius * winkel.cos(), y: radius * winkel.sin() }
     }
 
-    /// Normalisiere den Vektor auf länge /Skalar(1.)/.
+    /// Normalisiere den Vektor auf länge `Skalar(1.)`.
     pub fn normalisiere(&mut self) {
         *self /= self.länge();
     }
@@ -76,7 +76,7 @@ impl Vektor {
         Winkel::acos(self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
-    /// Rotiere einen Vektor um /winkel/ im Uhrzeigersinn.
+    /// Rotiere einen Vektor um `winkel` im Uhrzeigersinn.
     pub fn rotiere<T: Trigonometrie>(&mut self, winkel: T) {
         let Vektor { x, y } = *self;
         let cos = winkel.cos();
@@ -85,7 +85,7 @@ impl Vektor {
         self.y = sin * x + cos * y;
     }
 
-    /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist.
+    /// Erzeuge einen Vektor, der um `winkel` im Uhrzeigersinn rotiert ist.
     pub fn rotiert<T: Trigonometrie>(mut self, winkel: T) -> Self {
         self.rotiere(winkel);
         self

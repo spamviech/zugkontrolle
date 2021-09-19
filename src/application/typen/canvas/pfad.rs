@@ -19,7 +19,7 @@ pub struct Pfad {
 }
 
 impl Pfad {
-    /// Erzeuge ein Rechteck der gegebenen /größe/ unter den gegebenen /transformationen/.
+    /// Erzeuge ein Rechteck der gegebenen `größe` unter den gegebenen `transformationen`.
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
         Erbauer::neu()
             .move_to_chain(Vektor::null_vektor())
@@ -42,9 +42,9 @@ pub enum Transformation {
     Skalieren(Skalar),
 }
 
-/// Variante von /iced::canvas::path::Arc/ mit /Invertiert/-Implementierung.
+/// Variante von `iced::canvas::path::Arc` mit `Invertiert`-Implementierung.
 ///
-/// Beschreibt einen Bogen um /zentrum/ mit /radius/ von Winkel /anfang/ bis /ende/
+/// Beschreibt einen Bogen um `zentrum` mit `radius` von Winkel `anfang` bis `ende`
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Bogen {
@@ -114,7 +114,7 @@ where
     }
 }
 
-/// newtype auf einem /iced::canvas::path::Builder/
+/// newtype auf einem `iced::canvas::path::Builder`
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
@@ -143,14 +143,14 @@ impl Erbauer<Vektor, Bogen> {
 }
 
 impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
-    // Beginne einen neuen Unterpfad bei /punkt/.
+    // Beginne einen neuen Unterpfad bei `punkt`.
     #[chain]
     pub fn move_to(&mut self, punkt: V) {
         let Vektor { x, y } = punkt.into();
         self.builder.move_to(iced::Point { x: x.0, y: y.0 })
     }
 
-    /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/.
+    /// Zeichne einen Linie vom aktuellen Punkt zu `ziel`.
     #[chain]
     pub fn line_to(&mut self, ziel: V) {
         let Vektor { x, y } = ziel.into();
@@ -174,9 +174,9 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     /*
     // TODO Funktioniert nicht mit with_invert_x,y :(
     // iced-github-Issue öffnen, die verwendete Bibliothek scheint eine Flag zu unterstützen
-    /// Strike an arc from /a/ to /b/ with given radius (clockwise).
+    /// Strike an arc from `a` to `b` with given radius (clockwise).
     ///
-    /// If /move_to/ is /true/ start a new subgraph before the arc.
+    /// If `move_to` is `true` start a new subgraph before the arc.
     /// Otherwise, strike a direct line from the current point to the start of the arc.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: Radius, new_sub_path: bool) {
         if new_sub_path {

@@ -92,7 +92,7 @@ where
     fn rechteck(&self) -> Rechteck;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
-    /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
+    /// Alle Pfade werden mit `canvas::FillRule::EvenOdd` gefüllt.
     fn fülle(&self) -> Vec<(Pfad, Transparenz)>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
@@ -108,7 +108,7 @@ where
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type AnchorName;
-    /// Speicher-Typ für /anchor::Verbindung/. Muss /anchor::Lookup<Self::AnchorName>/ implementieren.
+    /// Speicher-Typ für `anchor::Verbindung`. Muss `anchor::Lookup<Self::AnchorName>` implementieren.
     type AnchorPoints;
     /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
     ///

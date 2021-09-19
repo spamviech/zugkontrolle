@@ -86,7 +86,7 @@
 - Bei Märklin-Zugtyp ist eine alternative BahngeschwindigkeitVariante möglich.
     Zwei Pins, einer für Fahrstrom (<=16V), einer für Umdrehen-Strom (25V).
 - Sprachwechsel möglich, ohne das Programm neu starten zu müssen.
-- /yaml/ anstelle von /json/ als Speicherformat verwendet.
+- `yaml` anstelle von `json` als Speicherformat verwendet.
     Alte Speicherdateien können weiterverwendet werden.
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Das Fenster sollte beim Programmstart nicht mehr zu klein sein.

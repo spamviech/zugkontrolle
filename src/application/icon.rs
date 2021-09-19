@@ -1,7 +1,7 @@
 //! Icon for the Application
 
-// originally created using the /image/ crate, printing out the resulting
-// ImageBuffer::into_raw(), hard-coded to avoid the /image/-dependency
+// originally created using the `image` crate, printing out the resulting
+// `ImageBuffer::into_raw()`, hard-coded to avoid the `image`-dependency
 const WIDTH: usize = 32;
 const HEIGHT: usize = 32;
 const DATA: [u8; WIDTH * HEIGHT * 4] = [

@@ -27,7 +27,7 @@ struct Grabbed<Z> {
     moved: bool,
 }
 
-// Aktueller Modus von /Gleise/
+// Aktueller Modus von `Gleise`
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
@@ -160,7 +160,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    /// Wechsel den aktuellen Modus zu /modus/.
+    /// Wechsel den aktuellen Modus zu `modus`.
     pub fn moduswechsel(&mut self, modus: Modus) {
         self.modus = match modus {
             Modus::Bauen => ModusDaten::Bauen { grabbed: None, last: Instant::now() },
@@ -173,25 +173,25 @@ impl<Z: Zugtyp> Gleise<Z> {
         &self.pivot
     }
 
-    /// Bewege aktuellen Pivot-Punkt nach /pivot/.
+    /// Bewege aktuellen Pivot-Punkt nach `pivot`.
     pub fn setze_pivot(&mut self, pivot: Vektor) {
         self.pivot.punkt = pivot;
         self.canvas.leeren();
     }
 
-    /// Bewege aktuellen Pivot-Punkt um /bewegung/.
+    /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
         self.canvas.leeren();
     }
 
-    /// Setze den /winkel/ für die aktuelle Darstellung.
+    /// Setze den `winkel` für die aktuelle Darstellung.
     pub fn winkel(&mut self, winkel: Winkel) {
         self.pivot.winkel = winkel;
         self.canvas.leeren();
     }
 
-    /// Drehe die aktuelle Darstellung um /winkel/.
+    /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
         self.pivot.winkel += winkel;
         self.canvas.leeren();
@@ -208,7 +208,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.canvas.leeren();
     }
 
-    /// Multipliziere die aktuelle Darstellung mit /skalieren/.
+    /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
         self.canvas.leeren();

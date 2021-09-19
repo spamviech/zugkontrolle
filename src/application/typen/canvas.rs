@@ -15,9 +15,9 @@ pub mod pfad;
 
 /// newtype auf /iced::canvas::Frame/-Reference, dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass /pivot.punkt/ auf (0,0) vom /iced::Frame/ liegt.
-/// Anschließend werden die Koordinaten um /pivot.winkel/ gedreht.
-/// Danach werden alle Koordinaten mit dem /skalieren/-Faktor multipliziert.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom `iced::Frame` liegt.
+/// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
+/// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
 impl<'t> Frame<'t> {
     pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
@@ -65,7 +65,7 @@ impl<'t> Frame<'t> {
 
     /// Wende die übergebene Transformation auf den Frame an.
     ///
-    /// **ACHTUNG**: Durch die Art wie es in /iced/ implementiert ist wird die /transformation/
+    /// **ACHTUNG**: Durch die Art wie es in `iced` implementiert ist wird die `transformation`
     /// **vor** allen bisherigen ausgeführt.
     ///
     /// Links zum Implementierung verfolgen:

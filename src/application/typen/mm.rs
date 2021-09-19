@@ -1,4 +1,4 @@
-//! Typen mit /mm/ Größen
+//! Typen mit `mm` Größen
 
 use std::ops::Div;
 

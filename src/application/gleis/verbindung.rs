@@ -4,7 +4,7 @@ use crate::{application::typen::*, lookup};
 
 pub(crate) mod rstern;
 
-/// Ein /Verbindung/ repräsentiert Anschlüsse eines Gleises.
+/// Ein `Verbindung` repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Verbindung {
     /// Position des Anschluss

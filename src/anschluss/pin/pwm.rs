@@ -53,7 +53,7 @@ pub struct Config {
 impl Config {
     /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
     ///
-    /// Time::valide muss /true/ sein.
+    /// Time::valide muss `true` sein.
     pub fn new(time: Time, polarity: Polarität) -> Option<Self> {
         let config = Config { time, polarity };
         if config.valide() {
