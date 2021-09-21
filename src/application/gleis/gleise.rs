@@ -76,12 +76,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    fn relocate_grabbed<T: Debug + Zeichnen>(
+    fn bewegen_gehalten<T: Debug + Zeichnen>(
         &mut self,
         gleis_id: GleisId<T>,
-        streckenabschnitt: Option<streckenabschnitt::Name>,
         punkt: Vektor,
-    ) -> Result<(), GleisEntferntFehler>
+    ) -> Result<(), GleisIdFehler>
     where
         Z: Zugtyp,
         T: DatenAuswahl<Z>,
@@ -95,11 +94,14 @@ impl<Z: Zugtyp> Gleise<Z> {
             })
             .ok_or(GleisEntferntFehler)?;
         let position_neu = Position { punkt, winkel: position.winkel };
-        self.relocate(&gleis_id, position_neu)?;
+        self.bewegen(gleis_id, position_neu)?;
         Ok(())
     }
 
-    fn snap_to_anchor<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisEntferntFehler>
+    fn einrasten_an_verbindung<T>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<(), GleisEntferntFehler>
     where
         Z: Zugtyp,
         T: Debug + Zeichnen + DatenAuswahl<Z>,
@@ -301,9 +303,9 @@ impl<Z: Zugtyp> Gleise<Z> {
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Nachricht<Z> {
-    SetzeStreckenabschnitt(AnyId<Z>, Option<streckenabschnitt::Name>),
-    AnschlüsseAnpassen(AnyId<Z>, Option<streckenabschnitt::Name>),
-    FahrenAktion(AnyId<Z>, Option<streckenabschnitt::Name>),
+    SetzeStreckenabschnitt(AnyId<Z>),
+    AnschlüsseAnpassen(AnyId<Z>),
+    FahrenAktion(AnyId<Z>),
 }
 
 impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {

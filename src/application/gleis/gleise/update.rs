@@ -7,7 +7,7 @@ use log::error;
 use crate::{
     application::{
         gleis::gleise::{
-            daten::*, id::*, GleisEntferntFehler, Gleise, Grabbed, ModusDaten, Nachricht,
+            daten::*, id::*, Gehalten, GleisEntferntFehler, Gleise, ModusDaten, Nachricht,
         },
         typen::*,
     },
@@ -35,7 +35,7 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
 fn find_clicked<T, Z>(
     streckenabschnitt: Option<&streckenabschnitt::Name>,
-    map: &Map<T>,
+    map: &RStern<T>,
     canvas_pos: Vektor,
 ) -> Option<(AnyId<Z>, Option<streckenabschnitt::Name>, Vektor)>
 where
@@ -87,32 +87,24 @@ where
                     .or_else(|| find_clicked(streckenabschnitt, kreuzungen, canvas_pos))
             });
             match modus {
-                ModusDaten::Bauen { grabbed, last } => {
+                ModusDaten::Bauen { gehalten, last } => {
                     let now = Instant::now();
                     let diff = now - *last;
                     *last = now;
-                    take_mut::take(grabbed, |grabbed| {
-                        grabbed.or({
-                            if let Some((gleis_id, streckenabschnitt, grab_location)) =
+                    take_mut::take(gehalten, |gehalten| {
+                        gehalten.or({
+                            if let Some((gleis_id, streckenabschnitt, grab_position)) =
                                 find_clicked_result
                             {
-                                Some(Grabbed {
-                                    gleis_id,
-                                    streckenabschnitt,
-                                    grab_location,
-                                    moved: false,
-                                })
+                                Some(Gehalten { gleis_id, grab_position, bewegt: false })
                             } else {
                                 None
                             }
                         })
                     });
-                    if let Some(Grabbed { gleis_id, streckenabschnitt, .. }) = grabbed {
+                    if let Some(Gehalten { gleis_id, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Nachricht::AnschlüsseAnpassen(
-                                gleis_id.clone(),
-                                streckenabschnitt.clone(),
-                            ))
+                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.clone()))
                         }
                         status = iced::canvas::event::Status::Captured
                     }
@@ -120,7 +112,7 @@ where
                 ModusDaten::Fahren => {
                     if let Some((gleis_id, streckenabschnitt, _grab_location)) = find_clicked_result
                     {
-                        message = Some(Nachricht::FahrenAktion(gleis_id, streckenabschnitt));
+                        message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }
                 }
@@ -159,12 +151,11 @@ impl<Z: Zugtyp> Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                    if let Some(Grabbed { gleis_id, streckenabschnitt, moved, .. }) = &*grabbed {
+                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                    if let Some(Gehalten { gleis_id, streckenabschnitt, moved, .. }) = &*gehalten {
                         let gleis_id_clone = gleis_id.clone();
-                        let streckenabschnitt_clone = streckenabschnitt.clone();
                         let moved_copy = *moved;
-                        *grabbed = None;
+                        *gehalten = None;
                         if moved_copy {
                             if cursor.is_over(&bounds) {
                                 if let Err(GleisEntferntFehler) =
@@ -177,10 +168,8 @@ impl<Z: Zugtyp> Gleise<Z> {
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Nachricht::SetzeStreckenabschnitt(
-                                gleis_id_clone.into(),
-                                streckenabschnitt_clone,
-                            ));
+                            message =
+                                Some(Nachricht::SetzeStreckenabschnitt(gleis_id_clone.into()));
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
@@ -191,18 +180,14 @@ impl<Z: Zugtyp> Gleise<Z> {
                     get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if let ModusDaten::Bauen { grabbed, .. } = &mut self.modus {
-                        if let Some(Grabbed { gleis_id, streckenabschnitt, grab_location, moved }) =
-                            grabbed
-                        {
-                            *moved = true;
-                            let point = canvas_pos - grab_location;
-                            let streckenabschnitt_clone = streckenabschnitt.clone();
+                    if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                        if let Some(Gehalten { gleis_id, grab_position, bewegt }) = gehalten {
+                            *bewegt = true;
+                            let point = canvas_pos - grab_position;
                             if let Err(GleisEntferntFehler) = with_any_id!(
                                 gleis_id.clone(),
                                 Gleise::relocate_grabbed,
                                 self,
-                                streckenabschnitt_clone,
                                 point
                             ) {
                                 error!("Drag&Drop für entferntes Gleis!")

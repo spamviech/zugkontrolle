@@ -3,7 +3,7 @@
 use crate::{
     anschluss::Fließend,
     application::{
-        gleis::gleise::{daten::*, id::*, Gleise, Grabbed, ModusDaten},
+        gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten},
         typen::*,
         verbindung,
     },
@@ -80,7 +80,7 @@ fn zeichne_alle_gleise<T, Z>(
 
 fn zeichne_alle_anchor_points<T, Z>(
     frame: &mut canvas::Frame,
-    map: &Map<T>,
+    map: &RStern<T>,
     has_other_and_grabbed_id_at_point: impl Fn(AnyId<Z>, verbindung::Verbindung) -> (bool, bool),
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
@@ -125,7 +125,7 @@ fn zeichne_alle_anchor_points<T, Z>(
 
 fn schreibe_alle_beschreibungen<T, Z>(
     frame: &mut canvas::Frame,
-    map: &Map<T>,
+    map: &RStern<T>,
     is_grabbed: impl Fn(AnyId<Z>) -> bool,
 ) where
     T: Zeichnen,
@@ -165,7 +165,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
-        let Gleise { canvas, zustand, anchor_points, modus, .. } = self;
+        let Gleise { canvas, zustand, verbindungen, modus, .. } = self;
         vec![canvas.zeichnen_skaliert_von_pivot(
             bounds.size(),
             &self.pivot,
@@ -176,11 +176,11 @@ impl<Z: Zugtyp> Gleise<Z> {
                 let grabbed_id: Option<AnyId<Z>>;
                 let modus_bauen: bool;
                 match modus {
-                    ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } => {
+                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
                         grabbed_id = Some(gleis_id.clone());
                         modus_bauen = true;
                     }
-                    ModusDaten::Bauen { grabbed: None, .. } => {
+                    ModusDaten::Bauen { gehalten: None, .. } => {
                         grabbed_id = None;
                         modus_bauen = true;
                     }
@@ -192,7 +192,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 // TODO markiere grabbed als "wird-gelöscht", falls cursor out of bounds ist
                 let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
                 let has_other_and_grabbed_id_at_point = |gleis_id, position| {
-                    anchor_points.hat_andere_id_und_grabbed_an_position(
+                    verbindungen.hat_andere_id_und_grabbed_an_position(
                         &gleis_id,
                         |id| is_grabbed(id.clone()),
                         &position,
