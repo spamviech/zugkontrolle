@@ -51,8 +51,9 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn size(&self) -> Vektor {
-        size::<Z>(self.länge)
+    fn rechteck(&self) -> Rechteck {
+        todo!()
+        // size::<Z>(self.länge)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -77,24 +78,25 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor) -> bool {
+    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
         innerhalb::<Z>(self.länge, relative_position)
     }
 
-    fn anchor_points(&self) -> Self::Verbindungen {
-        let gleis_links = Skalar(0.);
-        let gleis_rechts = gleis_links + self.länge;
-        let beschränkung_mitte = beschränkung::<Z>().halbiert();
-        Verbindungen {
-            anfang: verbindung::Verbindung {
-                position: Vektor { x: gleis_links, y: beschränkung_mitte },
-                richtung: winkel::PI,
-            },
-            ende: verbindung::Verbindung {
-                position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
-                richtung: winkel::ZERO,
-            },
-        }
+    fn verbindungen(&self) -> Self::Verbindungen {
+        todo!()
+        // let gleis_links = Skalar(0.);
+        // let gleis_rechts = gleis_links + self.länge;
+        // let beschränkung_mitte = beschränkung::<Z>().halbiert();
+        // Verbindungen {
+        //     anfang: verbindung::Verbindung {
+        //         position: Vektor { x: gleis_links, y: beschränkung_mitte },
+        //         richtung: winkel::PI,
+        //     },
+        //     ende: verbindung::Verbindung {
+        //         position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
+        //         richtung: winkel::ZERO,
+        //     },
+        // }
     }
 }
 

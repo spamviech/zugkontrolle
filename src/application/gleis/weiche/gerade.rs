@@ -78,18 +78,20 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn size(&self) -> Vektor {
-        let Weiche { länge, radius, winkel, .. } = *self;
-        let gerade_size = gerade::size::<Z>(länge);
-        let kurve_size = kurve::size::<Z>(radius, winkel);
-        Vektor { x: gerade_size.x.max(&kurve_size.x), y: kurve_size.y }
+    fn rechteck(&self) -> Rechteck {
+        todo!()
+        // let Weiche { länge, radius, winkel, .. } = *self;
+        // let gerade_size = gerade::size::<Z>(länge);
+        // let kurve_size = kurve::size::<Z>(radius, winkel);
+        // Vektor { x: gerade_size.x.max(&kurve_size.x), y: kurve_size.y }
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
+            let size: Vektor = todo!("{:?}", self.rechteck());
             let transformations =
-                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             vec![
                 gerade::zeichne(
                     zugtyp,
@@ -130,8 +132,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
         if orientierung == Orientierung::Links {
+            let size: Vektor = todo!("{:?}", self.rechteck());
             let transformations =
-                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             vec![
                 (
                     gerade::fülle(
@@ -182,7 +185,8 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                start_height = self.size().y;
+                let size: Vektor = todo!("{:?}", self.rechteck());
+                start_height = size.y;
                 multiplier = Skalar(-1.);
             }
         };
@@ -199,7 +203,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor) -> bool {
+    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -209,7 +213,8 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                start_height = self.size().y;
+                let size: Vektor = todo!("{:?}", self.rechteck());
+                start_height = size.y;
                 multiplier = Skalar(-1.);
             }
         };
@@ -221,35 +226,36 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
     }
 
-    fn anchor_points(&self) -> Self::Verbindungen {
-        let start_height: Skalar;
-        let multiplier: Skalar;
-        match self.orientierung {
-            Orientierung::Rechts => {
-                start_height = Skalar(0.);
-                multiplier = Skalar(1.);
-            }
-            Orientierung::Links => {
-                start_height = self.size().y;
-                multiplier = Skalar(-1.);
-            }
-        };
-        let halbe_beschränkung = beschränkung::<Z>().halbiert();
-        let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
-        Verbindungen {
-            anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
-            gerade: verbindung::Verbindung {
-                position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
-                richtung: winkel::ZERO,
-            },
-            kurve: verbindung::Verbindung {
-                position: anfang
-                    + Vektor {
-                        x: self.winkel.sin() * self.radius,
-                        y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
-                    },
-                richtung: multiplier.0 * self.winkel,
-            },
-        }
+    fn verbindungen(&self) -> Self::Verbindungen {
+        todo!()
+        // let start_height: Skalar;
+        // let multiplier: Skalar;
+        // match self.orientierung {
+        //     Orientierung::Rechts => {
+        //         start_height = Skalar(0.);
+        //         multiplier = Skalar(1.);
+        //     }
+        //     Orientierung::Links => {
+        //         start_height = self.size().y;
+        //         multiplier = Skalar(-1.);
+        //     }
+        // };
+        // let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        // let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
+        // Verbindungen {
+        //     anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
+        //     gerade: verbindung::Verbindung {
+        //         position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
+        //         richtung: winkel::ZERO,
+        //     },
+        //     kurve: verbindung::Verbindung {
+        //         position: anfang
+        //             + Vektor {
+        //                 x: self.winkel.sin() * self.radius,
+        //                 y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
+        //             },
+        //         richtung: multiplier.0 * self.winkel,
+        //     },
+        // }
     }
 }
