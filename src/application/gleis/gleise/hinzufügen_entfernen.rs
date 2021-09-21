@@ -4,7 +4,7 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
-    RTreeObject, SelectionFunction, AABB,
+    RTreeObject,
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     application::{
         gleis::{
             gleise::{
-                daten::DatenAuswahl,
+                daten::{DatenAuswahl, SelectEnvelope},
                 id::{AnyId, GleisId},
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, GleiseDaten, ModusDaten,
                 StreckenabschnittEntferntFehler,
@@ -224,28 +224,5 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else {
             Ok(None)
         }
-    }
-}
-
-/// SelectionFunction, die einen bestimmten Envelope sucht.
-struct SelectEnvelope(AABB<Vektor>);
-impl<T> SelectionFunction<T> for SelectEnvelope
-where
-    T: RTreeObject<Envelope = AABB<Vektor>>,
-{
-    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
-        let self_upper = self.0.upper();
-        let self_lower = self.0.lower();
-        let upper = envelope.upper();
-        let lower = envelope.lower();
-        // der gesuchte Envelope muss komplett in den parent passen
-        lower.x <= self_lower.x
-            && lower.y <= self_lower.y
-            && upper.x >= self_upper.x
-            && upper.y >= self_upper.y
-    }
-
-    fn should_unpack_leaf(&self, leaf: &T) -> bool {
-        self.0 == leaf.envelope()
     }
 }

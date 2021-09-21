@@ -1,10 +1,12 @@
 //! Steuerungs-Struktur eines Gleises
 
+use rstar::RTreeObject;
+
 use crate::{
     application::{
         gleis::{
             self,
-            gleise::{daten::Gleis, id::GleisId, GleisEntferntFehler, Gleise},
+            gleise::{daten::SelectEnvelope, id::GleisId, GleisIdFehler, Gleise},
         },
         typen::*,
     },
@@ -60,17 +62,25 @@ macro_rules! steuerung_weiche {
             &'t mut self,
             gleis_id: &GleisId<$type>,
             // streckenabschnitt: &Option<steuerung::streckenabschnitt::Name>,
-        ) -> Result<
-            Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>,
-            GleisEntferntFehler,
-        > {
+        ) -> Result<Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>, GleisIdFehler>
+        {
+            let GleisId { position, streckenabschnitt, phantom } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
-            let Gleis { definition, .. } = zustand
-                .alle_gleise_maps_mut()
-                .fold(None, |acc, (streckenabschnitt, maps)| {
-                    acc.or_else(move || maps.$map.get_mut(&gleis_id))
-                })
-                .ok_or(GleisEntferntFehler)?;
+            let daten = if let Some(name) = streckenabschnitt {
+                &mut zustand
+                    .streckenabschnitte
+                    .get_mut(name)
+                    .ok_or(GleisIdFehler::StreckenabschnittEntfernt)?
+                    .2
+            } else {
+                &mut zustand.ohne_streckenabschnitt
+            };
+            let (definition, _winkel) = &mut daten
+                .$map
+                .locate_with_selection_function_mut(SelectEnvelope(gleis_id.position.envelope()))
+                .next()
+                .ok_or(GleisIdFehler::GleisEntfernt)?
+                .data;
             Ok(Steuerung::neu(&mut definition.steuerung, canvas))
         }
     };

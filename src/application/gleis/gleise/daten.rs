@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug, iter};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
-    RTree, RTreeObject, SelectionFunction,
+    RTree, RTreeObject, SelectionFunction, AABB,
 };
 use serde::{Deserialize, Serialize};
 
@@ -184,6 +184,29 @@ struct SelectAll;
 impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
         true
+    }
+}
+
+/// SelectionFunction, die einen bestimmten Envelope sucht.
+pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
+impl<T> SelectionFunction<T> for SelectEnvelope
+where
+    T: RTreeObject<Envelope = AABB<Vektor>>,
+{
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
+        let self_upper = self.0.upper();
+        let self_lower = self.0.lower();
+        let upper = envelope.upper();
+        let lower = envelope.lower();
+        // der gesuchte Envelope muss komplett in den parent passen
+        lower.x <= self_lower.x
+            && lower.y <= self_lower.y
+            && upper.x >= self_upper.x
+            && upper.y >= self_upper.y
+    }
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        self.0 == leaf.envelope()
     }
 }
 
