@@ -86,13 +86,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: DatenAuswahl<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let Gleis { position, .. } = self
-            .zustand
-            .alle_gleise_maps()
-            .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(|| maps.rstern().get(&gleis_id))
-            })
-            .ok_or(GleisEntferntFehler)?;
+        let GleisId { position, streckenabschnitt, phantom } = gleis_id;
+        let daten_mut = self.zustand.daten_mut(&streckenabschnitt)?;
+        let position: Position = todo!("Position extrahieren");
         let position_neu = Position { punkt, winkel: position.winkel };
         self.bewegen(gleis_id, position_neu)?;
         Ok(())
@@ -353,16 +349,16 @@ impl Position {
         T: Zeichnen,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let anchor_points = definition.anchor_points();
-        let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Winkel = winkel::PI - anchor_point.richtung + target_anchor_point.richtung;
+        let verbindungen = definition.verbindungen();
+        let verbindung = verbindungen.get(anchor_name);
+        let winkel: Winkel = winkel::PI - verbindung.richtung + target_anchor_point.richtung;
         Position {
             punkt: Vektor {
-                x: target_anchor_point.position.x - anchor_point.position.x * winkel.cos()
-                    + anchor_point.position.y * winkel.sin(),
+                x: target_anchor_point.position.x - verbindung.position.x * winkel.cos()
+                    + verbindung.position.y * winkel.sin(),
                 y: target_anchor_point.position.y
-                    - anchor_point.position.x * winkel.sin()
-                    - anchor_point.position.y * winkel.cos(),
+                    - verbindung.position.x * winkel.sin()
+                    - verbindung.position.y * winkel.cos(),
             },
             winkel,
         }

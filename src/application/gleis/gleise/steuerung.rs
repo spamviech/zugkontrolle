@@ -66,16 +66,8 @@ macro_rules! steuerung_weiche {
         {
             let GleisId { position, streckenabschnitt, phantom } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
-            let daten = if let Some(name) = streckenabschnitt {
-                &mut zustand
-                    .streckenabschnitte
-                    .get_mut(name)
-                    .ok_or(GleisIdFehler::StreckenabschnittEntfernt)?
-                    .2
-            } else {
-                &mut zustand.ohne_streckenabschnitt
-            };
-            let (definition, _winkel) = &mut daten
+            let (definition, _winkel) = &mut zustand
+                .daten_mut(streckenabschnitt)?
                 .$map
                 .locate_with_selection_function_mut(SelectEnvelope(gleis_id.position.envelope()))
                 .next()

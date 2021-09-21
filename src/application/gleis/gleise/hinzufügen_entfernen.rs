@@ -14,7 +14,7 @@ use crate::{
             gleise::{
                 daten::{DatenAuswahl, SelectEnvelope},
                 id::{AnyId, GleisId},
-                Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, GleiseDaten, ModusDaten,
+                Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
                 StreckenabschnittEntferntFehler,
             },
             verbindung,
@@ -26,35 +26,6 @@ use crate::{
 };
 
 impl<Z: Zugtyp> Gleise<Z> {
-    fn daten(
-        &self,
-        streckenabschnitt: &Option<streckenabschnitt::Name>,
-    ) -> Result<&GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(if let Some(name) = streckenabschnitt {
-            self.zustand
-                .streckenabschnitte
-                .get(name)
-                .map(|(_streckenabschnitt, _fließend, maps)| maps)
-                .ok_or(StreckenabschnittEntferntFehler)?
-        } else {
-            &self.zustand.ohne_streckenabschnitt
-        })
-    }
-    fn daten_mut(
-        &mut self,
-        streckenabschnitt: &Option<streckenabschnitt::Name>,
-    ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(if let Some(name) = streckenabschnitt {
-            self.zustand
-                .streckenabschnitte
-                .get_mut(name)
-                .map(|(_streckenabschnitt, _fließend, maps)| maps)
-                .ok_or(StreckenabschnittEntferntFehler)?
-        } else {
-            &mut self.zustand.ohne_streckenabschnitt
-        })
-    }
-
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T>(
@@ -73,7 +44,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         rechteck.respektiere_rotation(&position.winkel);
         let rectangle = Rectangle::from(rechteck);
         // Füge zu RStern hinzu.
-        self.daten_mut(&streckenabschnitt)?
+        self.zustand
+            .daten_mut(&streckenabschnitt)?
             .rstern_mut()
             .insert(GeomWithData::new(rectangle.clone(), (definition, position.winkel)));
         // Erzwinge Neuzeichnen
@@ -187,7 +159,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let GleisId { position, streckenabschnitt, phantom: _ } = gleis_id;
-        let mut daten = self.daten_mut(&streckenabschnitt)?;
+        let mut daten = self.zustand.daten_mut(&streckenabschnitt)?;
         // Entferne aktuellen Eintrag.
         let definition = daten
             .rstern_mut::<T>()

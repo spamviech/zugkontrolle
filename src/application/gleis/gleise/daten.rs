@@ -13,7 +13,10 @@ use crate::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         polarität::Fließend,
     },
-    application::{gleis::*, typen::*},
+    application::{
+        gleis::{gleise::StreckenabschnittEntferntFehler, *},
+        typen::*,
+    },
     steuerung::{
         geschwindigkeit,
         plan::Plan,
@@ -97,6 +100,33 @@ impl<Z: Zugtyp> Zustand<Z> {
             streckenabschnitte: HashMap::new(),
             geschwindigkeiten: geschwindigkeit::Map::new(),
         }
+    }
+
+    pub(in crate::application::gleis::gleise) fn daten(
+        &self,
+        streckenabschnitt: &Option<streckenabschnitt::Name>,
+    ) -> Result<&GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
+        Ok(if let Some(name) = streckenabschnitt {
+            self.streckenabschnitte
+                .get(name)
+                .map(|(_streckenabschnitt, _fließend, maps)| maps)
+                .ok_or(StreckenabschnittEntferntFehler)?
+        } else {
+            &self.ohne_streckenabschnitt
+        })
+    }
+    pub(in crate::application::gleis::gleise) fn daten_mut(
+        &mut self,
+        streckenabschnitt: &Option<streckenabschnitt::Name>,
+    ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
+        Ok(if let Some(name) = streckenabschnitt {
+            self.streckenabschnitte
+                .get_mut(name)
+                .map(|(_streckenabschnitt, _fließend, maps)| maps)
+                .ok_or(StreckenabschnittEntferntFehler)?
+        } else {
+            &mut self.ohne_streckenabschnitt
+        })
     }
 
     pub(crate) fn alle_gleise_maps(
