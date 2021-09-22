@@ -2,7 +2,11 @@
 
 use std::{collections::hash_map::Entry, fmt::Debug, time::Instant};
 
-pub use self::{daten::*, id::*};
+use self::daten::{DatenAuswahl, GleiseDaten};
+pub use self::{
+    daten::{Gleis, Zustand},
+    id::{AnyId, GleisId},
+};
 use crate::{
     anschluss::{self, Fließend},
     application::{typen::*, verbindung},
@@ -22,7 +26,7 @@ pub mod update;
 #[derive(zugkontrolle_derive::Debug)]
 struct Gehalten<Z> {
     gleis_id: AnyId<Z>,
-    grab_position: Vektor,
+    halte_position: Vektor,
     bewegt: bool,
 }
 
@@ -74,64 +78,6 @@ impl<Z: Zugtyp> Gleise<Z> {
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::Bauen { gehalten: None, last: Instant::now() },
         }
-    }
-
-    fn bewegen_gehalten<T: Debug + Zeichnen>(
-        &mut self,
-        gleis_id: GleisId<T>,
-        punkt: Vektor,
-    ) -> Result<(), GleisIdFehler>
-    where
-        Z: Zugtyp,
-        T: DatenAuswahl<Z>,
-        GleisId<T>: Into<AnyId<Z>>,
-    {
-        let GleisId { position, streckenabschnitt, phantom } = gleis_id;
-        let daten_mut = self.zustand.daten_mut(&streckenabschnitt)?;
-        let position: Position = todo!("Position extrahieren");
-        let position_neu = Position { punkt, winkel: position.winkel };
-        self.bewegen(gleis_id, position_neu)?;
-        Ok(())
-    }
-
-    fn einrasten_an_verbindung<T>(
-        &mut self,
-        gleis_id: GleisId<T>,
-    ) -> Result<(), GleisEntferntFehler>
-    where
-        Z: Zugtyp,
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
-        GleisId<T>: Into<AnyId<Z>>,
-    {
-        let Gleis { definition, position, .. } = self
-            .zustand
-            .alle_gleise_maps()
-            .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(|| maps.rstern().get(&gleis_id))
-            })
-            .ok_or(GleisEntferntFehler)?;
-        // calculate absolute position for Verbindungen
-        let anchor_points = definition.anchor_points().map(
-            |&verbindung::Verbindung { position: anchor_position, richtung }| {
-                verbindung::Verbindung {
-                    position: position.transformation(anchor_position),
-                    richtung: position.winkel + richtung,
-                }
-            },
-        );
-        let mut snap = None;
-        anchor_points.for_each(|anchor_name, anchor| {
-            if snap.is_none() {
-                snap = self
-                    .anchor_points
-                    .andere_id_an_position(AnyId::from_ref(&gleis_id), anchor)
-                    .map(|snap_anchor| (anchor_name, snap_anchor))
-            }
-        });
-        if let Some((snap_name, snap_anchor)) = snap {
-            self.relocate_attach(&gleis_id, &snap_name, snap_anchor)?;
-        };
-        Ok(())
     }
 
     /// Aktueller Modus.
@@ -248,10 +194,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         name: streckenabschnitt::Name,
     ) -> Option<(Streckenabschnitt, Fließend)> {
         self.canvas.leeren();
-        if let Some((streckenabschnitt, fließend, maps)) =
+        if let Some((streckenabschnitt, fließend, daten)) =
             self.zustand.streckenabschnitte.remove(&name)
         {
-            self.zustand.ohne_streckenabschnitt.merge(maps);
+            self.zustand.ohne_streckenabschnitt.merge(daten);
             Some((streckenabschnitt, fließend))
         } else {
             None
@@ -269,29 +215,31 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
-    /// Der bisherige Wert wird zurückgegeben.
-    pub(crate) fn setze_streckenabschnitt<T: DatenAuswahl<Z>>(
+    /// Nach einem Fehler ist das Gleis kein Teil des aktuellen Zustandes.
+    pub(crate) fn setze_streckenabschnitt<T>(
         &mut self,
-        gleis_id: &GleisId<T>,
+        gleis_id: GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) -> Result<Option<streckenabschnitt::Name>, GleisEntferntFehler> {
-        let gleis = self
-            .zustand
-            .alle_gleise_maps_mut()
-            .fold(None, |acc, (streckenabschnitt, maps)| {
-                acc.or_else(move || maps.rstern_mut().get_mut(gleis_id))
-            })
-            .ok_or(GleisEntferntFehler)?;
-        Ok(std::mem::replace(&mut gleis.streckenabschnitt, name))
+    ) -> Result<GleisId<T>, GleisIdFehler>
+    where
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+    {
+        let (definition, position) = self.entfernen(gleis_id)?;
+        self.hinzufügen(definition, position, name).map_err(GleisIdFehler::from)
     }
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
-    pub(in crate::application) fn setze_streckenabschnitt_unit<T: DatenAuswahl<Z>>(
+    pub(in crate::application) fn setze_streckenabschnitt_unit<T>(
         &mut self,
-        gleis_id: &GleisId<T>,
+        gleis_id: GleisId<T>,
         name: Option<streckenabschnitt::Name>,
-    ) -> Result<(), GleisEntferntFehler> {
+    ) -> Result<(), GleisIdFehler>
+    where
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+    {
         self.setze_streckenabschnitt(gleis_id, name)?;
         Ok(())
     }

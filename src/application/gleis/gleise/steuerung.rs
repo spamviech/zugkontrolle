@@ -64,12 +64,12 @@ macro_rules! steuerung_weiche {
             // streckenabschnitt: &Option<steuerung::streckenabschnitt::Name>,
         ) -> Result<Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>, GleisIdFehler>
         {
-            let GleisId { position, streckenabschnitt, phantom } = gleis_id;
+            let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
             let (definition, _winkel) = &mut zustand
                 .daten_mut(streckenabschnitt)?
                 .$map
-                .locate_with_selection_function_mut(SelectEnvelope(gleis_id.position.envelope()))
+                .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
                 .next()
                 .ok_or(GleisIdFehler::GleisEntfernt)?
                 .data;

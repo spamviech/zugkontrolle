@@ -21,6 +21,7 @@ use crate::{
         },
         typen::*,
     },
+    lookup::Lookup,
     steuerung::{streckenabschnitt, Streckenabschnitt},
     zugtyp::Zugtyp,
 };
@@ -47,19 +48,19 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.zustand
             .daten_mut(&streckenabschnitt)?
             .rstern_mut()
-            .insert(GeomWithData::new(rectangle.clone(), (definition, position.winkel)));
+            .insert(GeomWithData::new(rectangle.clone(), (definition, position)));
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert
-        Ok(GleisId { position: rectangle, streckenabschnitt, phantom: PhantomData })
+        Ok(GleisId { rectangle, streckenabschnitt, phantom: PhantomData })
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_grabbed_bei_maus<T>(
+    pub(crate) fn hinzufügen_gehalten_bei_maus<T>(
         &mut self,
         definition: T,
-        grab_position: Vektor,
+        halte_position: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
     where
@@ -84,12 +85,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
         let gleis_id = self.hinzufügen(
             definition,
-            Position { punkt: canvas_position - grab_position, winkel: -self.pivot.winkel },
+            Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
             streckenabschnitt.clone(),
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let any_id = gleis_id.clone().into();
-            *gehalten = Some(Gehalten { gleis_id: any_id, grab_position, bewegt: true });
+            *gehalten = Some(Gehalten { gleis_id: any_id, halte_position, bewegt: true });
         }
         Ok(gleis_id)
     }
@@ -126,7 +127,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let definition = self.entfernen(gleis_id)?;
+        let (definition, _position) = self.entfernen(gleis_id)?;
         // Füge an neuer Position hinzu.
         self.hinzufügen(definition, position_neu, streckenabschnitt).map_err(GleisIdFehler::from)
     }
@@ -145,7 +146,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let definition = self.entfernen(gleis_id)?;
+        let (definition, _position) = self.entfernen(gleis_id)?;
         // Füge Gleis an neuer Position hinzu.
         self.hinzufügen_anliegend(definition, streckenabschnitt, verbindung_name, ziel_verbindung)
             .map_err(GleisIdFehler::from)
@@ -153,30 +154,32 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T>(&mut self, gleis_id: GleisId<T>) -> Result<T, GleisIdFehler>
+    pub(crate) fn entfernen<T>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<(T, Position), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let GleisId { position, streckenabschnitt, phantom: _ } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let mut daten = self.zustand.daten_mut(&streckenabschnitt)?;
         // Entferne aktuellen Eintrag.
-        let definition = daten
+        let data = daten
             .rstern_mut::<T>()
-            .remove_with_selection_function(SelectEnvelope(position.envelope()))
+            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisEntferntFehler)?
-            .data
-            .0;
+            .data;
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
-        Ok(definition)
+        Ok(data)
     }
 
     pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisIdFehler> {
-        let GleisId { position, streckenabschnitt, phantom } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
         if let Some(name) = streckenabschnitt {
             let (streckenabschnitt, fließend, daten) = self
                 .zustand
@@ -185,7 +188,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .ok_or(GleisIdFehler::StreckenabschnittEntfernt)?;
             if daten
                 .rstern::<T>()
-                .locate_with_selection_function_mut(SelectEnvelope(position.envelope()))
+                .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
                 .next()
                 .is_some()
             {
@@ -196,5 +199,76 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else {
             Ok(None)
         }
+    }
+
+    pub(crate) fn bewegen_gehalten<T: Debug + Zeichnen>(
+        &mut self,
+        gleis_id: GleisId<T>,
+        punkt: Vektor,
+    ) -> Result<(), GleisIdFehler>
+    where
+        Z: Zugtyp,
+        T: DatenAuswahl<Z>,
+        GleisId<T>: Into<AnyId<Z>>,
+    {
+        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let daten = self.zustand.daten(&streckenabschnitt)?;
+        let (_definition, position) = &daten
+            .rstern::<T>()
+            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        let position_neu = Position { punkt, winkel: position.winkel };
+        self.bewegen(gleis_id, position_neu)?;
+        Ok(())
+    }
+
+    pub(crate) fn einrasten_an_verbindung<T>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<(), GleisIdFehler>
+    where
+        Z: Zugtyp,
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        GleisId<T>: Into<AnyId<Z>>,
+    {
+        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
+        let (definition, position) = &rstern
+            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        let verbindungen = definition.verbindungen_an_position(*position);
+        let mut snap = None;
+        verbindungen.for_each(|verbindung_name, verbindung| {
+            snap = snap.or_else(|| {
+                let kandidaten = rstern.locate_all_at_point(&verbindung.position);
+                for kandidat in kandidaten {
+                    if snap.is_some() || (kandidat.geom() == &rectangle) {
+                        continue;
+                    }
+                    let kandidat_verbindungen =
+                        kandidat.data.0.verbindungen_an_position(kandidat.data.1);
+                    kandidat_verbindungen.for_each(|kandidat_name, kandidat_verbindung| {
+                        snap = snap.or_else(|| {
+                            if (verbindung.position - kandidat_verbindung.position).länge()
+                                < Skalar(5.)
+                            {
+                                Some((kandidat_name, kandidat_verbindung))
+                            } else {
+                                None
+                            }
+                        });
+                    });
+                }
+                None
+            });
+        });
+        if let Some((snap_name, snap_verbindung)) = snap {
+            self.bewegen_anliegend(gleis_id, &snap_name, *snap_verbindung)?;
+        };
+        Ok(())
     }
 }

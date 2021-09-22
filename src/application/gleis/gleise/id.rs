@@ -10,16 +10,15 @@ use crate::{
             kurve::Kurve,
             weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
         },
-        typen::{vektor::Vektor, Zeichnen},
+        typen::vektor::Vektor,
     },
     steuerung::streckenabschnitt,
-    zugtyp::Zugtyp,
 };
 
 /// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T> {
-    pub(in crate::application::gleis::gleise) position: Rectangle<Vektor>,
+    pub(in crate::application::gleis::gleise) rectangle: Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt: Option<streckenabschnitt::Name>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
@@ -27,7 +26,7 @@ impl<T> GleisId<T> {
     // Als Methode definiert, damit es privat bleibt.
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId {
-            position: self.position.clone(),
+            rectangle: self.rectangle.clone(),
             streckenabschnitt: self.streckenabschnitt.clone(),
             phantom: self.phantom,
         }
@@ -37,7 +36,7 @@ impl<T> GleisId<T> {
 // Explizite Implementierung wegen Phantomtyp benötigt.
 impl<T> PartialEq for GleisId<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.position == other.position && self.streckenabschnitt == other.streckenabschnitt
+        self.rectangle == other.rectangle && self.streckenabschnitt == other.streckenabschnitt
     }
 }
 
@@ -74,7 +73,7 @@ impl<Z> PartialEq for AnyId<Z> {
     }
 }
 
-macro_rules! with_any_id {
+macro_rules! mit_any_id {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {
             AnyId::Gerade(gleis_id) => {
@@ -101,25 +100,25 @@ macro_rules! with_any_id {
         }
     };
 }
+pub(crate) use mit_any_id;
 use rstar::primitives::Rectangle;
-pub(crate) use with_any_id;
 
-impl<Z: Zugtyp> AnyId<Z> {
-    pub(super) fn from_ref<T: Zeichnen>(gleis_id: &GleisId<T>) -> Self
+impl<Z> AnyId<Z> {
+    pub(super) fn aus_ref<T>(gleis_id: &GleisId<T>) -> Self
     where
         GleisId<T>: Into<Self>,
     {
         gleis_id.clone().into()
     }
 
-    pub(in crate::application) fn clone(&self) -> Self {
-        with_any_id!(self, Self::from_ref)
+    pub(in crate::application) fn clone(&self) -> AnyId<Z> {
+        mit_any_id!(self, Self::aus_ref)
     }
 }
 
 macro_rules! impl_any_id_from {
     ($type:ident) => {
-        impl<Z: Zugtyp> From<GleisId<$type<Z>>> for AnyId<Z> {
+        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
             fn from(gleis_id: GleisId<$type<Z>>) -> Self {
                 AnyId::$type(gleis_id)
             }

@@ -47,7 +47,7 @@ where
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(rotated_pos) {
-            return Some((AnyId::from_ref(gleis_id), streckenabschnitt.cloned(), relative_pos));
+            return Some((AnyId::aus_ref(gleis_id), streckenabschnitt.cloned(), relative_pos));
         }
     }
     None
@@ -152,19 +152,19 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis_id, streckenabschnitt, moved, .. }) = &*gehalten {
+                    if let Some(Gehalten { gleis_id, bewegt, .. }) = &*gehalten {
                         let gleis_id_clone = gleis_id.clone();
                         let moved_copy = *moved;
                         *gehalten = None;
                         if moved_copy {
                             if cursor.is_over(&bounds) {
                                 if let Err(GleisEntferntFehler) =
-                                    with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self)
+                                    mit_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self)
                                 {
                                     error!("Ende Drag&Drop für entferntes Gleis!")
                                 }
                             } else {
-                                with_any_id!(gleis_id_clone, Gleise::remove, self);
+                                mit_any_id!(gleis_id_clone, Gleise::remove, self);
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
@@ -184,12 +184,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                         if let Some(Gehalten { gleis_id, grab_position, bewegt }) = gehalten {
                             *bewegt = true;
                             let point = canvas_pos - grab_position;
-                            if let Err(GleisEntferntFehler) = with_any_id!(
-                                gleis_id.clone(),
-                                Gleise::relocate_grabbed,
-                                self,
-                                point
-                            ) {
+                            if let Err(GleisEntferntFehler) =
+                                mit_any_id!(gleis_id.clone(), Gleise::relocate_grabbed, self, point)
+                            {
                                 error!("Drag&Drop für entferntes Gleis!")
                             }
                             event_status = iced::canvas::event::Status::Captured

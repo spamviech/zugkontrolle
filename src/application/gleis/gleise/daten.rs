@@ -165,7 +165,7 @@ where
     }
 }
 
-pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, (T, Winkel)>>;
+pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, (T, Position)>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) struct GleiseDaten<Z> {
     pub(crate) geraden: RStern<Gerade<Z>>,
