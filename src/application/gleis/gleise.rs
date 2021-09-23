@@ -2,9 +2,7 @@
 
 use std::{collections::hash_map::Entry, fmt::Debug, time::Instant};
 
-use log::error;
-
-use self::daten::{DatenAuswahl, GleiseDaten};
+use self::daten::GleiseDaten;
 pub use self::{
     daten::{Gleis, Zustand},
     id::{AnyId, GleisId},
@@ -213,50 +211,6 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.zustand.streckenabschnitte.iter().map(
             |(name, (streckenabschnitt, fließend, _maps))| (name, (streckenabschnitt, fließend)),
         )
-    }
-
-    #[zugkontrolle_derive::erstelle_maps_methoden]
-    /// Setze den Streckenabschnitt für das spezifizierte Gleis.
-    pub(crate) fn setze_streckenabschnitt<T>(
-        &mut self,
-        gleis_id: GleisId<T>,
-        name: Option<streckenabschnitt::Name>,
-    ) -> Result<GleisId<T>, GleisIdFehler>
-    where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-    {
-        let alter_streckenabschnitt = gleis_id.streckenabschnitt.clone();
-        let (definition, position) = self.entfernen(gleis_id)?;
-        let ergebnis = self.hinzufügen(definition, position, name);
-        if let Err(_fehler) = ergebnis {
-            // alten Streckenabschnitt wiederherstellen
-            // FIXME hinzufügen_aux auf GleiseDaten implementieren, damit definition+position nicht geklont werden müssen
-            let wiederherstellen_ergebnis =
-                self.hinzufügen(definition, position, alter_streckenabschnitt);
-            if let Err(fehler) = wiederherstellen_ergebnis {
-                error!(
-                    "Fehler beim wiederherstellen des bisherigen Streckenabschnittes: {:?}",
-                    fehler
-                )
-            }
-        }
-        ergebnis.map_err(GleisIdFehler::from)
-    }
-
-    /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
-    #[inline(always)]
-    pub(in crate::application) fn setze_streckenabschnitt_unit<T>(
-        &mut self,
-        gleis_id: GleisId<T>,
-        name: Option<streckenabschnitt::Name>,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-    {
-        self.setze_streckenabschnitt(gleis_id, name)?;
-        Ok(())
     }
 }
 
