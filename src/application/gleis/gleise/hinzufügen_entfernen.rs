@@ -185,7 +185,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .zustand
                 .streckenabschnitte
                 .get_mut(&name)
-                .ok_or(GleisIdFehler::StreckenabschnittEntfernt)?;
+                .ok_or(GleisIdFehler::StreckenabschnittEntfernt(name))?;
             if daten
                 .rstern::<T>()
                 .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))

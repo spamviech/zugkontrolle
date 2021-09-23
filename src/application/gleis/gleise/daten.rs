@@ -110,7 +110,7 @@ impl<Z: Zugtyp> Zustand<Z> {
             self.streckenabschnitte
                 .get(name)
                 .map(|(_streckenabschnitt, _fließend, maps)| maps)
-                .ok_or(StreckenabschnittEntferntFehler)?
+                .ok_or(StreckenabschnittEntferntFehler(name.clone()))?
         } else {
             &self.ohne_streckenabschnitt
         })
@@ -123,7 +123,7 @@ impl<Z: Zugtyp> Zustand<Z> {
             self.streckenabschnitte
                 .get_mut(name)
                 .map(|(_streckenabschnitt, _fließend, maps)| maps)
-                .ok_or(StreckenabschnittEntferntFehler)?
+                .ok_or(StreckenabschnittEntferntFehler(name.clone()))?
         } else {
             &mut self.ohne_streckenabschnitt
         })

@@ -2,6 +2,8 @@
 
 use std::{collections::hash_map::Entry, fmt::Debug, time::Instant};
 
+use log::error;
+
 use self::daten::{DatenAuswahl, GleiseDaten};
 pub use self::{
     daten::{Gleis, Zustand},
@@ -215,7 +217,6 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     #[zugkontrolle_derive::erstelle_maps_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
-    /// Nach einem Fehler ist das Gleis kein Teil des aktuellen Zustandes.
     pub(crate) fn setze_streckenabschnitt<T>(
         &mut self,
         gleis_id: GleisId<T>,
@@ -225,8 +226,22 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
+        let alter_streckenabschnitt = gleis_id.streckenabschnitt.clone();
         let (definition, position) = self.entfernen(gleis_id)?;
-        self.hinzufügen(definition, position, name).map_err(GleisIdFehler::from)
+        let ergebnis = self.hinzufügen(definition, position, name);
+        if let Err(_fehler) = ergebnis {
+            // alten Streckenabschnitt wiederherstellen
+            // FIXME hinzufügen_aux auf GleiseDaten implementieren, damit definition+position nicht geklont werden müssen
+            let wiederherstellen_ergebnis =
+                self.hinzufügen(definition, position, alter_streckenabschnitt);
+            if let Err(fehler) = wiederherstellen_ergebnis {
+                error!(
+                    "Fehler beim wiederherstellen des bisherigen Streckenabschnittes: {:?}",
+                    fehler
+                )
+            }
+        }
+        ergebnis.map_err(GleisIdFehler::from)
     }
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
@@ -321,7 +336,7 @@ pub enum Fehler {
     FalscherZugtyp(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
-    StreckenabschnittEntfernt,
+    StreckenabschnittEntfernt(streckenabschnitt::Name),
 }
 impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
@@ -337,13 +352,15 @@ impl From<anschluss::Fehler> for Fehler {
 #[derive(Debug)]
 pub enum GleisIdFehler {
     GleisEntfernt,
-    StreckenabschnittEntfernt,
+    StreckenabschnittEntfernt(streckenabschnitt::Name),
 }
 impl From<GleisIdFehler> for Fehler {
     fn from(fehler: GleisIdFehler) -> Self {
         match fehler {
             GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
-            GleisIdFehler::StreckenabschnittEntfernt => Fehler::StreckenabschnittEntfernt,
+            GleisIdFehler::StreckenabschnittEntfernt(name) => {
+                Fehler::StreckenabschnittEntfernt(name)
+            }
         }
     }
 }
@@ -362,14 +379,14 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 }
 
 #[derive(Debug)]
-pub struct StreckenabschnittEntferntFehler;
+pub struct StreckenabschnittEntferntFehler(streckenabschnitt::Name);
 impl From<StreckenabschnittEntferntFehler> for Fehler {
-    fn from(StreckenabschnittEntferntFehler: StreckenabschnittEntferntFehler) -> Self {
-        Fehler::StreckenabschnittEntfernt
+    fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
+        Fehler::StreckenabschnittEntfernt(fehler.0)
     }
 }
 impl From<StreckenabschnittEntferntFehler> for GleisIdFehler {
-    fn from(StreckenabschnittEntferntFehler: StreckenabschnittEntferntFehler) -> Self {
-        GleisIdFehler::StreckenabschnittEntfernt
+    fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
+        GleisIdFehler::StreckenabschnittEntfernt(fehler.0)
     }
 }
