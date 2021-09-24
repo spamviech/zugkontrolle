@@ -1,11 +1,22 @@
 //! draw-Methode für Gleise
 
+use std::marker::PhantomData;
+
 use rstar::primitives::Rectangle;
 
 use crate::{
     anschluss::Fließend,
     application::{
-        gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten},
+        gleis::{
+            gerade::Gerade,
+            gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten},
+            kreuzung::Kreuzung,
+            kurve::Kurve,
+            weiche::{
+                dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche,
+                s_kurve::SKurvenWeiche,
+            },
+        },
         typen::*,
         verbindung,
     },
@@ -80,11 +91,10 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
 fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
     frame: &mut canvas::Frame,
     rstern: &'t RStern<T>,
-    existiert_andere_oder_gehaltene_verbindung: impl Fn(
+    ist_gehalten_und_andere_oder_gehaltene_verbindung: impl Fn(
         &'r Rectangle<Vektor>,
         &'r verbindung::Verbindung,
-    ) -> (bool, bool),
-    ist_gehalten: impl Fn(&'s Rectangle<Vektor>) -> bool,
+    ) -> (bool, bool, bool),
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
@@ -98,11 +108,12 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
                     richtung: position.winkel + verbindung.richtung,
                 };
                 frame.with_save(|frame| {
-                    let (opposing, grabbed) = existiert_andere_oder_gehaltene_verbindung(
-                        rectangle,
-                        &verbindung_an_position,
-                    );
-                    let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
+                    let (gehalten, opposing, grabbed) =
+                        ist_gehalten_und_andere_oder_gehaltene_verbindung(
+                            rectangle,
+                            &verbindung_an_position,
+                        );
+                    let a = Transparenz::true_reduziert(gehalten).alpha();
                     let g = if opposing { 1. } else { 0. };
                     let color = canvas::Color { r: 0., g, b: 1. - g, a };
                     let direction: Vektor =
@@ -174,11 +185,11 @@ impl<Z: Zugtyp> Gleise<Z> {
             |frame| {
                 // TODO zeichne keine out-of-bounds Gleise
                 // Zeichne Gleise
-                let gehalten_id: Option<AnyId<Z>>;
+                let gehalten_id: Option<&AnyId<Z>>;
                 let modus_bauen: bool;
                 match modus {
                     ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
-                        gehalten_id = Some(gleis_id.clone());
+                        gehalten_id = Some(gleis_id);
                         modus_bauen = true;
                     }
                     ModusDaten::Bauen { gehalten: None, .. } => {
@@ -191,67 +202,94 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 };
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten = |parameter_id| {
-                    // Some(parameter_id) == grabbed_id
-                    todo!()
-                };
-                let existiert_andere_oder_gehaltene_verbindung = |gleis_id, position| {
-                    // verbindungen.hat_andere_id_und_grabbed_an_position(
-                    //     &gleis_id,
-                    //     |id| ist_gehalten(id.clone()),
-                    //     &position,
-                    // )
-                    todo!()
-                };
+                let ist_gehalten = |parameter_id| Some(&parameter_id) == gehalten_id;
 
                 macro_rules! mit_allen_gleisen {
-                    ($maps:expr, $funktion:expr$(, $($extra_args:expr),+)?) => {
-                        $funktion(frame, &$maps.geraden$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.kurven$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.weichen$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.kurven_weichen$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.s_kurven_weichen$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.dreiwege_weichen$(, $($extra_args),+)?);
-                        $funktion(frame, &$maps.kreuzungen$(, $($extra_args),+)?);
+                    ($maps:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
+                        $funktion(frame, &$maps.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, &$maps.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
                     };
                 }
                 // Hintergrund
-                for (Streckenabschnitt { farbe, .. }, fließend, maps) in
-                    self.zustand.streckenabschnitte.values()
+                for (name, (Streckenabschnitt { farbe, .. }, fließend, rstern)) in
+                    self.zustand.streckenabschnitte.iter()
                 {
+                    macro_rules! transparenz {
+                        ($gleis: ident) => {
+                            |rectangle, fließend| {
+                                Transparenz::true_reduziert(if modus_bauen {
+                                    ist_gehalten(
+                                        AnyId::from(GleisId {
+                                        rectangle: *rectangle,
+                                        streckenabschnitt: Some(name.clone()),
+                                        phantom:PhantomData::<fn() -> $gleis<Z>>
+                                        })
+                                    )
+                                } else {
+                                    fließend == Fließend::Gesperrt
+                                })
+                            }
+                        };
+                    }
                     mit_allen_gleisen! {
-                        maps,
+                        rstern,
                         fülle_alle_gleise,
-                        |rectangle, fließend| Transparenz::true_reduziert(if modus_bauen {
-                            ist_gehalten(rectangle)
-                        } else {
-                            fließend == Fließend::Gesperrt
-                        }),
+                        transparenz,
                         farbe,
                         fließend
                     }
                 }
                 // Kontur
-                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
+                for (streckenabschnitt, rstern) in self.zustand.alle_gleise_maps() {
+                    macro_rules! ist_gehalten {
+                        ($gleis: ident) => {
+                            |rectangle| ist_gehalten(AnyId::from(GleisId {
+                                rectangle: *rectangle,
+                                streckenabschnitt: streckenabschnitt.cloned(),
+                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                            }))
+                        };
+                    }
                     mit_allen_gleisen! {
-                        maps,
+                        rstern,
                         zeichne_alle_gleise,
-                        ist_gehalten
+                        ist_gehalten,
                     }
                 }
                 // Verbindungen
-                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
-                    mit_allen_gleisen! {
-                        maps,
-                        zeichne_alle_anchor_points,
-                        existiert_andere_oder_gehaltene_verbindung,
-                        &ist_gehalten
-                    }
+                for (streckenabschnitt, rstern) in self.zustand.alle_gleise_maps() {
+                    let ist_gehalten_und_andere_oder_gehaltene_verbindung = |rectangle:&Rectangle<Vektor>, verbindung:&verbindung::Verbindung| {
+                        // verbindungen.hat_andere_id_und_grabbed_an_position(
+                        //     &gleis_id,
+                        //     |id| ist_gehalten(id.clone()),
+                        //     &position,
+                        // )
+                        todo!()
+                    };
+                    // mit_allen_gleisen! {
+                    //     rstern,
+                    //     zeichne_alle_anchor_points,
+                    //     ist_gehalten_und_andere_oder_gehaltene_verbindung
+                    // }
                 }
                 // Beschreibung
-                for (streckenabschnitt, maps) in self.zustand.alle_gleise_maps() {
+                for (streckenabschnitt, rstern) in self.zustand.alle_gleise_maps() {
+                    macro_rules! ist_gehalten {
+                        ($gleis: ident) => {
+                            |rectangle| ist_gehalten(AnyId::from(GleisId {
+                                rectangle: *rectangle,
+                                streckenabschnitt: streckenabschnitt.cloned(),
+                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                            }))
+                        };
+                    }
                     mit_allen_gleisen! {
-                        maps,
+                        rstern,
                         schreibe_alle_beschreibungen,
                         ist_gehalten
                     }
