@@ -129,24 +129,38 @@ impl<Z: Zugtyp> Zustand<Z> {
         })
     }
 
-    pub(crate) fn alle_gleise_maps(
+    pub(crate) fn alle_daten(&self) -> impl Iterator<Item = &GleiseDaten<Z>> {
+        iter::once(&self.ohne_streckenabschnitt).chain(
+            self.streckenabschnitte.values().map(|(_streckenabschnitt, _fließend, daten)| daten),
+        )
+    }
+
+    pub(crate) fn alle_daten_mut(&mut self) -> impl Iterator<Item = &mut GleiseDaten<Z>> {
+        iter::once(&mut self.ohne_streckenabschnitt).chain(
+            self.streckenabschnitte
+                .values_mut()
+                .map(|(_streckenabschnitt, _fließend, daten)| daten),
+        )
+    }
+
+    pub(crate) fn alle_streckenabschnitt_daten(
         &self,
     ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt)).chain(
             self.streckenabschnitte
                 .iter()
-                .map(|(name, (_streckenabschnitt, _fließend, maps))| (Some(name), maps)),
+                .map(|(name, (_streckenabschnitt, _fließend, daten))| (Some(name), daten)),
         )
     }
 
-    pub(crate) fn alle_gleise_maps_mut(
+    pub(crate) fn alle_streckenabschnitt_daten_mut(
         &mut self,
     ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &mut GleiseDaten<Z>)> {
         let Zustand { ohne_streckenabschnitt, streckenabschnitte, .. } = self;
         iter::once((None, ohne_streckenabschnitt)).chain(
             streckenabschnitte
                 .iter_mut()
-                .map(|(name, (_streckenabschnitt, _fließend, maps))| (Some(name), maps)),
+                .map(|(name, (_streckenabschnitt, _fließend, daten))| (Some(name), daten)),
         )
     }
 }

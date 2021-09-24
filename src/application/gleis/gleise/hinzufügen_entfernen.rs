@@ -245,6 +245,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         let mut snap = None;
         verbindungen.for_each(|verbindung_name, verbindung| {
             snap = snap.or_else(|| {
+                // FIXME alle daten/rstern überprüfen, nicht nur den eigenen!
                 let kandidaten = rstern.locate_all_at_point(&verbindung.position);
                 for kandidat in kandidaten {
                     if snap.is_some() || (kandidat.geom() == &rectangle) {
