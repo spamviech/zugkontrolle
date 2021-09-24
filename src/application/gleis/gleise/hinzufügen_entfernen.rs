@@ -2,7 +2,6 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-use log::error;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTreeObject,
@@ -164,9 +163,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let mut daten = self.zustand.daten_mut(&streckenabschnitt)?;
         // Entferne aktuellen Eintrag.
-        let data = daten
+        let data = self
+            .zustand
+            .daten_mut(&streckenabschnitt)?
             .rstern_mut::<T>()
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisEntferntFehler)?
@@ -284,22 +284,17 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let alter_streckenabschnitt = gleis_id.streckenabschnitt.clone();
-        let (definition, position) = self.entfernen(gleis_id)?;
-        let ergebnis = self.hinzufügen(definition, position, name);
-        if let Err(_fehler) = ergebnis {
-            // alten Streckenabschnitt wiederherstellen
-            // FIXME hinzufügen_aux auf GleiseDaten implementieren, damit definition+position nicht geklont werden müssen
-            let wiederherstellen_ergebnis =
-                self.hinzufügen(definition, position, alter_streckenabschnitt);
-            if let Err(fehler) = wiederherstellen_ergebnis {
-                error!(
-                    "Fehler beim wiederherstellen des bisherigen Streckenabschnittes: {:?}",
-                    fehler
-                )
-            }
-        }
-        ergebnis.map_err(GleisIdFehler::from)
+        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let bisherige_daten = self.zustand.daten_mut(&streckenabschnitt)?;
+        let neue_daten = self.zustand.daten_mut(&name)?;
+        // Entferne aktuellen Eintrag.
+        let geom_with_data = bisherige_daten
+            .rstern_mut::<T>()
+            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
+            .ok_or(GleisEntferntFehler)?;
+        // Füge eintrag bei neuem Streckenabschnitt hinzu.
+        neue_daten.rstern_mut().insert(geom_with_data);
+        Ok(GleisId { rectangle, streckenabschnitt: name, phantom })
     }
 
     /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
