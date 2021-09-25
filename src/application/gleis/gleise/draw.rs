@@ -183,7 +183,10 @@ impl<Z: Zugtyp> Gleise<Z> {
             &self.pivot,
             &self.skalieren,
             |frame| {
-                // TODO zeichne keine out-of-bounds Gleise
+                // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
+                // bounds müssen an Position angepasst werden:
+                // - ignoriere screen-position
+                // - berücksichtige eigene Position (Punkt + Winkel)
                 // Zeichne Gleise
                 let gehalten_id: Option<&AnyId<Z>>;
                 let modus_bauen: bool;
