@@ -1,53 +1,63 @@
 //! update-Methode für Gleise
 
-use std::time::{Duration, Instant};
+use std::{
+    marker::PhantomData,
+    time::{Duration, Instant},
+};
 
 use log::error;
 
 use crate::{
     application::{
-        gleis::gleise::{
-            daten::*, id::*, Gehalten, GleisEntferntFehler, Gleise, ModusDaten, Nachricht,
-        },
+        gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
         typen::*,
     },
     steuerung::streckenabschnitt,
     zugtyp::Zugtyp,
 };
 
-fn get_canvas_position(
+/// Position des Cursors auf einem canvas mit `bounds`.
+fn berechne_canvas_position(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
     pivot: &Position,
     skalieren: &Skalar,
 ) -> Option<Vektor> {
-    // position_in only returns a Some-value if it is in-bounds
-    // position doesn't have this restriction, so use it
-    // and explicitly substract bounds-start instead
+    // `position_in` gibt nur in-bounds einen `Some`-Wert zurück.
+    // `position` hat diese Einschränkung nicht,
+    // dafür muss die Position explizit abgezogen werden.
     cursor.position().map(|pos| {
-        pivot.punkt
-            + (Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) } / skalieren)
-                .rotiert(-pivot.winkel)
+        let relative_position = Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) };
+        pivot.punkt + (relative_position / skalieren).rotiert(-pivot.winkel)
     })
 }
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-fn find_clicked<T, Z>(
+const KLICK_GENAUIGKEIT: Skalar = Skalar(2.5);
+
+/// Erhalte die Id des Gleises an der gesuchten Position.
+fn gleis_an_position<T, Z>(
     streckenabschnitt: Option<&streckenabschnitt::Name>,
-    map: &RStern<T>,
+    rstern: &RStern<T>,
     canvas_pos: Vektor,
-) -> Option<(AnyId<Z>, Option<streckenabschnitt::Name>, Vektor)>
+) -> Option<(AnyId<Z>, Vektor)>
 where
     T: Zeichnen,
-    GleisId<T>: Into<AnyId<Z>>,
+    AnyId<Z>: From<GleisId<T>>,
 {
-    // TODO speichere bounding box ebenfalls in rstar, um nicht jedes Gleis durchsuchen zu müssen?
-    for (gleis_id, Gleis { definition, position, .. }) in map.iter() {
+    for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
+        let rectangle = geom_with_data.geom();
+        let (definition, position) = &geom_with_data.data;
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(rotated_pos) {
-            return Some((AnyId::aus_ref(gleis_id), streckenabschnitt.cloned(), relative_pos));
+        if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {
+            let any_id = AnyId::from(GleisId {
+                rectangle: *rectangle,
+                streckenabschnitt: streckenabschnitt.cloned(),
+                phantom: PhantomData::<fn() -> T>,
+            });
+            return Some((any_id, relative_pos));
         }
     }
     None
@@ -57,7 +67,7 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
     modus: &'t mut ModusDaten<Z>,
-    maps_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseDaten<Z>)>,
+    daten_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseDaten<Z>)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
@@ -67,8 +77,8 @@ where
     let mut message = None;
     let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
-        if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let find_clicked_result = maps_iter.fold(None, |acc, (streckenabschnitt, maps)| {
+        if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
+            let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
                 let GleiseDaten {
                     geraden,
                     kurven,
@@ -78,29 +88,25 @@ where
                     s_kurven_weichen,
                     kreuzungen,
                 } = maps;
-                acc.or_else(|| find_clicked(streckenabschnitt, geraden, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, kurven, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, weichen, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, dreiwege_weichen, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, kurven_weichen, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, s_kurven_weichen, canvas_pos))
-                    .or_else(|| find_clicked(streckenabschnitt, kreuzungen, canvas_pos))
+                acc.or_else(|| gleis_an_position(streckenabschnitt, geraden, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, kurven, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, weichen, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, dreiwege_weichen, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, kurven_weichen, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, s_kurven_weichen, canvas_pos))
+                    .or_else(|| gleis_an_position(streckenabschnitt, kreuzungen, canvas_pos))
             });
             match modus {
                 ModusDaten::Bauen { gehalten, last } => {
                     let now = Instant::now();
                     let diff = now - *last;
                     *last = now;
-                    take_mut::take(gehalten, |gehalten| {
-                        gehalten.or({
-                            if let Some((gleis_id, streckenabschnitt, grab_position)) =
-                                find_clicked_result
-                            {
-                                Some(Gehalten { gleis_id, grab_position, bewegt: false })
-                            } else {
-                                None
-                            }
-                        })
+                    *gehalten = gehalten.or({
+                        if let Some((gleis_id, halte_position)) = gleis_an_position {
+                            Some(Gehalten { gleis_id, halte_position, bewegt: false })
+                        } else {
+                            None
+                        }
                     });
                     if let Some(Gehalten { gleis_id, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
@@ -110,8 +116,7 @@ where
                     }
                 }
                 ModusDaten::Fahren => {
-                    if let Some((gleis_id, streckenabschnitt, _grab_location)) = find_clicked_result
-                    {
+                    if let Some((gleis_id, _grab_location)) = gleis_an_position {
                         message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }
@@ -141,7 +146,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     &bounds,
                     &cursor,
                     modus,
-                    zustand.alle_gleise_maps(),
+                    zustand.alle_streckenabschnitt_daten(),
                     pivot,
                     skalieren,
                 );
@@ -154,17 +159,19 @@ impl<Z: Zugtyp> Gleise<Z> {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = &*gehalten {
                         let gleis_id_clone = gleis_id.clone();
-                        let moved_copy = *moved;
+                        let bewegt_copy = *bewegt;
                         *gehalten = None;
-                        if moved_copy {
+                        if bewegt_copy {
                             if cursor.is_over(&bounds) {
-                                if let Err(GleisEntferntFehler) =
-                                    mit_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self)
-                                {
-                                    error!("Ende Drag&Drop für entferntes Gleis!")
+                                if let Err(fehler) = mit_any_id!(
+                                    gleis_id_clone,
+                                    Gleise::einrasten_an_verbindung,
+                                    self
+                                ) {
+                                    error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
                                 }
                             } else {
-                                mit_any_id!(gleis_id_clone, Gleise::remove, self);
+                                mit_any_id!(gleis_id_clone, Gleise::entfernen, self);
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
@@ -177,17 +184,17 @@ impl<Z: Zugtyp> Gleise<Z> {
             }
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 if let Some(canvas_pos) =
-                    get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
+                    berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
                     if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                        if let Some(Gehalten { gleis_id, grab_position, bewegt }) = gehalten {
+                        if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
                             *bewegt = true;
-                            let point = canvas_pos - grab_position;
-                            if let Err(GleisEntferntFehler) =
-                                mit_any_id!(gleis_id.clone(), Gleise::relocate_grabbed, self, point)
+                            let point = canvas_pos - halte_position;
+                            if let Err(fehler) =
+                                mit_any_id!(gleis_id.clone(), Gleise::bewegen_gehalten, self, point)
                             {
-                                error!("Drag&Drop für entferntes Gleis!")
+                                error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
                             }
                             event_status = iced::canvas::event::Status::Captured
                         }
