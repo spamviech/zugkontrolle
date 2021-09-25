@@ -187,7 +187,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         &'t self,
         verbindung: &'t Verbindung,
         eigene_id: &'t AnyId<Z>,
-        gehalten_id: &'t Option<AnyId<Z>>,
+        gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
         let überlappend =
@@ -292,7 +292,7 @@ impl<Z> GleiseDaten<Z> {
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<&'t streckenabschnitt::Name>,
         eigene_id: &'t AnyId<Z>,
-        gehalten_id: &'t Option<AnyId<Z>>,
+        gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
         T: Zeichnen + DatenAuswahl<Z> + 't,
@@ -317,7 +317,7 @@ impl<Z> GleiseDaten<Z> {
                     }
                 }
             }
-            if &Some(kandidat_id) == gehalten_id {
+            if Some(&kandidat_id) == gehalten_id {
                 gehalten = true;
             }
             überlappend.into_iter()

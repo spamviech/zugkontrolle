@@ -247,7 +247,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         verbindungen.for_each(|verbindung_name, verbindung| {
             snap = snap.or_else(|| {
                 let (überlappende, _gehalten) =
-                    self.zustand.überlappende_verbindungen(verbindung, &any_id, &None);
+                    self.zustand.überlappende_verbindungen(verbindung, &any_id, None);
                 überlappende.next().map(|überlappend| (verbindung_name, überlappend))
             });
         });

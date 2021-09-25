@@ -18,7 +18,7 @@ use crate::{
             },
         },
         typen::*,
-        verbindung::{self, Verbindung},
+        verbindung::Verbindung,
     },
     farbe::Farbe,
     lookup::Lookup,
@@ -263,34 +263,6 @@ impl<Z: Zugtyp> Gleise<Z> {
                 }
                 // Verbindungen
                 for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
-                    macro_rules! finde_andere_verbindungen {
-                        ($verbindung: expr, $entgegengesetzt: ident, $gehalten: ident) => {
-                            finde_andere_verbindungen_gleis! {$verbindung, $entgegengesetzt, $gehalten, geraden, Gerade}
-                            // FIXME andere Gleis-Arten
-                        }
-                    }
-                    macro_rules! finde_andere_verbindungen_gleis {
-                        ($verbindung: expr, $entgegengesetzt: ident, $gehalten: ident, $rstern: ident, $gleis: ident) => {
-                            for daten in self.zustand.alle_daten() {
-                                for geom_with_data in daten.$rstern.locate_all_at_point(&$verbindung.position) {
-                                    let (definition, position) = &geom_with_data.data;
-                                    let verbindungen = definition.verbindungen_an_position(*position);
-                                    verbindungen.for_each(|name, verbindung| todo!());
-                                    todo!()
-                                }
-                                // verbindungen.hat_andere_id_und_grabbed_an_position(
-                                //     &gleis_id,
-                                //     |id| ist_gehalten(id.clone()),
-                                //     &position,
-                                // )
-                                // |rectangle| ist_gehalten(AnyId::from(GleisId {
-                                //     rectangle: *rectangle,
-                                //     streckenabschnitt: streckenabschnitt.cloned(),
-                                //     phantom: PhantomData::<fn() -> $gleis<Z>>
-                                // }))
-                            }
-                        }
-                    }
                     macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
                         ($gleis: ident) => {
                             |rectangle: &Rectangle<Vektor>, verbindung: &Verbindung| {
@@ -299,10 +271,19 @@ impl<Z: Zugtyp> Gleise<Z> {
                                     streckenabschnitt: streckenabschnitt.cloned(),
                                     phantom: PhantomData::<fn() -> $gleis<Z>>
                                 }));
-                                let mut entgegengesetzt = false;
-                                let mut andere_gehalten = false;
-                                let (überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(verbindung, &any_id, &None);
-                                finde_andere_verbindungen! {verbindung, entgegengesetzt, gehalten}
+                                let any_id = AnyId::from(GleisId {
+                                    rectangle: *rectangle,
+                                    streckenabschnitt: streckenabschnitt.cloned(),
+                                    phantom: PhantomData::<fn() -> $gleis<Z>>
+                                });
+                                let (überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(verbindung, &any_id, gehalten_id);
+                                let ist_entgegengesetzt = |überlappend: &Verbindung| {
+                                    (winkel::PI + verbindung.richtung - überlappend.richtung)
+                                        .normalisiert()
+                                        .abs()
+                                        < Winkel(0.1)
+                                };
+                                let entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
                                 (gehalten, entgegengesetzt, andere_gehalten)
                             }
                         };
