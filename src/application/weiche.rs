@@ -102,7 +102,7 @@ where
             TextInput::new(name_state, "<Name>", name, InterneNachricht::Name)
                 .width(Length::Units(200)),
         );
-        for (richtung, anschluss_status) in anschlüsse_state.mut_refs().into_iter() {
+        for (richtung, anschluss_status) in anschlüsse_state.refs_mut().into_iter() {
             column = column.push(Row::new().push(Text::new(format!("{}", richtung))).push(
                 Element::from(anschluss::Auswahl::neu_output(anschluss_status)).map(
                     move |anschluss_save| {
