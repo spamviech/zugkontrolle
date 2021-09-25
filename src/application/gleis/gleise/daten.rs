@@ -1,6 +1,6 @@
 //! Struktur zum Speichern aller Gleise
 
-use std::{collections::HashMap, fmt::Debug, iter};
+use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
@@ -14,9 +14,17 @@ use crate::{
         polarität::Fließend,
     },
     application::{
-        gleis::{gleise::StreckenabschnittEntferntFehler, *},
+        gleis::{
+            gleise::{
+                id::{AnyId, GleisId},
+                StreckenabschnittEntferntFehler,
+            },
+            verbindung::Verbindung,
+            *,
+        },
         typen::*,
     },
+    lookup::Lookup,
     steuerung::{
         geschwindigkeit,
         plan::Plan,
@@ -163,6 +171,49 @@ impl<Z: Zugtyp> Zustand<Z> {
                 .map(|(name, (_streckenabschnitt, _fließend, daten))| (Some(name), daten)),
         )
     }
+
+    /// Alle Verbindungen in der Nähe der übergebenen Position.
+    /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
+    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+    pub(crate) fn überlappende_verbindungen<'t>(
+        &'t self,
+        verbindung: Verbindung,
+        eigene_id: &'t AnyId<Z>,
+        gehalten_id: &'t AnyId<Z>,
+    ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
+        let mut gehalten = false;
+        let überlappend =
+            self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
+                macro_rules! überlappende_verbindungen {
+                    ($gleis: ident) => {{
+                        let (überlappend_daten, gehalten_daten) = daten
+                            .überlappende_verbindungen::<$gleis<Z>>(
+                                verbindung,
+                                streckenabschnitt,
+                                eigene_id,
+                                gehalten_id,
+                            );
+                        gehalten &= gehalten_daten;
+                        überlappend_daten
+                    }};
+                }
+                let überlappend_gerade = überlappende_verbindungen!(Gerade);
+                let überlappend_kurve = überlappende_verbindungen!(Kurve);
+                let überlappend_weiche = überlappende_verbindungen!(Weiche);
+                let überlappend_dreiwege_weiche = überlappende_verbindungen!(DreiwegeWeiche);
+                let überlappend_kurven_weiche = überlappende_verbindungen!(KurvenWeiche);
+                let überlappend_s_kurven_weiche = überlappende_verbindungen!(SKurvenWeiche);
+                let überlappend_kreuzung = überlappende_verbindungen!(Kreuzung);
+                überlappend_gerade
+                    .chain(überlappend_kurve)
+                    .chain(überlappend_weiche)
+                    .chain(überlappend_dreiwege_weiche)
+                    .chain(überlappend_kurven_weiche)
+                    .chain(überlappend_s_kurven_weiche)
+                    .chain(überlappend_kreuzung)
+            });
+        (überlappend, gehalten)
+    }
 }
 
 impl<Z> Debug for Zustand<Z>
@@ -190,7 +241,9 @@ pub(crate) struct GleiseDaten<Z> {
     pub(crate) s_kurven_weichen: RStern<SKurvenWeiche<Z>>,
     pub(crate) kreuzungen: RStern<Kreuzung<Z>>,
 }
+
 impl<Z> GleiseDaten<Z> {
+    /// Erstelle eine leere `GleiseDaten`-Struktur.
     pub fn neu() -> Self {
         GleiseDaten {
             geraden: RStern::new(),
@@ -203,7 +256,8 @@ impl<Z> GleiseDaten<Z> {
         }
     }
 
-    pub fn merge(&mut self, other: GleiseDaten<Z>) {
+    /// Füge alle Elemente von `other` zu `self` hinzu.
+    pub fn verschmelze(&mut self, other: GleiseDaten<Z>) {
         macro_rules! extend {
             ($($rstern: ident),*) => {
                 $(while let Some(gleis) = other.$rstern.remove_with_selection_function(SelectAll) {
@@ -220,6 +274,47 @@ impl<Z> GleiseDaten<Z> {
             s_kurven_weichen,
             kreuzungen
         }
+    }
+
+    /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen `RStern`.
+    /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
+    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+    fn überlappende_verbindungen<'t, T>(
+        &'t self,
+        verbindung: Verbindung,
+        streckenabschnitt: Option<&'t streckenabschnitt::Name>,
+        eigene_id: &'t AnyId<Z>,
+        gehalten_id: &'t AnyId<Z>,
+    ) -> (impl Iterator<Item = Verbindung> + 't, bool)
+    where
+        T: Zeichnen + DatenAuswahl<Z> + 't,
+        AnyId<Z>: From<GleisId<T>>,
+    {
+        let kandidaten = self.rstern::<T>().locate_all_at_point(&verbindung.position);
+        let mut gehalten = false;
+        let überlappend = kandidaten.flat_map(move |kandidat| {
+            let rectangle = kandidat.geom();
+            let kandidat_id = AnyId::from(GleisId {
+                rectangle: *rectangle,
+                streckenabschnitt: streckenabschnitt.cloned(),
+                phantom: PhantomData::<fn() -> T>,
+            });
+            let mut überlappend = Vec::new();
+            if &kandidat_id == gehalten_id {
+                gehalten = true;
+            }
+            if &kandidat_id != eigene_id {
+                let kandidat_verbindungen =
+                    kandidat.data.0.verbindungen_an_position(kandidat.data.1.clone());
+                for (kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
+                    if (verbindung.position - kandidat_verbindung.position).länge() < Skalar(5.) {
+                        überlappend.push(kandidat_verbindung.clone())
+                    }
+                }
+            }
+            überlappend.into_iter()
+        });
+        (überlappend, gehalten)
     }
 }
 /// SelectionFunction, die jedes Element akzeptiert.

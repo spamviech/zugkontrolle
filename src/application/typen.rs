@@ -92,6 +92,14 @@ where
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self) -> Rechteck;
 
+    /// Einschließendes Rechteck, wenn sich das Gleis an der `Position` befindet.
+    fn rechteck_an_position(&self, position: &Position) -> Rechteck {
+        let mut rechteck = self.rechteck();
+        rechteck.respektiere_rotation(&position.winkel);
+        rechteck.verschiebe(&position.punkt);
+        rechteck
+    }
+
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit `canvas::FillRule::EvenOdd` gefüllt.
     fn fülle(&self) -> Vec<(Pfad, Transparenz)>;

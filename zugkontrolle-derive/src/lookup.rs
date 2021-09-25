@@ -11,13 +11,11 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
     let syn::ItemEnum { vis, variants, ident, .. } = &item;
     let dummy = Vec::new();
     let (element, struct_name, derives) = if args.len() < 2 {
-        errors.push(
-            if args.is_empty() {
-                "Lookup Element and Name suffix missing!".to_string()
-            } else {
-                "Name suffix missing!".to_string()
-            },
-        );
+        errors.push(if args.is_empty() {
+            "Lookup Element and Name suffix missing!".to_string()
+        } else {
+            "Name suffix missing!".to_string()
+        });
         (None, None, dummy.iter().skip(0))
     } else {
         let fst = &args[0];
@@ -74,7 +72,11 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
                         #(#struct_fields: action(&self.#struct_fields)),*
                     }
                 }
-                fn mut_refs<'t>(&'t mut self) -> Vec<(#ident, &'t mut #element)> {
+                fn refs<'t>(&'t self) -> Vec<(#ident, &'t #element)> {
+                    let #struct_name { #(#struct_fields),* } = self;
+                    vec![ #((#ident::#enum_variants, #struct_fields)),* ]
+                }
+                fn refs_mut<'t>(&'t mut self) -> Vec<(#ident, &'t mut #element)> {
                     let #struct_name { #(#struct_fields),* } = self;
                     vec![ #((#ident::#enum_variants, #struct_fields)),* ]
                 }
@@ -89,7 +91,7 @@ pub fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStre
         return quote! {
             compile_error!(#error_message);
             #item
-        }
+        };
     }
 
     quote! {
