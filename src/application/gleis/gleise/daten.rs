@@ -183,7 +183,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     /// Alle Verbindungen in der Nähe der übergebenen Position.
     /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
-    pub(crate) fn überlappende_verbindungen<'t>(
+    pub(in crate::application::gleis::gleise) fn überlappende_verbindungen<'t>(
         &'t self,
         verbindung: &'t Verbindung,
         eigene_id: &'t AnyIdRef<'t, Z>,
@@ -201,7 +201,7 @@ impl<Z: Zugtyp> Zustand<Z> {
                                 &eigene_id,
                                 gehalten_id,
                             );
-                        gehalten &= gehalten_daten;
+                        gehalten = gehalten || gehalten_daten;
                         überlappend_daten
                     }};
                 }
@@ -265,7 +265,7 @@ impl<Z> GleiseDaten<Z> {
     }
 
     /// Füge alle Elemente von `other` zu `self` hinzu.
-    pub fn verschmelze(&mut self, other: GleiseDaten<Z>) {
+    pub fn verschmelze(&mut self, mut other: GleiseDaten<Z>) {
         macro_rules! extend {
             ($($rstern: ident),*) => {
                 $(while let Some(gleis) = other.$rstern.remove_with_selection_function(SelectAll) {

@@ -287,7 +287,7 @@ impl rstar::Point for Vektor {
 
     const DIMENSIONS: usize = 2;
 
-    fn generate(generator: impl FnMut(usize) -> Self::Scalar) -> Self {
+    fn generate(mut generator: impl FnMut(usize) -> Self::Scalar) -> Self {
         Vektor { x: Skalar(generator(0)), y: Skalar(generator(1)) }
     }
 

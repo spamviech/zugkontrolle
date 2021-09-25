@@ -101,13 +101,11 @@ where
                     let now = Instant::now();
                     let diff = now - *last;
                     *last = now;
-                    *gehalten = gehalten.or({
+                    if gehalten.is_none() {
                         if let Some((gleis_id, halte_position)) = gleis_an_position {
-                            Some(Gehalten { gleis_id, halte_position, bewegt: false })
-                        } else {
-                            None
+                            *gehalten = Some(Gehalten { gleis_id, halte_position, bewegt: false })
                         }
-                    });
+                    }
                     if let Some(Gehalten { gleis_id, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
                             message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.clone()))

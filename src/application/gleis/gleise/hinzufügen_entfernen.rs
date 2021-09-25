@@ -2,6 +2,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
+use log::error;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTreeObject,
@@ -196,7 +197,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisIdFehler> {
-        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         if let Some(name) = streckenabschnitt {
             let (streckenabschnitt, fließend, daten) = self
                 .zustand
@@ -204,7 +205,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .get_mut(&name)
                 .ok_or(GleisIdFehler::StreckenabschnittEntfernt(name))?;
             if daten
-                .rstern::<T>()
+                .rstern_mut::<T>()
                 .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
                 .next()
                 .is_some()
@@ -229,7 +230,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: DatenAuswahl<Z>,
         GleisId<T>: Into<AnyId<Z>>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = &gleis_id;
         let daten = self.zustand.daten(&streckenabschnitt)?;
         let (_definition, position) = &daten
             .rstern::<T>()
@@ -243,7 +244,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
-    pub(crate) fn einrasten_an_verbindung<T>(
+    pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<(), GleisIdFehler>
@@ -252,11 +253,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom } = &gleis_id;
         let any_id = AnyIdRef::from(GleisIdRef {
-            rectangle: &rectangle,
+            rectangle,
             streckenabschnitt: streckenabschnitt.as_ref(),
-            phantom,
+            phantom: *phantom,
         });
         let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
         let (definition, position) = &rstern
@@ -264,14 +265,14 @@ impl<Z: Zugtyp> Gleise<Z> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        let verbindungen = definition.verbindungen_an_position(*position);
+        let verbindungen = definition.verbindungen_an_position(position.clone());
         let mut snap = None;
         verbindungen.for_each(|verbindung_name, verbindung| {
-            snap = snap.or_else(|| {
-                let (überlappende, _gehalten) =
+            if snap.is_none() {
+                let (mut überlappende, _gehalten) =
                     self.zustand.überlappende_verbindungen(verbindung, &any_id, None);
-                überlappende.next().map(|überlappend| (verbindung_name, überlappend))
-            });
+                snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
+            }
         });
         if let Some((einrasten_name, einrasten_verbindung)) = snap {
             self.bewegen_anliegend(gleis_id, &einrasten_name, einrasten_verbindung)?;
@@ -292,15 +293,28 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
         let bisherige_daten = self.zustand.daten_mut(&streckenabschnitt)?;
-        let neue_daten = self.zustand.daten_mut(&name)?;
         // Entferne aktuellen Eintrag.
         let geom_with_data = bisherige_daten
             .rstern_mut::<T>()
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisEntferntFehler)?;
+            .ok_or(GleisIdFehler::GleisEntfernt)?;
         // Füge eintrag bei neuem Streckenabschnitt hinzu.
-        neue_daten.rstern_mut().insert(geom_with_data);
-        Ok(GleisId { rectangle, streckenabschnitt: name, phantom })
+        match self.zustand.daten_mut(&name) {
+            Ok(neue_daten) => {
+                neue_daten.rstern_mut().insert(geom_with_data);
+                Ok(GleisId { rectangle, streckenabschnitt: name, phantom })
+            }
+            Err(fehler) => {
+                match self.zustand.daten_mut(&streckenabschnitt) {
+                    Ok(bisherige_daten) => bisherige_daten.rstern_mut().insert(geom_with_data),
+                    Err(wiederherstellen_fehler) => error!(
+                        "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nGleis entfernt: {:?}",
+                        wiederherstellen_fehler, geom_with_data.data.0
+                    ),
+                }
+                Err(fehler.into())
+            }
+        }
     }
 
     /// Wie `setzte_streckenabschnitt`, nur ohne Rückgabewert für Verwendung mit `with_any_id`

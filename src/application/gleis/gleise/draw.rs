@@ -97,7 +97,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
     rstern: &'t RStern<T>,
     ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung: impl Fn(
         &'r Rectangle<Vektor>,
-        &'r Verbindung,
+        Verbindung,
     )
         -> (bool, bool, bool),
 ) {
@@ -116,7 +116,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
                     let (gehalten, entgegengesetzt, andere_gehalten) =
                         ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung(
                             rectangle,
-                            &verbindung_an_position,
+                            verbindung_an_position,
                         );
                     let a = Transparenz::true_reduziert(gehalten).alpha();
                     let g = if entgegengesetzt { 1. } else { 0. };
@@ -275,7 +275,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
                         ($gleis: ident) => {
-                            |rectangle: &Rectangle<Vektor>, verbindung: &Verbindung| {
+                            |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
                                 let gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
                                     rectangle,
                                     streckenabschnitt,
@@ -286,7 +286,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                                     streckenabschnitt,
                                     phantom: PhantomData::<fn() -> $gleis<Z>>
                                 });
-                                let (überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(verbindung, &any_id, gehalten_id);
+                                let (mut überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(&verbindung, &any_id, gehalten_id);
                                 let ist_entgegengesetzt = |überlappend: &Verbindung| {
                                     (winkel::PI + verbindung.richtung - überlappend.richtung)
                                         .normalisiert()
