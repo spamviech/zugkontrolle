@@ -17,7 +17,7 @@ use crate::{
         gleis::{
             gerade::{Gerade, GeradeSerialisiert},
             gleise::{
-                id::{AnyId, GleisId},
+                id::{AnyId, AnyIdRef, GleisIdRef},
                 StreckenabschnittEntferntFehler,
             },
             kreuzung::{Kreuzung, KreuzungSerialisiert},
@@ -186,7 +186,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(crate) fn überlappende_verbindungen<'t>(
         &'t self,
         verbindung: &'t Verbindung,
-        eigene_id: &'t AnyId<Z>,
+        eigene_id: &'t AnyIdRef<'t, Z>,
         gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
@@ -198,7 +198,7 @@ impl<Z: Zugtyp> Zustand<Z> {
                             .überlappende_verbindungen::<$gleis<Z>>(
                                 verbindung,
                                 streckenabschnitt,
-                                eigene_id,
+                                &eigene_id,
                                 gehalten_id,
                             );
                         gehalten &= gehalten_daten;
@@ -291,20 +291,20 @@ impl<Z> GleiseDaten<Z> {
         &'t self,
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<&'t streckenabschnitt::Name>,
-        eigene_id: &'t AnyId<Z>,
+        eigene_id: &'t AnyIdRef<'t, Z>,
         gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
         T: Zeichnen + DatenAuswahl<Z> + 't,
-        AnyId<Z>: From<GleisId<T>>,
+        AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
     {
         let kandidaten = self.rstern::<T>().locate_all_at_point(&verbindung.position);
         let mut gehalten = false;
         let überlappend = kandidaten.flat_map(move |kandidat| {
             let rectangle = kandidat.geom();
-            let kandidat_id = AnyId::from(GleisId {
-                rectangle: *rectangle,
-                streckenabschnitt: streckenabschnitt.cloned(),
+            let kandidat_id = AnyIdRef::from(GleisIdRef {
+                rectangle,
+                streckenabschnitt,
                 phantom: PhantomData::<fn() -> T>,
             });
             let mut überlappend = Vec::new();
@@ -317,7 +317,7 @@ impl<Z> GleiseDaten<Z> {
                     }
                 }
             }
-            if Some(&kandidat_id) == gehalten_id {
+            if gehalten_id.map_or(false, |id| id == &kandidat_id) {
                 gehalten = true;
             }
             überlappend.into_iter()

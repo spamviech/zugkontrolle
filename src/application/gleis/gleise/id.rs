@@ -131,13 +131,19 @@ impl_any_id_from! {Kreuzung}
 pub(in crate::application::gleis::gleise) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt:
-        &'t Option<streckenabschnitt::Name>,
+        Option<&'t streckenabschnitt::Name>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 
+impl<'s, 't, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'t, T> {
+    fn eq(&self, other: &GleisIdRef<'s, T>) -> bool {
+        (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
+    }
+}
 impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
-        (self.rectangle == &other.rectangle) && (self.streckenabschnitt == &other.streckenabschnitt)
+        (self.rectangle == &other.rectangle)
+            && (self.streckenabschnitt == other.streckenabschnitt.as_ref())
     }
 }
 
@@ -152,6 +158,20 @@ pub(in crate::application::gleis::gleise) enum AnyIdRef<'t, Z> {
     Kreuzung(GleisIdRef<'t, Kreuzung<Z>>),
 }
 
+impl<'s, 't, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'s, Z> {
+    fn eq(&self, other: &AnyIdRef<'t, Z>) -> bool {
+        match (self, other) {
+            (AnyIdRef::Gerade(l0), AnyIdRef::Gerade(r0)) => l0 == r0,
+            (AnyIdRef::Kurve(l0), AnyIdRef::Kurve(r0)) => l0 == r0,
+            (AnyIdRef::Weiche(l0), AnyIdRef::Weiche(r0)) => l0 == r0,
+            (AnyIdRef::DreiwegeWeiche(l0), AnyIdRef::DreiwegeWeiche(r0)) => l0 == r0,
+            (AnyIdRef::KurvenWeiche(l0), AnyIdRef::KurvenWeiche(r0)) => l0 == r0,
+            (AnyIdRef::SKurvenWeiche(l0), AnyIdRef::SKurvenWeiche(r0)) => l0 == r0,
+            (AnyIdRef::Kreuzung(l0), AnyIdRef::Kreuzung(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
 impl<'t, Z> PartialEq<AnyId<Z>> for AnyIdRef<'t, Z> {
     fn eq(&self, other: &AnyId<Z>) -> bool {
         match (self, other) {
@@ -164,6 +184,11 @@ impl<'t, Z> PartialEq<AnyId<Z>> for AnyIdRef<'t, Z> {
             (AnyIdRef::Kreuzung(l0), AnyId::Kreuzung(r0)) => l0 == r0,
             _ => false,
         }
+    }
+}
+impl<'t, Z> PartialEq<AnyIdRef<'t, Z>> for AnyId<Z> {
+    fn eq(&self, other: &AnyIdRef<'t, Z>) -> bool {
+        other.eq(self)
     }
 }
 

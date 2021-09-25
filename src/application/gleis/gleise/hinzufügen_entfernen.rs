@@ -13,7 +13,7 @@ use crate::{
         gleis::{
             gleise::{
                 daten::{DatenAuswahl, SelectEnvelope},
-                id::{AnyId, GleisId},
+                id::{AnyId, AnyIdRef, GleisId, GleisIdRef},
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
                 StreckenabschnittEntferntFehler,
             },
@@ -250,10 +250,14 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         Z: Zugtyp,
         T: Debug + Zeichnen + DatenAuswahl<Z>,
-        AnyId<Z>: From<GleisId<T>>,
+        for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
     {
-        let any_id = AnyId::from(gleis_id.clone());
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let any_id = AnyIdRef::from(GleisIdRef {
+            rectangle: &rectangle,
+            streckenabschnitt: streckenabschnitt.as_ref(),
+            phantom,
+        });
         let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
         let (definition, position) = &rstern
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))

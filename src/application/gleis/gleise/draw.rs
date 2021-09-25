@@ -9,7 +9,11 @@ use crate::{
     application::{
         gleis::{
             gerade::Gerade,
-            gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten},
+            gleise::{
+                daten::RStern,
+                id::{AnyId, AnyIdRef, GleisIdRef},
+                Gehalten, Gleise, ModusDaten,
+            },
             kreuzung::Kreuzung,
             kurve::Kurve,
             weiche::{
@@ -207,7 +211,8 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 };
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten = |parameter_id| Some(&parameter_id) == gehalten_id;
+                let ist_gehalten
+                    = |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id);
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
@@ -229,9 +234,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                             |rectangle, fließend| {
                                 Transparenz::true_reduziert(if modus_bauen {
                                     ist_gehalten(
-                                        AnyId::from(GleisId {
-                                        rectangle: *rectangle,
-                                        streckenabschnitt: Some(name.clone()),
+                                        AnyIdRef::from(GleisIdRef {
+                                        rectangle,
+                                        streckenabschnitt: Some(name),
                                         phantom:PhantomData::<fn() -> $gleis<Z>>
                                         })
                                     )
@@ -253,9 +258,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                 for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
-                            |rectangle| ist_gehalten(AnyId::from(GleisId {
-                                rectangle: *rectangle,
-                                streckenabschnitt: streckenabschnitt.cloned(),
+                            |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
+                                rectangle,
+                                streckenabschnitt,
                                 phantom: PhantomData::<fn() -> $gleis<Z>>
                             }))
                         };
@@ -271,14 +276,14 @@ impl<Z: Zugtyp> Gleise<Z> {
                     macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
                         ($gleis: ident) => {
                             |rectangle: &Rectangle<Vektor>, verbindung: &Verbindung| {
-                                let gehalten = ist_gehalten(AnyId::from(GleisId {
-                                    rectangle: *rectangle,
-                                    streckenabschnitt: streckenabschnitt.cloned(),
+                                let gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
+                                    rectangle,
+                                    streckenabschnitt,
                                     phantom: PhantomData::<fn() -> $gleis<Z>>
                                 }));
-                                let any_id = AnyId::from(GleisId {
-                                    rectangle: *rectangle,
-                                    streckenabschnitt: streckenabschnitt.cloned(),
+                                let any_id = AnyIdRef::from(GleisIdRef {
+                                    rectangle,
+                                    streckenabschnitt,
                                     phantom: PhantomData::<fn() -> $gleis<Z>>
                                 });
                                 let (überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(verbindung, &any_id, gehalten_id);
@@ -303,9 +308,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                 for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
-                            |rectangle| ist_gehalten(AnyId::from(GleisId {
-                                rectangle: *rectangle,
-                                streckenabschnitt: streckenabschnitt.cloned(),
+                            |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
+                                rectangle,
+                                streckenabschnitt,
                                 phantom: PhantomData::<fn() -> $gleis<Z>>
                             }))
                         };
