@@ -45,13 +45,10 @@ impl<T: Zeichnen> Button<T> {
         Nachricht: 'static + Clone,
         T: ButtonNachricht<Nachricht>,
     {
-        let rechteck = self.gleis.rechteck();
-        let rechteck_breite = (rechteck.ecke_a.x - rechteck.ecke_b.x).abs();
-        let rechteck_höhe = (rechteck.ecke_a.y - rechteck.ecke_b.y).abs();
-        let standard_breite =
-            <u16 as NumCast>::from((STROKE_WIDTH + rechteck_breite).0.ceil()).unwrap_or(u16::MAX);
-        let höhe = <u16 as NumCast>::from((DOUBLE_PADDING + STROKE_WIDTH + rechteck_höhe).0.ceil())
-            .unwrap_or(u16::MAX);
+        let größe = self.gleis.rechteck().größe();
+        let standard_breite = NumCast::from((STROKE_WIDTH + größe.x).0.ceil()).unwrap_or(u16::MAX);
+        let höhe =
+            NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
         // account for lines right at the edge
         iced::Container::new(
             iced::Canvas::new(self)
@@ -90,18 +87,17 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                 },
             );
             let rechteck = self.gleis.rechteck();
-            let size = Vektor {
-                x: (rechteck.ecke_a.x - rechteck.ecke_b.x).abs(),
-                y: (rechteck.ecke_a.y - rechteck.ecke_b.y).abs(),
-            };
-            if bounds_vector.x > size.x {
+            let rechteck_position = rechteck.position();
+            frame.transformation(&Transformation::Translation(rechteck_position));
+            let größe = rechteck.größe();
+            if bounds_vector.x > größe.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
-                    Skalar(0.5) * (bounds_vector - size),
+                    Skalar(0.5) * (bounds_vector - größe),
                 ));
             } else {
                 // skaliere zu vorhandener Breite
-                frame.transformation(&Transformation::Skalieren(bounds_vector.x / size.x))
+                frame.transformation(&Transformation::Skalieren(bounds_vector.x / größe.x))
             }
             for path in self.gleis.zeichne() {
                 frame.with_save(|frame| {

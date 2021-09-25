@@ -38,6 +38,19 @@ impl Rechteck {
         self.ecke_a = Vektor { x: min_x, y: min_y };
         self.ecke_b = Vektor { x: max_x, y: max_y };
     }
+
+    /// Position der linken oberen Ecke des Rechtecks.
+    pub fn position(&self) -> Vektor {
+        Vektor { x: self.ecke_a.x.min(&self.ecke_b.x), y: self.ecke_a.y.min(&self.ecke_b.y) }
+    }
+
+    /// Größe des Rechtecks.
+    pub fn größe(&self) -> Vektor {
+        Vektor {
+            x: (self.ecke_a.x - self.ecke_b.x).abs(),
+            y: (self.ecke_a.y - self.ecke_b.y).abs(),
+        }
+    }
 }
 
 fn find<'t>(

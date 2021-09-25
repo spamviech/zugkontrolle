@@ -2,6 +2,8 @@
 
 use std::fmt::Debug;
 
+use num_traits::NumCast;
+
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
     application::{
@@ -290,9 +292,6 @@ where
     Z::Leiter: Debug + LeiterAnzeige,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    // TODO Save/Load/Move?/Rotate?
-    // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
-    // Fahren(Streckenabschnitt-Anzeige?
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();
@@ -303,11 +302,14 @@ where
             macro_rules! add_buttons {
                 ($($vec: expr),*) => {
                     max_width = max_width.max(Vec::new().into_iter()
-                        $(.chain($vec.iter().map(|button| button.size().x.0.ceil() as u16)))*
+                        $(.chain($vec.iter().map(|button| {
+                            let größe = button.rechteck().größe();
+                            NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX)
+                        })))*
                         .max());
                     $(
                         for button in $vec {
-                            scrollable = scrollable.push(button.to_iced(max_width));
+                            scrollable = scrollable.push(button.als_iced_widget(max_width));
                         }
                     )*
                 }
