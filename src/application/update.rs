@@ -366,7 +366,7 @@ where
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = mit_any_id!(
-                &any_id,
+                any_id,
                 Gleise::setze_streckenabschnitt_unit,
                 &mut self.gleise,
                 self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone())
