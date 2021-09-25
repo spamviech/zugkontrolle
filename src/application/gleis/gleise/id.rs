@@ -40,13 +40,6 @@ impl<T> PartialEq for GleisId<T> {
     }
 }
 
-// FIXME remove
-// impl<T> Hash for GleisId<T> {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         self.0.hash(state)
-//     }
-// }
-
 #[derive(zugkontrolle_derive::Debug)]
 pub enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),

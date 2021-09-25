@@ -176,6 +176,22 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(data)
     }
 
+    /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
+    #[inline(always)]
+    pub(in crate::application) fn entfernen_unit<T>(
+        &mut self,
+        gleis_id: GleisId<T>,
+    ) -> Result<(), GleisIdFehler>
+    where
+        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+    {
+        self.entfernen(gleis_id)?;
+        Ok(())
+    }
+
+    /// `Streckenabschnitt` und aktueller `Fließend`-Zustand
+    /// für das Gleis mit der übergebenen `AnyId`.
     pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_id: GleisId<T>,
@@ -202,6 +218,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
+    /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(crate) fn bewegen_gehalten<T: Debug + Zeichnen>(
         &mut self,
         gleis_id: GleisId<T>,
@@ -225,6 +242,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(())
     }
 
+    /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
     pub(crate) fn einrasten_an_verbindung<T>(
         &mut self,
         gleis_id: GleisId<T>,
@@ -281,7 +299,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(GleisId { rectangle, streckenabschnitt: name, phantom })
     }
 
-    /// Wie setzte_streckenabschnitt, nur ohne Rückgabewert für Verwendung mit `with_any_id`
+    /// Wie `setzte_streckenabschnitt`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
     pub(in crate::application) fn setze_streckenabschnitt_unit<T>(
         &mut self,

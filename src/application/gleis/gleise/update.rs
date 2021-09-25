@@ -171,7 +171,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                                     error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
                                 }
                             } else {
-                                mit_any_id!(gleis_id_clone, Gleise::entfernen, self);
+                                mit_any_id!(gleis_id_clone, Gleise::entfernen_unit, self);
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
