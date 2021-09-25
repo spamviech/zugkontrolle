@@ -18,7 +18,7 @@ use crate::{
             },
         },
         typen::*,
-        verbindung,
+        verbindung::{self, Verbindung},
     },
     farbe::Farbe,
     lookup::Lookup,
@@ -93,7 +93,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
     rstern: &'t RStern<T>,
     ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung: impl Fn(
         &'r Rectangle<Vektor>,
-        &'r verbindung::Verbindung,
+        &'r Verbindung,
     )
         -> (bool, bool, bool),
 ) {
@@ -104,7 +104,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
             move_to_position(frame, position);
             // zeichne anchor points
             definition.verbindungen().for_each(|_name, &verbindung| {
-                let verbindung_an_position = verbindung::Verbindung {
+                let verbindung_an_position = Verbindung {
                     position: position.transformation(verbindung.position),
                     richtung: position.winkel + verbindung.richtung,
                 };
@@ -264,13 +264,13 @@ impl<Z: Zugtyp> Gleise<Z> {
                 // Verbindungen
                 for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
                     macro_rules! finde_andere_verbindungen {
-                        ($verbindung: expr, $entgegengesetzt: ident, $andere_gehalten: ident) => {
-                            finde_andere_verbindungen_gleis! {$verbindung, $entgegengesetzt, $andere_gehalten, geraden, Gerade}
+                        ($verbindung: expr, $entgegengesetzt: ident, $gehalten: ident) => {
+                            finde_andere_verbindungen_gleis! {$verbindung, $entgegengesetzt, $gehalten, geraden, Gerade}
                             // FIXME andere Gleis-Arten
                         }
                     }
                     macro_rules! finde_andere_verbindungen_gleis {
-                        ($verbindung: expr, $entgegengesetzt: ident, $andere_gehalten: ident, $rstern: ident, $gleis: ident) => {
+                        ($verbindung: expr, $entgegengesetzt: ident, $gehalten: ident, $rstern: ident, $gleis: ident) => {
                             for daten in self.zustand.alle_daten() {
                                 for geom_with_data in daten.$rstern.locate_all_at_point(&$verbindung.position) {
                                     let (definition, position) = &geom_with_data.data;
@@ -293,7 +293,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                     macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
                         ($gleis: ident) => {
-                            |rectangle: &Rectangle<Vektor>, verbindung: &verbindung::Verbindung| {
+                            |rectangle: &Rectangle<Vektor>, verbindung: &Verbindung| {
                                 let gehalten = ist_gehalten(AnyId::from(GleisId {
                                     rectangle: *rectangle,
                                     streckenabschnitt: streckenabschnitt.cloned(),
@@ -301,7 +301,8 @@ impl<Z: Zugtyp> Gleise<Z> {
                                 }));
                                 let mut entgegengesetzt = false;
                                 let mut andere_gehalten = false;
-                                finde_andere_verbindungen! {verbindung, entgegengesetzt, andere_gehalten}
+                                let (überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(verbindung, &any_id, &None);
+                                finde_andere_verbindungen! {verbindung, entgegengesetzt, gehalten}
                                 (gehalten, entgegengesetzt, andere_gehalten)
                             }
                         };

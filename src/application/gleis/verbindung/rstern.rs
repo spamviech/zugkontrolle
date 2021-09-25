@@ -3,9 +3,8 @@
 pub(crate) use rstar::primitives::PointWithData;
 
 use crate::application::{
-    gleis::gleise::id::AnyId,
+    gleis::{gleise::id::AnyId, verbindung::Verbindung},
     typen::{winkel, Skalar, Trigonometrie, Vektor, Winkel},
-    verbindung::Verbindung,
 };
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);

@@ -17,7 +17,7 @@ use crate::{
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
                 StreckenabschnittEntferntFehler,
             },
-            verbindung,
+            verbindung::{self, Verbindung},
         },
         typen::*,
     },
@@ -102,7 +102,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         verbindung_name: &T::VerbindungName,
-        ziel_verbindung: verbindung::Verbindung,
+        ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
@@ -138,7 +138,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: GleisId<T>,
         verbindung_name: &T::VerbindungName,
-        ziel_verbindung: verbindung::Verbindung,
+        ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,

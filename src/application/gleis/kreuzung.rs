@@ -10,7 +10,7 @@ pub use crate::application::gleis::weiche::gerade::{
 };
 use crate::{
     application::{
-        gleis::{gerade, kurve, verbindung},
+        gleis::{gerade, kurve, verbindung::Verbindung},
         typen::*,
     },
     lookup::impl_lookup,
@@ -75,7 +75,7 @@ impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, en, Debug)]
+#[impl_lookup(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang0,
@@ -272,10 +272,10 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         // let anfang1 = ende0 - kurve;
         // let ende1 = anfang0 + kurve;
         // Verbindungen {
-        //     anfang_0: verbindung::Verbindung { position: anfang0, richtung: winkel::PI },
-        //     ende_0: verbindung::Verbindung { position: ende0, richtung: winkel::ZERO },
-        //     anfang_1: verbindung::Verbindung { position: anfang1, richtung: winkel::PI + winkel },
-        //     ende_1: verbindung::Verbindung { position: ende1, richtung: winkel },
+        //     anfang_0: Verbindung { position: anfang0, richtung: winkel::PI },
+        //     ende_0: Verbindung { position: ende0, richtung: winkel::ZERO },
+        //     anfang_1: Verbindung { position: anfang1, richtung: winkel::PI + winkel },
+        //     ende_1: Verbindung { position: ende1, richtung: winkel },
         // }
     }
 }

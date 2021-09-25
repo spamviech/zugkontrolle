@@ -9,7 +9,10 @@ pub use self::{
 };
 use crate::{
     anschluss::{self, Fließend},
-    application::{typen::*, verbindung},
+    application::{
+        typen::*,
+        verbindung::{self, Verbindung},
+    },
     lookup::Lookup,
     steuerung::{streckenabschnitt, Streckenabschnitt},
 };
@@ -197,7 +200,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         if let Some((streckenabschnitt, fließend, daten)) =
             self.zustand.streckenabschnitte.remove(&name)
         {
-            self.zustand.ohne_streckenabschnitt.merge(daten);
+            self.zustand.ohne_streckenabschnitt.verschmelze(daten);
             Some((streckenabschnitt, fließend))
         } else {
             None
@@ -260,7 +263,7 @@ impl Position {
     fn attach_position<T>(
         definition: &T,
         anchor_name: &T::VerbindungName,
-        target_anchor_point: verbindung::Verbindung,
+        target_anchor_point: Verbindung,
     ) -> Self
     where
         T: Zeichnen,

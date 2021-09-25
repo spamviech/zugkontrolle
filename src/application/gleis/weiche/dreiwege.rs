@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 
 use crate::{
-    application::gleis::{gerade, kurve, verbindung},
+    application::gleis::{gerade, kurve, verbindung::Verbindung},
     steuerung,
     {application::typen::*, lookup::impl_lookup},
 };
@@ -56,7 +56,7 @@ impl<Z> DreiwegeWeicheUnit<Z> {
 }
 
 #[create_richtung]
-#[impl_lookup(verbindung::Verbindung, en, Debug)]
+#[impl_lookup(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
@@ -216,12 +216,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         // let radius: Skalar = self.radius;
         // let anfang = Vektor { x: Skalar(0.), y: half_height };
         // Verbindungen {
-        //     anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
-        //     gerade: verbindung::Verbindung {
+        //     anfang: Verbindung { position: anfang, richtung: winkel::PI },
+        //     gerade: Verbindung {
         //         position: anfang + Vektor { x: länge, y: Skalar(0.) },
         //         richtung: winkel::ZERO,
         //     },
-        //     links: verbindung::Verbindung {
+        //     links: Verbindung {
         //         position: anfang
         //             + Vektor {
         //                 x: radius * self.winkel.sin(),
@@ -229,7 +229,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         //             },
         //         richtung: self.winkel,
         //     },
-        //     rechts: verbindung::Verbindung {
+        //     rechts: Verbindung {
         //         position: anfang
         //             + Vektor {
         //                 x: radius * self.winkel.sin(),

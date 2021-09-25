@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
 use crate::{
-    application::{typen::*, verbindung},
+    application::{typen::*, verbindung::Verbindung},
     lookup::impl_lookup,
     steuerung::kontakt::{Kontakt, KontaktSerialisiert},
 };
@@ -50,7 +50,7 @@ impl<Z> KurveUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, en, Debug)]
+#[impl_lookup(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
@@ -114,11 +114,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
         todo!()
         // let halbe_beschränkung = beschränkung::<Z>().halbiert();
         // Verbindungen {
-        //     anfang: verbindung::Verbindung {
+        //     anfang: Verbindung {
         //         position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
         //         richtung: winkel::PI,
         //     },
-        //     ende: verbindung::Verbindung {
+        //     ende: Verbindung {
         //         position: Vektor {
         //             x: self.radius * self.winkel.sin(),
         //             y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),

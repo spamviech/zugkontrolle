@@ -1,7 +1,7 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
 use crate::{
-    application::gleis::verbindung,
+    application::gleis::verbindung::{self, Verbindung},
     lookup::Lookup,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
@@ -116,7 +116,7 @@ where
     /// Identifier for `Verbindungen`.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
-    /// Speicher-Typ für `verbindung::Verbindung`.
+    /// Speicher-Typ für `Verbindung`.
     /// Muss `verbindung::Lookup<Self::VerbindungName>` implementieren.
     type Verbindungen;
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
@@ -127,14 +127,12 @@ where
 
     /// Absolute Position der Verbindungen, wenn sich das Gleis an der `Position` befindet.
     fn verbindungen_an_position(&self, position: Position) -> Self::Verbindungen {
-        self.verbindungen().map(
-            |&verbindung::Verbindung { position: verbindung_position, richtung }| {
-                verbindung::Verbindung {
-                    position: position.transformation(verbindung_position),
-                    richtung: position.winkel + richtung,
-                }
-            },
-        )
+        self.verbindungen().map(|&Verbindung { position: verbindung_position, richtung }| {
+            Verbindung {
+                position: position.transformation(verbindung_position),
+                richtung: position.winkel + richtung,
+            }
+        })
     }
 }
 

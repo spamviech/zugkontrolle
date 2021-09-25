@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
 use crate::{
-    application::{typen::*, verbindung},
+    application::{typen::*, verbindung::Verbindung},
     lookup::impl_lookup,
     steuerung::kontakt::{Kontakt, KontaktSerialisiert},
 };
@@ -40,7 +40,7 @@ impl<Z> GeradeUnit<Z> {
     }
 }
 
-#[impl_lookup(verbindung::Verbindung, en, Debug)]
+#[impl_lookup(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
@@ -88,11 +88,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
         // let gleis_rechts = gleis_links + self.länge;
         // let beschränkung_mitte = beschränkung::<Z>().halbiert();
         // Verbindungen {
-        //     anfang: verbindung::Verbindung {
+        //     anfang: Verbindung {
         //         position: Vektor { x: gleis_links, y: beschränkung_mitte },
         //         richtung: winkel::PI,
         //     },
-        //     ende: verbindung::Verbindung {
+        //     ende: Verbindung {
         //         position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
         //         richtung: winkel::ZERO,
         //     },

@@ -411,12 +411,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         //     y: start_height + multiplier * beschränkung::<Z>().halbiert(),
         // };
         // Verbindungen {
-        //     anfang: verbindung::Verbindung { position: anfang, richtung: winkel::PI },
-        //     gerade: verbindung::Verbindung {
+        //     anfang: Verbindung { position: anfang, richtung: winkel::PI },
+        //     gerade: Verbindung {
         //         position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
         //         richtung: winkel::ZERO,
         //     },
-        //     kurve: verbindung::Verbindung {
+        //     kurve: Verbindung {
         //         position: anfang
         //             + Vektor {
         //                 x: self.radius * self.winkel.sin()

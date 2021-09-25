@@ -15,12 +15,20 @@ use crate::{
     },
     application::{
         gleis::{
+            gerade::{Gerade, GeradeSerialisiert},
             gleise::{
                 id::{AnyId, GleisId},
                 StreckenabschnittEntferntFehler,
             },
+            kreuzung::{Kreuzung, KreuzungSerialisiert},
+            kurve::{Kurve, KurveSerialisiert},
             verbindung::Verbindung,
-            *,
+            weiche::{
+                dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert},
+                gerade::{Weiche, WeicheSerialisiert},
+                kurve::{KurvenWeiche, KurvenWeicheSerialisiert},
+                s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert},
+            },
         },
         typen::*,
     },
