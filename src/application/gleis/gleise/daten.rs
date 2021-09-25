@@ -177,9 +177,9 @@ impl<Z: Zugtyp> Zustand<Z> {
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
     pub(crate) fn überlappende_verbindungen<'t>(
         &'t self,
-        verbindung: Verbindung,
+        verbindung: &'t Verbindung,
         eigene_id: &'t AnyId<Z>,
-        gehalten_id: &'t AnyId<Z>,
+        gehalten_id: &'t Option<AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
         let überlappend =
@@ -281,10 +281,10 @@ impl<Z> GleiseDaten<Z> {
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
     fn überlappende_verbindungen<'t, T>(
         &'t self,
-        verbindung: Verbindung,
+        verbindung: &'t Verbindung,
         streckenabschnitt: Option<&'t streckenabschnitt::Name>,
         eigene_id: &'t AnyId<Z>,
-        gehalten_id: &'t AnyId<Z>,
+        gehalten_id: &'t Option<AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
         T: Zeichnen + DatenAuswahl<Z> + 't,
@@ -300,9 +300,6 @@ impl<Z> GleiseDaten<Z> {
                 phantom: PhantomData::<fn() -> T>,
             });
             let mut überlappend = Vec::new();
-            if &kandidat_id == gehalten_id {
-                gehalten = true;
-            }
             if &kandidat_id != eigene_id {
                 let kandidat_verbindungen =
                     kandidat.data.0.verbindungen_an_position(kandidat.data.1.clone());
@@ -311,6 +308,9 @@ impl<Z> GleiseDaten<Z> {
                         überlappend.push(kandidat_verbindung.clone())
                     }
                 }
+            }
+            if &Some(kandidat_id) == gehalten_id {
+                gehalten = true;
             }
             überlappend.into_iter()
         });

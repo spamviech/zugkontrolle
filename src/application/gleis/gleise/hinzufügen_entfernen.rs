@@ -232,9 +232,10 @@ impl<Z: Zugtyp> Gleise<Z> {
     where
         Z: Zugtyp,
         T: Debug + Zeichnen + DatenAuswahl<Z>,
-        GleisId<T>: Into<AnyId<Z>>,
+        AnyId<Z>: From<GleisId<T>>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+        let any_id = AnyId::from(gleis_id.clone());
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
         let (definition, position) = &rstern
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
@@ -245,31 +246,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         let mut snap = None;
         verbindungen.for_each(|verbindung_name, verbindung| {
             snap = snap.or_else(|| {
-                // FIXME alle daten/rstern überprüfen, nicht nur den eigenen!
-                let kandidaten = rstern.locate_all_at_point(&verbindung.position);
-                for kandidat in kandidaten {
-                    if snap.is_some() || (kandidat.geom() == &rectangle) {
-                        continue;
-                    }
-                    let kandidat_verbindungen =
-                        kandidat.data.0.verbindungen_an_position(kandidat.data.1);
-                    kandidat_verbindungen.for_each(|kandidat_name, kandidat_verbindung| {
-                        snap = snap.or_else(|| {
-                            if (verbindung.position - kandidat_verbindung.position).länge()
-                                < Skalar(5.)
-                            {
-                                Some((kandidat_name, kandidat_verbindung))
-                            } else {
-                                None
-                            }
-                        });
-                    });
-                }
-                None
+                let (überlappende, _gehalten) =
+                    self.zustand.überlappende_verbindungen(verbindung, &any_id, &None);
+                überlappende.next().map(|überlappend| (verbindung_name, überlappend))
             });
         });
-        if let Some((snap_name, snap_verbindung)) = snap {
-            self.bewegen_anliegend(gleis_id, &snap_name, *snap_verbindung)?;
+        if let Some((einrasten_name, einrasten_verbindung)) = snap {
+            self.bewegen_anliegend(gleis_id, &einrasten_name, einrasten_verbindung)?;
         };
         Ok(())
     }
