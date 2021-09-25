@@ -17,12 +17,12 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
     let where_clause = &generics.where_clause;
     for g in generics.params.iter() {
         match g {
-            syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
+            syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(lt),
             syn::GenericParam::Type(ty) => {
                 generic_type_names.push(&ty.ident);
                 generic_types.insert(&ty.ident, (&ty.bounds, false));
-            },
-            syn::GenericParam::Const(_c) => {},
+            }
+            syn::GenericParam::Const(_c) => {}
         }
     }
 
@@ -39,7 +39,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                         #(#fs_vec: #fs_vec.clone()),*
                     }
                 }
-            },
+            }
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 mark_fields_generic(unnamed.iter(), &mut generic_types);
                 let fs_iter = unnamed.iter().map(|field| &field.ident);
@@ -54,7 +54,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     let #ident (#(#fs_str),*) = self;
                     #ident (#(#fs_str.clone()),*)
                 }
-            },
+            }
             syn::Fields::Unit => quote! {#ident},
         },
         syn::Data::Enum(syn::DataEnum { variants, .. }) => {
@@ -72,7 +72,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                                 }
                             }
                         }
-                    },
+                    }
                     syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                         mark_fields_generic(unnamed.iter(), &mut generic_types);
                         let fs_iter = unnamed.iter().map(|field| &field.ident);
@@ -88,7 +88,7 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                                 #ident::#variant_ident (#(#fs_str.clone()),*)
                             }
                         }
-                    },
+                    }
                     syn::Fields::Unit => quote! {#ident::#variant_ident => #ident::#variant_ident},
                 })
                 .collect();
@@ -97,13 +97,13 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     #(#token_streams),*
                 }
             }
-        },
+        }
         _ => {
             let error = format!("Unsupported data! Given ast: {:?}", ast);
             return quote! {
                 compile_error!(#error)
-            }
-        },
+            };
+        }
     };
 
     // map from generic_type_names to preserve order!
@@ -121,8 +121,17 @@ pub fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
         }
     });
 
+    let generic_constraints;
+    let generic_names;
+    if generic_lifetimes.is_empty() {
+        generic_constraints = quote! {#(#generic_type_constraints),*};
+        generic_names = quote! {#(#generic_type_names),*};
+    } else {
+        generic_constraints = quote! {#(#generic_lifetimes),*, #(#generic_type_constraints),*};
+        generic_names = quote! {#(#generic_lifetimes),*, #(#generic_type_names),*};
+    };
     quote! {
-        impl<#(#generic_lifetimes),* #(#generic_type_constraints),*> Clone for #ident<#(#generic_lifetimes),* #(#generic_type_names),*> #where_clause  {
+        impl<#generic_constraints> Clone for #ident<#generic_names> #where_clause  {
             fn clone(&self) -> Self {
                 #clone
             }
