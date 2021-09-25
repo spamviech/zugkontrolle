@@ -27,7 +27,7 @@ use crate::{
 };
 
 impl<Z: Zugtyp> Gleise<Z> {
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T>(
         &mut self,
@@ -95,7 +95,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(gleis_id)
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
     pub(crate) fn hinzufügen_anliegend<T>(
         &mut self,
@@ -114,7 +114,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.hinzufügen(definition, position, streckenabschnitt)
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Bewege ein Gleis an die neue position.
     pub(crate) fn bewegen<T>(
         &mut self,
@@ -132,7 +132,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.hinzufügen(definition, position_neu, streckenabschnitt).map_err(GleisIdFehler::from)
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
     pub(crate) fn bewegen_anliegend<T>(
         &mut self,
@@ -152,7 +152,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .map_err(GleisIdFehler::from)
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
     pub(crate) fn entfernen<T>(
         &mut self,
@@ -275,7 +275,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(())
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     pub(crate) fn setze_streckenabschnitt<T>(
         &mut self,

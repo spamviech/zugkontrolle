@@ -190,7 +190,7 @@ where
         message
     }
 
-    #[zugkontrolle_derive::erstelle_maps_methoden]
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl<Z>>(
         &mut self,
         gleis_art: &str,

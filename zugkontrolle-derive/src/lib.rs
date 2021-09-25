@@ -63,7 +63,7 @@ pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod alias;
 #[proc_macro_attribute]
-/// Internes Macro mit sehr spezifischen Vorraussetzungen.
+/// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
 /// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
 /// (Argument) über eine `serialisiere`-Methode möglich ist!
@@ -73,15 +73,15 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
     alias::alias_serialisiert_unit(attr.into(), ast).into()
 }
 
-mod maps_methoden;
+mod daten;
 #[proc_macro_attribute]
-/// Internes Macro mit sehr spezifischen Vorraussetzungen.
+/// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
 /// Es wird erwartet, dass die Funktion genau einen generic Typ hat,
 // das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
 // Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
-pub fn erstelle_maps_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn erstelle_daten_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item);
 
-    maps_methoden::erstelle_methoden(ast).into()
+    daten::erstelle_methoden(ast).into()
 }
