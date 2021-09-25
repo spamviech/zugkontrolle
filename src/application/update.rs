@@ -24,7 +24,7 @@ use crate::{
             daten::DatenAuswahl,
             id::{mit_any_id, AnyId, GleisId},
             steuerung::Steuerung,
-            GleisEntferntFehler, Gleise,
+            GleisIdFehler, Gleise,
         },
         steuerung, streckenabschnitt,
         typen::*,
@@ -80,7 +80,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
+        ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
         erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
@@ -116,7 +116,7 @@ where
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<Z>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisEntferntFehler>,
+        ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
     ) -> Option<Nachricht<Z>>
     where
         W: Serialisiere,
@@ -199,10 +199,10 @@ where
         if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
             if let Some((streckenabschnitt, fließend)) = steuerung {
                 let fließend_neu = !*fließend;
-                if let Err(error) = streckenabschnitt.strom(fließend_neu) {
+                if let Err(fehler) = streckenabschnitt.strom(fließend_neu) {
                     self.zeige_message_box(
                         "Streckenabschnitt umschalten".to_string(),
-                        format!("{:?}", error),
+                        format!("{:?}", fehler),
                     )
                 } else {
                     *fließend = fließend_neu
@@ -221,32 +221,32 @@ where
         }
     }
 
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleis<Z>, grab_height: Skalar) {
+    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleis<Z>, klick_höhe: Skalar) {
         let streckenabschnitt =
             self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone());
-        macro_rules! add_grabbed_at_mouse {
+        macro_rules! hinzufügen_gehalten_bei_maus {
             ($gleis:expr) => {{
-                self.gleise.add_grabbed_at_mouse(
+                self.gleise.hinzufügen_gehalten_bei_maus(
                     $gleis.to_option(),
-                    Vektor { x: Skalar(0.), y: grab_height },
+                    Vektor { x: Skalar(0.), y: klick_höhe },
                     streckenabschnitt,
                 );
             }};
         }
         match gleis {
-            AnyGleis::GeradeUnit(gerade) => add_grabbed_at_mouse!(gerade),
-            AnyGleis::KurveUnit(kurve) => add_grabbed_at_mouse!(kurve),
-            AnyGleis::WeicheUnit(weiche) => add_grabbed_at_mouse!(weiche),
+            AnyGleis::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
+            AnyGleis::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
+            AnyGleis::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
             AnyGleis::DreiwegeWeicheUnit(dreiwege_weiche) => {
-                add_grabbed_at_mouse!(dreiwege_weiche)
+                hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
             }
             AnyGleis::KurvenWeicheUnit(kurven_weiche) => {
-                add_grabbed_at_mouse!(kurven_weiche)
+                hinzufügen_gehalten_bei_maus!(kurven_weiche)
             }
             AnyGleis::SKurvenWeicheUnit(s_kurven_weiche) => {
-                add_grabbed_at_mouse!(s_kurven_weiche)
+                hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
             }
-            AnyGleis::KreuzungUnit(kreuzung) => add_grabbed_at_mouse!(kreuzung),
+            AnyGleis::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
         }
     }
 
@@ -365,7 +365,7 @@ where
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(GleisEntferntFehler) = mit_any_id!(
+            if let Err(fehler) = mit_any_id!(
                 &any_id,
                 Gleise::setze_streckenabschnitt_unit,
                 &mut self.gleise,
@@ -373,7 +373,10 @@ where
             ) {
                 self.zeige_message_box(
                     "Gleis entfernt".to_string(),
-                    "Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen!".to_string(),
+                    format!(
+                        "Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {:?}",
+                        fehler
+                    ),
                 )
             }
         }
@@ -583,7 +586,7 @@ where
             &GleisId<T>,
         ) -> Result<
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
-            GleisEntferntFehler,
+            GleisIdFehler,
         >,
         aktuelle_richtung: Richtung,
         letzte_richtung: Richtung,
@@ -685,7 +688,7 @@ where
             &GleisId<T>,
         ) -> Result<
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
-            GleisEntferntFehler,
+            GleisIdFehler,
         >,
         nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
             + Send
