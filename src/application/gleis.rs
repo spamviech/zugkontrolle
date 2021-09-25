@@ -9,7 +9,7 @@ pub mod verbindung;
 pub mod weiche;
 
 pub use {
-    button::{Button, ButtonMessage},
+    button::{Button, ButtonNachricht},
     gerade::{Gerade, GeradeSerialisiert, GeradeUnit},
     gleise::Gleise,
     kreuzung::{Kreuzung, KreuzungSerialisiert, KreuzungUnit},

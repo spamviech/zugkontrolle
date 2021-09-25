@@ -1,5 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis
 
+use num_traits::NumCast;
+
 use crate::application::{gleis::gleise::draw::move_to_position, typen::*};
 
 const STROKE_WIDTH: Skalar = Skalar(1.5);
@@ -23,39 +25,47 @@ pub struct Button<T> {
     canvas: canvas::Cache,
     in_bounds: bool,
 }
+
 impl<T> Button<T> {
-    pub fn new(gleis: T) -> Self {
+    pub fn neu(gleis: T) -> Self {
         Button { gleis, canvas: canvas::Cache::neu(), in_bounds: false }
     }
 }
+
 impl<T: Zeichnen> Button<T> {
-    pub fn size(&self) -> Vektor {
-        // include padding
-        self.gleis.size() + Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING }
+    pub fn rechteck(&self) -> Rechteck {
+        let mut rechteck = self.gleis.rechteck();
+        // berücksichtige padding
+        rechteck.verschiebe(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING });
+        rechteck
     }
 
-    pub fn to_iced<Message>(&mut self, width: Option<u16>) -> iced::Container<Message>
+    pub fn als_iced_widget<Nachricht>(&mut self, breite: Option<u16>) -> iced::Container<Nachricht>
     where
-        Message: 'static + Clone,
-        T: ButtonMessage<Message>,
+        Nachricht: 'static + Clone,
+        T: ButtonNachricht<Nachricht>,
     {
-        let size = self.gleis.size();
+        let rechteck = self.gleis.rechteck();
+        let rechteck_breite = (rechteck.ecke_a.x - rechteck.ecke_b.x).abs();
+        let rechteck_höhe = (rechteck.ecke_a.y - rechteck.ecke_b.y).abs();
+        let standard_breite =
+            <u16 as NumCast>::from((STROKE_WIDTH + rechteck_breite).0.ceil()).unwrap_or(u16::MAX);
+        let höhe = <u16 as NumCast>::from((DOUBLE_PADDING + STROKE_WIDTH + rechteck_höhe).0.ceil())
+            .unwrap_or(u16::MAX);
         // account for lines right at the edge
         iced::Container::new(
             iced::Canvas::new(self)
-                .width(iced::Length::Units(
-                    width.unwrap_or((STROKE_WIDTH + size.x).0.ceil() as u16),
-                ))
-                .height(iced::Length::Units(
-                    (DOUBLE_PADDING + STROKE_WIDTH + size.y).0.ceil() as u16
-                )),
+                .width(iced::Length::Units(breite.unwrap_or(standard_breite)))
+                .height(iced::Length::Units(höhe)),
         )
         .width(iced::Length::Fill)
         .height(iced::Length::Shrink)
     }
 }
 
-impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Message> for Button<T> {
+impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<Nachricht>
+    for Button<T>
+{
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -79,7 +89,11 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
                     ..Default::default()
                 },
             );
-            let size = self.gleis.size();
+            let rechteck = self.gleis.rechteck();
+            let size = Vektor {
+                x: (rechteck.ecke_a.x - rechteck.ecke_b.x).abs(),
+                y: (rechteck.ecke_a.y - rechteck.ecke_b.y).abs(),
+            };
             if bounds_vector.x > size.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
@@ -124,7 +138,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Message>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
         let in_bounds = cursor.is_over(&bounds);
         if self.in_bounds != in_bounds {
             self.canvas.leeren();
@@ -138,7 +152,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
                     cursor.position_in(&bounds).unwrap_or(iced::Point { x: 0., y: 0. });
                 (
                     iced::canvas::event::Status::Captured,
-                    Some(self.gleis.to_message(Vektor { x: Skalar(x), y: Skalar(y) })),
+                    Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
             }
             _ => (iced::canvas::event::Status::Ignored, None),
@@ -146,6 +160,6 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
     }
 }
 
-pub trait ButtonMessage<Message> {
-    fn to_message(&self, grab_location: Vektor) -> Message;
+pub trait ButtonNachricht<Nachricht> {
+    fn nachricht(&self, klick_position: Vektor) -> Nachricht;
 }

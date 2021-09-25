@@ -22,7 +22,7 @@ use crate::{
         gleis,
         gleis::gleise::{
             daten::DatenAuswahl,
-            id::{with_any_id, AnyId, GleisId},
+            id::{mit_any_id, AnyId, GleisId},
             steuerung::Steuerung,
             GleisEntferntFehler, Gleise,
         },
@@ -365,7 +365,7 @@ where
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(GleisEntferntFehler) = with_any_id!(
+            if let Err(GleisEntferntFehler) = mit_any_id!(
                 &any_id,
                 Gleise::setze_streckenabschnitt_unit,
                 &mut self.gleise,

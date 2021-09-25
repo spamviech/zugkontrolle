@@ -23,6 +23,11 @@ impl Skalar {
         Skalar(0.5) * self
     }
 
+    /// Absoluter Wert
+    pub fn abs(&self) -> Self {
+        Skalar(self.0.abs())
+    }
+
     /// Kopie des größeren Elements
     pub fn max(&self, other: &Self) -> Self {
         if self > other {

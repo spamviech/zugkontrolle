@@ -181,14 +181,14 @@ where
     }
 }
 
-impl<T, Z> ButtonMessage<Nachricht<Z>> for T
+impl<T, Z> ButtonNachricht<Nachricht<Z>> for T
 where
     T: Clone + Into<AnyGleis<Z>>,
     Z: Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    fn to_message(&self, grab_location: Vektor) -> Nachricht<Z> {
-        Nachricht::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
+    fn nachricht(&self, klick_position: Vektor) -> Nachricht<Z> {
+        Nachricht::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
     }
 }
 
@@ -333,13 +333,13 @@ where
             anschlüsse,
             gleise,
             scrollable_state: iced::scrollable::State::new(),
-            geraden: Z::geraden().into_iter().map(Button::new).collect(),
-            kurven: Z::kurven().into_iter().map(Button::new).collect(),
-            weichen: Z::weichen().into_iter().map(Button::new).collect(),
-            dreiwege_weichen: Z::dreiwege_weichen().into_iter().map(Button::new).collect(),
-            kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
-            s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
-            kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+            geraden: Z::geraden().into_iter().map(Button::neu).collect(),
+            kurven: Z::kurven().into_iter().map(Button::neu).collect(),
+            weichen: Z::weichen().into_iter().map(Button::neu).collect(),
+            dreiwege_weichen: Z::dreiwege_weichen().into_iter().map(Button::neu).collect(),
+            kurven_weichen: Z::kurven_weichen().into_iter().map(Button::neu).collect(),
+            s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::neu).collect(),
+            kreuzungen: Z::kreuzungen().into_iter().map(Button::neu).collect(),
             geschwindigkeiten: HashMap::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
