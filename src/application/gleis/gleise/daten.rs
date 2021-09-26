@@ -311,13 +311,13 @@ impl<Z> GleiseDaten<Z> {
             if &kandidat_id != eigene_id {
                 let kandidat_verbindungen =
                     kandidat.data.0.verbindungen_an_position(kandidat.data.1.clone());
-                for (kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
+                for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
                     if (verbindung.position - kandidat_verbindung.position).länge() < Skalar(5.) {
                         überlappend.push(kandidat_verbindung.clone())
                     }
                 }
             }
-            if gehalten_id.map_or(false, |id| id == &kandidat_id) {
+            if !gehalten && gehalten_id.map_or(false, |id| id == &kandidat_id) {
                 gehalten = true;
             }
             überlappend.into_iter()
@@ -326,10 +326,10 @@ impl<Z> GleiseDaten<Z> {
     }
 }
 /// SelectionFunction, die jedes Element akzeptiert.
-/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::merge`).
+/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::verschmelze`).
 struct SelectAll;
 impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
-    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
+    fn should_unpack_parent(&self, _envelope: &T::Envelope) -> bool {
         true
     }
 }

@@ -227,7 +227,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 }
                 // Hintergrund
                 for (name, (Streckenabschnitt { farbe, .. }, fließend, daten)) in
-                    self.zustand.streckenabschnitte.iter()
+                    zustand.streckenabschnitte.iter()
                 {
                     macro_rules! transparenz {
                         ($gleis: ident) => {
@@ -255,7 +255,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // Kontur
-                for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
@@ -272,7 +272,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // Verbindungen
-                for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
                         ($gleis: ident) => {
                             |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
@@ -305,7 +305,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 }
                 // Beschreibung
-                for (streckenabschnitt, daten) in self.zustand.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {

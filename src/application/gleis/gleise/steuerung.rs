@@ -64,7 +64,7 @@ macro_rules! steuerung_weiche {
             // streckenabschnitt: &Option<steuerung::streckenabschnitt::Name>,
         ) -> Result<Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>, GleisIdFehler>
         {
-            let GleisId { rectangle, streckenabschnitt, phantom } = gleis_id;
+            let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
             let (definition, _winkel) = &mut zustand
                 .daten_mut(streckenabschnitt)?
