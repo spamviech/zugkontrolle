@@ -155,26 +155,24 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis_id, bewegt, .. }) = &*gehalten {
-                        let gleis_id_clone = gleis_id.clone();
-                        let bewegt_copy = *bewegt;
-                        *gehalten = None;
-                        if bewegt_copy {
+                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
+                        if bewegt {
                             if cursor.is_over(&bounds) {
-                                if let Err(fehler) = mit_any_id!(
-                                    gleis_id_clone,
-                                    Gleise::einrasten_an_verbindung,
-                                    self
-                                ) {
+                                if let Err(fehler) =
+                                    mit_any_id!(gleis_id, Gleise::einrasten_an_verbindung, self)
+                                {
                                     error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
                                 }
                             } else {
-                                mit_any_id!(gleis_id_clone, Gleise::entfernen_unit, self);
+                                if let Err(fehler) =
+                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
+                                {
+                                    error!("Entfernen für entferntes Gleis: {:?}", fehler)
+                                }
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message =
-                                Some(Nachricht::SetzeStreckenabschnitt(gleis_id_clone.into()));
+                            message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.into()));
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
