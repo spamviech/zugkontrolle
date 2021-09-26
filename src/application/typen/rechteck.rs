@@ -1,8 +1,10 @@
 //! Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 
+use std::array;
+
 use rstar::primitives::Rectangle;
 
-use crate::application::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
+use crate::application::typen::{vektor::Vektor, winkel::Winkel};
 
 /// Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 #[derive(Debug, Clone)]
@@ -17,11 +19,30 @@ impl Rechteck {
         Rechteck { ecke_a: Vektor::null_vektor(), ecke_b: größe }
     }
 
+    /// Erzeuge das kleinstmögliche Rechteck das alle Vektoren enthält.
+    /// Schlägt bei einem leeren Iterator (erstes `next` gibt `None` zurück) fehl.
+    pub fn aus_vektoren(mut vektoren: impl Iterator<Item = Vektor>) -> Option<Self> {
+        let anfang = vektoren.next()?;
+        let (min, max) = vektoren.fold((anfang, anfang), min_max);
+        Some(Rechteck { ecke_a: min, ecke_b: max })
+    }
+
     /// Verschiebe das Rechteck um Vektor.
     #[zugkontrolle_derive::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
         self.ecke_a += bewegung;
         self.ecke_b += bewegung;
+    }
+
+    /// Erzeuge ein Rechteck, in dem `self` und `other` enthalten sind.
+    pub fn einschließend(self, other: Self) -> Self {
+        Rechteck::aus_vektoren(array::IntoIter::new([
+            self.ecke_a,
+            self.ecke_b,
+            other.ecke_a,
+            other.ecke_b,
+        ]))
+        .expect("Iterator besteht aus 4 Elementen.")
     }
 
     /// Dehne das Rechteck aus, so dass es um `winkel`-Rotation um `(0, 0)` (im Uhrzeigersinn)
@@ -37,14 +58,8 @@ impl Rechteck {
         ecke_c.rotiere(*winkel);
         ecke_d.rotiere(*winkel);
         // finde maximale x-, y-Werte
-        let xs = [ecke_a.x, ecke_b.x, ecke_c.x, ecke_d.x];
-        let min_x = xs.iter().fold(xs[0], find(Skalar::min));
-        let max_x = xs.iter().fold(xs[0], find(Skalar::max));
-        let ys = [ecke_a.y, ecke_b.y, ecke_c.y, ecke_d.y];
-        let min_y = ys.iter().fold(ys[0], find(Skalar::min));
-        let max_y = ys.iter().fold(ys[0], find(Skalar::min));
-        self.ecke_a = Vektor { x: min_x, y: min_y };
-        self.ecke_b = Vektor { x: max_x, y: max_y };
+        *self = Rechteck::aus_vektoren(array::IntoIter::new([ecke_a, ecke_b, ecke_c, ecke_d]))
+            .expect("Iterator besteht aus 4 Elementen.");
     }
 
     /// Position der linken oberen Ecke des Rechtecks.
@@ -59,12 +74,23 @@ impl Rechteck {
             y: (self.ecke_a.y - self.ecke_b.y).abs(),
         }
     }
+
+    /// Ecke mit den minimalen Koordinaten.
+    pub fn ecke_min(&self) -> Vektor {
+        Vektor { x: self.ecke_a.x.min(&self.ecke_b.x), y: self.ecke_a.y.min(&self.ecke_b.y) }
+    }
+
+    /// Ecke mit den maximalen Koordinaten.
+    pub fn ecke_max(&self) -> Vektor {
+        Vektor { x: self.ecke_a.x.max(&self.ecke_b.x), y: self.ecke_a.y.max(&self.ecke_b.y) }
+    }
 }
 
-fn find<'t>(
-    cmp: impl 't + Fn(&Skalar, &Skalar) -> Skalar,
-) -> impl 't + Fn(Skalar, &Skalar) -> Skalar {
-    move |a: Skalar, b: &Skalar| cmp(&a, b)
+fn min_max((min, max): (Vektor, Vektor), wert: Vektor) -> (Vektor, Vektor) {
+    (
+        Vektor { x: min.x.min(&wert.x), y: min.y.min(&wert.y) },
+        Vektor { x: max.x.max(&wert.x), y: max.y.max(&wert.y) },
+    )
 }
 
 impl From<Rechteck> for Rectangle<Vektor> {
