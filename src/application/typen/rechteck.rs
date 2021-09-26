@@ -18,6 +18,7 @@ impl Rechteck {
     }
 
     /// Verschiebe das Rechteck um Vektor.
+    #[zugkontrolle_derive::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
         self.ecke_a += bewegung;
         self.ecke_b += bewegung;
@@ -25,10 +26,17 @@ impl Rechteck {
 
     /// Dehne das Rechteck aus, so dass es um `winkel`-Rotation um `(0, 0)` (im Uhrzeigersinn)
     /// in das angepasste (nicht rotierte) Rechteck passt.
+    #[zugkontrolle_derive::chain]
     pub fn respektiere_rotation(&mut self, winkel: &Winkel) {
-        let Rechteck { ecke_a, ecke_b } = *self;
-        let ecke_c = Vektor { x: ecke_a.x, y: ecke_b.y };
-        let ecke_d = Vektor { x: ecke_b.x, y: ecke_a.y };
+        let Rechteck { mut ecke_a, mut ecke_b } = *self;
+        let mut ecke_c = Vektor { x: ecke_a.x, y: ecke_b.y };
+        let mut ecke_d = Vektor { x: ecke_b.x, y: ecke_a.y };
+        // rotiere alle Ecken
+        ecke_a.rotiere(*winkel);
+        ecke_b.rotiere(*winkel);
+        ecke_c.rotiere(*winkel);
+        ecke_d.rotiere(*winkel);
+        // finde maximale x-, y-Werte
         let xs = [ecke_a.x, ecke_b.x, ecke_c.x, ecke_d.x];
         let min_x = xs.iter().fold(xs[0], find(Skalar::min));
         let max_x = xs.iter().fold(xs[0], find(Skalar::max));

@@ -94,10 +94,9 @@ where
 
     /// Einschließendes Rechteck, wenn sich das Gleis an der `Position` befindet.
     fn rechteck_an_position(&self, position: &Position) -> Rechteck {
-        let mut rechteck = self.rechteck();
-        rechteck.respektiere_rotation(&position.winkel);
-        rechteck.verschiebe(&position.punkt);
-        rechteck
+        self.rechteck()
+            .respektiere_rotation_chain(&position.winkel)
+            .verschiebe_chain(&position.punkt)
     }
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
