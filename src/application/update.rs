@@ -226,11 +226,19 @@ where
             self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone());
         macro_rules! hinzufügen_gehalten_bei_maus {
             ($gleis:expr) => {{
-                self.gleise.hinzufügen_gehalten_bei_maus(
+                if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
                     $gleis.to_option(),
                     Vektor { x: Skalar(0.), y: klick_höhe },
                     streckenabschnitt,
-                );
+                ) {
+                    error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
+                    self.streckenabschnitt_aktuell.aktuell = None;
+                    let _ = self.gleise.hinzufügen_gehalten_bei_maus(
+                        $gleis.to_option(),
+                        Vektor { x: Skalar(0.), y: klick_höhe },
+                        None,
+                    );
+                }
             }};
         }
         match gleis {

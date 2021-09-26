@@ -336,7 +336,7 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 }
 
 #[derive(Debug)]
-pub struct StreckenabschnittEntferntFehler(streckenabschnitt::Name);
+pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
 impl From<StreckenabschnittEntferntFehler> for Fehler {
     fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
         Fehler::StreckenabschnittEntfernt(fehler.0)
