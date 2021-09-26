@@ -203,9 +203,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         // sub-checks
         let relative_vector = relative_position - start;
         let inverted_vector = Vektor { x: relative_vector.x, y: beschränkung - relative_vector.y };
-        gerade::innerhalb::<Z>(self.länge, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {

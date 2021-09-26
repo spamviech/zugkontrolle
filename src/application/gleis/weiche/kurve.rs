@@ -286,9 +286,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
         let verschoben_vector = relative_vector - Vektor { x: self.länge, y: Skalar(0.) };
-        gerade::innerhalb::<Z>(self.länge, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {

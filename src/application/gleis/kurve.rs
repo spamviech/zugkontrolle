@@ -62,8 +62,7 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
-        todo!()
-        // size::<Z>(self.radius, self.winkel)
+        rechteck::<Z>(self.radius, self.winkel)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -107,46 +106,56 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     }
 
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
-        innerhalb::<Z>(self.radius, self.winkel, relative_position)
+        innerhalb::<Z>(self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
-        todo!()
-        // let halbe_beschränkung = beschränkung::<Z>().halbiert();
-        // Verbindungen {
-        //     anfang: Verbindung {
-        //         position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
-        //         richtung: winkel::PI,
-        //     },
-        //     ende: Verbindung {
-        //         position: Vektor {
-        //             x: self.radius * self.winkel.sin(),
-        //             y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),
-        //         },
-        //         richtung: self.winkel,
-        //     },
-        // }
+        let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        Verbindungen {
+            anfang: Verbindung {
+                position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
+                richtung: winkel::PI,
+            },
+            ende: Verbindung {
+                position: Vektor {
+                    x: self.radius * self.winkel.sin(),
+                    y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),
+                },
+                richtung: self.winkel,
+            },
+        }
     }
 }
 
-pub(crate) fn size<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Vektor {
-    // Breite
+pub(crate) fn rechteck<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Rechteck {
+    // Hilfswerte
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
-    let width_factor = if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { Skalar(1.) };
-    let width = radius_begrenzung_außen * width_factor;
-    // Höhe des Bogen
-    let angle_abs = winkel.abs();
-    let comparison = if angle_abs < winkel::FRAC_PI_2 {
-        radius_begrenzung_außen * (Skalar(1.) - winkel.cos()) + beschränkung::<Z>() * winkel.cos()
-    } else if angle_abs < winkel::PI {
-        radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
+    let breite_faktor;
+    let höhe_vergleich;
+    let position_x_faktor;
+    if winkel < winkel::FRAC_PI_2 {
+        breite_faktor = winkel.sin();
+        höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
+            + beschränkung::<Z>() * winkel.cos();
+        position_x_faktor = Skalar(1.);
     } else {
-        radius_begrenzung_außen
-    };
-    // Mindesthöhe: Beschränkung einer Geraden
-    let height = beschränkung::<Z>().max(&comparison);
+        breite_faktor = Skalar(1.);
+        if winkel < winkel::PI {
+            höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos());
+            position_x_faktor = Skalar(1.);
+        } else {
+            höhe_vergleich = radius_begrenzung_außen;
+            position_x_faktor = Skalar(1.) - winkel.cos();
+        }
+    }
+    // Minimale Koordinaten
+    let ecke_a = Vektor { x: position_x_faktor * radius_begrenzung_außen, y: Skalar(0.) };
+    // Maximale Koordinaten
+    let breite = radius_begrenzung_außen * breite_faktor;
+    let höhe = beschränkung::<Z>().max(&höhe_vergleich);
+    let ecke_b = Vektor { x: breite, y: höhe };
     // Rückgabewert
-    Vektor { x: width, y: height }
+    Rechteck { ecke_a, ecke_b }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -335,6 +344,7 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
     radius: Skalar,
     winkel: Winkel,
     relative_position: Vektor,
+    ungenauigkeit: Skalar,
 ) -> bool {
     let spurweite = spurweite::<Z>();
     let abstand = abstand::<Z>();
@@ -344,7 +354,7 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };
     let radius_vector = bogen_zentrum - relative_position;
     let länge = radius_vector.länge();
-    if länge > radius_innen && länge < radius_außen {
+    if länge + ungenauigkeit > radius_innen && länge - ungenauigkeit < radius_außen {
         let acos = Winkel::acos(radius_vector.y / länge);
         let mut test_winkel: Winkel = if radius_vector.x > Skalar(0.) { -acos } else { acos };
         // normalisiere winkel

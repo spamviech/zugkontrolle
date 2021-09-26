@@ -254,11 +254,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         let mut gedreht_vector = (relative_position - zentrum).rotiert(-winkel);
         gedreht_vector.y = -gedreht_vector.y;
         gedreht_vector += zentrum - start;
-        gerade::innerhalb::<Z>(self.länge, horizontal_vector)
-            || gerade::innerhalb::<Z>(self.länge, gedreht_vector)
+        gerade::innerhalb::<Z>(self.länge, horizontal_vector, ungenauigkeit)
+            || gerade::innerhalb::<Z>(self.länge, gedreht_vector, ungenauigkeit)
             || (self.variante == Variante::MitKurve
-                && (kurve::innerhalb::<Z>(self.radius, winkel, horizontal_vector)
-                    || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector)))
+                && (kurve::innerhalb::<Z>(self.radius, winkel, horizontal_vector, ungenauigkeit)
+                    || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector, ungenauigkeit)))
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {

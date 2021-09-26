@@ -222,8 +222,8 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         // sub-checks
         let mut relative_vector = relative_position - start;
         relative_vector.y *= multiplier;
-        gerade::innerhalb::<Z>(self.länge, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {

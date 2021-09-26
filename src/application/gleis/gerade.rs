@@ -52,8 +52,7 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
-        todo!()
-        // size::<Z>(self.länge)
+        rechteck::<Z>(self.länge)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -79,29 +78,28 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Gerade<Z, Anschluss> {
     }
 
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
-        innerhalb::<Z>(self.länge, relative_position)
+        innerhalb::<Z>(self.länge, relative_position, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
-        todo!()
-        // let gleis_links = Skalar(0.);
-        // let gleis_rechts = gleis_links + self.länge;
-        // let beschränkung_mitte = beschränkung::<Z>().halbiert();
-        // Verbindungen {
-        //     anfang: Verbindung {
-        //         position: Vektor { x: gleis_links, y: beschränkung_mitte },
-        //         richtung: winkel::PI,
-        //     },
-        //     ende: Verbindung {
-        //         position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
-        //         richtung: winkel::ZERO,
-        //     },
-        // }
+        let gleis_links = Skalar(0.);
+        let gleis_rechts = gleis_links + self.länge;
+        let beschränkung_mitte = beschränkung::<Z>().halbiert();
+        Verbindungen {
+            anfang: Verbindung {
+                position: Vektor { x: gleis_links, y: beschränkung_mitte },
+                richtung: winkel::PI,
+            },
+            ende: Verbindung {
+                position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
+                richtung: winkel::ZERO,
+            },
+        }
     }
 }
 
-pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
-    Vektor { x: länge, y: beschränkung::<Z>() }
+pub(crate) fn rechteck<Z: Zugtyp>(länge: Skalar) -> Rechteck {
+    Rechteck::mit_größe(Vektor { x: länge, y: beschränkung::<Z>() })
 }
 
 pub(crate) fn zeichne<Z, P, A>(
@@ -198,9 +196,13 @@ where
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
 }
 
-pub(crate) fn innerhalb<Z: Zugtyp>(länge: Skalar, relative_position: Vektor) -> bool {
-    relative_position.x >= Skalar(0.)
-        && relative_position.x <= länge
-        && relative_position.y >= abstand::<Z>()
-        && relative_position.y <= abstand::<Z>() + spurweite::<Z>()
+pub(crate) fn innerhalb<Z: Zugtyp>(
+    länge: Skalar,
+    relative_position: Vektor,
+    ungenauigkeit: Skalar,
+) -> bool {
+    relative_position.x + ungenauigkeit >= Skalar(0.)
+        && relative_position.x - ungenauigkeit <= länge
+        && relative_position.y + ungenauigkeit >= abstand::<Z>()
+        && relative_position.y - ungenauigkeit <= abstand::<Z>() + spurweite::<Z>()
 }

@@ -386,9 +386,14 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
         s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung::<Z>() };
         s_kurve_vector.y = -s_kurve_vector.y;
-        gerade::innerhalb::<Z>(self.länge, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
-            || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb::<Z>(
+                self.radius_reverse,
+                self.winkel_reverse,
+                s_kurve_vector,
+                ungenauigkeit,
+            )
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
