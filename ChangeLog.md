@@ -24,6 +24,7 @@
   - anchor.rs -> verbindung.rs
   - polarity.rs -> polarität.rs
   - maps.rs -> daten.rs
+- Refactoring: gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
 - Refactoring: diverse Nachrichten-Typen umbenannt Message->Error
