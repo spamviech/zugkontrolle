@@ -28,8 +28,8 @@ pub struct Gleis<T> {
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 impl<T> From<Gleis<T>> for aktuell::Gleis<T> {
-    fn from(Gleis { definition, position, streckenabschnitt }: Gleis<T>) -> Self {
-        aktuell::Gleis { definition, position, streckenabschnitt }
+    fn from(Gleis { definition, position, streckenabschnitt: _ }: Gleis<T>) -> Self {
+        aktuell::Gleis { definition, position }
     }
 }
 

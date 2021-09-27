@@ -46,18 +46,13 @@ pub mod v2;
 pub struct Gleis<T> {
     pub definition: T,
     pub position: Position,
-    pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
 impl<T: Serialisiere> Serialisiere for Gleis<T> {
     type Serialisiert = Gleis<T::Serialisiert>;
 
     fn serialisiere(&self) -> Self::Serialisiert {
-        Gleis {
-            definition: self.definition.serialisiere(),
-            position: self.position.clone(),
-            streckenabschnitt: self.streckenabschnitt.clone(),
-        }
+        Gleis { definition: self.definition.serialisiere(), position: self.position.clone() }
     }
 
     fn anschlüsse(
@@ -91,11 +86,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
             input_anschlüsse,
         )?;
         Ok(Reserviert {
-            anschluss: Gleis {
-                definition: definition_reserviert,
-                position: self.position,
-                streckenabschnitt: self.streckenabschnitt,
-            },
+            anschluss: Gleis { definition: definition_reserviert, position: self.position },
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
@@ -238,7 +229,7 @@ where
     }
 }
 
-pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, (T, Position)>>;
+pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) struct GleiseDaten<Z> {
     pub(crate) geraden: RStern<Gerade<Z>>,
@@ -309,8 +300,10 @@ impl<Z> GleiseDaten<Z> {
             });
             let mut überlappend = Vec::new();
             if &kandidat_id != eigene_id {
-                let kandidat_verbindungen =
-                    kandidat.data.0.verbindungen_an_position(kandidat.data.1.clone());
+                let kandidat_verbindungen = kandidat
+                    .data
+                    .definition
+                    .verbindungen_an_position(kandidat.data.position.clone());
                 for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
                     if (verbindung.position - kandidat_verbindung.position).länge() < Skalar(5.) {
                         überlappend.push(kandidat_verbindung.clone())

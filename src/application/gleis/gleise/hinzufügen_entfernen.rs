@@ -13,7 +13,7 @@ use crate::{
     application::{
         gleis::{
             gleise::{
-                daten::{DatenAuswahl, SelectEnvelope},
+                daten::{DatenAuswahl, Gleis, SelectEnvelope},
                 id::{AnyId, AnyIdRef, GleisId, GleisIdRef},
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
                 StreckenabschnittEntferntFehler,
@@ -49,7 +49,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.zustand
             .daten_mut(&streckenabschnitt)?
             .rstern_mut()
-            .insert(GeomWithData::new(rectangle.clone(), (definition, position)));
+            .insert(GeomWithData::new(rectangle.clone(), Gleis { definition, position }));
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert
@@ -128,7 +128,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let (definition, _position) = self.entfernen(gleis_id)?;
+        let Gleis { definition, position } = self.entfernen(gleis_id)?;
         // Füge an neuer Position hinzu.
         self.hinzufügen(definition, position_neu, streckenabschnitt).map_err(GleisIdFehler::from)
     }
@@ -147,7 +147,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let (definition, _position) = self.entfernen(gleis_id)?;
+        let Gleis { definition, position } = self.entfernen(gleis_id)?;
         // Füge Gleis an neuer Position hinzu.
         self.hinzufügen_anliegend(definition, streckenabschnitt, verbindung_name, ziel_verbindung)
             .map_err(GleisIdFehler::from)
@@ -155,10 +155,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T>(
-        &mut self,
-        gleis_id: GleisId<T>,
-    ) -> Result<(T, Position), GleisIdFehler>
+    pub(crate) fn entfernen<T>(&mut self, gleis_id: GleisId<T>) -> Result<Gleis<T>, GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
@@ -232,7 +229,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &gleis_id;
         let daten = self.zustand.daten(&streckenabschnitt)?;
-        let (_definition, position) = &daten
+        let Gleis { definition: _, position } = &daten
             .rstern::<T>()
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .next()
@@ -260,7 +257,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             phantom: *phantom,
         });
         let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
-        let (definition, position) = &rstern
+        let Gleis { definition, position } = &rstern
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
@@ -309,7 +306,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     Ok(bisherige_daten) => bisherige_daten.rstern_mut().insert(geom_with_data),
                     Err(wiederherstellen_fehler) => error!(
                         "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nGleis entfernt: {:?}",
-                        wiederherstellen_fehler, geom_with_data.data.0
+                        wiederherstellen_fehler, geom_with_data.data
                     ),
                 }
                 Err(fehler.into())

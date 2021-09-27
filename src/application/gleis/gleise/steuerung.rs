@@ -6,7 +6,11 @@ use crate::{
     application::{
         gleis::{
             self,
-            gleise::{daten::SelectEnvelope, id::GleisId, GleisIdFehler, Gleise},
+            gleise::{
+                daten::{Gleis, SelectEnvelope},
+                id::GleisId,
+                GleisIdFehler, Gleise,
+            },
         },
         typen::*,
     },
@@ -66,7 +70,7 @@ macro_rules! steuerung_weiche {
         {
             let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
-            let (definition, _winkel) = &mut zustand
+            let Gleis { definition, position: _ } = &mut zustand
                 .daten_mut(streckenabschnitt)?
                 .$map
                 .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))

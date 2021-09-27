@@ -48,7 +48,7 @@ where
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
-        let (definition, position) = &geom_with_data.data;
+        let Gleis { definition, position } = &geom_with_data.data;
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {

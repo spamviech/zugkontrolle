@@ -10,7 +10,7 @@ use crate::{
         gleis::{
             gerade::Gerade,
             gleise::{
-                daten::RStern,
+                daten::{Gleis, RStern},
                 id::{AnyId, AnyIdRef, GleisIdRef},
                 Gehalten, Gleise, ModusDaten,
             },
@@ -46,7 +46,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
-        let (definition, position) = &geom_with_data.data;
+        let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben
@@ -71,7 +71,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
-        let (definition, position) = &geom_with_data.data;
+        let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
@@ -103,7 +103,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
-        let (definition, position) = &geom_with_data.data;
+        let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
@@ -147,7 +147,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
-        let (definition, position) = &geom_with_data.data;
+        let Gleis { definition, position } = &geom_with_data.data;
         let (relative_position, beschreibung, name) = definition.beschreibung_und_name();
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
