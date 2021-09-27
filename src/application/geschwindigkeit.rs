@@ -1,7 +1,7 @@
 //! Anzeige & Erstellen einer Geschwindigkeit.
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt::{Debug, Display},
     num::NonZeroUsize,
     sync::mpsc::Sender,
@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-pub type Map<Leiter> = HashMap<Name, (Geschwindigkeit<Leiter>, AnzeigeStatus<Leiter>)>;
+pub type Map<Leiter> = BTreeMap<Name, AnzeigeStatus<Leiter>>;
 
 #[derive(Debug)]
 pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
@@ -42,8 +42,8 @@ pub trait LeiterAnzeige: Serialisiere + Sized {
 
     fn anzeige_status_neu(name: Name) -> AnzeigeStatus<Self>;
 
-    fn anzeige_neu<'t, R>(
-        geschwindigkeit: &'t Geschwindigkeit<Self>,
+    fn anzeige_neu<'s, 't, R>(
+        geschwindigkeit: &'s Geschwindigkeit<Self>,
         status: &'t mut AnzeigeStatus<Self>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -113,8 +113,8 @@ impl LeiterAnzeige for Mittelleiter {
         }
     }
 
-    fn anzeige_neu<'t, R>(
-        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
+    fn anzeige_neu<'s, 't, R>(
+        geschwindigkeit: &'s Geschwindigkeit<Mittelleiter>,
         status: &'t mut AnzeigeStatus<Mittelleiter>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -235,8 +235,8 @@ impl LeiterAnzeige for Zweileiter {
         }
     }
 
-    fn anzeige_neu<'t, R>(
-        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
+    fn anzeige_neu<'s, 't, R>(
+        geschwindigkeit: &'s Geschwindigkeit<Zweileiter>,
         status: &'t mut AnzeigeStatus<Zweileiter>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -361,11 +361,11 @@ where
     M: 'static + Clone,
     R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
 {
-    pub fn neu_mit_leiter<Leiter>(
-        geschwindigkeit: &'t Geschwindigkeit<Leiter>,
+    pub fn neu_mit_leiter<'s, Leiter>(
+        geschwindigkeit: &'s Geschwindigkeit<Leiter>,
         status: &'t mut AnzeigeStatus<Leiter>,
-        ks_länge: impl FnOnce(&'t Geschwindigkeit<Leiter>) -> Option<usize>,
-        geschwindigkeits_nachricht: impl Fn(u8) -> M + Clone + 'static,
+        ks_länge: impl FnOnce(&'s Geschwindigkeit<Leiter>) -> Option<usize>,
+        geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
         zeige_fahrtrichtung: impl FnOnce(&'t mut Leiter::Fahrtrichtung) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
     ) -> Self
@@ -386,7 +386,7 @@ where
                                 i_u8,
                                 i_u8.to_string(),
                                 Some(*aktuelle_geschwindigkeit),
-                                geschwindigkeits_nachricht.clone(),
+                                geschwindigkeit_nachricht.clone(),
                             )
                             .spacing(0)
                             .into()
@@ -401,7 +401,7 @@ where
                     pwm_slider_state,
                     0..=u8::MAX,
                     *aktuelle_geschwindigkeit,
-                    geschwindigkeits_nachricht,
+                    geschwindigkeit_nachricht,
                 )
                 .width(Length::Units(100)),
             )

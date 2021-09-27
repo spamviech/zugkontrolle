@@ -14,7 +14,7 @@ use crate::{
         verbindung::{self, Verbindung},
     },
     lookup::Lookup,
-    steuerung::{streckenabschnitt, Streckenabschnitt},
+    steuerung::{geschwindigkeit, streckenabschnitt, Geschwindigkeit, Streckenabschnitt},
 };
 
 pub mod daten;
@@ -169,10 +169,10 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn streckenabschnitt(
-        &self,
-        name: &streckenabschnitt::Name,
-    ) -> Option<(&Streckenabschnitt, &Fließend)> {
+    pub fn streckenabschnitt<'s, 't>(
+        &'s self,
+        name: &'t streckenabschnitt::Name,
+    ) -> Option<(&'s Streckenabschnitt, &'s Fließend)> {
         self.zustand
             .streckenabschnitte
             .get(name)
@@ -207,13 +207,55 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
-    /// Namen und Farbe aller aktuell bekannten Streckenabschnitte.
+    /// Alle aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte(
         &self,
     ) -> impl Iterator<Item = (&streckenabschnitt::Name, (&Streckenabschnitt, &Fließend))> {
         self.zustand.streckenabschnitte.iter().map(
             |(name, (streckenabschnitt, fließend, _maps))| (name, (streckenabschnitt, fließend)),
         )
+    }
+
+    /// Füge einen Streckenabschnitt hinzu.
+    /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
+    pub fn neue_geschwindigkeit(
+        &mut self,
+        name: geschwindigkeit::Name,
+        geschwindigkeit: Geschwindigkeit<Z::Leiter>,
+    ) -> Option<Geschwindigkeit<Z::Leiter>> {
+        self.zustand.geschwindigkeiten.insert(name, geschwindigkeit)
+    }
+
+    /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
+    pub fn geschwindigkeit<'s, 't>(
+        &'s self,
+        name: &'t geschwindigkeit::Name,
+    ) -> Option<&'s Geschwindigkeit<Z::Leiter>> {
+        self.zustand.geschwindigkeiten.get(name)
+    }
+
+    /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
+    pub fn geschwindigkeit_mut<'s, 't>(
+        &'s mut self,
+        name: &'t geschwindigkeit::Name,
+    ) -> Option<&'s mut Geschwindigkeit<Z::Leiter>> {
+        self.zustand.geschwindigkeiten.get_mut(name)
+    }
+
+    /// Entferne einen Streckenabschnitt.
+    /// Falls er vorhanden war wird er zurückgegeben.
+    pub fn entferne_geschwindigkeit(
+        &mut self,
+        name: geschwindigkeit::Name,
+    ) -> Option<Geschwindigkeit<Z::Leiter>> {
+        self.zustand.geschwindigkeiten.remove(&name)
+    }
+
+    /// Alle aktuell bekannten Geschwindigkeiten.
+    pub(crate) fn geschwindigkeiten(
+        &self,
+    ) -> impl Iterator<Item = (&geschwindigkeit::Name, &Geschwindigkeit<Z::Leiter>)> {
+        self.zustand.geschwindigkeiten.iter()
     }
 }
 

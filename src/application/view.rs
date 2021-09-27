@@ -2,6 +2,7 @@
 
 use std::fmt::Debug;
 
+use log::error;
 use num_traits::NumCast;
 
 use crate::{
@@ -12,8 +13,14 @@ use crate::{
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
         gleis::{
-            DreiwegeWeicheUnit, GeradeUnit, KreuzungUnit, KurveUnit, KurvenWeicheUnit,
-            SKurvenWeicheUnit, WeicheUnit,
+            gerade::GeradeUnit,
+            gleise::Gleise,
+            kreuzung::KreuzungUnit,
+            kurve::KurveUnit,
+            weiche::{
+                dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+                s_kurve::SKurvenWeicheUnit,
+            },
         },
         scrollable, speichern_laden, streckenabschnitt,
         style::rule,
@@ -98,6 +105,7 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten,
+            gleise,
         );
 
         let column: iced::Element<Nachricht<Z>> = iced::Column::new()
@@ -275,7 +283,7 @@ where
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'t, Z>(
+fn row_with_scrollable<'s, 't, Z>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Button<GeradeUnit<Z>>>,
@@ -286,6 +294,7 @@ fn row_with_scrollable<'t, Z>(
     s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit<Z>>>,
     kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
+    gleise: &'s Gleise<Z>,
 ) -> iced::Row<'t, Nachricht<Z>>
 where
     Z: 'static + Zugtyp,
@@ -329,7 +338,13 @@ where
         }
         Modus::Fahren => {
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten")).spacing(1);
-            for (name, (geschwindigkeit, anzeige_status)) in geschwindigkeiten {
+            for (name, anzeige_status) in geschwindigkeiten {
+                let geschwindigkeit = if let Some(geschwindigkeit) = gleise.geschwindigkeit(name) {
+                    geschwindigkeit
+                } else {
+                    error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
+                    continue;
+                };
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
                     iced::Element::from(Z::Leiter::anzeige_neu(geschwindigkeit, anzeige_status))

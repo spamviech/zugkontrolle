@@ -1,7 +1,6 @@
 //! iced::Application für die Gleis-Anzeige
 
 use std::{
-    collections::HashMap,
     convert::identity,
     fmt::Debug,
     sync::{
@@ -340,7 +339,7 @@ where
             kurven_weichen: Z::kurven_weichen().into_iter().map(Button::neu).collect(),
             s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::neu).collect(),
             kreuzungen: Z::kreuzungen().into_iter().map(Button::neu).collect(),
-            geschwindigkeiten: HashMap::new(),
+            geschwindigkeiten: geschwindigkeit::Map::new(),
             modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             streckenabschnitt_aktuell_festlegen: false,

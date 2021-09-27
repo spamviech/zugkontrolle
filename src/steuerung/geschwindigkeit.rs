@@ -1,7 +1,7 @@
 //! Einstellen der Geschwindigkeit.
 
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     fmt::{self, Debug, Display, Formatter},
     sync::{mpsc::Sender, Arc, Mutex, MutexGuard, PoisonError},
     thread::{self, sleep},
@@ -723,5 +723,5 @@ impl From<pwm::Fehler> for Fehler {
 /// Name einer Geschwindigkeit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
-pub type Map<Leiter> = BTreeMap<Name, Geschwindigkeit<Leiter>>;
-pub type MapSerialisiert<Leiter> = BTreeMap<Name, GeschwindigkeitSerialisiert<Leiter>>;
+pub type Map<Leiter> = HashMap<Name, Geschwindigkeit<Leiter>>;
+pub type MapSerialisiert<Leiter> = HashMap<Name, GeschwindigkeitSerialisiert<Leiter>>;
