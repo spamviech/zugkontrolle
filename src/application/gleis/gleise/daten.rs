@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        self,
+        de_serialisieren::{Reserviere, Reserviert, Serialisiere},
         polarität::Fließend,
     },
     application::{
@@ -40,6 +41,7 @@ use crate::{
     },
 };
 
+pub mod de_serialisieren;
 pub mod v2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,7 +75,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
         pwm_pins: Vec<crate::anschluss::pwm::Pin>,
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
-    ) -> de_serialisieren::Result<Gleis<R>> {
+    ) -> anschluss::de_serialisieren::Result<Gleis<R>> {
         let Reserviert {
             anschluss: definition_reserviert,
             pwm_nicht_benötigt,
@@ -320,7 +322,7 @@ impl<Z> GleiseDaten<Z> {
 }
 /// SelectionFunction, die jedes Element akzeptiert.
 /// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::verschmelze`).
-struct SelectAll;
+pub(crate) struct SelectAll;
 impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
     fn should_unpack_parent(&self, _envelope: &T::Envelope) -> bool {
         true
@@ -420,82 +422,5 @@ impl<Z> DatenAuswahl<Z> for Kreuzung<Z> {
     }
     fn rstern_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
         kreuzungen
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct Serialisiert<Z: Zugtyp> {
-    pub(crate) zugtyp: String,
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
-    pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
-    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
-    pub(crate) pläne: Vec<Plan>,
-}
-
-impl<Z> Debug for Serialisiert<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Serialisiert")
-            .field("zugtyp", &self.zugtyp)
-            .field("geraden", &self.geraden)
-            .field("kurven", &self.kurven)
-            .field("weichen", &self.weichen)
-            .field("dreiwege_weichen", &self.dreiwege_weichen)
-            .field("kurven_weichen", &self.kurven_weichen)
-            .field("s_kurven_weichen", &self.s_kurven_weichen)
-            .field("kreuzungen", &self.kreuzungen)
-            .field("streckenabschnitte", &self.streckenabschnitte)
-            .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .field("pläne", &self.pläne)
-            .finish()
-    }
-}
-
-impl<Z: Zugtyp> From<&Zustand<Z>> for Serialisiert<Z> {
-    fn from(
-        Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,
-    ) -> Self {
-        // macro_rules! hashmaps_to_vecs {
-        //     ($($map:ident),* $(,)?) => {
-        //         Serialisiert {
-        //             zugtyp: Z::NAME.to_string(),
-        //             streckenabschnitte: maps.streckenabschnitte.iter().map(
-        //                 |(name, (streckenabschnitt, _fließend))|
-        //                     (name.clone(), streckenabschnitt.serialisiere())
-        //                 ).collect(),
-        //             geschwindigkeiten,
-        //             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
-        //             pläne: Vec::new(),
-        //             $($map: maps.$map.values().map(
-        //                 |Gleis {position, definition, streckenabschnitt}|
-        //                 Gleis {
-        //                     position: position.clone(),
-        //                     definition: definition.serialisiere(),
-        //                     streckenabschnitt: streckenabschnitt.clone()
-        //                 })
-        //                 .collect()
-        //             ),*
-        //         }
-        //     };
-        // }
-        // hashmaps_to_vecs!(
-        //     geraden,
-        //     kurven,
-        //     weichen,
-        //     dreiwege_weichen,
-        //     kurven_weichen,
-        //     s_kurven_weichen,
-        //     kreuzungen,
-        // )
-        todo!()
     }
 }

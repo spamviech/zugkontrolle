@@ -18,7 +18,6 @@ use crate::{
 };
 
 pub mod daten;
-pub mod de_serialisieren;
 pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;

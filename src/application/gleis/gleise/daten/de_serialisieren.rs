@@ -14,10 +14,87 @@ use crate::{
     application::{
         gleis::gleise::{daten::*, Fehler, Gleise},
         typen::*,
-        verbindung,
+        verbindung::Verbindung,
     },
     steuerung::geschwindigkeit::{self, Geschwindigkeit, Leiter},
 };
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct Serialisiert<Z: Zugtyp> {
+    pub(crate) zugtyp: String,
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+    pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
+    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
+    pub(crate) pläne: Vec<Plan>,
+}
+
+impl<Z> Debug for Serialisiert<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Serialisiert")
+            .field("zugtyp", &self.zugtyp)
+            .field("geraden", &self.geraden)
+            .field("kurven", &self.kurven)
+            .field("weichen", &self.weichen)
+            .field("dreiwege_weichen", &self.dreiwege_weichen)
+            .field("kurven_weichen", &self.kurven_weichen)
+            .field("s_kurven_weichen", &self.s_kurven_weichen)
+            .field("kreuzungen", &self.kreuzungen)
+            .field("streckenabschnitte", &self.streckenabschnitte)
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
+            .field("pläne", &self.pläne)
+            .finish()
+    }
+}
+
+impl<Z: Zugtyp> From<&Zustand<Z>> for Serialisiert<Z> {
+    fn from(
+        Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,
+    ) -> Self {
+        // macro_rules! hashmaps_to_vecs {
+        //     ($($map:ident),* $(,)?) => {
+        //         Serialisiert {
+        //             zugtyp: Z::NAME.to_string(),
+        //             streckenabschnitte: maps.streckenabschnitte.iter().map(
+        //                 |(name, (streckenabschnitt, _fließend))|
+        //                     (name.clone(), streckenabschnitt.serialisiere())
+        //                 ).collect(),
+        //             geschwindigkeiten,
+        //             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
+        //             pläne: Vec::new(),
+        //             $($map: maps.$map.values().map(
+        //                 |Gleis {position, definition, streckenabschnitt}|
+        //                 Gleis {
+        //                     position: position.clone(),
+        //                     definition: definition.serialisiere(),
+        //                     streckenabschnitt: streckenabschnitt.clone()
+        //                 })
+        //                 .collect()
+        //             ),*
+        //         }
+        //     };
+        // }
+        // hashmaps_to_vecs!(
+        //     geraden,
+        //     kurven,
+        //     weichen,
+        //     dreiwege_weichen,
+        //     kurven_weichen,
+        //     s_kurven_weichen,
+        //     kreuzungen,
+        // )
+        todo!()
+    }
+}
 
 impl<Z: Zugtyp + Serialize> Gleise<Z> {
     #[must_use]
@@ -61,91 +138,90 @@ where
     Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
-    #[must_use]
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
-        bisherige_geschwindigkeiten: impl Iterator<Item = Geschwindigkeit<Z::Leiter>>,
         pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<Vec<(geschwindigkeit::Name, Geschwindigkeit<Z::Leiter>)>, Fehler> {
-        todo!()
-        // // sammle bisherige Anschlüsse
-        // let mut pwm_pins = Vec::new();
-        // let mut output_anschlüsse = Vec::new();
-        // let mut input_anschlüsse = Vec::new();
-        // RTree::bulk_load verwenden!
-        // macro_rules! fold_anschlüsse {
-        //     ($iterator:expr) => {
-        //         for struktur in $iterator {
-        //             let (pwm, output, input) = struktur.anschlüsse();
-        //             pwm_pins.extend(pwm.into_iter());
-        //             output_anschlüsse.extend(output.into_iter());
-        //             input_anschlüsse.extend(input.into_iter());
-        //         }
-        //     };
-        // }
-        // macro_rules! fold_gleis_anschlüsse {
-        //     ($map:ident) => {
-        //         fold_anschlüsse! {
-        //             self.maps.$map.drain().map(|(_id, Gleis { definition, .. })| definition)
-        //         }
-        //     };
-        // }
-        // fold_anschlüsse! {bisherige_geschwindigkeiten.map(|mut geschwindigkeit| {
-        //     if let Err(error) = geschwindigkeit.geschwindigkeit(0){
-        //         error!("Fehler beim Geschwindigkeit ausstellen: {:?}", error)
-        //     }
-        //     geschwindigkeit
-        // })}
-        // fold_gleis_anschlüsse! {geraden}
-        // fold_gleis_anschlüsse! {kurven}
-        // fold_gleis_anschlüsse! {weichen}
-        // fold_gleis_anschlüsse! {dreiwege_weichen}
-        // fold_gleis_anschlüsse! {kurven_weichen}
-        // fold_gleis_anschlüsse! {s_kurven_weichen}
-        // fold_gleis_anschlüsse! {kreuzungen}
-        // fold_anschlüsse! {
-        //     self.maps.streckenabschnitte.drain().map(
-        //         |(_id, (mut streckenabschnitt, _fließend))| {
-        //             if let Err(error) = streckenabschnitt.strom(Fließend::Gesperrt) {
-        //                 error!("Fehler beim Streckenabschnitt ausstellen: {:?}", error)
-        //             }
-        //             streckenabschnitt
-        //         }
-        //     )
-        // }
+    ) -> Result<(), Fehler> {
+        // sammle bisherige Anschlüsse
+        let mut pwm_pins = Vec::new();
+        let mut output_anschlüsse = Vec::new();
+        let mut input_anschlüsse = Vec::new();
+        macro_rules! collect_anschlüsse {
+            ($struktur: expr) => {
+                let (pwm, output, input) = $struktur.anschlüsse();
+                pwm_pins.extend(pwm.into_iter());
+                output_anschlüsse.extend(output.into_iter());
+                input_anschlüsse.extend(input.into_iter());
+            };
+        }
+        macro_rules! collect_gleis_anschlüsse {
+            ($daten: expr, $($rstern: ident),*) => {
+                $(while let Some(geom_with_data) =
+                    $daten.$rstern.remove_with_selection_function(SelectAll)
+                {
+                    collect_anschlüsse! {
+                        geom_with_data.data.definition
+                    }
+                })*
+            };
+        }
+        macro_rules! collect_all_gleis_anschlüsse {
+            ($daten: expr) => {
+                collect_gleis_anschlüsse! {
+                    $daten,
+                    geraden,
+                    kurven,
+                    weichen,
+                    dreiwege_weichen,
+                    kurven_weichen,
+                    s_kurven_weichen,
+                    kreuzungen
+                }
+            };
+        }
+        for (_name, geschwindigkeit) in self.zustand.geschwindigkeiten.drain() {
+            collect_anschlüsse!(geschwindigkeit);
+        }
+        collect_all_gleis_anschlüsse!(self.zustand.ohne_streckenabschnitt);
+        for (_name, (streckenabschnitt, _fließend, mut daten)) in
+            self.zustand.streckenabschnitte.drain()
+        {
+            collect_anschlüsse!(streckenabschnitt);
+            collect_all_gleis_anschlüsse!(daten);
+        }
 
-        // // aktuellen Zustand zurücksetzen
-        // self.canvas.leeren();
-        // // TODO pivot, skalieren, Modus?
-        // // last_mouse, last_size nicht anpassen
+        // aktuellen Zustand zurücksetzen
+        self.canvas.leeren();
+        // TODO pivot, skalieren, Modus?
+        // last_mouse, last_size nicht anpassen
         // self.zustand = Zustand::neu();
         // self.anchor_points = verbindung::rstern::RStern::neu();
-        // // lese & parse Datei
-        // let mut file = std::fs::File::open(pfad)?;
-        // let mut content = Vec::new();
-        // file.read_to_end(&mut content)?;
-        // let slice = content.as_slice();
-        // let Serialisiert {
-        //     zugtyp,
-        //     geraden,
-        //     kurven,
-        //     weichen,
-        //     dreiwege_weichen,
-        //     kurven_weichen,
-        //     s_kurven_weichen,
-        //     kreuzungen,
-        //     streckenabschnitte,
-        //     geschwindigkeiten,
-        //     pläne: _, // TODO verwenden, sobald Plan implementiert ist
-        // } = bincode::deserialize(slice).or_else(|aktuell| {
-        //     bincode::deserialize(slice)
-        //         .map(v2::GleiseVecs::into)
-        //         .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
-        // })?;
-        // if zugtyp != Z::NAME {
-        //     return Err(Fehler::FalscherZugtyp(zugtyp));
-        // }
+        // lese & parse Datei
+        let mut file = std::fs::File::open(pfad)?;
+        let mut content = Vec::new();
+        file.read_to_end(&mut content)?;
+        let slice = content.as_slice();
+        let Serialisiert {
+            zugtyp,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            streckenabschnitte,
+            geschwindigkeiten,
+            pläne: _, // TODO verwenden, sobald Plan implementiert ist
+        } = bincode::deserialize(slice).or_else(|aktuell| {
+            bincode::deserialize(slice)
+                .map(v2::GleiseVecs::<Z>::into)
+                .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
+        })?;
+        if zugtyp != Z::NAME {
+            return Err(Fehler::FalscherZugtyp(zugtyp));
+        }
 
         // // reserviere Anschlüsse
         // macro_rules! reserviere_anschlüsse {
@@ -265,5 +341,7 @@ where
         //     self.neuer_streckenabschnitt(name, streckenabschnitt);
         // }
         // Ok(geschwindigkeiten_reserviert)
+        // FIXME RTree::bulk_load verwenden!
+        todo!()
     }
 }
