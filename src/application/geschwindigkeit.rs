@@ -471,8 +471,8 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
-    pub fn neu<'t, Leiter: 't + Display, A: 't>(
-        geschwindigkeiten: impl Iterator<Item = (&'t Name, &'t (Geschwindigkeit<Leiter>, A))>,
+    pub fn neu<'t, Leiter: 't + Display>(
+        geschwindigkeiten: impl Iterator<Item = (&'t Name, &'t Geschwindigkeit<Leiter>)>,
     ) -> Self {
         AuswahlStatus {
             neu_name: String::new(),
@@ -491,10 +491,7 @@ impl AuswahlStatus {
             )),
             ks_scrollable_state: scrollable::State::new(),
             hinzufügen_button_state: button::State::new(),
-            geschwindigkeiten: geschwindigkeiten
-                .map(|(name, (geschwindigkeit, _a))| (name, geschwindigkeit))
-                .map(Self::iter_map)
-                .collect(),
+            geschwindigkeiten: geschwindigkeiten.map(Self::iter_map).collect(),
             scrollable_state: scrollable::State::new(),
         }
     }

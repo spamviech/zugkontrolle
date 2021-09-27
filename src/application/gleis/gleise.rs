@@ -194,7 +194,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Falls er vorhanden war wird er zurückgegeben.
     pub fn entferne_streckenabschnitt(
         &mut self,
-        name: streckenabschnitt::Name,
+        name: &streckenabschnitt::Name,
     ) -> Option<(Streckenabschnitt, Fließend)> {
         self.canvas.leeren();
         if let Some((streckenabschnitt, fließend, daten)) =
@@ -246,7 +246,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Falls er vorhanden war wird er zurückgegeben.
     pub fn entferne_geschwindigkeit(
         &mut self,
-        name: geschwindigkeit::Name,
+        name: &geschwindigkeit::Name,
     ) -> Option<Geschwindigkeit<Z::Leiter>> {
         self.zustand.geschwindigkeiten.remove(&name)
     }

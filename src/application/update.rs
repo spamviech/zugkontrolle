@@ -368,7 +368,7 @@ where
                 ));
             }
         }
-        self.gleise.entferne_streckenabschnitt(name);
+        self.gleise.entferne_streckenabschnitt(&name);
     }
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
@@ -406,7 +406,7 @@ where
 
     pub fn zeige_auswahl_geschwindigkeit(&mut self) {
         *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
-            geschwindigkeit::AuswahlStatus::neu(self.geschwindigkeiten.iter()),
+            geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
         );
         self.modal_state.show(true);
     }
@@ -416,16 +416,12 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
     ) {
-        let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) = if let Some((
-            geschwindigkeit,
-            _anzeige_status,
-        )) =
-            self.geschwindigkeiten.remove(&name)
-        {
-            (Some(geschwindigkeit.serialisiere()), geschwindigkeit.anschlüsse())
-        } else {
-            (None, (Vec::new(), Vec::new(), Vec::new()))
-        };
+        let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+            if let Some(geschwindigkeit) = self.gleise.entferne_geschwindigkeit(&name) {
+                (Some(geschwindigkeit.serialisiere()), geschwindigkeit.anschlüsse())
+            } else {
+                (None, (Vec::new(), Vec::new(), Vec::new()))
+            };
         match geschwindigkeit_save.reserviere(
             &mut self.anschlüsse,
             pwm_pins,
@@ -440,16 +436,14 @@ where
                     modal => {
                         error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
                         *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                            self.geschwindigkeiten.iter(),
+                            self.gleise.geschwindigkeiten(),
                         ));
                     }
                 }
+                self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
                 self.geschwindigkeiten.insert(
                     name.clone(),
-                    (
-                        geschwindigkeit,
-                        <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
-                    ),
+                    <Z::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
                 );
                 if let Some(ersetzt) = alt_save {
                     self.zeige_message_box(
@@ -474,17 +468,9 @@ where
                         input_anschlüsse,
                     ) {
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                            // Modal muss nicht angepasst werden,
+                            // Modal/AnzeigeStatus-Map muss nicht angepasst werden,
                             // nachdem nur wiederhergestellt wird
-                            self.geschwindigkeiten.insert(
-                                name.clone(),
-                                (
-                                    geschwindigkeit,
-                                    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::anzeige_status_neu(
-                                        name.clone(),
-                                    ),
-                                ),
-                            );
+                            self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
                         }
                         Err(de_serialisieren::Fehler { fehler, .. }) => {
                             match self.modal_state.inner_mut() {
@@ -495,11 +481,12 @@ where
                                     error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
                                     *modal = Modal::Geschwindigkeit(
                                         geschwindigkeit::AuswahlStatus::neu(
-                                            self.geschwindigkeiten.iter(),
+                                            self.gleise.geschwindigkeiten(),
                                         ),
                                     );
                                 }
                             }
+                            self.geschwindigkeiten.remove(&name);
                             fehlermeldung.push_str(&format!(
                             "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
                             fehler, save_clone
@@ -513,18 +500,8 @@ where
     }
 
     pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+        self.gleise.entferne_geschwindigkeit(&name);
         self.geschwindigkeiten.remove(&name);
-        match self.modal_state.inner_mut() {
-            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                geschwindigkeit_auswahl.entfernen(&name);
-            }
-            modal => {
-                error!("Falscher Modal-State bei LöscheGeschwindigkeit!");
-                *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                    self.geschwindigkeiten.iter(),
-                ));
-            }
-        }
     }
 
     pub fn anschlüsse_anpassen(
@@ -613,20 +590,29 @@ where
         name: geschwindigkeit::Name,
         zustand_zurücksetzen: <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
     ) -> Option<iced::Command<Nachricht<Z>>> {
-        // Entferntes Geschwindigkeit wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
-        if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
-            let cmd = <Z::Leiter as LeiterAnzeige>::zustand_zurücksetzen(
-                geschwindigkeit,
-                anzeige_status,
-                zustand_zurücksetzen,
-            );
-            Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
-                name: name.clone(),
-                nachricht,
-            }))
-        } else {
-            None
+        let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
+        // Entfernte Geschwindigkeit wird ignoriert,
+        // da es nur um eine Reaktion auf einen Fehler geht
+        macro_rules! unwrap_or_return {
+            ($value:expr) => {
+                if let Some(value) = $value {
+                    value
+                } else {
+                    return None;
+                }
+            };
         }
+        let geschwindigkeit = unwrap_or_return!(gleise.geschwindigkeit_mut(&name));
+        let anzeige_status = unwrap_or_return!(geschwindigkeiten.get_mut(&name));
+        let cmd = <Z::Leiter as LeiterAnzeige>::zustand_zurücksetzen(
+            geschwindigkeit,
+            anzeige_status,
+            zustand_zurücksetzen,
+        );
+        Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
+            name: name.clone(),
+            nachricht,
+        }))
     }
 
     pub fn async_fehler(
@@ -867,40 +853,53 @@ where
         name: geschwindigkeit::Name,
         nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht,
     ) -> Option<iced::Command<Nachricht<Z>>> {
-        let mut command = None;
-        if let Some((geschwindigkeit, anzeige_status)) = self.geschwindigkeiten.get_mut(&name) {
-            let name_clone = name.clone();
-            let update_result = <Z::Leiter as LeiterAnzeige>::anzeige_update(
-                geschwindigkeit,
-                anzeige_status,
-                nachricht,
-                self.sender.clone(),
-                move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
-                    titel,
-                    nachricht: format!("{:?}", fehler),
-                    zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
-                        name_clone,
-                        zustand_zurücksetzen,
-                    ),
-                },
-            );
-            match update_result {
-                Ok(cmd) => {
-                    let name_clone = name.clone();
-                    command = Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
-                        name: name_clone.clone(),
-                        nachricht,
-                    }))
+        let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
+        macro_rules! unwrap_or_error_return {
+            ($value:expr) => {
+                if let Some(value) = $value {
+                    value
+                } else {
+                    error!(
+                        "Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}",
+                        name.0, nachricht
+                    );
+                    return None;
                 }
-                Err(error) => self.zeige_message_box(
+            };
+        }
+        let geschwindigkeit = unwrap_or_error_return!(gleise.geschwindigkeit_mut(&name));
+        let anzeige_status = unwrap_or_error_return!(geschwindigkeiten.get_mut(&name));
+        let name_clone = name.clone();
+        let update_result = <Z::Leiter as LeiterAnzeige>::anzeige_update(
+            geschwindigkeit,
+            anzeige_status,
+            nachricht,
+            self.sender.clone(),
+            move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
+                titel,
+                nachricht: format!("{:?}", fehler),
+                zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
+                    name_clone,
+                    zustand_zurücksetzen,
+                ),
+            },
+        );
+        match update_result {
+            Ok(cmd) => {
+                let name_clone = name.clone();
+                Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
+                    name: name_clone.clone(),
+                    nachricht,
+                }))
+            }
+            Err(error) => {
+                self.zeige_message_box(
                     format!("Fehler Geschwindigkeit {}", name.0),
                     format!("{:?}", error),
-                ),
+                );
+                None
             }
-        } else {
-            error!("Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}", name.0, nachricht)
         }
-        command
     }
 
     pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId<Z>) {
@@ -992,18 +991,13 @@ where
 {
     #[inline(always)]
     pub fn laden(&mut self, pfad: String) {
-        match self.gleise.laden(
-            &mut self.anschlüsse,
-            self.geschwindigkeiten
-                .drain()
-                .map(|(_name, (geschwindigkeit, _anzeige_status))| geschwindigkeit),
-            &pfad,
-        ) {
-            Ok(geschwindigkeiten) => {
-                self.geschwindigkeiten = geschwindigkeiten
-                    .into_iter()
-                    .map(|(name, geschwindigkeit)| {
-                        (name.clone(), (geschwindigkeit, Z::Leiter::anzeige_status_neu(name)))
+        match self.gleise.laden(&mut self.anschlüsse, &pfad) {
+            Ok(()) => {
+                self.geschwindigkeiten = self
+                    .gleise
+                    .geschwindigkeiten()
+                    .map(|(name, _geschwindigkeit)| {
+                        (name.clone(), Z::Leiter::anzeige_status_neu(name.clone()))
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;
