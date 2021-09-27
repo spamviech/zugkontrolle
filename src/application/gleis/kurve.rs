@@ -137,12 +137,12 @@ pub(crate) fn rechteck<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Rechteck {
         breite_faktor = winkel.sin();
         höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
             + beschränkung::<Z>() * winkel.cos();
-        position_x_faktor = Skalar(1.);
+        position_x_faktor = Skalar(0.);
     } else {
         breite_faktor = Skalar(1.);
         if winkel < winkel::PI {
             höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos());
-            position_x_faktor = Skalar(1.);
+            position_x_faktor = Skalar(0.);
         } else {
             höhe_vergleich = radius_begrenzung_außen;
             position_x_faktor = Skalar(1.) - winkel.cos();
