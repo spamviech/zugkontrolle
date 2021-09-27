@@ -34,10 +34,7 @@ impl<T> Button<T> {
 
 impl<T: Zeichnen> Button<T> {
     pub fn rechteck(&self) -> Rechteck {
-        let mut rechteck = self.gleis.rechteck();
-        // berücksichtige padding
-        rechteck.verschiebe(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING });
-        rechteck
+        self.gleis.rechteck().verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
     pub fn als_iced_widget<Nachricht>(&mut self, breite: Option<u16>) -> iced::Container<Nachricht>
@@ -88,16 +85,20 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
             );
             let rechteck = self.gleis.rechteck();
             let rechteck_position = rechteck.position();
-            frame.transformation(&Transformation::Translation(rechteck_position));
+            frame.transformation(&Transformation::Translation(-rechteck_position));
             let größe = rechteck.größe();
-            if bounds_vector.x > größe.x {
+            let maximale_breite = bounds_vector.x - DOUBLE_PADDING;
+            if maximale_breite > größe.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
                     Skalar(0.5) * (bounds_vector - größe),
                 ));
             } else {
                 // skaliere zu vorhandener Breite
-                frame.transformation(&Transformation::Skalieren(bounds_vector.x / größe.x))
+                frame.transformation(&Transformation::Skalieren(maximale_breite / größe.x));
+                frame.transformation(&Transformation::Translation(
+                    Skalar(0.5) * Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING },
+                ));
             }
             for path in self.gleis.zeichne() {
                 frame.with_save(|frame| {
