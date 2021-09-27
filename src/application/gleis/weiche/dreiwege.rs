@@ -72,17 +72,22 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
-        todo!()
-        // let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
-        // let size_gerade = gerade::size::<Z>(länge);
-        // let size_kurve = kurve::size::<Z>(radius, winkel);
-        // let height_kurven = size_kurve.y.doppelt() - beschränkung::<Z>();
-        // Vektor { x: size_gerade.x.max(&size_kurve.x), y: size_gerade.y.max(&height_kurven) }
+        let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
+        let rechteck_gerade = gerade::rechteck::<Z>(länge);
+        let rechteck_kurve = kurve::rechteck::<Z>(radius, winkel);
+        let beschränkung = beschränkung::<Z>();
+        let höhe_verschoben = rechteck_kurve.ecke_max().y - beschränkung;
+        let verschieben = Vektor { x: Skalar(0.), y: höhe_verschoben };
+        let rechteck_gerade_verschoben = rechteck_gerade.verschiebe_chain(&verschieben);
+        let rechteck_kurve_verschoben = rechteck_kurve.clone().verschiebe_chain(&verschieben);
+        rechteck_gerade_verschoben
+            .einschließend(rechteck_kurve)
+            .einschließend(rechteck_kurve_verschoben)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
-        let size: Vektor = todo!("{:?}", self.rechteck());
+        let size: Vektor = self.rechteck().ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = beschränkung::<Z>();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
@@ -122,7 +127,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
 
     fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let size: Vektor = todo!("{:?}", self.rechteck());
+        let size: Vektor = self.rechteck().ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = beschränkung::<Z>();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
@@ -180,7 +185,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     }
 
     fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
-        let size: Vektor = todo!("{:?}", self.rechteck());
+        let size: Vektor = self.rechteck().ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = beschränkung::<Z>().halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
@@ -196,7 +201,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
 
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
         // utility sizes
-        let Vektor { x: _, y: height } = todo!("{:?}", self.rechteck());
+        let Vektor { x: _, y: height } = self.rechteck().ecke_max();
         let half_height = height.halbiert();
         let beschränkung = beschränkung::<Z>();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
@@ -209,34 +214,33 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
-        todo!()
-        // let height: Skalar = self.size().y;
-        // let half_height = height.halbiert();
-        // let länge: Skalar = self.länge;
-        // let radius: Skalar = self.radius;
-        // let anfang = Vektor { x: Skalar(0.), y: half_height };
-        // Verbindungen {
-        //     anfang: Verbindung { position: anfang, richtung: winkel::PI },
-        //     gerade: Verbindung {
-        //         position: anfang + Vektor { x: länge, y: Skalar(0.) },
-        //         richtung: winkel::ZERO,
-        //     },
-        //     links: Verbindung {
-        //         position: anfang
-        //             + Vektor {
-        //                 x: radius * self.winkel.sin(),
-        //                 y: radius * (Skalar(1.) - self.winkel.cos()),
-        //             },
-        //         richtung: self.winkel,
-        //     },
-        //     rechts: Verbindung {
-        //         position: anfang
-        //             + Vektor {
-        //                 x: radius * self.winkel.sin(),
-        //                 y: -radius * (Skalar(1.) - self.winkel.cos()),
-        //             },
-        //         richtung: -self.winkel,
-        //     },
-        // }
+        let height: Skalar = self.rechteck().ecke_max().y;
+        let half_height = height.halbiert();
+        let länge: Skalar = self.länge;
+        let radius: Skalar = self.radius;
+        let anfang = Vektor { x: Skalar(0.), y: half_height };
+        Verbindungen {
+            anfang: Verbindung { position: anfang, richtung: winkel::PI },
+            gerade: Verbindung {
+                position: anfang + Vektor { x: länge, y: Skalar(0.) },
+                richtung: winkel::ZERO,
+            },
+            links: Verbindung {
+                position: anfang
+                    + Vektor {
+                        x: radius * self.winkel.sin(),
+                        y: radius * (Skalar(1.) - self.winkel.cos()),
+                    },
+                richtung: self.winkel,
+            },
+            rechts: Verbindung {
+                position: anfang
+                    + Vektor {
+                        x: radius * self.winkel.sin(),
+                        y: -radius * (Skalar(1.) - self.winkel.cos()),
+                    },
+                richtung: -self.winkel,
+            },
+        }
     }
 }
