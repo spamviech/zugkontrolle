@@ -183,14 +183,31 @@ impl<Z: Zugtyp> Gleise<Z> {
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                        if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
-                            *bewegt = true;
+                    if let ModusDaten::Bauen { gehalten, last } = &mut self.modus {
+                        if let Some(Gehalten { gleis_id, halte_position, bewegt: _ }) =
+                            gehalten.take()
+                        {
+                            let last_clone = last.clone();
                             let point = canvas_pos - halte_position;
-                            if let Err(fehler) =
-                                mit_any_id!(gleis_id.clone(), Gleise::bewegen_gehalten, self, point)
-                            {
-                                error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
+                            match mit_any_id!(
+                                gleis_id.clone(),
+                                Gleise::bewegen_gehalten,
+                                self,
+                                point
+                            ) {
+                                Ok(gleis_id_neu) => {
+                                    self.modus = ModusDaten::Bauen {
+                                        gehalten: Some(Gehalten {
+                                            gleis_id: gleis_id_neu,
+                                            halte_position,
+                                            bewegt: true,
+                                        }),
+                                        last: last_clone,
+                                    };
+                                }
+                                Err(fehler) => {
+                                    error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
+                                }
                             }
                             event_status = iced::canvas::event::Status::Captured
                         }

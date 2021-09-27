@@ -224,7 +224,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: GleisId<T>,
         punkt: Vektor,
-    ) -> Result<(), GleisIdFehler>
+    ) -> Result<AnyId<Z>, GleisIdFehler>
     where
         Z: Zugtyp,
         T: DatenAuswahl<Z>,
@@ -239,8 +239,8 @@ impl<Z: Zugtyp> Gleise<Z> {
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
         let position_neu = Position { punkt, winkel: position.winkel };
-        self.bewegen(gleis_id, position_neu)?;
-        Ok(())
+        let gleis_id_neu = self.bewegen(gleis_id, position_neu)?;
+        Ok(gleis_id_neu.into())
     }
 
     /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
