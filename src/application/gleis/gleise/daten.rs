@@ -102,6 +102,21 @@ pub struct Zustand<Z: Zugtyp> {
         HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>,
     pub(crate) geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
 }
+
+impl<Z> Debug for Zustand<Z>
+where
+    Z: Zugtyp,
+    <Z as Zugtyp>::Leiter: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Zustand")
+            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
+            .field("streckenabschnitte", &self.streckenabschnitte)
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
+            .finish()
+    }
+}
+
 impl<Z: Zugtyp> Zustand<Z> {
     pub fn neu() -> Self {
         Zustand {
@@ -217,20 +232,6 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 }
 
-impl<Z> Debug for Zustand<Z>
-where
-    Z: Zugtyp,
-    <Z as Zugtyp>::Leiter: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Zustand")
-            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
-            .field("streckenabschnitte", &self.streckenabschnitte)
-            .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .finish()
-    }
-}
-
 pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) struct GleiseDaten<Z> {
@@ -320,6 +321,7 @@ impl<Z> GleiseDaten<Z> {
         (überlappend, gehalten)
     }
 }
+
 /// SelectionFunction, die jedes Element akzeptiert.
 /// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::verschmelze`).
 pub(crate) struct SelectAll;

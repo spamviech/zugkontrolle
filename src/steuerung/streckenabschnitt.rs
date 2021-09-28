@@ -1,9 +1,6 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard, PoisonError},
-};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -101,5 +98,3 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
 /// Name eines Streckenabschnittes.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
-pub type Map = HashMap<Name, (Streckenabschnitt, Fließend)>;
-pub type MapSerialisiert = HashMap<Name, StreckenabschnittSerialisiert>;

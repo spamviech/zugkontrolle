@@ -16,41 +16,35 @@ use crate::{
         typen::*,
         verbindung::Verbindung,
     },
-    steuerung::geschwindigkeit::{self, Geschwindigkeit, Leiter},
+    steuerung::{
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        streckenabschnitt::StreckenabschnittSerialisiert,
+    },
 };
 
 // FIXME Streckenabschnitt der Gleise aktuell nicht erwähnt!
 // Auf Map<Name, (Streckenabschnitt, DatenSerialisiert)> konvertieren?
 #[derive(Serialize, Deserialize)]
-pub(crate) struct Serialisiert<Z: Zugtyp> {
+pub(crate) struct ZustandSerialisiert<Z: Zugtyp> {
     pub(crate) zugtyp: String,
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
-    pub(crate) streckenabschnitte: streckenabschnitt::MapSerialisiert,
+    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
+    pub(crate) streckenabschnitte: HashMap<
+        streckenabschnitt::Name,
+        (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>),
+    >,
     pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z> Debug for Serialisiert<Z>
+impl<Z> Debug for ZustandSerialisiert<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
+    <Z::Leiter as Serialisiere>::Serialisiert: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Serialisiert")
+        f.debug_struct("ZustandSerialisiert")
             .field("zugtyp", &self.zugtyp)
-            .field("geraden", &self.geraden)
-            .field("kurven", &self.kurven)
-            .field("weichen", &self.weichen)
-            .field("dreiwege_weichen", &self.dreiwege_weichen)
-            .field("kurven_weichen", &self.kurven_weichen)
-            .field("s_kurven_weichen", &self.s_kurven_weichen)
-            .field("kreuzungen", &self.kreuzungen)
+            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
             .field("streckenabschnitte", &self.streckenabschnitte)
             .field("geschwindigkeiten", &self.geschwindigkeiten)
             .field("pläne", &self.pläne)
@@ -58,7 +52,18 @@ where
     }
 }
 
-impl<Z: Zugtyp> From<&Zustand<Z>> for Serialisiert<Z> {
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+pub(crate) struct GleiseDatenSerialisiert<Z> {
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+}
+
+impl<Z: Zugtyp> From<&Zustand<Z>> for ZustandSerialisiert<Z> {
     fn from(
         Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,
     ) -> Self {
@@ -101,7 +106,7 @@ impl<Z: Zugtyp> From<&Zustand<Z>> for Serialisiert<Z> {
 impl<Z: Zugtyp + Serialize> Gleise<Z> {
     #[must_use]
     pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Fehler> {
-        let serialisiert = Serialisiert::from(&self.zustand);
+        let serialisiert = ZustandSerialisiert::from(&self.zustand);
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
@@ -204,23 +209,12 @@ where
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
         let slice = content.as_slice();
-        let Serialisiert {
-            zugtyp,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            streckenabschnitte,
-            geschwindigkeiten,
-            pläne: _, // TODO verwenden, sobald Plan implementiert ist
-        } = bincode::deserialize(slice).or_else(|aktuell| {
-            bincode::deserialize(slice)
-                .map(v2::GleiseVecs::<Z>::into)
-                .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
-        })?;
+        let ZustandSerialisiert { zugtyp, geschwindigkeiten, .. } = bincode::deserialize(slice)
+            .or_else(|aktuell| {
+                bincode::deserialize(slice)
+                    .map(v2::GleiseVecs::<Z>::into)
+                    .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
+            })?;
         if zugtyp != Z::NAME {
             return Err(Fehler::FalscherZugtyp(zugtyp));
         }

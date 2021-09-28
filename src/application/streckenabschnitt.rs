@@ -9,7 +9,7 @@ use iced_native::{
     Renderer, Row, Scrollable, Text, TextInput, Widget,
 };
 
-pub use crate::steuerung::streckenabschnitt::{Map, Name, Streckenabschnitt};
+pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
     anschluss::{Fließend, OutputSerialisiert, Polarität},
     application::{
