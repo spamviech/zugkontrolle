@@ -19,6 +19,8 @@ use crate::{
     steuerung::geschwindigkeit::{self, Geschwindigkeit, Leiter},
 };
 
+// FIXME Streckenabschnitt der Gleise aktuell nicht erwähnt!
+// Auf Map<Name, (Streckenabschnitt, DatenSerialisiert)> konvertieren?
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Serialisiert<Z: Zugtyp> {
     pub(crate) zugtyp: String,
