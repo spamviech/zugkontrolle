@@ -99,7 +99,7 @@ where
             match modus {
                 ModusDaten::Bauen { gehalten, last } => {
                     let now = Instant::now();
-                    let diff = now - *last;
+                    let diff = now.checked_duration_since(*last).unwrap_or(Duration::MAX);
                     *last = now;
                     if gehalten.is_none() {
                         if let Some((gleis_id, halte_position)) = gleis_an_position {
@@ -114,7 +114,7 @@ where
                     }
                 }
                 ModusDaten::Fahren => {
-                    if let Some((gleis_id, _grab_location)) = gleis_an_position {
+                    if let Some((gleis_id, _halte_position)) = gleis_an_position {
                         message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }
