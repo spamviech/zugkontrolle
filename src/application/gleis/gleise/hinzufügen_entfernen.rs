@@ -41,10 +41,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         // Berechne Bounding Box.
-        let mut rechteck = definition.rechteck();
-        rechteck.verschiebe(&position.punkt);
-        rechteck.respektiere_rotation(&position.winkel);
-        let rectangle = Rectangle::from(rechteck);
+        let rectangle = Rectangle::from(definition.rechteck_an_position(&position));
         // Füge zu RStern hinzu.
         self.zustand
             .daten_mut(&streckenabschnitt)?
