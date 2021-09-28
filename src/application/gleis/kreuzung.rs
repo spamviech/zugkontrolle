@@ -98,9 +98,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         let rechteck_gerade_verschoben = rechteck_gerade.clone().verschiebe_chain(&verschieben);
         let gerade_zentrum = Skalar(0.5) * rechteck_gerade.ecke_max();
         let rechteck_gerade_gedreht = rechteck_gerade
-            .verschiebe_chain(&gerade_zentrum)
+            .verschiebe_chain(&-gerade_zentrum)
             .respektiere_rotation_chain(&winkel)
-            .verschiebe_chain(&-gerade_zentrum);
+            .verschiebe_chain(&gerade_zentrum);
         let rechteck_geraden = rechteck_gerade_verschoben.einschließend(rechteck_gerade_gedreht);
         if self.variante == Variante::MitKurve {
             let rechteck_kurve_verschoben = rechteck_kurve.clone().verschiebe_chain(&verschieben);
