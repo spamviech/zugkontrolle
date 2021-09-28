@@ -144,62 +144,64 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = ohne_streckenabschnitt
-            .reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)
-            .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+        } = ohne_streckenabschnitt.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
         let Reserviert {
             anschluss: streckenabschnitte,
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = streckenabschnitte
-            .into_iter()
-            .fold(
-                Ok(Reserviert {
-                    anschluss: HashMap::new(),
+        } = streckenabschnitte.into_iter().fold(
+            Ok(Reserviert {
+                anschluss: HashMap::new(),
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
+            |acc: Result<_, anschluss::Fehler>, (name, (streckenabschnitt, daten))| {
+                let Reserviert {
+                    anschluss: mut map,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                }),
-                |acc, (name, (streckenabschnitt, daten))| {
-                    let Reserviert {
-                        anschluss: mut map,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = acc?;
-                    let Reserviert {
-                        anschluss: streckenabschnitt,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = streckenabschnitt.reserviere(
+                } = acc?;
+                let Reserviert {
+                    anschluss: streckenabschnitt,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = streckenabschnitt
+                    .reserviere(
                         anschlüsse,
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
                         input_nicht_benötigt,
-                    )?;
-                    let Reserviert {
-                        anschluss: daten,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = daten.reserviere(
-                        anschlüsse,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    )?;
-                    map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
-                    Ok(Reserviert {
-                        anschluss: map,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    })
-                },
-            )
-            .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                    )
+                    .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                let Reserviert {
+                    anschluss: daten,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = daten.reserviere(
+                    anschlüsse,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                )?;
+                map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
+                Ok(Reserviert {
+                    anschluss: map,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                })
+            },
+        )?;
         let Reserviert {
             anschluss: geschwindigkeiten,
             pwm_nicht_benötigt: _,
@@ -271,10 +273,8 @@ impl<Z> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Serialisiere for GleiseDaten<Z> {
-    type Serialisiert = GleiseDatenSerialisiert<Z>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> GleiseDaten<Z> {
+    fn serialisiere(&self) -> GleiseDatenSerialisiert<Z> {
         macro_rules! rstern_to_vecs {
             ($($rstern:ident),* $(,)?) => {
                 GleiseDatenSerialisiert {
@@ -365,14 +365,14 @@ fn reserviere_anschlüsse<T: Serialisiere>(
     )
 }
 
-impl<Z: Zugtyp> Reserviere<GleiseDaten<Z>> for GleiseDatenSerialisiert<Z> {
+impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<GleiseDaten<Z>> {
+    ) -> Result<Reserviert<GleiseDaten<Z>>, anschluss::Fehler> {
         // FIXME RTree::bulk_load verwenden!
         todo!()
     }
