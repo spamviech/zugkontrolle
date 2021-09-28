@@ -34,7 +34,9 @@ fn berechne_canvas_position(
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
-const KLICK_GENAUIGKEIT: Skalar = Skalar(2.5);
+// TODO innerhalb auf enum umstellen, dass zwischen
+// wirklich_innerhalb und innerhalb_toleranz unterscheidet?
+const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
 fn gleis_an_position<T, Z>(
