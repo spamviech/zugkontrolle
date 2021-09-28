@@ -96,6 +96,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     }
 }
 
+// TODO Streckenabschnitte mit Geschwindigkeiten assoziieren?
 pub struct Zustand<Z: Zugtyp> {
     pub(crate) ohne_streckenabschnitt: GleiseDaten<Z>,
     pub(crate) streckenabschnitte:
