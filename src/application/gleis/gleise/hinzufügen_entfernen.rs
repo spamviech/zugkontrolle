@@ -128,7 +128,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let Gleis { definition, position } = self.entfernen(gleis_id)?;
+        let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge an neuer Position hinzu.
         self.hinzufügen(definition, position_neu, streckenabschnitt).map_err(GleisIdFehler::from)
     }
@@ -147,7 +147,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         let streckenabschnitt = gleis_id.streckenabschnitt.clone();
         // Entferne aktuellen Eintrag.
-        let Gleis { definition, position } = self.entfernen(gleis_id)?;
+        let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge Gleis an neuer Position hinzu.
         self.hinzufügen_anliegend(definition, streckenabschnitt, verbindung_name, ziel_verbindung)
             .map_err(GleisIdFehler::from)

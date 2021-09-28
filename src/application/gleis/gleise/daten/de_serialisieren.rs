@@ -11,29 +11,23 @@ use crate::{
         pin::pwm,
         Anschlüsse, InputAnschluss, OutputAnschluss,
     },
-    application::{
-        gleis::gleise::{daten::*, Fehler, Gleise},
-        typen::*,
-        verbindung::Verbindung,
-    },
+    application::gleis::gleise::{daten::*, Fehler, Gleise},
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
 };
 
-// FIXME Streckenabschnitt der Gleise aktuell nicht erwähnt!
-// Auf Map<Name, (Streckenabschnitt, DatenSerialisiert)> konvertieren?
 #[derive(Serialize, Deserialize)]
 pub struct ZustandSerialisiert<Z: Zugtyp> {
-    pub zugtyp: String,
-    pub ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
-    pub streckenabschnitte: HashMap<
+    pub(crate) zugtyp: String,
+    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
+    pub(crate) streckenabschnitte: HashMap<
         streckenabschnitt::Name,
         (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>),
     >,
-    pub geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
-    pub pläne: Vec<Plan>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
+    pub(crate) pläne: Vec<Plan>,
 }
 
 impl<Z> Debug for ZustandSerialisiert<Z>
@@ -52,8 +46,9 @@ where
     }
 }
 
-impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Zustand<Z> {
-    fn serialisiere(&self) -> ZustandSerialisiert<Z> {
+impl<Z: Zugtyp> Zustand<Z> {
+    /// Erzeuge eine serealisierbare Repräsentation.
+    pub fn serialisiere(&self) -> ZustandSerialisiert<Z> {
         ZustandSerialisiert {
             zugtyp: Z::NAME.to_string(),
             ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
@@ -74,7 +69,8 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Zustand<Z> {
         }
     }
 
-    fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    /// Erhalten alle verwendeten Anschlüsse.
+    pub fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         let mut pwm_pins = Vec::new();
         let mut output_anschlüsse = Vec::new();
         let mut input_anschlüsse = Vec::new();
@@ -123,7 +119,8 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Zustand<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
+impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
+    /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -249,14 +246,14 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleiseDatenSerialisiert<Z> {
-    pub geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+pub(crate) struct GleiseDatenSerialisiert<Z> {
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
 }
 
 impl<Z> GleiseDatenSerialisiert<Z> {
@@ -273,7 +270,8 @@ impl<Z> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> GleiseDaten<Z> {
+impl<Z: Zugtyp> GleiseDaten<Z> {
+    /// Erzeuge eine serealisierbare Repräsentation
     fn serialisiere(&self) -> GleiseDatenSerialisiert<Z> {
         macro_rules! rstern_to_vecs {
             ($($rstern:ident),* $(,)?) => {
@@ -299,41 +297,6 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> GleiseDaten<Z> {
             s_kurven_weichen,
             kreuzungen,
         }
-    }
-
-    fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        macro_rules! collect_anschlüsse {
-            ($struktur: expr) => {
-                let (pwm, output, input) = $struktur.anschlüsse();
-                pwm_pins.extend(pwm.into_iter());
-                output_anschlüsse.extend(output.into_iter());
-                input_anschlüsse.extend(input.into_iter());
-            };
-        }
-        macro_rules! collect_gleis_anschlüsse {
-            ($($rstern: ident),* $(,)?) => {
-                $(while let Some(geom_with_data) =
-                    self.$rstern.remove_with_selection_function(SelectAll)
-                {
-                    collect_anschlüsse! {
-                        geom_with_data.data.definition
-                    }
-                })*
-            };
-        }
-        collect_gleis_anschlüsse! {
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        }
-        (pwm_pins, output_anschlüsse, input_anschlüsse)
     }
 }
 
@@ -372,6 +335,7 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
 }
 
 impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
+    /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
         anschlüsse: &mut Anschlüsse,
@@ -413,9 +377,8 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Gleise<Z> {
-    #[must_use]
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Fehler> {
+impl<Z: Zugtyp + Serialize> Gleise<Z> {
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
@@ -432,60 +395,15 @@ where
         anschlüsse: &mut Anschlüsse,
         pfad: impl AsRef<std::path::Path>,
     ) -> Result<(), Fehler> {
-        // sammle bisherige Anschlüsse
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        macro_rules! collect_anschlüsse {
-            ($struktur: expr) => {
-                let (pwm, output, input) = $struktur.anschlüsse();
-                pwm_pins.extend(pwm.into_iter());
-                output_anschlüsse.extend(output.into_iter());
-                input_anschlüsse.extend(input.into_iter());
-            };
-        }
-        macro_rules! collect_gleis_anschlüsse {
-            ($daten: expr, $($rstern: ident),*) => {
-                $(while let Some(geom_with_data) =
-                    $daten.$rstern.remove_with_selection_function(SelectAll)
-                {
-                    collect_anschlüsse! {
-                        geom_with_data.data.definition
-                    }
-                })*
-            };
-        }
-        macro_rules! collect_all_gleis_anschlüsse {
-            ($daten: expr) => {
-                collect_gleis_anschlüsse! {
-                    $daten,
-                    geraden,
-                    kurven,
-                    weichen,
-                    dreiwege_weichen,
-                    kurven_weichen,
-                    s_kurven_weichen,
-                    kreuzungen
-                }
-            };
-        }
-        for (_name, geschwindigkeit) in self.zustand.geschwindigkeiten.drain() {
-            collect_anschlüsse!(geschwindigkeit);
-        }
-        collect_all_gleis_anschlüsse!(self.zustand.ohne_streckenabschnitt);
-        for (_name, (streckenabschnitt, _fließend, mut daten)) in
-            self.zustand.streckenabschnitte.drain()
-        {
-            collect_anschlüsse!(streckenabschnitt);
-            collect_all_gleis_anschlüsse!(daten);
-        }
-
         // aktuellen Zustand zurücksetzen
         self.canvas.leeren();
+        let zustand = std::mem::replace(&mut self.zustand, Zustand::neu());
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
-        // self.zustand = Zustand::neu();
-        // self.anchor_points = verbindung::rstern::RStern::neu();
+
+        // sammle bisherige Anschlüsse
+        let (pwm_pins, output_anschlüsse, input_anschlüsse) = zustand.anschlüsse();
+
         // lese & parse Datei
         let mut file = std::fs::File::open(pfad)?;
         let mut content = Vec::new();
@@ -501,125 +419,13 @@ where
             return Err(Fehler::FalscherZugtyp(zustand_serialisiert.zugtyp));
         }
 
-        // // reserviere Anschlüsse
-        // macro_rules! reserviere_anschlüsse {
-        //     (
-        //         $name:tt::<$type:ident>,
-        //         $pwm_pins:tt,
-        //         $output_anschlüsse:tt,
-        //         $input_anschlüsse:tt$(,)?
-        //     ) => {
-        //         // collect to Vec to fail on first error
-        //         let ($name, $pwm_pins, $output_anschlüsse, $input_anschlüsse) =
-        //             reserviere_anschlüsse::<crate::application::gleis::$type<Z>>(
-        //                 anschlüsse,
-        //                 $name,
-        //                 $pwm_pins,
-        //                 $output_anschlüsse,
-        //                 $input_anschlüsse,
-        //             )?;
-        //     };
-        // }
-        // reserviere_anschlüsse! {
-        //     geraden::<Gerade>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     kurven::<Kurve>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     weichen::<Weiche>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     dreiwege_weichen::<DreiwegeWeiche>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     kurven_weichen::<KurvenWeiche>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     s_kurven_weichen::<SKurvenWeiche>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // reserviere_anschlüsse! {
-        //     kreuzungen::<Kreuzung>,
-        //     pwm_pins,
-        //     output_anschlüsse,
-        //     input_anschlüsse,
-        // }
-        // let (streckenabschnitte_reserviert, pwm_pins, output_anschlüsse, input_anschlüsse) =
-        //     streckenabschnitte.into_iter().fold(
-        //         Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-        //         |acc_res: Result<_, anschluss::Fehler>, (name, streckenabschnitt)| {
-        //             let mut acc = acc_res?;
-        //             let Reserviert {
-        //                 anschluss: streckenabschnitt,
-        //                 pwm_nicht_benötigt,
-        //                 output_nicht_benötigt,
-        //                 input_nicht_benötigt,
-        //             } = streckenabschnitt
-        //                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-        //                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-        //             acc.0.push((name, streckenabschnitt));
-        //             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
-        //         },
-        //     )?;
-        // let (geschwindigkeiten_reserviert, _pwm_pins, _output_anschlüsse, _input_anschlüsse) =
-        //     geschwindigkeiten.into_iter().fold(
-        //         Ok((Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse)),
-        //         |acc_res: Result<_, anschluss::Fehler>, (name, geschwindigkeit)| {
-        //             let mut acc = acc_res?;
-        //             let Reserviert {
-        //                 anschluss: geschwindigkeit,
-        //                 pwm_nicht_benötigt,
-        //                 output_nicht_benötigt,
-        //                 input_nicht_benötigt,
-        //             } = geschwindigkeit
-        //                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
-        //                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-        //             acc.0.push((name, geschwindigkeit));
-        //             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
-        //         },
-        //     )?;
-        // // füge anschlüsse zu maps hinzu
-        // macro_rules! add_gleise {
-        //     ($($gleise: ident,)*) => {
-        //         $(
-        //             for gleis in $gleise {
-        //                 self.add(gleis);
-        //             }
-        //         );*
-        //     }
-        // }
-        // add_gleise!(
-        //     geraden,
-        //     kurven,
-        //     weichen,
-        //     dreiwege_weichen,
-        //     kurven_weichen,
-        //     s_kurven_weichen,
-        //     kreuzungen,
-        // );
-        // for (name, streckenabschnitt) in streckenabschnitte_reserviert {
-        //     self.neuer_streckenabschnitt(name, streckenabschnitt);
-        // }
-        // Ok(geschwindigkeiten_reserviert)
-        // FIXME RTree::bulk_load verwenden!
-        todo!()
+        // reserviere Anschlüsse
+        self.zustand = zustand_serialisiert.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
+        Ok(())
     }
 }
