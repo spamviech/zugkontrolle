@@ -268,7 +268,17 @@ impl<Z> GleiseDaten<Z> {
         T: Zeichnen + DatenAuswahl<Z> + 't,
         AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
     {
-        let kandidaten = self.rstern::<T>().locate_all_at_point(&verbindung.position);
+        let vektor_genauigkeit = Vektor {
+            x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+            y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+        };
+        let kandidaten_rechteck = Rechteck {
+            ecke_a: verbindung.position + vektor_genauigkeit,
+            ecke_b: verbindung.position - vektor_genauigkeit,
+        };
+        let kandidaten = self
+            .rstern::<T>()
+            .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
         let mut gehalten = false;
         let überlappend = kandidaten.flat_map(move |kandidat| {
             let rectangle = kandidat.geom();
@@ -284,7 +294,9 @@ impl<Z> GleiseDaten<Z> {
                     .definition
                     .verbindungen_an_position(kandidat.data.position.clone());
                 for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
-                    if (verbindung.position - kandidat_verbindung.position).länge() < Skalar(5.) {
+                    if (verbindung.position - kandidat_verbindung.position).länge()
+                        < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
+                    {
                         überlappend.push(kandidat_verbindung.clone())
                     }
                 }
@@ -297,6 +309,8 @@ impl<Z> GleiseDaten<Z> {
         (überlappend, gehalten)
     }
 }
+
+const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// SelectionFunction, die jedes Element akzeptiert.
 /// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::verschmelze`).
