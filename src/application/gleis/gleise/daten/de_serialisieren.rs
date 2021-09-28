@@ -63,6 +63,20 @@ pub(crate) struct GleiseDatenSerialisiert<Z> {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
 }
 
+impl<Z> GleiseDatenSerialisiert<Z> {
+    pub(crate) fn neu() -> Self {
+        GleiseDatenSerialisiert {
+            geraden: Vec::new(),
+            kurven: Vec::new(),
+            weichen: Vec::new(),
+            dreiwege_weichen: Vec::new(),
+            kurven_weichen: Vec::new(),
+            s_kurven_weichen: Vec::new(),
+            kreuzungen: Vec::new(),
+        }
+    }
+}
+
 impl<Z: Zugtyp> From<&Zustand<Z>> for ZustandSerialisiert<Z> {
     fn from(
         Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,

@@ -31,11 +31,6 @@ pub struct Gleis<T> {
     pub position: Position,
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
-impl<T> From<Gleis<T>> for aktuell::Gleis<T> {
-    fn from(Gleis { definition, position, streckenabschnitt: _ }: Gleis<T>) -> Self {
-        aktuell::Gleis { definition, position }
-    }
-}
 
 pub(crate) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
@@ -57,19 +52,46 @@ pub(crate) struct GleiseVecs<Z: Zugtyp> {
 
 impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::de_serialisieren::ZustandSerialisiert<Z> {
     fn from(v2: GleiseVecs<Z>) -> Self {
-        // aktuell::de_serialisieren::ZustandSerialisiert {
-        //     zugtyp: v2.name,
-        //     geraden: v2.geraden.into_iter().map(aktuell::Gleis::from).collect(),
-        //     kurven: v2.kurven.into_iter().map(aktuell::Gleis::from).collect(),
-        //     weichen: v2.weichen.into_iter().map(aktuell::Gleis::from).collect(),
-        //     dreiwege_weichen: v2.dreiwege_weichen.into_iter().map(aktuell::Gleis::from).collect(),
-        //     kurven_weichen: v2.kurven_weichen.into_iter().map(aktuell::Gleis::from).collect(),
-        //     s_kurven_weichen: v2.s_kurven_weichen.into_iter().map(aktuell::Gleis::from).collect(),
-        //     kreuzungen: v2.kreuzungen.into_iter().map(aktuell::Gleis::from).collect(),
-        //     streckenabschnitte: v2.streckenabschnitte,
-        //     geschwindigkeiten: v2.geschwindigkeiten,
-        //     pläne: v2.pläne,
-        // }
-        todo!()
+        let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
+        let mut streckenabschnitte: HashMap<_, _> = v2
+            .streckenabschnitte
+            .into_iter()
+            .map(|(name, streckenabschnitt)| {
+                (
+                    name,
+                    (streckenabschnitt, aktuell::de_serialisieren::GleiseDatenSerialisiert::neu()),
+                )
+            })
+            .collect();
+        macro_rules! verteile_gleise {
+            ($($gleis: ident),*) => {
+                $(for Gleis { definition, position, streckenabschnitt } in v2.$gleis.into_iter() {
+                    let daten = if let Some((_streckenabschnitt, daten)) =
+                        streckenabschnitt.and_then(|name| streckenabschnitte.get_mut(&name))
+                    {
+                        daten
+                    } else {
+                        &mut ohne_streckenabschnitt
+                    };
+                    daten.$gleis.push(aktuell::Gleis {definition, position})
+                })*
+            };
+        }
+        verteile_gleise! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen
+        }
+        aktuell::de_serialisieren::ZustandSerialisiert {
+            zugtyp: v2.name,
+            ohne_streckenabschnitt,
+            streckenabschnitte,
+            geschwindigkeiten: v2.geschwindigkeiten,
+            pläne: v2.pläne,
+        }
     }
 }
