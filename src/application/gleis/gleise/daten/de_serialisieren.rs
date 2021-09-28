@@ -25,15 +25,15 @@ use crate::{
 // FIXME Streckenabschnitt der Gleise aktuell nicht erwähnt!
 // Auf Map<Name, (Streckenabschnitt, DatenSerialisiert)> konvertieren?
 #[derive(Serialize, Deserialize)]
-pub(crate) struct ZustandSerialisiert<Z: Zugtyp> {
-    pub(crate) zugtyp: String,
-    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
-    pub(crate) streckenabschnitte: HashMap<
+pub struct ZustandSerialisiert<Z: Zugtyp> {
+    pub zugtyp: String,
+    pub ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
+    pub streckenabschnitte: HashMap<
         streckenabschnitt::Name,
         (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>),
     >,
-    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
-    pub(crate) pläne: Vec<Plan>,
+    pub geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
+    pub pläne: Vec<Plan>,
 }
 
 impl<Z> Debug for ZustandSerialisiert<Z>
@@ -52,15 +52,100 @@ where
     }
 }
 
+impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Serialisiere for Zustand<Z> {
+    type Serialisiert = ZustandSerialisiert<Z>;
+
+    fn serialisiere(&self) -> Self::Serialisiert {
+        ZustandSerialisiert {
+            zugtyp: Z::NAME.to_string(),
+            ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
+            streckenabschnitte: self
+                .streckenabschnitte
+                .iter()
+                .map(|(name, (streckenabschnitt, _fließend, daten))| {
+                    (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
+                })
+                .collect(),
+            geschwindigkeiten: self
+                .geschwindigkeiten
+                .iter()
+                .map(|(name, geschwindigkeit)| (name.clone(), geschwindigkeit.serialisiere()))
+                .collect(),
+            // TODO wirkliche Konvertierung, sobald Plan implementiert ist
+            pläne: Vec::new(),
+        }
+    }
+
+    fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        let mut pwm_pins = Vec::new();
+        let mut output_anschlüsse = Vec::new();
+        let mut input_anschlüsse = Vec::new();
+        macro_rules! collect_anschlüsse {
+            ($struktur: expr) => {
+                let (pwm, output, input) = $struktur.anschlüsse();
+                pwm_pins.extend(pwm.into_iter());
+                output_anschlüsse.extend(output.into_iter());
+                input_anschlüsse.extend(input.into_iter());
+            };
+        }
+        macro_rules! collect_gleis_anschlüsse {
+            ($daten: expr, $($rstern: ident),*) => {
+                $(while let Some(geom_with_data) =
+                    $daten.$rstern.remove_with_selection_function(SelectAll)
+                {
+                    collect_anschlüsse! {
+                        geom_with_data.data.definition
+                    }
+                })*
+            };
+        }
+        macro_rules! collect_all_gleis_anschlüsse {
+            ($daten: expr) => {
+                collect_gleis_anschlüsse! {
+                    $daten,
+                    geraden,
+                    kurven,
+                    weichen,
+                    dreiwege_weichen,
+                    kurven_weichen,
+                    s_kurven_weichen,
+                    kreuzungen
+                }
+            };
+        }
+        for (_name, geschwindigkeit) in self.geschwindigkeiten.drain() {
+            collect_anschlüsse!(geschwindigkeit);
+        }
+        collect_all_gleis_anschlüsse!(self.ohne_streckenabschnitt);
+        for (_name, (streckenabschnitt, _fließend, mut daten)) in self.streckenabschnitte.drain() {
+            collect_anschlüsse!(streckenabschnitt);
+            collect_all_gleis_anschlüsse!(daten);
+        }
+        (pwm_pins, output_anschlüsse, input_anschlüsse)
+    }
+}
+
+impl<Z: Zugtyp> Reserviere<Zustand<Z>> for ZustandSerialisiert<Z> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> de_serialisieren::Result<Zustand<Z>> {
+        todo!()
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub(crate) struct GleiseDatenSerialisiert<Z> {
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+pub struct GleiseDatenSerialisiert<Z> {
+    pub geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
+    pub kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
+    pub weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
+    pub dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
+    pub kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
+    pub s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
+    pub kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
 }
 
 impl<Z> GleiseDatenSerialisiert<Z> {
@@ -77,52 +162,69 @@ impl<Z> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp> From<&Zustand<Z>> for ZustandSerialisiert<Z> {
-    fn from(
-        Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten }: &Zustand<Z>,
-    ) -> Self {
-        // macro_rules! hashmaps_to_vecs {
-        //     ($($map:ident),* $(,)?) => {
-        //         Serialisiert {
-        //             zugtyp: Z::NAME.to_string(),
-        //             streckenabschnitte: maps.streckenabschnitte.iter().map(
-        //                 |(name, (streckenabschnitt, _fließend))|
-        //                     (name.clone(), streckenabschnitt.serialisiere())
-        //                 ).collect(),
-        //             geschwindigkeiten,
-        //             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
-        //             pläne: Vec::new(),
-        //             $($map: maps.$map.values().map(
-        //                 |Gleis {position, definition, streckenabschnitt}|
-        //                 Gleis {
-        //                     position: position.clone(),
-        //                     definition: definition.serialisiere(),
-        //                     streckenabschnitt: streckenabschnitt.clone()
-        //                 })
-        //                 .collect()
-        //             ),*
-        //         }
-        //     };
-        // }
-        // hashmaps_to_vecs!(
-        //     geraden,
-        //     kurven,
-        //     weichen,
-        //     dreiwege_weichen,
-        //     kurven_weichen,
-        //     s_kurven_weichen,
-        //     kreuzungen,
-        // )
-        todo!()
-    }
-}
+impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Serialisiere for GleiseDaten<Z> {
+    type Serialisiert = GleiseDatenSerialisiert<Z>;
 
-impl<Z: Zugtyp + Serialize> Gleise<Z> {
-    #[must_use]
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Fehler> {
-        let serialisiert = ZustandSerialisiert::from(&self.zustand);
-        let file = std::fs::File::create(pfad)?;
-        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
+    fn serialisiere(&self) -> Self::Serialisiert {
+        macro_rules! rstern_to_vecs {
+            ($($rstern:ident),* $(,)?) => {
+                GleiseDatenSerialisiert {
+                    $($rstern: self.$rstern.iter().map(
+                        |GeomWithData {data, ..}| {
+                            Gleis {
+                                position: data.position.clone(),
+                                definition: data.definition.serialisiere(),
+                            }
+                        })
+                        .collect()
+                    ),*
+                }
+            };
+        }
+        rstern_to_vecs! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
+    }
+
+    fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        let mut pwm_pins = Vec::new();
+        let mut output_anschlüsse = Vec::new();
+        let mut input_anschlüsse = Vec::new();
+        macro_rules! collect_anschlüsse {
+            ($struktur: expr) => {
+                let (pwm, output, input) = $struktur.anschlüsse();
+                pwm_pins.extend(pwm.into_iter());
+                output_anschlüsse.extend(output.into_iter());
+                input_anschlüsse.extend(input.into_iter());
+            };
+        }
+        macro_rules! collect_gleis_anschlüsse {
+            ($($rstern: ident),* $(,)?) => {
+                $(while let Some(geom_with_data) =
+                    self.$rstern.remove_with_selection_function(SelectAll)
+                {
+                    collect_anschlüsse! {
+                        geom_with_data.data.definition
+                    }
+                })*
+            };
+        }
+        collect_gleis_anschlüsse! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
+        (pwm_pins, output_anschlüsse, input_anschlüsse)
     }
 }
 
@@ -152,6 +254,27 @@ fn reserviere_anschlüsse<T: Serialisiere>(
             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
         },
     )
+}
+
+impl<Z: Zugtyp> Reserviere<GleiseDaten<Z>> for GleiseDatenSerialisiert<Z> {
+    fn reserviere(
+        self,
+        anschlüsse: &mut Anschlüsse,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> de_serialisieren::Result<GleiseDaten<Z>> {
+        todo!()
+    }
+}
+
+impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> Gleise<Z> {
+    #[must_use]
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Fehler> {
+        let serialisiert = self.zustand.serialisiere();
+        let file = std::fs::File::create(pfad)?;
+        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
+    }
 }
 
 impl<Z> Gleise<Z>

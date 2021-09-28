@@ -956,7 +956,7 @@ where
 
 impl<Z> Zugkontrolle<Z>
 where
-    Z: Zugtyp + Serialize + 'static,
+    Z: Zugtyp + Serialize + for<'de> Deserialize<'de> + 'static,
     Z::Leiter: LeiterAnzeige,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
 {
