@@ -337,14 +337,19 @@ impl<Z: Zugtyp + Serialize + for<'de> Deserialize<'de>> GleiseDaten<Z> {
     }
 }
 
-fn reserviere_anschlüsse<T: Serialisiere>(
+fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
     anschlüsse: &mut Anschlüsse,
     source: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
     output_anschlüsse: Vec<OutputAnschluss>,
     input_anschlüsse: Vec<InputAnschluss>,
 ) -> Result<
-    (Vec<Gleis<T>>, Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>),
+    (
+        Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>,
+        Vec<pwm::Pin>,
+        Vec<OutputAnschluss>,
+        Vec<InputAnschluss>,
+    ),
     anschluss::Fehler,
 > {
     source.into_iter().fold(
@@ -359,7 +364,8 @@ fn reserviere_anschlüsse<T: Serialisiere>(
             } = gleis_save
                 .reserviere(anschlüsse, acc.1, acc.2, acc.3)
                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-            acc.0.push(gleis);
+            let rectangle = Rectangle::from(gleis.definition.rechteck_an_position(&gleis.position));
+            acc.0.push(GeomWithData::new(rectangle, gleis));
             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
         },
     )
@@ -373,8 +379,37 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> Result<Reserviert<GleiseDaten<Z>>, anschluss::Fehler> {
-        // FIXME RTree::bulk_load verwenden!
-        todo!()
+        macro_rules! reserviere_anschlüsse {
+            ($($rstern: ident),* $(,)?) => {
+                $(
+                    let ($rstern, pwm_pins, output_anschlüsse, input_anschlüsse) =
+                        reserviere_anschlüsse(
+                            anschlüsse,
+                            self.$rstern,
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse
+                        )?;
+                )*
+                Ok(Reserviert {
+                    anschluss: GleiseDaten {
+                        $($rstern: RTree::bulk_load($rstern)),*
+                    },
+                    pwm_nicht_benötigt: pwm_pins,
+                    output_nicht_benötigt: output_anschlüsse,
+                    input_nicht_benötigt: input_anschlüsse,
+                })
+            };
+        }
+        reserviere_anschlüsse! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
     }
 }
 
