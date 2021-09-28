@@ -133,7 +133,150 @@ impl<Z: Zugtyp> Reserviere<Zustand<Z>> for ZustandSerialisiert<Z> {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Zustand<Z>> {
-        todo!()
+        let ZustandSerialisiert {
+            zugtyp: _,
+            ohne_streckenabschnitt,
+            streckenabschnitte,
+            geschwindigkeiten,
+            // TODO wirkliche Konvertierung, sobald Plan implementiert ist
+            pläne: _,
+        } = self;
+        let Reserviert {
+            anschluss: ohne_streckenabschnitt,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = ohne_streckenabschnitt.reserviere(
+            anschlüsse,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
+        let Reserviert {
+            anschluss: streckenabschnitte,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = streckenabschnitte.into_iter().fold(
+            Ok(Reserviert {
+                anschluss: HashMap::new(),
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
+            |acc, (name, (streckenabschnitt, daten))| {
+                acc.and_then(
+                    |Reserviert {
+                         anschluss: mut map,
+                         pwm_nicht_benötigt,
+                         output_nicht_benötigt,
+                         input_nicht_benötigt,
+                     }| { 
+                        match streckenabschnitt.reserviere(
+                            anschlüsse,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        ) {
+                            Ok(Reserviert {
+                                anschluss: streckenabschnitt,
+                                pwm_nicht_benötigt,
+                                output_nicht_benötigt,
+                                input_nicht_benötigt,
+                            }) => {
+                                match daten.reserviere(
+                                    anschlüsse,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                ) {
+                                    Ok(Reserviert {
+                                        anschluss: daten,
+                                        pwm_nicht_benötigt,
+                                        output_nicht_benötigt,
+                                        input_nicht_benötigt,
+                                    }) => {
+                                        map.insert(
+                                            name,
+                                            (streckenabschnitt, Fließend::Gesperrt, daten)
+                                        );
+                                        Ok(Reserviert {
+                                            anschluss: map,
+                                            pwm_nicht_benötigt,
+                                            output_nicht_benötigt,
+                                            input_nicht_benötigt,
+                                        })
+                                    }
+                                    Err(mut fehler) => {
+                                        todo!("Bereits vergebene Anschlüsse aufsammeln, mit nicht benötigten zu Fehler-Anschlüssen hinzufügen");
+                                        Err(fehler)
+                                    }
+                                }
+                            }
+                            Err(mut fehler) => {
+                                todo!("Bereits vergebene Anschlüsse aufsammeln, mit nicht benötigten zu Fehler-Anschlüssen hinzufügen");
+                                Err(fehler)
+                            }
+                        }
+                    }
+                )
+            },
+        )?;
+        let Reserviert {
+            anschluss: geschwindigkeiten,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = geschwindigkeiten.into_iter().fold(
+            Ok(Reserviert {
+                anschluss: HashMap::new(),
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
+            |acc, (name, geschwindigkeit)| {
+                acc.and_then(
+                    |Reserviert {
+                         anschluss: mut map,
+                         pwm_nicht_benötigt,
+                         output_nicht_benötigt,
+                         input_nicht_benötigt,
+                     }| {
+                        match geschwindigkeit.reserviere(
+                            anschlüsse,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        ) {
+                            Ok(Reserviert {
+                                anschluss: geschwindigkeit,
+                                pwm_nicht_benötigt,
+                                output_nicht_benötigt,
+                                input_nicht_benötigt,
+                            }) => {
+                                map.insert(name, geschwindigkeit);
+                                Ok(Reserviert {
+                                    anschluss: map,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                })
+                            }
+                            Err(mut fehler) => {
+                                todo!("Bereits vergebene Anschlüsse aufsammeln, mit nicht benötigten zu Fehler-Anschlüssen hinzufügen");
+                                Err(fehler)
+                            }
+                        }
+                    },
+                )
+            },
+        )?;
+        Ok(Reserviert {
+            anschluss: Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten },
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        })
     }
 }
 
@@ -264,6 +407,7 @@ impl<Z: Zugtyp> Reserviere<GleiseDaten<Z>> for GleiseDatenSerialisiert<Z> {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<GleiseDaten<Z>> {
+        // FIXME RTree::bulk_load verwenden!
         todo!()
     }
 }
@@ -346,14 +490,14 @@ where
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
         let slice = content.as_slice();
-        let ZustandSerialisiert { zugtyp, geschwindigkeiten, .. } = bincode::deserialize(slice)
-            .or_else(|aktuell| {
+        let zustand_serialisiert: ZustandSerialisiert<Z> =
+            bincode::deserialize(slice).or_else(|aktuell| {
                 bincode::deserialize(slice)
                     .map(v2::GleiseVecs::<Z>::into)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
             })?;
-        if zugtyp != Z::NAME {
-            return Err(Fehler::FalscherZugtyp(zugtyp));
+        if zustand_serialisiert.zugtyp != Z::NAME {
+            return Err(Fehler::FalscherZugtyp(zustand_serialisiert.zugtyp));
         }
 
         // // reserviere Anschlüsse
