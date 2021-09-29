@@ -14,14 +14,15 @@ use crate::{
         },
         typen::vektor::Vektor,
     },
-    steuerung::streckenabschnitt,
+    steuerung::{geschwindigkeit, streckenabschnitt},
 };
 
 /// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T> {
     pub(in crate::application::gleis::gleise) rectangle: Rectangle<Vektor>,
-    pub(in crate::application::gleis::gleise) streckenabschnitt: Option<streckenabschnitt::Name>,
+    pub(in crate::application::gleis::gleise) streckenabschnitt:
+        Option<(Option<geschwindigkeit::Name>, streckenabschnitt::Name)>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 impl<T> GleisId<T> {
@@ -131,7 +132,7 @@ impl_any_id_from! {Kreuzung}
 pub(in crate::application::gleis::gleise) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt:
-        Option<&'t streckenabschnitt::Name>,
+        Option<(Option<&'t geschwindigkeit::Name>, &'t streckenabschnitt::Name)>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 
@@ -143,7 +144,10 @@ impl<'s, 't, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'t, T> {
 impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
         (self.rectangle == &other.rectangle)
-            && (self.streckenabschnitt == other.streckenabschnitt.as_ref())
+            && (self.streckenabschnitt
+                == other.streckenabschnitt.as_ref().map(|(geschwindigkeit, streckenabschnitt)| {
+                    (geschwindigkeit.as_ref(), streckenabschnitt)
+                }))
     }
 }
 

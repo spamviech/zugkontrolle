@@ -334,7 +334,8 @@ pub enum Fehler {
     FalscherZugtyp(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
-    StreckenabschnittEntfernt(streckenabschnitt::Name),
+    StreckenabschnittEntfernt(Option<geschwindigkeit::Name>, streckenabschnitt::Name),
+    GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
@@ -350,15 +351,17 @@ impl From<anschluss::Fehler> for Fehler {
 #[derive(Debug)]
 pub enum GleisIdFehler {
     GleisEntfernt,
-    StreckenabschnittEntfernt(streckenabschnitt::Name),
+    StreckenabschnittEntfernt(Option<geschwindigkeit::Name>, streckenabschnitt::Name),
+    GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 impl From<GleisIdFehler> for Fehler {
     fn from(fehler: GleisIdFehler) -> Self {
         match fehler {
             GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
-            GleisIdFehler::StreckenabschnittEntfernt(name) => {
-                Fehler::StreckenabschnittEntfernt(name)
+            GleisIdFehler::StreckenabschnittEntfernt(geschwindigkeit, name) => {
+                Fehler::StreckenabschnittEntfernt(geschwindigkeit, name)
             }
+            GleisIdFehler::GeschwindigkeitEntfernt(name) => Fehler::GeschwindigkeitEntfernt(name),
         }
     }
 }
@@ -377,14 +380,17 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 }
 
 #[derive(Debug)]
-pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
+pub struct StreckenabschnittEntferntFehler(
+    pub Option<geschwindigkeit::Name>,
+    pub streckenabschnitt::Name,
+);
 impl From<StreckenabschnittEntferntFehler> for Fehler {
     fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
-        Fehler::StreckenabschnittEntfernt(fehler.0)
+        Fehler::StreckenabschnittEntfernt(fehler.0, fehler.1)
     }
 }
 impl From<StreckenabschnittEntferntFehler> for GleisIdFehler {
     fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
-        GleisIdFehler::StreckenabschnittEntfernt(fehler.0)
+        GleisIdFehler::StreckenabschnittEntfernt(fehler.0, fehler.1)
     }
 }
