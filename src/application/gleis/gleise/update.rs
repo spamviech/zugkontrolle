@@ -12,7 +12,7 @@ use crate::{
         gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
         typen::*,
     },
-    steuerung::streckenabschnitt,
+    steuerung::{geschwindigkeit, streckenabschnitt},
     zugtyp::Zugtyp,
 };
 
@@ -40,7 +40,7 @@ const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
 fn gleis_an_position<T, Z>(
-    streckenabschnitt: Option<&streckenabschnitt::Name>,
+    streckenabschnitt: Option<(Option<&geschwindigkeit::Name>, &streckenabschnitt::Name)>,
     rstern: &RStern<T>,
     canvas_pos: Vektor,
 ) -> Option<(AnyId<Z>, Vektor)>
@@ -56,7 +56,8 @@ where
         if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {
             let any_id = AnyId::from(GleisId {
                 rectangle: *rectangle,
-                streckenabschnitt: streckenabschnitt.cloned(),
+                streckenabschnitt: streckenabschnitt
+                    .map(|(geschwindigkeit, name)| (geschwindigkeit.cloned(), name.clone())),
                 phantom: PhantomData::<fn() -> T>,
             });
             return Some((any_id, relative_pos));
@@ -69,7 +70,12 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
     modus: &'t mut ModusDaten<Z>,
-    daten_iter: impl Iterator<Item = (Option<&'t streckenabschnitt::Name>, &'t GleiseDaten<Z>)>,
+    daten_iter: impl Iterator<
+        Item = (
+            Option<(Option<&'t geschwindigkeit::Name>, &'t streckenabschnitt::Name)>,
+            &'t GleiseDaten<Z>,
+        ),
+    >,
     pivot: &'t Position,
     skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
@@ -146,7 +152,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     &bounds,
                     &cursor,
                     modus,
-                    zustand.alle_streckenabschnitt_daten(),
+                    zustand.alle_geschwindigkeit_streckenabschnitt_daten(),
                     pivot,
                     skalieren,
                 );
