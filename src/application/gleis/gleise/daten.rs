@@ -41,6 +41,8 @@ use crate::{
     },
 };
 
+use super::GeschwindigkeitEntferntFehler;
+
 pub mod de_serialisieren;
 pub mod v2;
 
@@ -96,7 +98,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     }
 }
 
-type StreckenabschnittMap<Z> =
+pub(in crate::application::gleis::gleise) type StreckenabschnittMap<Z> =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>;
 type GeschwindigkeitMap<Z: Zugtyp> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)>;
@@ -129,6 +131,36 @@ impl<Z: Zugtyp> Zustand<Z> {
         }
     }
 
+    pub(in crate::application::gleis::gleise) fn streckenabschnitt_map(
+        &self,
+        geschwindigkeit: &Option<geschwindigkeit::Name>,
+    ) -> Result<&StreckenabschnittMap<Z>, GeschwindigkeitEntferntFehler> {
+        Ok(if let Some(name) = geschwindigkeit {
+            &self
+                .geschwindigkeiten
+                .get(name)
+                .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))?
+                .1
+        } else {
+            &self.ohne_geschwindigkeit
+        })
+    }
+
+    pub(in crate::application::gleis::gleise) fn streckenabschnitt_map_mut(
+        &mut self,
+        geschwindigkeit: &Option<geschwindigkeit::Name>,
+    ) -> Result<&mut StreckenabschnittMap<Z>, GeschwindigkeitEntferntFehler> {
+        Ok(if let Some(name) = geschwindigkeit {
+            &mut self
+                .geschwindigkeiten
+                .get_mut(name)
+                .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))?
+                .1
+        } else {
+            &mut self.ohne_geschwindigkeit
+        })
+    }
+
     pub(in crate::application::gleis::gleise) fn daten(
         &self,
         geschwindigkeit_und_streckenabschnitt: &Option<(
@@ -136,24 +168,24 @@ impl<Z: Zugtyp> Zustand<Z> {
             streckenabschnitt::Name,
         )>,
     ) -> Result<&GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(match geschwindigkeit_und_streckenabschnitt {
-            Some((geschwindigkeit_opt, streckenabschnitt)) => {
-                let erstelle_fehler = || {
-                    StreckenabschnittEntferntFehler(
-                        *geschwindigkeit_opt.clone(),
-                        streckenabschnitt.clone(),
-                    )
-                };
-                let streckenabschnitt_map = match geschwindigkeit_opt {
-                    Some(geschwindigkeit) => {
-                        &self.geschwindigkeiten.get(geschwindigkeit).ok_or_else(erstelle_fehler)?.1
-                    }
-                    None => &self.ohne_geschwindigkeit,
-                };
-                &streckenabschnitt_map.get(streckenabschnitt).ok_or_else(erstelle_fehler)?.2
-            }
-            None => &self.ohne_streckenabschnitt,
-        })
+        Ok(
+            if let Some((geschwindigkeit, streckenabschnitt)) =
+                geschwindigkeit_und_streckenabschnitt
+            {
+                let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit)?;
+                &streckenabschnitt_map
+                    .get(streckenabschnitt)
+                    .ok_or_else(|| {
+                        StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
+                            *geschwindigkeit.clone(),
+                            streckenabschnitt.clone(),
+                        )
+                    })?
+                    .2
+            } else {
+                &self.ohne_streckenabschnitt
+            },
+        )
     }
     pub(in crate::application::gleis::gleise) fn daten_mut(
         &mut self,
@@ -162,28 +194,24 @@ impl<Z: Zugtyp> Zustand<Z> {
             streckenabschnitt::Name,
         )>,
     ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(match geschwindigkeit_und_streckenabschnitt {
-            Some((geschwindigkeit_opt, streckenabschnitt)) => {
-                let erstelle_fehler = || {
-                    StreckenabschnittEntferntFehler(
-                        *geschwindigkeit_opt.clone(),
-                        streckenabschnitt.clone(),
-                    )
-                };
-                let streckenabschnitt_map = match geschwindigkeit_opt {
-                    Some(geschwindigkeit) => {
-                        &mut self
-                            .geschwindigkeiten
-                            .get_mut(geschwindigkeit)
-                            .ok_or_else(erstelle_fehler)?
-                            .1
-                    }
-                    None => &mut self.ohne_geschwindigkeit,
-                };
-                &mut streckenabschnitt_map.get_mut(streckenabschnitt).ok_or_else(erstelle_fehler)?.2
-            }
-            None => &mut self.ohne_streckenabschnitt,
-        })
+        Ok(
+            if let Some((geschwindigkeit, streckenabschnitt)) =
+                geschwindigkeit_und_streckenabschnitt
+            {
+                let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit)?;
+                &mut streckenabschnitt_map
+                    .get_mut(streckenabschnitt)
+                    .ok_or_else(|| {
+                        StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
+                            *geschwindigkeit.clone(),
+                            streckenabschnitt.clone(),
+                        )
+                    })?
+                    .2
+            } else {
+                &mut self.ohne_streckenabschnitt
+            },
+        )
     }
 
     pub(crate) fn alle_streckenabschnitt_daten(
