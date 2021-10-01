@@ -12,7 +12,6 @@ use crate::{
         gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
         typen::*,
     },
-    steuerung::{geschwindigkeit, streckenabschnitt},
     zugtyp::Zugtyp,
 };
 
@@ -39,14 +38,14 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
-fn gleis_an_position<T, Z>(
-    streckenabschnitt: Option<(Option<&geschwindigkeit::Name>, &streckenabschnitt::Name)>,
-    rstern: &RStern<T>,
+fn gleis_an_position<'t, T, Z>(
+    streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
+    rstern: &'t RStern<T>,
     canvas_pos: Vektor,
-) -> Option<(AnyId<Z>, Vektor)>
+) -> Option<(AnyIdRef<'t, Z>, Vektor)>
 where
     T: Zeichnen,
-    AnyId<Z>: From<GleisId<T>>,
+    AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
@@ -54,10 +53,9 @@ where
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {
-            let any_id = AnyId::from(GleisId {
-                rectangle: *rectangle,
-                streckenabschnitt: streckenabschnitt
-                    .map(|(geschwindigkeit, name)| (geschwindigkeit.cloned(), name.clone())),
+            let any_id = AnyIdRef::from(GleisIdRef {
+                rectangle,
+                streckenabschnitt,
                 phantom: PhantomData::<fn() -> T>,
             });
             return Some((any_id, relative_pos));
@@ -70,12 +68,7 @@ fn aktion_gleis_an_position<'t, Z: 't>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
     modus: &'t mut ModusDaten<Z>,
-    daten_iter: impl Iterator<
-        Item = (
-            Option<(Option<&'t geschwindigkeit::Name>, &'t streckenabschnitt::Name)>,
-            &'t GleiseDaten<Z>,
-        ),
-    >,
+    daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
 ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
@@ -110,7 +103,8 @@ where
                     let diff = now.checked_duration_since(*last).unwrap_or(Duration::MAX);
                     *last = now;
                     if gehalten.is_none() {
-                        if let Some((gleis_id, halte_position)) = gleis_an_position {
+                        if let Some((any_id_ref, halte_position)) = gleis_an_position {
+                            let gleis_id = any_id_ref.als_id();
                             *gehalten = Some(Gehalten { gleis_id, halte_position, bewegt: false })
                         }
                     }
@@ -122,7 +116,8 @@ where
                     }
                 }
                 ModusDaten::Fahren => {
-                    if let Some((gleis_id, _halte_position)) = gleis_an_position {
+                    if let Some((any_id_ref, _halte_position)) = gleis_an_position {
+                        let gleis_id = any_id_ref.als_id();
                         message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }

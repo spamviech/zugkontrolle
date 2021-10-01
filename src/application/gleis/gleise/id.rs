@@ -160,6 +160,16 @@ impl<'t> PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'t> {
     }
 }
 
+impl<'t> StreckenabschnittIdRef<'t> {
+    /// Klone die Referenzen um eine neue Id zu erzeugen.
+    fn als_id(self) -> StreckenabschnittId {
+        StreckenabschnittId {
+            geschwindigkeit: self.geschwindigkeit.cloned(),
+            name: self.name.clone(),
+        }
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug)]
 pub(in crate::application::gleis::gleise) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
@@ -240,3 +250,46 @@ impl_any_id_ref_from! {DreiwegeWeiche}
 impl_any_id_ref_from! {KurvenWeiche}
 impl_any_id_ref_from! {SKurvenWeiche}
 impl_any_id_ref_from! {Kreuzung}
+
+impl<'t, Z> AnyIdRef<'t, Z> {
+    /// Klone die Referenzen um eine neue Id zu erzeugen.
+    pub(in crate::application::gleis::gleise) fn als_id(self) -> AnyId<Z> {
+        match self {
+            AnyIdRef::Gerade(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::Kurve(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::Weiche(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::DreiwegeWeiche(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::KurvenWeiche(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::SKurvenWeiche(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+            AnyIdRef::Kreuzung(gleis_id_ref) => AnyId::from(GleisId {
+                rectangle: *gleis_id_ref.rectangle,
+                streckenabschnitt: gleis_id_ref.streckenabschnitt.map(|id_ref| id_ref.als_id()),
+                phantom: gleis_id_ref.phantom,
+            }),
+        }
+    }
+}
