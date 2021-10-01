@@ -144,9 +144,9 @@ impl_any_id_from! {Kreuzung}
 
 /// Id für einen Streckenabschnitt.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::application::gleis::gleise) struct StreckenabschnittIdRef<'t> {
-    pub(in crate::application::gleis::gleise) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
-    pub(in crate::application::gleis::gleise) name: &'t streckenabschnitt::Name,
+pub(in crate::application) struct StreckenabschnittIdRef<'t> {
+    pub(in crate::application) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
+    pub(in crate::application) name: &'t streckenabschnitt::Name,
 }
 
 impl<'t> PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'t> {

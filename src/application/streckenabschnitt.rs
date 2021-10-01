@@ -13,7 +13,8 @@ pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
     anschluss::{Fließend, OutputSerialisiert, Polarität},
     application::{
-        anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
+        anschluss, farbwahl::Farbwahl, gleis::gleise::id::StreckenabschnittIdRef,
+        macros::reexport_no_event_methods, style::tab_bar::TabBar,
     },
     farbe::Farbe,
 };
@@ -122,8 +123,11 @@ pub struct AuswahlStatus {
 
 impl AuswahlStatus {
     pub fn neu<'t>(
-        streckenabschnitte: impl Iterator<Item = (&'t Name, (&'t Streckenabschnitt, &'t Fließend))>,
+        streckenabschnitte: impl Iterator<
+            Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &'t Fließend)),
+        >,
     ) -> Self {
+        // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),
             neu_farbe: Farbe { r: 1., g: 1., b: 1. },
@@ -133,8 +137,8 @@ impl AuswahlStatus {
             neu_button_state: button::State::new(),
             none_button_state: button::State::new(),
             streckenabschnitte: streckenabschnitte
-                .map(|(name, (streckenabschnitt, _fließend))| {
-                    Self::iter_map((name, streckenabschnitt))
+                .map(|(streckenabschnitt_id, (streckenabschnitt, _fließend))| {
+                    Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
                 })
                 .collect(),
             scrollable_state: scrollable::State::new(),
