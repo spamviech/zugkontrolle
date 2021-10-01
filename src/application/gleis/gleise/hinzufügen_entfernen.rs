@@ -16,7 +16,7 @@ use crate::{
                 daten::{DatenAuswahl, Gleis, SelectEnvelope},
                 id::{AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId},
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
-                StreckenabschnittEntferntFehler,
+                StreckenabschnittFehler,
             },
             verbindung::{self, Verbindung},
         },
@@ -35,7 +35,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         position: Position,
         streckenabschnitt: Option<StreckenabschnittId>,
-    ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
@@ -60,7 +60,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         halte_position: Vektor,
         streckenabschnitt: Option<StreckenabschnittId>,
-    ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittFehler>
     where
         GleisId<T>: Into<AnyId<Z>>,
         T: Debug + Zeichnen + DatenAuswahl<Z>,
@@ -101,7 +101,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<StreckenabschnittId>,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
-    ) -> Result<GleisId<T>, StreckenabschnittEntferntFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
@@ -192,12 +192,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        if let Some(StreckenabschnittId { geschwindigkeit, name }) = streckenabschnitt {
+        if let Some(streckenabschnitt_id) = streckenabschnitt {
+            let StreckenabschnittId { geschwindigkeit, name } = &streckenabschnitt_id;
             let (streckenabschnitt, fließend, daten) = self
                 .zustand
-                .streckenabschnitt_map_mut(&geschwindigkeit)?
-                .get_mut(&name)
-                .ok_or(GleisIdFehler::StreckenabschnittEntfernt(geschwindigkeit, name))?;
+                .streckenabschnitt_map_mut(geschwindigkeit.as_ref())?
+                .get_mut(name)
+                .ok_or(GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt_id))?;
             if daten
                 .rstern_mut::<T>()
                 .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))

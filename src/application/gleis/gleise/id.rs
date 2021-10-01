@@ -162,7 +162,7 @@ impl<'t> PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'t> {
 
 impl<'t> StreckenabschnittIdRef<'t> {
     /// Klone die Referenzen um eine neue Id zu erzeugen.
-    fn als_id(self) -> StreckenabschnittId {
+    pub(in crate::application::gleis::gleise) fn als_id(self) -> StreckenabschnittId {
         StreckenabschnittId {
             geschwindigkeit: self.geschwindigkeit.cloned(),
             name: self.name.clone(),

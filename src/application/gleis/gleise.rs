@@ -10,7 +10,7 @@ pub use self::{
 };
 use self::{
     daten::{GleiseDaten, StreckenabschnittMap},
-    id::StreckenabschnittIdRef,
+    id::{StreckenabschnittId, StreckenabschnittIdRef},
 };
 use crate::{
     anschluss::{self, Fließend},
@@ -177,35 +177,31 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt<'s, 't>(
         &'s self,
-        geschwindigkeit: &Option<geschwindigkeit::Name>,
-        name: &'t streckenabschnitt::Name,
-    ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittEntferntFehler> {
+        streckenabschnitt: StreckenabschnittIdRef<'t>,
+    ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittFehler> {
+        let StreckenabschnittIdRef { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit)?;
         streckenabschnitt_map
             .get(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
-                    geschwindigkeit.clone(),
-                    name.clone(),
-                )
+                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.als_id())
             })
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt_mut<'s, 't>(
         &'s mut self,
-        geschwindigkeit: &Option<geschwindigkeit::Name>,
-        name: &'t streckenabschnitt::Name,
-    ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittEntferntFehler>
-    {
+        streckenabschnitt: StreckenabschnittIdRef<'t>,
+    ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittFehler> {
+        let StreckenabschnittIdRef { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map = self.zustand.streckenabschnitt_map_mut(geschwindigkeit)?;
         streckenabschnitt_map
             .get_mut(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
-                    geschwindigkeit.clone(),
+                StreckenabschnittFehler::StreckenabschnittEntfernt(
+                    geschwindigkeit.cloned(),
                     name.clone(),
                 )
             })
@@ -232,12 +228,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         geschwindigkeit: &Option<geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         geschwindigkeit_neu: &Option<geschwindigkeit::Name>,
-    ) -> Result<(), StreckenabschnittEntferntFehler> {
+    ) -> Result<(), StreckenabschnittFehler> {
         self.canvas.leeren();
         let streckenabschnitt_map = self.zustand.streckenabschnitt_map_mut(geschwindigkeit)?;
         let (streckenabschnitt, fließend, daten) =
             streckenabschnitt_map.remove(&name).ok_or_else(|| {
-                StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
+                StreckenabschnittFehler::StreckenabschnittEntfernt(
                     geschwindigkeit.clone(),
                     name.clone(),
                 )
@@ -428,7 +424,7 @@ pub enum Fehler {
     FalscherZugtyp(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
-    StreckenabschnittEntfernt(Option<geschwindigkeit::Name>, streckenabschnitt::Name),
+    StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 impl From<std::io::Error> for Fehler {
@@ -445,15 +441,15 @@ impl From<anschluss::Fehler> for Fehler {
 #[derive(Debug)]
 pub enum GleisIdFehler {
     GleisEntfernt,
-    StreckenabschnittEntfernt(Option<geschwindigkeit::Name>, streckenabschnitt::Name),
+    StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 impl From<GleisIdFehler> for Fehler {
     fn from(fehler: GleisIdFehler) -> Self {
         match fehler {
             GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
-            GleisIdFehler::StreckenabschnittEntfernt(geschwindigkeit, name) => {
-                Fehler::StreckenabschnittEntfernt(geschwindigkeit, name)
+            GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
+                Fehler::StreckenabschnittEntfernt(streckenabschnitt)
             }
             GleisIdFehler::GeschwindigkeitEntfernt(name) => Fehler::GeschwindigkeitEntfernt(name),
         }
@@ -474,29 +470,29 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 }
 
 #[derive(Debug)]
-pub enum StreckenabschnittEntferntFehler {
-    StreckenabschnittEntfernt(Option<geschwindigkeit::Name>, streckenabschnitt::Name),
+pub enum StreckenabschnittFehler {
+    StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
-impl From<StreckenabschnittEntferntFehler> for Fehler {
-    fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
+impl From<StreckenabschnittFehler> for Fehler {
+    fn from(fehler: StreckenabschnittFehler) -> Self {
         match fehler {
-            StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(geschwindigkeit, name) => {
-                Fehler::StreckenabschnittEntfernt(geschwindigkeit, name)
+            StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
+                Fehler::StreckenabschnittEntfernt(streckenabschnitt)
             }
-            StreckenabschnittEntferntFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
+            StreckenabschnittFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 Fehler::GeschwindigkeitEntfernt(geschwindigkeit)
             }
         }
     }
 }
-impl From<StreckenabschnittEntferntFehler> for GleisIdFehler {
-    fn from(fehler: StreckenabschnittEntferntFehler) -> Self {
+impl From<StreckenabschnittFehler> for GleisIdFehler {
+    fn from(fehler: StreckenabschnittFehler) -> Self {
         match fehler {
-            StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(geschwindigkeit, name) => {
-                GleisIdFehler::StreckenabschnittEntfernt(geschwindigkeit, name)
+            StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
+                GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt)
             }
-            StreckenabschnittEntferntFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
+            StreckenabschnittFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 GleisIdFehler::GeschwindigkeitEntfernt(geschwindigkeit)
             }
         }
@@ -515,8 +511,8 @@ impl From<GeschwindigkeitEntferntFehler> for GleisIdFehler {
         GleisIdFehler::GeschwindigkeitEntfernt(fehler.0)
     }
 }
-impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittEntferntFehler {
+impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittFehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
-        StreckenabschnittEntferntFehler::GeschwindigkeitEntfernt(fehler.0)
+        StreckenabschnittFehler::GeschwindigkeitEntfernt(fehler.0)
     }
 }
