@@ -136,8 +136,13 @@ where
                 match message {
                     Schließe => Nachricht::SchließeModal,
                     Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
-                    Hinzufügen(nachricht_paar) => {
-                        Nachricht::HinzufügenStreckenabschnitt(nachricht_paar)
+                    Hinzufügen(geschwindigkeit, name, farbe, output) => {
+                        Nachricht::HinzufügenStreckenabschnitt(
+                            geschwindigkeit,
+                            name,
+                            farbe,
+                            output,
+                        )
                     }
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }

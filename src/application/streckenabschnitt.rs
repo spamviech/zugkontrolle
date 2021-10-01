@@ -21,6 +21,7 @@ use crate::{
         NachrichtNewtype, NachrichtPaar,
     },
     farbe::Farbe,
+    steuerung::{geschwindigkeit, streckenabschnitt},
 };
 
 pub mod style;
@@ -205,7 +206,7 @@ enum InterneAuswahlNachricht {
 pub enum AuswahlNachricht {
     Schließe,
     Wähle(Option<NachrichtPaar<StreckenabschnittId, Farbe>>),
-    Hinzufügen(NachrichtPaar<StreckenabschnittId, (Farbe, OutputSerialisiert)>),
+    Hinzufügen(Option<geschwindigkeit::Name>, streckenabschnitt::Name, Farbe, OutputSerialisiert),
     Lösche(NachrichtNewtype<StreckenabschnittId>),
 }
 
@@ -344,10 +345,12 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                     messages.push(AuswahlNachricht::Schließe)
                 }
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(NachrichtPaar {
-                        a: erstelle_id(Name(self.neu_name.clone())),
-                        b: (self.neu_farbe.clone(), self.neu_anschluss.clone()),
-                    }));
+                    messages.push(AuswahlNachricht::Hinzufügen(
+                        None,
+                        Name(self.neu_name.clone()),
+                        self.neu_farbe.clone(),
+                        self.neu_anschluss.clone(),
+                    ));
                 }
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(NachrichtNewtype(erstelle_id(name))))
