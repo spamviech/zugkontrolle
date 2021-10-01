@@ -241,7 +241,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                 },
             )
             .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-        Ok(Zustand { ohne_streckenabschnitt, streckenabschnitte, geschwindigkeiten })
+        Ok(Zustand { ohne_streckenabschnitt, ohne_geschwindigkeit, geschwindigkeiten })
     }
 }
 

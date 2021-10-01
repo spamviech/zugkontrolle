@@ -723,5 +723,6 @@ impl From<pwm::Fehler> for Fehler {
 /// Name einer Geschwindigkeit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
+
 pub type Map<Leiter> = HashMap<Name, Geschwindigkeit<Leiter>>;
 pub type MapSerialisiert<Leiter> = HashMap<Name, GeschwindigkeitSerialisiert<Leiter>>;

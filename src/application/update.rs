@@ -22,7 +22,7 @@ use crate::{
         gleis,
         gleis::gleise::{
             daten::DatenAuswahl,
-            id::{mit_any_id, AnyId, GleisId},
+            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
         },
@@ -222,8 +222,11 @@ where
     }
 
     pub fn gleis_hinzufügen(&mut self, gleis: AnyGleis<Z>, klick_höhe: Skalar) {
-        let streckenabschnitt =
-            self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone());
+        let streckenabschnitt = self
+            .streckenabschnitt_aktuell
+            .aktuell
+            .as_ref()
+            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.clone());
         macro_rules! hinzufügen_gehalten_bei_maus {
             ($gleis:expr) => {{
                 if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
@@ -273,19 +276,23 @@ where
     #[inline(always)]
     pub fn streckenabschnitt_wählen(
         &mut self,
-        streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
+        streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
     ) {
         self.streckenabschnitt_aktuell.aktuell = streckenabschnitt
     }
 
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
+        geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        match self.gleise.streckenabschnitt_mut(&name) {
-            Some((streckenabschnitt, fließend))
+        match self
+            .gleise
+            .streckenabschnitt_mut(StreckenabschnittIdRef { geschwindigkeit, name: &name })
+        {
+            Ok((streckenabschnitt, fließend))
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
@@ -300,7 +307,7 @@ where
                     fehlermeldung,
                 )
             }
-            _ => {
+            _fehler => {
                 match anschluss_definition.reserviere(
                     &mut self.anschlüsse,
                     Vec::new(),
@@ -308,7 +315,13 @@ where
                     Vec::new(),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
-                        self.streckenabschnitt_aktuell.aktuell = Some((name.clone(), farbe));
+                        self.streckenabschnitt_aktuell.aktuell = Some((
+                            StreckenabschnittId {
+                                geschwindigkeit: geschwindigkeit.cloned(),
+                                name: name.clone(),
+                            },
+                            farbe,
+                        ));
                         let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
                         match self.modal_state.inner_mut() {
                             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
@@ -324,9 +337,11 @@ where
                             }
                         }
                         let name_string = name.0.clone();
-                        if let Some(ersetzt) =
-                            self.gleise.neuer_streckenabschnitt(name, streckenabschnitt)
-                        {
+                        if let Ok(ersetzt) = self.gleise.neuer_streckenabschnitt(
+                            geschwindigkeit,
+                            name,
+                            streckenabschnitt,
+                        ) {
                             self.zeige_message_box(
                                 format!("Streckenabschnitt {} anpassen", name_string),
                                 format!(
@@ -345,30 +360,30 @@ where
         }
     }
 
-    pub fn streckenabschnitt_löschen(&mut self, name: streckenabschnitt::Name) {
+    pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
         if self
             .streckenabschnitt_aktuell
             .aktuell
             .as_ref()
-            .map_or(false, |(aktuell_name, _farbe)| aktuell_name == &name)
+            .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
         {
             self.streckenabschnitt_aktuell.aktuell = None;
         }
 
         match self.modal_state.inner_mut() {
             Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
-                streckenabschnitt_auswahl.entferne(&name);
+                streckenabschnitt_auswahl.entferne(&streckenabschnitt_id.name);
             }
             modal => {
                 error!("Falscher Modal-State bei LöscheStreckenabschnitt!");
                 *modal = Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(
-                    self.gleise
-                        .streckenabschnitte()
-                        .filter(|(name_iter, _streckenabschnitt)| name_iter != &&name),
+                    self.gleise.streckenabschnitte().filter(|(id_iter, _streckenabschnitt)| {
+                        *id_iter != streckenabschnitt_id.als_ref()
+                    }),
                 ));
             }
         }
-        self.gleise.entferne_streckenabschnitt(&name);
+        self.gleise.entferne_streckenabschnitt(streckenabschnitt_id);
     }
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {

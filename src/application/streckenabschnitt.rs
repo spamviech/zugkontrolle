@@ -13,8 +13,12 @@ pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
     anschluss::{Fließend, OutputSerialisiert, Polarität},
     application::{
-        anschluss, farbwahl::Farbwahl, gleis::gleise::id::StreckenabschnittIdRef,
-        macros::reexport_no_event_methods, style::tab_bar::TabBar,
+        anschluss,
+        farbwahl::Farbwahl,
+        gleis::gleise::id::{StreckenabschnittId, StreckenabschnittIdRef},
+        macros::reexport_no_event_methods,
+        style::tab_bar::TabBar,
+        NachrichtNewtype, NachrichtPaar,
     },
     farbe::Farbe,
 };
@@ -23,7 +27,7 @@ pub mod style;
 
 #[derive(Debug)]
 pub struct AnzeigeStatus {
-    pub aktuell: Option<(Name, Farbe)>,
+    pub aktuell: Option<(StreckenabschnittId, Farbe)>,
     pub auswählen: button::State,
 }
 
@@ -60,8 +64,9 @@ where
         let mut children = Vec::new();
         let column = Column::new()
             .push(Container::new(Text::new("Streckenabschnitt")).style(style::Beschreibung));
-        let style = if let Some((name, farbe)) = &status.aktuell {
-            children.push(column.push(Text::new(&name.0)).into());
+        // TODO Assoziierte Geschwindigkeit berücksichtigen
+        let style = if let Some((streckenabschnitt_id, farbe)) = &status.aktuell {
+            children.push(column.push(Text::new(&streckenabschnitt_id.name.0)).into());
             style::Anzeige::Farbe(*farbe)
         } else {
             children.push(column.push(Text::new("<Name>")).into());
@@ -196,12 +201,12 @@ enum InterneAuswahlNachricht {
     Anschluss(OutputSerialisiert),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, zugkontrolle_derive::Clone)]
 pub enum AuswahlNachricht {
     Schließe,
-    Wähle(Option<(Name, Farbe)>),
-    Hinzufügen(Name, Farbe, OutputSerialisiert),
-    Lösche(Name),
+    Wähle(Option<NachrichtPaar<StreckenabschnittId, Farbe>>),
+    Hinzufügen(NachrichtPaar<StreckenabschnittId, (Farbe, OutputSerialisiert)>),
+    Lösche(NachrichtNewtype<StreckenabschnittId>),
 }
 
 pub struct Auswahl<'a, R: Renderer + card::Renderer> {
@@ -329,21 +334,23 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
             &mut container_messages,
         );
         for message in container_messages {
+            let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match message {
                 InterneAuswahlNachricht::Schließe => messages.push(AuswahlNachricht::Schließe),
                 InterneAuswahlNachricht::Wähle(wahl) => {
-                    messages.push(AuswahlNachricht::Wähle(wahl));
+                    messages.push(AuswahlNachricht::Wähle(
+                        wahl.map(|(name, farbe)| NachrichtPaar { a: erstelle_id(name), b: farbe }),
+                    ));
                     messages.push(AuswahlNachricht::Schließe)
                 }
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(
-                        Name(self.neu_name.clone()),
-                        self.neu_farbe.clone(),
-                        self.neu_anschluss.clone(),
-                    ));
+                    messages.push(AuswahlNachricht::Hinzufügen(NachrichtPaar {
+                        a: erstelle_id(Name(self.neu_name.clone())),
+                        b: (self.neu_farbe.clone(), self.neu_anschluss.clone()),
+                    }));
                 }
                 InterneAuswahlNachricht::Lösche(name) => {
-                    messages.push(AuswahlNachricht::Lösche(name))
+                    messages.push(AuswahlNachricht::Lösche(NachrichtNewtype(erstelle_id(name))))
                 }
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,

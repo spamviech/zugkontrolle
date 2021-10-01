@@ -20,18 +20,20 @@ use crate::{
 /// Id für einen Streckenabschnitt.
 #[derive(Debug, PartialEq, Eq)]
 pub struct StreckenabschnittId {
-    pub(in crate::application::gleis::gleise) geschwindigkeit: Option<geschwindigkeit::Name>,
-    pub(in crate::application::gleis::gleise) name: streckenabschnitt::Name,
+    pub(in crate::application) geschwindigkeit: Option<geschwindigkeit::Name>,
+    pub(in crate::application) name: streckenabschnitt::Name,
 }
 
 impl StreckenabschnittId {
     // Als Methode definiert, damit es privat bleibt.
-    pub(in crate::application::gleis::gleise) fn clone(&self) -> Self {
-        Self { geschwindigkeit: self.geschwindigkeit.clone(), name: self.name.clone() }
+    pub(in crate::application) fn clone(&self) -> Self {
+        Self {
+            geschwindigkeit: self.geschwindigkeit.map(|name| name.clone()),
+            name: self.name.clone(),
+        }
     }
-    pub(in crate::application::gleis::gleise) fn als_ref<'t>(
-        &'t self,
-    ) -> StreckenabschnittIdRef<'t> {
+
+    pub(in crate::application) fn als_ref<'t>(&'t self) -> StreckenabschnittIdRef<'t> {
         StreckenabschnittIdRef { geschwindigkeit: self.geschwindigkeit.as_ref(), name: &self.name }
     }
 }

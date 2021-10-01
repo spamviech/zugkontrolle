@@ -118,6 +118,55 @@ pub enum ZustandZurücksetzen<Z: Zugtyp> {
     ),
 }
 
+/// Newtype für ein Elementen mit einigen expliziten Clone-Implementierungen.
+/// Haupt-Nutzen ist für das Clone-derive Macro.
+#[derive(Debug)]
+pub struct NachrichtNewtype<A>(A);
+
+impl<A> NachrichtNewtype<A> {
+    pub fn neu(a: A) -> Self {
+        NachrichtNewtype(a)
+    }
+
+    pub fn element(self) -> A {
+        self.0
+    }
+}
+
+impl Clone for NachrichtNewtype<StreckenabschnittId> {
+    fn clone(&self) -> Self {
+        NachrichtNewtype(self.0.clone())
+    }
+}
+
+/// Paar aus zwei Elementen mit einigen expliziten Clone-Implementierungen.
+/// Haupt-Nutzen ist für das Clone-derive Macro.
+#[derive(Debug)]
+pub struct NachrichtPaar<A, B> {
+    a: A,
+    b: B,
+}
+
+impl<A, B> NachrichtPaar<A, B> {
+    pub fn neu(a: A, b: B) -> Self {
+        NachrichtPaar { a, b }
+    }
+
+    pub fn aus_tupel((a, b): (A, B)) -> Self {
+        NachrichtPaar { a, b }
+    }
+
+    pub fn als_tupel(self) -> (A, B) {
+        (self.a, self.b)
+    }
+}
+
+impl<B: Clone> Clone for NachrichtPaar<StreckenabschnittId, B> {
+    fn clone(&self) -> Self {
+        NachrichtPaar { a: self.a.clone(), b: self.b.clone() }
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Nachricht<Z>
 where
@@ -137,9 +186,14 @@ where
     SchließeModal,
     SchließeMessageBox,
     ZeigeAuswahlStreckenabschnitt,
-    WähleStreckenabschnitt(Option<(streckenabschnitt::Name, Farbe)>),
-    HinzufügenStreckenabschnitt(streckenabschnitt::Name, Farbe, OutputSerialisiert),
-    LöscheStreckenabschnitt(streckenabschnitt::Name),
+    WähleStreckenabschnitt(Option<NachrichtPaar<StreckenabschnittId, Farbe>>),
+    HinzufügenStreckenabschnitt(
+        Option<geschwindigkeit::Name>,
+        streckenabschnitt::Name,
+        Farbe,
+        OutputSerialisiert,
+    ),
+    LöscheStreckenabschnitt(NachrichtNewtype<StreckenabschnittId>),
     SetzeStreckenabschnitt(AnyId<Z>),
     StreckenabschnittFestlegen(bool),
     Speichern(String),
@@ -395,11 +449,23 @@ where
             Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
             Nachricht::SchließeModal => self.schließe_modal(),
             Nachricht::ZeigeAuswahlStreckenabschnitt => self.zeige_auswahl_streckenabschnitt(),
-            Nachricht::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
-            Nachricht::HinzufügenStreckenabschnitt(name, farbe, anschluss_definition) => {
-                self.streckenabschnitt_hinzufügen(name, farbe, anschluss_definition)
+            Nachricht::WähleStreckenabschnitt(aktuell) => {
+                self.streckenabschnitt_wählen(aktuell.map(NachrichtPaar::als_tupel))
             }
-            Nachricht::LöscheStreckenabschnitt(name) => self.streckenabschnitt_löschen(name),
+            Nachricht::HinzufügenStreckenabschnitt(
+                geschwindigkeit,
+                name,
+                farbe,
+                anschluss_definition,
+            ) => self.streckenabschnitt_hinzufügen(
+                geschwindigkeit.as_ref(),
+                name,
+                farbe,
+                anschluss_definition,
+            ),
+            Nachricht::LöscheStreckenabschnitt(NachrichtNewtype(streckenabschnitt_id)) => {
+                self.streckenabschnitt_löschen(streckenabschnitt_id)
+            }
             Nachricht::SetzeStreckenabschnitt(any_id) => {
                 self.gleis_setzte_streckenabschnitt(any_id)
             }
