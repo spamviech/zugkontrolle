@@ -200,18 +200,57 @@ impl<Z: Zugtyp> Zustand<Z> {
         })
     }
 
-    pub(crate) fn alle_streckenabschnitt_daten(
-        &self,
-    ) -> impl Iterator<Item = (Option<&streckenabschnitt::Name>, &GleiseDaten<Z>)> {
+    pub(crate) fn alle_streckenabschnitt_daten<'t>(
+        &'t self,
+    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt))
-            .chain(
-                self.ohne_geschwindigkeit
-                    .iter()
-                    .map(|(name, (_streckenabschnitt, _fließend, daten))| (Some(name), daten)),
-            )
-            .chain(self.geschwindigkeiten.values().flat_map(|(_geschwindigkeit, map)| {
-                map.iter().map(|(name, (_streckenabschnitt, _fließend, daten))| (Some(name), daten))
-            }))
+            .chain(self.ohne_geschwindigkeit.iter().map(
+                |(name, (_streckenabschnitt, _fließend, daten))| {
+                    (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
+                },
+            ))
+            .chain(self.geschwindigkeiten.iter().flat_map(
+                |(geschwindigkeit_name, (_geschwindigkeit, map))| {
+                    map.iter().map(move |(name, (_streckenabschnitt, _fließend, daten))| {
+                        (
+                            Some(StreckenabschnittIdRef {
+                                geschwindigkeit: Some(geschwindigkeit_name),
+                                name,
+                            }),
+                            daten,
+                        )
+                    })
+                },
+            ))
+    }
+
+    pub(crate) fn alle_streckenabschnitt_und_daten<'t>(
+        &'t self,
+    ) -> impl Iterator<
+        Item = (
+            StreckenabschnittIdRef<'t>,
+            &'t Streckenabschnitt,
+            &'t Fließend,
+            &'t GleiseDaten<Z>,
+        ),
+    > {
+        let iter_map = |geschwindigkeit: Option<&'t _>| {
+            move |(name, (streckenabschnitt, fließend, daten)): (&'t _, &'t (_, _, _))| {
+                (
+                    StreckenabschnittIdRef { geschwindigkeit, name },
+                    streckenabschnitt,
+                    fließend,
+                    daten,
+                )
+            }
+        };
+        self.ohne_geschwindigkeit.iter().map(iter_map(None)).chain(
+            self.geschwindigkeiten.iter().flat_map(
+                move |(geschwindigkeit_name, (_geschwindigkeit, map))| {
+                    map.iter().map(iter_map(Some(geschwindigkeit_name)))
+                },
+            ),
+        )
     }
 
     pub(crate) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(

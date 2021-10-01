@@ -226,20 +226,19 @@ impl<Z: Zugtyp> Gleise<Z> {
                     };
                 }
                 // Hintergrund
-                for (name, (Streckenabschnitt { farbe, .. }, fließend, daten)) in
-                    zustand.streckenabschnitte.iter()
+                for (streckenabschnitt_id, Streckenabschnitt { farbe, .. }, fließend, daten) in
+                    zustand.alle_streckenabschnitt_und_daten()
                 {
                     macro_rules! transparenz {
                         ($gleis: ident) => {
                             |rectangle, fließend| {
                                 Transparenz::true_reduziert(if modus_bauen {
-                                    ist_gehalten(
-                                        AnyIdRef::from(GleisIdRef {
+                                    let any_id_ref =  AnyIdRef::from(GleisIdRef {
                                         rectangle,
-                                        streckenabschnitt: Some(name),
-                                        phantom:PhantomData::<fn() -> $gleis<Z>>
-                                        })
-                                    )
+                                        streckenabschnitt: Some(streckenabschnitt_id),
+                                        phantom: PhantomData::<fn() -> $gleis<Z>>
+                                    });
+                                    ist_gehalten(any_id_ref)
                                 } else {
                                     fließend == Fließend::Gesperrt
                                 })
