@@ -4,10 +4,13 @@ use std::{collections::hash_map::Entry, fmt::Debug, iter, time::Instant};
 
 use log::error;
 
-use self::daten::{GleiseDaten, StreckenabschnittMap};
 pub use self::{
     daten::{Gleis, Zustand},
     id::{AnyId, GleisId},
+};
+use self::{
+    daten::{GleiseDaten, StreckenabschnittMap},
+    id::StreckenabschnittIdRef,
 };
 use crate::{
     anschluss::{self, Fließend},
@@ -264,18 +267,16 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Alle aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte<'t>(
         &'t self,
-    ) -> impl Iterator<
-        Item = (
-            Option<&'t geschwindigkeit::Name>,
-            &'t streckenabschnitt::Name,
-            (&'t Streckenabschnitt, &Fließend),
-        ),
-    > {
+    ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &Fließend))>
+    {
         let iter_map =
             |(geschwindigkeit, streckenabschnitt_map): (_, &'t StreckenabschnittMap<Z>)| {
                 streckenabschnitt_map.iter().map(
                     move |(name, (streckenabschnitt, fließend, _maps))| {
-                        (geschwindigkeit, name, (streckenabschnitt, fließend))
+                        (
+                            StreckenabschnittIdRef { geschwindigkeit, name },
+                            (streckenabschnitt, fließend),
+                        )
                     },
                 )
             };

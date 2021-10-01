@@ -17,12 +17,25 @@ use crate::{
     steuerung::{geschwindigkeit, streckenabschnitt},
 };
 
-/// Id für ein Gleis. Kann sich beim Programm-Neustart ändern.
+/// Id für einen Streckenabschnitt.
+#[derive(Debug, PartialEq, Eq)]
+pub struct StreckenabschnittId {
+    pub(in crate::application::gleis::gleise) geschwindigkeit: Option<geschwindigkeit::Name>,
+    pub(in crate::application::gleis::gleise) name: streckenabschnitt::Name,
+}
+
+impl StreckenabschnittId {
+    // Als Methode definiert, damit es privat bleibt.
+    fn clone(&self) -> Self {
+        Self { geschwindigkeit: self.geschwindigkeit.clone(), name: self.name.clone() }
+    }
+}
+
+/// Id für ein Gleis.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T> {
     pub(in crate::application::gleis::gleise) rectangle: Rectangle<Vektor>,
-    pub(in crate::application::gleis::gleise) streckenabschnitt:
-        Option<(Option<geschwindigkeit::Name>, streckenabschnitt::Name)>,
+    pub(in crate::application::gleis::gleise) streckenabschnitt: Option<StreckenabschnittId>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 impl<T> GleisId<T> {
@@ -30,7 +43,7 @@ impl<T> GleisId<T> {
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId {
             rectangle: self.rectangle.clone(),
-            streckenabschnitt: self.streckenabschnitt.clone(),
+            streckenabschnitt: self.streckenabschnitt.map(|id| id.clone()),
             phantom: self.phantom,
         }
     }
@@ -43,6 +56,7 @@ impl<T> PartialEq for GleisId<T> {
     }
 }
 
+/// Id für ein beliebiges Gleis.
 #[derive(zugkontrolle_derive::Debug)]
 pub enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),
@@ -128,11 +142,23 @@ impl_any_id_from! {KurvenWeiche}
 impl_any_id_from! {SKurvenWeiche}
 impl_any_id_from! {Kreuzung}
 
+/// Id für einen Streckenabschnitt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::application::gleis::gleise) struct StreckenabschnittIdRef<'t> {
+    pub(in crate::application::gleis::gleise) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
+    pub(in crate::application::gleis::gleise) name: &'t streckenabschnitt::Name,
+}
+
+impl<'t> PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'t> {
+    fn eq(&self, other: &StreckenabschnittId) -> bool {
+        (self.geschwindigkeit == other.geschwindigkeit.as_ref()) && (*self.name == other.name)
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug)]
 pub(in crate::application::gleis::gleise) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
-    pub(in crate::application::gleis::gleise) streckenabschnitt:
-        Option<(Option<&'t geschwindigkeit::Name>, &'t streckenabschnitt::Name)>,
+    pub(in crate::application::gleis::gleise) streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 
@@ -144,10 +170,13 @@ impl<'s, 't, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'t, T> {
 impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
         (self.rectangle == &other.rectangle)
-            && (self.streckenabschnitt
-                == other.streckenabschnitt.as_ref().map(|(geschwindigkeit, streckenabschnitt)| {
-                    (geschwindigkeit.as_ref(), streckenabschnitt)
-                }))
+            && if let (Some(self_id), Some(other_id)) =
+                (self.streckenabschnitt, other.streckenabschnitt)
+            {
+                self_id == other_id
+            } else {
+                false
+            }
     }
 }
 

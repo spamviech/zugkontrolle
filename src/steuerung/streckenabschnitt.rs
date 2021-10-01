@@ -95,6 +95,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
         })
     }
 }
+
 /// Name eines Streckenabschnittes.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);

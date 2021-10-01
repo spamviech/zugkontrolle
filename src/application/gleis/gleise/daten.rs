@@ -18,7 +18,7 @@ use crate::{
         gleis::{
             gerade::{Gerade, GeradeSerialisiert},
             gleise::{
-                id::{AnyId, AnyIdRef, GleisIdRef},
+                id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef},
                 StreckenabschnittEntferntFehler,
             },
             kreuzung::{Kreuzung, KreuzungSerialisiert},
@@ -163,55 +163,41 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     pub(in crate::application::gleis::gleise) fn daten(
         &self,
-        geschwindigkeit_und_streckenabschnitt: &Option<(
-            &Option<geschwindigkeit::Name>,
-            streckenabschnitt::Name,
-        )>,
+        streckenabschnitt_id: &Option<StreckenabschnittId>,
     ) -> Result<&GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(
-            if let Some((geschwindigkeit, streckenabschnitt)) =
-                geschwindigkeit_und_streckenabschnitt
-            {
-                let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit)?;
-                &streckenabschnitt_map
-                    .get(streckenabschnitt)
-                    .ok_or_else(|| {
-                        StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
-                            *geschwindigkeit.clone(),
-                            streckenabschnitt.clone(),
-                        )
-                    })?
-                    .2
-            } else {
-                &self.ohne_streckenabschnitt
-            },
-        )
+        Ok(if let Some(StreckenabschnittId { geschwindigkeit, name }) = streckenabschnitt_id {
+            let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit)?;
+            &streckenabschnitt_map
+                .get(name)
+                .ok_or_else(|| {
+                    StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
+                        geschwindigkeit.clone(),
+                        name.clone(),
+                    )
+                })?
+                .2
+        } else {
+            &self.ohne_streckenabschnitt
+        })
     }
     pub(in crate::application::gleis::gleise) fn daten_mut(
         &mut self,
-        geschwindigkeit_und_streckenabschnitt: &Option<(
-            &Option<geschwindigkeit::Name>,
-            streckenabschnitt::Name,
-        )>,
+        streckenabschnitt_id: &Option<StreckenabschnittId>,
     ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittEntferntFehler> {
-        Ok(
-            if let Some((geschwindigkeit, streckenabschnitt)) =
-                geschwindigkeit_und_streckenabschnitt
-            {
-                let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit)?;
-                &mut streckenabschnitt_map
-                    .get_mut(streckenabschnitt)
-                    .ok_or_else(|| {
-                        StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
-                            *geschwindigkeit.clone(),
-                            streckenabschnitt.clone(),
-                        )
-                    })?
-                    .2
-            } else {
-                &mut self.ohne_streckenabschnitt
-            },
-        )
+        Ok(if let Some(StreckenabschnittId { geschwindigkeit, name }) = streckenabschnitt_id {
+            let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit)?;
+            &mut streckenabschnitt_map
+                .get_mut(name)
+                .ok_or_else(|| {
+                    StreckenabschnittEntferntFehler::StreckenabschnittEntfernt(
+                        geschwindigkeit.clone(),
+                        name.clone(),
+                    )
+                })?
+                .2
+        } else {
+            &mut self.ohne_streckenabschnitt
+        })
     }
 
     pub(crate) fn alle_streckenabschnitt_daten(
@@ -228,27 +214,26 @@ impl<Z: Zugtyp> Zustand<Z> {
             }))
     }
 
-    pub(crate) fn alle_geschwindigkeit_streckenabschnitt_daten(
-        &self,
-    ) -> impl Iterator<
-        Item = (
-            Option<(Option<&geschwindigkeit::Name>, &streckenabschnitt::Name)>,
-            &GleiseDaten<Z>,
-        ),
-    > {
+    pub(crate) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(
+        &'t self,
+    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt))
-            .chain(
-                self.ohne_geschwindigkeit.iter().map(
-                    |(name, (_streckenabschnitt, _fließend, daten))| (Some((None, name)), daten),
-                ),
-            )
+            .chain(self.ohne_geschwindigkeit.iter().map(
+                |(name, (_streckenabschnitt, _fließend, daten))| {
+                    (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
+                },
+            ))
             .chain(self.geschwindigkeiten.iter().flat_map(
                 |(geschwindigkeit, (_geschwindigkeit, map))| {
-                    map.iter().map(
-                        move |(streckenabschnitt, (_streckenabschnitt, _fließend, daten))| {
-                            (Some((Some(geschwindigkeit), streckenabschnitt)), daten)
-                        },
-                    )
+                    map.iter().map(move |(name, (_streckenabschnitt, _fließend, daten))| {
+                        (
+                            Some(StreckenabschnittIdRef {
+                                geschwindigkeit: Some(geschwindigkeit),
+                                name,
+                            }),
+                            daten,
+                        )
+                    })
                 },
             ))
     }
@@ -270,7 +255,7 @@ impl<Z: Zugtyp> Zustand<Z> {
                         let (überlappend_daten, gehalten_daten) = daten
                             .überlappende_verbindungen::<$gleis<Z>>(
                                 verbindung,
-                                streckenabschnitt,
+                                streckenabschnitt.clone(),
                                 &eigene_id,
                                 gehalten_id,
                             );
@@ -350,7 +335,7 @@ impl<Z> GleiseDaten<Z> {
     fn überlappende_verbindungen<'t, T>(
         &'t self,
         verbindung: &'t Verbindung,
-        streckenabschnitt: Option<(Option<&'t geschwindigkeit::Name>, &'t streckenabschnitt::Name)>,
+        streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
         eigene_id: &'t AnyIdRef<'t, Z>,
         gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
@@ -374,7 +359,7 @@ impl<Z> GleiseDaten<Z> {
             let rectangle = kandidat.geom();
             let kandidat_id = AnyIdRef::from(GleisIdRef {
                 rectangle,
-                streckenabschnitt,
+                streckenabschnitt: streckenabschnitt.clone(),
                 phantom: PhantomData::<fn() -> T>,
             });
             let mut überlappend = Vec::new();
