@@ -13,20 +13,24 @@ use crate::{
     },
     application::gleis::gleise::{daten::*, Fehler, Gleise},
     steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
 };
 
+pub(in crate::application::gleis::gleise::daten) type StreckenabschnittMapSerialisiert<Z> =
+    HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>)>;
+pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Z: Zugtyp> =
+    HashMap<
+        geschwindigkeit::Name,
+        (GeschwindigkeitSerialisiert<Z::Leiter>, StreckenabschnittMapSerialisiert<Z>),
+    >;
 #[derive(Serialize, Deserialize)]
 pub struct ZustandSerialisiert<Z: Zugtyp> {
     pub(crate) zugtyp: String,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
-    pub(crate) streckenabschnitte: HashMap<
-        streckenabschnitt::Name,
-        (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>),
-    >,
-    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
+    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert<Z>,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Z>,
     pub(crate) pläne: Vec<Plan>,
 }
 
@@ -39,7 +43,7 @@ where
         f.debug_struct("ZustandSerialisiert")
             .field("zugtyp", &self.zugtyp)
             .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
-            .field("streckenabschnitte", &self.streckenabschnitte)
+            .field("ohne_geschwindigkeit", &self.ohne_geschwindigkeit)
             .field("geschwindigkeiten", &self.geschwindigkeiten)
             .field("pläne", &self.pläne)
             .finish()
@@ -49,20 +53,29 @@ where
 impl<Z: Zugtyp> Zustand<Z> {
     /// Erzeuge eine serealisierbare Repräsentation.
     pub fn serialisiere(&self) -> ZustandSerialisiert<Z> {
-        ZustandSerialisiert {
-            zugtyp: Z::NAME.to_string(),
-            ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
-            streckenabschnitte: self
-                .streckenabschnitte
-                .iter()
+        let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap<Z>| {
+            map.iter()
                 .map(|(name, (streckenabschnitt, _fließend, daten))| {
                     (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
                 })
-                .collect(),
+                .collect()
+        };
+        ZustandSerialisiert {
+            zugtyp: Z::NAME.to_string(),
+            ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
+            ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
             geschwindigkeiten: self
                 .geschwindigkeiten
                 .iter()
-                .map(|(name, geschwindigkeit)| (name.clone(), geschwindigkeit.serialisiere()))
+                .map(|(name, (geschwindigkeit, streckenabschnitt_map))| {
+                    (
+                        name.clone(),
+                        (
+                            geschwindigkeit.serialisiere(),
+                            serialisiere_streckenabschnitt_map(streckenabschnitt_map),
+                        ),
+                    )
+                })
                 .collect(),
             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
             pläne: Vec::new(),
@@ -74,46 +87,107 @@ impl<Z: Zugtyp> Zustand<Z> {
         let mut pwm_pins = Vec::new();
         let mut output_anschlüsse = Vec::new();
         let mut input_anschlüsse = Vec::new();
-        macro_rules! collect_anschlüsse {
-            ($struktur: expr) => {
-                let (pwm, output, input) = $struktur.anschlüsse();
-                pwm_pins.extend(pwm.into_iter());
-                output_anschlüsse.extend(output.into_iter());
-                input_anschlüsse.extend(input.into_iter());
-            };
+        fn collect_anschlüsse<S: Serialisiere>(
+            struktur: S,
+            pwm_pins: &mut Vec<pwm::Pin>,
+            output_anschlüsse: &mut Vec<OutputAnschluss>,
+            input_anschlüsse: &mut Vec<InputAnschluss>,
+        ) {
+            let (pwm, output, input) = struktur.anschlüsse();
+            pwm_pins.extend(pwm.into_iter());
+            output_anschlüsse.extend(output.into_iter());
+            input_anschlüsse.extend(input.into_iter());
         }
-        macro_rules! collect_gleis_anschlüsse {
-            ($daten: expr, $($rstern: ident),*) => {
-                $(while let Some(geom_with_data) =
-                    $daten.$rstern.remove_with_selection_function(SelectAll)
-                {
-                    collect_anschlüsse! {
-                        geom_with_data.data.definition
-                    }
-                })*
-            };
+        fn collect_gleis_anschlüsse<T: DatenAuswahl<Z> + Serialisiere, Z: Zugtyp>(
+            daten: &mut GleiseDaten<Z>,
+            pwm_pins: &mut Vec<pwm::Pin>,
+            output_anschlüsse: &mut Vec<OutputAnschluss>,
+            input_anschlüsse: &mut Vec<InputAnschluss>,
+        ) {
+            while let Some(geom_with_data) =
+                daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
+            {
+                collect_anschlüsse(
+                    geom_with_data.data.definition,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                )
+            }
         }
-        macro_rules! collect_all_gleis_anschlüsse {
-            ($daten: expr) => {
-                collect_gleis_anschlüsse! {
-                    $daten,
-                    geraden,
-                    kurven,
-                    weichen,
-                    dreiwege_weichen,
-                    kurven_weichen,
-                    s_kurven_weichen,
-                    kreuzungen
-                }
-            };
+        fn collect_daten_anschlüsse<Z: Zugtyp>(
+            daten: &mut GleiseDaten<Z>,
+            pwm_pins: &mut Vec<pwm::Pin>,
+            output_anschlüsse: &mut Vec<OutputAnschluss>,
+            input_anschlüsse: &mut Vec<InputAnschluss>,
+        ) {
+            macro_rules! collect_gleis_anschlüsse {
+                ($($typ: ident),* $(,)?) => {$(
+                    collect_gleis_anschlüsse::<$typ<Z>, Z>(
+                        daten,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                    )
+                );*}
+            }
+            collect_gleis_anschlüsse! {
+                Gerade,
+                Kurve,
+                Weiche,
+                DreiwegeWeiche,
+                KurvenWeiche,
+                SKurvenWeiche,
+                Kreuzung
+            }
         }
-        for (_name, geschwindigkeit) in self.geschwindigkeiten.drain() {
-            collect_anschlüsse!(geschwindigkeit);
+        collect_daten_anschlüsse(
+            &mut self.ohne_streckenabschnitt,
+            &mut pwm_pins,
+            &mut output_anschlüsse,
+            &mut input_anschlüsse,
+        );
+        fn collect_streckenabschnitt_map_anschlüsse<Z: Zugtyp>(
+            streckenabschnitt_map: &mut StreckenabschnittMap<Z>,
+            pwm_pins: &mut Vec<pwm::Pin>,
+            output_anschlüsse: &mut Vec<OutputAnschluss>,
+            input_anschlüsse: &mut Vec<InputAnschluss>,
+        ) {
+            for (_name, (streckenabschnitt, _fließend, mut daten)) in streckenabschnitt_map.drain()
+            {
+                collect_anschlüsse(
+                    streckenabschnitt,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                );
+                collect_daten_anschlüsse(
+                    &mut daten,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                );
+            }
         }
-        collect_all_gleis_anschlüsse!(self.ohne_streckenabschnitt);
-        for (_name, (streckenabschnitt, _fließend, mut daten)) in self.streckenabschnitte.drain() {
-            collect_anschlüsse!(streckenabschnitt);
-            collect_all_gleis_anschlüsse!(daten);
+        collect_streckenabschnitt_map_anschlüsse(
+            &mut self.ohne_geschwindigkeit,
+            &mut pwm_pins,
+            &mut output_anschlüsse,
+            &mut input_anschlüsse,
+        );
+        for (_name, (geschwindigkeit, streckenabschnitt_map)) in self.geschwindigkeiten.drain() {
+            collect_anschlüsse(
+                geschwindigkeit,
+                &mut pwm_pins,
+                &mut output_anschlüsse,
+                &mut input_anschlüsse,
+            );
+            collect_streckenabschnitt_map_anschlüsse(
+                &mut streckenabschnitt_map,
+                &mut pwm_pins,
+                &mut output_anschlüsse,
+                &mut input_anschlüsse,
+            );
         }
         (pwm_pins, output_anschlüsse, input_anschlüsse)
     }
