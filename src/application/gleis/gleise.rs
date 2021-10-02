@@ -230,32 +230,37 @@ impl<Z: Zugtyp> Gleise<Z> {
         let StreckenabschnittId { geschwindigkeit, name } = &streckenabschnitt_id;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        let (streckenabschnitt, fließend, daten) =
-            streckenabschnitt_map.remove(&name).ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id)
-            })?;
-        let streckenabschnitt_map_neu =
-            match self.zustand.streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref()) {
-                Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
-                Err(fehler) => {
-                    let streckenabschnitt_map = self
-                        .zustand
-                        .streckenabschnitt_map_mut(geschwindigkeit.as_ref())
-                        .unwrap_or_else(|fehler| {
+        let (streckenabschnitt, fließend, daten) = if let Some(streckenabschnitt_mit_daten) =
+            streckenabschnitt_map.remove(&name)
+        {
+            streckenabschnitt_mit_daten
+        } else {
+            return Err(StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id));
+        };
+        let streckenabschnitt_map_neu = match self
+            .zustand
+            .streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref())
+        {
+            Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
+            Err(fehler) => {
+                let streckenabschnitt_map =
+                    match self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()) {
+                        Ok(streckenabschnitt_map) => streckenabschnitt_map,
+                        Err(fehler) => {
                             error!(
                                 "StreckenabschnittMap bei wiederherstellen nicht gefunden: {:?}",
                                 fehler
                             );
                             &mut self.zustand.ohne_geschwindigkeit
-                        });
-                    streckenabschnitt_map
-                        .insert(name.clone(), (streckenabschnitt, fließend, daten));
-                    return Err(fehler.into());
-                }
-            };
+                        }
+                    };
+                streckenabschnitt_map.insert(name.clone(), (streckenabschnitt, fließend, daten));
+                return Err(fehler.into());
+            }
+        };
         streckenabschnitt_map_neu.insert(name.clone(), (streckenabschnitt, fließend, daten));
         Ok(StreckenabschnittId {
-            geschwindigkeit: geschwindigkeit_neu.map(|name| name.clone()),
+            geschwindigkeit: geschwindigkeit_neu.clone(),
             name: streckenabschnitt_id.name,
         })
     }

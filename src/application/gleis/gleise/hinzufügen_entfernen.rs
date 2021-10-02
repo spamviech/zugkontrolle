@@ -123,7 +123,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt = gleis_id.streckenabschnitt.map(|id| id.clone());
+        let streckenabschnitt = gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::clone);
         // Entferne aktuellen Eintrag.
         let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge an neuer Position hinzu.
@@ -142,7 +142,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt = gleis_id.streckenabschnitt.map(|id| id.clone());
+        let streckenabschnitt = gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::clone);
         // Entferne aktuellen Eintrag.
         let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge Gleis an neuer Position hinzu.
@@ -251,7 +251,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         let GleisId { rectangle, streckenabschnitt, phantom } = &gleis_id;
         let any_id = AnyIdRef::from(GleisIdRef {
             rectangle,
-            streckenabschnitt: streckenabschnitt.map(|id| id.als_ref()),
+            streckenabschnitt: streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref),
             phantom: *phantom,
         });
         let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();

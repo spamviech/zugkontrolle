@@ -27,10 +27,7 @@ pub struct StreckenabschnittId {
 impl StreckenabschnittId {
     // Als Methode definiert, damit es privat bleibt.
     pub(in crate::application) fn clone(&self) -> Self {
-        Self {
-            geschwindigkeit: self.geschwindigkeit.map(|name| name.clone()),
-            name: self.name.clone(),
-        }
+        Self { geschwindigkeit: self.geschwindigkeit.clone(), name: self.name.clone() }
     }
 
     pub(in crate::application) fn als_ref<'t>(&'t self) -> StreckenabschnittIdRef<'t> {
@@ -50,7 +47,7 @@ impl<T> GleisId<T> {
     pub(in crate::application) fn clone(&self) -> Self {
         GleisId {
             rectangle: self.rectangle.clone(),
-            streckenabschnitt: self.streckenabschnitt.map(|id| id.clone()),
+            streckenabschnitt: self.streckenabschnitt.as_ref().map(StreckenabschnittId::clone),
             phantom: self.phantom,
         }
     }
@@ -150,7 +147,7 @@ impl_any_id_from! {SKurvenWeiche}
 impl_any_id_from! {Kreuzung}
 
 /// Id für einen Streckenabschnitt.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::application) struct StreckenabschnittIdRef<'t> {
     pub(in crate::application) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
     pub(in crate::application) name: &'t streckenabschnitt::Name,
@@ -187,7 +184,8 @@ impl<'s, 't, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'t, T> {
 impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
         (self.rectangle == &other.rectangle)
-            && self.streckenabschnitt == other.streckenabschnitt.map(|id| id.als_ref())
+            && self.streckenabschnitt
+                == other.streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref)
     }
 }
 

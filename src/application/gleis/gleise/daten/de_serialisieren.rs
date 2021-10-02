@@ -175,7 +175,8 @@ impl<Z: Zugtyp> Zustand<Z> {
             &mut output_anschlüsse,
             &mut input_anschlüsse,
         );
-        for (_name, (geschwindigkeit, streckenabschnitt_map)) in self.geschwindigkeiten.drain() {
+        for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
+        {
             collect_anschlüsse(
                 geschwindigkeit,
                 &mut pwm_pins,
