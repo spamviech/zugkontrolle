@@ -86,11 +86,24 @@ impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::de_serialisieren::ZustandSerial
             s_kurven_weichen,
             kreuzungen
         }
+        let geschwindigkeiten = v2
+            .geschwindigkeiten
+            .into_iter()
+            .map(|(name, geschwindigkeit)| {
+                (
+                    name,
+                    (
+                        geschwindigkeit,
+                        aktuell::de_serialisieren::StreckenabschnittMapSerialisiert::new(),
+                    ),
+                )
+            })
+            .collect();
         aktuell::de_serialisieren::ZustandSerialisiert {
             zugtyp: v2.name,
             ohne_streckenabschnitt,
-            streckenabschnitte,
-            geschwindigkeiten: v2.geschwindigkeiten,
+            ohne_geschwindigkeit: streckenabschnitte,
+            geschwindigkeiten,
             pläne: v2.pläne,
         }
     }
