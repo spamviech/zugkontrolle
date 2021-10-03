@@ -20,11 +20,10 @@ use crate::{
 
 pub(in crate::application::gleis::gleise::daten) type StreckenabschnittMapSerialisiert<Z> =
     HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>)>;
-pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Z: Zugtyp> =
-    HashMap<
-        geschwindigkeit::Name,
-        (GeschwindigkeitSerialisiert<Z::Leiter>, StreckenabschnittMapSerialisiert<Z>),
-    >;
+pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Z> = HashMap<
+    geschwindigkeit::Name,
+    (GeschwindigkeitSerialisiert<<Z as Zugtyp>::Leiter>, StreckenabschnittMapSerialisiert<Z>),
+>;
 #[derive(Serialize, Deserialize)]
 pub struct ZustandSerialisiert<Z: Zugtyp> {
     pub(crate) zugtyp: String,

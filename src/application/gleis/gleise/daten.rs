@@ -100,8 +100,10 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
 
 pub(in crate::application::gleis::gleise) type StreckenabschnittMap<Z> =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>;
-type GeschwindigkeitMap<Z: Zugtyp> =
-    HashMap<geschwindigkeit::Name, (Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)>;
+type GeschwindigkeitMap<Z> = HashMap<
+    geschwindigkeit::Name,
+    (Geschwindigkeit<<Z as Zugtyp>::Leiter>, StreckenabschnittMap<Z>),
+>;
 pub struct Zustand<Z: Zugtyp> {
     pub(crate) ohne_streckenabschnitt: GleiseDaten<Z>,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap<Z>,
