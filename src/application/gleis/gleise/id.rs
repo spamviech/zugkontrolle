@@ -146,9 +146,10 @@ impl_any_id_from! {KurvenWeiche}
 impl_any_id_from! {SKurvenWeiche}
 impl_any_id_from! {Kreuzung}
 
-/// Id für einen Streckenabschnitt.
+// FIXME I don't think this is a good public interface
+// completely remove any notion of ID?
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::application) struct StreckenabschnittIdRef<'t> {
+pub struct StreckenabschnittIdRef<'t> {
     pub(in crate::application) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
     pub(in crate::application) name: &'t streckenabschnitt::Name,
 }
@@ -169,8 +170,10 @@ impl<'t> StreckenabschnittIdRef<'t> {
     }
 }
 
+// FIXME I don't think this is a good public interface
+// completely remove any notion of ID?
 #[derive(zugkontrolle_derive::Debug)]
-pub(in crate::application::gleis::gleise) struct GleisIdRef<'t, T> {
+pub struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
