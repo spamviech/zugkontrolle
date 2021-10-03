@@ -383,7 +383,19 @@ where
                 ));
             }
         }
-        self.gleise.entferne_streckenabschnitt(streckenabschnitt_id);
+
+        let nicht_gefunden_nachricht = format!(
+            "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
+            streckenabschnitt_id
+        );
+        match self.gleise.entferne_streckenabschnitt(streckenabschnitt_id) {
+            Ok(None) => error!("{}", nicht_gefunden_nachricht),
+            Ok(Some(_)) => {}
+            Err(fehler) => self.zeige_message_box(
+                "Fehler bei Streckenabschnitt löschen!".to_string(),
+                format!("{:?}", fehler),
+            ),
+        }
     }
 
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
