@@ -204,6 +204,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             })
     }
 
+    // FIXME invalidiert alle GleisId für Gleise mit dem Streckenabschnitt
     /// Entferne einen Streckenabschnitt.
     /// Falls er vorhanden war wird er zurückgegeben.
     pub fn entferne_streckenabschnitt<'t>(
@@ -220,6 +221,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         }))
     }
 
+    // FIXME invalidiert alle GleisId für Gleise mit dem Streckenabschnitt
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     pub fn assoziiere_streckenabschnitt_geschwindigkeit(
         &mut self,
@@ -237,27 +239,26 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else {
             return Err(StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id));
         };
-        let streckenabschnitt_map_neu = match self
-            .zustand
-            .streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref())
-        {
-            Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
-            Err(fehler) => {
-                let streckenabschnitt_map =
-                    match self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()) {
-                        Ok(streckenabschnitt_map) => streckenabschnitt_map,
-                        Err(fehler) => {
-                            error!(
+        let streckenabschnitt_map_neu =
+            match self.zustand.streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref()) {
+                Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
+                Err(fehler) => {
+                    let streckenabschnitt_map =
+                        match self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()) {
+                            Ok(streckenabschnitt_map) => streckenabschnitt_map,
+                            Err(fehler) => {
+                                error!(
                                 "StreckenabschnittMap bei wiederherstellen nicht gefunden: {:?}",
                                 fehler
                             );
-                            &mut self.zustand.ohne_geschwindigkeit
-                        }
-                    };
-                streckenabschnitt_map.insert(name.clone(), (streckenabschnitt, fließend, daten));
-                return Err(fehler.into());
-            }
-        };
+                                &mut self.zustand.ohne_geschwindigkeit
+                            }
+                        };
+                    streckenabschnitt_map
+                        .insert(name.clone(), (streckenabschnitt, fließend, daten));
+                    return Err(fehler.into());
+                }
+            };
         streckenabschnitt_map_neu.insert(name.clone(), (streckenabschnitt, fließend, daten));
         Ok(StreckenabschnittId {
             geschwindigkeit: geschwindigkeit_neu.clone(),
