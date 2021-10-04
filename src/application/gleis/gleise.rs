@@ -329,6 +329,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
     }
 
+    // FIXME invalidiert alle GleisId für Gleise mit den betroffenen Streckenabschnitten
     /// Entferne eine Geschwindigkeit.
     /// Falls sie vorhanden war wird sie zurückgegeben.
     pub fn entferne_geschwindigkeit(
