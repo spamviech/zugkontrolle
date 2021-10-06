@@ -1,6 +1,6 @@
 //! Methoden für die view-Methode des iced::Application-Traits
 
-use std::fmt::Debug;
+use std::{fmt::Debug, iter};
 
 use log::error;
 use num_traits::NumCast;
@@ -315,7 +315,7 @@ where
             let mut max_width = None;
             macro_rules! add_buttons {
                 ($($vec: expr),*) => {
-                    max_width = max_width.max(Vec::new().into_iter()
+                    max_width = max_width.max(iter::empty()
                         $(.chain($vec.iter().map(|button| {
                             let größe = button.rechteck().größe();
                             NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX)
