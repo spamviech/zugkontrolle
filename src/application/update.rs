@@ -719,23 +719,23 @@ where
             + 'static,
     ) where
         T: 'static,
-        Richtung: Clone + Serialize + for<'de> Deserialize<'de> + Send + 'static,
-        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Serialisiere + Send + 'static,
-        <Anschlüsse as Serialisiere>::Serialisiert: Send + 'static,
+        Richtung: Clone + Send + 'static,
+        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
     {
         let mut error_message = None;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             if let Some(mut weiche) = steuerung.as_mut() {
                 let richtung = nächste_richtung(&mut weiche);
-                let bisheriger_zustand = weiche.serialisiere();
+                let aktuelle_richtung = weiche.aktuelle_richtung.clone();
+                let letzte_richtung = weiche.letzte_richtung.clone();
                 weiche.async_schalten(richtung, self.sender.clone(), move |fehler| {
                     Nachricht::AsyncFehler {
                         titel: format!("{} schalten", gleis_art),
                         nachricht: format!("{:?}", fehler),
                         zustand_zurücksetzen: zustand_zurücksetzen(
                             id,
-                            bisheriger_zustand.aktuelle_richtung,
-                            bisheriger_zustand.letzte_richtung,
+                            aktuelle_richtung,
+                            letzte_richtung,
                         ),
                     }
                 })
