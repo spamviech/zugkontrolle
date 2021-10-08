@@ -26,7 +26,7 @@ use crate::{
         style::rule,
         touch_canvas,
         typen::*,
-        weiche, MessageBox, Modal, Modus, Nachricht, Zugkontrolle,
+        weiche, MessageBox, Modal, Modus, Nachricht, NachrichtClone, Zugkontrolle,
     },
     zugtyp::Zugtyp,
 };
@@ -134,17 +134,17 @@ where
             .map(|message| {
                 use streckenabschnitt::AuswahlNachricht::*;
                 match message {
-                    Schließe => Nachricht::SchließeModal,
-                    Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
+                    Schließe => NachrichtClone::SchließeModal,
+                    Wähle(wahl) => NachrichtClone::WähleStreckenabschnitt(wahl),
                     Hinzufügen(geschwindigkeit, name, farbe, output) => {
-                        Nachricht::HinzufügenStreckenabschnitt(
+                        NachrichtClone::HinzufügenStreckenabschnitt(
                             geschwindigkeit,
                             name,
                             farbe,
                             output,
                         )
                     }
-                    Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
+                    Lösche(name) => NachrichtClone::LöscheStreckenabschnitt(name),
                 }
             }),
             Modal::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
@@ -157,7 +157,7 @@ where
                     Hinzufügen(name, geschwindigkeit) => {
                         Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
                     }
-                    Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
+                    Löschen(name) => NachrichtClone::LöscheGeschwindigkeit(name),
                 }
             }),
             Modal::Weiche(status, als_message) => {
@@ -166,7 +166,7 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => NachrichtClone::SchließeModal,
                     }
                 })
             }
@@ -176,7 +176,7 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => NachrichtClone::SchließeModal,
                     }
                 })
             }
@@ -186,12 +186,12 @@ where
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => NachrichtClone::SchließeModal,
                     }
                 })
             }
         })
-        .on_esc(Nachricht::SchließeModal);
+        .on_esc(NachrichtClone::SchließeModal);
 
         iced_aw::Modal::new(message_box, modal, |MessageBox { titel, nachricht, button_state }| {
             iced::Element::from(
@@ -199,13 +199,13 @@ where
                     iced::Text::new(&*titel),
                     iced::Column::new().push(iced::Text::new(&*nachricht)).push(
                         iced::Button::new(button_state, iced::Text::new("Ok"))
-                            .on_press(Nachricht::SchließeMessageBox),
+                            .on_press(NachrichtClone::SchließeMessageBox),
                     ),
                 )
                 .width(iced::Length::Shrink),
             )
         })
-        .on_esc(Nachricht::SchließeMessageBox)
+        .on_esc(NachrichtClone::SchließeMessageBox)
         .into()
     }
 }
@@ -238,7 +238,7 @@ where
         .push(iced::Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
             iced::Slider::new(zoom, -2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
-                Nachricht::Skalieren(Skalar(exponent.exp()))
+                NachrichtClone::Skalieren(Skalar(exponent.exp()))
             })
             .step(0.01)
             .width(iced::Length::Units(100)),
@@ -249,7 +249,7 @@ where
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
         .push(drehen.mit_teil_nachricht(Nachricht::Winkel))
-        .push(skalieren_slider);
+        .push(iced::Element::new(skalieren_slider).map(Nachricht::from));
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
@@ -269,11 +269,14 @@ where
                 }),
             )
             .push(
-                iced::Button::new(
-                    geschwindigkeit_button_state,
-                    iced::Text::new("Geschwindigkeiten"),
+                iced::Element::new(
+                    iced::Button::new(
+                        geschwindigkeit_button_state,
+                        iced::Text::new("Geschwindigkeiten"),
+                    )
+                    .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
                 )
-                .on_press(Nachricht::ZeigeAuswahlGeschwindigkeit),
+                .map(Nachricht::from),
             );
     }
 
@@ -353,7 +356,7 @@ where
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
                     iced::Element::from(Z::Leiter::anzeige_neu(geschwindigkeit, anzeige_status))
-                        .map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
+                        .map(move |nachricht| NachrichtClone::GeschwindigkeitAnzeige {
                             name: name_clone.clone(),
                             nachricht,
                         }),
@@ -365,11 +368,14 @@ where
     iced::Row::new()
         .push(
             iced::Container::new(
-                scrollable
-                    .scroller_width(scroller_width)
-                    .width(iced::Length::Shrink)
-                    .height(iced::Length::Fill)
-                    .style(scrollable_style),
+                iced::Element::new(
+                    scrollable
+                        .scroller_width(scroller_width)
+                        .width(iced::Length::Shrink)
+                        .height(iced::Length::Fill)
+                        .style(scrollable_style),
+                )
+                .map(Nachricht::from),
             )
             .width(width)
             .height(iced::Length::Fill),

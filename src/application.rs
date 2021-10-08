@@ -3,7 +3,10 @@
 use std::{
     convert::identity,
     fmt::Debug,
-    sync::mpsc::{channel, Sender},
+    sync::{
+        mpsc::{channel, Sender},
+        Arc,
+    },
     time::Instant,
 };
 
@@ -113,6 +116,82 @@ pub enum ZustandZurücksetzen<Z: Zugtyp> {
         geschwindigkeit::Name,
         <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
     ),
+}
+
+/// Klonbare Nachricht, für Verwendung z.B. mit Button.
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+enum NachrichtClone<Z: Zugtyp> {
+    Gleis {
+        gleis: AnyGleisUnit<Z>,
+        grab_height: Skalar,
+    },
+    Modus(Modus),
+    Bewegen(bewegen::Nachricht),
+    BewegungAusführen,
+    Position(Vektor),
+    Winkel(Winkel),
+    Skalieren(Skalar),
+    SchließeModal,
+    SchließeMessageBox,
+    ZeigeAuswahlStreckenabschnitt,
+    HinzufügenStreckenabschnitt(
+        Option<geschwindigkeit::Name>,
+        streckenabschnitt::Name,
+        Farbe,
+        OutputSerialisiert,
+    ),
+    StreckenabschnittFestlegen(bool),
+    Speichern(String),
+    EntferneSpeichernFarbe(Instant),
+    Laden(String),
+    GeschwindigkeitAnzeige {
+        name: geschwindigkeit::Name,
+        nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
+    },
+    ZeigeAuswahlGeschwindigkeit,
+}
+
+// TODO als macro implementieren?
+impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
+    fn from(nachricht_clone: NachrichtClone<Z>) -> Self {
+        match nachricht_clone {
+            NachrichtClone::Gleis { gleis, grab_height } => Nachricht::Gleis { gleis, grab_height },
+            NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
+            NachrichtClone::Bewegen(bewegen_nachricht) => Nachricht::Bewegen(bewegen_nachricht),
+            NachrichtClone::BewegungAusführen => Nachricht::BewegungAusführen,
+            NachrichtClone::Position(position) => Nachricht::Position(position),
+            NachrichtClone::Winkel(winkel) => Nachricht::Winkel(winkel),
+            NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
+            NachrichtClone::SchließeModal => Nachricht::SchließeModal,
+            NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
+            NachrichtClone::ZeigeAuswahlStreckenabschnitt => {
+                Nachricht::ZeigeAuswahlStreckenabschnitt
+            }
+            NachrichtClone::HinzufügenStreckenabschnitt(
+                geschwindigkeit,
+                streckenabschnitt,
+                farbe,
+                anschluss,
+            ) => Nachricht::HinzufügenStreckenabschnitt(
+                geschwindigkeit,
+                streckenabschnitt,
+                farbe,
+                anschluss,
+            ),
+            NachrichtClone::StreckenabschnittFestlegen(festlegen) => {
+                Nachricht::StreckenabschnittFestlegen(festlegen)
+            }
+            NachrichtClone::Speichern(pfad) => Nachricht::Speichern(pfad),
+            NachrichtClone::EntferneSpeichernFarbe(speichern_zeit) => {
+                Nachricht::EntferneSpeichernFarbe(speichern_zeit)
+            }
+            NachrichtClone::Laden(pfad) => Nachricht::Laden(pfad),
+            NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
+                Nachricht::GeschwindigkeitAnzeige { name, nachricht }
+            }
+            NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
+        }
+    }
 }
 
 pub enum Nachricht<Z: Zugtyp> {
@@ -251,14 +330,14 @@ where
     }
 }
 
-impl<T, Z> ButtonNachricht<Nachricht<Z>> for T
+impl<T, Z> ButtonNachricht<NachrichtClone<Z>> for T
 where
     T: Clone + Into<AnyGleisUnit<Z>>,
     Z: Zugtyp,
     <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
-    fn nachricht(&self, klick_position: Vektor) -> Nachricht<Z> {
-        Nachricht::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
+    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Z> {
+        NachrichtClone::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
     }
 }
 
@@ -307,12 +386,12 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
 pub enum Modal<Z: Zugtyp> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, Box<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
+    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
     DreiwegeWeiche(
         DreiwegeWeicheStatus,
-        Box<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
+        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
     ),
-    KurvenWeiche(KurvenWeicheStatus, Box<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
+    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
 }
 
 impl<Z: Zugtyp> Debug for Modal<Z> {
