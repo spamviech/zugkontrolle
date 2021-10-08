@@ -14,7 +14,7 @@ use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::{debug, error};
 
 /// Warte auf eine Nachricht
-#[derive(Debug, Clone)]
+#[derive(Debug, zugkontrolle_derive::Clone)]
 pub struct Empfänger<Nachricht> {
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }
@@ -54,13 +54,12 @@ impl<Nachricht: Unpin> Stream for Empfänger<Nachricht> {
                 poison_error.into_inner()
             }
         };
-        let r = match receiver.recv() {
+        match receiver.recv() {
             Ok(nachricht) => Poll::Ready(Some(nachricht)),
             Err(RecvError) => {
                 debug!("Channel for Message subscription disconnected!");
                 Poll::Ready(None)
             }
-        };
-        r
+        }
     }
 }

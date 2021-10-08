@@ -28,7 +28,7 @@ use crate::{
         },
         steuerung, streckenabschnitt,
         typen::*,
-        weiche, AnschlüsseAnpassen, AnyGleis, MessageBox, Modal, Nachricht, Zugkontrolle,
+        weiche, AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Modal, Nachricht, Zugkontrolle,
         ZustandZurücksetzen,
     },
     farbe::Farbe,
@@ -95,7 +95,7 @@ where
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
                 Arc::new(move |steuerung| {
-                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.clone(), steuerung))
+                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
                 }),
             );
             self.modal_state.show(true)
@@ -221,14 +221,14 @@ where
         }
     }
 
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleis<Z>, klick_höhe: Skalar) {
+    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit<Z>, klick_höhe: Skalar) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
             .aktuell
             .as_ref()
-            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.clone());
+            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
         macro_rules! hinzufügen_gehalten_bei_maus {
-            ($gleis:expr) => {{
+            ($gleis: expr) => {
                 if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
                     $gleis.to_option(),
                     Vektor { x: Skalar(0.), y: klick_höhe },
@@ -242,22 +242,22 @@ where
                         None,
                     );
                 }
-            }};
+            };
         }
         match gleis {
-            AnyGleis::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
-            AnyGleis::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
-            AnyGleis::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
-            AnyGleis::DreiwegeWeicheUnit(dreiwege_weiche) => {
+            AnyGleisUnit::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
+            AnyGleisUnit::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
+            AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
+            AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
                 hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
             }
-            AnyGleis::KurvenWeicheUnit(kurven_weiche) => {
+            AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
                 hinzufügen_gehalten_bei_maus!(kurven_weiche)
             }
-            AnyGleis::SKurvenWeicheUnit(s_kurven_weiche) => {
+            AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
                 hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
             }
-            AnyGleis::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
+            AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
         }
     }
 
@@ -399,7 +399,10 @@ where
                 any_id,
                 Gleise::setze_streckenabschnitt_unit,
                 &mut self.gleise,
-                self.streckenabschnitt_aktuell.aktuell.as_ref().map(|(name, _farbe)| name.clone())
+                self.streckenabschnitt_aktuell
+                    .aktuell
+                    .as_ref()
+                    .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen())
             ) {
                 self.zeige_message_box(
                     "Gleis entfernt".to_string(),
@@ -757,7 +760,7 @@ where
             AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
             AnyId::Weiche(id) => self.weiche_stellen(
                 "Weiche",
-                id.clone(),
+                id,
                 Gleise::steuerung_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
@@ -771,7 +774,7 @@ where
             ),
             AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
                 "DreiwegeWeiche",
-                id.clone(),
+                id,
                 Gleise::steuerung_dreiwege_weiche,
                 |steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
                     use gleis::weiche::dreiwege::Richtung;
@@ -793,7 +796,7 @@ where
             ),
             AnyId::KurvenWeiche(id) => self.weiche_stellen(
                 "KurvenWeiche",
-                id.clone(),
+                id,
                 Gleise::steuerung_kurven_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::kurve::Richtung;
@@ -807,7 +810,7 @@ where
             ),
             AnyId::SKurvenWeiche(id) => self.weiche_stellen(
                 "SKurvenWeiche",
-                id.clone(),
+                id,
                 Gleise::steuerung_s_kurven_weiche,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
@@ -821,7 +824,7 @@ where
             ),
             AnyId::Kreuzung(id) => self.weiche_stellen(
                 "Kreuzung",
-                id.clone(),
+                id,
                 Gleise::steuerung_kreuzung,
                 |steuerung::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;

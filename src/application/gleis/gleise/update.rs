@@ -110,7 +110,7 @@ where
                     }
                     if let Some(Gehalten { gleis_id, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.clone()))
+                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()))
                         }
                         status = iced::canvas::event::Status::Captured
                     }
@@ -193,7 +193,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             let last_clone = last.clone();
                             let point = canvas_pos - halte_position;
                             match mit_any_id!(
-                                gleis_id.clone(),
+                                gleis_id.klonen(),
                                 Gleise::bewegen_gehalten,
                                 self,
                                 point

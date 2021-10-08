@@ -26,7 +26,7 @@ pub struct StreckenabschnittId {
 
 impl StreckenabschnittId {
     // Als Methode definiert, damit es privat bleibt.
-    pub(in crate::application) fn clone(&self) -> Self {
+    pub(in crate::application) fn klonen(&self) -> Self {
         Self { geschwindigkeit: self.geschwindigkeit.clone(), name: self.name.clone() }
     }
 
@@ -44,10 +44,10 @@ pub struct GleisId<T> {
 }
 impl<T> GleisId<T> {
     // Als Methode definiert, damit es privat bleibt.
-    pub(in crate::application) fn clone(&self) -> Self {
+    pub(in crate::application) fn klonen(&self) -> Self {
         GleisId {
             rectangle: self.rectangle.clone(),
-            streckenabschnitt: self.streckenabschnitt.as_ref().map(StreckenabschnittId::clone),
+            streckenabschnitt: self.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen),
             phantom: self.phantom,
         }
     }
@@ -121,10 +121,10 @@ impl<Z> AnyId<Z> {
     where
         GleisId<T>: Into<Self>,
     {
-        gleis_id.clone().into()
+        gleis_id.klonen().into()
     }
 
-    pub(in crate::application) fn clone(&self) -> AnyId<Z> {
+    pub(in crate::application) fn klonen(&self) -> AnyId<Z> {
         mit_any_id!(self, Self::aus_ref)
     }
 }

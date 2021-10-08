@@ -185,7 +185,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .get(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.clone())
+                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
     }
 
@@ -201,7 +201,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .get_mut(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.clone())
+                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
     }
 
@@ -356,7 +356,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+#[derive(zugkontrolle_derive::Debug)]
 pub enum Nachricht<Z> {
     SetzeStreckenabschnitt(AnyId<Z>),
     AnschlüsseAnpassen(AnyId<Z>),

@@ -173,7 +173,9 @@ impl<Z: Zugtyp> Zustand<Z> {
             &streckenabschnitt_map
                 .get(name)
                 .ok_or_else(|| {
-                    StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id.clone())
+                    StreckenabschnittFehler::StreckenabschnittEntfernt(
+                        streckenabschnitt_id.klonen(),
+                    )
                 })?
                 .2
         } else {
@@ -190,7 +192,9 @@ impl<Z: Zugtyp> Zustand<Z> {
             &mut streckenabschnitt_map
                 .get_mut(name)
                 .ok_or_else(|| {
-                    StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id.clone())
+                    StreckenabschnittFehler::StreckenabschnittEntfernt(
+                        streckenabschnitt_id.klonen(),
+                    )
                 })?
                 .2
         } else {

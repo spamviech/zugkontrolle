@@ -18,7 +18,6 @@ use crate::{
         gleis::gleise::{id::StreckenabschnittId, Gleise},
         macros::reexport_no_event_methods,
         style::tab_bar::TabBar,
-        NachrichtNewtype, NachrichtPaar,
     },
     farbe::Farbe,
     steuerung::{geschwindigkeit, streckenabschnitt},
@@ -200,12 +199,12 @@ enum InterneAuswahlNachricht {
     Anschluss(OutputSerialisiert),
 }
 
-#[derive(Debug, zugkontrolle_derive::Clone)]
+#[derive(Debug)]
 pub enum AuswahlNachricht {
     Schließe,
-    Wähle(Option<NachrichtPaar<StreckenabschnittId, Farbe>>),
+    Wähle(Option<(StreckenabschnittId, Farbe)>),
     Hinzufügen(Option<geschwindigkeit::Name>, streckenabschnitt::Name, Farbe, OutputSerialisiert),
-    Lösche(NachrichtNewtype<StreckenabschnittId>),
+    Lösche(StreckenabschnittId),
 }
 
 pub struct Auswahl<'a, R: Renderer + card::Renderer> {
@@ -338,7 +337,7 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                 InterneAuswahlNachricht::Schließe => messages.push(AuswahlNachricht::Schließe),
                 InterneAuswahlNachricht::Wähle(wahl) => {
                     messages.push(AuswahlNachricht::Wähle(
-                        wahl.map(|(name, farbe)| NachrichtPaar { a: erstelle_id(name), b: farbe }),
+                        wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
                     ));
                     messages.push(AuswahlNachricht::Schließe)
                 }
@@ -351,7 +350,7 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                     ));
                 }
                 InterneAuswahlNachricht::Lösche(name) => {
-                    messages.push(AuswahlNachricht::Lösche(NachrichtNewtype(erstelle_id(name))))
+                    messages.push(AuswahlNachricht::Lösche(erstelle_id(name)))
                 }
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,

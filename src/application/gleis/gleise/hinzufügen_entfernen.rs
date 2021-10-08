@@ -84,10 +84,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         let gleis_id = self.hinzufügen(
             definition,
             Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
-            streckenabschnitt.map(|id| id.clone()),
+            streckenabschnitt.map(|id| id.klonen()),
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            let any_id = gleis_id.clone().into();
+            let any_id = gleis_id.klonen().into();
             *gehalten = Some(Gehalten { gleis_id: any_id, halte_position, bewegt: true });
         }
         Ok(gleis_id)
@@ -123,7 +123,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt = gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::clone);
+        let streckenabschnitt =
+            gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen);
         // Entferne aktuellen Eintrag.
         let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge an neuer Position hinzu.
@@ -142,7 +143,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt = gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::clone);
+        let streckenabschnitt =
+            gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen);
         // Entferne aktuellen Eintrag.
         let Gleis { definition, position: _ } = self.entfernen(gleis_id)?;
         // Füge Gleis an neuer Position hinzu.
