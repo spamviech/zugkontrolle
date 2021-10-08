@@ -22,7 +22,7 @@ use crate::{
         gleis,
         gleis::gleise::{
             daten::DatenAuswahl,
-            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
+            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
         },
@@ -267,9 +267,8 @@ where
     }
 
     pub fn zeige_auswahl_streckenabschnitt(&mut self) {
-        *self.modal_state.inner_mut() = Modal::Streckenabschnitt(
-            streckenabschnitt::AuswahlStatus::neu(self.gleise.streckenabschnitte()),
-        );
+        *self.modal_state.inner_mut() =
+            Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(&self.gleise));
         self.modal_state.show(true);
     }
 
@@ -288,10 +287,10 @@ where
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        match self
-            .gleise
-            .streckenabschnitt_mut(StreckenabschnittIdRef { geschwindigkeit, name: &name })
-        {
+        match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
+            geschwindigkeit: geschwindigkeit.cloned(),
+            name: name.clone(),
+        }) {
             Ok((streckenabschnitt, fließend))
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
@@ -330,9 +329,7 @@ where
                             modal => {
                                 error!("Falscher Modal-State bei HinzufügenStreckenabschnitt!");
                                 *modal = Modal::Streckenabschnitt(
-                                    streckenabschnitt::AuswahlStatus::neu(
-                                        self.gleise.streckenabschnitte(),
-                                    ),
+                                    streckenabschnitt::AuswahlStatus::neu(&self.gleise),
                                 );
                             }
                         }
@@ -370,24 +367,11 @@ where
             self.streckenabschnitt_aktuell.aktuell = None;
         }
 
-        match self.modal_state.inner_mut() {
-            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
-                streckenabschnitt_auswahl.entferne(&streckenabschnitt_id.name);
-            }
-            modal => {
-                error!("Falscher Modal-State bei LöscheStreckenabschnitt!");
-                *modal = Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(
-                    self.gleise.streckenabschnitte().filter(|(id_iter, _streckenabschnitt)| {
-                        *id_iter != streckenabschnitt_id.als_ref()
-                    }),
-                ));
-            }
-        }
-
         let nicht_gefunden_nachricht = format!(
             "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
             streckenabschnitt_id
         );
+        let name_clone = streckenabschnitt_id.name.clone();
         match self.gleise.entferne_streckenabschnitt(streckenabschnitt_id) {
             Ok(None) => error!("{}", nicht_gefunden_nachricht),
             Ok(Some(_)) => {}
@@ -395,6 +379,17 @@ where
                 "Fehler bei Streckenabschnitt löschen!".to_string(),
                 format!("{:?}", fehler),
             ),
+        }
+
+        match self.modal_state.inner_mut() {
+            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
+                streckenabschnitt_auswahl.entferne(&name_clone);
+            }
+            modal => {
+                error!("Falscher Modal-State bei LöscheStreckenabschnitt!");
+                *modal =
+                    Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(&self.gleise));
+            }
         }
     }
 

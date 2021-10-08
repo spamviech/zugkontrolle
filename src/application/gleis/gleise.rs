@@ -175,32 +175,33 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn streckenabschnitt<'s, 't>(
+    pub fn streckenabschnitt<'s>(
         &'s self,
-        streckenabschnitt: StreckenabschnittIdRef<'t>,
+        streckenabschnitt: &StreckenabschnittId,
     ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittFehler> {
-        let StreckenabschnittIdRef { geschwindigkeit, name } = streckenabschnitt;
-        let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit)?;
+        let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
+        let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.als_id())
+                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.clone())
             })
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn streckenabschnitt_mut<'s, 't>(
+    pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
-        streckenabschnitt: StreckenabschnittIdRef<'t>,
+        streckenabschnitt: &StreckenabschnittId,
     ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittFehler> {
-        let StreckenabschnittIdRef { geschwindigkeit, name } = streckenabschnitt;
-        let streckenabschnitt_map = self.zustand.streckenabschnitt_map_mut(geschwindigkeit)?;
+        let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
+        let streckenabschnitt_map =
+            self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get_mut(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.als_id())
+                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.clone())
             })
     }
 
@@ -267,7 +268,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Alle aktuell bekannten Streckenabschnitte.
-    pub(crate) fn streckenabschnitte<'t>(
+    pub(in crate::application) fn streckenabschnitte<'t>(
         &'t self,
     ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &Fließend))>
     {

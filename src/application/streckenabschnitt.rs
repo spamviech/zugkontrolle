@@ -11,17 +11,18 @@ use iced_native::{
 
 pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
-    anschluss::{Fließend, OutputSerialisiert, Polarität},
+    anschluss::{OutputSerialisiert, Polarität},
     application::{
         anschluss,
         farbwahl::Farbwahl,
-        gleis::gleise::id::{StreckenabschnittId, StreckenabschnittIdRef},
+        gleis::gleise::{id::StreckenabschnittId, Gleise},
         macros::reexport_no_event_methods,
         style::tab_bar::TabBar,
         NachrichtNewtype, NachrichtPaar,
     },
     farbe::Farbe,
     steuerung::{geschwindigkeit, streckenabschnitt},
+    zugtyp::Zugtyp,
 };
 
 pub mod style;
@@ -128,11 +129,7 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
-    pub fn neu<'t>(
-        streckenabschnitte: impl Iterator<
-            Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &'t Fließend)),
-        >,
-    ) -> Self {
+    pub fn neu<'t, 's, Z: Zugtyp>(gleise: &'s Gleise<Z>) -> Self {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),
@@ -142,7 +139,8 @@ impl AuswahlStatus {
             neu_anschluss_state: anschluss::Status::neu_output(),
             neu_button_state: button::State::new(),
             none_button_state: button::State::new(),
-            streckenabschnitte: streckenabschnitte
+            streckenabschnitte: gleise
+                .streckenabschnitte()
                 .map(|(streckenabschnitt_id, (streckenabschnitt, _fließend))| {
                     Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
                 })

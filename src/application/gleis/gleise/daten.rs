@@ -198,7 +198,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         })
     }
 
-    pub(crate) fn alle_streckenabschnitt_daten<'t>(
+    pub(in crate::application) fn alle_streckenabschnitt_daten<'t>(
         &'t self,
     ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt))
@@ -222,7 +222,7 @@ impl<Z: Zugtyp> Zustand<Z> {
             ))
     }
 
-    pub(crate) fn alle_streckenabschnitt_und_daten<'t>(
+    pub(in crate::application) fn alle_streckenabschnitt_und_daten<'t>(
         &'t self,
     ) -> impl Iterator<
         Item = (
@@ -251,7 +251,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         )
     }
 
-    pub(crate) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(
+    pub(in crate::application) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(
         &'t self,
     ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
         iter::once((None, &self.ohne_streckenabschnitt))

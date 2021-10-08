@@ -361,7 +361,7 @@ where
             messages.push(Nachricht::Modus(modus));
         }
         let gleise = Gleise::neu();
-        let auswahl_status = streckenabschnitt::AuswahlStatus::neu(gleise.streckenabschnitte());
+        let auswahl_status = streckenabschnitt::AuswahlStatus::neu(&gleise);
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
             messages.push(Nachricht::Laden(pfad.clone()));
