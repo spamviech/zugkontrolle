@@ -118,12 +118,7 @@ pub enum ZustandZurücksetzen<Z: Zugtyp> {
     ),
 }
 
-#[derive(zugkontrolle_derive::Debug)]
-pub enum Nachricht<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
-{
+pub enum Nachricht<Z: Zugtyp> {
     Gleis {
         gleis: AnyGleisUnit<Z>,
         grab_height: Skalar,
@@ -167,6 +162,80 @@ where
     },
 }
 
+impl<Z> Debug for Nachricht<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Gleis { gleis, grab_height } => f
+                .debug_struct("Gleis")
+                .field("gleis", gleis)
+                .field("grab_height", grab_height)
+                .finish(),
+            Self::Modus(arg0) => f.debug_tuple("Modus").field(arg0).finish(),
+            Self::Bewegen(arg0) => f.debug_tuple("Bewegen").field(arg0).finish(),
+            Self::BewegungAusführen => write!(f, "BewegungAusführen"),
+            Self::Position(arg0) => f.debug_tuple("Position").field(arg0).finish(),
+            Self::Winkel(arg0) => f.debug_tuple("Winkel").field(arg0).finish(),
+            Self::Skalieren(arg0) => f.debug_tuple("Skalieren").field(arg0).finish(),
+            Self::SchließeModal => write!(f, "SchließeModal"),
+            Self::SchließeMessageBox => write!(f, "SchließeMessageBox"),
+            Self::ZeigeAuswahlStreckenabschnitt => write!(f, "ZeigeAuswahlStreckenabschnitt"),
+            Self::WähleStreckenabschnitt(arg0) => {
+                f.debug_tuple("WähleStreckenabschnitt").field(arg0).finish()
+            }
+            Self::HinzufügenStreckenabschnitt(arg0, arg1, arg2, arg3) => f
+                .debug_tuple("HinzufügenStreckenabschnitt")
+                .field(arg0)
+                .field(arg1)
+                .field(arg2)
+                .field(arg3)
+                .finish(),
+            Self::LöscheStreckenabschnitt(arg0) => {
+                f.debug_tuple("LöscheStreckenabschnitt").field(arg0).finish()
+            }
+            Self::SetzeStreckenabschnitt(arg0) => {
+                f.debug_tuple("SetzeStreckenabschnitt").field(arg0).finish()
+            }
+            Self::StreckenabschnittFestlegen(arg0) => {
+                f.debug_tuple("StreckenabschnittFestlegen").field(arg0).finish()
+            }
+            Self::Speichern(arg0) => f.debug_tuple("Speichern").field(arg0).finish(),
+            Self::EntferneSpeichernFarbe(arg0) => {
+                f.debug_tuple("EntferneSpeichernFarbe").field(arg0).finish()
+            }
+            Self::Laden(arg0) => f.debug_tuple("Laden").field(arg0).finish(),
+            Self::GeschwindigkeitAnzeige { name, nachricht } => f
+                .debug_struct("GeschwindigkeitAnzeige")
+                .field("name", name)
+                .field("nachricht", nachricht)
+                .finish(),
+            Self::ZeigeAuswahlGeschwindigkeit => write!(f, "ZeigeAuswahlGeschwindigkeit"),
+            Self::HinzufügenGeschwindigkeit(arg0, arg1) => {
+                f.debug_tuple("HinzufügenGeschwindigkeit").field(arg0).field(arg1).finish()
+            }
+            Self::LöscheGeschwindigkeit(arg0) => {
+                f.debug_tuple("LöscheGeschwindigkeit").field(arg0).finish()
+            }
+            Self::ZeigeAnschlüsseAnpassen(arg0) => {
+                f.debug_tuple("ZeigeAnschlüsseAnpassen").field(arg0).finish()
+            }
+            Self::AnschlüsseAnpassen(arg0) => {
+                f.debug_tuple("AnschlüsseAnpassen").field(arg0).finish()
+            }
+            Self::FahrenAktion(arg0) => f.debug_tuple("FahrenAktion").field(arg0).finish(),
+            Self::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => f
+                .debug_struct("AsyncFehler")
+                .field("titel", titel)
+                .field("nachricht", nachricht)
+                .field("zustand_zurücksetzen", zustand_zurücksetzen)
+                .finish(),
+        }
+    }
+}
+
 impl<Z> From<gleise::Nachricht<Z>> for Nachricht<Z>
 where
     Z: Zugtyp,
@@ -203,7 +272,7 @@ async fn async_identity<T>(t: T) -> T {
 impl<Z> Nachricht<Z>
 where
     Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Send,
 {
     fn as_command(self) -> iced::Command<Nachricht<Z>> {
         iced::Command::perform(async_identity(self), identity)
@@ -238,11 +307,7 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-pub enum Modal<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+pub enum Modal<Z: Zugtyp> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
     Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
@@ -260,12 +325,7 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-pub struct Zugkontrolle<Z>
-where
-    Z: Zugtyp,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+pub struct Zugkontrolle<Z: Zugtyp> {
     anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
@@ -295,11 +355,10 @@ where
 
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
-    Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send + Sync,
+    Z: 'static + Zugtyp + Serialize + for<'de> Deserialize<'de> + Send + Sync,
     Z::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Unpin,
-    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
+    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
+    Geschwindigkeit<Z::Leiter>: Leiter,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Args);

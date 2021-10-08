@@ -42,8 +42,8 @@ use crate::{
 
 impl<Z> Nachricht<Z>
 where
-    Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+    Z: Zugtyp + 'static,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
         sleep(dauer);
@@ -55,12 +55,7 @@ where
     }
 }
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: Zugtyp,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+impl<Z: Zugtyp> Zugkontrolle<Z> {
     pub fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
         let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
         *titel = titel_arg;
@@ -436,6 +431,68 @@ where
         self.modal_state.show(true);
     }
 
+    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+        self.gleise.entferne_geschwindigkeit(&name);
+        self.geschwindigkeiten.remove(&name);
+    }
+
+    pub fn anschlüsse_anpassen(
+        &mut self,
+        anschlüsse_anpassen: AnschlüsseAnpassen<Z>,
+    ) -> Option<Nachricht<Z>> {
+        match anschlüsse_anpassen {
+            AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
+                "Weiche",
+                id,
+                anschlüsse_save,
+                Gleise::steuerung_weiche,
+            ),
+            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_save) => self
+                .gleis_anschlüsse_anpassen(
+                    "DreiwegeWeiche",
+                    id,
+                    anschlüsse_save,
+                    Gleise::steuerung_dreiwege_weiche,
+                ),
+            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_save) => self
+                .gleis_anschlüsse_anpassen(
+                    "KurvenWeiche",
+                    id,
+                    anschlüsse_save,
+                    Gleise::steuerung_kurven_weiche,
+                ),
+            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_save) => self
+                .gleis_anschlüsse_anpassen(
+                    "SKurvenWeiche",
+                    id,
+                    anschlüsse_save,
+                    Gleise::steuerung_s_kurven_weiche,
+                ),
+            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
+                "Kreuzung",
+                id,
+                anschlüsse_save,
+                Gleise::steuerung_kreuzung,
+            ),
+        }
+    }
+
+    #[inline(always)]
+    pub fn bewegung_beenden(&mut self) {
+        self.bewegung = None
+    }
+
+    #[inline(always)]
+    pub fn bewegung_zurücksetzen(&mut self) {
+        self.gleise.setze_pivot(Vektor::null_vektor())
+    }
+}
+
+impl<Z> Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+{
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -513,9 +570,9 @@ where
                             }
                             self.geschwindigkeiten.remove(&name);
                             fehlermeldung.push_str(&format!(
-                            "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
-                            fehler, save_clone
-                        ));
+                        "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
+                        fehler, save_clone
+                    ));
                         }
                     }
                 }
@@ -523,71 +580,9 @@ where
             }
         }
     }
-
-    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
-        self.gleise.entferne_geschwindigkeit(&name);
-        self.geschwindigkeiten.remove(&name);
-    }
-
-    pub fn anschlüsse_anpassen(
-        &mut self,
-        anschlüsse_anpassen: AnschlüsseAnpassen<Z>,
-    ) -> Option<Nachricht<Z>> {
-        match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
-                "Weiche",
-                id,
-                anschlüsse_save,
-                Gleise::steuerung_weiche,
-            ),
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "DreiwegeWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_dreiwege_weiche,
-                ),
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "KurvenWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_kurven_weiche,
-                ),
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_save) => self
-                .gleis_anschlüsse_anpassen(
-                    "SKurvenWeiche",
-                    id,
-                    anschlüsse_save,
-                    Gleise::steuerung_s_kurven_weiche,
-                ),
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
-                "Kreuzung",
-                id,
-                anschlüsse_save,
-                Gleise::steuerung_kreuzung,
-            ),
-        }
-    }
-
-    #[inline(always)]
-    pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
-    }
-
-    #[inline(always)]
-    pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
-    }
 }
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: Zugtyp,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-    <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht: 'static,
-{
+impl<Z: Zugtyp> Zugkontrolle<Z> {
     fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
@@ -609,7 +604,9 @@ where
             }
         }
     }
+}
 
+impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
     fn geschwindigkeit_anzeige_zurücksetzen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -695,8 +692,7 @@ where
 impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + 'static,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
 {
     fn weiche_stellen<T, Richtung, Anschlüsse>(
         &mut self,
@@ -838,14 +834,7 @@ where
             ),
         }
     }
-}
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: Zugtyp + 'static,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
-{
     #[inline(always)]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Z>> {
         self.bewegung = Some(bewegung);
@@ -871,7 +860,7 @@ impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp + 'static,
     Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
@@ -981,9 +970,8 @@ where
 
 impl<Z> Zugkontrolle<Z>
 where
-    Z: Zugtyp + Serialize + for<'de> Deserialize<'de> + 'static,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Send,
+    Z: Zugtyp + Serialize + 'static,
+    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Z>>> {
         let ergebnis = self.gleise.speichern(&pfad);
@@ -1009,10 +997,8 @@ where
 
 impl<Z> Zugkontrolle<Z>
 where
-    Z: Zugtyp + PartialEq + Debug + for<'de> Deserialize<'de>,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
+    Z: Zugtyp + for<'de> Deserialize<'de>,
+    Geschwindigkeit<Z::Leiter>: Leiter,
 {
     #[inline(always)]
     pub fn laden(&mut self, pfad: String) {

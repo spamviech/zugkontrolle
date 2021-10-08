@@ -488,7 +488,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
 
 impl<Z> Gleise<Z>
 where
-    Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>,
+    Z: Zugtyp + for<'de> Deserialize<'de>,
     Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
 {
     pub fn laden(
