@@ -14,7 +14,7 @@ use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::{debug, error};
 
 /// Warte auf eine Nachricht
-#[derive(Debug, zugkontrolle_derive::Clone)]
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub struct Empfänger<Nachricht> {
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }

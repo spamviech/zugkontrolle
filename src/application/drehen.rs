@@ -4,6 +4,7 @@ use iced::canvas::Program;
 
 use crate::application::typen::*;
 
+#[derive(Debug)]
 pub struct Drehen {
     canvas: Cache,
     winkel: Winkel,

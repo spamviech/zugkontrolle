@@ -40,6 +40,7 @@ pub enum Nachricht {
     Zurücksetzen,
 }
 
+#[derive(Debug)]
 pub struct Bewegen {
     canvas: Cache,
     bewegung: bool,

@@ -3,7 +3,6 @@
 use std::{
     convert::identity,
     fmt::Debug,
-    sync::Arc,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -79,7 +78,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Z>>,
+            Box<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Z>>,
         ) -> Modal<Z>,
         als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
             + 'static,
@@ -89,7 +88,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.serialisiere());
             *self.modal_state.inner_mut() = erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
-                Arc::new(move |steuerung| {
+                Box::new(move |steuerung| {
                     Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
                 }),
             );

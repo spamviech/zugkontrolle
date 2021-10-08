@@ -3,10 +3,7 @@
 use std::{
     convert::identity,
     fmt::Debug,
-    sync::{
-        mpsc::{channel, Sender},
-        Arc,
-    },
+    sync::mpsc::{channel, Sender},
     time::Instant,
 };
 
@@ -310,12 +307,34 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
 pub enum Modal<Z: Zugtyp> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
+    Weiche(WeicheStatus, Box<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
     DreiwegeWeiche(
         DreiwegeWeicheStatus,
-        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
+        Box<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
     ),
-    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
+    KurvenWeiche(KurvenWeicheStatus, Box<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
+}
+
+impl<Z: Zugtyp> Debug for Modal<Z> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Streckenabschnitt(arg0) => {
+                f.debug_tuple("Streckenabschnitt").field(arg0).finish()
+            }
+            Self::Geschwindigkeit(arg0) => f.debug_tuple("Geschwindigkeit").field(arg0).finish(),
+            Self::Weiche(arg0, arg1) => {
+                f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
+            }
+            Self::DreiwegeWeiche(arg0, arg1) => f
+                .debug_tuple("DreiwegeWeiche")
+                .field(arg0)
+                .field(&"<function>".to_string())
+                .finish(),
+            Self::KurvenWeiche(arg0, arg1) => {
+                f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -351,6 +370,41 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     sender: Sender<Nachricht<Z>>,
     empfänger: Empfänger<Nachricht<Z>>,
     // TODO Wegstrecke, Plan
+}
+
+impl<Z> Debug for Zugkontrolle<Z>
+where
+    Z: Zugtyp,
+    Z::Leiter: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Zugkontrolle")
+            .field("anschlüsse", &self.anschlüsse)
+            .field("gleise", &self.gleise)
+            .field("scrollable_state", &self.scrollable_state)
+            .field("geraden", &self.geraden)
+            .field("kurven", &self.kurven)
+            .field("weichen", &self.weichen)
+            .field("dreiwege_weichen", &self.dreiwege_weichen)
+            .field("kurven_weichen", &self.kurven_weichen)
+            .field("s_kurven_weichen", &self.s_kurven_weichen)
+            .field("kreuzungen", &self.kreuzungen)
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
+            .field("modal_state", &self.modal_state)
+            .field("streckenabschnitt_aktuell", &self.streckenabschnitt_aktuell)
+            .field("streckenabschnitt_aktuell_festlegen", &self.streckenabschnitt_aktuell_festlegen)
+            .field("geschwindigkeit_button_state", &self.geschwindigkeit_button_state)
+            .field("message_box", &self.message_box)
+            .field("bewegen", &self.bewegen)
+            .field("drehen", &self.drehen)
+            .field("zoom", &self.zoom)
+            .field("speichern_laden", &self.speichern_laden)
+            .field("speichern_gefärbt", &self.speichern_gefärbt)
+            .field("bewegung", &self.bewegung)
+            .field("sender", &self.sender)
+            .field("empfänger", &self.empfänger)
+            .finish()
+    }
 }
 
 impl<Z> iced::Application for Zugkontrolle<Z>
