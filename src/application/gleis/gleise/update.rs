@@ -110,7 +110,8 @@ where
                     }
                     if let Some(Gehalten { gleis_id, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()))
+                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()));
+                            *gehalten = None
                         }
                         status = iced::canvas::event::Status::Captured
                     }
