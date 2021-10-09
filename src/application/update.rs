@@ -28,8 +28,8 @@ use crate::{
         },
         steuerung, streckenabschnitt,
         typen::*,
-        weiche, AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Modal, Nachricht, Zugkontrolle,
-        ZustandZurücksetzen,
+        weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlStatus, MessageBox, Nachricht,
+        Zugkontrolle, ZustandZurücksetzen,
     },
     farbe::Farbe,
     lookup::Lookup,
@@ -56,16 +56,17 @@ where
 }
 
 impl<Z: Zugtyp> Zugkontrolle<Z> {
-    pub fn zeige_message_box(&mut self, titel_arg: String, nachricht_arg: String) {
-        let MessageBox { titel, nachricht, .. } = self.message_box.inner_mut();
-        *titel = titel_arg;
-        *nachricht = nachricht_arg;
-        self.message_box.show(true)
+    pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
+        self.message_box.zeige_modal(MessageBox {
+            titel,
+            nachricht,
+            button_state: iced::button::State::new(),
+        })
     }
 
     #[inline(always)]
     pub fn schließe_message_box(&mut self) {
-        self.message_box.show(false)
+        self.message_box.verstecke_modal()
     }
 
     fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Status>(
@@ -80,20 +81,19 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         erzeuge_modal: impl Fn(
             Status,
             Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Z>>,
-        ) -> Modal<Z>,
+        ) -> AuswahlStatus<Z>,
         als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
             + 'static,
     ) {
         let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
         if let Ok(steuerung) = steuerung_res {
             let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.serialisiere());
-            *self.modal_state.inner_mut() = erzeuge_modal(
+            self.modal_status.zeige_modal(erzeuge_modal(
                 erzeuge_modal_status(steuerung_save),
                 Arc::new(move |steuerung| {
                     Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
                 }),
-            );
-            self.modal_state.show(true)
+            ))
         } else {
             drop(steuerung_res);
             self.zeige_message_box(
@@ -258,13 +258,13 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
     #[inline(always)]
     pub fn schließe_modal(&mut self) {
-        self.modal_state.show(false)
+        self.modal_status.verstecke_modal()
     }
 
     pub fn zeige_auswahl_streckenabschnitt(&mut self) {
-        *self.modal_state.inner_mut() =
-            Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(&self.gleise));
-        self.modal_state.show(true);
+        self.modal_status.zeige_modal(AuswahlStatus::Streckenabschnitt(
+            streckenabschnitt::AuswahlStatus::neu(&self.gleise),
+        ))
     }
 
     #[inline(always)]
@@ -317,15 +317,18 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                             farbe,
                         ));
                         let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
-                        match self.modal_state.inner_mut() {
-                            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
+                        match self.modal_status.overlay_mut() {
+                            Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
                                 streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
                             }
                             modal => {
-                                error!("Falscher Modal-State bei HinzufügenStreckenabschnitt!");
-                                *modal = Modal::Streckenabschnitt(
-                                    streckenabschnitt::AuswahlStatus::neu(&self.gleise),
+                                error!(
+                                    "Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}",
+                                    modal
                                 );
+                                self.modal_status.zeige_modal(AuswahlStatus::Streckenabschnitt(
+                                    streckenabschnitt::AuswahlStatus::neu(&self.gleise),
+                                ))
                             }
                         }
                         let name_string = name.0.clone();
@@ -376,14 +379,15 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             ),
         }
 
-        match self.modal_state.inner_mut() {
-            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => {
+        match self.modal_status.overlay_mut() {
+            Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
                 streckenabschnitt_auswahl.entferne(&name_clone);
             }
             modal => {
-                error!("Falscher Modal-State bei LöscheStreckenabschnitt!");
-                *modal =
-                    Modal::Streckenabschnitt(streckenabschnitt::AuswahlStatus::neu(&self.gleise));
+                error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
+                self.modal_status.zeige_modal(AuswahlStatus::Streckenabschnitt(
+                    streckenabschnitt::AuswahlStatus::neu(&self.gleise),
+                ))
             }
         }
     }
@@ -425,10 +429,9 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 
     pub fn zeige_auswahl_geschwindigkeit(&mut self) {
-        *self.modal_state.inner_mut() = Modal::Geschwindigkeit(
+        self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
             geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
-        );
-        self.modal_state.show(true);
+        ))
     }
 
     pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
@@ -511,15 +514,15 @@ where
             input_anschlüsse,
         ) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                match self.modal_state.inner_mut() {
-                    Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                match self.modal_status.overlay_mut() {
+                    Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                         geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
                     }
                     modal => {
-                        error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
-                        *modal = Modal::Geschwindigkeit(geschwindigkeit::AuswahlStatus::neu(
-                            self.gleise.geschwindigkeiten(),
-                        ));
+                        error!("Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}", modal);
+                        self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
+                            geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
+                        ))
                     }
                 }
                 self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
@@ -555,17 +558,20 @@ where
                             self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
                         }
                         Err(de_serialisieren::Fehler { fehler, .. }) => {
-                            match self.modal_state.inner_mut() {
-                                Modal::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                            match self.modal_status.overlay_mut() {
+                                Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                                     geschwindigkeit_auswahl.entfernen(&name)
                                 }
                                 modal => {
-                                    error!("Falscher Modal-State bei HinzufügenGeschwindigkeit!");
-                                    *modal = Modal::Geschwindigkeit(
+                                    error!(
+                                        "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
+                                        modal
+                                    );
+                                    self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
                                         geschwindigkeit::AuswahlStatus::neu(
                                             self.gleise.geschwindigkeiten(),
                                         ),
-                                    );
+                                    ))
                                 }
                             }
                             self.geschwindigkeiten.remove(&name);
@@ -929,7 +935,7 @@ where
                 id,
                 Gleise::steuerung_weiche,
                 weiche::Status::neu,
-                Modal::Weiche,
+                AuswahlStatus::Weiche,
                 AnschlüsseAnpassen::Weiche,
             ),
             AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
@@ -937,7 +943,7 @@ where
                 id,
                 Gleise::steuerung_dreiwege_weiche,
                 weiche::Status::neu,
-                Modal::DreiwegeWeiche,
+                AuswahlStatus::DreiwegeWeiche,
                 AnschlüsseAnpassen::DreiwegeWeiche,
             ),
             AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
@@ -945,7 +951,7 @@ where
                 id,
                 Gleise::steuerung_kurven_weiche,
                 weiche::Status::neu,
-                Modal::KurvenWeiche,
+                AuswahlStatus::KurvenWeiche,
                 AnschlüsseAnpassen::KurvenWeiche,
             ),
             AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
@@ -953,7 +959,7 @@ where
                 id,
                 Gleise::steuerung_s_kurven_weiche,
                 weiche::Status::neu,
-                Modal::Weiche,
+                AuswahlStatus::Weiche,
                 AnschlüsseAnpassen::SKurvenWeiche,
             ),
             AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen_aux(
@@ -961,7 +967,7 @@ where
                 id,
                 Gleise::steuerung_kreuzung,
                 weiche::Status::neu,
-                Modal::Weiche,
+                AuswahlStatus::Weiche,
                 AnschlüsseAnpassen::Kreuzung,
             ),
         }

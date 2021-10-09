@@ -114,6 +114,7 @@ where
     }
 }
 
+/*
 pub mod wrapper {
     // TODO decide if switching to this is worth it
     use iced_graphics::canvas::{Cursor, Geometry};
@@ -286,3 +287,4 @@ pub mod wrapper {
         }
     }
 }
+*/

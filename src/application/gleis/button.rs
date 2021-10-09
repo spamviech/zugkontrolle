@@ -39,7 +39,7 @@ impl<T: Zeichnen> Button<T> {
 
     pub fn als_iced_widget<Nachricht>(&mut self, breite: Option<u16>) -> iced::Container<Nachricht>
     where
-        Nachricht: 'static + Clone,
+        Nachricht: 'static,
         T: ButtonNachricht<Nachricht>,
     {
         let größe = self.gleis.rechteck().größe();

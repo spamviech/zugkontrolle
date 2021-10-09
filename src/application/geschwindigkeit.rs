@@ -531,14 +531,40 @@ enum InterneAuswahlNachricht {
     Löschen(Name),
 }
 
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AuswahlNachricht<Leiter: Serialisiere>
-where
-    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
-{
+pub enum AuswahlNachricht<Leiter: Serialisiere> {
     Schließen,
     Hinzufügen(Name, <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert),
     Löschen(Name),
+}
+
+impl<Leiter> Debug for AuswahlNachricht<Leiter>
+where
+    Leiter: Serialisiere,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Schließen => write!(f, "Schließen"),
+            Self::Hinzufügen(arg0, arg1) => {
+                f.debug_tuple("Hinzufügen").field(arg0).field(arg1).finish()
+            }
+            Self::Löschen(arg0) => f.debug_tuple("Löschen").field(arg0).finish(),
+        }
+    }
+}
+
+impl<Leiter> Clone for AuswahlNachricht<Leiter>
+where
+    Leiter: Serialisiere,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Clone,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Schließen => Self::Schließen,
+            Self::Hinzufügen(arg0, arg1) => Self::Hinzufügen(arg0.clone(), arg1.clone()),
+            Self::Löschen(arg0) => Self::Löschen(arg0.clone()),
+        }
+    }
 }
 
 pub struct Auswahl<'t, Leiter, R>
@@ -735,7 +761,6 @@ impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, 
 where
     Leiter: Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -825,7 +850,6 @@ impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachrich
 where
     Leiter: 't + Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug + Clone,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {

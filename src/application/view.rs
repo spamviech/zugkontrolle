@@ -1,12 +1,11 @@
 //! Methoden für die view-Methode des iced::Application-Traits
 
-use std::{fmt::Debug, iter};
+use std::iter;
 
 use log::error;
 use num_traits::NumCast;
 
 use crate::{
-    anschluss::de_serialisieren::Serialisiere,
     application::{
         bewegen::Bewegen,
         button::Button,
@@ -22,37 +21,28 @@ use crate::{
                 s_kurve::SKurvenWeicheUnit,
             },
         },
+        modal::Modal,
         scrollable, speichern_laden, streckenabschnitt,
         style::rule,
         touch_canvas,
         typen::*,
-        weiche, MessageBox, Modal, Modus, Nachricht, NachrichtClone, Zugkontrolle,
+        weiche, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone, Zugkontrolle,
     },
     zugtyp::Zugtyp,
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
-    fn mit_teil_nachricht<Z>(
+    fn mit_teil_nachricht<Z: Zugtyp + 'static>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<Z> + 'static,
-    ) -> iced::Element<'t, Nachricht<Z>>
-    where
-        Z: 'static + Zugtyp,
-        <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-    {
+    ) -> iced::Element<'t, Nachricht<Z>> {
         self.into().map(konstruktor)
     }
 }
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: Zugtyp + Debug + 'static,
-    Z::Leiter: LeiterAnzeige,
-    <Z as Zugtyp>::Leiter: Debug,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
     pub fn view(&mut self) -> iced::Element<Nachricht<Z>> {
         let Zugkontrolle {
             anschlüsse: _,
@@ -66,7 +56,7 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten,
-            modal_state,
+            modal_status,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             geschwindigkeit_button_state,
@@ -127,27 +117,27 @@ where
             )
             .into();
 
-        let modal = iced_aw::Modal::new(modal_state, column, |modal| match modal {
-            Modal::Streckenabschnitt(streckenabschnitt_auswahl) => iced::Element::from(
+        let modal = Modal::neu(modal_status, column, &|modal| match modal {
+            AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl) => iced::Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
             .map(|message| {
                 use streckenabschnitt::AuswahlNachricht::*;
                 match message {
-                    Schließe => NachrichtClone::SchließeModal,
-                    Wähle(wahl) => NachrichtClone::WähleStreckenabschnitt(wahl),
+                    Schließe => Nachricht::SchließeModal,
+                    Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
                     Hinzufügen(geschwindigkeit, name, farbe, output) => {
-                        NachrichtClone::HinzufügenStreckenabschnitt(
+                        Nachricht::HinzufügenStreckenabschnitt(
                             geschwindigkeit,
                             name,
                             farbe,
                             output,
                         )
                     }
-                    Lösche(name) => NachrichtClone::LöscheStreckenabschnitt(name),
+                    Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
-            Modal::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
+            AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
                 <<Z as Zugtyp>::Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
             )
             .map(|message| {
@@ -157,43 +147,43 @@ where
                     Hinzufügen(name, geschwindigkeit) => {
                         Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
                     }
-                    Löschen(name) => NachrichtClone::LöscheGeschwindigkeit(name),
+                    Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
                 }
             }),
-            Modal::Weiche(status, als_message) => {
+            AuswahlStatus::Weiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => NachrichtClone::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
-            Modal::DreiwegeWeiche(status, als_message) => {
+            AuswahlStatus::DreiwegeWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => NachrichtClone::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
-            Modal::KurvenWeiche(status, als_message) => {
+            AuswahlStatus::KurvenWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => NachrichtClone::SchließeModal,
+                        Schließen => Nachricht::SchließeModal,
                     }
                 })
             }
         })
-        .on_esc(NachrichtClone::SchließeModal);
+        .on_esc(&|| Nachricht::SchließeModal);
 
-        iced_aw::Modal::new(message_box, modal, |MessageBox { titel, nachricht, button_state }| {
+        Modal::neu(message_box, modal, &|MessageBox { titel, nachricht, button_state }| {
             iced::Element::from(
                 iced_aw::Card::new(
                     iced::Text::new(&*titel),
@@ -204,13 +194,14 @@ where
                 )
                 .width(iced::Length::Shrink),
             )
+            .map(Nachricht::from)
         })
-        .on_esc(NachrichtClone::SchließeMessageBox)
+        .on_esc(&|| Nachricht::SchließeMessageBox)
         .into()
     }
 }
 
-fn top_row<'t, Z>(
+fn top_row<'t, Z: Zugtyp + 'static>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -220,11 +211,7 @@ fn top_row<'t, Z>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Status,
-) -> iced::Row<'t, Nachricht<Z>>
-where
-    Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+) -> iced::Row<'t, Nachricht<Z>> {
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.make_radio(aktueller_modus))
         .push(Modus::Fahren.make_radio(aktueller_modus));
@@ -291,7 +278,7 @@ where
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'s, 't, Z>(
+fn row_with_scrollable<'s, 't, Z: Zugtyp + 'static>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Button<GeradeUnit<Z>>>,
@@ -303,12 +290,7 @@ fn row_with_scrollable<'s, 't, Z>(
     kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
     gleise: &'s Gleise<Z>,
-) -> iced::Row<'t, Nachricht<Z>>
-where
-    Z: 'static + Zugtyp,
-    Z::Leiter: Debug + LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+) -> iced::Row<'t, Nachricht<Z>> {
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();

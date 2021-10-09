@@ -42,6 +42,7 @@ pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
+pub mod modal;
 pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
@@ -125,25 +126,25 @@ enum NachrichtClone<Z: Zugtyp> {
         gleis: AnyGleisUnit<Z>,
         grab_height: Skalar,
     },
-    Modus(Modus),
-    Bewegen(bewegen::Nachricht),
-    BewegungAusführen,
-    Position(Vektor),
-    Winkel(Winkel),
+    // Modus(Modus),
+    // Bewegen(bewegen::Nachricht),
+    // BewegungAusführen,
+    // Position(Vektor),
+    // Winkel(Winkel),
     Skalieren(Skalar),
-    SchließeModal,
+    // SchließeModal,
     SchließeMessageBox,
-    ZeigeAuswahlStreckenabschnitt,
-    HinzufügenStreckenabschnitt(
-        Option<geschwindigkeit::Name>,
-        streckenabschnitt::Name,
-        Farbe,
-        OutputSerialisiert,
-    ),
-    StreckenabschnittFestlegen(bool),
-    Speichern(String),
-    EntferneSpeichernFarbe(Instant),
-    Laden(String),
+    // ZeigeAuswahlStreckenabschnitt,
+    // HinzufügenStreckenabschnitt(
+    //     Option<geschwindigkeit::Name>,
+    //     streckenabschnitt::Name,
+    //     Farbe,
+    //     OutputSerialisiert,
+    // ),
+    // StreckenabschnittFestlegen(bool),
+    // Speichern(String),
+    // EntferneSpeichernFarbe(Instant),
+    // Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
@@ -156,36 +157,36 @@ impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
     fn from(nachricht_clone: NachrichtClone<Z>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, grab_height } => Nachricht::Gleis { gleis, grab_height },
-            NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
-            NachrichtClone::Bewegen(bewegen_nachricht) => Nachricht::Bewegen(bewegen_nachricht),
-            NachrichtClone::BewegungAusführen => Nachricht::BewegungAusführen,
-            NachrichtClone::Position(position) => Nachricht::Position(position),
-            NachrichtClone::Winkel(winkel) => Nachricht::Winkel(winkel),
+            // NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
+            // NachrichtClone::Bewegen(bewegen_nachricht) => Nachricht::Bewegen(bewegen_nachricht),
+            // NachrichtClone::BewegungAusführen => Nachricht::BewegungAusführen,
+            // NachrichtClone::Position(position) => Nachricht::Position(position),
+            // NachrichtClone::Winkel(winkel) => Nachricht::Winkel(winkel),
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
-            NachrichtClone::SchließeModal => Nachricht::SchließeModal,
+            // NachrichtClone::SchließeModal => Nachricht::SchließeModal,
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
-            NachrichtClone::ZeigeAuswahlStreckenabschnitt => {
-                Nachricht::ZeigeAuswahlStreckenabschnitt
-            }
-            NachrichtClone::HinzufügenStreckenabschnitt(
-                geschwindigkeit,
-                streckenabschnitt,
-                farbe,
-                anschluss,
-            ) => Nachricht::HinzufügenStreckenabschnitt(
-                geschwindigkeit,
-                streckenabschnitt,
-                farbe,
-                anschluss,
-            ),
-            NachrichtClone::StreckenabschnittFestlegen(festlegen) => {
-                Nachricht::StreckenabschnittFestlegen(festlegen)
-            }
-            NachrichtClone::Speichern(pfad) => Nachricht::Speichern(pfad),
-            NachrichtClone::EntferneSpeichernFarbe(speichern_zeit) => {
-                Nachricht::EntferneSpeichernFarbe(speichern_zeit)
-            }
-            NachrichtClone::Laden(pfad) => Nachricht::Laden(pfad),
+            // NachrichtClone::ZeigeAuswahlStreckenabschnitt => {
+            //     Nachricht::ZeigeAuswahlStreckenabschnitt
+            // }
+            // NachrichtClone::HinzufügenStreckenabschnitt(
+            //     geschwindigkeit,
+            //     streckenabschnitt,
+            //     farbe,
+            //     anschluss,
+            // ) => Nachricht::HinzufügenStreckenabschnitt(
+            //     geschwindigkeit,
+            //     streckenabschnitt,
+            //     farbe,
+            //     anschluss,
+            // ),
+            // NachrichtClone::StreckenabschnittFestlegen(festlegen) => {
+            //     Nachricht::StreckenabschnittFestlegen(festlegen)
+            // }
+            // NachrichtClone::Speichern(pfad) => Nachricht::Speichern(pfad),
+            // NachrichtClone::EntferneSpeichernFarbe(speichern_zeit) => {
+            //     Nachricht::EntferneSpeichernFarbe(speichern_zeit)
+            // }
+            // NachrichtClone::Laden(pfad) => Nachricht::Laden(pfad),
             NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
                 Nachricht::GeschwindigkeitAnzeige { name, nachricht }
             }
@@ -312,11 +313,7 @@ where
     }
 }
 
-impl<Z> From<gleise::Nachricht<Z>> for Nachricht<Z>
-where
-    Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
-{
+impl<Z: Zugtyp> From<gleise::Nachricht<Z>> for Nachricht<Z> {
     fn from(message: gleise::Nachricht<Z>) -> Self {
         match message {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
@@ -334,7 +331,6 @@ impl<T, Z> ButtonNachricht<NachrichtClone<Z>> for T
 where
     T: Clone + Into<AnyGleisUnit<Z>>,
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Z> {
         NachrichtClone::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
@@ -383,7 +379,7 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-pub enum Modal<Z: Zugtyp> {
+pub enum AuswahlStatus<Z: Zugtyp> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
     Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
@@ -394,22 +390,22 @@ pub enum Modal<Z: Zugtyp> {
     KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
 }
 
-impl<Z: Zugtyp> Debug for Modal<Z> {
+impl<Z: Zugtyp> Debug for AuswahlStatus<Z> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Streckenabschnitt(arg0) => {
                 f.debug_tuple("Streckenabschnitt").field(arg0).finish()
             }
             Self::Geschwindigkeit(arg0) => f.debug_tuple("Geschwindigkeit").field(arg0).finish(),
-            Self::Weiche(arg0, arg1) => {
+            Self::Weiche(arg0, _arg1) => {
                 f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
             }
-            Self::DreiwegeWeiche(arg0, arg1) => f
+            Self::DreiwegeWeiche(arg0, _arg1) => f
                 .debug_tuple("DreiwegeWeiche")
                 .field(arg0)
                 .field(&"<function>".to_string())
                 .finish(),
-            Self::KurvenWeiche(arg0, arg1) => {
+            Self::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
             }
         }
@@ -435,11 +431,11 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     s_kurven_weichen: Vec<Button<SKurvenWeicheUnit<Z>>>,
     kreuzungen: Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
-    modal_state: iced_aw::modal::State<Modal<Z>>,
+    modal_status: modal::Status<AuswahlStatus<Z>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,
-    message_box: iced_aw::modal::State<MessageBox>,
+    message_box: modal::Status<MessageBox>,
     bewegen: Bewegen,
     drehen: Drehen,
     zoom: iced::slider::State,
@@ -469,7 +465,7 @@ where
             .field("s_kurven_weichen", &self.s_kurven_weichen)
             .field("kreuzungen", &self.kreuzungen)
             .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .field("modal_state", &self.modal_state)
+            .field("modal_state", &self.modal_status)
             .field("streckenabschnitt_aktuell", &self.streckenabschnitt_aktuell)
             .field("streckenabschnitt_aktuell_festlegen", &self.streckenabschnitt_aktuell_festlegen)
             .field("geschwindigkeit_button_state", &self.geschwindigkeit_button_state)
@@ -504,7 +500,6 @@ where
             messages.push(Nachricht::Modus(modus));
         }
         let gleise = Gleise::neu();
-        let auswahl_status = streckenabschnitt::AuswahlStatus::neu(&gleise);
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
             messages.push(Nachricht::Laden(pfad.clone()));
@@ -537,15 +532,11 @@ where
             s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::neu).collect(),
             kreuzungen: Z::kreuzungen().into_iter().map(Button::neu).collect(),
             geschwindigkeiten: geschwindigkeit::Map::new(),
-            modal_state: iced_aw::modal::State::new(Modal::Streckenabschnitt(auswahl_status)),
+            modal_status: modal::Status::neu(),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             streckenabschnitt_aktuell_festlegen: false,
             geschwindigkeit_button_state: iced::button::State::new(),
-            message_box: iced_aw::modal::State::new(MessageBox {
-                titel: "Nicht initialisiert".to_string(),
-                nachricht: "Diese Nachricht sollte nicht sichtbar sein!".to_string(),
-                button_state: iced::button::State::new(),
-            }),
+            message_box: modal::Status::neu(),
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
             zoom: iced::slider::State::new(),
