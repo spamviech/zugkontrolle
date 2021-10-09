@@ -10,8 +10,6 @@ use iced_native::{
     Widget,
 };
 
-use crate::application::style::background::Background;
-
 #[derive(Debug)]
 pub struct Status<Overlay> {
     pub overlay: Option<Overlay>,
@@ -61,10 +59,8 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<'a, Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'a, Overlay, Nachricht, R>
-where
-    R: Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Background>,
+impl<'a, Overlay, Nachricht, R: Renderer + container::Renderer> Widget<Nachricht, R>
+    for Modal<'a, Overlay, Nachricht, R>
 {
     fn width(&self) -> Length {
         self.underlay.width()
@@ -102,14 +98,9 @@ where
         &'s mut self,
         layout: Layout<'t>,
     ) -> Option<overlay::Element<'s, Nachricht, R>> {
-        if !self.status.overlay.is_none() {
-            return self.underlay.overlay(layout);
-        }
-
-        let bounds = layout.bounds();
-        let position = Point::new(bounds.x, bounds.y);
-
         if let Some(overlay) = self.status.overlay_mut() {
+            let bounds = layout.bounds();
+            let position = Point::new(bounds.x, bounds.y);
             Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
         } else {
             self.underlay.overlay(layout)
@@ -145,10 +136,8 @@ where
     }
 }
 
-impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
-where
-    R: Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Background>,
+impl<'a, Inner, Nachricht, R: Renderer + container::Renderer> From<Modal<'a, Inner, Nachricht, R>>
+    for Element<'a, Nachricht, R>
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -157,12 +146,7 @@ where
 
 struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
 
-impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R>
-where
-    Nachricht: 'a,
-    R: Renderer + container::Renderer + 'a,
-    <R as container::Renderer>::Style: From<Background>,
-{
+impl<'a, Nachricht: 'a, R: Renderer + container::Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
     fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
         ModalOverlay(
             Container::new(overlay)
@@ -170,7 +154,6 @@ where
                 .height(Length::Fill)
                 .center_x()
                 .center_y()
-                .style(Background::Grey(0.1))
                 .into(),
         )
     }
