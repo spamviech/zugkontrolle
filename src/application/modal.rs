@@ -3,11 +3,14 @@
 use std::hash::Hash;
 
 use iced_native::{
-    event,
+    container, event,
     keyboard::{self, KeyCode},
     layout::Limits,
-    overlay, Clipboard, Element, Event, Layout, Length, Overlay, Point, Renderer, Widget,
+    overlay, Clipboard, Container, Element, Event, Layout, Length, Overlay, Point, Renderer,
+    Widget,
 };
+
+use crate::application::style::background::Background;
 
 #[derive(Debug)]
 pub struct Status<Overlay> {
@@ -58,8 +61,10 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<'a, Overlay, Nachricht, R: Renderer> Widget<Nachricht, R>
-    for Modal<'a, Overlay, Nachricht, R>
+impl<'a, Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'a, Overlay, Nachricht, R>
+where
+    R: Renderer + container::Renderer,
+    <R as container::Renderer>::Style: From<Background>,
 {
     fn width(&self) -> Length {
         self.underlay.width()
@@ -105,7 +110,7 @@ impl<'a, Overlay, Nachricht, R: Renderer> Widget<Nachricht, R>
         let position = Point::new(bounds.x, bounds.y);
 
         if let Some(overlay) = self.status.overlay_mut() {
-            Some(ModalOverlay((self.zeige_overlay)(overlay)).overlay(position))
+            Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
         } else {
             self.underlay.overlay(layout)
         }
@@ -140,8 +145,10 @@ impl<'a, Overlay, Nachricht, R: Renderer> Widget<Nachricht, R>
     }
 }
 
-impl<'a, Inner, Nachricht, R: Renderer> From<Modal<'a, Inner, Nachricht, R>>
-    for Element<'a, Nachricht, R>
+impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
+where
+    R: Renderer + container::Renderer,
+    <R as container::Renderer>::Style: From<Background>,
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -149,6 +156,25 @@ impl<'a, Inner, Nachricht, R: Renderer> From<Modal<'a, Inner, Nachricht, R>>
 }
 
 struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
+
+impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R>
+where
+    Nachricht: 'a,
+    R: Renderer + container::Renderer + 'a,
+    <R as container::Renderer>::Style: From<Background>,
+{
+    fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
+        ModalOverlay(
+            Container::new(overlay)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center_x()
+                .center_y()
+                .style(Background::Grey(0.1))
+                .into(),
+        )
+    }
+}
 
 impl<'a, Nachricht: 'a, R: Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
     fn overlay(self, position: Point) -> overlay::Element<'a, Nachricht, R> {
