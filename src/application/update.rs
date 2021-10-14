@@ -332,7 +332,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                             }
                         }
                         let name_string = name.0.clone();
-                        if let Ok(ersetzt) = self.gleise.neuer_streckenabschnitt(
+                        if let Ok(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
                             geschwindigkeit,
                             name,
                             streckenabschnitt,
@@ -370,7 +370,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             streckenabschnitt_id
         );
         let name_clone = streckenabschnitt_id.name.clone();
-        match self.gleise.entferne_streckenabschnitt(streckenabschnitt_id) {
+        match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
             Ok(None) => error!("{}", nicht_gefunden_nachricht),
             Ok(Some(_)) => {}
             Err(fehler) => self.zeige_message_box(
@@ -435,8 +435,9 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 
     pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
-        self.gleise.entferne_geschwindigkeit(&name);
-        self.geschwindigkeiten.remove(&name);
+        if let Err(fehler) = self.gleise.entferne_geschwindigkeit(name) {
+            self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
+        }
     }
 
     pub fn anschlüsse_anpassen(
@@ -501,12 +502,16 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
     ) {
-        let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-            if let Some(geschwindigkeit) = self.gleise.entferne_geschwindigkeit(&name) {
-                (Some(geschwindigkeit.serialisiere()), geschwindigkeit.anschlüsse())
-            } else {
-                (None, (Vec::new(), Vec::new(), Vec::new()))
-            };
+        let (alt_save, (pwm_pins, output_anschlüsse, input_anschlüsse)): (
+            Option<GeschwindigkeitSerialisiert<Z::Leiter>>,
+            _,
+        ) = match self.gleise.geschwindigkeit_mut(&name) {
+            Some(geschwindigkeit) => {
+                todo!("Verwende take_mut::take")
+                // (Some(geschwindigkeit.serialisiere()), geschwindigkeit.anschlüsse())
+            }
+            None => (None, (Vec::new(), Vec::new(), Vec::new())),
+        };
         match geschwindigkeit_save.reserviere(
             &mut self.anschlüsse,
             pwm_pins,

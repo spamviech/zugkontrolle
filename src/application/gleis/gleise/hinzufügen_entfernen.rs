@@ -16,7 +16,7 @@ use crate::{
                 daten::{DatenAuswahl, Gleis, SelectEnvelope},
                 id::{AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId},
                 Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
-                StreckenabschnittFehler,
+                StreckenabschnittIdFehler,
             },
             verbindung::{self, Verbindung},
         },
@@ -35,7 +35,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         position: Position,
         streckenabschnitt: Option<StreckenabschnittId>,
-    ) -> Result<GleisId<T>, StreckenabschnittFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
@@ -60,7 +60,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         halte_position: Vektor,
         streckenabschnitt: Option<StreckenabschnittId>,
-    ) -> Result<GleisId<T>, StreckenabschnittFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         GleisId<T>: Into<AnyId<Z>>,
         T: Debug + Zeichnen + DatenAuswahl<Z>,
@@ -101,7 +101,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt: Option<StreckenabschnittId>,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
-    ) -> Result<GleisId<T>, StreckenabschnittFehler>
+    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,

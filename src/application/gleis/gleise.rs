@@ -151,15 +151,26 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Füge einen Streckenabschnitt hinzu.
     /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
-    pub fn neuer_streckenabschnitt(
+    pub fn streckenabschnitt_hinzufügen(
         &mut self,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         mut streckenabschnitt: Streckenabschnitt,
-    ) -> Result<Option<(Streckenabschnitt, Fließend)>, GeschwindigkeitEntferntFehler> {
-        let streckenabschnitt_map = self.zustand.streckenabschnitt_map_mut(geschwindigkeit)?;
-        let entry = streckenabschnitt_map.entry(name);
-        Ok(match entry {
+    ) -> Result<
+        (StreckenabschnittId, Option<(Streckenabschnitt, Fließend)>),
+        StreckenabschnittHinzufügenFehler,
+    > {
+        let streckenabschnitt_map = match self.zustand.streckenabschnitt_map_mut(geschwindigkeit) {
+            Ok(streckenabschnitt_map) => streckenabschnitt_map,
+            Err(GeschwindigkeitEntferntFehler(name)) => {
+                return Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
+                    name,
+                    streckenabschnitt,
+                ))
+            }
+        };
+        let entry = streckenabschnitt_map.entry(name.clone());
+        let bisher = match entry {
             Entry::Occupied(mut occupied) => {
                 let value = occupied.get_mut();
                 std::mem::swap(&mut value.0, &mut streckenabschnitt);
@@ -171,21 +182,22 @@ impl<Z: Zugtyp> Gleise<Z> {
                 vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
                 None
             }
-        })
+        };
+        Ok((StreckenabschnittId { geschwindigkeit: geschwindigkeit.cloned(), name }, bisher))
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt<'s>(
         &'s self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittFehler> {
+    ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
+                StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
     }
 
@@ -193,7 +205,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittFehler> {
+    ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
@@ -201,70 +213,76 @@ impl<Z: Zugtyp> Gleise<Z> {
             .get_mut(name)
             .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
             .ok_or_else(|| {
-                StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
+                StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
     }
 
-    // FIXME invalidiert alle GleisId für Gleise mit dem Streckenabschnitt
     /// Entferne einen Streckenabschnitt.
     /// Falls er vorhanden war wird er zurückgegeben.
-    pub fn entferne_streckenabschnitt<'t>(
+    /// Schlägt fehl, wenn noch Gleise den Streckenabschnitt zugeordnet waren.
+    pub fn streckenabschnitt_entfernen<'t>(
         &'t mut self,
-        streckenabschnitt: StreckenabschnittId,
-    ) -> Result<Option<(Streckenabschnitt, Fließend)>, GeschwindigkeitEntferntFehler> {
-        self.canvas.leeren();
-        let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        let streckenabschnitt_map =
-            self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        Ok(streckenabschnitt_map.remove(&name).map(|(streckenabschnitt, fließend, daten)| {
-            self.zustand.ohne_streckenabschnitt.verschmelze(daten);
-            (streckenabschnitt, fließend)
-        }))
-    }
-
-    // FIXME invalidiert alle GleisId für Gleise mit dem Streckenabschnitt
-    /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
-    pub fn assoziiere_streckenabschnitt_geschwindigkeit(
-        &mut self,
         streckenabschnitt_id: StreckenabschnittId,
-        geschwindigkeit_neu: &Option<geschwindigkeit::Name>,
-    ) -> Result<StreckenabschnittId, StreckenabschnittFehler> {
-        self.canvas.leeren();
+    ) -> Result<Option<(Streckenabschnitt, Fließend)>, StreckenabschnittBearbeitenFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = &streckenabschnitt_id;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        let (streckenabschnitt, fließend, daten) = if let Some(streckenabschnitt_mit_daten) =
-            streckenabschnitt_map.remove(&name)
-        {
-            streckenabschnitt_mit_daten
+        self.canvas.leeren();
+        if let Some((streckenabschnitt, fließend, daten)) = streckenabschnitt_map.remove(name) {
+            if daten.ist_leer() {
+                Ok(Some((streckenabschnitt, fließend)))
+            } else {
+                Err(StreckenabschnittBearbeitenFehler::GleiseNichtEntfernt(streckenabschnitt_id))
+            }
         } else {
-            return Err(StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt_id));
-        };
-        let streckenabschnitt_map_neu =
-            match self.zustand.streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref()) {
-                Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
-                Err(fehler) => {
-                    let streckenabschnitt_map =
-                        match self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()) {
-                            Ok(streckenabschnitt_map) => streckenabschnitt_map,
-                            Err(fehler) => {
-                                error!(
-                                "StreckenabschnittMap bei wiederherstellen nicht gefunden: {:?}",
-                                fehler
-                            );
-                                &mut self.zustand.ohne_geschwindigkeit
-                            }
-                        };
-                    streckenabschnitt_map
-                        .insert(name.clone(), (streckenabschnitt, fließend, daten));
-                    return Err(fehler.into());
-                }
-            };
-        streckenabschnitt_map_neu.insert(name.clone(), (streckenabschnitt, fließend, daten));
-        Ok(StreckenabschnittId {
-            geschwindigkeit: geschwindigkeit_neu.clone(),
-            name: streckenabschnitt_id.name,
-        })
+            Ok(None)
+        }
+    }
+
+    // FIXME invalidiert alle GleisId für Gleise mit dem Streckenabschnitt
+    // TODO erlaube es nur, wenn alle Gleise entfernt wurden
+    /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
+    /// Schlägt fehl, wenn der Streckenabschnitt oder die neue Geschwindigkeit nicht gefunden wurde.
+    /// Schlägt fehl, wenn noch Gleise den Streckenabschnitt zugeordnet waren.
+    pub fn assoziiere_streckenabschnitt_geschwindigkeit(
+        &mut self,
+        streckenabschnitt_id: StreckenabschnittId,
+        geschwindigkeit_neu: Option<&geschwindigkeit::Name>,
+    ) -> Result<StreckenabschnittId, StreckenabschnittBearbeitenFehler> {
+        self.canvas.leeren();
+        let name = streckenabschnitt_id.name.clone();
+        let (streckenabschnitt, fließend) = self
+            .streckenabschnitt_entfernen(streckenabschnitt_id.klonen())?
+            .ok_or(StreckenabschnittBearbeitenFehler::GleiseNichtEntfernt(streckenabschnitt_id))?;
+        match self.streckenabschnitt_hinzufügen(geschwindigkeit_neu, name, streckenabschnitt) {
+            Ok((id_neu, bisher)) => todo!(),
+            Err(_fehler) => todo!(),
+        }
+        // let streckenabschnitt_map_neu =
+        //     match self.zustand.streckenabschnitt_map_mut(geschwindigkeit_neu.as_ref()) {
+        //         Ok(streckenabschnitt_map_neu) => streckenabschnitt_map_neu,
+        //         Err(fehler) => {
+        //             let streckenabschnitt_map =
+        //                 match self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()) {
+        //                     Ok(streckenabschnitt_map) => streckenabschnitt_map,
+        //                     Err(fehler) => {
+        //                         error!(
+        //                         "StreckenabschnittMap bei wiederherstellen nicht gefunden: {:?}",
+        //                         fehler
+        //                     );
+        //                         &mut self.zustand.ohne_geschwindigkeit
+        //                     }
+        //                 };
+        //             streckenabschnitt_map
+        //                 .insert(name.clone(), (streckenabschnitt, fließend, daten));
+        //             return Err(fehler.into());
+        //         }
+        //     };
+        // streckenabschnitt_map_neu.insert(name.clone(), (streckenabschnitt, fließend, daten));
+        // Ok(StreckenabschnittId {
+        //     geschwindigkeit: geschwindigkeit_neu.clone(),
+        //     name: streckenabschnitt_id.name,
+        // })
     }
 
     /// Alle aktuell bekannten Streckenabschnitte.
@@ -330,19 +348,27 @@ impl<Z: Zugtyp> Gleise<Z> {
             .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
     }
 
-    // FIXME invalidiert alle GleisId für Gleise mit den betroffenen Streckenabschnitten
     /// Entferne eine Geschwindigkeit.
     /// Falls sie vorhanden war wird sie zurückgegeben.
+    /// Schlägt fehl, wenn noch assoziierten Streckenabschnitte vorhanden waren.
     pub fn entferne_geschwindigkeit(
         &mut self,
-        name: &geschwindigkeit::Name,
-    ) -> Option<Geschwindigkeit<Z::Leiter>> {
-        self.zustand.geschwindigkeiten.remove(&name).map(
-            |(geschwindigkeit, streckenabschnitt_map)| {
-                self.zustand.ohne_geschwindigkeit.extend(streckenabschnitt_map);
-                geschwindigkeit
-            },
-        )
+        name: geschwindigkeit::Name,
+    ) -> Result<Option<Geschwindigkeit<Z::Leiter>>, GeschwindigkeitEntfernenFehler> {
+        if let Some((geschwindigkeit, streckenabschnitt_map)) =
+            self.zustand.geschwindigkeiten.remove(&name)
+        {
+            if streckenabschnitt_map.is_empty() {
+                Ok(Some(geschwindigkeit))
+            } else {
+                self.zustand
+                    .geschwindigkeiten
+                    .insert(name.clone(), (geschwindigkeit, streckenabschnitt_map));
+                Err(GeschwindigkeitEntfernenFehler::StreckenabschnitteNichtEntfernt(name))
+            }
+        } else {
+            Ok(None)
+        }
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
@@ -478,29 +504,29 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 }
 
 #[derive(Debug)]
-pub enum StreckenabschnittFehler {
+pub enum StreckenabschnittIdFehler {
     StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
-impl From<StreckenabschnittFehler> for Fehler {
-    fn from(fehler: StreckenabschnittFehler) -> Self {
+impl From<StreckenabschnittIdFehler> for Fehler {
+    fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
-            StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
+            StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
                 Fehler::StreckenabschnittEntfernt(streckenabschnitt)
             }
-            StreckenabschnittFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
+            StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 Fehler::GeschwindigkeitEntfernt(geschwindigkeit)
             }
         }
     }
 }
-impl From<StreckenabschnittFehler> for GleisIdFehler {
-    fn from(fehler: StreckenabschnittFehler) -> Self {
+impl From<StreckenabschnittIdFehler> for GleisIdFehler {
+    fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
-            StreckenabschnittFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
+            StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
                 GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt)
             }
-            StreckenabschnittFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
+            StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 GleisIdFehler::GeschwindigkeitEntfernt(geschwindigkeit)
             }
         }
@@ -519,8 +545,30 @@ impl From<GeschwindigkeitEntferntFehler> for GleisIdFehler {
         GleisIdFehler::GeschwindigkeitEntfernt(fehler.0)
     }
 }
-impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittFehler {
+impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittIdFehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
-        StreckenabschnittFehler::GeschwindigkeitEntfernt(fehler.0)
+        StreckenabschnittIdFehler::GeschwindigkeitEntfernt(fehler.0)
     }
+}
+
+#[derive(Debug)]
+pub enum StreckenabschnittHinzufügenFehler {
+    GeschwindigkeitEntfernt(geschwindigkeit::Name, Streckenabschnitt),
+}
+
+#[derive(Debug)]
+pub enum StreckenabschnittBearbeitenFehler {
+    StreckenabschnittEntfernt(StreckenabschnittId),
+    GeschwindigkeitEntfernt(geschwindigkeit::Name),
+    GleiseNichtEntfernt(StreckenabschnittId),
+}
+impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittBearbeitenFehler {
+    fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
+        StreckenabschnittBearbeitenFehler::GeschwindigkeitEntfernt(fehler.0)
+    }
+}
+
+#[derive(Debug)]
+pub enum GeschwindigkeitEntfernenFehler {
+    StreckenabschnitteNichtEntfernt(geschwindigkeit::Name),
 }

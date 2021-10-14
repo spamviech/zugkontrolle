@@ -19,7 +19,7 @@ use crate::{
             gerade::{Gerade, GeradeSerialisiert},
             gleise::{
                 id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef},
-                StreckenabschnittFehler,
+                StreckenabschnittIdFehler,
             },
             kreuzung::{Kreuzung, KreuzungSerialisiert},
             kurve::{Kurve, KurveSerialisiert},
@@ -166,14 +166,14 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn daten(
         &self,
         streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&GleiseDaten<Z>, StreckenabschnittFehler> {
+    ) -> Result<&GleiseDaten<Z>, StreckenabschnittIdFehler> {
         Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
             let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
             let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit.as_ref())?;
             &streckenabschnitt_map
                 .get(name)
                 .ok_or_else(|| {
-                    StreckenabschnittFehler::StreckenabschnittEntfernt(
+                    StreckenabschnittIdFehler::StreckenabschnittEntfernt(
                         streckenabschnitt_id.klonen(),
                     )
                 })?
@@ -185,14 +185,14 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn daten_mut(
         &mut self,
         streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittFehler> {
+    ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittIdFehler> {
         Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
             let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
             let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
             &mut streckenabschnitt_map
                 .get_mut(name)
                 .ok_or_else(|| {
-                    StreckenabschnittFehler::StreckenabschnittEntfernt(
+                    StreckenabschnittIdFehler::StreckenabschnittEntfernt(
                         streckenabschnitt_id.klonen(),
                     )
                 })?
@@ -423,6 +423,20 @@ impl<Z> GleiseDaten<Z> {
             überlappend.into_iter()
         });
         (überlappend, gehalten)
+    }
+
+    pub(in crate::application::gleis::gleise) fn ist_leer(&self) -> bool {
+        [
+            self.geraden.size(),
+            self.kurven.size(),
+            self.weichen.size(),
+            self.dreiwege_weichen.size(),
+            self.kurven_weichen.size(),
+            self.s_kurven_weichen.size(),
+            self.kreuzungen.size(),
+        ]
+        .iter()
+        .all(|size| *size == 0)
     }
 }
 
