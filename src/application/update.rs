@@ -435,7 +435,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 
     pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
-        if let Err(fehler) = self.gleise.entferne_geschwindigkeit(name) {
+        if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
     }
@@ -530,7 +530,7 @@ where
                         ))
                     }
                 }
-                self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
+                self.gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
                 self.geschwindigkeiten.insert(
                     name.clone(),
                     <Z::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
@@ -560,7 +560,7 @@ where
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                             // Modal/AnzeigeStatus-Map muss nicht angepasst werden,
                             // nachdem nur wiederhergestellt wird
-                            self.gleise.neue_geschwindigkeit(name.clone(), geschwindigkeit);
+                            self.gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
                         }
                         Err(de_serialisieren::Fehler { fehler, .. }) => {
                             match self.modal_status.overlay_mut() {
