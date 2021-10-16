@@ -350,26 +350,6 @@ impl<Z> GleiseDaten<Z> {
         }
     }
 
-    /// Füge alle Elemente von `other` zu `self` hinzu.
-    pub fn verschmelze(&mut self, mut other: GleiseDaten<Z>) {
-        macro_rules! extend {
-            ($($rstern: ident),*) => {
-                $(while let Some(gleis) = other.$rstern.remove_with_selection_function(SelectAll) {
-                    self.$rstern.insert(gleis)
-                })*
-            };
-        }
-        extend! {
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen
-        }
-    }
-
     /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen `RStern`.
     /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
