@@ -283,19 +283,23 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Füge einen Streckenabschnitt hinzu.
-    /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
+    /// Eine vorher gespeicherte Geschwindigkeit mit identischem Namen wird zurückgegeben.
+    /// Assoziierte Streckenabschnitte (und Gleise) werden nicht verändert.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
         geschwindigkeit: Geschwindigkeit<Z::Leiter>,
     ) -> Option<Geschwindigkeit<Z::Leiter>> {
-        self.zustand
-            .geschwindigkeiten
-            .insert(name, (geschwindigkeit, StreckenabschnittMap::new()))
-            .map(|(geschwindigkeit, streckenabschnitt_map)| {
-                self.zustand.ohne_geschwindigkeit.extend(streckenabschnitt_map);
-                geschwindigkeit
-            })
+        match self.zustand.geschwindigkeiten.entry(name) {
+            Entry::Occupied(mut occupied) => {
+                let bisher = std::mem::replace(&mut occupied.get_mut().0, geschwindigkeit);
+                Some(bisher)
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
+                None
+            }
+        }
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
