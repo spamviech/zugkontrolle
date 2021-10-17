@@ -10,6 +10,8 @@ use iced_native::{
     Widget,
 };
 
+use crate::application::style::background::Background;
+
 #[derive(Debug)]
 pub struct Status<Overlay> {
     pub overlay: Option<Overlay>,
@@ -59,8 +61,10 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<'a, Overlay, Nachricht, R: Renderer + container::Renderer> Widget<Nachricht, R>
-    for Modal<'a, Overlay, Nachricht, R>
+impl<'a, Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'a, Overlay, Nachricht, R>
+where
+    R: Renderer + container::Renderer,
+    <R as container::Renderer>::Style: From<Background>,
 {
     fn width(&self) -> Length {
         self.underlay.width()
@@ -136,8 +140,10 @@ impl<'a, Overlay, Nachricht, R: Renderer + container::Renderer> Widget<Nachricht
     }
 }
 
-impl<'a, Inner, Nachricht, R: Renderer + container::Renderer> From<Modal<'a, Inner, Nachricht, R>>
-    for Element<'a, Nachricht, R>
+impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
+where
+    R: Renderer + container::Renderer,
+    <R as container::Renderer>::Style: From<Background>,
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -146,7 +152,11 @@ impl<'a, Inner, Nachricht, R: Renderer + container::Renderer> From<Modal<'a, Inn
 
 struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
 
-impl<'a, Nachricht: 'a, R: Renderer + container::Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
+impl<'a, Nachricht: 'a, R> ModalOverlay<'a, Nachricht, R>
+where
+    R: Renderer + container::Renderer + 'a,
+    <R as container::Renderer>::Style: From<Background>,
+{
     fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
         ModalOverlay(
             Container::new(overlay)
@@ -154,6 +164,7 @@ impl<'a, Nachricht: 'a, R: Renderer + container::Renderer + 'a> ModalOverlay<'a,
                 .height(Length::Fill)
                 .center_x()
                 .center_y()
+                .style(Background::GreyTransparent { grey: 0.7, alpha: 0.5 })
                 .into(),
         )
     }
