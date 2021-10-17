@@ -22,7 +22,7 @@ use crate::{
         gleis,
         gleis::gleise::{
             daten::{DatenAuswahl, StreckenabschnittMap},
-            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
+            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
         },
@@ -282,6 +282,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
+        let id_ref = StreckenabschnittIdRef { geschwindigkeit, name: &name };
         match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
             geschwindigkeit: geschwindigkeit.cloned(),
             name: name.clone(),
@@ -289,20 +290,25 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             Ok((streckenabschnitt, fließend))
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
-                // FIXME anpassen mit unterschiedlichem Anschluss
                 streckenabschnitt.farbe = farbe;
                 *fließend = Fließend::Gesperrt;
-                let fehlermeldung = if let Err(err) = streckenabschnitt.strom(Fließend::Gesperrt) {
-                    format!("{:?}", err)
+                let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
+                {
+                    format!("{:?}", fehler)
                 } else {
-                    format!("Streckenabschnitt {} angepasst.", name.0)
+                    format!("Streckenabschnitt {:?} angepasst.", id_ref)
                 };
                 self.zeige_message_box(
-                    format!("Streckenabschnitt {} anpassen", name.0),
+                    format!("Streckenabschnitt {:?} anpassen", id_ref),
                     fehlermeldung,
                 )
             }
             _fehler => {
+                // Streckenabschnitt hat nur einen Anschluss,
+                // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
+                // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
+                // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
+                // beim hinzufügen.
                 match anschluss_definition.reserviere(
                     &mut self.anschlüsse,
                     Vec::new(),
@@ -332,24 +338,24 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                                 ))
                             }
                         }
-                        let name_string = name.0.clone();
+                        let id = StreckenabschnittId {
+                            geschwindigkeit: geschwindigkeit.cloned(),
+                            name: name.clone(),
+                        };
                         if let Ok(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
                             geschwindigkeit,
                             name,
                             streckenabschnitt,
                         ) {
                             self.zeige_message_box(
-                                format!("Streckenabschnitt {} anpassen", name_string),
-                                format!(
-                                    "Streckenabschnitt {} angepasst: {:?}",
-                                    name_string, ersetzt
-                                ),
+                                format!("Streckenabschnitt {:?} anpassen", id),
+                                format!("Streckenabschnitt {:?} angepasst: {:?}", id, ersetzt),
                             )
                         }
                     }
-                    Err(error) => self.zeige_message_box(
-                        "Hinzufügen Streckenabschnitt".to_string(),
-                        format!("Fehler beim Hinzufügen: {:?}", error),
+                    Err(fehler) => self.zeige_message_box(
+                        format!("Hinzufügen Streckenabschnitt {:?}", id_ref),
+                        format!("Fehler beim Hinzufügen: {:?}", fehler),
                     ),
                 }
             }
