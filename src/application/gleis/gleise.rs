@@ -331,15 +331,15 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         name: geschwindigkeit::Name,
     ) -> Result<Option<Geschwindigkeit<Z::Leiter>>, GeschwindigkeitEntfernenFehler> {
-        if let Some((geschwindigkeit, streckenabschnitt_map)) =
-            self.zustand.geschwindigkeiten.remove(&name)
+        if let Some((name_entry, (geschwindigkeit, streckenabschnitt_map))) =
+            self.zustand.geschwindigkeiten.remove_entry(&name)
         {
             if streckenabschnitt_map.is_empty() {
                 Ok(Some(geschwindigkeit))
             } else {
                 self.zustand
                     .geschwindigkeiten
-                    .insert(name.clone(), (geschwindigkeit, streckenabschnitt_map));
+                    .insert(name_entry, (geschwindigkeit, streckenabschnitt_map));
                 Err(GeschwindigkeitEntfernenFehler::StreckenabschnitteNichtEntfernt(name))
             }
         } else {
@@ -505,11 +505,13 @@ fn streckenabschnitt_entfernen<T, Z>(
     bereits_entfernt: impl FnOnce(StreckenabschnittId) -> Result<T, StreckenabschnittBearbeitenFehler>,
 ) -> Result<T, StreckenabschnittBearbeitenFehler> {
     let StreckenabschnittId { geschwindigkeit: _, name } = &streckenabschnitt_id;
-    if let Some((streckenabschnitt, fließend, daten)) = streckenabschnitt_map.remove(name) {
+    if let Some((name_entry, (streckenabschnitt, fließend, daten))) =
+        streckenabschnitt_map.remove_entry(name)
+    {
         if daten.ist_leer() {
             Ok(gefunden((streckenabschnitt, fließend)))
         } else {
-            streckenabschnitt_map.insert(name.clone(), (streckenabschnitt, fließend, daten));
+            streckenabschnitt_map.insert(name_entry, (streckenabschnitt, fließend, daten));
             Err(StreckenabschnittBearbeitenFehler::GleiseNichtEntfernt(streckenabschnitt_id))
         }
     } else {
