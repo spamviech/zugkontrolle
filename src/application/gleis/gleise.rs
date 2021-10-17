@@ -282,7 +282,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             .flat_map(iter_map)
     }
 
-    /// Füge einen Streckenabschnitt hinzu.
+    /// Füge eine Geschwindigkeit hinzu.
     /// Eine vorher gespeicherte Geschwindigkeit mit identischem Namen wird zurückgegeben.
     /// Assoziierte Streckenabschnitte (und Gleise) werden nicht verändert.
     pub fn geschwindigkeit_hinzufügen(
