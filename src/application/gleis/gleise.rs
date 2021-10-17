@@ -347,6 +347,39 @@ impl<Z: Zugtyp> Gleise<Z> {
         }
     }
 
+    /// Füge eine Geschwindigkeit hinzu.
+    /// Eine vorher gespeicherte Geschwindigkeit mit identischem Namen wird zurückgegeben.
+    /// Assoziierte Streckenabschnitte (und Gleise) werden nicht verändert.
+    pub(in crate::application) fn geschwindigkeit_mit_streckenabschnitten_hinzufügen(
+        &mut self,
+        name: geschwindigkeit::Name,
+        geschwindigkeit: Geschwindigkeit<Z::Leiter>,
+        streckenabschnitt_map: StreckenabschnittMap<Z>,
+    ) -> Option<(Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)> {
+        match self.zustand.geschwindigkeiten.entry(name) {
+            Entry::Occupied(mut occupied) => {
+                let bisher =
+                    std::mem::replace(occupied.get_mut(), (geschwindigkeit, streckenabschnitt_map));
+                Some(bisher)
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
+                None
+            }
+        }
+    }
+
+    /// Entferne eine Geschwindigkeit.
+    /// Falls sie vorhanden war wird sie zurückgegeben.
+    /// Assoziierte Streckenabschnitte werden (mit allen Gleisen) ebenfalls entfernt.
+    #[inline(always)]
+    pub(in crate::application) fn geschwindigkeit_mit_streckenabschnitten_entfernen(
+        &mut self,
+        name: &geschwindigkeit::Name,
+    ) -> Option<(Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)> {
+        self.zustand.geschwindigkeiten.remove(name)
+    }
+
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn geschwindigkeiten(
         &self,

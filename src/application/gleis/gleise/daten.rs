@@ -98,7 +98,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     }
 }
 
-pub(in crate::application::gleis::gleise) type StreckenabschnittMap<Z> =
+pub(in crate::application) type StreckenabschnittMap<Z> =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>;
 type GeschwindigkeitMap<Z> = HashMap<
     geschwindigkeit::Name,
