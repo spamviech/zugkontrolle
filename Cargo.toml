@@ -47,7 +47,7 @@ version = "0.3.0"
 git = "https://github.com/iced-rs/iced_aw"
 rev = "53e87f244766a056723fda9116cc3f662e1f9a68"
 default-features = false
-features = ["card", "modal", "tab_bar", "tabs", "number_input", "glow"]
+features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 
 
 # can't be used on non-raspi systems
