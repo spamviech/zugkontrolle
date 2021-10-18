@@ -14,6 +14,7 @@
 - Bei fehlgeschlagenem Laden wird immer ein leerer Zustand erzeugt
 - Fehlermeldungen enthalten falls möglich den betroffenen Anschluss
 - Länger dauernde Aktionen (z.B. Weiche schalten) werden in einem eigenen Thread ausgeführt
+- Bibliothek erlaubt assoziieren von Streckenabschnitten mit einer Geschwindigkeit
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
