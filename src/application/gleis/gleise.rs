@@ -14,11 +14,7 @@ use self::{
 };
 use crate::{
     anschluss::{self, Fließend},
-    application::{
-        typen::*,
-        verbindung::{self, Verbindung},
-    },
-    lookup::Lookup,
+    application::typen::*,
     steuerung::{geschwindigkeit, streckenabschnitt, Geschwindigkeit, Streckenabschnitt},
 };
 
@@ -587,33 +583,6 @@ impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {
                 iced::mouse::Interaction::Pointer
             }
             _ => iced::mouse::Interaction::default(),
-        }
-    }
-}
-
-impl Position {
-    /// Position damit anchor::Verbindung übereinander mit entgegengesetzter Richtung liegen
-    fn attach_position<T>(
-        definition: &T,
-        anchor_name: &T::VerbindungName,
-        target_anchor_point: Verbindung,
-    ) -> Self
-    where
-        T: Zeichnen,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
-    {
-        let verbindungen = definition.verbindungen();
-        let verbindung = verbindungen.get(anchor_name);
-        let winkel: Winkel = winkel::PI - verbindung.richtung + target_anchor_point.richtung;
-        Position {
-            punkt: Vektor {
-                x: target_anchor_point.position.x - verbindung.position.x * winkel.cos()
-                    + verbindung.position.y * winkel.sin(),
-                y: target_anchor_point.position.y
-                    - verbindung.position.x * winkel.sin()
-                    - verbindung.position.y * winkel.cos(),
-            },
-            winkel,
         }
     }
 }

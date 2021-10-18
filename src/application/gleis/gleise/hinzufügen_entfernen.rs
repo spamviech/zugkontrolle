@@ -1,28 +1,23 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen
 
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 use log::error;
-use rstar::{
-    primitives::{GeomWithData, Rectangle},
-    RTreeObject,
-};
+use rstar::RTreeObject;
 
 use crate::{
     anschluss::polarität::Fließend,
     application::{
         gleis::{
             gleise::{
-                daten::{DatenAuswahl, Gleis, SelectEnvelope},
-                id::{AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId},
-                Gehalten, GleisEntferntFehler, GleisIdFehler, Gleise, ModusDaten,
-                StreckenabschnittIdFehler,
+                daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
+                id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
+                Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
             },
             verbindung::{self, Verbindung},
         },
         typen::*,
     },
-    lookup::Lookup,
     steuerung::Streckenabschnitt,
     zugtyp::Zugtyp,
 };
@@ -40,17 +35,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        // Berechne Bounding Box.
-        let rectangle = Rectangle::from(definition.rechteck_an_position(&position));
-        // Füge zu RStern hinzu.
-        self.zustand
-            .daten_mut(&streckenabschnitt)?
-            .rstern_mut()
-            .insert(GeomWithData::new(rectangle.clone(), Gleis { definition, position }));
+        let gleis_id = self.zustand.hinzufügen(definition, position, streckenabschnitt)?;
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert
-        Ok(GleisId { rectangle, streckenabschnitt, phantom: PhantomData })
+        Ok(gleis_id)
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
@@ -106,10 +95,16 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        // calculate new position
-        let position = Position::attach_position(&definition, verbindung_name, ziel_verbindung);
-        // add new gleis
-        self.hinzufügen(definition, position, streckenabschnitt)
+        let gleis_id = self.zustand.hinzufügen_anliegend(
+            definition,
+            streckenabschnitt,
+            verbindung_name,
+            ziel_verbindung,
+        )?;
+        // Erzwinge Neuzeichnen
+        self.canvas.leeren();
+        // Rückgabewert
+        Ok(gleis_id)
     }
 
     #[zugkontrolle_derive::erstelle_daten_methoden]
@@ -123,12 +118,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt =
-            gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen);
-        // Entferne aktuellen Eintrag.
-        let Gleis { definition, position: _ } = self.entfernen(gleis_id.klonen())?;
-        // Füge an neuer Position hinzu.
-        *gleis_id = self.hinzufügen(definition, position_neu, streckenabschnitt)?;
+        self.zustand.bewegen(gleis_id, position_neu)?;
+        // Erzwinge Neuzeichnen
+        self.canvas.leeren();
+        // Rückgabewert
         Ok(())
     }
 
@@ -144,17 +137,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let streckenabschnitt =
-            gleis_id.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen);
-        // Entferne aktuellen Eintrag.
-        let Gleis { definition, position: _ } = self.entfernen(gleis_id.klonen())?;
-        // Füge Gleis an neuer Position hinzu.
-        *gleis_id = self.hinzufügen_anliegend(
-            definition,
-            streckenabschnitt,
-            verbindung_name,
-            ziel_verbindung,
-        )?;
+        self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
+        // Erzwinge Neuzeichnen
+        self.canvas.leeren();
+        // Rückgabewert
         Ok(())
     }
 
@@ -165,17 +151,10 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        // Entferne aktuellen Eintrag.
-        let data = self
-            .zustand
-            .daten_mut(&streckenabschnitt)?
-            .rstern_mut::<T>()
-            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisEntferntFehler)?
-            .data;
+        let data = self.zustand.entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
+        // Rückgabewert
         Ok(data)
     }
 
@@ -223,61 +202,31 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
-    pub(crate) fn bewegen_gehalten<T: Debug + Zeichnen>(
+    pub(in crate::application::gleis::gleise) fn gehalten_bewegen(
         &mut self,
-        gleis_id: &mut GleisId<T>,
-        punkt: Vektor,
-    ) -> Result<(), GleisIdFehler>
-    where
-        Z: Zugtyp,
-        T: DatenAuswahl<Z>,
-    {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let daten = self.zustand.daten(&streckenabschnitt)?;
-        let Gleis { definition: _, position } = &daten
-            .rstern::<T>()
-            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        let position_neu = Position { punkt, winkel: position.winkel };
-        self.bewegen(gleis_id, position_neu)
+        canvas_pos: Vektor,
+    ) -> Result<(), GleisIdFehler> {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
+                let punkt = canvas_pos - halte_position;
+                mit_any_id!(gleis_id, Zustand::bewegen_an_punkt, &mut self.zustand, punkt)?;
+                *bewegt = true;
+                self.canvas.leeren();
+            }
+        }
+        Ok(())
     }
 
     /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
-    pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
+    pub(in crate::application::gleis::gleise) fn gehalten_einrasten_an_verbindung(
         &mut self,
-        gleis_id: &mut GleisId<T>,
-    ) -> Result<(), GleisIdFehler>
-    where
-        Z: Zugtyp,
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
-        for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
-    {
-        let GleisId { rectangle, streckenabschnitt, phantom } = &gleis_id;
-        let any_id = AnyIdRef::from(GleisIdRef {
-            rectangle,
-            streckenabschnitt: streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref),
-            phantom: *phantom,
-        });
-        let rstern = self.zustand.daten(&streckenabschnitt)?.rstern::<T>();
-        let Gleis { definition, position } = &rstern
-            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        let verbindungen = definition.verbindungen_an_position(position.clone());
-        let mut snap = None;
-        verbindungen.for_each(|verbindung_name, verbindung| {
-            if snap.is_none() {
-                let (mut überlappende, _gehalten) =
-                    self.zustand.überlappende_verbindungen(verbindung, &any_id, None);
-                snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
+    ) -> Result<(), GleisIdFehler> {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            if let Some(Gehalten { gleis_id, .. }) = gehalten {
+                mit_any_id!(gleis_id, Zustand::einrasten_an_verbindung, &mut self.zustand)?;
+                self.canvas.leeren();
             }
-        });
-        if let Some((einrasten_name, einrasten_verbindung)) = snap {
-            self.bewegen_anliegend(gleis_id, &einrasten_name, einrasten_verbindung)?;
-        };
+        }
         Ok(())
     }
 

@@ -162,9 +162,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten {
                         if *bewegt {
                             if cursor.is_over(&bounds) {
-                                if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::einrasten_an_verbindung, self)
-                                {
+                                if let Err(fehler) = self.gehalten_einrasten_an_verbindung() {
                                     error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
                                 }
                             } else {
@@ -187,20 +185,10 @@ impl<Z: Zugtyp> Gleise<Z> {
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                        if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
-                            let point = canvas_pos - halte_position;
-                            match mit_any_id!(gleis_id, Gleise::bewegen_gehalten, self, point) {
-                                Ok(()) => {
-                                    *bewegt = true;
-                                }
-                                Err(fehler) => {
-                                    error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
-                                }
-                            }
-                            event_status = iced::canvas::event::Status::Captured
-                        }
+                    if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
+                        error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
                     }
+                    event_status = iced::canvas::event::Status::Captured
                 }
             }
             _otherwise => {}
