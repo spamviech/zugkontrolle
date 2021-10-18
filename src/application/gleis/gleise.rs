@@ -404,12 +404,9 @@ where
     /// Schlägt fehl, wenn noch Gleise den Streckenabschnitt zugeordnet waren.
     pub fn streckenabschnitt_assoziiere_geschwindigkeit(
         &mut self,
-        streckenabschnitt_id: StreckenabschnittId,
+        streckenabschnitt_id: &mut StreckenabschnittId,
         geschwindigkeit_neu: Option<&geschwindigkeit::Name>,
-    ) -> Result<
-        (StreckenabschnittId, Option<(Streckenabschnitt, Fließend)>),
-        StreckenabschnittBearbeitenFehler,
-    > {
+    ) -> Result<Option<(Streckenabschnitt, Fließend)>, StreckenabschnittBearbeitenFehler> {
         if streckenabschnitt_id.geschwindigkeit.as_ref() == geschwindigkeit_neu {
             return Err(StreckenabschnittBearbeitenFehler::IdentischeGeschwindigkeit(
                 geschwindigkeit_neu.cloned(),
@@ -423,7 +420,7 @@ where
                     Some((geschwindigkeit, mut streckenabschnitt_map)) => {
                         let (streckenabschnitt, fließend) = streckenabschnitt_entfernen(
                             &mut streckenabschnitt_map,
-                            streckenabschnitt_id,
+                            streckenabschnitt_id.klonen(),
                             identity,
                             |streckenabschnitt_id| {
                                 Err(StreckenabschnittBearbeitenFehler::StreckenabschnittEntfernt(
@@ -446,7 +443,7 @@ where
             } else {
                 let (streckenabschnitt, fließend) = streckenabschnitt_entfernen(
                     &mut self.zustand.ohne_geschwindigkeit,
-                    streckenabschnitt_id,
+                    streckenabschnitt_id.klonen(),
                     identity,
                     |streckenabschnitt_id| {
                         Err(StreckenabschnittBearbeitenFehler::StreckenabschnittEntfernt(
@@ -462,7 +459,7 @@ where
             streckenabschnitt,
             fließend,
         ) {
-            Ok(id_neu_und_bisher) => {
+            Ok((id_neu, bisher)) => {
                 if let Some((geschwindigkeit_name, geschwindigkeit_eintrag)) =
                     geschwindigkeit_name_und_eintrag
                 {
@@ -478,8 +475,9 @@ where
                         )
                     }
                 }
+                *streckenabschnitt_id = id_neu;
                 self.canvas.leeren();
-                Ok(id_neu_und_bisher)
+                Ok(bisher)
             }
             Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
                 geschwindigkeit_neu,

@@ -399,11 +399,11 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         }
     }
 
-    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId<Z>) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId<Z>) {
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = mit_any_id!(
-                any_id,
-                Gleise::setze_streckenabschnitt_unit,
+                &mut any_id,
+                Gleise::setze_streckenabschnitt,
                 &mut self.gleise,
                 self.streckenabschnitt_aktuell
                     .aktuell

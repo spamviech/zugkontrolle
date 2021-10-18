@@ -159,8 +159,8 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
-                        if bewegt {
+                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten {
+                        if *bewegt {
                             if cursor.is_over(&bounds) {
                                 if let Err(fehler) =
                                     mit_any_id!(gleis_id, Gleise::einrasten_an_verbindung, self)
@@ -169,14 +169,14 @@ impl<Z: Zugtyp> Gleise<Z> {
                                 }
                             } else {
                                 if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
+                                    mit_any_id!(gleis_id.klonen(), Gleise::entfernen_unit, self)
                                 {
                                     error!("Entfernen für entferntes Gleis: {:?}", fehler)
                                 }
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.into()));
+                            message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.klonen()));
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
@@ -187,27 +187,12 @@ impl<Z: Zugtyp> Gleise<Z> {
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if let ModusDaten::Bauen { gehalten, last } = &mut self.modus {
-                        if let Some(Gehalten { gleis_id, halte_position, bewegt: _ }) =
-                            gehalten.take()
-                        {
-                            let last_clone = last.clone();
+                    if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                        if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
                             let point = canvas_pos - halte_position;
-                            match mit_any_id!(
-                                gleis_id.klonen(),
-                                Gleise::bewegen_gehalten,
-                                self,
-                                point
-                            ) {
-                                Ok(gleis_id_neu) => {
-                                    self.modus = ModusDaten::Bauen {
-                                        gehalten: Some(Gehalten {
-                                            gleis_id: gleis_id_neu,
-                                            halte_position,
-                                            bewegt: true,
-                                        }),
-                                        last: last_clone,
-                                    };
+                            match mit_any_id!(gleis_id, Gleise::bewegen_gehalten, self, point) {
+                                Ok(()) => {
+                                    *bewegt = true;
                                 }
                                 Err(fehler) => {
                                     error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
