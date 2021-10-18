@@ -11,7 +11,7 @@ use crate::{
         gleis::{
             gleise::{
                 daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-                id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
+                id::{mit_any_id, AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId},
                 Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
             },
             verbindung::{self, Verbindung},
@@ -217,17 +217,19 @@ impl<Z: Zugtyp> Gleise<Z> {
         Ok(())
     }
 
+    #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
-    pub(in crate::application::gleis::gleise) fn gehalten_einrasten_an_verbindung(
+    /// Wenn keine überlappende Verbindung existiert wird das Gleis nicht bewegt (kein Fehler).
+    #[inline(always)]
+    pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
         &mut self,
-    ) -> Result<(), GleisIdFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_id, .. }) = gehalten {
-                mit_any_id!(gleis_id, Zustand::einrasten_an_verbindung, &mut self.zustand)?;
-                self.canvas.leeren();
-            }
-        }
-        Ok(())
+        gleis_id: &mut GleisId<T>,
+    ) -> Result<(), GleisIdFehler>
+    where
+        T: Zeichnen + DatenAuswahl<Z>,
+        for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+    {
+        self.zustand.einrasten_an_verbindung(gleis_id)
     }
 
     #[zugkontrolle_derive::erstelle_daten_methoden]

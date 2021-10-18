@@ -159,15 +159,19 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten {
-                        if *bewegt {
+                    if let Some(Gehalten { mut gleis_id, bewegt, .. }) = gehalten.take() {
+                        if bewegt {
                             if cursor.is_over(&bounds) {
-                                if let Err(fehler) = self.gehalten_einrasten_an_verbindung() {
+                                if let Err(fehler) = mit_any_id!(
+                                    &mut gleis_id,
+                                    Gleise::einrasten_an_verbindung,
+                                    self
+                                ) {
                                     error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
                                 }
                             } else {
                                 if let Err(fehler) =
-                                    mit_any_id!(gleis_id.klonen(), Gleise::entfernen_unit, self)
+                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
                                 {
                                     error!("Entfernen für entferntes Gleis: {:?}", fehler)
                                 }

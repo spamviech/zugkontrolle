@@ -445,6 +445,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 
     /// Lasse das Gleis an einer überlappenden `Verbindung` einrasten.
+    /// Wenn keine überlappende Verbindung existiert wird das Gleis nicht bewegt (kein Fehler).
     pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
         &mut self,
         gleis_id: &mut GleisId<T>,
