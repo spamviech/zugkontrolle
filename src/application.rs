@@ -77,7 +77,7 @@ impl_any_gleis_from! {SKurvenWeicheUnit}
 impl_any_gleis_from! {KreuzungUnit}
 
 impl Modus {
-    fn make_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
+    fn erstelle_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
         iced::Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
@@ -297,7 +297,7 @@ where
     Z: Zugtyp + 'static,
     <Z::Leiter as Serialisiere>::Serialisiert: Debug + Send,
 {
-    fn as_command(self) -> iced::Command<Nachricht<Z>> {
+    fn als_command(self) -> iced::Command<Nachricht<Z>> {
         iced::Command::perform(async_identity(self), identity)
     }
 }
@@ -496,7 +496,7 @@ where
         let command = if messages.is_empty() {
             iced::Command::none()
         } else {
-            iced::Command::batch(messages.into_iter().map(Nachricht::as_command))
+            iced::Command::batch(messages.into_iter().map(Nachricht::als_command))
         };
         (zugkontrolle, command)
     }
@@ -574,7 +574,7 @@ where
             Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
-                    command = message.as_command()
+                    command = message.als_command()
                 }
             }
             Nachricht::FahrenAktion(any_id) => self.fahren_aktion(any_id),

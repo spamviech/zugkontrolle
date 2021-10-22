@@ -213,8 +213,8 @@ fn top_row<'t, Z: Zugtyp + 'static>(
     speichern_laden: &'t mut speichern_laden::Status,
 ) -> iced::Row<'t, Nachricht<Z>> {
     let modus_radios = iced::Column::new()
-        .push(Modus::Bauen.make_radio(aktueller_modus))
-        .push(Modus::Fahren.make_radio(aktueller_modus));
+        .push(Modus::Bauen.erstelle_radio(aktueller_modus))
+        .push(Modus::Fahren.erstelle_radio(aktueller_modus));
     let bewegen = touch_canvas::Canvas::new(bewegen)
         .width(iced::Length::Units(50))
         .height(iced::Length::Units(50));
