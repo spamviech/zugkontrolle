@@ -82,7 +82,7 @@ pub fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenStream {
     quote! {
         #ast
 
-        #vis #constness #asyncness #unsafety fn #chain_ident#generics(mut self, #(#inputs_iter),*) -> Self {
+        #vis #constness #asyncness #unsafety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
             self.#ident(#(#other_input_names),*);
             self
         }

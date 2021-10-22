@@ -1,7 +1,5 @@
 //! Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 
-use std::array;
-
 use rstar::primitives::Rectangle;
 
 use crate::application::typen::{vektor::Vektor, winkel::Winkel};
@@ -36,13 +34,8 @@ impl Rechteck {
 
     /// Erzeuge ein Rechteck, in dem `self` und `other` enthalten sind.
     pub fn einschließend(self, other: Self) -> Self {
-        Rechteck::aus_vektoren(array::IntoIter::new([
-            self.ecke_a,
-            self.ecke_b,
-            other.ecke_a,
-            other.ecke_b,
-        ]))
-        .expect("Iterator besteht aus 4 Elementen.")
+        Rechteck::aus_vektoren([self.ecke_a, self.ecke_b, other.ecke_a, other.ecke_b].into_iter())
+            .expect("Iterator besteht aus 4 Elementen.")
     }
 
     /// Dehne das Rechteck aus, so dass es um `winkel`-Rotation um `(0, 0)` (im Uhrzeigersinn)
@@ -58,7 +51,7 @@ impl Rechteck {
         ecke_c.rotiere(*winkel);
         ecke_d.rotiere(*winkel);
         // finde maximale x-, y-Werte
-        *self = Rechteck::aus_vektoren(array::IntoIter::new([ecke_a, ecke_b, ecke_c, ecke_d]))
+        *self = Rechteck::aus_vektoren([ecke_a, ecke_b, ecke_c, ecke_d].into_iter())
             .expect("Iterator besteht aus 4 Elementen.");
     }
 
