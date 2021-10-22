@@ -1,5 +1,7 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
+use std::{include_bytes, io};
+
 use iced::{Application, Settings};
 use simple_logger::SimpleLogger;
 use zugkontrolle::{
@@ -8,6 +10,8 @@ use zugkontrolle::{
     args::{self, Args},
     Lego, Märklin, Zugkontrolle,
 };
+
+static FONT: &[u8] = include_bytes!("../font/SourceSerif4-Regular.ttf");
 
 fn main() -> Result<(), Fehler> {
     let args = Args::from_env();
@@ -29,6 +33,7 @@ fn main() -> Result<(), Fehler> {
             icon: Some(icon()),
             ..Default::default()
         },
+        default_font: Some(&FONT),
         ..Settings::with_flags((anschlüsse, args))
     };
 
@@ -43,11 +48,17 @@ fn main() -> Result<(), Fehler> {
 #[derive(Debug)]
 enum Fehler {
     Iced(iced::Error),
+    IO(io::Error),
     Anschlüsse(anschlüsse::Fehler),
 }
 impl From<iced::Error> for Fehler {
     fn from(error: iced::Error) -> Self {
         Fehler::Iced(error)
+    }
+}
+impl From<io::Error> for Fehler {
+    fn from(error: io::Error) -> Self {
+        Fehler::IO(error)
     }
 }
 impl From<anschlüsse::Fehler> for Fehler {
