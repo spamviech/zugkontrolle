@@ -26,10 +26,7 @@ use crate::{
     anschluss::{anschlüsse::Anschlüsse, de_serialisieren::Serialisiere, OutputSerialisiert},
     args::Args,
     farbe::Farbe,
-    steuerung::{
-        self,
-        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
-    },
+    steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
 };
 
 pub mod anschluss;
@@ -126,25 +123,8 @@ enum NachrichtClone<Z: Zugtyp> {
         gleis: AnyGleisUnit<Z>,
         grab_height: Skalar,
     },
-    // Modus(Modus),
-    // Bewegen(bewegen::Nachricht),
-    // BewegungAusführen,
-    // Position(Vektor),
-    // Winkel(Winkel),
     Skalieren(Skalar),
-    // SchließeModal,
     SchließeMessageBox,
-    // ZeigeAuswahlStreckenabschnitt,
-    // HinzufügenStreckenabschnitt(
-    //     Option<geschwindigkeit::Name>,
-    //     streckenabschnitt::Name,
-    //     Farbe,
-    //     OutputSerialisiert,
-    // ),
-    // StreckenabschnittFestlegen(bool),
-    // Speichern(String),
-    // EntferneSpeichernFarbe(Instant),
-    // Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
         nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
@@ -152,41 +132,12 @@ enum NachrichtClone<Z: Zugtyp> {
     ZeigeAuswahlGeschwindigkeit,
 }
 
-// TODO als macro implementieren?
 impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
     fn from(nachricht_clone: NachrichtClone<Z>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, grab_height } => Nachricht::Gleis { gleis, grab_height },
-            // NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
-            // NachrichtClone::Bewegen(bewegen_nachricht) => Nachricht::Bewegen(bewegen_nachricht),
-            // NachrichtClone::BewegungAusführen => Nachricht::BewegungAusführen,
-            // NachrichtClone::Position(position) => Nachricht::Position(position),
-            // NachrichtClone::Winkel(winkel) => Nachricht::Winkel(winkel),
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
-            // NachrichtClone::SchließeModal => Nachricht::SchließeModal,
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
-            // NachrichtClone::ZeigeAuswahlStreckenabschnitt => {
-            //     Nachricht::ZeigeAuswahlStreckenabschnitt
-            // }
-            // NachrichtClone::HinzufügenStreckenabschnitt(
-            //     geschwindigkeit,
-            //     streckenabschnitt,
-            //     farbe,
-            //     anschluss,
-            // ) => Nachricht::HinzufügenStreckenabschnitt(
-            //     geschwindigkeit,
-            //     streckenabschnitt,
-            //     farbe,
-            //     anschluss,
-            // ),
-            // NachrichtClone::StreckenabschnittFestlegen(festlegen) => {
-            //     Nachricht::StreckenabschnittFestlegen(festlegen)
-            // }
-            // NachrichtClone::Speichern(pfad) => Nachricht::Speichern(pfad),
-            // NachrichtClone::EntferneSpeichernFarbe(speichern_zeit) => {
-            //     Nachricht::EntferneSpeichernFarbe(speichern_zeit)
-            // }
-            // NachrichtClone::Laden(pfad) => Nachricht::Laden(pfad),
             NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
                 Nachricht::GeschwindigkeitAnzeige { name, nachricht }
             }
@@ -242,7 +193,7 @@ pub enum Nachricht<Z: Zugtyp> {
 impl<Z> Debug for Nachricht<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug,
+    <Z::Leiter as Serialisiere>::Serialisiert: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -343,8 +294,8 @@ async fn async_identity<T>(t: T) -> T {
 
 impl<Z> Nachricht<Z>
 where
-    Z: 'static + Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Send,
+    Z: Zugtyp + 'static,
+    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Send,
 {
     fn as_command(self) -> iced::Command<Nachricht<Z>> {
         iced::Command::perform(async_identity(self), identity)
@@ -442,7 +393,7 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     bewegung: Option<Bewegung>,
     sender: Sender<Nachricht<Z>>,
     empfänger: Empfänger<Nachricht<Z>>,
-    // TODO Wegstrecke, Plan
+    // TODO Plan
 }
 
 impl<Z> Debug for Zugkontrolle<Z>
@@ -482,10 +433,8 @@ where
 
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
-    Z: 'static + Zugtyp + Serialize + for<'de> Deserialize<'de> + Send + Sync,
-    Z::Leiter: Debug,
+    Z: Zugtyp + Serialize + for<'de> Deserialize<'de> + 'static,
     <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
-    Geschwindigkeit<Z::Leiter>: Leiter,
 {
     type Executor = iced::executor::Default;
     type Flags = (Anschlüsse, Args);

@@ -34,8 +34,7 @@ use crate::{
     farbe::Farbe,
     lookup::Lookup,
     steuerung::{
-        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
-        streckenabschnitt::Streckenabschnitt,
+        geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
     zugtyp::Zugtyp,
 };
@@ -502,7 +501,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 impl<Z> Zugkontrolle<Z>
 where
     Z: Zugtyp,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
@@ -1026,11 +1025,7 @@ where
     }
 }
 
-impl<Z> Zugkontrolle<Z>
-where
-    Z: Zugtyp + for<'de> Deserialize<'de>,
-    Geschwindigkeit<Z::Leiter>: Leiter,
-{
+impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
     #[inline(always)]
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.anschlüsse, &pfad) {

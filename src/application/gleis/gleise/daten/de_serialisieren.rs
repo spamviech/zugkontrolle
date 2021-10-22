@@ -13,7 +13,7 @@ use crate::{
     },
     application::gleis::gleise::{daten::*, Fehler, Gleise},
     steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert},
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
 };
@@ -486,11 +486,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-impl<Z> Gleise<Z>
-where
-    Z: Zugtyp + for<'de> Deserialize<'de>,
-    Geschwindigkeit<<Z as Zugtyp>::Leiter>: Leiter,
-{
+impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
     pub fn laden(
         &mut self,
         anschlüsse: &mut Anschlüsse,
