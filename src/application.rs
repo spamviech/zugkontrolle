@@ -378,16 +378,14 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
+type ErstelleAnschlussNachricht<T, Z> = Arc<dyn Fn(Option<T>) -> Nachricht<Z>>;
 
 pub enum AuswahlStatus<Z: Zugtyp> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, Arc<dyn Fn(Option<WeicheSerialisiert>) -> Nachricht<Z>>),
-    DreiwegeWeiche(
-        DreiwegeWeicheStatus,
-        Arc<dyn Fn(Option<DreiwegeWeicheSerialisiert>) -> Nachricht<Z>>,
-    ),
-    KurvenWeiche(KurvenWeicheStatus, Arc<dyn Fn(Option<KurvenWeicheSerialisiert>) -> Nachricht<Z>>),
+    Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Z>),
+    DreiwegeWeiche(DreiwegeWeicheStatus, ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Z>),
+    KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Z>),
 }
 
 impl<Z: Zugtyp> Debug for AuswahlStatus<Z> {
