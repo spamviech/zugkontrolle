@@ -35,6 +35,7 @@ pub mod drehen;
 #[path = "application/empfänger.rs"]
 pub mod empfänger;
 pub mod farbwahl;
+pub mod fonts;
 pub mod geschwindigkeit;
 pub mod gleis;
 pub mod icon;

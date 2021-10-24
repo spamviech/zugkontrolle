@@ -1,17 +1,13 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
-use std::include_bytes;
-
 use iced::{Application, Settings};
 use simple_logger::SimpleLogger;
 use zugkontrolle::{
     anschluss::anschlüsse::{self, Anschlüsse},
-    application::icon::icon,
+    application::{fonts, icon::icon},
     args::{self, Args},
     Lego, Märklin, Zugkontrolle,
 };
-
-static FONT: &[u8] = include_bytes!("../font/SourceSerif4-Regular.ttf");
 
 fn main() -> Result<(), Fehler> {
     let args = Args::from_env();
@@ -33,7 +29,7 @@ fn main() -> Result<(), Fehler> {
             icon: Some(icon()),
             ..Default::default()
         },
-        default_font: Some(&FONT),
+        default_font: Some(&fonts::REGULAR),
         ..Settings::with_flags((anschlüsse, args))
     };
 
