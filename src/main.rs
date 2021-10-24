@@ -1,6 +1,6 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
-use std::{include_bytes, io};
+use std::include_bytes;
 
 use iced::{Application, Settings};
 use simple_logger::SimpleLogger;
@@ -48,17 +48,11 @@ fn main() -> Result<(), Fehler> {
 #[derive(Debug)]
 enum Fehler {
     Iced(iced::Error),
-    IO(io::Error),
     Anschlüsse(anschlüsse::Fehler),
 }
 impl From<iced::Error> for Fehler {
     fn from(error: iced::Error) -> Self {
         Fehler::Iced(error)
-    }
-}
-impl From<io::Error> for Fehler {
-    fn from(error: io::Error) -> Self {
-        Fehler::IO(error)
     }
 }
 impl From<anschlüsse::Fehler> for Fehler {
