@@ -24,11 +24,7 @@ fn main() -> Result<(), Fehler> {
     let anschlüsse = Anschlüsse::neu()?;
 
     let settings = Settings {
-        window: iced::window::Settings {
-            size: (1024, 768),
-            icon: Some(icon()),
-            ..Default::default()
-        },
+        window: iced::window::Settings { size: (1024, 768), icon: icon(), ..Default::default() },
         default_font: Some(&fonts::REGULAR),
         ..Settings::with_flags((anschlüsse, args))
     };

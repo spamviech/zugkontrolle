@@ -62,6 +62,3 @@ rppal = "0.12.0"
 
 [build-dependencies]
 cfg_aliases = "0.1.1"
-
-[dev-dependencies]
-image = "0.23.14"
