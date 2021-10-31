@@ -167,25 +167,6 @@ impl<Z: Zugtyp> Zustand<Z> {
         })
     }
 
-    pub(in crate::application::gleis::gleise) fn daten(
-        &self,
-        streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&GleiseDaten<Z>, StreckenabschnittIdFehler> {
-        Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
-            let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
-            let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit.as_ref())?;
-            &streckenabschnitt_map
-                .get(name)
-                .ok_or_else(|| {
-                    StreckenabschnittIdFehler::StreckenabschnittEntfernt(
-                        streckenabschnitt_id.klonen(),
-                    )
-                })?
-                .2
-        } else {
-            &self.ohne_streckenabschnitt
-        })
-    }
     pub(in crate::application::gleis::gleise) fn daten_mut(
         &mut self,
         streckenabschnitt: &Option<StreckenabschnittId>,
@@ -289,7 +270,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn überlappende_verbindungen<'t>(
         &'t self,
         verbindung: &'t Verbindung,
-        eigene_id: &'t AnyIdRef<'t, Z>,
+        eigene_id: Option<&'t AnyIdRef<'t, Z>>,
         gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
@@ -301,7 +282,7 @@ impl<Z: Zugtyp> Zustand<Z> {
                             .überlappende_verbindungen::<$gleis<Z>>(
                                 verbindung,
                                 streckenabschnitt.clone(),
-                                &eigene_id,
+                                eigene_id,
                                 gehalten_id,
                             );
                         gehalten = gehalten || gehalten_daten;
@@ -327,13 +308,32 @@ impl<Z: Zugtyp> Zustand<Z> {
         (überlappend, gehalten)
     }
 
+    fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
+        let mut snap = None;
+        let verbindungen = definition.verbindungen_an_position(position.clone());
+        verbindungen.for_each(|verbindung_name, verbindung| {
+            if snap.is_none() {
+                let (mut überlappende, _gehalten) =
+                    self.überlappende_verbindungen(verbindung, None, None);
+                snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
+            }
+        });
+        snap.map_or(position, |(einrasten_name, einrasten_verbindung)| {
+            Position::attach_position(definition, &einrasten_name, einrasten_verbindung)
+        })
+    }
+
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T: Zeichnen + DatenAuswahl<Z>>(
         &mut self,
         definition: T,
-        position: Position,
+        mut position: Position,
         streckenabschnitt: Option<StreckenabschnittId>,
+        einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler> {
+        if einrasten {
+            position = self.einraste_position(&definition, position)
+        }
         // Berechne Bounding Box.
         let rectangle = Rectangle::from(definition.rechteck_an_position(&position));
         // Füge zu RStern hinzu.
@@ -359,26 +359,28 @@ impl<Z: Zugtyp> Zustand<Z> {
         // berechne neue position
         let position = Position::attach_position(&definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
-        self.hinzufügen(definition, position, streckenabschnitt)
+        self.hinzufügen(definition, position, streckenabschnitt, false)
     }
 
     /// Bewege ein Gleis an die neue position.
     fn bewegen_aux<T: Zeichnen + DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        berechne_position: impl FnOnce(&Gleis<T>) -> Position,
+        berechne_position: impl FnOnce(&Zustand<Z>, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
         // Entferne aktuellen Eintrag.
+        let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
         let gleis = rstern
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
         // Füge an neuer Position hinzu.
-        let position_neu = berechne_position(&gleis);
+        // Wegen Referenz auf self muss rstern kurzfristig vergessen werden.
+        let position_neu = berechne_position(self, &gleis);
         let definition = gleis.definition;
         let rectangle = Rectangle::from(definition.rechteck_an_position(&position_neu));
+        let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
         rstern.insert(GeomWithData::new(
             rectangle.clone(),
             Gleis { definition, position: position_neu },
@@ -393,9 +395,15 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(crate) fn bewegen<T: Zeichnen + DatenAuswahl<Z>>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        position_neu: Position,
+        mut position_neu: Position,
+        einrasten: bool,
     ) -> Result<(), GleisIdFehler> {
-        self.bewegen_aux(gleis_id, |_gleis| position_neu)
+        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position: _ }| {
+            if einrasten {
+                position_neu = zustand.einraste_position(definition, position_neu)
+            }
+            position_neu
+        })
     }
 
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
@@ -410,7 +418,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         T: Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        self.bewegen_aux(gleis_id, |Gleis { definition, position: _ }| {
+        self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
             Position::attach_position(definition, verbindung_name, ziel_verbindung)
         })
     }
@@ -438,7 +446,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         gleis_id: &mut GleisId<T>,
         punkt: Vektor,
     ) -> Result<(), GleisIdFehler> {
-        self.bewegen_aux(gleis_id, |Gleis { definition: _, position }| Position {
+        self.bewegen_aux(gleis_id, |_zustand, Gleis { definition: _, position }| Position {
             punkt,
             winkel: position.winkel,
         })
@@ -446,6 +454,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     /// Lasse das Gleis an einer überlappenden `Verbindung` einrasten.
     /// Wenn keine überlappende Verbindung existiert wird das Gleis nicht bewegt (kein Fehler).
+    #[inline(always)]
     pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
         &mut self,
         gleis_id: &mut GleisId<T>,
@@ -454,31 +463,9 @@ impl<Z: Zugtyp> Zustand<Z> {
         T: Zeichnen + DatenAuswahl<Z>,
         for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom } = &*gleis_id;
-        let any_id = AnyIdRef::from(GleisIdRef {
-            rectangle,
-            streckenabschnitt: streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref),
-            phantom: *phantom,
-        });
-        let rstern = self.daten(&streckenabschnitt)?.rstern::<T>();
-        let Gleis { definition, position } = &rstern
-            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        let verbindungen = definition.verbindungen_an_position(position.clone());
-        let mut snap = None;
-        verbindungen.for_each(|verbindung_name, verbindung| {
-            if snap.is_none() {
-                let (mut überlappende, _gehalten) =
-                    self.überlappende_verbindungen(verbindung, &any_id, None);
-                snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
-            }
-        });
-        if let Some((einrasten_name, einrasten_verbindung)) = snap {
-            self.bewegen_anliegend(gleis_id, &einrasten_name, einrasten_verbindung)?;
-        };
-        Ok(())
+        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position }| {
+            zustand.einraste_position(definition, position.clone())
+        })
     }
 }
 
@@ -542,7 +529,7 @@ impl<Z> GleiseDaten<Z> {
         &'t self,
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        eigene_id: &'t AnyIdRef<'t, Z>,
+        eigene_id: Option<&'t AnyIdRef<'t, Z>>,
         gehalten_id: Option<&'t AnyId<Z>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
@@ -569,7 +556,7 @@ impl<Z> GleiseDaten<Z> {
                 phantom: PhantomData::<fn() -> T>,
             });
             let mut überlappend = Vec::new();
-            if &kandidat_id != eigene_id {
+            if Some(&kandidat_id) != eigene_id {
                 let kandidat_verbindungen = kandidat
                     .data
                     .definition

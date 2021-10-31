@@ -30,12 +30,14 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         position: Position,
         streckenabschnitt: Option<StreckenabschnittId>,
+        einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let gleis_id = self.zustand.hinzufügen(definition, position, streckenabschnitt)?;
+        let gleis_id =
+            self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert
@@ -49,6 +51,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         definition: T,
         halte_position: Vektor,
         streckenabschnitt: Option<StreckenabschnittId>,
+        einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         GleisId<T>: Into<AnyId<Z>>,
@@ -74,6 +77,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             definition,
             Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
             streckenabschnitt.map(|id| id.klonen()),
+            einrasten,
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let any_id = gleis_id.klonen().into();
@@ -113,12 +117,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: &mut GleisId<T>,
         position_neu: Position,
+        einrasten: bool,
     ) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        self.zustand.bewegen(gleis_id, position_neu)?;
+        self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
         // Erzwinge Neuzeichnen
         self.canvas.leeren();
         // Rückgabewert

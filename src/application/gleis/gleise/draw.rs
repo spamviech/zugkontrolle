@@ -11,7 +11,7 @@ use crate::{
             gerade::Gerade,
             gleise::{
                 daten::{Gleis, RStern},
-                id::{AnyId, AnyIdRef, GleisIdRef},
+                id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
                 Gehalten, Gleise, ModusDaten,
             },
             kreuzung::Kreuzung,
@@ -92,15 +92,15 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
+fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     frame: &mut canvas::Frame,
     rstern: &'t RStern<T>,
-    ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung: impl Fn(
-        &'r Rectangle<Vektor>,
-        Verbindung,
-    )
-        -> (bool, bool, bool),
-) {
+    ist_gehalten_und_andere_verbindung: F,
+) where
+    't: 'r + 's,
+    T: Zeichnen,
+    F: Fn(&'r Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung,
+{
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
@@ -113,13 +113,10 @@ fn zeichne_alle_anchor_points<'r, 's, 't: 'r + 's, T: Zeichnen>(
                     richtung: position.winkel + verbindung.richtung,
                 };
                 frame.with_save(|frame| {
-                    let (gehalten, entgegengesetzt, andere_gehalten) =
-                        ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung(
-                            rectangle,
-                            verbindung_an_position,
-                        );
+                    let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
+                        ist_gehalten_und_andere_verbindung(rectangle, verbindung_an_position);
                     let a = Transparenz::true_reduziert(gehalten).alpha();
-                    let g = if entgegengesetzt { 1. } else { 0. };
+                    let g = if andere_entgegengesetzt { 1. } else { 0. };
                     let color = canvas::Color { r: 0., g, b: 1. - g, a };
                     let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
                     let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
@@ -175,7 +172,51 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     }
 }
 
+fn ist_gehalten_test<'t, Z>(
+    gehalten_id: Option<&'t AnyId<Z>>,
+) -> impl Fn(AnyIdRef<'t, Z>) -> bool + 't {
+    move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
+}
+
+struct GehaltenVerbindung {
+    gehalten: bool,
+    andere_entgegengesetzt: bool,
+    andere_gehalten: bool,
+}
+
 impl<Z: Zugtyp> Gleise<Z> {
+    fn ist_gehalten_und_andere_verbindung<'t, T>(
+        &'t self,
+        streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
+        gehalten_id: Option<&'t AnyId<Z>>,
+    ) -> impl Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung + 't
+    where
+        T: Zeichnen,
+        AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+    {
+        let ist_gehalten = ist_gehalten_test(gehalten_id);
+        move |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
+            let gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
+                rectangle,
+                streckenabschnitt,
+                phantom: PhantomData::<fn() -> T>,
+            }));
+            let any_id = AnyIdRef::from(GleisIdRef {
+                rectangle,
+                streckenabschnitt,
+                phantom: PhantomData::<fn() -> T>,
+            });
+            let (mut überlappende, andere_gehalten) =
+                self.zustand.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten_id);
+            let ist_entgegengesetzt = |überlappend: &Verbindung| {
+                (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
+                    < Winkel(0.1)
+            };
+            let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
+            GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten }
+        }
+    }
+
     pub fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -211,8 +252,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                     }
                 };
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten
-                    = |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id);
+                let ist_gehalten = ist_gehalten_test(gehalten_id);
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
@@ -272,35 +312,18 @@ impl<Z: Zugtyp> Gleise<Z> {
                 }
                 // Verbindungen
                 for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
-                    macro_rules! ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung {
+                    macro_rules! ist_gehalten_und_andere_verbindung {
                         ($gleis: ident) => {
-                            |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
-                                let gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
-                                    rectangle,
-                                    streckenabschnitt,
-                                    phantom: PhantomData::<fn() -> $gleis<Z>>
-                                }));
-                                let any_id = AnyIdRef::from(GleisIdRef {
-                                    rectangle,
-                                    streckenabschnitt,
-                                    phantom: PhantomData::<fn() -> $gleis<Z>>
-                                });
-                                let (mut überlappende, andere_gehalten) = self.zustand.überlappende_verbindungen(&verbindung, &any_id, gehalten_id);
-                                let ist_entgegengesetzt = |überlappend: &Verbindung| {
-                                    (winkel::PI + verbindung.richtung - überlappend.richtung)
-                                        .normalisiert()
-                                        .abs()
-                                        < Winkel(0.1)
-                                };
-                                let entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
-                                (gehalten, entgegengesetzt, andere_gehalten)
-                            }
+                            self.ist_gehalten_und_andere_verbindung::<$gleis<Z>>(
+                                streckenabschnitt,
+                                gehalten_id
+                            )
                         };
                     }
                     mit_allen_gleisen! {
                         daten,
                         zeichne_alle_anchor_points,
-                        ist_gehalten_und_andere_entgegengesetzt_oder_gehaltene_verbindung
+                        ist_gehalten_und_andere_verbindung
                     }
                 }
                 // Beschreibung

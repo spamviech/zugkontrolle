@@ -227,6 +227,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                     $gleis.to_option(),
                     Vektor { x: Skalar(0.), y: klick_höhe },
                     streckenabschnitt,
+                    false,
                 ) {
                     error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
                     self.streckenabschnitt_aktuell.aktuell = None;
@@ -234,6 +235,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         $gleis.to_option(),
                         Vektor { x: Skalar(0.), y: klick_höhe },
                         None,
+                        false,
                     );
                 }
             };
