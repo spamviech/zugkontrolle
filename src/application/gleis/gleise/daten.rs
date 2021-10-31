@@ -445,10 +445,15 @@ impl<Z: Zugtyp> Zustand<Z> {
         &mut self,
         gleis_id: &mut GleisId<T>,
         punkt: Vektor,
+        einrasten: bool,
     ) -> Result<(), GleisIdFehler> {
-        self.bewegen_aux(gleis_id, |_zustand, Gleis { definition: _, position }| Position {
-            punkt,
-            winkel: position.winkel,
+        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position }| {
+            let position_neu = Position { punkt, winkel: position.winkel };
+            if einrasten {
+                zustand.einraste_position(definition, position_neu)
+            } else {
+                position_neu
+            }
         })
     }
 

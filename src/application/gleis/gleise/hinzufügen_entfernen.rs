@@ -214,7 +214,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
                 let punkt = canvas_pos - halte_position;
-                mit_any_id!(gleis_id, Zustand::bewegen_an_punkt, &mut self.zustand, punkt)?;
+                mit_any_id!(gleis_id, Zustand::bewegen_an_punkt, &mut self.zustand, punkt, false)?;
                 *bewegt = true;
                 self.canvas.leeren();
             }
