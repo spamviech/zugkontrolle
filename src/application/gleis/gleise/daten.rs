@@ -438,44 +438,10 @@ impl<Z: Zugtyp> Zustand<Z> {
             .data;
         Ok(data)
     }
-
-    /// Bewege das Gleis an die übergebene Position, ohne es zu drehen
-    #[inline(always)]
-    pub(crate) fn bewegen_an_punkt<T: Zeichnen + DatenAuswahl<Z>>(
-        &mut self,
-        gleis_id: &mut GleisId<T>,
-        punkt: Vektor,
-        einrasten: bool,
-    ) -> Result<(), GleisIdFehler> {
-        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position }| {
-            let position_neu = Position { punkt, winkel: position.winkel };
-            if einrasten {
-                zustand.einraste_position(definition, position_neu)
-            } else {
-                position_neu
-            }
-        })
-    }
-
-    /// Lasse das Gleis an einer überlappenden `Verbindung` einrasten.
-    /// Wenn keine überlappende Verbindung existiert wird das Gleis nicht bewegt (kein Fehler).
-    #[inline(always)]
-    pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
-        &mut self,
-        gleis_id: &mut GleisId<T>,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T: Zeichnen + DatenAuswahl<Z>,
-        for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
-    {
-        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position }| {
-            zustand.einraste_position(definition, position.clone())
-        })
-    }
 }
 
 impl Position {
-    /// Position damit anchor::Verbindung übereinander mit entgegengesetzter Richtung liegen
+    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
         anchor_name: &T::VerbindungName,

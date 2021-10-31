@@ -11,7 +11,7 @@ use crate::{
         gleis::{
             gleise::{
                 daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-                id::{mit_any_id, AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId},
+                id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
                 Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
             },
             verbindung::{self, Verbindung},
@@ -81,7 +81,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let any_id = gleis_id.klonen().into();
-            *gehalten = Some(Gehalten { gleis_id: any_id, halte_position, bewegt: true });
+            *gehalten = Some(Gehalten {
+                gleis_id: any_id,
+                halte_position,
+                winkel: winkel::ZERO,
+                bewegt: true,
+            });
         }
         Ok(gleis_id)
     }
@@ -212,29 +217,20 @@ impl<Z: Zugtyp> Gleise<Z> {
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_id, halte_position, bewegt }) = gehalten {
+            if let Some(Gehalten { gleis_id, halte_position, winkel, bewegt }) = gehalten {
                 let punkt = canvas_pos - halte_position;
-                mit_any_id!(gleis_id, Zustand::bewegen_an_punkt, &mut self.zustand, punkt, false)?;
+                mit_any_id!(
+                    gleis_id,
+                    Zustand::bewegen,
+                    &mut self.zustand,
+                    Position { punkt, winkel: *winkel },
+                    true
+                )?;
                 *bewegt = true;
                 self.canvas.leeren();
             }
         }
         Ok(())
-    }
-
-    #[zugkontrolle_derive::erstelle_daten_methoden]
-    /// Lasse das gehaltene Gleis an einer überlappenden `Verbindung` einrasten.
-    /// Wenn keine überlappende Verbindung existiert wird das Gleis nicht bewegt (kein Fehler).
-    #[inline(always)]
-    pub(in crate::application::gleis::gleise) fn einrasten_an_verbindung<T>(
-        &mut self,
-        gleis_id: &mut GleisId<T>,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T: Zeichnen + DatenAuswahl<Z>,
-        for<'t> AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
-    {
-        self.zustand.einrasten_an_verbindung(gleis_id)
     }
 
     #[zugkontrolle_derive::erstelle_daten_methoden]

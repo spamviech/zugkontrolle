@@ -42,7 +42,7 @@ fn gleis_an_position<'t, T, Z>(
     streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
-) -> Option<(AnyIdRef<'t, Z>, Vektor)>
+) -> Option<(AnyIdRef<'t, Z>, Vektor, Winkel)>
 where
     T: Zeichnen,
     AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
@@ -58,7 +58,7 @@ where
                 streckenabschnitt,
                 phantom: PhantomData::<fn() -> T>,
             });
-            return Some((any_id, relative_pos));
+            return Some((any_id, relative_pos, position.winkel));
         }
     }
     None
@@ -103,9 +103,10 @@ where
                     let diff = now.checked_duration_since(*last).unwrap_or(Duration::MAX);
                     *last = now;
                     if gehalten.is_none() {
-                        if let Some((any_id_ref, halte_position)) = gleis_an_position {
+                        if let Some((any_id_ref, halte_position, winkel)) = gleis_an_position {
                             let gleis_id = any_id_ref.als_id();
-                            *gehalten = Some(Gehalten { gleis_id, halte_position, bewegt: false })
+                            *gehalten =
+                                Some(Gehalten { gleis_id, halte_position, winkel, bewegt: false })
                         }
                     }
                     if let Some(Gehalten { gleis_id, .. }) = gehalten {
@@ -117,7 +118,7 @@ where
                     }
                 }
                 ModusDaten::Fahren => {
-                    if let Some((any_id_ref, _halte_position)) = gleis_an_position {
+                    if let Some((any_id_ref, _halte_position, _winkel)) = gleis_an_position {
                         let gleis_id = any_id_ref.als_id();
                         message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
@@ -159,17 +160,9 @@ impl<Z: Zugtyp> Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { mut gleis_id, bewegt, .. }) = gehalten.take() {
+                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
                         if bewegt {
-                            if cursor.is_over(&bounds) {
-                                if let Err(fehler) = mit_any_id!(
-                                    &mut gleis_id,
-                                    Gleise::einrasten_an_verbindung,
-                                    self
-                                ) {
-                                    error!("Ende Drag&Drop für entferntes Gleis: {:?}", fehler)
-                                }
-                            } else {
+                            if !cursor.is_over(&bounds) {
                                 if let Err(fehler) =
                                     mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
                                 {

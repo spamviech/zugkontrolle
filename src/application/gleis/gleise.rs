@@ -30,6 +30,7 @@ pub mod update;
 struct Gehalten<Z> {
     gleis_id: AnyId<Z>,
     halte_position: Vektor,
+    winkel: Winkel,
     bewegt: bool,
 }
 
