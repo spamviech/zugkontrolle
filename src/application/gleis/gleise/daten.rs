@@ -319,7 +319,7 @@ impl<Z: Zugtyp> Zustand<Z> {
             }
         });
         snap.map_or(position, |(einrasten_name, einrasten_verbindung)| {
-            Position::attach_position(definition, &einrasten_name, einrasten_verbindung)
+            Position::anliegend_position(definition, &einrasten_name, einrasten_verbindung)
         })
     }
 
@@ -357,7 +357,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         // berechne neue position
-        let position = Position::attach_position(&definition, verbindung_name, ziel_verbindung);
+        let position = Position::anliegend_position(&definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
         self.hinzufügen(definition, position, streckenabschnitt, false)
     }
@@ -419,7 +419,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
-            Position::attach_position(definition, verbindung_name, ziel_verbindung)
+            Position::anliegend_position(definition, verbindung_name, ziel_verbindung)
         })
     }
 
@@ -442,23 +442,23 @@ impl<Z: Zugtyp> Zustand<Z> {
 
 impl Position {
     /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
-    fn attach_position<T>(
+    fn anliegend_position<T>(
         definition: &T,
-        anchor_name: &T::VerbindungName,
-        target_anchor_point: Verbindung,
-    ) -> Self
+        verbindung_name: &T::VerbindungName,
+        ziel_verbindung: Verbindung,
+    ) -> Position
     where
         T: Zeichnen,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let verbindungen = definition.verbindungen();
-        let verbindung = verbindungen.get(anchor_name);
-        let winkel: Winkel = winkel::PI - verbindung.richtung + target_anchor_point.richtung;
+        let verbindung = verbindungen.get(verbindung_name);
+        let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
         Position {
             punkt: Vektor {
-                x: target_anchor_point.position.x - verbindung.position.x * winkel.cos()
+                x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()
                     + verbindung.position.y * winkel.sin(),
-                y: target_anchor_point.position.y
+                y: ziel_verbindung.position.y
                     - verbindung.position.x * winkel.sin()
                     - verbindung.position.y * winkel.cos(),
             },
