@@ -1,6 +1,6 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
-// Enable all warnings except box_pointers, non_ascii_idents, unstable_features,
+// Enable all warnings except box_pointers, non_ascii_idents, unstable_features, unused_crate_dependencies
 #![warn(
     absolute_paths_not_starting_with_crate,
     elided_lifetimes_in_paths,
@@ -24,7 +24,6 @@
     unreachable_pub,
     unsafe_code,
     unsafe_op_in_unsafe_fn,
-    unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
     unused_lifetimes,

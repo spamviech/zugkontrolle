@@ -33,6 +33,10 @@
     variant_size_differences
 )]
 
+// there is no convenient option to specify dependencies only for the binary
+// thus, simple_logger has to be included and ignored explicitly in the library
+use simple_logger as _;
+
 pub mod anschluss;
 pub mod application;
 pub mod args;
