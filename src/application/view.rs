@@ -43,7 +43,7 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
 impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
-    pub fn view(&mut self) -> iced::Element<Nachricht<Z>> {
+    pub fn view(&mut self) -> iced::Element<'_, Nachricht<Z>> {
         let Zugkontrolle {
             anschlüsse: _,
             gleise,
@@ -98,7 +98,7 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
             gleise,
         );
 
-        let column: iced::Element<Nachricht<Z>> = iced::Column::new()
+        let column: iced::Element<'_, Nachricht<Z>> = iced::Column::new()
             .push(top_row)
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
@@ -278,7 +278,7 @@ fn top_row<'t, Z: Zugtyp + 'static>(
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'s, 't, Z: Zugtyp + 'static>(
+fn row_with_scrollable<'t, Z: Zugtyp + 'static>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Button<GeradeUnit<Z>>>,
@@ -289,7 +289,7 @@ fn row_with_scrollable<'s, 't, Z: Zugtyp + 'static>(
     s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit<Z>>>,
     kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
-    gleise: &'s Gleise<Z>,
+    gleise: &Gleise<Z>,
 ) -> iced::Row<'t, Nachricht<Z>> {
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);

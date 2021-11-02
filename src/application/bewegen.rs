@@ -33,7 +33,7 @@ impl Bewegung {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Nachricht {
     StarteBewegung(Bewegung),
     BeendeBewegung,

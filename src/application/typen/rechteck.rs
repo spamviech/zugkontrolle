@@ -5,6 +5,7 @@ use rstar::primitives::Rectangle;
 use crate::application::typen::{vektor::Vektor, winkel::Winkel};
 
 /// Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
+#[allow(missing_copy_implementations)]
 #[derive(Debug, Clone)]
 pub struct Rechteck {
     pub ecke_a: Vektor,

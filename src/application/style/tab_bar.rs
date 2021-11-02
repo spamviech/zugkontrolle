@@ -1,6 +1,8 @@
 //! Style-Strukturen zur Auswahl eines Anschlusses.
 
+#[derive(Debug, Clone, Copy)]
 pub struct TabBar;
+
 impl TabBar {
     fn style(&self, tab_label_background: iced::Color) -> iced_aw::tab_bar::Style {
         iced_aw::tab_bar::Style {
@@ -15,6 +17,7 @@ impl TabBar {
         }
     }
 }
+
 impl iced_aw::tab_bar::StyleSheet for TabBar {
     fn active(&self, is_active: bool) -> iced_aw::tab_bar::Style {
         let grey_value: f32;

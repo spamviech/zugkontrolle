@@ -390,7 +390,7 @@ impl Geschwindigkeit<Mittelleiter> {
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
-        thread::spawn(move || {
+        let _ = thread::spawn(move || {
             if let Err(fehler) = clone.umdrehen() {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
@@ -478,7 +478,7 @@ impl Geschwindigkeit<Zweileiter> {
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
-        thread::spawn(move || {
+        let _ = thread::spawn(move || {
             if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung) {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
@@ -505,7 +505,7 @@ impl Geschwindigkeit<Zweileiter> {
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
-        thread::spawn(move || {
+        let _ = thread::spawn(move || {
             if let Err(fehler) = clone.umdrehen() {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
@@ -691,7 +691,7 @@ impl From<Fahrtrichtung> for Fließend {
     }
 }
 impl Display for Fahrtrichtung {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",

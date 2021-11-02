@@ -1,5 +1,7 @@
 //! Pfadauswahl mit Speichern und Laden Knopf
 
+use std::fmt::Debug;
+
 use iced_native::{
     button, column, event, row, text, text_input, Align, Button, Clipboard, Column, Element, Event,
     Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
@@ -48,6 +50,15 @@ pub enum Nachricht {
 pub struct SpeichernLaden<'a, R> {
     row: Row<'a, InterneNachricht, R>,
     aktueller_pfad: &'a mut String,
+}
+
+impl<R> Debug for SpeichernLaden<'_, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SpeichernLaden")
+            .field("row", &"<Row>")
+            .field("aktueller_pfad", &self.aktueller_pfad)
+            .finish()
+    }
 }
 
 impl<'a, R> SpeichernLaden<'a, R>

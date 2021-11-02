@@ -100,6 +100,7 @@ impl<T> NonEmpty<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct Iter<'t, T> {
     head: &'t T,
     is_head: bool,
@@ -119,6 +120,7 @@ impl<'t, T> Iterator for Iter<'t, T> {
     }
 }
 
+#[derive(Debug)]
 pub struct IterMut<'t, T> {
     head: &'t mut T,
     is_head: bool,
@@ -129,13 +131,14 @@ pub struct IterMut<'t, T> {
 impl<'t, T> Iterator for IterMut<'t, T> {
     type Item = &'t mut T;
 
-    fn next<'n>(&'n mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.is_head {
             self.is_head = false;
             // http://smallcultfollowing.com/babysteps/blog/2013/10/24/iterators-yielding-mutable-references/
             // https://doc.rust-lang.org/nomicon/transmutes.html
             // as long as IterMut exists (i.e. lifetime 't) no one else can access the NonEmpty
             // therefore, unsafe to extend the returned lifetime is safe here
+            #[allow(unsafe_code)]
             let head: &'t mut T = unsafe { std::mem::transmute(&mut self.head) };
             Some(head)
         } else {
@@ -144,6 +147,7 @@ impl<'t, T> Iterator for IterMut<'t, T> {
     }
 }
 
+#[derive(Debug)]
 pub struct IntoIter<T> {
     head: Option<T>,
     tail: vec::IntoIter<T>,
@@ -170,7 +174,8 @@ impl<T> IntoIterator for NonEmpty<T> {
     }
 }
 
-// Newtype über Option, wegen alternativer FromIterator-Implementierung.
+/// Newtype über Option, wegen alternativer FromIterator-Implementierung.
+#[derive(Debug)]
 pub struct MaybeEmpty<T>(Option<NonEmpty<T>>);
 impl<T> MaybeEmpty<T> {
     pub fn unwrap(self) -> NonEmpty<T> {

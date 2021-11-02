@@ -1,6 +1,6 @@
 //! Auswahl eines Anschlusses.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
 use iced_native::{
@@ -91,7 +91,7 @@ impl<'t> Status<Input<'t>> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Output {
     polarität: Polarität,
 }
@@ -206,11 +206,11 @@ enum InternalMessage<T> {
     Port(u8),
     Modus(T),
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum InputMessage {
     Interrupt(u8),
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum OutputMessage {
     Polarität(Polarität),
 }
@@ -228,6 +228,25 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     update_modus: &'a dyn Fn(&mut T, I),
     make_pin: &'a dyn Fn(u8, &T) -> M,
     make_port: Box<dyn Fn(Level, Level, Level, Variante, u8, &T) -> M>,
+}
+
+impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auswahl")
+            .field("row", &"<Row>")
+            .field("active_tab", &self.active_tab)
+            .field("pin", &self.pin)
+            .field("a0", &self.a0)
+            .field("a1", &self.a1)
+            .field("a2", &self.a2)
+            .field("variante", &self.variante)
+            .field("port", &self.port)
+            .field("modus", &self.modus)
+            .field("update_modus", &"<closure>")
+            .field("make_pin", &"<closure>")
+            .field("make_port", &"<closure>")
+            .finish()
+    }
 }
 
 impl<'a, R> Auswahl<'a, u8, InputMessage, InputSerialisiert, R>
@@ -541,6 +560,15 @@ impl PwmState {
 pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
     number_input: NumberInput<'a, u8, pwm::Serialisiert, R>,
     pin: &'a mut u8,
+}
+
+impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Pwm")
+            .field("number_input", &"<NumberInput>")
+            .field("pin", &self.pin)
+            .finish()
+    }
 }
 
 impl<'a, R> Pwm<'a, R>

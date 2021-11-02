@@ -1,13 +1,12 @@
 //! Überdecke ein Widget einem anderen Widget.
 
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
 use iced_native::{
     container, event,
     keyboard::{self, KeyCode},
-    layout::Limits,
-    overlay, Clipboard, Container, Element, Event, Layout, Length, Overlay, Point, Renderer,
-    Widget,
+    layout, overlay, Clipboard, Container, Element, Event, Layout, Length, Overlay, Point,
+    Renderer, Widget,
 };
 
 use crate::application::style::background::Background;
@@ -46,6 +45,17 @@ pub struct Modal<'a, Overlay, Nachricht, R> {
     esc_nachricht: Option<&'a dyn Fn() -> Nachricht>,
 }
 
+impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Modal")
+            .field("status", &self.status)
+            .field("underlay", &"<Element>")
+            .field("zeige_overlay", &"<closure>")
+            .field("esc_nachricht", &self.esc_nachricht.map(|_| "<closure>"))
+            .finish()
+    }
+}
+
 impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     pub fn neu(
         status: &'a mut Status<Overlay>,
@@ -61,7 +71,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<'a, Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'a, Overlay, Nachricht, R>
+impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R>
 where
     R: Renderer + container::Renderer,
     <R as container::Renderer>::Style: From<Background>,
@@ -74,11 +84,7 @@ where
         self.underlay.height()
     }
 
-    fn layout(
-        &self,
-        renderer: &R,
-        limits: &iced_native::layout::Limits,
-    ) -> iced_native::layout::Node {
+    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
         self.underlay.layout(renderer, limits)
     }
 
@@ -98,10 +104,7 @@ where
         self.underlay.hash_layout(state)
     }
 
-    fn overlay<'s, 't>(
-        &'s mut self,
-        layout: Layout<'t>,
-    ) -> Option<overlay::Element<'s, Nachricht, R>> {
+    fn overlay<'s>(&'s mut self, layout: Layout<'_>) -> Option<overlay::Element<'s, Nachricht, R>> {
         if let Some(overlay) = self.status.overlay_mut() {
             let bounds = layout.bounds();
             let position = Point::new(bounds.x, bounds.y);
@@ -176,14 +179,14 @@ impl<'a, Nachricht: 'a, R: Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
     }
 }
 
-impl<'a, Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'a, Nachricht, R> {
+impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
     fn layout(
         &self,
         renderer: &R,
         bounds: iced::Size,
         position: Point,
     ) -> iced_native::layout::Node {
-        let mut layout = self.0.layout(renderer, &Limits::new(bounds, bounds));
+        let mut layout = self.0.layout(renderer, &layout::Limits::new(bounds, bounds));
         layout.move_to(position);
         layout
     }

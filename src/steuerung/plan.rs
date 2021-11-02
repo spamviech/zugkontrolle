@@ -6,4 +6,5 @@ use serde::{Deserialize, Serialize};
 /// Die erste Anpassung in einen sinnvollen Wert (wahrscheinlich ein Record struct)
 /// wird die SemVer nicht zwingend berücksichtigen (kann ohne erhöhen der major version erfolgen).
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(missing_copy_implementations)]
 pub struct Plan;

@@ -96,6 +96,7 @@ impl Pin {
     }
 }
 
+#[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]

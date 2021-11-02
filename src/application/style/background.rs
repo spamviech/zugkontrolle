@@ -7,7 +7,7 @@ pub const GREEN: Background = Background::Green(0.7);
 pub const BLUE: Background = Background::Blue(0.7);
 pub const DEFAULT: Background = Background::Grey(0.85);
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub enum Background {
     Grey(f32),
     Red(f32),

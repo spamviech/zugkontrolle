@@ -193,6 +193,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
@@ -266,7 +267,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                         output_nicht_benötigt,
                         input_nicht_benötigt,
                     )?;
-                    map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
+                    let _ = map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
                     Ok(Reserviert {
                         anschluss: map,
                         pwm_nicht_benötigt,
@@ -333,7 +334,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 )?;
-                map.insert(name, (geschwindigkeit, streckenabschnitt_map));
+                let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
                 Ok(Reserviert {
                     anschluss: map,
                     pwm_nicht_benötigt,
@@ -486,6 +487,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
     pub fn laden(
         &mut self,
@@ -504,7 +506,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
         // lese & parse Datei
         let mut file = std::fs::File::open(pfad)?;
         let mut content = Vec::new();
-        file.read_to_end(&mut content)?;
+        let _ = file.read_to_end(&mut content)?;
         let slice = content.as_slice();
         let zustand_serialisiert: ZustandSerialisiert<Z> =
             bincode::deserialize(slice).or_else(|aktuell| {

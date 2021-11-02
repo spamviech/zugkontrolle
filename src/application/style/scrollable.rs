@@ -1,8 +1,10 @@
-//! Style-structs for a iced::Scrollable
+//! Style-Strukturen for a iced::Scrollable
 
+#[derive(Debug, Clone, Copy)]
 pub struct Collection {
     width: u16,
 }
+
 impl Collection {
     pub fn new(width: u16) -> Self {
         Collection { width }
@@ -28,6 +30,7 @@ impl Collection {
         }
     }
 }
+
 impl iced::scrollable::StyleSheet for Collection {
     fn active(&self) -> iced::scrollable::Scrollbar {
         self.scrollbar(0.7)

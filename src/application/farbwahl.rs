@@ -1,6 +1,6 @@
 //! Widget zur Farbwahl ohne Overlay.
 
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
 use iced_graphics::Primitive;
 use iced_native::{
@@ -24,6 +24,16 @@ pub struct Farbwahl<'a, M> {
     durchmesser: u16,
     nachricht: &'a dyn Fn(Farbe) -> M,
 }
+
+impl<M> Debug for Farbwahl<'_, M> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Farbwahl")
+            .field("durchmesser", &self.durchmesser)
+            .field("nachricht", &"<closure>")
+            .finish()
+    }
+}
+
 impl<'a, M> Farbwahl<'a, M> {
     pub fn neu(nachricht: &'a impl Fn(Farbe) -> M) -> Self {
         Farbwahl { durchmesser: 50, nachricht }
@@ -82,7 +92,7 @@ impl<'a, M> Farbwahl<'a, M> {
     }
 }
 
-impl<'a, M, R> Widget<M, R> for Farbwahl<'a, M>
+impl<M, R> Widget<M, R> for Farbwahl<'_, M>
 where
     R: Renderer,
     R::Output: From<(Primitive, mouse::Interaction)>,

@@ -21,7 +21,7 @@ fn drop_semantics() {
         .expect("failed to initialize error logging");
 
     let mut anschlüsse = Anschlüsse::neu().expect("1.ter Aufruf von neu.");
-    Anschlüsse::neu().expect_err("2.ter Aufruf von neu.");
+    let _ = Anschlüsse::neu().expect_err("2.ter Aufruf von neu.");
     let llln = anschlüsse
         .reserviere_pcf8574_port(
             Level::Low,

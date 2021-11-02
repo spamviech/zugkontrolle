@@ -134,7 +134,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                     input_anschlüsse,
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
-                        steuerung.insert(anschluss);
+                        let _ = steuerung.insert(anschluss);
                         message = Some(Nachricht::SchließeModal)
                     }
                     Err(de_serialisieren::Fehler {
@@ -153,7 +153,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                                 input_anschlüsse,
                             ) {
                                 Ok(Reserviert { anschluss, .. }) => {
-                                    steuerung.insert(anschluss);
+                                    let _ = steuerung.insert(anschluss);
                                 }
                                 Err(error) => {
                                     fehlermeldung.push_str(&format!(
@@ -168,7 +168,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                     }
                 }
             } else {
-                steuerung.take();
+                let _ = steuerung.take();
                 message = Some(Nachricht::SchließeModal);
             }
         } else {
@@ -389,7 +389,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
         match self.modal_status.overlay_mut() {
             Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
-                streckenabschnitt_auswahl.entferne(&name_clone);
+                streckenabschnitt_auswahl.entfernen(&name_clone);
             }
             modal => {
                 error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
@@ -539,7 +539,7 @@ where
                         ))
                     }
                 }
-                geschwindigkeiten.insert(
+                let _ = geschwindigkeiten.insert(
                     name.clone(),
                     <Z::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
                 );
@@ -553,7 +553,7 @@ where
                     } else {
                         StreckenabschnittMap::new()
                     };
-                self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
+                let _ = self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
                     name,
                     geschwindigkeit,
                     streckenabschnitt_map,
@@ -577,7 +577,7 @@ where
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                             // Modal/AnzeigeStatus-Map muss nicht angepasst werden,
                             // nachdem nur wiederhergestellt wird
-                            gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
+                            let _ = gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
                                 name.clone(),
                                 geschwindigkeit,
                                 streckenabschnitt_map,
@@ -600,7 +600,7 @@ where
                                     ))
                                 }
                             }
-                            geschwindigkeiten.remove(&name);
+                            let _ = geschwindigkeiten.remove(&name);
                             fehlermeldung.push_str(&format!(
                                 "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
                                 fehler, serialisiert_clone
@@ -1027,6 +1027,7 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
     #[inline(always)]
     pub fn laden(&mut self, pfad: String) {

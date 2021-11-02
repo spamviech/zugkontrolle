@@ -1,5 +1,7 @@
 //! Steuerungs-Struktur eines Gleises
 
+use std::fmt::Debug;
+
 use rstar::RTreeObject;
 
 use crate::{
@@ -19,18 +21,21 @@ use crate::{
 
 /// Mutable Referenz auf die Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein Neuzeichen des Canvas (Cache) ausgelöst.
+#[derive(Debug)]
 pub struct Steuerung<'t, T> {
     steuerung: &'t mut Option<T>,
     canvas: &'t mut Cache,
     verändert: bool,
 }
-impl<'t, T> Drop for Steuerung<'t, T> {
+
+impl<T> Drop for Steuerung<'_, T> {
     fn drop(&mut self) {
         if self.verändert {
             self.canvas.leeren()
         }
     }
 }
+
 impl<'t, T> Steuerung<'t, T> {
     pub fn neu(steuerung: &'t mut Option<T>, canvas: &'t mut Cache) -> Self {
         Steuerung { steuerung, canvas, verändert: false }

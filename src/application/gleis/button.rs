@@ -22,13 +22,13 @@ const GREY_OUT_OF_BOUNDS: canvas::Color = canvas::Color::from_rgb(
 #[derive(Debug)]
 pub struct Button<T> {
     gleis: T,
-    canvas: canvas::Cache,
+    canvas: Cache,
     in_bounds: bool,
 }
 
 impl<T> Button<T> {
     pub fn neu(gleis: T) -> Self {
-        Button { gleis, canvas: canvas::Cache::neu(), in_bounds: false }
+        Button { gleis, canvas: Cache::neu(), in_bounds: false }
     }
 }
 
@@ -37,7 +37,10 @@ impl<T: Zeichnen> Button<T> {
         self.gleis.rechteck().verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
-    pub fn als_iced_widget<Nachricht>(&mut self, breite: Option<u16>) -> iced::Container<Nachricht>
+    pub fn als_iced_widget<'t, Nachricht>(
+        &'t mut self,
+        breite: Option<u16>,
+    ) -> iced::Container<'t, Nachricht>
     where
         Nachricht: 'static,
         T: ButtonNachricht<Nachricht>,

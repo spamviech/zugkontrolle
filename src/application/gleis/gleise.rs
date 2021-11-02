@@ -44,7 +44,7 @@ enum ModusDaten<Z> {
 
 /// Anzeige aller Gleise.
 pub struct Gleise<Z: Zugtyp> {
-    canvas: canvas::Cache,
+    canvas: Cache,
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<Z>,
@@ -197,7 +197,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 Some((streckenabschnitt, bisherig_fließend))
             }
             Entry::Vacant(vacant) => {
-                vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
+                let _ = vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
                 None
             }
         };
@@ -293,16 +293,16 @@ impl<Z: Zugtyp> Gleise<Z> {
                 Some(bisher)
             }
             Entry::Vacant(vacant) => {
-                vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
+                let _ = vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
                 None
             }
         }
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn geschwindigkeit<'s, 't>(
+    pub fn geschwindigkeit<'s>(
         &'s self,
-        name: &'t geschwindigkeit::Name,
+        name: &geschwindigkeit::Name,
     ) -> Option<&'s Geschwindigkeit<Z::Leiter>> {
         self.zustand
             .geschwindigkeiten
@@ -311,9 +311,9 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
-    pub fn geschwindigkeit_mut<'s, 't>(
+    pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
-        name: &'t geschwindigkeit::Name,
+        name: &geschwindigkeit::Name,
     ) -> Option<&'s mut Geschwindigkeit<Z::Leiter>> {
         self.zustand
             .geschwindigkeiten
@@ -334,7 +334,8 @@ impl<Z: Zugtyp> Gleise<Z> {
             if streckenabschnitt_map.is_empty() {
                 Ok(Some(geschwindigkeit))
             } else {
-                self.zustand
+                let _ = self
+                    .zustand
                     .geschwindigkeiten
                     .insert(name_entry, (geschwindigkeit, streckenabschnitt_map));
                 Err(GeschwindigkeitEntfernenFehler::StreckenabschnitteNichtEntfernt(name))
@@ -360,7 +361,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 Some(bisher)
             }
             Entry::Vacant(vacant) => {
-                vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
+                let _ = vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
                 None
             }
         }
@@ -539,7 +540,7 @@ fn streckenabschnitt_entfernen<T, Z>(
         if daten.ist_leer() {
             Ok(gefunden((streckenabschnitt, fließend)))
         } else {
-            streckenabschnitt_map.insert(name_entry, (streckenabschnitt, fließend, daten));
+            let _ = streckenabschnitt_map.insert(name_entry, (streckenabschnitt, fließend, daten));
             Err(StreckenabschnittBearbeitenFehler::GleiseNichtEntfernt(streckenabschnitt_id))
         }
     } else {
@@ -628,7 +629,7 @@ impl From<GleisIdFehler> for Fehler {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct GleisEntferntFehler;
 impl From<GleisEntferntFehler> for Fehler {
     fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {

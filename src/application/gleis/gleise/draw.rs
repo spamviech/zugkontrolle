@@ -30,7 +30,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
+pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
     // bewege Kontext zur Position
     frame.transformation(&Transformation::Translation(position.punkt));
     // drehe Kontext um (0,0)
@@ -38,7 +38,7 @@ pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
 }
 
 fn fülle_alle_gleise<'t, T: Zeichnen>(
-    frame: &mut canvas::Frame,
+    frame: &mut Frame<'_>,
     rstern: &'t RStern<T>,
     transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
     streckenabschnitt_farbe: &Farbe,
@@ -65,7 +65,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
 }
 
 fn zeichne_alle_gleise<'t, T: Zeichnen>(
-    frame: &mut canvas::Frame,
+    frame: &mut Frame<'_>,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {
@@ -93,7 +93,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
 }
 
 fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
-    frame: &mut canvas::Frame,
+    frame: &mut Frame<'_>,
     rstern: &'t RStern<T>,
     ist_gehalten_und_andere_verbindung: F,
 ) where
@@ -138,7 +138,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
 }
 
 fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
-    frame: &mut canvas::Frame,
+    frame: &mut Frame<'_>,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {

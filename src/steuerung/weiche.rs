@@ -104,7 +104,7 @@ where
         let name_clone = self.name.clone();
         let mut mutex_clone = self.anschlüsse.clone();
         let richtung_clone = richtung.clone();
-        thread::spawn(move || {
+        let _ = thread::spawn(move || {
             if let Err(fehler) = Self::schalten_aux(&mut mutex_clone, &name_clone, &richtung_clone)
             {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
@@ -118,6 +118,7 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
@@ -154,6 +155,8 @@ where
         }
     }
 }
+
+#[allow(single_use_lifetimes)]
 impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,

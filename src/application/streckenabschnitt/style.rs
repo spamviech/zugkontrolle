@@ -2,7 +2,7 @@
 
 use crate::farbe::Farbe;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Beschreibung;
 impl iced::container::StyleSheet for Beschreibung {
     fn style(&self) -> iced::container::Style {
@@ -10,7 +10,7 @@ impl iced::container::StyleSheet for Beschreibung {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Anzeige {
     Farbe(Farbe),
     Deaktiviert,
@@ -30,7 +30,7 @@ impl iced::container::StyleSheet for Anzeige {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Auswahl(pub Farbe);
 impl iced::container::StyleSheet for Auswahl {
     fn style(&self) -> iced::container::Style {

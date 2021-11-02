@@ -45,7 +45,7 @@ impl PartialEq for Pwm {
 }
 
 /// Einstellung eines Pwm-Pulses.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config {
     pub time: Time,
     pub polarity: Polarität,
@@ -73,8 +73,9 @@ impl Config {
         self.time.valide()
     }
 }
+
 /// Zeit-Einstellung eines Pwm-Pulses.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Time {
     /// Periodendauer und Pulsweite.
     Period { period: Duration, pulse_width: Duration },
@@ -230,7 +231,7 @@ impl Pin {
     // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.OutputPin.html#method.set_pwm
 }
 
-#[allow(variant_size_differences)]
+#[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]
@@ -252,6 +253,7 @@ pub enum Fehler {
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.
+#[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 impl Serialisiere for Pin {
@@ -261,7 +263,7 @@ impl Serialisiere for Pin {
         Serialisiert(self.pin())
     }
 
-    fn anschlüsse(self) -> (Vec<self::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> (Vec<Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         (vec![self], Vec::new(), Vec::new())
     }
 }

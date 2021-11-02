@@ -109,7 +109,7 @@ pub(crate) fn zeichne<Z, P, A>(
     transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
-        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
     ),
 ) -> Pfad
 where
@@ -160,7 +160,7 @@ pub(crate) fn fülle<Z, P, A>(
     transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
-        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
     ),
 ) -> Pfad
 where

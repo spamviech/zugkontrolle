@@ -8,7 +8,7 @@ use version::version;
 use crate::application::gleis::gleise::Modus;
 
 #[derive(Debug)]
-struct Wrapper(pub Args);
+struct Wrapper(Args);
 impl TopLevelCommand for Wrapper {}
 impl FromArgs for Wrapper {
     fn from_args(command_name: &[&str], args: &[&str]) -> Result<Self, EarlyExit> {
@@ -42,23 +42,23 @@ pub struct Args {
     pub pfad: Option<String>,
 
     #[argh(option, short = 'm')]
-    /// modus bei Programstart
+    /// modus bei Programmstart
     pub modus: Option<Modus>,
 
     #[argh(option, short = 'z')]
-    /// zoom bei Programstart
+    /// zoom bei Programmstart
     pub zoom: Option<f32>,
 
     #[argh(option, short = 'x')]
-    /// x-position bei Programstart
+    /// x-position bei Programmstart
     pub x: Option<f32>,
 
     #[argh(option, short = 'y')]
-    /// y-position bei Programstart
+    /// y-position bei Programmstart
     pub y: Option<f32>,
 
     #[argh(option, short = 'w')]
-    /// winkel bei Programstart
+    /// winkel bei Programmstart
     pub winkel: Option<f32>,
 
     #[argh(switch)]

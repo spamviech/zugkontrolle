@@ -481,7 +481,7 @@ pub(crate) struct GleiseDaten<Z> {
 
 impl<Z> GleiseDaten<Z> {
     /// Erstelle eine leere `GleiseDaten`-Struktur.
-    pub fn neu() -> Self {
+    pub(crate) fn neu() -> Self {
         GleiseDaten {
             geraden: RStern::new(),
             kurven: RStern::new(),

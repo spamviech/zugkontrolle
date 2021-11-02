@@ -178,7 +178,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + DatenAuswahl<Z>,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        self.entfernen(gleis_id)?;
+        let _ = self.entfernen(gleis_id)?;
         Ok(())
     }
 

@@ -68,6 +68,20 @@ pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R: card::Renderer> {
     anschlüsse: &'t mut AnschlüsseSerialisiert,
 }
 
+impl<Richtung, AnschlüsseSerialisiert, R> Debug for Auswahl<'_, Richtung, AnschlüsseSerialisiert, R>
+where
+    AnschlüsseSerialisiert: Debug,
+    R: card::Renderer,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auswahl")
+            .field("card", &"<Card>")
+            .field("name", &self.name)
+            .field("anschlüsse", &self.anschlüsse)
+            .finish()
+    }
+}
+
 impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: 'static + Clone + Display,

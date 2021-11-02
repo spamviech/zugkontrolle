@@ -94,7 +94,7 @@ impl Pin {
     // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Pin.html
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Fehler {
     #[cfg(not(raspi))]
     KeinRaspberryPi(u8),

@@ -177,6 +177,7 @@ impl OutputAnschluss {
 }
 
 /// Serealisierbare Informationen eines OutputAnschlusses.
+#[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     Pin {
@@ -365,7 +366,7 @@ impl InputAnschluss {
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
-#[allow(variant_size_differences)]
+#[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     Pin {
@@ -479,11 +480,11 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             |anschlüsse: &mut Anschlüsse, mut anschluss| -> Result<_, Fehler> {
                 if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
                     if let Some(interrupt) = gesuchter_interrupt {
-                        port.set_interrupt_pin(interrupt)?;
+                        let _ = port.set_interrupt_pin(interrupt)?;
                     } else if let Some(pin) = self_interrupt {
                         if Some(pin) != port.interrupt_pin()? {
                             let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
-                            port.set_interrupt_pin(interrupt)?;
+                            let _ = port.set_interrupt_pin(interrupt)?;
                         }
                     }
                 } else if let Some(interrupt) = self_interrupt {

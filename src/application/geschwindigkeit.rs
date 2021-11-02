@@ -42,8 +42,8 @@ pub trait LeiterAnzeige: Serialisiere + Sized {
 
     fn anzeige_status_neu(name: Name) -> AnzeigeStatus<Self>;
 
-    fn anzeige_neu<'s, 't, R>(
-        geschwindigkeit: &'s Geschwindigkeit<Self>,
+    fn anzeige_neu<'t, R>(
+        geschwindigkeit: &Geschwindigkeit<Self>,
         status: &'t mut AnzeigeStatus<Self>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -88,13 +88,13 @@ pub trait LeiterAnzeige: Serialisiere + Sized {
         <R as tab_bar::Renderer>::Style: From<TabBar>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum NachrichtMittelleiter {
     Geschwindigkeit(u8),
     Umdrehen,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenMittelleiter {
     bisherige_geschwindigkeit: u8,
 }
@@ -113,8 +113,8 @@ impl LeiterAnzeige for Mittelleiter {
         }
     }
 
-    fn anzeige_neu<'s, 't, R>(
-        geschwindigkeit: &'s Geschwindigkeit<Mittelleiter>,
+    fn anzeige_neu<'t, R>(
+        geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
         status: &'t mut AnzeigeStatus<Mittelleiter>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -209,13 +209,13 @@ impl LeiterAnzeige for Mittelleiter {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum NachrichtZweileiter {
     Geschwindigkeit(u8),
     Fahrtrichtung(Fahrtrichtung),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenZweileiter {
     bisherige_fahrtrichtung: Fahrtrichtung,
     bisherige_geschwindigkeit: u8,
@@ -235,8 +235,8 @@ impl LeiterAnzeige for Zweileiter {
         }
     }
 
-    fn anzeige_neu<'s, 't, R>(
-        geschwindigkeit: &'s Geschwindigkeit<Zweileiter>,
+    fn anzeige_neu<'t, R>(
+        geschwindigkeit: &Geschwindigkeit<Zweileiter>,
         status: &'t mut AnzeigeStatus<Zweileiter>,
     ) -> Anzeige<'t, Self::Nachricht, R>
     where
@@ -356,6 +356,13 @@ impl LeiterAnzeige for Zweileiter {
 pub struct Anzeige<'t, M, R> {
     column: Column<'t, M, R>,
 }
+
+impl<M, R> Debug for Anzeige<'_, M, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Anzeige").field("column", &"<Column>").finish()
+    }
+}
+
 impl<'t, M, R> Anzeige<'t, M, R>
 where
     M: 'static + Clone,
@@ -508,11 +515,11 @@ impl AuswahlStatus {
         geschwindigkeit: &Geschwindigkeit<Leiter>,
     ) {
         let (key, value) = Self::iter_map((name, geschwindigkeit));
-        self.geschwindigkeiten.insert(key, value);
+        let _ = self.geschwindigkeiten.insert(key, value);
     }
 
     pub fn entfernen(&mut self, name: &Name) {
-        self.geschwindigkeiten.remove(name);
+        let _ = self.geschwindigkeiten.remove(name);
     }
 }
 
@@ -592,6 +599,28 @@ where
     ) -> <Leiter as Serialisiere>::Serialisiert,
 }
 
+impl<'t, Leiter, R> Debug for Auswahl<'t, Leiter, R>
+where
+    Leiter: Serialisiere,
+    <Leiter as Serialisiere>::Serialisiert: 't,
+    R: card::Renderer,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auswahl")
+            .field("card", &"<Card>")
+            .field("neu_name", &self.neu_name)
+            .field("aktueller_tab", &self.aktueller_tab)
+            .field("umdrehen_anschluss", &self.umdrehen_anschluss)
+            .field("pwm_pin", &self.pwm_pin)
+            .field("pwm_polarität", &self.pwm_polarität)
+            .field("ks_anschlüsse_anpassen", &self.ks_anschlüsse_anpassen)
+            .field("ks_anschlüsse", &self.ks_anschlüsse)
+            .field("pwm_nachricht", &"<closure>")
+            .field("ks_nachricht", &"<closure>")
+            .finish()
+    }
+}
+
 enum UmdrehenAnzeige {
     KonstanteSpannung,
     Immer,
@@ -653,7 +682,7 @@ where
                     button::State::new(),
                 )),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
-                    ks_anschlüsse.remove(ix.get());
+                    let _ = ks_anschlüsse.remove(ix.get());
                 }
             }
             *ks_anschlüsse_anpassen = None;
@@ -812,7 +841,7 @@ where
                 }
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
-                    self.ks_anschlüsse.remove(ix.get());
+                    let _ = self.ks_anschlüsse.remove(ix.get());
                 }
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(

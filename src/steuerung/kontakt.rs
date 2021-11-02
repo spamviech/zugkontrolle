@@ -76,7 +76,7 @@ impl Kontakt {
                     Ok(()) => next = i.checked_sub(1),
                     Err(SendError(_level)) => {
                         // channel was disconnected, so no need to send to it anymore
-                        senders.remove(i);
+                        let _ = senders.remove(i);
                     }
                 }
             }

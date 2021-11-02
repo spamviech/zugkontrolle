@@ -74,7 +74,7 @@ pub struct Pcf8574 {
     i2c: Arc<Mutex<i2c::I2c>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Beschreibung {
     pub a0: Level,
     pub a1: Level,
@@ -519,7 +519,7 @@ impl InputPort {
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
         // clear interrupt on previous pin.
-        previous.as_mut().map(input::Pin::clear_async_interrupt);
+        let _ = previous.as_mut().map(input::Pin::clear_async_interrupt);
         Ok(previous)
     }
 
@@ -562,7 +562,7 @@ impl InputPort {
 }
 
 // TODO genauere Eingrenzung auf einzelne Methoden
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Fehler {
     #[cfg(raspi)]
     I2c {

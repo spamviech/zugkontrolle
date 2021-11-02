@@ -2,6 +2,7 @@
 
 pub const SEPARATOR: Rule = Rule { color: iced::Color::BLACK, width: 1, radius: 0. };
 
+#[derive(Debug, Clone, Copy)]
 pub struct Rule {
     pub color: iced::Color,
     pub width: u16,

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::anschluss::{self, pwm, Anschlüsse, InputAnschluss, OutputAnschluss};
 
 pub trait Serialisiere: Sized {
+    #[allow(single_use_lifetimes)]
     type Serialisiert: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
 
     fn serialisiere(&self) -> Self::Serialisiert;

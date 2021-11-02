@@ -72,7 +72,7 @@ impl Transparenz {
             (Minimal, _) | (_, Minimal) => Minimal,
             (Reduziert, Reduziert) => Minimal,
             (Voll, Reduziert) | (Reduziert, Voll) => Reduziert,
-            (Transparenz::Voll, Transparenz::Voll) => Voll,
+            (Voll, Voll) => Voll,
         }
     }
 

@@ -432,6 +432,7 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Z> iced::Application for Zugkontrolle<Z>
 where
     Z: Zugtyp + Serialize + for<'de> Deserialize<'de> + 'static,
@@ -593,7 +594,7 @@ where
         iced::Subscription::from_recipe(self.empfänger.clone())
     }
 
-    fn view(&mut self) -> iced::Element<Self::Message> {
+    fn view(&mut self) -> iced::Element<'_, Self::Message> {
         self.view()
     }
 }

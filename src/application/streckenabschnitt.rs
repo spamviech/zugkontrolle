@@ -1,6 +1,6 @@
 //! Anzeige & Erstellen eines Streckenabschnittes.
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Debug};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
@@ -20,7 +20,7 @@ use crate::{
         style::tab_bar::TabBar,
     },
     farbe::Farbe,
-    steuerung::{geschwindigkeit, streckenabschnitt},
+    steuerung::geschwindigkeit,
     zugtyp::Zugtyp,
 };
 
@@ -38,7 +38,7 @@ impl AnzeigeStatus {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
     Auswählen,
     Festlegen(bool),
@@ -46,6 +46,12 @@ pub enum AnzeigeNachricht {
 
 pub struct Anzeige<'a, R: Renderer + container::Renderer> {
     container: Container<'a, AnzeigeNachricht, R>,
+}
+
+impl<R: Renderer + container::Renderer> Debug for Anzeige<'_, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Anzeige").field("container", &"<Container>").finish()
+    }
 }
 
 impl<'a, R> Anzeige<'a, R>
@@ -128,7 +134,7 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
-    pub fn neu<'t, 's, Z: Zugtyp>(gleise: &'s Gleise<Z>) -> Self {
+    pub fn neu<Z: Zugtyp>(gleise: &Gleise<Z>) -> AuswahlStatus {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),
@@ -172,17 +178,18 @@ impl AuswahlStatus {
     }
 
     /// Entferne den Streckenabschnitt mit übergebenen Namen.
-    pub fn entferne(&mut self, name: &Name) {
-        self.streckenabschnitte.remove(name);
+    pub fn entfernen(&mut self, name: &Name) {
+        let _ = self.streckenabschnitte.remove(name);
     }
 
     /// Füge einen neuen Streckenabschnitt hinzu.
     /// Falls der Name bereits existiert wird der bisherige ersetzt.
     pub fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
         let (key, value) = Self::iter_map((name, streckenabschnitt));
-        self.streckenabschnitte.insert(key, value);
+        let _ = self.streckenabschnitte.insert(key, value);
     }
 
+    /// Erhalte den aktuell konfigurierten Streckenabschnitt.
     pub fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
         (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_state.output_anschluss())
     }
@@ -203,7 +210,7 @@ enum InterneAuswahlNachricht {
 pub enum AuswahlNachricht {
     Schließe,
     Wähle(Option<(StreckenabschnittId, Farbe)>),
-    Hinzufügen(Option<geschwindigkeit::Name>, streckenabschnitt::Name, Farbe, OutputSerialisiert),
+    Hinzufügen(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
     Lösche(StreckenabschnittId),
 }
 
@@ -212,6 +219,17 @@ pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     neu_name: &'a mut String,
     neu_farbe: &'a mut Farbe,
     neu_anschluss: &'a mut OutputSerialisiert,
+}
+
+impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Auswahl")
+            .field("card", &"<Card>")
+            .field("neu_name", &self.neu_name)
+            .field("neu_farbe", &self.neu_farbe)
+            .field("neu_anschluss", &self.neu_anschluss)
+            .finish()
+    }
 }
 
 impl<'a, R> Auswahl<'a, R>

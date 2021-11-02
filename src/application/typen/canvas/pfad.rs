@@ -1,6 +1,6 @@
 //! Pfad auf einem Canvas und assoziierte Typen
 
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use zugkontrolle_derive::chain;
 
@@ -13,6 +13,7 @@ use crate::application::typen::{
 /// Pfad auf dem Canvas.
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
+#[derive(Debug)]
 pub struct Pfad {
     pub(crate) pfad: iced::canvas::Path,
     pub(crate) transformationen: Vec<Transformation>,
@@ -55,10 +56,10 @@ pub struct Bogen {
 }
 
 /// Marker-Typ für 'Invertiert', X-Achse (Horizontal).
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct X;
 /// Marker-Typ für 'Invertiert', Y-Achse (Vertikal).
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Y;
 /// Hilf-Struktur um mich vor dummen Fehlern (z.B. doppeltes invertieren) zu bewahren.
 #[derive(Debug)]
@@ -122,6 +123,15 @@ where
 pub struct Erbauer<V, B> {
     builder: iced::canvas::path::Builder,
     phantom_data: PhantomData<*const (V, B)>,
+}
+
+impl<V, B> Debug for Erbauer<V, B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Erbauer")
+            .field("builder", &"<Builder>")
+            .field("phantom_data", &self.phantom_data)
+            .finish()
+    }
 }
 
 impl Erbauer<Vektor, Bogen> {
@@ -200,7 +210,7 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     ///
     /// Convenience-Funktion um nicht permanent no-op closures erstellen zu müssen.
     #[chain]
-    pub fn with_normal_axis(&mut self, action: impl for<'s> FnOnce(&'s mut Erbauer<V, B>)) {
+    pub fn with_normal_axis(&mut self, action: impl FnOnce(&mut Erbauer<V, B>)) {
         action(self)
     }
 
@@ -208,7 +218,7 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     #[chain]
     pub fn with_invert_x(
         &mut self,
-        action: impl for<'s> FnOnce(&'s mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>),
+        action: impl FnOnce(&mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>),
     ) {
         take_mut::take(&mut self.builder, |builder| {
             let mut inverted_builder: Erbauer<Invertiert<V, X>, Invertiert<B, X>> =
@@ -222,7 +232,7 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     #[chain]
     pub fn with_invert_y(
         &mut self,
-        action: impl for<'s> FnOnce(&'s mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>),
+        action: impl FnOnce(&mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>),
     ) {
         take_mut::take(&mut self.builder, |builder| {
             let mut inverted_builder: Erbauer<Invertiert<V, Y>, Invertiert<B, Y>> =

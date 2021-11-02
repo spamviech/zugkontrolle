@@ -18,7 +18,9 @@ pub mod pfad;
 /// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom `iced::Frame` liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
+#[derive(Debug)]
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
+
 impl<'t> Frame<'t> {
     pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
         Frame(frame)
@@ -101,7 +103,7 @@ impl Cache {
         bounds: iced::Size<f32>,
         pivot: &Position,
         skalieren: &Skalar,
-        draw_fn: impl Fn(&mut Frame),
+        draw_fn: impl Fn(&mut Frame<'_>),
     ) -> iced::canvas::Geometry {
         self.0.draw(bounds, |frame| {
             let mut boxed_frame = Frame(frame);
@@ -120,7 +122,7 @@ impl Cache {
     pub fn zeichnen(
         &self,
         bounds: iced::Size<f32>,
-        draw_fn: impl Fn(&mut Frame),
+        draw_fn: impl Fn(&mut Frame<'_>),
     ) -> iced::canvas::Geometry {
         self.zeichnen_skaliert_von_pivot(
             bounds,
@@ -132,6 +134,7 @@ impl Cache {
 }
 
 /// Position eines Gleises/Textes auf der Canvas
+#[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub punkt: Vektor,

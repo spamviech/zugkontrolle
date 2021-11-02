@@ -1,5 +1,8 @@
 //! Ids zur Identifikation der Gleise.
 
+// Explicit allow-annotations don't work, so has to be done on a module-basis instead
+#![allow(single_use_lifetimes)]
+
 use std::marker::PhantomData;
 
 use rstar::primitives::Rectangle;
@@ -147,13 +150,14 @@ impl_any_id_from! {SKurvenWeiche}
 impl_any_id_from! {Kreuzung}
 
 // completely remove any notion of ID?
+#[allow(single_use_lifetimes)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::application) struct StreckenabschnittIdRef<'t> {
     pub(in crate::application) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
     pub(in crate::application) name: &'t streckenabschnitt::Name,
 }
 
-impl<'t> PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'t> {
+impl PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'_> {
     fn eq(&self, other: &StreckenabschnittId) -> bool {
         (self.geschwindigkeit == other.geschwindigkeit.as_ref()) && (*self.name == other.name)
     }
@@ -170,6 +174,7 @@ impl<'t> StreckenabschnittIdRef<'t> {
 }
 
 // completely remove any notion of ID?
+#[allow(single_use_lifetimes)]
 #[derive(zugkontrolle_derive::Debug)]
 pub(in crate::application) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
@@ -177,12 +182,12 @@ pub(in crate::application) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
 
-impl<'s, 't, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'t, T> {
+impl<'s, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'_, T> {
     fn eq(&self, other: &GleisIdRef<'s, T>) -> bool {
         (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
     }
 }
-impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
+impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
         (self.rectangle == &other.rectangle)
             && self.streckenabschnitt
@@ -190,6 +195,7 @@ impl<'t, T> PartialEq<GleisId<T>> for GleisIdRef<'t, T> {
     }
 }
 
+#[allow(single_use_lifetimes)]
 #[derive(zugkontrolle_derive::Debug)]
 pub(in crate::application::gleis::gleise) enum AnyIdRef<'t, Z> {
     Gerade(GleisIdRef<'t, Gerade<Z>>),
@@ -201,7 +207,7 @@ pub(in crate::application::gleis::gleise) enum AnyIdRef<'t, Z> {
     Kreuzung(GleisIdRef<'t, Kreuzung<Z>>),
 }
 
-impl<'s, 't, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'s, Z> {
+impl<'t, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'_, Z> {
     fn eq(&self, other: &AnyIdRef<'t, Z>) -> bool {
         match (self, other) {
             (AnyIdRef::Gerade(l0), AnyIdRef::Gerade(r0)) => l0 == r0,
@@ -215,7 +221,7 @@ impl<'s, 't, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'s, Z> {
         }
     }
 }
-impl<'t, Z> PartialEq<AnyId<Z>> for AnyIdRef<'t, Z> {
+impl<Z> PartialEq<AnyId<Z>> for AnyIdRef<'_, Z> {
     fn eq(&self, other: &AnyId<Z>) -> bool {
         match (self, other) {
             (AnyIdRef::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
@@ -252,7 +258,7 @@ impl_any_id_ref_from! {KurvenWeiche}
 impl_any_id_ref_from! {SKurvenWeiche}
 impl_any_id_ref_from! {Kreuzung}
 
-impl<'t, Z> AnyIdRef<'t, Z> {
+impl<Z> AnyIdRef<'_, Z> {
     /// Klone die Referenzen um eine neue Id zu erzeugen.
     pub(in crate::application::gleis::gleise) fn als_id(self) -> AnyId<Z> {
         match self {

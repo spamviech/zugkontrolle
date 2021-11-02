@@ -22,8 +22,8 @@ macro_rules! reexport_no_event_methods {
             &self,
             renderer: &mut $renderer,
             defaults: &<$renderer as iced_native::Renderer>::Defaults,
-            layout: iced_native::Layout<'_>,
-            cursor_position: iced_native::Point,
+            layout: Layout<'_>,
+            cursor_position: Point,
             viewport: &iced_native::Rectangle,
         ) -> <$renderer as iced_native::Renderer>::Output {
             <$type as Widget<$message, $renderer>>::draw(

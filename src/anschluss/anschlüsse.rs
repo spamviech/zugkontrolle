@@ -51,14 +51,14 @@ macro_rules! anschlüsse_data {
                 pin_rückgabe: Sender<u8>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
-                    [<$k $l $m $n 0>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 1>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 2>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 3>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 4>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 5>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 6>]: Option<pcf8574::Port>,
-                    [<$k $l $m $n 7>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 0>]: Option<Port>,
+                    [<$k $l $m $n 1>]: Option<Port>,
+                    [<$k $l $m $n 2>]: Option<Port>,
+                    [<$k $l $m $n 3>]: Option<Port>,
+                    [<$k $l $m $n 4>]: Option<Port>,
+                    [<$k $l $m $n 5>]: Option<Port>,
+                    [<$k $l $m $n 6>]: Option<Port>,
+                    [<$k $l $m $n 7>]: Option<Port>,
                 )*
             }
         }
@@ -91,7 +91,7 @@ impl AnschlüsseData {
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
-    fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncFehler> {
+    fn rückgabe(&mut self, port: Port) -> Result<(), SyncFehler> {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
@@ -135,7 +135,7 @@ impl AnschlüsseData {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Option<pcf8574::Port> {
+    ) -> Option<Port> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         macro_rules! reserviere_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
@@ -265,7 +265,7 @@ impl Anschlüsse {
                     Ok(mut guard) => {
                         let anschlüsse = &mut *guard;
                         debug!("rückgabe pin {}", pin);
-                        anschlüsse.ausgegebene_pins.remove(&pin);
+                        let _ = anschlüsse.ausgegebene_pins.remove(&pin);
                     }
                     Err(err) => {
                         error!("Anschlüsse-static poisoned: {}", err);
@@ -335,7 +335,7 @@ impl Anschlüsse {
             let sender_clone = sender.clone();
 
             // erzeuge Thread der Rückgaben behandelt
-            thread::spawn(move || {
+            let _ = thread::spawn(move || {
                 Anschlüsse::listen_restore_messages(sender_clone, receiver, inner_clone)
             });
 
@@ -344,7 +344,7 @@ impl Anschlüsse {
                 let inner_clone = inner.clone();
 
                 // erzeuge Thread der Pin-Rückgaben behandelt
-                thread::spawn(move || {
+                let _ = thread::spawn(move || {
                     Anschlüsse::listen_pin_restore_messages(pin_receiver, inner_clone)
                 });
             }
@@ -401,7 +401,7 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    pub fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncFehler> {
+    pub fn rückgabe(&mut self, port: Port) -> Result<(), SyncFehler> {
         if let Some(arc) = &self.0 {
             arc.lock()?.rückgabe(port)
         } else {
@@ -449,7 +449,7 @@ impl Anschlüsse {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Result<pcf8574::Port, SyncFehler> {
+    ) -> Result<Port, SyncFehler> {
         self.0.as_mut().ok_or(SyncFehler::WertDropped).and_then(|arc| {
             // TODO besserer Fehler (welche Port wurde angefragt)
             arc.lock().map_err(SyncFehler::from).and_then(|mut guard| {
@@ -472,6 +472,7 @@ type AnschlüsseResult = Result<AnschlüsseInternal, Fehler>;
 type AnschlüsseStatic = Arc<Mutex<AnschlüsseResult>>;
 static ANSCHLÜSSE: Lazy<AnschlüsseStatic> = Lazy::new(Anschlüsse::erstelle_static);
 
+#[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]
@@ -512,12 +513,12 @@ impl From<rppal::pwm::Error> for Fehler {
 }
 
 #[allow(variant_size_differences)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnschlussBeschreibung {
     Pin(u8),
     Pcf8574Port { a0: Level, a1: Level, a2: Level, variante: pcf8574::Variante, port: u3 },
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncFehler {
     PoisonFehler,
     SingletonInVerwendung,
