@@ -230,6 +230,7 @@ impl Pin {
     // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.OutputPin.html#method.set_pwm
 }
 
+#[allow(variant_size_differences)]
 #[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]

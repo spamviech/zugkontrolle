@@ -511,6 +511,7 @@ impl From<rppal::pwm::Error> for Fehler {
     }
 }
 
+#[allow(variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AnschlussBeschreibung {
     Pin(u8),

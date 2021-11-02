@@ -365,6 +365,7 @@ impl InputAnschluss {
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
+#[allow(variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     Pin {

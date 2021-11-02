@@ -69,6 +69,7 @@ fn main() -> Result<(), Fehler> {
     Ok(())
 }
 
+#[allow(variant_size_differences)]
 #[derive(Debug)]
 enum Fehler {
     Iced(iced::Error),

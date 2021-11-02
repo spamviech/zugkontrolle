@@ -703,6 +703,7 @@ impl Display for Fahrtrichtung {
     }
 }
 
+#[allow(variant_size_differences)]
 #[derive(Debug)]
 pub enum Fehler {
     Anschluss(anschluss::Fehler),
