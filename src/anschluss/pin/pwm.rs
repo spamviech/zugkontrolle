@@ -28,6 +28,7 @@ pub struct Pin {
 }
 
 #[cfg(raspi)]
+#[allow(variant_size_differences)]
 #[derive(Debug)]
 pub(super) enum Pwm {
     Hardware(pwm::Pwm, gpio::Pin),

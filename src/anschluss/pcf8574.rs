@@ -154,7 +154,7 @@ impl Pcf8574 {
                 }
                 let mut result = [None; 8];
                 for (port, modus) in self.ports.iter().enumerate() {
-                    let port_bit = 2u8.pow(port as u32) as u8;
+                    let port_bit = 2u8.pow(port as u32);
                     result[port] = if let Modus::Input { .. } = modus {
                         Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
                     } else {
@@ -210,7 +210,7 @@ impl Pcf8574 {
             let mut wert = 0;
             for (port, modus) in self.ports.iter().enumerate() {
                 wert |= match modus {
-                    Modus::Input { .. } | Modus::High => 2u8.pow(port as u32) as u8,
+                    Modus::Input { .. } | Modus::High => 2u8.pow(port as u32),
                     Modus::Low => 0,
                 };
             }
@@ -562,7 +562,8 @@ impl InputPort {
 }
 
 // TODO genauere Eingrenzung auf einzelne Methoden
-#[derive(Debug, Clone, Copy)]
+#[allow(missing_copy_implementations)]
+#[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]
     I2c {
