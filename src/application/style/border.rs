@@ -1,6 +1,6 @@
 //! Style Strukturen für den Rand eines iced::Container
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Border {
     pub border_color: iced::Color,
     pub border_width: f32,
