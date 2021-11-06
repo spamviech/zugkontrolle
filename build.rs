@@ -11,4 +11,10 @@ fn main() {
                     target_env = "gnu"
                 ) },
     }
+
+    // Setup windows binary icon
+    #[cfg(windows)]
+    {
+        embed_resource::compile("resources.rc");
+    }
 }
