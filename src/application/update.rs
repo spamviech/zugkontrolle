@@ -328,11 +328,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                                 ))
                             }
                         }
-                        let id = StreckenabschnittId {
-                            geschwindigkeit: geschwindigkeit.cloned(),
-                            name: name.clone(),
-                        };
-                        if let Ok(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
+                        if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
                             geschwindigkeit,
                             name,
                             streckenabschnitt,
