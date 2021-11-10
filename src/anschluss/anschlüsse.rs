@@ -192,7 +192,7 @@ impl Anschlüsse {
         }
         #[cfg(raspi)]
         {
-            Ok(Pin::neu(self.gpio.get(pin)?))
+            Ok(Pin::neu(Anschlüsse::mutex_guard().gpio.get(pin)?))
         }
         #[cfg(not(raspi))]
         {
@@ -296,7 +296,14 @@ impl Anschlüsse {
         }
     }
 
-    fn erstelle_static() -> Mutex<Anschlüsse> {
+    fn erstelle_static_oder_panic() -> Mutex<Anschlüsse> {
+        match Anschlüsse::erstelle_static() {
+            Ok(mutex) => mutex,
+            Err(fehler) => panic!("Fehler beim erstellen des Anschlüsse-Singletons: {:?}", fehler),
+        }
+    }
+
+    fn erstelle_static() -> Result<Mutex<Anschlüsse>, Fehler> {
         #[cfg(not(raspi))]
         let (pin_sender, pin_receiver) = channel();
 
@@ -306,15 +313,9 @@ impl Anschlüsse {
         macro_rules! make_anschlüsse {
             { $($a0:ident $a1:ident $a2:ident $var:ident),* } => {{
                 #[cfg(raspi)]
-                let i2c = match rppal::i2c::I2c::new() {
-                    Ok(i2c) => Arc::new(Mutex::new(i2c)),
-                    Err(error) => return Arc::new(Mutex::new(Err(error.into()))),
-                };
+                let i2c = Arc::new(Mutex::new(rppal::i2c::I2c::new()?));
                 #[cfg(raspi)]
-                let gpio = match rppal::gpio::Gpio::new() {
-                    Ok(gpio) => gpio,
-                    Err(error) => return Arc::new(Mutex::new(Err(error.into()))),
-                };
+                let gpio = rppal::gpio::Gpio::new()?;
                 paste! {
                     $(
                         let [<$a0 $a1 $a2 $var>] = Arc::new(Mutex::new(Pcf8574::neu(
@@ -397,11 +398,11 @@ impl Anschlüsse {
             let _ = thread::spawn(move || Anschlüsse::listen_pin_restore_messages(pin_receiver));
         }
 
-        Mutex::new(anschlüsse)
+        Ok(Mutex::new(anschlüsse))
     }
 }
 
-static ANSCHLÜSSE: Lazy<Mutex<Anschlüsse>> = Lazy::new(Anschlüsse::erstelle_static);
+static ANSCHLÜSSE: Lazy<Mutex<Anschlüsse>> = Lazy::new(Anschlüsse::erstelle_static_oder_panic);
 
 #[cfg_attr(not(raspi), allow(missing_copy_implementations))]
 #[derive(Debug)]
