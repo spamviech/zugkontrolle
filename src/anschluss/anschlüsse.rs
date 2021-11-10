@@ -106,7 +106,7 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    fn rückgabe_pcf8574_port(&mut self, port: Port) -> Result<(), SyncFehler> {
+    fn rückgabe_pcf8574_port(&mut self, port: Port) -> Result<(), AnschlussInVerwendung> {
         macro_rules! rückgabe_pcf8574_port {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
@@ -149,7 +149,7 @@ impl Anschlüsse {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Result<Port, SyncFehler> {
+    ) -> Result<Port, AnschlussInVerwendung> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         macro_rules! reserviere_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
@@ -159,22 +159,23 @@ impl Anschlüsse {
                             (level!($k),level!($l),level!($m),variante!($n)) => {
                                 debug!("reserviere pcf8574 {:?}-{:?}-{:?}-{:?}-{}"
                                         , level!($k), level!($l), level!($m), variante!($n), port);
+                                let mut guard = Anschlüsse::mutex_guard();
                                 match u8::from(port) {
-                                    0 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 0>], None),
-                                    1 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 1>], None),
-                                    2 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 2>], None),
-                                    3 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 3>], None),
-                                    4 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 4>], None),
-                                    5 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 5>], None),
-                                    6 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 6>], None),
-                                    7 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 7>], None),
+                                    0 => mem::replace(&mut guard.[<$k $l $m $n 0>], None),
+                                    1 => mem::replace(&mut guard.[<$k $l $m $n 1>], None),
+                                    2 => mem::replace(&mut guard.[<$k $l $m $n 2>], None),
+                                    3 => mem::replace(&mut guard.[<$k $l $m $n 3>], None),
+                                    4 => mem::replace(&mut guard.[<$k $l $m $n 4>], None),
+                                    5 => mem::replace(&mut guard.[<$k $l $m $n 5>], None),
+                                    6 => mem::replace(&mut guard.[<$k $l $m $n 6>], None),
+                                    7 => mem::replace(&mut guard.[<$k $l $m $n 7>], None),
                                     _ => None,
                                 }
                             }
                         ),*
                     }
                 };
-                port_opt.ok_or(SyncFehler(
+                port_opt.ok_or(AnschlussInVerwendung(
                     AnschlussBeschreibung::Pcf8574Port {a0, a1,a2,variante, port}
                 ))
             };
@@ -187,7 +188,7 @@ impl Anschlüsse {
         debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
-            return Err(Fehler::Sync(SyncFehler(AnschlussBeschreibung::Pin(pin))));
+            return Err(Fehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(pin)));
         }
         #[cfg(raspi)]
         {
@@ -199,7 +200,7 @@ impl Anschlüsse {
             if guard.ausgegebene_pins.insert(pin) {
                 Ok(Pin::neu(pin, guard.pin_rückgabe.clone()))
             } else {
-                Err(Fehler::Sync(SyncFehler(AnschlussBeschreibung::Pin(pin))))
+                Err(Fehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(pin)))
             }
         }
     }
@@ -402,8 +403,7 @@ impl Anschlüsse {
 
 static ANSCHLÜSSE: Lazy<Mutex<Anschlüsse>> = Lazy::new(Anschlüsse::erstelle_static);
 
-// FIXME nicht mehr benötigte Fehler-Fälle entfernen!
-#[allow(missing_copy_implementations)]
+#[cfg_attr(not(raspi), allow(missing_copy_implementations))]
 #[derive(Debug)]
 pub enum Fehler {
     #[cfg(raspi)]
@@ -412,18 +412,13 @@ pub enum Fehler {
     I2c(rppal::i2c::Error),
     #[cfg(raspi)]
     Pwm(rppal::pwm::Error),
-    Sync(SyncFehler),
+    AnschlussInVerwendung(AnschlussBeschreibung),
 }
-impl From<SyncFehler> for Fehler {
-    fn from(error: SyncFehler) -> Self {
-        Fehler::Sync(error)
+impl From<AnschlussInVerwendung> for Fehler {
+    fn from(AnschlussInVerwendung(beschreibung): AnschlussInVerwendung) -> Self {
+        Fehler::AnschlussInVerwendung(beschreibung)
     }
 }
-// impl<T> From<PoisonError<T>> for Fehler {
-//     fn from(error: PoisonError<T>) -> Self {
-//         SyncFehler::from(error).into()
-//     }
-// }
 #[cfg(raspi)]
 impl From<rppal::gpio::Error> for Fehler {
     fn from(error: rppal::gpio::Error) -> Self {
@@ -450,7 +445,7 @@ pub enum AnschlussBeschreibung {
     Pcf8574Port { a0: Level, a1: Level, a2: Level, variante: pcf8574::Variante, port: u3 },
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SyncFehler(pub AnschlussBeschreibung);
+pub struct AnschlussInVerwendung(pub AnschlussBeschreibung);
 
 #[cfg(test)]
 // path attribute necessary due to non-ascii module name (at least for now)

@@ -7,7 +7,7 @@ use num_x::u3;
 use simple_logger::SimpleLogger;
 
 use crate::anschluss::{
-    anschlüsse::{AnschlussBeschreibung, Anschlüsse, SyncFehler},
+    anschlüsse::{AnschlussBeschreibung, AnschlussInVerwendung, Anschlüsse},
     level::Level,
     pcf8574,
 };
@@ -46,7 +46,7 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncFehler(AnschlussBeschreibung::Pcf8574Port {
+        Err(AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
             a0: Level::Low,
             a1: Level::Low,
             a2: Level::Low,
@@ -76,7 +76,7 @@ fn drop_semantics() {
             pcf8574::Variante::Normal,
             u3::new(0)
         ),
-        Err(SyncFehler(AnschlussBeschreibung::Pcf8574Port {
+        Err(AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
             a0: Level::Low,
             a1: Level::Low,
             a2: Level::Low,

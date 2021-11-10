@@ -7,7 +7,7 @@ use num_x::u3;
 use serde::{Deserialize, Serialize};
 
 pub use self::{
-    anschlüsse::SyncFehler,
+    anschlüsse::AnschlussInVerwendung,
     de_serialisieren::{Reserviere, Reserviert, Serialisiere},
 };
 
@@ -553,8 +553,8 @@ pub enum Fehler {
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),
 }
-impl From<SyncFehler> for Fehler {
-    fn from(error: SyncFehler) -> Self {
+impl From<AnschlussInVerwendung> for Fehler {
+    fn from(error: AnschlussInVerwendung) -> Self {
         Fehler::Anschlüsse(error.into())
     }
 }
