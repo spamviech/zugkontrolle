@@ -9,7 +9,7 @@ use crate::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        Anschlüsse, InputAnschluss, OutputAnschluss,
+        InputAnschluss, OutputAnschluss,
     },
     application::gleis::gleise::{daten::*, Fehler, Gleise},
     steuerung::{
@@ -198,7 +198,6 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -216,14 +215,8 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = ohne_streckenabschnitt.reserviere(
-            anschlüsse,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        )?;
+        } = ohne_streckenabschnitt.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
         fn reserviere_streckenabschnitt_map<Z: Zugtyp>(
-            anschlüsse: &mut Anschlüsse,
             streckenabschnitt_map: StreckenabschnittMapSerialisiert<Z>,
             pwm_pins: Vec<pwm::Pin>,
             output_anschlüsse: Vec<OutputAnschluss>,
@@ -249,12 +242,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                         output_nicht_benötigt,
                         input_nicht_benötigt,
                     } = streckenabschnitt
-                        .reserviere(
-                            anschlüsse,
-                            pwm_nicht_benötigt,
-                            output_nicht_benötigt,
-                            input_nicht_benötigt,
-                        )
+                        .reserviere(pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
                         .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
                     let Reserviert {
                         anschluss: daten,
@@ -262,7 +250,6 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                         output_nicht_benötigt,
                         input_nicht_benötigt,
                     } = daten.reserviere(
-                        anschlüsse,
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
                         input_nicht_benötigt,
@@ -283,7 +270,6 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
             output_nicht_benötigt,
             input_nicht_benötigt,
         } = reserviere_streckenabschnitt_map(
-            anschlüsse,
             ohne_geschwindigkeit,
             pwm_nicht_benötigt,
             output_nicht_benötigt,
@@ -315,12 +301,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = geschwindigkeit
-                    .reserviere(
-                        anschlüsse,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    )
+                    .reserviere(pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
                     .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
                 let Reserviert {
                     anschluss: streckenabschnitt_map,
@@ -328,7 +309,6 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = reserviere_streckenabschnitt_map(
-                    anschlüsse,
                     streckenabschnitt_map,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
@@ -403,7 +383,6 @@ impl<Z: Zugtyp> GleiseDaten<Z> {
 }
 
 fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
-    anschlüsse: &mut Anschlüsse,
     source: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
     output_anschlüsse: Vec<OutputAnschluss>,
@@ -427,7 +406,7 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
                 output_nicht_benötigt,
                 input_nicht_benötigt,
             } = gleis_save
-                .reserviere(anschlüsse, acc.1, acc.2, acc.3)
+                .reserviere(acc.1, acc.2, acc.3)
                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
             let rectangle = Rectangle::from(gleis.definition.rechteck_an_position(&gleis.position));
             acc.0.push(GeomWithData::new(rectangle, gleis));
@@ -440,7 +419,6 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -450,7 +428,6 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
                 $(
                     let ($rstern, pwm_pins, output_anschlüsse, input_anschlüsse) =
                         reserviere_anschlüsse(
-                            anschlüsse,
                             self.$rstern,
                             pwm_pins,
                             output_anschlüsse,
@@ -515,12 +492,8 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
         }
 
         // reserviere Anschlüsse
-        self.zustand = zustand_serialisiert.reserviere(
-            &mut *Anschlüsse::mutex_guard(),
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        )?;
+        self.zustand =
+            zustand_serialisiert.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(())
     }
 }

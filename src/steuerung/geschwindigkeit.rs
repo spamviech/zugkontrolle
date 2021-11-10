@@ -16,7 +16,7 @@ use crate::{
     anschluss::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-        pwm, Anschlüsse, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert, Polarität,
+        pwm, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert, Polarität,
     },
     non_empty::{MaybeEmpty, NonEmpty},
 };
@@ -103,7 +103,6 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
 impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<T> {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -113,7 +112,7 @@ impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialis
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.leiter.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.leiter.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Geschwindigkeit::neu(leiter),
             pwm_nicht_benötigt,
@@ -249,7 +248,6 @@ impl Serialisiere for Mittelleiter {
 impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -261,7 +259,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                } = pin.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+                } = pin.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
                 Reserviert {
                     anschluss: Mittelleiter::Pwm { pin, polarität },
                     pwm_nicht_benötigt,
@@ -276,7 +274,6 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = geschwindigkeit.head.reserviere(
-                    anschlüsse,
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
@@ -290,7 +287,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
+                            Ok(mut acc) => match save.reserviere(acc.1, acc.2, acc.3) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,
@@ -317,7 +314,6 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = umdrehen.reserviere(
-                    anschlüsse,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
@@ -573,7 +569,6 @@ impl Serialisiere for Zweileiter {
 impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -585,19 +580,13 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                } = geschwindigkeit.reserviere(
-                    anschlüsse,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                )?;
+                } = geschwindigkeit.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
                 let Reserviert {
                     anschluss: fahrtrichtung,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = fahrtrichtung.reserviere(
-                    anschlüsse,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
@@ -616,7 +605,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = geschwindigkeit.head.reserviere(
-                    anschlüsse,
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
@@ -630,7 +618,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                             input_nicht_benötigt,
                         )),
                         |acc_res, save| match acc_res {
-                            Ok(mut acc) => match save.reserviere(anschlüsse, acc.1, acc.2, acc.3) {
+                            Ok(mut acc) => match save.reserviere(acc.1, acc.2, acc.3) {
                                 Ok(Reserviert {
                                     anschluss,
                                     pwm_nicht_benötigt,
@@ -657,7 +645,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = fahrtrichtung.reserviere(
-                    anschlüsse,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,

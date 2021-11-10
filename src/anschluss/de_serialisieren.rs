@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{self, pwm, Anschlüsse, InputAnschluss, OutputAnschluss};
+use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
 pub trait Serialisiere: Sized {
     #[allow(single_use_lifetimes)]
@@ -34,7 +34,6 @@ pub type Result<R> = std::result::Result<Reserviert<R>, Fehler>;
 pub trait Reserviere<R> {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,

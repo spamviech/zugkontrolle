@@ -6,7 +6,7 @@ use std::{
     mem,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Arc, LockResult, Mutex, MutexGuard, PoisonError,
+        Arc, Mutex, MutexGuard, PoisonError,
     },
     thread,
 };
@@ -91,15 +91,9 @@ macro_rules! llln_to_hhha {
 
 llln_to_hhha! { anschlüsse_data }
 impl Anschlüsse {
-    /// Erhalte Zugriff auf das Singleton.
-    #[inline(always)]
-    pub fn lock<'t>() -> LockResult<MutexGuard<'t, Anschlüsse>> {
-        ANSCHLÜSSE.lock()
-    }
-
     /// Erhalte Zugriff auf das Singleton und heile auftretende PoisonError mit Fehlermeldung.
-    pub(crate) fn mutex_guard<'t>() -> MutexGuard<'t, Anschlüsse> {
-        match Anschlüsse::lock() {
+    fn mutex_guard<'t>() -> MutexGuard<'t, Anschlüsse> {
+        match ANSCHLÜSSE.lock() {
             Ok(guard) => guard,
             Err(poison_error) => {
                 error!("Anschlüsse-Singleton poisoned!");
@@ -112,8 +106,8 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    pub fn rückgabe(&mut self, port: Port) -> Result<(), SyncFehler> {
-        macro_rules! match_pcf8574 {
+    fn rückgabe_pcf8574_port(&mut self, port: Port) -> Result<(), SyncFehler> {
+        macro_rules! rückgabe_pcf8574_port {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
                     match port.beschreibung() {
@@ -145,12 +139,11 @@ impl Anschlüsse {
                 }
             };
         }
-        llln_to_hhha! {match_pcf8574}
+        llln_to_hhha! {rückgabe_pcf8574_port}
     }
 
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
     pub fn reserviere_pcf8574_port(
-        &mut self,
         a0: Level,
         a1: Level,
         a2: Level,
@@ -167,14 +160,14 @@ impl Anschlüsse {
                                 debug!("reserviere pcf8574 {:?}-{:?}-{:?}-{:?}-{}"
                                         , level!($k), level!($l), level!($m), variante!($n), port);
                                 match u8::from(port) {
-                                    0 => mem::replace(&mut self.[<$k $l $m $n 0>], None),
-                                    1 => mem::replace(&mut self.[<$k $l $m $n 1>], None),
-                                    2 => mem::replace(&mut self.[<$k $l $m $n 2>], None),
-                                    3 => mem::replace(&mut self.[<$k $l $m $n 3>], None),
-                                    4 => mem::replace(&mut self.[<$k $l $m $n 4>], None),
-                                    5 => mem::replace(&mut self.[<$k $l $m $n 5>], None),
-                                    6 => mem::replace(&mut self.[<$k $l $m $n 6>], None),
-                                    7 => mem::replace(&mut self.[<$k $l $m $n 7>], None),
+                                    0 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 0>], None),
+                                    1 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 1>], None),
+                                    2 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 2>], None),
+                                    3 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 3>], None),
+                                    4 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 4>], None),
+                                    5 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 5>], None),
+                                    6 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 6>], None),
+                                    7 => mem::replace(&mut Anschlüsse::mutex_guard().[<$k $l $m $n 7>], None),
                                     _ => None,
                                 }
                             }
@@ -190,7 +183,7 @@ impl Anschlüsse {
     }
 
     /// Reserviere den spezifizierten Pin zur exklusiven Nutzung.
-    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Fehler> {
+    pub fn reserviere_pin(pin: u8) -> Result<Pin, Fehler> {
         debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
@@ -204,8 +197,9 @@ impl Anschlüsse {
         }
         #[cfg(not(raspi))]
         {
-            if self.ausgegebene_pins.insert(pin) {
-                Ok(Pin::neu(pin, self.pin_rückgabe.clone()))
+            let mut guard = Anschlüsse::mutex_guard();
+            if guard.ausgegebene_pins.insert(pin) {
+                Ok(Pin::neu(pin, guard.pin_rückgabe.clone()))
             } else {
                 Err(Fehler::Sync(SyncFehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(
                     pin,
@@ -214,7 +208,7 @@ impl Anschlüsse {
         }
     }
 
-    fn listen_restore_messages(
+    fn listen_pcf8574_port_restore_messages(
         sender: Sender<(pcf8574::Beschreibung, u3)>,
         receiver: Receiver<(pcf8574::Beschreibung, u3)>,
     ) {
@@ -261,7 +255,7 @@ impl Anschlüsse {
                                 }
                             }
                             let port_struct = llln_to_hhha! {match_nachricht};
-                            if let Err(err) = anschlüsse.rückgabe(port_struct) {
+                            if let Err(err) = anschlüsse.rückgabe_pcf8574_port(port_struct) {
                                 error!("Fehler bei rückgabe: {:?}", err);
                                 break;
                             } else {
@@ -396,7 +390,9 @@ impl Anschlüsse {
         let anschlüsse = llln_to_hhha! {make_anschlüsse};
 
         // erzeuge Thread der Rückgaben behandelt
-        let _ = thread::spawn(move || Anschlüsse::listen_restore_messages(sender_clone, receiver));
+        let _ = thread::spawn(move || {
+            Anschlüsse::listen_pcf8574_port_restore_messages(sender_clone, receiver)
+        });
 
         #[cfg(not(raspi))]
         {

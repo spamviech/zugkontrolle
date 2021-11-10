@@ -20,20 +20,14 @@ fn drop_semantics() {
         .init()
         .expect("failed to initialize error logging");
 
-    let mut lock_count: usize = 0;
-    let mut lock_anschlüsse = || {
-        lock_count += 1;
-        Anschlüsse::lock().expect(&format!("{}.ter Aufruf von lock.", lock_count))
-    };
-    let llln = lock_anschlüsse()
-        .reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0),
-        )
-        .expect("1. Aufruf von llln.");
+    let llln = Anschlüsse::reserviere_pcf8574_port(
+        Level::Low,
+        Level::Low,
+        Level::Low,
+        pcf8574::Variante::Normal,
+        u3::new(0),
+    )
+    .expect("1. Aufruf von llln.");
     assert_eq!(
         llln.beschreibung(),
         &pcf8574::Beschreibung {
@@ -45,7 +39,7 @@ fn drop_semantics() {
     );
     assert_eq!(llln.port(), u3::new(0));
     assert_eq!(
-        lock_anschlüsse().reserviere_pcf8574_port(
+        Anschlüsse::reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
             Level::Low,
@@ -64,19 +58,18 @@ fn drop_semantics() {
     drop(llln);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln = lock_anschlüsse()
-        .reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0),
-        )
-        .expect("Aufruf von llln nach drop.");
+    let llln = Anschlüsse::reserviere_pcf8574_port(
+        Level::Low,
+        Level::Low,
+        Level::Low,
+        pcf8574::Variante::Normal,
+        u3::new(0),
+    )
+    .expect("Aufruf von llln nach drop.");
 
     // jetzt sollte Anschlüsse wieder verfügbar sein
     assert_eq!(
-        lock_anschlüsse().reserviere_pcf8574_port(
+        Anschlüsse::reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
             Level::Low,
@@ -95,36 +88,33 @@ fn drop_semantics() {
     drop(llln);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln0 = lock_anschlüsse()
-        .reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0),
-        )
-        .expect("Aufruf von llln nach drop.");
-    let llln1 = lock_anschlüsse()
-        .reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(1),
-        )
-        .expect("Aufruf von llln nach drop, alternativer port.");
+    let llln0 = Anschlüsse::reserviere_pcf8574_port(
+        Level::Low,
+        Level::Low,
+        Level::Low,
+        pcf8574::Variante::Normal,
+        u3::new(0),
+    )
+    .expect("Aufruf von llln nach drop.");
+    let llln1 = Anschlüsse::reserviere_pcf8574_port(
+        Level::Low,
+        Level::Low,
+        Level::Low,
+        pcf8574::Variante::Normal,
+        u3::new(1),
+    )
+    .expect("Aufruf von llln nach drop, alternativer port.");
     drop(llln0);
     drop(llln1);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln = lock_anschlüsse()
-        .reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0),
-        )
-        .expect("Aufruf von llln nach drop.");
+    let llln = Anschlüsse::reserviere_pcf8574_port(
+        Level::Low,
+        Level::Low,
+        Level::Low,
+        pcf8574::Variante::Normal,
+        u3::new(0),
+    )
+    .expect("Aufruf von llln nach drop.");
     drop(llln);
 }

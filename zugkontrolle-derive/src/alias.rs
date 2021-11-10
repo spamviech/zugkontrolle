@@ -78,7 +78,6 @@ pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> Token
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
                         fn reserviere(
                             self,
-                            anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                             pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
                             output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
@@ -92,7 +91,7 @@ pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> Token
                                         pwm_nicht_benötigt,
                                         output_nicht_benötigt,
                                         input_nicht_benötigt
-                                    } = save.reserviere(anschlüsse, acc.0, acc.1, acc.2)?;
+                                    } = save.reserviere(acc.0, acc.1, acc.2)?;
                                     acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                                     Some(anschluss)
                                 } else {

@@ -9,7 +9,7 @@ use crate::{
     anschluss::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        Anschlüsse, Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
     farbe::Farbe,
 };
@@ -76,7 +76,6 @@ impl Serialisiere for Streckenabschnitt {
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -86,7 +85,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.anschluss.reserviere(anschlüsse, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.anschluss.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Streckenabschnitt::neu(self.farbe, anschluss),
             pwm_nicht_benötigt,

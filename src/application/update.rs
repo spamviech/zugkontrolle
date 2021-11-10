@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        anschlüsse::Anschlüsse,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         Fließend, OutputAnschluss, OutputSerialisiert,
     },
@@ -128,12 +127,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                     } else {
                         (None, (Vec::new(), Vec::new(), Vec::new()))
                     };
-                match anschlüsse_save.reserviere(
-                    &mut *Anschlüsse::mutex_guard(),
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                ) {
+                match anschlüsse_save.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse) {
                     Ok(Reserviert { anschluss, .. }) => {
                         let _ = steuerung.insert(anschluss);
                         message = Some(Nachricht::SchließeModal)
@@ -148,7 +142,6 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         if let Some(steuerung_save) = steuerung_save {
                             let save_clone = steuerung_save.clone();
                             match steuerung_save.reserviere(
-                                &mut *Anschlüsse::mutex_guard(),
                                 pwm_pins,
                                 output_anschlüsse,
                                 input_anschlüsse,
@@ -311,12 +304,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                 // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
                 // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
                 // beim hinzufügen.
-                match anschluss_definition.reserviere(
-                    &mut *Anschlüsse::mutex_guard(),
-                    Vec::new(),
-                    Vec::new(),
-                    Vec::new(),
-                ) {
+                match anschluss_definition.reserviere(Vec::new(), Vec::new(), Vec::new()) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.aktuell = Some((
                             StreckenabschnittId {
@@ -522,12 +510,7 @@ where
             } else {
                 (None, (Vec::new(), Vec::new(), Vec::new()))
             };
-        match geschwindigkeit_save.reserviere(
-            &mut *Anschlüsse::mutex_guard(),
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        ) {
+        match geschwindigkeit_save.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                 match modal_status.overlay_mut() {
                     Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
@@ -569,12 +552,7 @@ where
                 let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
                 if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
                     let serialisiert_clone = serialisiert.clone();
-                    match serialisiert.reserviere(
-                        &mut *Anschlüsse::mutex_guard(),
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                    ) {
+                    match serialisiert.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse) {
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                             // Modal/AnzeigeStatus-Map muss nicht angepasst werden,
                             // nachdem nur wiederhergestellt wird

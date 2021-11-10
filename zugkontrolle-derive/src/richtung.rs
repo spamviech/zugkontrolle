@@ -87,13 +87,12 @@ pub fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> Token
             impl #base_ident::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
                 fn reserviere(
                     self,
-                    anschlüsse: &mut #base_ident::anschluss::Anschlüsse,
                     pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
                     output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
                 ) -> #base_ident::anschluss::de_serialisieren::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert {  #(#struct_fields),* } = self;
-                    #(let #base_ident::anschluss::de_serialisieren::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(anschlüsse, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
+                    #(let #base_ident::anschluss::de_serialisieren::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
                     Ok(#base_ident::anschluss::de_serialisieren::Reserviert {
                         anschluss: RichtungAnschlüsse {
                             #(#struct_fields),*

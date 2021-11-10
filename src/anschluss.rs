@@ -258,7 +258,6 @@ impl Serialisiere for OutputAnschluss {
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -290,7 +289,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
             }
             let (anschluss, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => (
-                    Anschluss::Pin(match anschlüsse.reserviere_pin(pin) {
+                    Anschluss::Pin(match Anschlüsse::reserviere_pin(pin) {
                         Ok(pin) => pin,
                         Err(error) => fehler!(error),
                     }),
@@ -300,7 +299,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                     let port = u3::new(port);
                     (
                         Anschluss::Pcf8574Port(
-                            match anschlüsse.reserviere_pcf8574_port(a0, a1, a2, variante, port) {
+                            match Anschlüsse::reserviere_pcf8574_port(a0, a1, a2, variante, port) {
                                 Ok(port) => port,
                                 Err(error) => fehler!(error),
                             },
@@ -451,7 +450,6 @@ impl Serialisiere for InputAnschluss {
 impl Reserviere<InputAnschluss> for InputSerialisiert {
     fn reserviere(
         self,
-        anschlüsse: &mut Anschlüsse,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -476,25 +474,24 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 }
                 acc
             });
-        let interrupt_konfigurieren =
-            |anschlüsse: &mut Anschlüsse, mut anschluss| -> Result<_, Fehler> {
-                if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
-                    if let Some(interrupt) = gesuchter_interrupt {
+        let interrupt_konfigurieren = |mut anschluss| -> Result<_, Fehler> {
+            if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
+                if let Some(interrupt) = gesuchter_interrupt {
+                    let _ = port.set_interrupt_pin(interrupt)?;
+                } else if let Some(pin) = self_interrupt {
+                    if Some(pin) != port.interrupt_pin()? {
+                        let interrupt = Anschlüsse::reserviere_pin(pin)?.into_input();
                         let _ = port.set_interrupt_pin(interrupt)?;
-                    } else if let Some(pin) = self_interrupt {
-                        if Some(pin) != port.interrupt_pin()? {
-                            let interrupt = anschlüsse.reserviere_pin(pin)?.into_input();
-                            let _ = port.set_interrupt_pin(interrupt)?;
-                        }
                     }
-                } else if let Some(interrupt) = self_interrupt {
-                    error!(
-                        "Interrupt Pin {} für einen InputPin {:?} konfiguriert.",
-                        interrupt, anschluss
-                    )
                 }
-                Ok(anschluss)
-            };
+            } else if let Some(interrupt) = self_interrupt {
+                error!(
+                    "Interrupt Pin {} für einen InputPin {:?} konfiguriert.",
+                    interrupt, anschluss
+                )
+            }
+            Ok(anschluss)
+        };
         macro_rules! fehler {
             ($error:expr) => {
                 return Err(de_serialisieren::Fehler {
@@ -506,20 +503,20 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             };
         }
         let anschluss = if let Some(anschluss) = gesuchter_anschluss {
-            match interrupt_konfigurieren(anschlüsse, anschluss) {
+            match interrupt_konfigurieren(anschluss) {
                 Ok(anschluss) => anschluss,
                 Err(error) => fehler!(error),
             }
         } else {
             match self {
                 InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(match anschlüsse.reserviere_pin(pin) {
+                    InputAnschluss::Pin(match Anschlüsse::reserviere_pin(pin) {
                         Ok(anschluss) => anschluss.into_input(),
                         Err(error) => fehler!(error),
                     })
                 }
                 InputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, interrupt: _ } => {
-                    let port = match anschlüsse.reserviere_pcf8574_port(
+                    let port = match Anschlüsse::reserviere_pcf8574_port(
                         a0,
                         a1,
                         a2,
@@ -533,10 +530,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                         Ok(input_port) => input_port,
                         Err(error) => fehler!(error),
                     };
-                    match interrupt_konfigurieren(
-                        anschlüsse,
-                        InputAnschluss::Pcf8574Port(input_port),
-                    ) {
+                    match interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)) {
                         Ok(anschluss) => anschluss,
                         Err(error) => fehler!(error),
                     }
