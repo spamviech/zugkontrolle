@@ -20,8 +20,7 @@ fn drop_semantics() {
         .init()
         .expect("failed to initialize error logging");
 
-    let mut anschlüsse = Anschlüsse::neu().expect("1.ter Aufruf von neu.");
-    let _ = Anschlüsse::neu().expect_err("2.ter Aufruf von neu.");
+    let mut anschlüsse = Anschlüsse::lock().expect("1.ter Aufruf von neu.");
     let llln = anschlüsse
         .reserviere_pcf8574_port(
             Level::Low,
@@ -73,7 +72,7 @@ fn drop_semantics() {
     drop(anschlüsse);
 
     // jetzt sollte Anschlüsse wieder verfügbar sein
-    let mut anschlüsse = Anschlüsse::neu().expect("Aufruf von neu nach drop.");
+    let mut anschlüsse = Anschlüsse::lock().expect("Aufruf von neu nach drop.");
     assert_eq!(
         anschlüsse.reserviere_pcf8574_port(
             Level::Low,
