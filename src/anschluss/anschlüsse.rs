@@ -6,7 +6,7 @@ use std::{
     mem,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, MutexGuard, PoisonError,
+        Arc, Mutex, MutexGuard,
     },
     thread,
 };
@@ -174,7 +174,7 @@ impl Anschlüsse {
                         ),*
                     }
                 };
-                port_opt.ok_or(SyncFehler::AnschlussInVerwendung(
+                port_opt.ok_or(SyncFehler(
                     AnschlussBeschreibung::Pcf8574Port {a0, a1,a2,variante, port}
                 ))
             };
@@ -187,9 +187,7 @@ impl Anschlüsse {
         debug!("reserviere pin {}", pin);
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
-            return Err(Fehler::Sync(SyncFehler::AnschlussInVerwendung(
-                AnschlussBeschreibung::Pin(pin),
-            )));
+            return Err(Fehler::Sync(SyncFehler(AnschlussBeschreibung::Pin(pin))));
         }
         #[cfg(raspi)]
         {
@@ -201,9 +199,7 @@ impl Anschlüsse {
             if guard.ausgegebene_pins.insert(pin) {
                 Ok(Pin::neu(pin, guard.pin_rückgabe.clone()))
             } else {
-                Err(Fehler::Sync(SyncFehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(
-                    pin,
-                ))))
+                Err(Fehler::Sync(SyncFehler(AnschlussBeschreibung::Pin(pin))))
             }
         }
     }
@@ -423,11 +419,11 @@ impl From<SyncFehler> for Fehler {
         Fehler::Sync(error)
     }
 }
-impl<T> From<PoisonError<T>> for Fehler {
-    fn from(error: PoisonError<T>) -> Self {
-        SyncFehler::from(error).into()
-    }
-}
+// impl<T> From<PoisonError<T>> for Fehler {
+//     fn from(error: PoisonError<T>) -> Self {
+//         SyncFehler::from(error).into()
+//     }
+// }
 #[cfg(raspi)]
 impl From<rppal::gpio::Error> for Fehler {
     fn from(error: rppal::gpio::Error) -> Self {
@@ -454,17 +450,7 @@ pub enum AnschlussBeschreibung {
     Pcf8574Port { a0: Level, a1: Level, a2: Level, variante: pcf8574::Variante, port: u3 },
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyncFehler {
-    PoisonFehler,
-    SingletonInVerwendung,
-    AnschlussInVerwendung(AnschlussBeschreibung),
-    WertDropped,
-}
-impl<T> From<PoisonError<T>> for SyncFehler {
-    fn from(_: PoisonError<T>) -> Self {
-        SyncFehler::PoisonFehler
-    }
-}
+pub struct SyncFehler(pub AnschlussBeschreibung);
 
 #[cfg(test)]
 // path attribute necessary due to non-ascii module name (at least for now)
