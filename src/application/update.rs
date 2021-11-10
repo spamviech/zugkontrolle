@@ -428,8 +428,21 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 
     pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+        let name_clone = name.clone();
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
+        }
+
+        match self.modal_status.overlay_mut() {
+            Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
+                geschwindigkeit_auswahl.entfernen(&name_clone);
+            }
+            modal => {
+                error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
+                self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
+                    geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
+                ))
+            }
         }
     }
 
