@@ -2,12 +2,15 @@
 
 #[cfg(not(raspi))]
 use std::collections::HashSet;
-use std::sync::{
-    self,
-    mpsc::{channel, Receiver, Sender},
-    Arc, Mutex, MutexGuard, PoisonError,
+use std::{
+    mem,
+    sync::{
+        self,
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex, MutexGuard, PoisonError,
+    },
+    thread,
 };
-use std::thread;
 
 use log::{debug, error};
 use num_x::u3;
@@ -142,31 +145,34 @@ impl Anschlüsse {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Option<Port> {
+    ) -> Result<Port, SyncFehler> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         macro_rules! reserviere_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
-                paste! {
+                let port_opt = paste! {
                     match (a0, a1,a2, variante) {
                         $(
                             (level!($k),level!($l),level!($m),variante!($n)) => {
                                 debug!("reserviere pcf8574 {:?}-{:?}-{:?}-{:?}-{}"
                                         , level!($k), level!($l), level!($m), variante!($n), port);
                                 match u8::from(port) {
-                                    0 => std::mem::replace(&mut self.[<$k $l $m $n 0>], None),
-                                    1 => std::mem::replace(&mut self.[<$k $l $m $n 1>], None),
-                                    2 => std::mem::replace(&mut self.[<$k $l $m $n 2>], None),
-                                    3 => std::mem::replace(&mut self.[<$k $l $m $n 3>], None),
-                                    4 => std::mem::replace(&mut self.[<$k $l $m $n 4>], None),
-                                    5 => std::mem::replace(&mut self.[<$k $l $m $n 5>], None),
-                                    6 => std::mem::replace(&mut self.[<$k $l $m $n 6>], None),
-                                    7 => std::mem::replace(&mut self.[<$k $l $m $n 7>], None),
+                                    0 => mem::replace(&mut self.[<$k $l $m $n 0>], None),
+                                    1 => mem::replace(&mut self.[<$k $l $m $n 1>], None),
+                                    2 => mem::replace(&mut self.[<$k $l $m $n 2>], None),
+                                    3 => mem::replace(&mut self.[<$k $l $m $n 3>], None),
+                                    4 => mem::replace(&mut self.[<$k $l $m $n 4>], None),
+                                    5 => mem::replace(&mut self.[<$k $l $m $n 5>], None),
+                                    6 => mem::replace(&mut self.[<$k $l $m $n 6>], None),
+                                    7 => mem::replace(&mut self.[<$k $l $m $n 7>], None),
                                     _ => None,
                                 }
                             }
                         ),*
                     }
-                }
+                };
+                port_opt.ok_or(SyncFehler::AnschlussInVerwendung(
+                    AnschlussBeschreibung::Pcf8574Port {a0, a1,a2,variante, port}
+                ))
             };
         }
         llln_to_hhha! {reserviere_pcf8574}
@@ -330,7 +336,19 @@ impl Anschlüsse {
                                 )
                             )
                         }
-                    };
+                    }
+                }
+                paste! {
+                    $(
+                        let [<$a0 $a1 $a2 $var 0>] = port_value! {$a0, $a1, $a2, $var, 0};
+                        let [<$a0 $a1 $a2 $var 1>] = port_value! {$a0, $a1, $a2, $var, 1};
+                        let [<$a0 $a1 $a2 $var 2>] = port_value! {$a0, $a1, $a2, $var, 2};
+                        let [<$a0 $a1 $a2 $var 3>] = port_value! {$a0, $a1, $a2, $var, 3};
+                        let [<$a0 $a1 $a2 $var 4>] = port_value! {$a0, $a1, $a2, $var, 4};
+                        let [<$a0 $a1 $a2 $var 5>] = port_value! {$a0, $a1, $a2, $var, 5};
+                        let [<$a0 $a1 $a2 $var 6>] = port_value! {$a0, $a1, $a2, $var, 6};
+                        let [<$a0 $a1 $a2 $var 7>] = port_value! {$a0, $a1, $a2, $var, 7};
+                    )*
                 }
                 paste! {
                     Anschlüsse {
@@ -344,14 +362,14 @@ impl Anschlüsse {
                         pin_rückgabe: pin_sender,
                         $(
                             [<$a0 $a1 $a2 $var>],
-                            [<$a0 $a1 $a2 $var 0>]: port_value!($a0, $a1, $a2, $var, 0),
-                            [<$a0 $a1 $a2 $var 1>]: port_value!($a0, $a1, $a2, $var, 1),
-                            [<$a0 $a1 $a2 $var 2>]: port_value!($a0, $a1, $a2, $var, 2),
-                            [<$a0 $a1 $a2 $var 3>]: port_value!($a0, $a1, $a2, $var, 3),
-                            [<$a0 $a1 $a2 $var 4>]: port_value!($a0, $a1, $a2, $var, 4),
-                            [<$a0 $a1 $a2 $var 5>]: port_value!($a0, $a1, $a2, $var, 5),
-                            [<$a0 $a1 $a2 $var 6>]: port_value!($a0, $a1, $a2, $var, 6),
-                            [<$a0 $a1 $a2 $var 7>]: port_value!($a0, $a1, $a2, $var, 7),
+                            [<$a0 $a1 $a2 $var 0>],
+                            [<$a0 $a1 $a2 $var 1>],
+                            [<$a0 $a1 $a2 $var 2>],
+                            [<$a0 $a1 $a2 $var 3>],
+                            [<$a0 $a1 $a2 $var 4>],
+                            [<$a0 $a1 $a2 $var 5>],
+                            [<$a0 $a1 $a2 $var 6>],
+                            [<$a0 $a1 $a2 $var 7>],
                         )*
                     }
                 }
