@@ -213,61 +213,67 @@ impl Anschlüsse {
             }
         }
     }
+
     fn listen_restore_messages(
         sender: Sender<(pcf8574::Beschreibung, u3)>,
         receiver: Receiver<(pcf8574::Beschreibung, u3)>,
     ) {
         loop {
             match receiver.recv() {
-                Ok((nachricht, port)) => match ANSCHLÜSSE.lock() {
-                    Ok(mut guard) => {
-                        let anschlüsse = &mut *guard;
-                        macro_rules! port_value {
-                            ($a0:ident $a1:ident $a2:ident $var:ident $port:expr) => {
-                                paste! {
-                                    Port::neu(
-                                        anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
-                                        pcf8574::Beschreibung {
-                                            a0:level!{$a0},
-                                            a1:level!{$a1},
-                                            a2:level!{$a2},
-                                            variante:variante!{$var}
-                                        },
-                                        $port,
-                                        sender.clone()
-                                    )
-                                }
-                            };
-                        }
-                        macro_rules! match_nachricht {
-                            {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
-                                paste! {
-                                    match nachricht {
-                                        $(
+                Ok((nachricht, port)) => {
+                    debug!("Rückgabe-Nachricht für {:?} {:?}", nachricht, port);
+                    match ANSCHLÜSSE.lock() {
+                        Ok(mut guard) => {
+                            let anschlüsse = &mut *guard;
+                            macro_rules! port_value {
+                                ($a0:ident $a1:ident $a2:ident $var:ident $port:expr) => {
+                                    paste! {
+                                        Port::neu(
+                                            anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
                                             pcf8574::Beschreibung {
-                                                a0: level!{$k},
-                                                a1: level!{$l},
-                                                a2: level!{$m},
-                                                variante: variante!{$n}
-                                            } => {
-                                                $value! {$k $l $m $n port}
-                                            }
-                                        )*
+                                                a0:level!{$a0},
+                                                a1:level!{$a1},
+                                                a2:level!{$a2},
+                                                variante:variante!{$var}
+                                            },
+                                            $port,
+                                            sender.clone()
+                                        )
+                                    }
+                                };
+                            }
+                            macro_rules! match_nachricht {
+                                {$($k:ident $l:ident $m:ident $n:ident),*} => {
+                                    paste! {
+                                        match nachricht {
+                                            $(
+                                                pcf8574::Beschreibung {
+                                                    a0: level!{$k},
+                                                    a1: level!{$l},
+                                                    a2: level!{$m},
+                                                    variante: variante!{$n}
+                                                } => {
+                                                    port_value! {$k $l $m $n port}
+                                                }
+                                            )*
+                                        }
                                     }
                                 }
                             }
+                            let port_struct = llln_to_hhha! {match_nachricht};
+                            if let Err(err) = anschlüsse.rückgabe(port_struct) {
+                                error!("Fehler bei rückgabe: {:?}", err);
+                                break;
+                            } else {
+                                debug!("Erfolgreiche Rückgabe von {:?} {:?}", nachricht, port);
+                            }
                         }
-                        let port = llln_to_hhha! {match_nachricht: port_value};
-                        if let Err(err) = anschlüsse.rückgabe(port) {
-                            error!("Fehler bei rückgabe: {:?}", err);
+                        Err(err) => {
+                            error!("Anschlüsse-static poisoned: {}", err);
                             break;
                         }
                     }
-                    Err(err) => {
-                        error!("Anschlüsse-static poisoned: {}", err);
-                        break;
-                    }
-                },
+                }
                 Err(err) => {
                     error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
                     break;
