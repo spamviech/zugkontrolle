@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
+        anschlüsse::Anschlüsse,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         Fließend, OutputAnschluss, OutputSerialisiert,
     },
@@ -128,7 +129,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         (None, (Vec::new(), Vec::new(), Vec::new()))
                     };
                 match anschlüsse_save.reserviere(
-                    &mut self.anschlüsse,
+                    &mut *Anschlüsse::mutex_guard(),
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
@@ -147,7 +148,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         if let Some(steuerung_save) = steuerung_save {
                             let save_clone = steuerung_save.clone();
                             match steuerung_save.reserviere(
-                                &mut self.anschlüsse,
+                                &mut *Anschlüsse::mutex_guard(),
                                 pwm_pins,
                                 output_anschlüsse,
                                 input_anschlüsse,
@@ -311,7 +312,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                 // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
                 // beim hinzufügen.
                 match anschluss_definition.reserviere(
-                    &mut self.anschlüsse,
+                    &mut *Anschlüsse::mutex_guard(),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -510,7 +511,7 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
     ) {
-        let Zugkontrolle { gleise, anschlüsse, modal_status, geschwindigkeiten, .. } = self;
+        let Zugkontrolle { gleise, modal_status, geschwindigkeiten, .. } = self;
         let (alt_serialisiert_und_map, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
             if let Some((geschwindigkeit, streckenabschnitt_map)) =
                 gleise.geschwindigkeit_mit_streckenabschnitten_entfernen(&name)
@@ -522,7 +523,7 @@ where
                 (None, (Vec::new(), Vec::new(), Vec::new()))
             };
         match geschwindigkeit_save.reserviere(
-            anschlüsse,
+            &mut *Anschlüsse::mutex_guard(),
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
@@ -569,7 +570,7 @@ where
                 if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
                     let serialisiert_clone = serialisiert.clone();
                     match serialisiert.reserviere(
-                        anschlüsse,
+                        &mut *Anschlüsse::mutex_guard(),
                         pwm_pins,
                         output_anschlüsse,
                         input_anschlüsse,
@@ -1031,7 +1032,7 @@ where
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
     #[inline(always)]
     pub fn laden(&mut self, pfad: String) {
-        match self.gleise.laden(&mut self.anschlüsse, &pfad) {
+        match self.gleise.laden(&pfad) {
             Ok(()) => {
                 self.geschwindigkeiten = self
                     .gleise

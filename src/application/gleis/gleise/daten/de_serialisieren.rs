@@ -489,11 +489,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
 
 #[allow(single_use_lifetimes)]
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
-    pub fn laden(
-        &mut self,
-        anschlüsse: &mut Anschlüsse,
-        pfad: impl AsRef<std::path::Path>,
-    ) -> Result<(), Fehler> {
+    pub fn laden(&mut self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
         // aktuellen Zustand zurücksetzen
         self.canvas.leeren();
         let zustand = std::mem::replace(&mut self.zustand, Zustand::neu());
@@ -520,7 +516,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
 
         // reserviere Anschlüsse
         self.zustand = zustand_serialisiert.reserviere(
-            anschlüsse,
+            &mut *Anschlüsse::mutex_guard(),
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,

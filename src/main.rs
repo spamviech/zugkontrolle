@@ -36,13 +36,13 @@
 use iced::{Application, Settings};
 use simple_logger::SimpleLogger;
 use zugkontrolle::{
-    anschluss::anschlüsse::{self, Anschlüsse},
+    anschluss::anschlüsse,
     application::{fonts, icon::icon},
     args::{self, Args},
     Lego, Märklin, Zugkontrolle,
 };
 
-fn main() -> Result<(), Fehler> {
+fn main() -> Result<(), iced::Error> {
     let args = Args::from_env();
     let verbose = args.verbose;
     let zugtyp = args.zugtyp;
@@ -54,12 +54,10 @@ fn main() -> Result<(), Fehler> {
         .init()
         .expect("failed to initialize error logging");
 
-    let anschlüsse = Anschlüsse::neu()?;
-
     let settings = Settings {
         window: iced::window::Settings { size: (1024, 768), icon: icon(), ..Default::default() },
         default_font: Some(&fonts::REGULAR),
-        ..Settings::with_flags((anschlüsse, args))
+        ..Settings::with_flags(args)
     };
 
     match zugtyp {

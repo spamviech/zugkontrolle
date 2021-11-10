@@ -45,7 +45,6 @@ impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg
 impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
     pub fn view(&mut self) -> iced::Element<'_, Nachricht<Z>> {
         let Zugkontrolle {
-            anschlüsse: _,
             gleise,
             scrollable_state,
             geraden,

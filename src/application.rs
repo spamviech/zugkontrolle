@@ -23,7 +23,7 @@ use self::{
     typen::*,
 };
 use crate::{
-    anschluss::{anschlüsse::Anschlüsse, de_serialisieren::Serialisiere, OutputSerialisiert},
+    anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
     args::Args,
     farbe::Farbe,
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
@@ -370,7 +370,6 @@ struct MessageBox {
 }
 
 pub struct Zugkontrolle<Z: Zugtyp> {
-    anschlüsse: Anschlüsse,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<GeradeUnit<Z>>>,
@@ -404,7 +403,6 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Zugkontrolle")
-            .field("anschlüsse", &self.anschlüsse)
             .field("gleise", &self.gleise)
             .field("scrollable_state", &self.scrollable_state)
             .field("geraden", &self.geraden)
@@ -439,10 +437,10 @@ where
     <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Anschlüsse, Args);
+    type Flags = Args;
     type Message = Nachricht<Z>;
 
-    fn new((anschlüsse, args): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new(args: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
         let mut messages = Vec::new();
         if let Some(modus) = modus {
@@ -470,7 +468,6 @@ where
         }
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
-            anschlüsse,
             gleise,
             scrollable_state: iced::scrollable::State::new(),
             geraden: Z::geraden().into_iter().map(Button::neu).collect(),

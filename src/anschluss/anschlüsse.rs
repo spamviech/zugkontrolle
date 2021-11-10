@@ -5,9 +5,8 @@ use std::collections::HashSet;
 use std::{
     mem,
     sync::{
-        self,
         mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, MutexGuard, PoisonError,
+        Arc, LockResult, Mutex, MutexGuard, PoisonError,
     },
     thread,
 };
@@ -93,8 +92,20 @@ macro_rules! llln_to_hhha {
 llln_to_hhha! { anschlüsse_data }
 impl Anschlüsse {
     /// Erhalte Zugriff auf das Singleton.
-    pub fn lock<'t>() -> sync::LockResult<MutexGuard<'t, Anschlüsse>> {
+    #[inline(always)]
+    pub fn lock<'t>() -> LockResult<MutexGuard<'t, Anschlüsse>> {
         ANSCHLÜSSE.lock()
+    }
+
+    /// Erhalte Zugriff auf das Singleton und heile auftretende PoisonError mit Fehlermeldung.
+    pub(crate) fn mutex_guard<'t>() -> MutexGuard<'t, Anschlüsse> {
+        match Anschlüsse::lock() {
+            Ok(guard) => guard,
+            Err(poison_error) => {
+                error!("Anschlüsse-Singleton poisoned!");
+                poison_error.into_inner()
+            }
+        }
     }
 
     /// Gebe den Pcf8574-Port an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
