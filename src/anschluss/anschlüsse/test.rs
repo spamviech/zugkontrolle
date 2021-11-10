@@ -20,8 +20,12 @@ fn drop_semantics() {
         .init()
         .expect("failed to initialize error logging");
 
-    let mut anschlüsse = Anschlüsse::lock().expect("1.ter Aufruf von neu.");
-    let llln = anschlüsse
+    let mut lock_count: usize = 0;
+    let mut lock_anschlüsse = || {
+        lock_count += 1;
+        Anschlüsse::lock().expect(&format!("{}.ter Aufruf von lock.", lock_count))
+    };
+    let llln = lock_anschlüsse()
         .reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
@@ -41,7 +45,7 @@ fn drop_semantics() {
     );
     assert_eq!(llln.port(), u3::new(0));
     assert_eq!(
-        anschlüsse.reserviere_pcf8574_port(
+        lock_anschlüsse().reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
             Level::Low,
@@ -60,7 +64,7 @@ fn drop_semantics() {
     drop(llln);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln = anschlüsse
+    let llln = lock_anschlüsse()
         .reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
@@ -69,12 +73,10 @@ fn drop_semantics() {
             u3::new(0),
         )
         .expect("Aufruf von llln nach drop.");
-    drop(anschlüsse);
 
     // jetzt sollte Anschlüsse wieder verfügbar sein
-    let mut anschlüsse = Anschlüsse::lock().expect("Aufruf von neu nach drop.");
     assert_eq!(
-        anschlüsse.reserviere_pcf8574_port(
+        lock_anschlüsse().reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
             Level::Low,
@@ -93,7 +95,7 @@ fn drop_semantics() {
     drop(llln);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln0 = anschlüsse
+    let llln0 = lock_anschlüsse()
         .reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
@@ -102,7 +104,7 @@ fn drop_semantics() {
             u3::new(0),
         )
         .expect("Aufruf von llln nach drop.");
-    let llln1 = anschlüsse
+    let llln1 = lock_anschlüsse()
         .reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
@@ -115,7 +117,7 @@ fn drop_semantics() {
     drop(llln1);
     // Warte etwas, damit der restore-thread genug Zeit hat.
     sleep(Duration::from_secs(1));
-    let llln = anschlüsse
+    let llln = lock_anschlüsse()
         .reserviere_pcf8574_port(
             Level::Low,
             Level::Low,
@@ -125,5 +127,4 @@ fn drop_semantics() {
         )
         .expect("Aufruf von llln nach drop.");
     drop(llln);
-    drop(anschlüsse);
 }
