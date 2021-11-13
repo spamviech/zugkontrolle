@@ -2,7 +2,6 @@
 
 #[cfg(not(raspi))]
 use std::{
-    collections::HashSet,
     f64,
     fmt::{Debug, Display},
     io,
@@ -20,12 +19,17 @@ use once_cell::sync::Lazy;
 #[cfg(not(raspi))]
 #[derive(Debug)]
 struct PwmState {
-    channels: HashSet<bool>,
+    pwm0: Option<Pwm>,
+    pwm1: Option<Pwm>,
 }
 
 #[cfg(not(raspi))]
-static PWM: Lazy<RwLock<PwmState>> =
-    Lazy::new(|| RwLock::new(PwmState { channels: [false, true].into_iter().collect() }));
+static PWM: Lazy<RwLock<PwmState>> = Lazy::new(|| {
+    RwLock::new(PwmState {
+        pwm0: Some(Pwm::init(Channel::Pwm0)),
+        pwm1: Some(Pwm::init(Channel::Pwm1)),
+    })
+});
 
 #[cfg(not(raspi))]
 impl PwmState {
@@ -36,6 +40,14 @@ impl PwmState {
                 error!("Pwm-static poisoned: {:?}", poison_error);
                 poison_error.into_inner()
             }
+        }
+    }
+
+    fn write_channel<'t>(&'t mut self, channel: Channel) -> &'t mut Option<Pwm> {
+        let PwmState { pwm0, pwm1 } = self;
+        match channel {
+            Channel::Pwm0 => pwm0,
+            Channel::Pwm1 => pwm1,
         }
     }
 }
@@ -56,8 +68,21 @@ pub struct Pwm {
 #[cfg(not(raspi))]
 impl Drop for Pwm {
     fn drop(&mut self) {
-        if !PwmState::write_static().channels.insert(self.channel.als_bool()) {
-            error!("Dropped pwm channel was still available: {:?}", self.channel)
+        let mut guard = PwmState::write_static();
+        let pwm = guard.write_channel(self.channel);
+        match pwm {
+            Some(pwm) => {
+                error!("Dropped pwm channel {:?} was still available: {:?}\nDropped without restoring: {:?}", self.channel, pwm,self);
+            }
+            None => {
+                *pwm = Some(Pwm {
+                    channel: self.channel,
+                    period: self.period,
+                    pulse_width: self.pulse_width,
+                    polarity: self.polarity,
+                    enabled: false,
+                })
+            }
         }
     }
 }
@@ -76,19 +101,22 @@ fn period(frequency: f64) -> Duration {
 
 #[cfg(not(raspi))]
 impl Pwm {
+    fn init(channel: Channel) -> Pwm {
+        Pwm {
+            channel,
+            period: Duration::ZERO,
+            pulse_width: Duration::ZERO,
+            polarity: Polarity::Normal,
+            enabled: false,
+        }
+    }
+
     /// Constructs a new Pwm.
     pub fn new(channel: Channel) -> Result<Pwm> {
-        if PwmState::write_static().channels.remove(&channel.als_bool()) {
-            Ok(Pwm {
-                channel,
-                period: Duration::ZERO,
-                pulse_width: Duration::ZERO,
-                polarity: Polarity::Normal,
-                enabled: false,
-            })
-        } else {
-            Err(Error::Io(io::Error::new(io::ErrorKind::AlreadyExists, channel.to_string())))
-        }
+        let mut guard = PwmState::write_static();
+        let pwm = guard.write_channel(channel);
+        pwm.take()
+            .ok_or(Error::Io(io::Error::new(io::ErrorKind::AlreadyExists, channel.to_string())))
     }
 
     /// Constructs a new Pwm using the specified settings.
@@ -101,15 +129,18 @@ impl Pwm {
         polarity: Polarity,
         enabled: bool,
     ) -> Result<Pwm> {
+        let mut pwm = Pwm::new(channel)?;
         if period < pulse_width {
             Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,
                 format!("Period {:?} is shorter than the pulse width {:?}!", period, pulse_width),
             )))
-        } else if PwmState::write_static().channels.remove(&channel.als_bool()) {
-            Ok(Pwm { channel, period, pulse_width, polarity, enabled })
         } else {
-            Err(Error::Io(io::Error::new(io::ErrorKind::AlreadyExists, channel.to_string())))
+            pwm.period = period;
+            pwm.pulse_width = pulse_width;
+            pwm.polarity = polarity;
+            pwm.enabled = enabled;
+            Ok(pwm)
         }
     }
 
@@ -121,19 +152,9 @@ impl Pwm {
         polarity: Polarity,
         enabled: bool,
     ) -> Result<Pwm> {
-        if PwmState::write_static().channels.remove(&channel.als_bool()) {
-            let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
-            let period = period(frequency);
-            Ok(Pwm {
-                channel,
-                period,
-                pulse_width: period.mul_f64(duty_cycle_checked),
-                polarity,
-                enabled,
-            })
-        } else {
-            Err(Error::Io(io::Error::new(io::ErrorKind::AlreadyExists, channel.to_string())))
-        }
+        let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
+        let period = period(frequency);
+        Pwm::with_period(channel, period, period.mul_f64(duty_cycle_checked), polarity, enabled)
     }
 
     /// Returns the period.
@@ -285,14 +306,6 @@ pub enum Channel {
 impl Display for Channel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <Channel as Debug>::fmt(&self, f)
-    }
-}
-
-#[cfg(not(raspi))]
-impl Channel {
-    #[inline(always)]
-    fn als_bool(self) -> bool {
-        self == Channel::Pwm1
     }
 }
 
