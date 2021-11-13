@@ -43,6 +43,7 @@ pub mod args;
 pub mod farbe;
 pub mod lookup;
 pub mod non_empty;
+pub mod rppal;
 pub mod steuerung;
 pub mod zugtyp;
 

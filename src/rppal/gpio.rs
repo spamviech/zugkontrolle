@@ -1,0 +1,341 @@
+//! Low level Steuerung von Gpio Pins.
+
+use std::{
+    collections::HashSet,
+    io,
+    sync::{RwLock, RwLockWriteGuard},
+    time::Duration,
+};
+
+use log::{debug, error};
+use once_cell::sync::Lazy;
+
+#[cfg(raspi)]
+pub type Gpio = rppal::gpio::Gpio;
+#[cfg(not(raspi))]
+#[derive(Debug)]
+struct GpioState {
+    pins: HashSet<u8>,
+}
+
+#[cfg(not(raspi))]
+const MAX_PIN: u8 = 27;
+
+#[cfg(not(raspi))]
+static GPIO: Lazy<RwLock<GpioState>> =
+    Lazy::new(|| RwLock::new(GpioState { pins: (1..=MAX_PIN).collect() }));
+
+#[cfg(not(raspi))]
+impl GpioState {
+    fn write_static<'t>() -> RwLockWriteGuard<'t, GpioState> {
+        match GPIO.write() {
+            Ok(guard) => guard,
+            Err(poison_error) => {
+                error!("Gpio-static poisoned: {:?}", poison_error);
+                poison_error.into_inner()
+            }
+        }
+    }
+}
+
+#[cfg(not(raspi))]
+#[derive(Debug, Clone)]
+#[allow(missing_copy_implementations)]
+pub struct Gpio;
+#[cfg(not(raspi))]
+impl Gpio {
+    /// Constructs a new `Gpio`.
+    pub fn new() -> Result<Gpio> {
+        Ok(Gpio)
+    }
+
+    /// Returns a [`Pin`] for the specified BCM GPIO pin number.
+    ///
+    /// Retrieving a GPIO pin grants access to the pin through an owned [`Pin`] instance.
+    /// If the pin is already in use, or the GPIO peripheral doesn't expose a pin with the
+    /// specified number, `get` returns `Err(`[`Error::PinNotAvailable`]`)`. After a [`Pin`]
+    /// (or a derived [`InputPin`], [`OutputPin`]) goes out of scope, it
+    /// can be retrieved again through another `get` call.
+    ///
+    /// [`Pin`]: struct.Pin.html
+    /// [`InputPin`]: struct.InputPin.html
+    /// [`OutputPin`]: struct.OutputPin.html
+    /// [`Error::PinNotAvailable`]: enum.Error.html#variant.PinNotAvailable
+    pub fn get(&self, pin: u8) -> Result<Pin> {
+        if GpioState::write_static().pins.remove(&pin) {
+            Ok(Pin(pin))
+        } else {
+            Err(Error::PinNotAvailable(pin))
+        }
+    }
+}
+
+#[cfg(raspi)]
+pub type Pin = rppal::gpio::Pin;
+#[cfg(not(raspi))]
+#[derive(Debug)]
+pub struct Pin(u8);
+
+impl Drop for Pin {
+    fn drop(&mut self) {
+        if !GpioState::write_static().pins.insert(self.0) {
+            error!("Dropped pin was still available: {}", self.0)
+        }
+    }
+}
+
+#[cfg(not(raspi))]
+impl Pin {
+    /// Returns the GPIO pin number.
+    ///
+    /// Pins are addressed by their BCM numbers, rather than their physical location.
+    pub fn pin(&self) -> u8 {
+        self.0
+    }
+
+    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// and disables the pin's built-in pull-up/pull-down resistors.
+    ///
+    /// [`InputPin`]: struct.InputPin.html
+    /// [`Input`]: enum.Mode.html#variant.Input
+    pub fn into_input(self) -> InputPin {
+        InputPin(self, PullUpDown::Off)
+    }
+
+    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// and enables the pin's built-in pull-down resistor.
+    ///
+    /// The pull-down resistor is disabled when `InputPin` goes out of scope if [`reset_on_drop`]
+    /// is set to `true` (default).
+    ///
+    /// [`InputPin`]: struct.InputPin.html
+    /// [`Input`]: enum.Mode.html#variant.Input
+    /// [`reset_on_drop`]: struct.InputPin.html#method.set_reset_on_drop
+    pub fn into_input_pulldown(self) -> InputPin {
+        InputPin(self, PullUpDown::PullDown)
+    }
+
+    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// and enables the pin's built-in pull-up resistor.
+    ///
+    /// The pull-up resistor is disabled when `InputPin` goes out of scope if [`reset_on_drop`]
+    /// is set to `true` (default).
+    ///
+    /// [`InputPin`]: struct.InputPin.html
+    /// [`Input`]: enum.Mode.html#variant.Input
+    /// [`reset_on_drop`]: struct.InputPin.html#method.set_reset_on_drop
+    pub fn into_input_pullup(self) -> InputPin {
+        InputPin(self, PullUpDown::PullUp)
+    }
+
+    /// Consumes the `Pin` and returns an [`OutputPin`]. Sets the mode to [`Mode::Output`]
+    /// and leaves the logic level unchanged.
+    pub fn into_output(self) -> OutputPin {
+        OutputPin(self, Level::Low)
+    }
+
+    /// Consumes the `Pin` and returns an [`OutputPin`]. Changes the logic level to
+    /// [`Level::Low`] and then sets the mode to [`Mode::Output`].
+    pub fn into_output_low(self) -> OutputPin {
+        OutputPin(self, Level::Low)
+    }
+
+    /// Consumes the `Pin` and returns an [`OutputPin`]. Changes the logic level to
+    /// [`Level::High`] and then sets the mode to [`Mode::Output`].
+    pub fn into_output_high(self) -> OutputPin {
+        OutputPin(self, Level::Low)
+    }
+}
+
+#[cfg(raspi)]
+pub type InputPin = rppal::gpio::InputPin;
+#[cfg(not(raspi))]
+#[derive(Debug)]
+pub struct InputPin(Pin, PullUpDown);
+
+#[cfg(not(raspi))]
+impl InputPin {
+    /// Returns the GPIO pin number.
+    ///
+    /// Pins are addressed by their BCM numbers, rather than their physical location.
+    #[inline(always)]
+    pub fn pin(&self) -> u8 {
+        self.0.pin()
+    }
+
+    /// Reads the pin's logic level.
+    pub fn read(&self) -> Level {
+        debug!("{:?}.read()", self);
+        Level::Low
+    }
+
+    /// Reads the pin's logic level, and returns `true` if it's set to [`Low`].
+    ///
+    /// [`Low`]: enum.Level.html#variant.Low
+    pub fn is_low(&self) -> bool {
+        debug!("{:?}.is_low()", self);
+        true
+    }
+
+    /// Reads the pin's logic level, and returns `true` if it's set to [`High`].
+    ///
+    /// [`High`]: enum.Level.html#variant.High
+    pub fn is_high(&self) -> bool {
+        debug!("{:?}.is_high()", self);
+        false
+    }
+
+    /// Configures an asynchronous interrupt trigger, which executes the callback on a
+    /// separate thread when the interrupt is triggered.
+    ///
+    /// The callback closure or function pointer is called with a single [`Level`] argument.
+    ///
+    /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared
+    /// when `set_async_interrupt` is called, or when `InputPin` goes out of scope.
+    ///
+    /// [`clear_async_interrupt`]: #method.clear_async_interrupt
+    /// [`Level`]: enum.Level.html
+    pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, _callback: C) -> Result<()>
+    where
+        C: FnMut(Level) + Send + 'static,
+    {
+        debug!("{:?}.set_async_interrupt({:?}, <callback>)", self, trigger);
+        Ok(())
+    }
+
+    /// Removes a previously configured asynchronous interrupt trigger.
+    pub fn clear_async_interrupt(&mut self) -> Result<()> {
+        debug!("{:?}.clear_async_interrupt()", self);
+        Ok(())
+    }
+}
+
+#[cfg(raspi)]
+pub type OutputPin = rppal::gpio::OutputPin;
+#[cfg(not(raspi))]
+#[derive(Debug)]
+pub struct OutputPin(Pin, Level);
+
+#[cfg(not(raspi))]
+impl OutputPin {
+    /// Returns the GPIO pin number.
+    ///
+    /// Pins are addressed by their BCM numbers, rather than their physical location.
+    #[inline(always)]
+    pub fn pin(&self) -> u8 {
+        self.0.pin()
+    }
+
+    /// Returns `true` if the pin's output state is set to [`Low`].
+    ///
+    /// [`Low`]: enum.Level.html#variant.Low
+    pub fn is_set_low(&self) -> bool {
+        self.1 == Level::Low
+    }
+
+    /// Returns `true` if the pin's output state is set to [`High`].
+    ///
+    /// [`High`]: enum.Level.html#variant.High
+    pub fn is_set_high(&self) -> bool {
+        self.1 == Level::High
+    }
+
+    /// Sets the pin's output state.
+    pub fn write(&mut self, level: Level) {
+        debug!("{:?}.write({:?})", self, level);
+        self.1 = level;
+    }
+
+    /// Configures a software-based PWM signal.
+    ///
+    /// `period` indicates the time it takes to complete one cycle.
+    ///
+    /// `pulse_width` indicates the amount of time the PWM signal is active during a
+    /// single period.
+    ///
+    /// Software-based PWM is inherently inaccurate on a multi-threaded OS due to
+    /// scheduling/preemption. If an accurate or faster PWM signal is required, use the
+    /// hardware [`Pwm`] peripheral instead. More information can be found [here].
+    ///
+    /// If `set_pwm` is called when a PWM thread is already active, the existing thread
+    /// will be reconfigured at the end of the current cycle.
+    ///
+    /// [`Pwm`]: ../pwm/struct.Pwm.html
+    /// [here]: index.html#software-based-pwm
+    pub fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<()> {
+        debug!("{:?}.set_pwm({:?}, {:?})", self, period, pulse_width);
+        Ok(())
+    }
+
+    /// Configures a software-based PWM signal.
+    ///
+    /// `set_pwm_frequency` is a convenience method that converts `frequency` to a period and
+    /// `duty_cycle` to a pulse width, and then calls [`set_pwm`].
+    ///
+    /// `frequency` is specified in hertz (Hz).
+    ///
+    /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
+    ///
+    /// [`set_pwm`]: #method.set_pwm
+    pub fn set_pwm_frequency(&mut self, frequency: f64, duty_cycle: f64) -> Result<()> {
+        debug!("{:?}.set_pwm_frequency({:?}, {:?})", self, frequency, duty_cycle);
+        Ok(())
+    }
+
+    /// Stops a previously configured software-based PWM signal.
+    ///
+    /// The thread responsible for emulating the PWM signal is stopped at the end
+    /// of the current cycle.
+    pub fn clear_pwm(&mut self) -> Result<()> {
+        debug!("{:?}.clear_pwm()", self);
+        Ok(())
+    }
+}
+
+#[cfg(raspi)]
+pub type Level = rppal::gpio::Level;
+#[cfg(not(raspi))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Pin logic levels.
+pub enum Level {
+    Low,
+    High,
+}
+
+#[cfg(raspi)]
+pub type PullUpDown = rppal::gpio::PullUpDown;
+#[cfg(not(raspi))]
+#[derive(Clone, Copy, Debug)]
+/// Built-in pull-up/pull-down resistor states.
+pub enum PullUpDown {
+    Off,
+    PullDown,
+    PullUp,
+}
+
+#[cfg(raspi)]
+pub type Trigger = rppal::gpio::Trigger;
+#[cfg(not(raspi))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Interrupt trigger conditions.
+pub enum Trigger {
+    Disabled,
+    RisingEdge,
+    FallingEdge,
+    Both,
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(raspi)]
+pub type Error = rppal::gpio::Error;
+#[cfg(not(raspi))]
+#[derive(Debug)]
+/// Errors that can occur when accessing the GPIO peripheral.
+pub enum Error {
+    UnknownModel,
+    PinNotAvailable(u8),
+    PermissionDenied(String),
+    Io(io::Error),
+    ThreadPanic,
+}
