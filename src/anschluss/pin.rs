@@ -72,8 +72,6 @@ impl Pin {
         }
     }
 
-    #[cfg_attr(not(raspi), allow(unused_variables))]
-    #[cfg_attr(not(raspi), inline)]
     pub fn into_pwm(self) -> pwm::Pin {
         if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok())
         {
