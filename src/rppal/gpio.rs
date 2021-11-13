@@ -10,8 +10,6 @@ use std::{
 use log::{debug, error};
 use once_cell::sync::Lazy;
 
-#[cfg(raspi)]
-pub type Gpio = rppal::gpio::Gpio;
 #[cfg(not(raspi))]
 #[derive(Debug)]
 struct GpioState {
@@ -37,7 +35,9 @@ impl GpioState {
         }
     }
 }
-
+/// Provides access to the Raspberry Pi’s GPIO peripheral.
+#[cfg(raspi)]
+pub type Gpio = rppal::gpio::Gpio;
 #[cfg(not(raspi))]
 #[derive(Debug, Clone)]
 #[allow(missing_copy_implementations)]
@@ -247,77 +247,50 @@ impl OutputPin {
     }
 
     /// Configures a software-based PWM signal.
-    ///
-    /// `period` indicates the time it takes to complete one cycle.
-    ///
-    /// `pulse_width` indicates the amount of time the PWM signal is active during a
-    /// single period.
-    ///
-    /// Software-based PWM is inherently inaccurate on a multi-threaded OS due to
-    /// scheduling/preemption. If an accurate or faster PWM signal is required, use the
-    /// hardware [`Pwm`] peripheral instead. More information can be found [here].
-    ///
-    /// If `set_pwm` is called when a PWM thread is already active, the existing thread
-    /// will be reconfigured at the end of the current cycle.
-    ///
-    /// [`Pwm`]: ../pwm/struct.Pwm.html
-    /// [here]: index.html#software-based-pwm
     pub fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<()> {
         debug!("{:?}.set_pwm({:?}, {:?})", self, period, pulse_width);
         Ok(())
     }
 
     /// Configures a software-based PWM signal.
-    ///
-    /// `set_pwm_frequency` is a convenience method that converts `frequency` to a period and
-    /// `duty_cycle` to a pulse width, and then calls [`set_pwm`].
-    ///
-    /// `frequency` is specified in hertz (Hz).
-    ///
-    /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
-    ///
-    /// [`set_pwm`]: #method.set_pwm
     pub fn set_pwm_frequency(&mut self, frequency: f64, duty_cycle: f64) -> Result<()> {
         debug!("{:?}.set_pwm_frequency({:?}, {:?})", self, frequency, duty_cycle);
         Ok(())
     }
 
     /// Stops a previously configured software-based PWM signal.
-    ///
-    /// The thread responsible for emulating the PWM signal is stopped at the end
-    /// of the current cycle.
     pub fn clear_pwm(&mut self) -> Result<()> {
         debug!("{:?}.clear_pwm()", self);
         Ok(())
     }
 }
 
+/// Pin logic levels.
 #[cfg(raspi)]
 pub type Level = rppal::gpio::Level;
 #[cfg(not(raspi))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-/// Pin logic levels.
 pub enum Level {
     Low,
     High,
 }
 
+/// Built-in pull-up/pull-down resistor states.
 #[cfg(raspi)]
 pub type PullUpDown = rppal::gpio::PullUpDown;
 #[cfg(not(raspi))]
 #[derive(Clone, Copy, Debug)]
-/// Built-in pull-up/pull-down resistor states.
 pub enum PullUpDown {
     Off,
     PullDown,
     PullUp,
 }
 
+/// Interrupt trigger conditions.
 #[cfg(raspi)]
 pub type Trigger = rppal::gpio::Trigger;
 #[cfg(not(raspi))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-/// Interrupt trigger conditions.
 pub enum Trigger {
     Disabled,
     RisingEdge,
@@ -325,13 +298,14 @@ pub enum Trigger {
     Both,
 }
 
+/// Result with `gpio::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Errors that can occur when accessing the GPIO peripheral.
 #[cfg(raspi)]
 pub type Error = rppal::gpio::Error;
 #[cfg(not(raspi))]
 #[derive(Debug)]
-/// Errors that can occur when accessing the GPIO peripheral.
 pub enum Error {
     UnknownModel,
     PinNotAvailable(u8),

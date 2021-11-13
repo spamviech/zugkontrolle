@@ -36,6 +36,7 @@ impl PwmState {
     }
 }
 
+/// Provides access to the Raspberry Pi’s PWM peripherals.
 #[cfg(raspi)]
 pub type Pwm = rppal::pwm::Pwm;
 #[cfg(not(raspi))]
@@ -71,6 +72,7 @@ fn period(frequency: f64) -> Duration {
 
 #[cfg(not(raspi))]
 impl Pwm {
+    /// Constructs a new Pwm.
     pub fn new(channel: Channel) -> Result<Pwm> {
         if PwmState::write_static().channels.remove(&channel.als_bool()) {
             Ok(Pwm {
@@ -85,6 +87,9 @@ impl Pwm {
         }
     }
 
+    /// Constructs a new Pwm using the specified settings.
+    ///
+    /// This method will fail if period is shorter than pulse_width.
     pub fn with_period(
         channel: Channel,
         period: Duration,
@@ -104,6 +109,7 @@ impl Pwm {
         }
     }
 
+    /// Constructs a new Pwm using the specified settings.
     pub fn with_frequency(
         channel: Channel,
         frequency: f64,
@@ -126,6 +132,7 @@ impl Pwm {
         }
     }
 
+    /// Returns the period.
     pub fn period(&self) -> Result<Duration> {
         Ok(self.period)
     }
@@ -151,6 +158,7 @@ impl Pwm {
         }
     }
 
+    /// Returns the pulse width.
     pub fn pulse_width(&self) -> Result<Duration> {
         Ok(self.pulse_width)
     }
@@ -177,6 +185,7 @@ impl Pwm {
         }
     }
 
+    /// Returns the frequency of the pwm pulse.
     pub fn frequency(&self) -> Result<f64> {
         let period = <f64 as NumCast>::from(self.period.as_nanos()).unwrap_or_default();
         if period > 0.0 {
@@ -203,6 +212,7 @@ impl Pwm {
         Ok(())
     }
 
+    /// Returns the duty cycle of the pwm pulse.
     pub fn duty_cycle(&self) -> Result<f64> {
         let period = self.period.as_secs_f64();
         if period > 0.0 {
@@ -225,26 +235,31 @@ impl Pwm {
         Ok(())
     }
 
+    /// Returns the polarity of the pwm pulse.
     pub fn polarity(&self) -> Result<Polarity> {
         Ok(self.polarity)
     }
 
+    /// Sets the polarity of the pwm pulse.
     pub fn set_polarity(&mut self, polarity: Polarity) -> Result<()> {
         debug!("{:?}.set_polarity({:?})", self, polarity);
         self.polarity = polarity;
         Ok(())
     }
 
+    /// Returns wether the pwm pulse is currently enabled
     pub fn is_enabled(&self) -> Result<bool> {
         Ok(self.enabled)
     }
 
+    /// Enables the pwm pulse.
     pub fn enable(&mut self) -> Result<()> {
         debug!("{:?}.enable()", self);
         self.enabled = true;
         Ok(())
     }
 
+    /// Disables the pwm pulse.
     pub fn disable(&mut self) -> Result<()> {
         debug!("{:?}.enable()", self);
         self.enabled = false;
@@ -252,6 +267,7 @@ impl Pwm {
     }
 }
 
+/// Pwm channels.
 #[cfg(raspi)]
 pub type Channel = rppal::pwm::Channel;
 #[cfg(not(raspi))]
@@ -276,6 +292,7 @@ impl Channel {
     }
 }
 
+/// Polarity of a pwm pulse.
 #[cfg(raspi)]
 pub type Polarity = rppal::pwm::Polarity;
 #[cfg(not(raspi))]
@@ -285,8 +302,10 @@ pub enum Polarity {
     Inverse,
 }
 
+/// Result with `pwm::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Errors that can occur when accessing the PWM peripheral.
 #[cfg(raspi)]
 pub type Error = rppal::pwm::Error;
 #[cfg(not(raspi))]
