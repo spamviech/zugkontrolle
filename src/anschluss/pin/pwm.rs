@@ -2,39 +2,32 @@
 
 use std::time::Duration;
 
-#[cfg(not(raspi))]
-use log::debug;
-#[cfg(raspi)]
-use rppal::{gpio, pwm};
 use serde::{Deserialize, Serialize};
 
-#[cfg(not(raspi))]
-use crate::anschluss::pin::Wrapper;
-use crate::anschluss::{
-    anschlüsse::Anschlüsse,
-    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-    polarität::Polarität,
-    InputAnschluss, OutputAnschluss,
+use crate::{
+    anschluss::{
+        anschlüsse::Anschlüsse,
+        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        polarität::Polarität,
+        InputAnschluss, OutputAnschluss,
+    },
+    rppal::{gpio, pwm},
 };
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
 pub struct Pin {
-    #[cfg(raspi)]
     pub(super) pin: Pwm,
-    #[cfg(not(raspi))]
-    pub(super) pin: Wrapper,
     pub(super) config: Option<Config>,
 }
 
-#[cfg(raspi)]
 #[allow(variant_size_differences)]
 #[derive(Debug)]
 pub(super) enum Pwm {
     Hardware(pwm::Pwm, gpio::Pin),
     Software(gpio::OutputPin),
 }
-#[cfg(raspi)]
+
 impl PartialEq for Pwm {
     fn eq(&self, other: &Pwm) -> bool {
         match (self, other) {
@@ -51,6 +44,7 @@ pub struct Config {
     pub time: Time,
     pub polarity: Polarität,
 }
+
 impl Config {
     /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
     ///
@@ -83,6 +77,7 @@ pub enum Time {
     /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Prozentwert.
     Frequency { frequency: f64, duty_cycle: f64 },
 }
+
 impl Time {
     /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
     ///
@@ -102,51 +97,30 @@ impl Pin {
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
     pub fn pin(&self) -> u8 {
-        #[cfg(raspi)]
-        {
-            match &self.pin {
-                Pwm::Hardware(_pwm, pin) => pin.pin(),
-                Pwm::Software(pin) => pin.pin(),
-            }
-        }
-        #[cfg(not(raspi))]
-        {
-            self.pin.0
+        match &self.pin {
+            Pwm::Hardware(_pwm, pin) => pin.pin(),
+            Pwm::Software(pin) => pin.pin(),
         }
     }
 
     /// Wird Hardware-Pwm verwendet?
     pub fn hardware_pwm(&self) -> bool {
-        #[cfg(raspi)]
-        {
-            match self.pin {
-                Pwm::Hardware(_, _) => true,
-                Pwm::Software(_) => false,
-            }
-        }
-        #[cfg(not(raspi))]
-        {
-            false
+        match self.pin {
+            Pwm::Hardware(_, _) => true,
+            Pwm::Software(_) => false,
         }
     }
 
     /// Ist der Pwm-Puls aktiv?
     pub fn is_enabled(&self) -> Result<&Option<Config>, Fehler> {
         match &self.pin {
-            #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 let enabled = pwm_channel
                     .is_enabled()
                     .map_err(|fehler| Fehler::Pwm { pin: self.pin(), fehler })?;
                 Ok(if enabled { &self.config } else { &None })
             }
-            #[cfg(raspi)]
             Pwm::Software(_pin) => Ok(&self.config),
-            #[cfg(not(raspi))]
-            _pin => {
-                debug!("{:?}.is_enabled()", self);
-                Err(Fehler::KeinRaspberryPi(self.pin()))
-            }
         }
     }
 
@@ -154,7 +128,6 @@ impl Pin {
     pub fn enable_with_config(&mut self, config: Config) -> Result<(), Fehler> {
         let pin = self.pin();
         match &mut self.pin {
-            #[cfg(raspi)]
             Pwm::Hardware(pwm_channel, _pin) => {
                 let map_fehler = |fehler| Fehler::Pwm { pin, fehler };
                 // update nur, sofern sich Parameter geändert haben.
@@ -177,7 +150,6 @@ impl Pin {
                 }
                 Ok(pwm_channel.enable().map_err(map_fehler)?)
             }
-            #[cfg(raspi)]
             Pwm::Software(pwm_pin) => {
                 let map_fehler = |fehler| Fehler::Gpio { pin, fehler };
                 match config.time {
@@ -195,53 +167,31 @@ impl Pin {
                     }
                 }
             }
-            #[cfg(not(raspi))]
-            _pin => {
-                debug!("{:?}.enable_with_config({:?})", self, config);
-                Err(Fehler::KeinRaspberryPi(pin))
-            }
         }
     }
 
     /// Deaktiviere den Pwm-Puls
     pub fn disable(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
-        match &mut self.pin {
-            #[cfg(raspi)]
+        Ok(match &mut self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable().map_err(|fehler| Fehler::Pwm { pin, fehler })?;
             }
-            #[cfg(raspi)]
             Pwm::Software(pwm_pin) => {
                 pwm_pin.clear_pwm().map_err(|fehler| Fehler::Gpio { pin, fehler })?;
             }
-            #[cfg(not(raspi))]
-            _pin => {
-                debug!("{:?}.disable()", self);
-                return Err(Fehler::KeinRaspberryPi(pin));
-            }
-        }
-        #[cfg_attr(not(raspi), allow(unreachable_code))]
-        {
-            self.config = None;
-            Ok(())
-        }
+        })
     }
-
-    // TODO cfg-reexport/stub-methods
-    // https://docs.rs/rppal/0.12.0/rppal/pwm/struct.Pwm.html
-    // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.OutputPin.html#method.set_pwm
 }
 
-#[allow(missing_copy_implementations, variant_size_differences)]
+// FIXME remove?
+// #[allow(variant_size_differences)]
 #[derive(Debug)]
 pub enum Fehler {
-    #[cfg(raspi)]
     Gpio {
         pin: u8,
         fehler: gpio::Error,
     },
-    #[cfg(raspi)]
     Pwm {
         pin: u8,
         fehler: pwm::Error,

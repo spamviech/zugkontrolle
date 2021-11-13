@@ -1,15 +1,15 @@
 //! Level eines Anschluss
 
-#[cfg(raspi)]
-use rppal::gpio;
 use serde::{Deserialize, Serialize};
+
+use crate::rppal::gpio;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Level {
     Low,
     High,
 }
-#[cfg(raspi)]
+
 impl From<gpio::Level> for Level {
     fn from(level: gpio::Level) -> Self {
         match level {
@@ -18,7 +18,7 @@ impl From<gpio::Level> for Level {
         }
     }
 }
-#[cfg(raspi)]
+
 impl From<Level> for gpio::Level {
     fn from(level: Level) -> Self {
         match level {

@@ -1,12 +1,10 @@
 //! Singleton für Zugriffsrechte auf Anschlüsse.
 
-#[cfg(not(raspi))]
-use std::collections::HashSet;
 use std::{
     mem,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, MutexGuard,
+        Arc, Mutex, MutexGuard, RwLock,
     },
     thread,
 };
@@ -16,10 +14,18 @@ use num_x::u3;
 use once_cell::sync::Lazy;
 use paste::paste;
 
-use crate::anschluss::{
-    level::Level,
-    pcf8574::{self, Pcf8574, Port},
-    pin::Pin,
+use crate::{
+    anschluss::{
+        level::Level,
+        pcf8574::{self, Pcf8574, Port},
+        pin::Pin,
+    },
+    rppal::{
+        self,
+        gpio::{self, Gpio},
+        i2c::{self, I2c},
+        pwm,
+    },
 };
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
@@ -44,14 +50,8 @@ macro_rules! anschlüsse_data {
             #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
             #[derive(Debug)]
             pub struct Anschlüsse {
-                #[cfg(raspi)]
-                gpio: rppal::gpio::Gpio,
-                #[cfg(raspi)]
-                i2c: Arc<Mutex<rppal::i2c::I2c>>,
-                #[cfg(not(raspi))]
-                ausgegebene_pins: HashSet<u8>,
-                #[cfg(not(raspi))]
-                pin_rückgabe: Sender<u8>,
+                gpio: Gpio,
+                i2c: Arc<RwLock<I2c>>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
                     [<$k $l $m $n 0>]: Option<Port>,
@@ -190,18 +190,8 @@ impl Anschlüsse {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
             return Err(Fehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(pin)));
         }
-        #[cfg(raspi)]
         {
             Ok(Pin::neu(Anschlüsse::mutex_guard().gpio.get(pin)?))
-        }
-        #[cfg(not(raspi))]
-        {
-            let mut guard = Anschlüsse::mutex_guard();
-            if guard.ausgegebene_pins.insert(pin) {
-                Ok(Pin::neu(pin, guard.pin_rückgabe.clone()))
-            } else {
-                Err(Fehler::AnschlussInVerwendung(AnschlussBeschreibung::Pin(pin)))
-            }
         }
     }
 
@@ -273,29 +263,6 @@ impl Anschlüsse {
         }
     }
 
-    #[cfg(not(raspi))]
-    fn listen_pin_restore_messages(receiver: Receiver<u8>) {
-        loop {
-            match receiver.recv() {
-                Ok(pin) => match ANSCHLÜSSE.lock() {
-                    Ok(mut guard) => {
-                        let anschlüsse = &mut *guard;
-                        debug!("rückgabe pin {}", pin);
-                        let _ = anschlüsse.ausgegebene_pins.remove(&pin);
-                    }
-                    Err(err) => {
-                        error!("Anschlüsse-static poisoned: {}", err);
-                        break;
-                    }
-                },
-                Err(err) => {
-                    error!("Kanal für Pin-Rückgabe geschlossen: {}", err);
-                    break;
-                }
-            }
-        }
-    }
-
     fn erstelle_static_oder_panic() -> Mutex<Anschlüsse> {
         match Anschlüsse::erstelle_static() {
             Ok(mutex) => mutex,
@@ -304,18 +271,13 @@ impl Anschlüsse {
     }
 
     fn erstelle_static() -> Result<Mutex<Anschlüsse>, Fehler> {
-        #[cfg(not(raspi))]
-        let (pin_sender, pin_receiver) = channel();
-
         let (sender, receiver) = channel();
         let sender_clone = sender.clone();
 
         macro_rules! make_anschlüsse {
             { $($a0:ident $a1:ident $a2:ident $var:ident),* } => {{
-                #[cfg(raspi)]
-                let i2c = Arc::new(Mutex::new(rppal::i2c::I2c::new()?));
-                #[cfg(raspi)]
-                let gpio = rppal::gpio::Gpio::new()?;
+                let i2c = Arc::new(RwLock::new(I2c::new()?));
+                let gpio = Gpio::new()?;
                 paste! {
                     $(
                         let [<$a0 $a1 $a2 $var>] = Arc::new(Mutex::new(Pcf8574::neu(
@@ -323,7 +285,6 @@ impl Anschlüsse {
                             level!($a1),
                             level!($a2),
                             variante!($var),
-                            #[cfg(raspi)]
                             i2c.clone(),
                         )));
                     )*
@@ -361,14 +322,8 @@ impl Anschlüsse {
                 }
                 paste! {
                     Anschlüsse {
-                        #[cfg(raspi)]
                         gpio,
-                        #[cfg(raspi)]
                         i2c: i2c.clone(),
-                        #[cfg(not(raspi))]
-                        ausgegebene_pins: HashSet::new(),
-                        #[cfg(not(raspi))]
-                        pin_rückgabe: pin_sender,
                         $(
                             [<$a0 $a1 $a2 $var>],
                             [<$a0 $a1 $a2 $var 0>],
@@ -392,12 +347,6 @@ impl Anschlüsse {
             Anschlüsse::listen_pcf8574_port_restore_messages(sender_clone, receiver)
         });
 
-        #[cfg(not(raspi))]
-        {
-            // erzeuge Thread der Pin-Rückgaben behandelt
-            let _ = thread::spawn(move || Anschlüsse::listen_pin_restore_messages(pin_receiver));
-        }
-
         Ok(Mutex::new(anschlüsse))
     }
 }
@@ -407,11 +356,8 @@ static ANSCHLÜSSE: Lazy<Mutex<Anschlüsse>> = Lazy::new(Anschlüsse::erstelle_s
 #[cfg_attr(not(raspi), allow(missing_copy_implementations))]
 #[derive(Debug)]
 pub enum Fehler {
-    #[cfg(raspi)]
     Gpio(rppal::gpio::Error),
-    #[cfg(raspi)]
     I2c(rppal::i2c::Error),
-    #[cfg(raspi)]
     Pwm(rppal::pwm::Error),
     AnschlussInVerwendung(AnschlussBeschreibung),
 }
@@ -420,21 +366,18 @@ impl From<AnschlussInVerwendung> for Fehler {
         Fehler::AnschlussInVerwendung(beschreibung)
     }
 }
-#[cfg(raspi)]
-impl From<rppal::gpio::Error> for Fehler {
-    fn from(error: rppal::gpio::Error) -> Self {
+impl From<gpio::Error> for Fehler {
+    fn from(error: gpio::Error) -> Self {
         Fehler::Gpio(error)
     }
 }
-#[cfg(raspi)]
-impl From<rppal::i2c::Error> for Fehler {
-    fn from(error: rppal::i2c::Error) -> Self {
+impl From<i2c::Error> for Fehler {
+    fn from(error: i2c::Error) -> Self {
         Fehler::I2c(error)
     }
 }
-#[cfg(raspi)]
-impl From<rppal::pwm::Error> for Fehler {
-    fn from(error: rppal::pwm::Error) -> Self {
+impl From<pwm::Error> for Fehler {
+    fn from(error: pwm::Error) -> Self {
         Fehler::Pwm(error)
     }
 }

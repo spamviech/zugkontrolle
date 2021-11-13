@@ -5,20 +5,20 @@
 //! so dass es zu keinen Deadlocks kommen sollte.
 
 use std::fmt::Debug;
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{mpsc::Sender, Arc, Mutex, RwLock};
 
 use log::debug;
 use log::error;
 use num_x::u3;
-#[cfg(raspi)]
 use num_x::u7;
-#[cfg(raspi)]
-use rppal::{gpio, i2c};
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    pin::input,
-    {level::Level, trigger::Trigger},
+use crate::{
+    anschluss::{
+        pin::input,
+        {level::Level, trigger::Trigger},
+    },
+    rppal::{gpio, i2c},
 };
 
 pub(super) enum Modus {
@@ -70,8 +70,7 @@ pub struct Pcf8574 {
     variante: Variante,
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
-    #[cfg(raspi)]
-    i2c: Arc<Mutex<i2c::I2c>>,
+    i2c: Arc<RwLock<i2c::I2c>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,7 +92,7 @@ impl Pcf8574 {
         a1: Level,
         a2: Level,
         variante: Variante,
-        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2c>>,
+        i2c: Arc<RwLock<i2c::I2c>>,
     ) -> Self {
         Pcf8574 {
             a0,
@@ -111,12 +110,10 @@ impl Pcf8574 {
                 Modus::Input { trigger: Trigger::Disabled, callback: None },
             ],
             interrupt: None,
-            #[cfg(raspi)]
             i2c,
         }
     }
 
-    #[cfg(raspi)]
     /// 7-bit i2c-Adresse ohne R/W-Bit
     fn i2c_adresse(&self) -> u7 {
         let Pcf8574 { a0, a1, a2, variante, .. } = self;
@@ -142,35 +139,27 @@ impl Pcf8574 {
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
     fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
         let beschreibung = self.beschreibung();
-        #[cfg(raspi)]
-        {
-            let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
-            if let Ok(mut i2c_channel) = self.i2c.lock() {
-                i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
-                let mut buf = [0; 1];
-                let bytes_read = i2c_channel.read(&mut buf).map_err(map_fehler)?;
-                if bytes_read != 1 {
-                    debug!("bytes_read = {} != 1", bytes_read)
-                }
-                let mut result = [None; 8];
-                for (port, modus) in self.ports.iter().enumerate() {
-                    let port_bit = 2u8.pow(port as u32);
-                    result[port] = if let Modus::Input { .. } = modus {
-                        Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
-                    } else {
-                        None
-                    };
-                }
-                Ok(result)
-            } else {
-                error!("I2C-Mutex poisoned!");
-                Err(Fehler::PoisonFehler(beschreibung))
+        let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
+        if let Ok(mut i2c_channel) = self.i2c.write() {
+            i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+            let mut buf = [0; 1];
+            let bytes_read = i2c_channel.read(&mut buf).map_err(map_fehler)?;
+            if bytes_read != 1 {
+                debug!("bytes_read = {} != 1", bytes_read)
             }
-        }
-        #[cfg(not(raspi))]
-        {
-            debug!("{:?}.read()", self);
-            Err(Fehler::KeinRaspberryPi(beschreibung))
+            let mut result = [None; 8];
+            for (port, modus) in self.ports.iter().enumerate() {
+                let port_bit = 2u8.pow(port as u32);
+                result[port] = if let Modus::Input { .. } = modus {
+                    Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
+                } else {
+                    None
+                };
+            }
+            Ok(result)
+        } else {
+            error!("I2C-Mutex poisoned!");
+            Err(Fehler::PoisonFehler(beschreibung))
         }
     }
 
@@ -181,7 +170,6 @@ impl Pcf8574 {
         trigger: Trigger,
         callback: Option<C>,
     ) -> Result<(), Fehler> {
-        #[cfg(raspi)]
         self.write_port(port, Level::High)?;
         // type annotations need, so extra let binding required
         let callback: Option<Box<dyn FnMut(Level) + Send + 'static>> = match callback {
@@ -197,35 +185,27 @@ impl Pcf8574 {
     fn write_port(&mut self, port: u3, level: Level) -> Result<(), Fehler> {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
-        #[cfg(raspi)]
-        {
-            let mut i2c_channel = if let Ok(i2c_channel) = self.i2c.lock() {
-                i2c_channel
-            } else {
-                error!("I2C-Mutex poisoned!");
-                return Err(Fehler::PoisonFehler(beschreibung));
+        let mut i2c_channel = if let Ok(i2c_channel) = self.i2c.write() {
+            i2c_channel
+        } else {
+            error!("I2C-Mutex poisoned!");
+            return Err(Fehler::PoisonFehler(beschreibung));
+        };
+        let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
+        i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+        let mut wert = 0;
+        for (port, modus) in self.ports.iter().enumerate() {
+            wert |= match modus {
+                Modus::Input { .. } | Modus::High => 2u8.pow(port as u32),
+                Modus::Low => 0,
             };
-            let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
-            i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
-            let mut wert = 0;
-            for (port, modus) in self.ports.iter().enumerate() {
-                wert |= match modus {
-                    Modus::Input { .. } | Modus::High => 2u8.pow(port as u32),
-                    Modus::Low => 0,
-                };
-            }
-            let buf = [wert; 1];
-            let bytes_written = i2c_channel.write(&buf).map_err(map_fehler)?;
-            if bytes_written != 1 {
-                error!("bytes_written = {} != 1", bytes_written)
-            }
-            Ok(())
         }
-        #[cfg(not(raspi))]
-        {
-            debug!("{:?}.write_port({}, {:?})", self, port, level);
-            Err(Fehler::KeinRaspberryPi(beschreibung))
+        let buf = [wert; 1];
+        let bytes_written = i2c_channel.write(&buf).map_err(map_fehler)?;
+        if bytes_written != 1 {
+            error!("bytes_written = {} != 1", bytes_written)
         }
+        Ok(())
     }
 }
 impl PartialEq for Pcf8574 {
@@ -297,14 +277,7 @@ impl Port {
                 .pcf8574
                 .lock()
                 .map_err(|_poison_error| Fehler::PoisonFehler(beschreibung))?;
-            #[cfg(raspi)]
-            {
-                pcf8574.write_port(self.port, level)?;
-            }
-            #[cfg(not(raspi))]
-            {
-                pcf8574.ports[usize::from(self.port)] = level.into();
-            }
+            pcf8574.write_port(self.port, level)?;
         }
         Ok(OutputPort(self))
     }
@@ -511,10 +484,7 @@ impl InputPort {
                     last[i] = current[i];
                 }
             }).map_err(|fehler| match fehler {
-                #[cfg(raspi)]
                 input::Fehler::Gpio {pin:_, fehler} => Fehler::Gpio {beschreibung: pcf8574.beschreibung(), fehler},
-                #[cfg(not(raspi))]
-                input::Fehler::KeinRaspberryPi(_interrupt) => Fehler::KeinRaspberryPi(pcf8574.beschreibung()),
             })?;
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
@@ -565,18 +535,8 @@ impl InputPort {
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Fehler {
-    #[cfg(raspi)]
-    I2c {
-        beschreibung: Beschreibung,
-        fehler: i2c::Error,
-    },
-    #[cfg(raspi)]
-    Gpio {
-        beschreibung: Beschreibung,
-        fehler: gpio::Error,
-    },
-    #[cfg(not(raspi))]
-    KeinRaspberryPi(Beschreibung),
+    I2c { beschreibung: Beschreibung, fehler: i2c::Error },
+    Gpio { beschreibung: Beschreibung, fehler: gpio::Error },
     PoisonFehler(Beschreibung),
     KeinInterruptPin(Beschreibung),
 }

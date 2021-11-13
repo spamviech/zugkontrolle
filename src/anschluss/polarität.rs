@@ -5,7 +5,7 @@ use std::ops::Not;
 
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::level::Level;
+use crate::{anschluss::level::Level, rppal};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {
@@ -25,7 +25,6 @@ impl Display for Polarität {
     }
 }
 
-#[cfg(raspi)]
 impl From<Polarität> for rppal::pwm::Polarity {
     fn from(polarität: Polarität) -> Self {
         match polarität {
@@ -35,7 +34,6 @@ impl From<Polarität> for rppal::pwm::Polarity {
     }
 }
 
-#[cfg(raspi)]
 impl From<rppal::pwm::Polarity> for Polarität {
     fn from(polarity: rppal::pwm::Polarity) -> Self {
         match polarity {

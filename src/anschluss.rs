@@ -36,6 +36,7 @@ pub mod de_serialisieren;
 
 /// Ein Anschluss
 #[derive(Debug)]
+#[allow(variant_size_differences)]
 pub enum Anschluss {
     Pin(Pin),
     Pcf8574Port(pcf8574::Port),
@@ -110,6 +111,7 @@ impl Anschluss {
 
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
+#[allow(variant_size_differences)]
 pub enum OutputAnschluss {
     Pin { pin: output::Pin, polarität: Polarität },
     Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarität },
@@ -134,7 +136,7 @@ impl OutputAnschluss {
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                pin.write(fließend.with_polarity(*polarität))?
+                pin.write(fließend.with_polarity(*polarität))
             }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 port.write(fließend.with_polarity(*polarität))?
@@ -145,8 +147,8 @@ impl OutputAnschluss {
     pub fn ist_fließend(&mut self) -> Result<bool, Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarität::Normal => pin.is_set_high()?,
-                Polarität::Invertiert => pin.is_set_low()?,
+                Polarität::Normal => pin.is_set_high(),
+                Polarität::Invertiert => pin.is_set_low(),
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
                 Polarität::Normal => port.is_set_high()?,
@@ -158,8 +160,8 @@ impl OutputAnschluss {
     pub fn ist_gesperrt(&mut self) -> Result<bool, Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarität::Normal => pin.is_set_low()?,
-                Polarität::Invertiert => pin.is_set_high()?,
+                Polarität::Normal => pin.is_set_low(),
+                Polarität::Invertiert => pin.is_set_high(),
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
                 Polarität::Normal => port.is_set_low()?,
@@ -170,7 +172,7 @@ impl OutputAnschluss {
 
     pub fn umstellen(&mut self) -> Result<(), Fehler> {
         Ok(match self {
-            OutputAnschluss::Pin { pin, .. } => pin.toggle()?,
+            OutputAnschluss::Pin { pin, .. } => pin.toggle(),
             OutputAnschluss::Pcf8574Port { port, .. } => port.toggle()?,
         })
     }
@@ -324,6 +326,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
 
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
+#[allow(variant_size_differences)]
 pub enum InputAnschluss {
     Pin(input::Pin),
     Pcf8574Port(pcf8574::InputPort),
@@ -549,7 +552,6 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 #[derive(Debug)]
 pub enum Fehler {
     Anschlüsse(anschlüsse::Fehler),
-    Output(output::Fehler),
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),
 }
@@ -561,11 +563,6 @@ impl From<AnschlussInVerwendung> for Fehler {
 impl From<anschlüsse::Fehler> for Fehler {
     fn from(error: anschlüsse::Fehler) -> Self {
         Fehler::Anschlüsse(error)
-    }
-}
-impl From<output::Fehler> for Fehler {
-    fn from(error: output::Fehler) -> Self {
-        Fehler::Output(error)
     }
 }
 impl From<input::Fehler> for Fehler {

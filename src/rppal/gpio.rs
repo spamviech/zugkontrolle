@@ -4,6 +4,7 @@
 use std::{
     collections::HashSet,
     io,
+    ops::Not,
     sync::{RwLock, RwLockWriteGuard},
     time::Duration,
 };
@@ -76,7 +77,7 @@ impl Gpio {
 #[cfg(raspi)]
 pub type Pin = rppal::gpio::Pin;
 #[cfg(not(raspi))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Pin(u8);
 
 #[cfg(not(raspi))]
@@ -157,6 +158,14 @@ pub type InputPin = rppal::gpio::InputPin;
 #[derive(Debug)]
 pub struct InputPin(Pin, PullUpDown);
 
+impl PartialEq for InputPin {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for InputPin {}
+
 #[cfg(not(raspi))]
 impl InputPin {
     /// Returns the GPIO pin number.
@@ -217,7 +226,7 @@ impl InputPin {
 #[cfg(raspi)]
 pub type OutputPin = rppal::gpio::OutputPin;
 #[cfg(not(raspi))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OutputPin(Pin, Level);
 
 #[cfg(not(raspi))]
@@ -250,6 +259,15 @@ impl OutputPin {
         self.1 = level;
     }
 
+    /// Toggles the pin's output state between [`Low`] and [`High`].
+    ///
+    /// [`Low`]: enum.Level.html#variant.Low
+    /// [`High`]: enum.Level.html#variant.High
+    pub fn toggle(&mut self) {
+        debug!("{:?}.toggle()", self);
+        self.1 = !self.1;
+    }
+
     /// Configures a software-based PWM signal.
     pub fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<()> {
         debug!("{:?}.set_pwm({:?}, {:?})", self, period, pulse_width);
@@ -277,6 +295,18 @@ pub type Level = rppal::gpio::Level;
 pub enum Level {
     Low,
     High,
+}
+
+#[cfg(not(raspi))]
+impl Not for Level {
+    type Output = Level;
+
+    fn not(self) -> Level {
+        match self {
+            Level::Low => Level::High,
+            Level::High => Level::Low,
+        }
+    }
 }
 
 /// Built-in pull-up/pull-down resistor states.

@@ -4,6 +4,8 @@ use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
 
+use crate::rppal;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Trigger {
     Disabled,
@@ -27,7 +29,6 @@ impl Display for Trigger {
     }
 }
 
-#[cfg(raspi)]
 impl From<Trigger> for rppal::gpio::Trigger {
     fn from(trigger: Trigger) -> rppal::gpio::Trigger {
         match trigger {
