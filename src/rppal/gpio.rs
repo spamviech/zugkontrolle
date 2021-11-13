@@ -1,5 +1,6 @@
 //! Low level Steuerung von Gpio Pins.
 
+#[cfg(not(raspi))]
 use std::{
     collections::HashSet,
     io,
@@ -7,7 +8,9 @@ use std::{
     time::Duration,
 };
 
+#[cfg(not(raspi))]
 use log::{debug, error};
+#[cfg(not(raspi))]
 use once_cell::sync::Lazy;
 
 #[cfg(not(raspi))]
@@ -76,6 +79,7 @@ pub type Pin = rppal::gpio::Pin;
 #[derive(Debug)]
 pub struct Pin(u8);
 
+#[cfg(not(raspi))]
 impl Drop for Pin {
     fn drop(&mut self) {
         if !GpioState::write_static().pins.insert(self.0) {

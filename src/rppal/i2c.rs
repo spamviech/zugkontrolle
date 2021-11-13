@@ -1,5 +1,6 @@
 //! Low level Steuerung eines i2c Kanals.
 
+#[cfg(not(raspi))]
 use std::{
     collections::HashSet,
     fmt::Debug,
@@ -7,7 +8,9 @@ use std::{
     sync::{RwLock, RwLockWriteGuard},
 };
 
+#[cfg(not(raspi))]
 use log::{debug, error};
+#[cfg(not(raspi))]
 use once_cell::sync::Lazy;
 
 #[cfg(not(raspi))]

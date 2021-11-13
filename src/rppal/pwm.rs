@@ -1,5 +1,6 @@
 //! Low level Steuerung von Pwm Signalen.
 
+#[cfg(not(raspi))]
 use std::{
     collections::HashSet,
     f64,
@@ -9,8 +10,11 @@ use std::{
     time::Duration,
 };
 
+#[cfg(not(raspi))]
 use log::{debug, error};
+#[cfg(not(raspi))]
 use num_traits::NumCast;
+#[cfg(not(raspi))]
 use once_cell::sync::Lazy;
 
 #[cfg(not(raspi))]
