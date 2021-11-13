@@ -158,12 +158,14 @@ pub type InputPin = rppal::gpio::InputPin;
 #[derive(Debug)]
 pub struct InputPin(Pin, PullUpDown);
 
+#[cfg(not(raspi))]
 impl PartialEq for InputPin {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
 
+#[cfg(not(raspi))]
 impl Eq for InputPin {}
 
 #[cfg(not(raspi))]
