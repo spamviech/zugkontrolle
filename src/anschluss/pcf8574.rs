@@ -5,7 +5,7 @@
 //! so dass es zu keinen Deadlocks kommen sollte.
 
 use std::fmt::Debug;
-use std::sync::{mpsc::Sender, Arc, Mutex, RwLock};
+use std::sync::{mpsc::Sender, Arc, Mutex};
 
 use log::debug;
 use log::error;
@@ -70,7 +70,7 @@ pub struct Pcf8574 {
     variante: Variante,
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
-    i2c: Arc<RwLock<i2c::I2c>>,
+    i2c: Arc<Mutex<i2c::I2c>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,7 +92,7 @@ impl Pcf8574 {
         a1: Level,
         a2: Level,
         variante: Variante,
-        i2c: Arc<RwLock<i2c::I2c>>,
+        i2c: Arc<Mutex<i2c::I2c>>,
     ) -> Self {
         Pcf8574 {
             a0,
@@ -140,7 +140,7 @@ impl Pcf8574 {
     fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
         let beschreibung = self.beschreibung();
         let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
-        if let Ok(mut i2c_channel) = self.i2c.write() {
+        if let Ok(mut i2c_channel) = self.i2c.lock() {
             i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
             let mut buf = [0; 1];
             let bytes_read = i2c_channel.read(&mut buf).map_err(map_fehler)?;
@@ -185,7 +185,7 @@ impl Pcf8574 {
     fn write_port(&mut self, port: u3, level: Level) -> Result<(), Fehler> {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
-        let mut i2c_channel = if let Ok(i2c_channel) = self.i2c.write() {
+        let mut i2c_channel = if let Ok(i2c_channel) = self.i2c.lock() {
             i2c_channel
         } else {
             error!("I2C-Mutex poisoned!");

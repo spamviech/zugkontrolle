@@ -4,7 +4,7 @@ use std::{
     mem,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, MutexGuard, RwLock,
+        Arc, Mutex, MutexGuard,
     },
     thread,
 };
@@ -51,7 +51,7 @@ macro_rules! anschlüsse_data {
             #[derive(Debug)]
             pub struct Anschlüsse {
                 gpio: Gpio,
-                i2c: Arc<RwLock<I2c>>,
+                i2c: Arc<Mutex<I2c>>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
                     [<$k $l $m $n 0>]: Option<Port>,
@@ -276,7 +276,7 @@ impl Anschlüsse {
 
         macro_rules! make_anschlüsse {
             { $($a0:ident $a1:ident $a2:ident $var:ident),* } => {{
-                let i2c = Arc::new(RwLock::new(I2c::new()?));
+                let i2c = Arc::new(Mutex::new(I2c::new()?));
                 let gpio = Gpio::new()?;
                 paste! {
                     $(
