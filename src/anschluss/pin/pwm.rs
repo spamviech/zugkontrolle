@@ -166,6 +166,7 @@ impl Pin {
                 if self.config.as_ref().map(|Config { time, .. }| time) != Some(&config.time) {
                     match config.time {
                         Time::Period { period, pulse_width } => {
+                            pwm_channel.set_pulse_width(0).map_err(map_fehler)?;
                             pwm_channel.set_period(period).map_err(map_fehler)?;
                             pwm_channel.set_pulse_width(pulse_width).map_err(map_fehler)?;
                         }
