@@ -57,7 +57,7 @@ rppal = "0.12.0"
 #rascam = "0.0.2"
 [target.armv7-unknown-linux-gnueabihf.dependencies]
 # raspi 2/3/4
-rppal = "0.12.0"
+rppal = "0.13.1"
 #rascam = "0.0.2"
 
 [build-dependencies]

@@ -1911,6 +1911,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rppal"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c88c9c6248de4d337747b619d8f671055ef48a87dc21b97998833f189a0bbd4f"
+dependencies = [
+ "lazy_static",
+ "libc",
+]
+
+[[package]]
 name = "rstar"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2706,7 +2716,8 @@ dependencies = [
  "num_x",
  "once_cell",
  "paste",
- "rppal",
+ "rppal 0.12.0",
+ "rppal 0.13.1",
  "rstar",
  "serde",
  "simple_logger",
