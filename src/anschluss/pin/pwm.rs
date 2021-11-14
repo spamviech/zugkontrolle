@@ -184,8 +184,6 @@ impl Pin {
     }
 }
 
-// FIXME remove?
-// #[allow(variant_size_differences)]
 #[derive(Debug)]
 pub enum Fehler {
     Gpio {
