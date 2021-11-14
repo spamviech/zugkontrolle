@@ -7,6 +7,7 @@
 use std::{
     collections::HashMap,
     fmt::Debug,
+    mem,
     sync::{mpsc::Sender, Arc, Mutex, RwLock},
 };
 
@@ -28,43 +29,29 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct I2cWithPins {
+struct I2cMitPins {
     i2c: I2c,
     sda: Pin,
     scl: Pin,
 }
 
-impl Drop for I2cWithPins {
-    fn drop(&mut self) {
-        todo!()
-    }
-}
-
 #[derive(Debug)]
-pub enum InitFehler {
-    I2c(i2c::Error),
-    Gpio(gpio::Error),
+pub enum SingletonFehler {
+    I2c { i2c_bus: I2cBus, fehler: i2c::Error },
+    Gpio { i2c_bus: I2cBus, fehler: gpio::Error },
+    InVerwendung { i2c_bus: I2cBus, fehler: InVerwendung },
 }
 
-impl From<i2c::Error> for InitFehler {
-    fn from(fehler: i2c::Error) -> Self {
-        InitFehler::I2c(fehler)
-    }
-}
-
-impl From<gpio::Error> for InitFehler {
-    fn from(fehler: gpio::Error) -> Self {
-        InitFehler::Gpio(fehler)
-    }
-}
-
-impl I2cWithPins {
-    fn neu(i2c_res: i2c::Result<I2c>, sda: u8, scl: u8) -> Result<I2cWithPins, InitFehler> {
-        let gpio = Gpio::new()?;
-        let i2c = i2c_res?;
-        let sda = gpio.get(sda)?;
-        let scl = gpio.get(scl)?;
-        Ok(I2cWithPins { i2c, sda, scl })
+impl I2cMitPins {
+    fn neu(i2c_bus: I2cBus) -> Result<I2cMitPins, SingletonFehler> {
+        let i2c =
+            i2c_bus.reserviere().map_err(|fehler| SingletonFehler::I2c { i2c_bus, fehler })?;
+        let (sda, scl) = i2c_bus.sda_scl();
+        let konvertiere_gpio_fehler = |fehler| SingletonFehler::Gpio { i2c_bus, fehler };
+        let gpio = Gpio::new().map_err(&konvertiere_gpio_fehler)?;
+        let sda = gpio.get(sda).map_err(&konvertiere_gpio_fehler)?;
+        let scl = gpio.get(scl).map_err(konvertiere_gpio_fehler)?;
+        Ok(I2cMitPins { i2c, sda, scl })
     }
 }
 
@@ -87,20 +74,28 @@ impl Pcf8574PortState {
         a1: Level,
         a2: Level,
         variante: Variante,
-        i2c: Arc<Mutex<I2cWithPins>>,
+        i2c: Arc<Mutex<I2cMitPins>>,
     ) -> Pcf8574PortState {
+        let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(a0, a1, a2, variante, i2c)));
+        let beschreibung = Beschreibung { a0, a1, a2, variante };
         Pcf8574PortState {
-            pcf8574: Arc::new(Mutex::new(Pcf8574::neu(a0, a1, a2, variante, i2c))),
-            port0: todo!(),
-            port1: todo!(),
-            port2: todo!(),
-            port3: todo!(),
-            port4: todo!(),
-            port5: todo!(),
-            port6: todo!(),
-            port7: todo!(),
+            port0: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(0))),
+            port1: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(1))),
+            port2: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(2))),
+            port3: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(3))),
+            port4: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(4))),
+            port5: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(5))),
+            port6: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(6))),
+            port7: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(7))),
+            pcf8574,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InVerwendung {
+    pub beschreibung: Beschreibung,
+    pub port: u3,
 }
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
@@ -151,7 +146,7 @@ macro_rules! pcf8574_state_struct {
                 )*
             }
             impl Pcf8574State {
-                fn neu(i2c: Arc<Mutex<I2cWithPins>>) -> Pcf8574State {
+                fn neu(i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
                     Pcf8574State {
                         $(
                             [<$a0 $a1 $a2 $variante>]: Pcf8574PortState::neu(
@@ -164,39 +159,169 @@ macro_rules! pcf8574_state_struct {
                         )*
                     }
                 }
+
+                fn reserviere_pcf8574_port(&mut self, beschreibung: Beschreibung, port: u3)
+                    -> Result<Port, InVerwendung>
+                {
+                    match beschreibung {
+                        $(
+                            Beschreibung {
+                                a0: level!($a0),
+                                a1: level!($a1),
+                                a2: level!($a2),
+                                variante: variante!($variante),
+                            } => {
+                                debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
+                                let port_opt = match u8::from(port) {
+                                    0 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port0, None),
+                                    1 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port1, None),
+                                    2 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port2, None),
+                                    3 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port3, None),
+                                    4 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port4, None),
+                                    5 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port5, None),
+                                    6 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port6, None),
+                                    7 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port7, None),
+                                    _ => None,
+                                };
+                                port_opt.ok_or(InVerwendung {beschreibung, port})
+                            }
+                        ),*
+                    }
+                }
+
+                fn rückgabe_pcf8574_port(&mut self, port: Port)  {
+                    match port.beschreibung() {
+                        $(
+                            Beschreibung {
+                                a0: level!($a0),
+                                a1: level!($a1),
+                                a2: level!($a2),
+                                variante: variante!($variante),
+                            } => {
+                                debug!("rückgabe {:?}", port);
+                                let port_u8 = u8::from(port.port());
+                                let s_port = Some(port);
+                                let port_opt = match port_u8 {
+                                    0 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port0, s_port),
+                                    1 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port1, s_port),
+                                    2 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port2, s_port),
+                                    3 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port3, s_port),
+                                    4 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port4, s_port),
+                                    5 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port5, s_port),
+                                    6 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port6, s_port),
+                                    7 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port7, s_port),
+                                    _ => None,
+                                };
+                                if let Some(bisher) = port_opt {
+                                    error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
+                                }
+                            }
+                        ),*
+                    }
+                }
             }
         }
     };
 }
 llln_to_hhha! {pcf8574_state_struct}
 
+#[derive(Debug, Clone, Copy)]
+pub enum I2cBus {
+    I2c0_1,
+    // I2c2,
+    I2c3,
+    I2c4,
+    I2c5,
+    I2c6,
+}
+
+impl I2cBus {
+    fn reserviere(&self) -> i2c::Result<I2c> {
+        match self {
+            I2cBus::I2c0_1 => I2c::with_bus(1).or_else(|_| I2c::with_bus(0)),
+            // I2cBus::I2c2 => I2c::with_bus(2),
+            I2cBus::I2c3 => I2c::with_bus(3),
+            I2cBus::I2c4 => I2c::with_bus(4),
+            I2cBus::I2c5 => I2c::with_bus(5),
+            I2cBus::I2c6 => I2c::with_bus(6),
+        }
+    }
+
+    fn sda_scl(&self) -> (u8, u8) {
+        match self {
+            I2cBus::I2c0_1 => (2, 3),
+            // I2cBus::I2c2 => todo!(),
+            I2cBus::I2c3 => (4, 5),
+            I2cBus::I2c4 => (8, 9),
+            I2cBus::I2c5 => (12, 13),
+            I2cBus::I2c6 => (22, 23),
+        }
+    }
+}
+
 /// Singleton für Zugriff auf raspberry pi Anschlüsse.
 #[derive(Debug)]
 pub struct I2cState {
-    i2c_0_1: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
-    // i2c_2: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
-    i2c_3: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
-    i2c_4: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
-    i2c_5: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
-    i2c_6: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    i2c_0_1: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
+    // i2c_2: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
+    i2c_3: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
+    i2c_4: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
+    i2c_5: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
+    i2c_6: Result<(Arc<Mutex<I2cMitPins>>, Pcf8574State), SingletonFehler>,
 }
 
-fn erstelle_arc_und_pcf8574_state(i2c: I2cWithPins) -> (Arc<Mutex<I2cWithPins>>, Pcf8574State) {
+fn erstelle_arc_und_pcf8574_state(i2c: I2cMitPins) -> (Arc<Mutex<I2cMitPins>>, Pcf8574State) {
     let arc = Arc::new(Mutex::new(i2c));
     (arc.clone(), Pcf8574State::neu(arc))
 }
 
 impl I2cState {
     fn neu() -> I2cState {
-        let i2c_0_1 = I2cWithPins::neu(I2c::with_bus(1).or_else(|_| I2c::with_bus(0)), 2, 3)
-            .map(erstelle_arc_und_pcf8574_state);
+        let i2c_0_1 = I2cMitPins::neu(I2cBus::I2c0_1).map(erstelle_arc_und_pcf8574_state);
         // let i2c_2 =
-        //     I2cWithPins::neu( I2c::with_bus(3), 4, 5).map(erstelle_arc_und_pcf8574_state);
-        let i2c_3 = I2cWithPins::neu(I2c::with_bus(3), 4, 5).map(erstelle_arc_und_pcf8574_state);
-        let i2c_4 = I2cWithPins::neu(I2c::with_bus(3), 8, 9).map(erstelle_arc_und_pcf8574_state);
-        let i2c_5 = I2cWithPins::neu(I2c::with_bus(3), 12, 13).map(erstelle_arc_und_pcf8574_state);
-        let i2c_6 = I2cWithPins::neu(I2c::with_bus(3), 22, 23).map(erstelle_arc_und_pcf8574_state);
-        I2cState { i2c_0_1: todo!(), i2c_3, i2c_4, i2c_5, i2c_6 }
+        //     I2cMitPins::neu(I2cBus::I2c2).map(erstelle_arc_und_pcf8574_state);
+        let i2c_3 = I2cMitPins::neu(I2cBus::I2c3).map(erstelle_arc_und_pcf8574_state);
+        let i2c_4 = I2cMitPins::neu(I2cBus::I2c4).map(erstelle_arc_und_pcf8574_state);
+        let i2c_5 = I2cMitPins::neu(I2cBus::I2c5).map(erstelle_arc_und_pcf8574_state);
+        let i2c_6 = I2cMitPins::neu(I2cBus::I2c6).map(erstelle_arc_und_pcf8574_state);
+        I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 }
+    }
+
+    fn i2c_bus(
+        &mut self,
+        i2c_bus: I2cBus,
+    ) -> Result<&mut (Arc<Mutex<I2cMitPins>>, Pcf8574State), &SingletonFehler> {
+        let I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 } = self;
+        let i2c = match i2c_bus {
+            I2cBus::I2c0_1 => i2c_0_1,
+            I2cBus::I2c3 => i2c_3,
+            I2cBus::I2c4 => i2c_4,
+            I2cBus::I2c5 => i2c_5,
+            I2cBus::I2c6 => i2c_6,
+        };
+        i2c.as_mut().map_err(|err| &*err)
+    }
+
+    fn reserviere_pcf8574_port(
+        &mut self,
+        i2c_bus: I2cBus,
+        beschreibung: Beschreibung,
+        port: u3,
+    ) -> Result<Port, &SingletonFehler> {
+        let (_i2c, pcf8574_state) = self.i2c_bus(i2c_bus)?;
+        pcf8574_state
+            .reserviere_pcf8574_port(beschreibung, port)
+            .map_err(|fehler| todo!("{:?}", SingletonFehler::InVerwendung { i2c_bus, fehler }))
+    }
+
+    fn rückgabe_pcf8574_port(
+        &mut self,
+        i2c_bus: I2cBus,
+        port: Port,
+    ) -> Result<(), &SingletonFehler> {
+        let (_i2c, pcf8574_state) = self.i2c_bus(i2c_bus)?;
+        pcf8574_state.rückgabe_pcf8574_port(port);
+        Ok(())
     }
 }
 
@@ -251,7 +376,7 @@ pub struct Pcf8574 {
     variante: Variante,
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
-    i2c: Arc<Mutex<I2cWithPins>>,
+    i2c: Arc<Mutex<I2cMitPins>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -273,7 +398,7 @@ impl Pcf8574 {
         a1: Level,
         a2: Level,
         variante: Variante,
-        i2c: Arc<Mutex<I2cWithPins>>,
+        i2c: Arc<Mutex<I2cMitPins>>,
     ) -> Self {
         Pcf8574 {
             a0,
@@ -431,12 +556,7 @@ impl Drop for Port {
     }
 }
 impl Port {
-    pub(super) fn neu(
-        pcf8574: Arc<Mutex<Pcf8574>>,
-        beschreibung: Beschreibung,
-        port: u3,
-        sender: Sender<(Beschreibung, u3)>,
-    ) -> Self {
+    pub(super) fn neu(pcf8574: Arc<Mutex<Pcf8574>>, beschreibung: Beschreibung, port: u3) -> Self {
         Port { pcf8574, port, beschreibung }
     }
 
