@@ -31,6 +31,7 @@ fn drop_semantics() {
     assert_eq!(
         llln.beschreibung(),
         &pcf8574::Beschreibung {
+            i2c_bus: pcf8574::I2cBus::I2c0_1,
             a0: Level::Low,
             a1: Level::Low,
             a2: Level::Low,

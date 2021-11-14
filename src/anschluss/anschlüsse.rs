@@ -110,31 +110,32 @@ impl Anschlüsse {
         macro_rules! rückgabe_pcf8574_port {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
-                    match port.beschreibung() {
-                        $(
-                            pcf8574::Beschreibung {
-                                a0: level!{$k},
-                                a1: level!{$l},
-                                a2: level!{$m},
-                                variante: variante!{$n}
-                            } => {
-                                debug!("rückgabe pcf8574 {:?}-{:?}-{:?}-{:?}-{:?}"
-                                    , level!($k), level!($l), level!($m), variante!($n), port.port());
-                                match u8::from(port.port()) {
-                                    0 => self.[<$k $l $m $n 0>] = Some(port),
-                                    1 => self.[<$k $l $m $n 1>] = Some(port),
-                                    2 => self.[<$k $l $m $n 2>] = Some(port),
-                                    3 => self.[<$k $l $m $n 3>] = Some(port),
-                                    4 => self.[<$k $l $m $n 4>] = Some(port),
-                                    5 => self.[<$k $l $m $n 5>] = Some(port),
-                                    6 => self.[<$k $l $m $n 6>] = Some(port),
-                                    7 => self.[<$k $l $m $n 7>] = Some(port),
-                                    _ => error!("Port > 7!"),
-                                }
-                            }
-                            //TODO port über macro-expansion
-                        ),*
-                    }
+                    // match port.beschreibung() {
+                    //     $(
+                    //         pcf8574::Beschreibung {
+                    //             a0: level!{$k},
+                    //             a1: level!{$l},
+                    //             a2: level!{$m},
+                    //             variante: variante!{$n}
+                    //         } => {
+                    //             debug!("rückgabe pcf8574 {:?}-{:?}-{:?}-{:?}-{:?}"
+                    //                 , level!($k), level!($l), level!($m), variante!($n), port.port());
+                    //             match u8::from(port.port()) {
+                    //                 0 => self.[<$k $l $m $n 0>] = Some(port),
+                    //                 1 => self.[<$k $l $m $n 1>] = Some(port),
+                    //                 2 => self.[<$k $l $m $n 2>] = Some(port),
+                    //                 3 => self.[<$k $l $m $n 3>] = Some(port),
+                    //                 4 => self.[<$k $l $m $n 4>] = Some(port),
+                    //                 5 => self.[<$k $l $m $n 5>] = Some(port),
+                    //                 6 => self.[<$k $l $m $n 6>] = Some(port),
+                    //                 7 => self.[<$k $l $m $n 7>] = Some(port),
+                    //                 _ => error!("Port > 7!"),
+                    //             }
+                    //         }
+                    //         //TODO port über macro-expansion
+                    //     ),*
+                    // }
+                    todo!();
                     Ok(())
                 }
             };
@@ -242,13 +243,14 @@ impl Anschlüsse {
                                     }
                                 }
                             }
-                            let port_struct = llln_to_hhha! {match_nachricht};
-                            if let Err(err) = anschlüsse.rückgabe_pcf8574_port(port_struct) {
-                                error!("Fehler bei rückgabe: {:?}", err);
-                                break;
-                            } else {
-                                debug!("Erfolgreiche Rückgabe von {:?} {:?}", nachricht, port);
-                            }
+                            let port_struct = todo!(); // llln_to_hhha! {match_nachricht};
+
+                            // if let Err(err) = anschlüsse.rückgabe_pcf8574_port(port_struct) {
+                            //     error!("Fehler bei rückgabe: {:?}", err);
+                            //     break;
+                            // } else {
+                            //     debug!("Erfolgreiche Rückgabe von {:?} {:?}", nachricht, port);
+                            // }
                         }
                         Err(err) => {
                             error!("Anschlüsse-static poisoned: {}", err);
