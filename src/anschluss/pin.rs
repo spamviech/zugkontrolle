@@ -54,13 +54,12 @@ impl Pin {
 
     ///Consumes the Pin, returns an output::Pin and sets its mode to Output.
     #[inline(always)]
-    #[cfg_attr(not(raspi), allow(unused_variables))]
     pub fn into_output(self, level: Level) -> output::Pin {
-        output::Pin({
-            let mut output_pin = self.0.into_output();
-            output_pin.write(level.into());
-            output_pin
-        })
+        let modus_ändern = match level {
+            Level::Low => rppal::gpio::Pin::into_output_low,
+            Level::High => rppal::gpio::Pin::into_output_high,
+        };
+        output::Pin(modus_ändern(self.0))
     }
 
     #[inline(always)]
