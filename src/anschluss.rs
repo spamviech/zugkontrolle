@@ -210,6 +210,7 @@ impl OutputSerialisiert {
         }
     }
 }
+
 impl Serialisiere for OutputAnschluss {
     type Serialisiert = OutputSerialisiert;
 
@@ -234,6 +235,7 @@ impl Serialisiere for OutputAnschluss {
         (Vec::new(), vec![self], Vec::new())
     }
 }
+
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     fn reserviere(
         self,
@@ -372,6 +374,7 @@ impl InputSerialisiert {
         }
     }
 }
+
 impl Serialisiere for InputAnschluss {
     type Serialisiert = InputSerialisiert;
 
@@ -391,6 +394,7 @@ impl Serialisiere for InputAnschluss {
         (Vec::new(), Vec::new(), vec![self])
     }
 }
+
 impl Reserviere<InputAnschluss> for InputSerialisiert {
     fn reserviere(
         self,
