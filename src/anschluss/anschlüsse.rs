@@ -395,8 +395,3 @@ pub enum AnschlussBeschreibung {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AnschlussInVerwendung(pub AnschlussBeschreibung);
-
-#[cfg(test)]
-// path attribute necessary due to non-ascii module name (at least for now)
-#[path = "anschlüsse/test.rs"]
-mod test;

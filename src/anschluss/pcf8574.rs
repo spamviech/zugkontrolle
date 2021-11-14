@@ -877,3 +877,6 @@ pub enum Fehler {
     PoisonFehler(Beschreibung),
     KeinInterruptPin(Beschreibung),
 }
+
+#[cfg(test)]
+mod test;
