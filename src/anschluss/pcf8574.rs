@@ -229,7 +229,7 @@ macro_rules! pcf8574_state_struct {
 }
 llln_to_hhha! {pcf8574_state_struct}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum I2cBus {
     I2c0_1,
     // I2c2,
@@ -412,7 +412,7 @@ pub struct Pcf8574 {
     i2c: Arc<Mutex<I2cMitPins>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
     pub i2c_bus: I2cBus,
     pub a0: Level,

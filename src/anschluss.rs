@@ -182,19 +182,10 @@ impl OutputAnschluss {
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
-    Pin {
-        pin: u8,
-        polarität: Polarität,
-    },
-    Pcf8574Port {
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: pcf8574::Variante,
-        port: u8,
-        polarität: Polarität,
-    },
+    Pin { pin: u8, polarität: Polarität },
+    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: u3, polarität: Polarität },
 }
+
 impl OutputSerialisiert {
     // Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
     pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {
@@ -204,28 +195,12 @@ impl OutputSerialisiert {
             }
             (
                 OutputSerialisiert::Pcf8574Port {
-                    a0: a0_a,
-                    a1: a1_a,
-                    a2: a2_a,
-                    variante: variante_a,
-                    port: port_a,
-                    ..
+                    beschreibung: beschreibung_a, port: port_a, ..
                 },
                 OutputSerialisiert::Pcf8574Port {
-                    a0: a0_b,
-                    a1: a1_b,
-                    a2: a2_b,
-                    variante: variante_b,
-                    port: port_b,
-                    ..
+                    beschreibung: beschreibung_b, port: port_b, ..
                 },
-            ) => {
-                a0_a == a0_b
-                    && a1_a == a1_b
-                    && a2_a == a2_b
-                    && variante_a == variante_b
-                    && port_a == port_b
-            }
+            ) => beschreibung_a == beschreibung_b && port_a == port_b,
             _ => false,
         }
     }
@@ -239,13 +214,10 @@ impl Serialisiere for OutputAnschluss {
                 OutputSerialisiert::Pin { pin: pin.pin(), polarität: *polarität }
             }
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                let pcf8574::Beschreibung { i2c_bus, a0, a1, a2, variante } = port.adresse();
+                let beschreibung = port.adresse();
                 let port = port.port();
                 OutputSerialisiert::Pcf8574Port {
-                    a0: *a0,
-                    a1: *a1,
-                    a2: *a2,
-                    variante: *variante,
+                    beschreibung: *beschreibung,
                     port: port.into(),
                     polarität: *polarität,
                 }
@@ -297,18 +269,13 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                     }),
                     polarität,
                 ),
-                OutputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
-                    let port = u3::new(port);
-                    (
-                        Anschluss::Pcf8574Port(
-                            match Anschlüsse::reserviere_pcf8574_port(a0, a1, a2, variante, port) {
-                                Ok(port) => port,
-                                Err(error) => fehler!(error),
-                            },
-                        ),
-                        polarität,
-                    )
-                }
+                OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => (
+                    Anschluss::Pcf8574Port(match pcf8574::Port::reserviere(beschreibung, port) {
+                        Ok(port) => port,
+                        Err(error) => fehler!(error),
+                    }),
+                    polarität,
+                ),
             };
             match anschluss.into_output(polarität) {
                 Ok(anschluss) => anschluss,
@@ -371,18 +338,10 @@ impl InputAnschluss {
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
-    Pin {
-        pin: u8,
-    },
-    Pcf8574Port {
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: pcf8574::Variante,
-        port: u8,
-        interrupt: Option<u8>,
-    },
+    Pin { pin: u8 },
+    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: u3, interrupt: Option<u8> },
 }
+
 impl InputSerialisiert {
     // Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
     pub fn selber_anschluss(&self, other: &InputSerialisiert) -> bool {
@@ -390,28 +349,12 @@ impl InputSerialisiert {
             (InputSerialisiert::Pin { pin: p0 }, InputSerialisiert::Pin { pin: p1 }) => p0 == p1,
             (
                 InputSerialisiert::Pcf8574Port {
-                    a0: a0_a,
-                    a1: a1_a,
-                    a2: a2_a,
-                    variante: variante_a,
-                    port: port_a,
-                    ..
+                    beschreibung: beschreibung_a, port: port_a, ..
                 },
                 InputSerialisiert::Pcf8574Port {
-                    a0: a0_b,
-                    a1: a1_b,
-                    a2: a2_b,
-                    variante: variante_b,
-                    port: port_b,
-                    ..
+                    beschreibung: beschreibung_b, port: port_b, ..
                 },
-            ) => {
-                a0_a == a0_b
-                    && a1_a == a1_b
-                    && a2_a == a2_b
-                    && variante_a == variante_b
-                    && port_a == port_b
-            }
+            ) => beschreibung_a == beschreibung_b && port_a == port_b,
             _ => false,
         }
     }
@@ -431,17 +374,10 @@ impl Serialisiere for InputAnschluss {
         match self {
             InputAnschluss::Pin(pin) => InputSerialisiert::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
-                let pcf8574::Beschreibung { i2c_bus, a0, a1, a2, variante } = port.adresse();
+                let beschreibung = *port.adresse();
                 let interrupt = port.interrupt_pin().unwrap_or(None);
                 let port = port.port();
-                InputSerialisiert::Pcf8574Port {
-                    a0: *a0,
-                    a1: *a1,
-                    a2: *a2,
-                    variante: *variante,
-                    port: port.into(),
-                    interrupt,
-                }
+                InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }
             }
         }
     }
@@ -518,14 +454,8 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                         Err(error) => fehler!(error),
                     })
                 }
-                InputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, interrupt: _ } => {
-                    let port = match Anschlüsse::reserviere_pcf8574_port(
-                        a0,
-                        a1,
-                        a2,
-                        variante,
-                        u3::new(port),
-                    ) {
+                InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
+                    let port = match pcf8574::Port::reserviere(beschreibung, port) {
                         Ok(port) => port,
                         Err(error) => fehler!(error),
                     };
