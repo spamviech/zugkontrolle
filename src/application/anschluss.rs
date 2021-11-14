@@ -7,11 +7,16 @@ use iced_native::{
     button, column, container, event, radio, row, text, Clipboard, Column, Element, Event, Layout,
     Length, Point, Radio, Renderer, Row, Text, Widget,
 };
+use log::error;
+use num_x::u3;
 
 use crate::{
     anschluss::{
-        level::Level, pcf8574::Variante, pin::pwm, polarität::Polarität, InputSerialisiert,
-        OutputSerialisiert,
+        level::Level,
+        pcf8574::{self, Beschreibung, Variante},
+        pin::pwm,
+        polarität::Polarität,
+        InputSerialisiert, OutputSerialisiert,
     },
     application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
 };
@@ -22,12 +27,9 @@ pub struct Status<T> {
     active_tab: usize,
     pin_state: number_input::State,
     pin: u8,
-    a0: Level,
-    a1: Level,
-    a2: Level,
-    variante: Variante,
+    beschreibung: Beschreibung,
     port_state: number_input::State,
-    port: u8,
+    port: u3,
     modus: T,
 }
 
@@ -35,11 +37,12 @@ pub struct Status<T> {
 pub struct Input<'t> {
     number_input_state: number_input::State,
     pin: u8,
-    interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
+    interrupt_pins: &'t HashMap<Beschreibung, u8>,
 }
+
 impl<'t> Status<Input<'t>> {
     #[inline(always)]
-    pub fn neu_input(interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>) -> Self {
+    pub fn neu_input(interrupt_pins: &'t HashMap<Beschreibung, u8>) -> Self {
         Self::neu_mit_interrupt(Input {
             number_input_state: number_input::State::new(),
             pin: 0,
@@ -48,23 +51,16 @@ impl<'t> Status<Input<'t>> {
     }
 
     #[inline(always)]
-    pub fn von_input_save(
+    pub fn von_input_serialisiert(
         initial: InputSerialisiert,
-        interrupt_pins: &'t HashMap<(Level, Level, Level, Variante), u8>,
+        interrupt_pins: &'t HashMap<Beschreibung, u8>,
     ) -> Self {
         let make_modus =
             |pin: u8| Input { number_input_state: number_input::State::new(), pin, interrupt_pins };
         match initial {
             InputSerialisiert::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
-            InputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, interrupt } => {
-                Self::neu_mit_initial_port(
-                    a0,
-                    a1,
-                    a2,
-                    variante,
-                    port,
-                    make_modus(interrupt.unwrap_or(0)),
-                )
+            InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt } => {
+                Status::neu_mit_initial_port(beschreibung, port, make_modus(interrupt.unwrap_or(0)))
             }
         }
     }
@@ -73,14 +69,11 @@ impl<'t> Status<Input<'t>> {
     pub fn input_anschluss(&self) -> InputSerialisiert {
         self.anschluss(
             |pin, _input| InputSerialisiert::Pin { pin },
-            |a0, a1, a2, variante, port, Input { pin, interrupt_pins, .. }| {
+            |beschreibung, port, Input { pin, interrupt_pins, .. }| {
                 InputSerialisiert::Pcf8574Port {
-                    a0,
-                    a1,
-                    a2,
-                    variante,
+                    beschreibung,
                     port,
-                    interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
+                    interrupt: if interrupt_pins.get(&beschreibung).is_some() {
                         None
                     } else {
                         Some(*pin)
@@ -107,8 +100,8 @@ impl Status<Output> {
             OutputSerialisiert::Pin { pin, polarität } => {
                 Self::neu_mit_initial_pin(pin, Output { polarität })
             }
-            OutputSerialisiert::Pcf8574Port { a0, a1, a2, variante, port, polarität } => {
-                Self::neu_mit_initial_port(a0, a1, a2, variante, port, Output { polarität })
+            OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
+                Self::neu_mit_initial_port(beschreibung, port, Output { polarität })
             }
         }
     }
@@ -117,11 +110,8 @@ impl Status<Output> {
     pub fn output_anschluss(&self) -> OutputSerialisiert {
         self.anschluss(
             |pin, Output { polarität }| OutputSerialisiert::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, Output { polarität }| OutputSerialisiert::Pcf8574Port {
-                a0,
-                a1,
-                a2,
-                variante,
+            |beschreibung, port, Output { polarität }| OutputSerialisiert::Pcf8574Port {
+                beschreibung,
                 port,
                 polarität: *polarität,
             },
@@ -133,65 +123,52 @@ impl<T> Status<T> {
     fn anschluss<M>(
         &self,
         make_pin: impl Fn(u8, &T) -> M,
-        make_port: impl Fn(Level, Level, Level, Variante, u8, &T) -> M,
+        make_port: impl Fn(Beschreibung, u3, &T) -> M,
     ) -> M {
         if self.active_tab == 0 {
             make_pin(self.pin, &self.modus)
         } else {
-            make_port(self.a0, self.a1, self.a2, self.variante, self.port, &self.modus)
+            make_port(self.beschreibung, self.port, &self.modus)
         }
     }
 
-    fn neu_mit_interrupt(modus: T) -> Self {
+    fn neu(pin: Option<u8>, beschreibung_port: Option<(Beschreibung, u3)>, modus: T) -> Self {
+        let active_tab = if beschreibung_port.is_some() { 1 } else { 0 };
+        let pin = pin.unwrap_or(0);
+        let (beschreibung, port) = beschreibung_port.unwrap_or((
+            Beschreibung {
+                i2c_bus: pcf8574::I2cBus::I2c0_1,
+                a0: Level::Low,
+                a1: Level::Low,
+                a2: Level::Low,
+                variante: Variante::Normal,
+            },
+            u3::MIN,
+        ));
         Status {
-            active_tab: 0,
-            pin_state: number_input::State::new(),
-            pin: 0,
-            a0: Level::Low,
-            a1: Level::Low,
-            a2: Level::Low,
-            variante: Variante::Normal,
-            port_state: number_input::State::new(),
-            port: 0,
-            modus,
-        }
-    }
-
-    fn neu_mit_initial_pin(pin: u8, modus: T) -> Self {
-        Status {
-            active_tab: 0,
+            active_tab,
             pin_state: number_input::State::new(),
             pin,
-            a0: Level::Low,
-            a1: Level::Low,
-            a2: Level::Low,
-            variante: Variante::Normal,
-            port_state: number_input::State::new(),
-            port: 0,
-            modus,
-        }
-    }
-
-    fn neu_mit_initial_port(
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        port: u8,
-        modus: T,
-    ) -> Self {
-        Status {
-            active_tab: 1,
-            pin_state: number_input::State::new(),
-            pin: 0,
-            a0,
-            a1,
-            a2,
-            variante,
+            beschreibung,
             port_state: number_input::State::new(),
             port,
             modus,
         }
+    }
+
+    #[inline(always)]
+    fn neu_mit_interrupt(modus: T) -> Self {
+        Status::neu(None, None, modus)
+    }
+
+    #[inline(always)]
+    fn neu_mit_initial_pin(pin: u8, modus: T) -> Self {
+        Status::neu(Some(pin), None, modus)
+    }
+
+    #[inline(always)]
+    fn neu_mit_initial_port(beschreibung: Beschreibung, port: u3, modus: T) -> Self {
+        Status::neu(None, Some((beschreibung, port)), modus)
     }
 }
 
@@ -219,15 +196,12 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     row: Row<'a, InternalMessage<I>, R>,
     active_tab: &'a mut usize,
     pin: &'a mut u8,
-    a0: &'a mut Level,
-    a1: &'a mut Level,
-    a2: &'a mut Level,
-    variante: &'a mut Variante,
-    port: &'a mut u8,
+    beschreibung: &'a mut Beschreibung,
+    port: &'a mut u3,
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
     make_pin: &'a dyn Fn(u8, &T) -> M,
-    make_port: Box<dyn Fn(Level, Level, Level, Variante, u8, &T) -> M>,
+    make_port: Box<dyn Fn(Beschreibung, u3, &T) -> M>,
 }
 
 impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
@@ -236,10 +210,7 @@ impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
             .field("row", &"<Row>")
             .field("active_tab", &self.active_tab)
             .field("pin", &self.pin)
-            .field("a0", &self.a0)
-            .field("a1", &self.a1)
-            .field("a2", &self.a2)
-            .field("variante", &self.variante)
+            .field("beschreibung", &self.beschreibung)
             .field("port", &self.port)
             .field("modus", &self.modus)
             .field("update_modus", &"<closure>")
@@ -268,9 +239,9 @@ where
         Auswahl::neu_mit_interrupt_view(
             status,
             ZeigeModus::Pcf8574,
-            |Input { number_input_state, pin, interrupt_pins }, a0, a1, a2, variante| {
+            |Input { number_input_state, pin, interrupt_pins }, beschreibung| {
                 (
-                    interrupt_pins.get(&(a0, a1, a2, variante)).map_or(
+                    interrupt_pins.get(&beschreibung).map_or(
                         NumberInput::new(number_input_state, *pin, 32, InputMessage::Interrupt)
                             .into(),
                         |pin| Text::new(pin.to_string()).into(),
@@ -280,13 +251,10 @@ where
             },
             &|modus: &mut u8, InputMessage::Interrupt(pin)| *modus = pin,
             &|pin, _input| InputSerialisiert::Pin { pin },
-            move |a0, a1, a2, variante, port, pin| InputSerialisiert::Pcf8574Port {
-                a0,
-                a1,
-                a2,
-                variante,
+            move |beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
+                beschreibung,
                 port,
-                interrupt: if interrupt_pins.get(&(a0, a1, a2, variante)).is_some() {
+                interrupt: if interrupt_pins.get(&beschreibung).is_some() {
                     None
                 } else {
                     Some(*pin)
@@ -314,7 +282,7 @@ where
         Auswahl::neu_mit_interrupt_view(
             status,
             ZeigeModus::Beide,
-            |Output { polarität }, _a0, _a1, _a2, _variante| {
+            |Output { polarität }, _beschreibung| {
                 (
                     Column::new()
                         .push(Radio::new(
@@ -335,11 +303,8 @@ where
             },
             &|modus, OutputMessage::Polarität(polarität)| *modus = polarität,
             &|pin, polarität| OutputSerialisiert::Pin { pin, polarität: *polarität },
-            |a0, a1, a2, variante, port, polarität| OutputSerialisiert::Pcf8574Port {
-                a0,
-                a1,
-                a2,
-                variante,
+            |beschreibung, port, polarität| OutputSerialisiert::Pcf8574Port {
+                beschreibung,
                 port,
                 polarität: *polarität,
             },
@@ -385,31 +350,17 @@ where
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     fn neu_mit_interrupt_view<IO>(
-        Status {
-            active_tab,
-            pin_state,
-            pin,
-            a0,
-            a1,
-            a2,
-            variante,
-            port_state,
-            port,
-            modus,
-        }: &'a mut Status<IO>,
+        status: &'a mut Status<IO>,
         zeige_modus: ZeigeModus,
-        view_modus: impl FnOnce(
-            &'a mut IO,
-            Level,
-            Level,
-            Level,
-            Variante,
-        ) -> (Element<'a, I, R>, &'a mut T),
+        view_modus: impl FnOnce(&'a mut IO, Beschreibung) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
         make_pin: &'a impl Fn(u8, &T) -> M,
-        make_port: impl 'static + Fn(Level, Level, Level, Variante, u8, &T) -> M,
+        make_port: impl 'static + Fn(Beschreibung, u3, &T) -> M,
     ) -> Self {
-        let (view_modus, modus) = view_modus(modus, *a0, *a1, *a2, *variante);
+        let Status { active_tab, pin_state, pin, beschreibung, port_state, port, modus } = status;
+        let (view_modus, modus) = view_modus(modus, *beschreibung);
+        // TODO anzeige des verwendeten I2cBus
+        let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = view_modus.map(InternalMessage::Modus);
         let high_low_column = |level: &Level, to_message: fn(Level) -> InternalMessage<I>| {
             make_radios(level, Level::High, "H", Level::Low, "L", to_message)
@@ -426,7 +377,12 @@ where
                 "A",
                 InternalMessage::Variante,
             ))
-            .push(NumberInput::new(port_state, *port, 7, InternalMessage::Port));
+            .push(NumberInput::new(
+                port_state,
+                u8::from(*port),
+                u8::from(u3::MAX),
+                InternalMessage::Port,
+            ));
         // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
         let width = Length::Units(350);
         let row = match zeige_modus {
@@ -465,10 +421,7 @@ where
             row,
             active_tab,
             pin,
-            a0,
-            a1,
-            a2,
-            variante,
+            beschreibung,
             port,
             modus,
             update_modus,
@@ -509,11 +462,18 @@ where
             match message {
                 InternalMessage::TabSelected(tab) => *self.active_tab = tab,
                 InternalMessage::Pin(pin) => *self.pin = pin,
-                InternalMessage::A0(a0) => *self.a0 = a0,
-                InternalMessage::A1(a1) => *self.a1 = a1,
-                InternalMessage::A2(a2) => *self.a2 = a2,
-                InternalMessage::Variante(variante) => *self.variante = variante,
-                InternalMessage::Port(port) => *self.port = port,
+                InternalMessage::A0(a0) => self.beschreibung.a0 = a0,
+                InternalMessage::A1(a1) => self.beschreibung.a1 = a1,
+                InternalMessage::A2(a2) => self.beschreibung.a2 = a2,
+                InternalMessage::Variante(variante) => self.beschreibung.variante = variante,
+                InternalMessage::Port(port) => {
+                    *self.port = if port > u8::from(u3::MAX) {
+                        error!("Port {} > u3::MAX {}", port, u3::MAX);
+                        u3::MAX
+                    } else {
+                        u3::new(port)
+                    }
+                }
                 InternalMessage::Modus(msg) => (self.update_modus)(self.modus, msg),
             }
             status = event::Status::Captured;
@@ -522,14 +482,7 @@ where
             messages.push(if *self.active_tab == 0 {
                 (self.make_pin)(*self.pin, &self.modus)
             } else {
-                (self.make_port)(
-                    *self.a0,
-                    *self.a1,
-                    *self.a2,
-                    *self.variante,
-                    *self.port,
-                    self.modus,
-                )
+                (self.make_port)(*self.beschreibung, *self.port, self.modus)
             })
         }
         status

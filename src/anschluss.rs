@@ -7,6 +7,7 @@ use num_x::u3;
 use serde::{Deserialize, Serialize};
 
 pub use self::de_serialisieren::{Reserviere, Reserviert, Serialisiere};
+use self::pcf8574::I2cBus;
 
 pub mod level;
 pub use level::*;
@@ -45,6 +46,16 @@ impl From<pcf8574::Port> for Anschluss {
     }
 }
 
+fn write_bus(f: &mut Formatter<'_>, i2c_bus: &I2cBus) -> fmt::Result {
+    match i2c_bus {
+        I2cBus::I2c0_1 => write!(f, "01"),
+        // I2cBus::I2c2 => write!(f, " 2"),
+        I2cBus::I2c3 => write!(f, " 3"),
+        I2cBus::I2c4 => write!(f, " 4"),
+        I2cBus::I2c5 => write!(f, " 5"),
+        I2cBus::I2c6 => write!(f, " 6"),
+    }
+}
 fn write_level(f: &mut Formatter<'_>, level: &Level) -> fmt::Result {
     match level {
         Level::Low => write!(f, "L"),
@@ -61,6 +72,8 @@ fn write_adresse(
     f: &mut Formatter<'_>,
     pcf8574::Beschreibung { i2c_bus, a0, a1, a2, variante }: &pcf8574::Beschreibung,
 ) -> fmt::Result {
+    write_bus(f, i2c_bus)?;
+    write!(f, ", ")?;
     write_level(f, a0)?;
     write_level(f, a1)?;
     write_level(f, a2)?;
@@ -171,7 +184,7 @@ impl OutputAnschluss {
 }
 
 /// Serealisierbare Informationen eines OutputAnschlusses.
-#[allow(missing_copy_implementations)]
+#[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     Pin { pin: u8, polarität: Polarität },

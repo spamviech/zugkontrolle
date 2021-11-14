@@ -168,7 +168,7 @@ macro_rules! pcf8574_state_struct {
                     match beschreibung {
                         $(
                             Beschreibung {
-                                i2c_bus,
+                                i2c_bus: _,
                                 a0: level!($a0),
                                 a1: level!($a1),
                                 a2: level!($a2),
@@ -196,7 +196,7 @@ macro_rules! pcf8574_state_struct {
                     match port.beschreibung() {
                         $(
                             Beschreibung {
-                                i2c_bus,
+                                i2c_bus: _,
                                 a0: level!($a0),
                                 a1: level!($a1),
                                 a2: level!($a2),
@@ -280,7 +280,7 @@ pub struct InVerwendung {
     pub port: u3,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ReservierenFehler {
     Init(&'static InitFehler),
     InVerwendung(InVerwendung),
@@ -869,7 +869,6 @@ impl InputPort {
 }
 
 // TODO genauere Eingrenzung auf einzelne Methoden
-#[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Fehler {
     I2c { beschreibung: Beschreibung, fehler: i2c::Error },

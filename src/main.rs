@@ -36,7 +36,6 @@
 use iced::{Application, Settings};
 use simple_logger::SimpleLogger;
 use zugkontrolle::{
-    anschluss::anschlüsse,
     application::{fonts, icon::icon},
     args::{self, Args},
     Lego, Märklin, Zugkontrolle,
@@ -66,21 +65,4 @@ fn main() -> Result<(), iced::Error> {
     }
 
     Ok(())
-}
-
-#[allow(variant_size_differences)]
-#[derive(Debug)]
-enum Fehler {
-    Iced(iced::Error),
-    Anschlüsse(anschlüsse::Fehler),
-}
-impl From<iced::Error> for Fehler {
-    fn from(error: iced::Error) -> Self {
-        Fehler::Iced(error)
-    }
-}
-impl From<anschlüsse::Fehler> for Fehler {
-    fn from(error: anschlüsse::Fehler) -> Self {
-        Fehler::Anschlüsse(error)
-    }
 }

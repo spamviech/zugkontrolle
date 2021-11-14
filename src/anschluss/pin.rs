@@ -20,15 +20,12 @@ pub struct ReservierenFehler {
 pub struct Pin(rppal::gpio::Pin);
 
 impl Pin {
-    pub(super) fn reserviere(pin: u8) -> Result<Pin, ReservierenFehler> {
+    /// Reserviere den gewählten Gpio pin.
+    pub fn reserviere(pin: u8) -> Result<Pin, ReservierenFehler> {
         let konvertiere_fehler = |fehler| ReservierenFehler { pin, fehler };
         let gpio = rppal::gpio::Gpio::new().map_err(konvertiere_fehler)?;
         let pin = Pin(gpio.get(pin).map_err(konvertiere_fehler)?);
         Ok(pin)
-    }
-
-    pub(super) fn neu(pin: rppal::gpio::Pin) -> Self {
-        Pin(pin)
     }
 
     /// Returns the GPIO pin number.
