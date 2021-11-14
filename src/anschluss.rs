@@ -362,7 +362,7 @@ macro_rules! match_method {
 impl InputAnschluss {
     match_method! {read -> Level}
 
-    match_method! {set_async_interrupt(trigger: Trigger, callback: impl FnMut(Level) + Send + 'static)}
+    match_method! {set_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static)}
 
     match_method! {clear_async_interrupt}
 }

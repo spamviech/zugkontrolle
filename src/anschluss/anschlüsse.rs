@@ -276,67 +276,69 @@ impl Anschlüsse {
 
         macro_rules! make_anschlüsse {
             { $($a0:ident $a1:ident $a2:ident $var:ident),* } => {{
-                let i2c = Arc::new(Mutex::new(I2c::new()?));
-                let gpio = Gpio::new()?;
-                paste! {
-                    $(
-                        let [<$a0 $a1 $a2 $var>] = Arc::new(Mutex::new(Pcf8574::neu(
-                            level!($a0),
-                            level!($a1),
-                            level!($a2),
-                            variante!($var),
-                            i2c.clone(),
-                        )));
-                    )*
-                }
-                macro_rules! port_value {
-                    ($v_a0:ident, $v_a1:ident, $v_a2:ident, $v_var:ident, $v_port:expr) => {
-                        paste! {
-                            Some(
-                                Port::neu(
-                                    [<$v_a0 $v_a1 $v_a2 $v_var>].clone(),
-                                    pcf8574::Beschreibung {
-                                        a0:level!{$v_a0},
-                                        a1:level!{$v_a1},
-                                        a2:level!{$v_a2},
-                                        variante:variante!{$v_var}
-                                    },
-                                    u3::new($v_port),
-                                    sender.clone()
-                                )
-                            )
-                        }
-                    }
-                }
-                paste! {
-                    $(
-                        let [<$a0 $a1 $a2 $var 0>] = port_value! {$a0, $a1, $a2, $var, 0};
-                        let [<$a0 $a1 $a2 $var 1>] = port_value! {$a0, $a1, $a2, $var, 1};
-                        let [<$a0 $a1 $a2 $var 2>] = port_value! {$a0, $a1, $a2, $var, 2};
-                        let [<$a0 $a1 $a2 $var 3>] = port_value! {$a0, $a1, $a2, $var, 3};
-                        let [<$a0 $a1 $a2 $var 4>] = port_value! {$a0, $a1, $a2, $var, 4};
-                        let [<$a0 $a1 $a2 $var 5>] = port_value! {$a0, $a1, $a2, $var, 5};
-                        let [<$a0 $a1 $a2 $var 6>] = port_value! {$a0, $a1, $a2, $var, 6};
-                        let [<$a0 $a1 $a2 $var 7>] = port_value! {$a0, $a1, $a2, $var, 7};
-                    )*
-                }
-                paste! {
-                    Anschlüsse {
-                        gpio,
-                        i2c: i2c.clone(),
-                        $(
-                            [<$a0 $a1 $a2 $var>],
-                            [<$a0 $a1 $a2 $var 0>],
-                            [<$a0 $a1 $a2 $var 1>],
-                            [<$a0 $a1 $a2 $var 2>],
-                            [<$a0 $a1 $a2 $var 3>],
-                            [<$a0 $a1 $a2 $var 4>],
-                            [<$a0 $a1 $a2 $var 5>],
-                            [<$a0 $a1 $a2 $var 6>],
-                            [<$a0 $a1 $a2 $var 7>],
-                        )*
-                    }
-                }
+                todo!()
+                // let i2c: &'static std::sync::RwLock<_> = todo!();//Arc::new(Mutex::new(I2c::new()?));
+                // let gpio = Gpio::new()?;
+                // paste! {
+                //     $(
+                //         let [<$a0 $a1 $a2 $var>] = Arc::new(Mutex::new(Pcf8574::neu(
+                //             level!($a0),
+                //             level!($a1),
+                //             level!($a2),
+                //             variante!($var),
+                //             i2c.clone(),
+                //         )));
+                //     )*
+                // }
+                // macro_rules! port_value {
+                //     ($v_a0:ident, $v_a1:ident, $v_a2:ident, $v_var:ident, $v_port:expr) => {
+                //         paste! {
+                //             Some(
+                //                 Port::neu(
+                //                     [<$v_a0 $v_a1 $v_a2 $v_var>].clone(),
+                //                     pcf8574::Beschreibung {
+                //                         a0:level!{$v_a0},
+                //                         a1:level!{$v_a1},
+                //                         a2:level!{$v_a2},
+                //                         variante:variante!{$v_var}
+                //                     },
+                //                     u3::new($v_port),
+                //                     sender.clone()
+                //                 )
+                //             )
+                //         }
+                //     }
+                // }
+                // paste! {
+                //     $(
+                //         let [<$a0 $a1 $a2 $var 0>] = port_value! {$a0, $a1, $a2, $var, 0};
+                //         let [<$a0 $a1 $a2 $var 1>] = port_value! {$a0, $a1, $a2, $var, 1};
+                //         let [<$a0 $a1 $a2 $var 2>] = port_value! {$a0, $a1, $a2, $var, 2};
+                //         let [<$a0 $a1 $a2 $var 3>] = port_value! {$a0, $a1, $a2, $var, 3};
+                //         let [<$a0 $a1 $a2 $var 4>] = port_value! {$a0, $a1, $a2, $var, 4};
+                //         let [<$a0 $a1 $a2 $var 5>] = port_value! {$a0, $a1, $a2, $var, 5};
+                //         let [<$a0 $a1 $a2 $var 6>] = port_value! {$a0, $a1, $a2, $var, 6};
+                //         let [<$a0 $a1 $a2 $var 7>] = port_value! {$a0, $a1, $a2, $var, 7};
+                //     )*
+                // }
+                // paste! {
+                //     let i2c: Arc<Mutex<I2c>> = todo!();
+                //     Anschlüsse {
+                //         gpio,
+                //         i2c: i2c.clone(),
+                //         $(
+                //             [<$a0 $a1 $a2 $var>],
+                //             [<$a0 $a1 $a2 $var 0>],
+                //             [<$a0 $a1 $a2 $var 1>],
+                //             [<$a0 $a1 $a2 $var 2>],
+                //             [<$a0 $a1 $a2 $var 3>],
+                //             [<$a0 $a1 $a2 $var 4>],
+                //             [<$a0 $a1 $a2 $var 5>],
+                //             [<$a0 $a1 $a2 $var 6>],
+                //             [<$a0 $a1 $a2 $var 7>],
+                //         )*
+                //     }
+                // }
             }};
         }
 

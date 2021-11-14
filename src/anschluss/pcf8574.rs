@@ -4,13 +4,16 @@
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
 //! so dass es zu keinen Deadlocks kommen sollte.
 
-use std::fmt::Debug;
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    sync::{mpsc::Sender, Arc, Mutex, RwLock},
+};
 
-use log::debug;
-use log::error;
-use num_x::u3;
-use num_x::u7;
+use log::{debug, error};
+use num_x::{u3, u7};
+use once_cell::sync::Lazy;
+use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -18,11 +21,189 @@ use crate::{
         pin::input,
         {level::Level, trigger::Trigger},
     },
-    rppal::{gpio, i2c},
+    rppal::{
+        gpio::{self, Gpio, Pin},
+        i2c::{self, I2c},
+    },
 };
 
+#[derive(Debug)]
+struct I2cWithPins {
+    i2c: I2c,
+    sda: Pin,
+    scl: Pin,
+}
+
+impl Drop for I2cWithPins {
+    fn drop(&mut self) {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
+pub enum InitFehler {
+    I2c(i2c::Error),
+    Gpio(gpio::Error),
+}
+
+impl From<i2c::Error> for InitFehler {
+    fn from(fehler: i2c::Error) -> Self {
+        InitFehler::I2c(fehler)
+    }
+}
+
+impl From<gpio::Error> for InitFehler {
+    fn from(fehler: gpio::Error) -> Self {
+        InitFehler::Gpio(fehler)
+    }
+}
+
+impl I2cWithPins {
+    fn neu(i2c_res: i2c::Result<I2c>, sda: u8, scl: u8) -> Result<I2cWithPins, InitFehler> {
+        let gpio = Gpio::new()?;
+        let i2c = i2c_res?;
+        let sda = gpio.get(sda)?;
+        let scl = gpio.get(scl)?;
+        Ok(I2cWithPins { i2c, sda, scl })
+    }
+}
+
+#[derive(Debug)]
+struct Pcf8574PortState {
+    pcf8574: Arc<Mutex<Pcf8574>>,
+    port0: Option<Port>,
+    port1: Option<Port>,
+    port2: Option<Port>,
+    port3: Option<Port>,
+    port4: Option<Port>,
+    port5: Option<Port>,
+    port6: Option<Port>,
+    port7: Option<Port>,
+}
+
+impl Pcf8574PortState {
+    fn neu(
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: Variante,
+        i2c: Arc<Mutex<I2cWithPins>>,
+    ) -> Pcf8574PortState {
+        Pcf8574PortState {
+            pcf8574: Arc::new(Mutex::new(Pcf8574::neu(a0, a1, a2, variante, i2c))),
+            port0: todo!(),
+            port1: todo!(),
+            port2: todo!(),
+            port3: todo!(),
+            port4: todo!(),
+            port5: todo!(),
+            port6: todo!(),
+            port7: todo!(),
+        }
+    }
+}
+
+/// originally taken from: https://www.ecorax.net/macro-bunker-1/
+/// adjusted to 4 arguments
+macro_rules! matrix {
+    ( $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt $(: $value:ident)?) => {
+        matrix! { $inner_macro $($k $ls $ms $ns)+ $(: $value)?}
+    };
+    ( $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+ $(: $value:ident)?) => {
+        matrix! { $inner_macro $($( $k $l $ms $ns )+)+ $(: $value)? }
+    };
+    ( $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+ $(: $value:ident)?) => {
+        matrix! { $inner_macro $($( $k $l $m $ns )+)+ $(: $value)? }
+    };
+    ( $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:ident),+])+ $(: $value:ident)?) => {
+         $inner_macro! { $($($k $l $m $n),+),+ $(: $value)? }
+    };
+}
+macro_rules! llln_to_hhha {
+    ($inner_macro:ident $(: $value:expr)?) => {
+        matrix! {$inner_macro  [l,h] [l,h] [l,h] [n,a] $(: $value)?}
+    };
+}
+macro_rules! level {
+    (l) => {
+        Level::Low
+    };
+    (h) => {
+        Level::High
+    };
+}
+macro_rules! variante {
+    (n) => {
+        Variante::Normal
+    };
+    (a) => {
+        Variante::A
+    };
+}
+macro_rules! pcf8574_state_struct {
+    ( $($a0:ident $a1:ident $a2:ident $variante:ident),* ) => {
+        paste! {
+            #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
+            #[derive(Debug)]
+            struct Pcf8574State {
+                $(
+                    [<$a0 $a1 $a2 $variante>]: Pcf8574PortState,
+                )*
+            }
+            impl Pcf8574State {
+                fn neu(i2c: Arc<Mutex<I2cWithPins>>) -> Pcf8574State {
+                    Pcf8574State {
+                        $(
+                            [<$a0 $a1 $a2 $variante>]: Pcf8574PortState::neu(
+                                level!($a0),
+                                level!($a1),
+                                level!($a2),
+                                variante!($variante),
+                                i2c.clone()
+                            ),
+                        )*
+                    }
+                }
+            }
+        }
+    };
+}
+llln_to_hhha! {pcf8574_state_struct}
+
+/// Singleton für Zugriff auf raspberry pi Anschlüsse.
+#[derive(Debug)]
+pub struct I2cState {
+    i2c_0_1: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    // i2c_2: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    i2c_3: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    i2c_4: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    i2c_5: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+    i2c_6: Result<(Arc<Mutex<I2cWithPins>>, Pcf8574State), InitFehler>,
+}
+
+fn erstelle_arc_und_pcf8574_state(i2c: I2cWithPins) -> (Arc<Mutex<I2cWithPins>>, Pcf8574State) {
+    let arc = Arc::new(Mutex::new(i2c));
+    (arc.clone(), Pcf8574State::neu(arc))
+}
+
+impl I2cState {
+    fn neu() -> I2cState {
+        let i2c_0_1 = I2cWithPins::neu(I2c::with_bus(1).or_else(|_| I2c::with_bus(0)), 2, 3)
+            .map(erstelle_arc_und_pcf8574_state);
+        // let i2c_2 =
+        //     I2cWithPins::neu( I2c::with_bus(3), 4, 5).map(erstelle_arc_und_pcf8574_state);
+        let i2c_3 = I2cWithPins::neu(I2c::with_bus(3), 4, 5).map(erstelle_arc_und_pcf8574_state);
+        let i2c_4 = I2cWithPins::neu(I2c::with_bus(3), 8, 9).map(erstelle_arc_und_pcf8574_state);
+        let i2c_5 = I2cWithPins::neu(I2c::with_bus(3), 12, 13).map(erstelle_arc_und_pcf8574_state);
+        let i2c_6 = I2cWithPins::neu(I2c::with_bus(3), 22, 23).map(erstelle_arc_und_pcf8574_state);
+        I2cState { i2c_0_1: todo!(), i2c_3, i2c_4, i2c_5, i2c_6 }
+    }
+}
+
+pub static I2C: Lazy<I2cState> = Lazy::new(I2cState::neu);
+
 pub(super) enum Modus {
-    Input { trigger: Trigger, callback: Option<Box<dyn FnMut(Level) + Send + 'static>> },
+    Input { trigger: Trigger, callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> },
     High,
     Low,
 }
@@ -70,7 +251,7 @@ pub struct Pcf8574 {
     variante: Variante,
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
-    i2c: Arc<Mutex<i2c::I2c>>,
+    i2c: Arc<Mutex<I2cWithPins>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,12 +268,12 @@ impl Pcf8574 {
         Beschreibung { a0: *a0, a1: *a1, a2: *a2, variante: *variante }
     }
 
-    pub(super) fn neu(
+    fn neu(
         a0: Level,
         a1: Level,
         a2: Level,
         variante: Variante,
-        i2c: Arc<Mutex<i2c::I2c>>,
+        i2c: Arc<Mutex<I2cWithPins>>,
     ) -> Self {
         Pcf8574 {
             a0,
@@ -140,10 +321,10 @@ impl Pcf8574 {
     fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
         let beschreibung = self.beschreibung();
         let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
-        if let Ok(mut i2c_channel) = self.i2c.lock() {
-            i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+        if let Ok(mut i2c_with_pins) = self.i2c.lock() {
+            i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
             let mut buf = [0; 1];
-            let bytes_read = i2c_channel.read(&mut buf).map_err(map_fehler)?;
+            let bytes_read = i2c_with_pins.i2c.read(&mut buf).map_err(map_fehler)?;
             if bytes_read != 1 {
                 debug!("bytes_read = {} != 1", bytes_read)
             }
@@ -164,7 +345,7 @@ impl Pcf8574 {
     }
 
     /// Konvertiere einen Port als Input.
-    fn port_as_input<C: FnMut(Level) + Send + 'static>(
+    fn port_as_input<C: Fn(Level) + Send + Sync + 'static>(
         &mut self,
         port: u3,
         trigger: Trigger,
@@ -172,8 +353,8 @@ impl Pcf8574 {
     ) -> Result<(), Fehler> {
         self.write_port(port, Level::High)?;
         // type annotations need, so extra let binding required
-        let callback: Option<Box<dyn FnMut(Level) + Send + 'static>> = match callback {
-            Some(c) => Some(Box::new(c)),
+        let callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> = match callback {
+            Some(c) => Some(Arc::new(c)),
             None => None,
         };
         self.ports[usize::from(port)] = Modus::Input { trigger, callback };
@@ -185,14 +366,14 @@ impl Pcf8574 {
     fn write_port(&mut self, port: u3, level: Level) -> Result<(), Fehler> {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
-        let mut i2c_channel = if let Ok(i2c_channel) = self.i2c.lock() {
-            i2c_channel
+        let mut i2c_with_pins = if let Ok(i2c_with_pins) = self.i2c.lock() {
+            i2c_with_pins
         } else {
             error!("I2C-Mutex poisoned!");
             return Err(Fehler::PoisonFehler(beschreibung));
         };
         let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
-        i2c_channel.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+        i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
         let mut wert = 0;
         for (port, modus) in self.ports.iter().enumerate() {
             wert |= match modus {
@@ -201,7 +382,7 @@ impl Pcf8574 {
             };
         }
         let buf = [wert; 1];
-        let bytes_written = i2c_channel.write(&buf).map_err(map_fehler)?;
+        let bytes_written = i2c_with_pins.i2c.write(&buf).map_err(map_fehler)?;
         if bytes_written != 1 {
             error!("bytes_written = {} != 1", bytes_written)
         }
@@ -230,7 +411,6 @@ pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
     beschreibung: Beschreibung,
     port: u3,
-    sender: Sender<(Beschreibung, u3)>,
 }
 impl PartialEq for Port {
     fn eq(&self, other: &Self) -> bool {
@@ -240,13 +420,14 @@ impl PartialEq for Port {
 impl Eq for Port {}
 impl Drop for Port {
     fn drop(&mut self) {
-        let Port { port, beschreibung, sender, .. } = self;
-        debug!("dropped {:?} {:?} ", beschreibung, port);
-        // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
-        // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
-        if let Err(err) = sender.send((beschreibung.clone(), port.clone())) {
-            debug!("send error while dropping: {}", err)
-        }
+        todo!()
+        // let Port { port, beschreibung, sender, .. } = self;
+        // debug!("dropped {:?} {:?} ", beschreibung, port);
+        // // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
+        // // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
+        // if let Err(err) = sender.send((beschreibung.clone(), port.clone())) {
+        //     debug!("send error while dropping: {}", err)
+        // }
     }
 }
 impl Port {
@@ -256,7 +437,7 @@ impl Port {
         port: u3,
         sender: Sender<(Beschreibung, u3)>,
     ) -> Self {
-        Port { pcf8574, port, beschreibung, sender }
+        Port { pcf8574, port, beschreibung }
     }
 
     #[inline(always)]
@@ -505,7 +686,7 @@ impl InputPort {
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
-        callback: impl FnMut(Level) + Send + 'static,
+        callback: impl Fn(Level) + Send + Sync + 'static,
     ) -> Result<(), Fehler> {
         let port = self.port();
         let beschreibung = self.adresse().clone();

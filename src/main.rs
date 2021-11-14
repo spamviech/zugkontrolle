@@ -43,6 +43,9 @@ use zugkontrolle::{
 };
 
 fn main() -> Result<(), iced::Error> {
+    let i2c: &zugkontrolle::anschluss::pcf8574::I2cState = &zugkontrolle::anschluss::pcf8574::I2C;
+    println!("{:?}", i2c);
+
     let args = Args::from_env();
     let verbose = args.verbose;
     let zugtyp = args.zugtyp;
