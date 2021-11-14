@@ -281,21 +281,20 @@ pub struct InVerwendung {
 }
 
 #[derive(Debug)]
-#[allow(single_use_lifetimes)]
-pub enum ReserviereFehler<'t> {
-    Init(&'t InitFehler),
+pub enum ReservierenFehler {
+    Init(&'static InitFehler),
     InVerwendung(InVerwendung),
 }
 
-impl<'t> From<&'t InitFehler> for ReserviereFehler<'t> {
-    fn from(fehler: &'t InitFehler) -> Self {
-        ReserviereFehler::Init(fehler)
+impl From<&'static InitFehler> for ReservierenFehler {
+    fn from(fehler: &'static InitFehler) -> Self {
+        ReservierenFehler::Init(fehler)
     }
 }
 
-impl From<InVerwendung> for ReserviereFehler<'_> {
+impl From<InVerwendung> for ReservierenFehler {
     fn from(fehler: InVerwendung) -> Self {
-        ReserviereFehler::InVerwendung(fehler)
+        ReservierenFehler::InVerwendung(fehler)
     }
 }
 
@@ -327,17 +326,17 @@ impl I2cState {
     }
 
     fn reserviere_pcf8574_port(
-        &self,
+        &'static self,
         beschreibung: Beschreibung,
         port: u3,
-    ) -> Result<Port, ReserviereFehler<'_>> {
+    ) -> Result<Port, ReservierenFehler> {
         let i2c_bus = beschreibung.i2c_bus;
         let (_i2c, pcf8574_state_lock) = self.i2c_bus(i2c_bus)?;
         let mut pcf8574_state = pcf8574_state_lock.write().unwrap_or_else(|poison_error| {
             error!("Pcf8574State-RwLock poisoned: {:?}", poison_error);
             poison_error.into_inner()
         });
-        pcf8574_state.reserviere_pcf8574_port(beschreibung, port).map_err(ReserviereFehler::from)
+        pcf8574_state.reserviere_pcf8574_port(beschreibung, port).map_err(ReservierenFehler::from)
     }
 
     fn rückgabe_pcf8574_port(&self, port: Port) -> Result<(), &InitFehler> {
@@ -589,10 +588,7 @@ impl Drop for Port {
     }
 }
 impl Port {
-    pub fn reserviere<'t>(
-        beschreibung: Beschreibung,
-        port: u3,
-    ) -> Result<Port, ReserviereFehler<'t>> {
+    pub fn reserviere(beschreibung: Beschreibung, port: u3) -> Result<Port, ReservierenFehler> {
         I2C.reserviere_pcf8574_port(beschreibung, port)
     }
 

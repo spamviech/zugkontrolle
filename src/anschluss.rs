@@ -6,10 +6,7 @@ use log::error;
 use num_x::u3;
 use serde::{Deserialize, Serialize};
 
-pub use self::{
-    anschlüsse::AnschlussInVerwendung,
-    de_serialisieren::{Reserviere, Reserviert, Serialisiere},
-};
+pub use self::de_serialisieren::{Reserviere, Reserviert, Serialisiere};
 
 pub mod level;
 pub use level::*;
@@ -26,11 +23,6 @@ pub use pin::*;
 
 pub mod pcf8574;
 pub use pcf8574::Pcf8574;
-
-// path attribute necessary due to non-ascii module name (at least for now)
-#[path = "anschluss/anschlüsse.rs"]
-pub mod anschlüsse;
-pub use anschlüsse::Anschlüsse;
 
 pub mod de_serialisieren;
 
@@ -263,7 +255,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
             }
             let (anschluss, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => (
-                    Anschluss::Pin(match Anschlüsse::reserviere_pin(pin) {
+                    Anschluss::Pin(match Pin::reserviere(pin) {
                         Ok(pin) => pin,
                         Err(error) => fehler!(error),
                     }),
@@ -419,7 +411,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.set_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = Anschlüsse::reserviere_pin(pin)?.into_input();
+                        let interrupt = Pin::reserviere(pin)?.into_input();
                         let _ = port.set_interrupt_pin(interrupt)?;
                     }
                 }
@@ -448,12 +440,10 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             }
         } else {
             match self {
-                InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(match Anschlüsse::reserviere_pin(pin) {
-                        Ok(anschluss) => anschluss.into_input(),
-                        Err(error) => fehler!(error),
-                    })
-                }
+                InputSerialisiert::Pin { pin } => InputAnschluss::Pin(match Pin::reserviere(pin) {
+                    Ok(anschluss) => anschluss.into_input(),
+                    Err(error) => fehler!(error),
+                }),
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     let port = match pcf8574::Port::reserviere(beschreibung, port) {
                         Ok(port) => port,
@@ -480,28 +470,49 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 }
 
 #[derive(Debug)]
+pub enum ReservierenFehler {
+    Pin(pin::ReservierenFehler),
+    Pcf8574(pcf8574::ReservierenFehler),
+}
+impl From<pin::ReservierenFehler> for ReservierenFehler {
+    fn from(fehler: pin::ReservierenFehler) -> Self {
+        ReservierenFehler::Pin(fehler)
+    }
+}
+impl From<pcf8574::ReservierenFehler> for ReservierenFehler {
+    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
+        ReservierenFehler::Pcf8574(fehler)
+    }
+}
+
+#[derive(Debug)]
 pub enum Fehler {
-    Anschlüsse(anschlüsse::Fehler),
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),
-}
-impl From<AnschlussInVerwendung> for Fehler {
-    fn from(error: AnschlussInVerwendung) -> Self {
-        Fehler::Anschlüsse(error.into())
-    }
-}
-impl From<anschlüsse::Fehler> for Fehler {
-    fn from(error: anschlüsse::Fehler) -> Self {
-        Fehler::Anschlüsse(error)
-    }
+    Reservieren(ReservierenFehler),
 }
 impl From<input::Fehler> for Fehler {
-    fn from(error: input::Fehler) -> Self {
-        Fehler::Input(error)
+    fn from(fehler: input::Fehler) -> Self {
+        Fehler::Input(fehler)
     }
 }
 impl From<pcf8574::Fehler> for Fehler {
-    fn from(error: pcf8574::Fehler) -> Self {
-        Fehler::Pcf8574(error)
+    fn from(fehler: pcf8574::Fehler) -> Self {
+        Fehler::Pcf8574(fehler)
+    }
+}
+impl From<ReservierenFehler> for Fehler {
+    fn from(fehler: ReservierenFehler) -> Self {
+        Fehler::Reservieren(fehler)
+    }
+}
+impl From<pin::ReservierenFehler> for Fehler {
+    fn from(fehler: pin::ReservierenFehler) -> Self {
+        Fehler::Reservieren(fehler.into())
+    }
+}
+impl From<pcf8574::ReservierenFehler> for Fehler {
+    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
+        Fehler::Reservieren(fehler.into())
     }
 }

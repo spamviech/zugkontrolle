@@ -9,10 +9,24 @@ pub mod input;
 pub mod output;
 pub mod pwm;
 
+#[derive(Debug)]
+pub struct ReservierenFehler {
+    pin: u8,
+    fehler: rppal::gpio::Error,
+}
+
 /// Ein Gpio Pin.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Pin(rppal::gpio::Pin);
+
 impl Pin {
+    pub(super) fn reserviere(pin: u8) -> Result<Pin, ReservierenFehler> {
+        let konvertiere_fehler = |fehler| ReservierenFehler { pin, fehler };
+        let gpio = rppal::gpio::Gpio::new().map_err(konvertiere_fehler)?;
+        let pin = Pin(gpio.get(pin).map_err(konvertiere_fehler)?);
+        Ok(pin)
+    }
+
     pub(super) fn neu(pin: rppal::gpio::Pin) -> Self {
         Pin(pin)
     }

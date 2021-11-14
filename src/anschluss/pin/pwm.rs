@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        anschlüsse::Anschlüsse,
+        self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         polarität::Polarität,
         InputAnschluss, OutputAnschluss,
@@ -236,7 +236,7 @@ impl Reserviere<Pin> for Serialisiert {
                 input_nicht_benötigt,
             })
         } else {
-            match Anschlüsse::reserviere_pin(self.0).map(super::Pin::into_pwm) {
+            match anschluss::Pin::reserviere(self.0).map(super::Pin::into_pwm) {
                 Ok(anschluss) => Ok(Reserviert {
                     anschluss,
                     pwm_nicht_benötigt,

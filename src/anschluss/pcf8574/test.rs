@@ -5,7 +5,7 @@ use simple_logger::SimpleLogger;
 
 use crate::anschluss::{
     level::Level,
-    pcf8574::{Beschreibung, I2cBus, InVerwendung, Port, ReserviereFehler, Variante},
+    pcf8574::{Beschreibung, I2cBus, InVerwendung, Port, ReservierenFehler, Variante},
 };
 
 #[test]
@@ -66,7 +66,8 @@ fn reserviere_erwarte_in_verwendung(beschreibung: Beschreibung, port: u3, assert
     assert!(in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
 }
 fn in_verwendung_eq(beschreibung: Beschreibung, port: u3) -> bool {
-    if let Err(ReserviereFehler::InVerwendung(in_verwendung)) = Port::reserviere(beschreibung, port)
+    if let Err(ReservierenFehler::InVerwendung(in_verwendung)) =
+        Port::reserviere(beschreibung, port)
     {
         in_verwendung == InVerwendung { beschreibung, port }
     } else {
