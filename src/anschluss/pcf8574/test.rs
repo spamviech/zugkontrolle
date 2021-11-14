@@ -1,15 +1,11 @@
 //! unit tests für das anschluss-Modul
 
-use std::thread::sleep;
-use std::time::Duration;
-
 use num_x::u3;
 use simple_logger::SimpleLogger;
 
 use crate::anschluss::{
-    anschlüsse::{AnschlussBeschreibung, AnschlussInVerwendung, Anschlüsse},
     level::Level,
-    pcf8574,
+    pcf8574::{Beschreibung, I2cBus, InVerwendung, Port, ReserviereFehler, Variante},
 };
 
 #[test]
@@ -20,102 +16,60 @@ fn drop_semantics() {
         .init()
         .expect("failed to initialize error logging");
 
-    let llln = Anschlüsse::reserviere_pcf8574_port(
-        Level::Low,
-        Level::Low,
-        Level::Low,
-        pcf8574::Variante::Normal,
-        u3::new(0),
-    )
-    .expect("1. Aufruf von llln.");
-    assert_eq!(
-        llln.beschreibung(),
-        &pcf8574::Beschreibung {
-            i2c_bus: pcf8574::I2cBus::I2c0_1,
-            a0: Level::Low,
-            a1: Level::Low,
-            a2: Level::Low,
-            variante: pcf8574::Variante::Normal
-        }
-    );
-    assert_eq!(llln.port(), u3::new(0));
-    assert_eq!(
-        Anschlüsse::reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0)
-        ),
-        Err(AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
-            a0: Level::Low,
-            a1: Level::Low,
-            a2: Level::Low,
-            variante: pcf8574::Variante::Normal,
-            port: u3::new(0)
-        })),
-        "2. Aufruf von llln."
-    );
-    drop(llln);
-    // Warte etwas, damit der restore-thread genug Zeit hat.
-    sleep(Duration::from_secs(1));
-    let llln = Anschlüsse::reserviere_pcf8574_port(
-        Level::Low,
-        Level::Low,
-        Level::Low,
-        pcf8574::Variante::Normal,
-        u3::new(0),
-    )
-    .expect("Aufruf von llln nach drop.");
+    let llln_beschreibung = Beschreibung {
+        i2c_bus: I2cBus::I2c0_1,
+        a0: Level::Low,
+        a1: Level::Low,
+        a2: Level::Low,
+        variante: Variante::Normal,
+    };
+    let port0 = u3::new(0);
+    let port1 = u3::new(1);
 
-    // jetzt sollte Anschlüsse wieder verfügbar sein
-    assert_eq!(
-        Anschlüsse::reserviere_pcf8574_port(
-            Level::Low,
-            Level::Low,
-            Level::Low,
-            pcf8574::Variante::Normal,
-            u3::new(0)
-        ),
-        Err(AnschlussInVerwendung(AnschlussBeschreibung::Pcf8574Port {
-            a0: Level::Low,
-            a1: Level::Low,
-            a2: Level::Low,
-            variante: pcf8574::Variante::Normal,
-            port: u3::new(0)
-        })),
-        "Aufruf von llln mit vorherigem Ergebnis in scope."
+    let llln = reserviere_erwarte_erfolg(llln_beschreibung.clone(), port0, "1. Aufruf von llln.");
+    reserviere_erwarte_in_verwendung(
+        llln_beschreibung.clone(),
+        port0,
+        "Aufruf von llln mit vorherigem Ergebnis in scope.",
     );
     drop(llln);
-    // Warte etwas, damit der restore-thread genug Zeit hat.
-    sleep(Duration::from_secs(1));
-    let llln0 = Anschlüsse::reserviere_pcf8574_port(
-        Level::Low,
-        Level::Low,
-        Level::Low,
-        pcf8574::Variante::Normal,
-        u3::new(0),
-    )
-    .expect("Aufruf von llln nach drop.");
-    let llln1 = Anschlüsse::reserviere_pcf8574_port(
-        Level::Low,
-        Level::Low,
-        Level::Low,
-        pcf8574::Variante::Normal,
-        u3::new(1),
-    )
-    .expect("Aufruf von llln nach drop, alternativer port.");
+
+    let llln0 =
+        reserviere_erwarte_erfolg(llln_beschreibung.clone(), port0, "Aufruf von llln nach drop.");
+    let llln1 = reserviere_erwarte_erfolg(
+        llln_beschreibung.clone(),
+        port1,
+        "Aufruf von llln nach drop, alternativer port.",
+    );
+    reserviere_erwarte_in_verwendung(
+        llln_beschreibung.clone(),
+        port1,
+        "Aufruf von llln1 mit vorherigem Ergebnis in scope.",
+    );
     drop(llln0);
     drop(llln1);
-    // Warte etwas, damit der restore-thread genug Zeit hat.
-    sleep(Duration::from_secs(1));
-    let llln = Anschlüsse::reserviere_pcf8574_port(
-        Level::Low,
-        Level::Low,
-        Level::Low,
-        pcf8574::Variante::Normal,
-        u3::new(0),
-    )
-    .expect("Aufruf von llln nach drop.");
-    drop(llln);
+
+    let _ = reserviere_erwarte_erfolg(
+        llln_beschreibung.clone(),
+        port0,
+        "Aufruf von llln nach erneutem drop.",
+    );
+}
+
+fn reserviere_erwarte_erfolg(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) -> Port {
+    let llln = Port::reserviere(beschreibung.clone(), port).expect(assert_nachricht);
+    assert_eq!(llln.beschreibung(), &beschreibung, "{}", assert_nachricht);
+    assert_eq!(llln.port(), port, "{}", assert_nachricht);
+    llln
+}
+fn reserviere_erwarte_in_verwendung(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) {
+    assert!(in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
+}
+fn in_verwendung_eq(beschreibung: Beschreibung, port: u3) -> bool {
+    if let Err(ReserviereFehler::InVerwendung(in_verwendung)) = Port::reserviere(beschreibung, port)
+    {
+        in_verwendung == InVerwendung { beschreibung, port }
+    } else {
+        false
+    }
 }

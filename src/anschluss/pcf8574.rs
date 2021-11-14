@@ -274,21 +274,28 @@ struct I2cState {
     i2c_6: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), InitFehler>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InVerwendung {
     pub beschreibung: Beschreibung,
     pub port: u3,
 }
 
 #[derive(Debug)]
+#[allow(single_use_lifetimes)]
 pub enum ReserviereFehler<'t> {
     Init(&'t InitFehler),
-    InVerwendung { i2c_bus: I2cBus, fehler: InVerwendung },
+    InVerwendung(InVerwendung),
 }
 
 impl<'t> From<&'t InitFehler> for ReserviereFehler<'t> {
     fn from(fehler: &'t InitFehler) -> Self {
         ReserviereFehler::Init(fehler)
+    }
+}
+
+impl From<InVerwendung> for ReserviereFehler<'_> {
+    fn from(fehler: InVerwendung) -> Self {
+        ReserviereFehler::InVerwendung(fehler)
     }
 }
 
@@ -321,18 +328,16 @@ impl I2cState {
 
     fn reserviere_pcf8574_port(
         &self,
-        i2c_bus: I2cBus,
         beschreibung: Beschreibung,
         port: u3,
     ) -> Result<Port, ReserviereFehler<'_>> {
+        let i2c_bus = beschreibung.i2c_bus;
         let (_i2c, pcf8574_state_lock) = self.i2c_bus(i2c_bus)?;
         let mut pcf8574_state = pcf8574_state_lock.write().unwrap_or_else(|poison_error| {
             error!("Pcf8574State-RwLock poisoned: {:?}", poison_error);
             poison_error.into_inner()
         });
-        pcf8574_state
-            .reserviere_pcf8574_port(beschreibung, port)
-            .map_err(|fehler| ReserviereFehler::InVerwendung { i2c_bus, fehler })
+        pcf8574_state.reserviere_pcf8574_port(beschreibung, port).map_err(ReserviereFehler::from)
     }
 
     fn rückgabe_pcf8574_port(&self, port: Port) -> Result<(), &InitFehler> {
@@ -585,11 +590,10 @@ impl Drop for Port {
 }
 impl Port {
     pub fn reserviere<'t>(
-        i2c_bus: I2cBus,
         beschreibung: Beschreibung,
         port: u3,
     ) -> Result<Port, ReserviereFehler<'t>> {
-        I2C.reserviere_pcf8574_port(i2c_bus, beschreibung, port)
+        I2C.reserviere_pcf8574_port(beschreibung, port)
     }
 
     fn neu(pcf8574: Arc<Mutex<Pcf8574>>, beschreibung: Beschreibung, port: u3) -> Self {
