@@ -38,6 +38,7 @@ struct I2cMitPins {
 pub enum InitFehler {
     I2c { i2c_bus: I2cBus, fehler: i2c::Error },
     Gpio { i2c_bus: I2cBus, fehler: gpio::Error },
+    Deaktiviert(I2cBus),
 }
 
 impl I2cMitPins {
@@ -300,13 +301,24 @@ impl From<InVerwendung> for ReservierenFehler {
 
 impl I2cState {
     fn neu() -> I2cState {
-        let i2c_0_1 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c0_1);
-        // let i2c_2 =
-        //     I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c2);
-        let i2c_3 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c3);
-        let i2c_4 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c4);
-        let i2c_5 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c5);
-        let i2c_6 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c6);
+        macro_rules! cfg_feature {
+            ($i2c_bus:expr, $feature:tt) => {{
+                #[cfg(feature = $feature)]
+                {
+                    I2cMitPins::erstelle_arc_und_pcf8574_state($i2c_bus)
+                }
+                #[cfg(not(feature = $feature))]
+                {
+                    Err(InitFehler::Deaktiviert($i2c_bus))
+                }
+            }};
+        }
+        let i2c_0_1 = cfg_feature!(I2cBus::I2c0_1, "i2c0_1");
+        // let i2c_2 = cfg_feature!(I2cBus::I2c2, "i2c2");
+        let i2c_3 = cfg_feature!(I2cBus::I2c3, "i2c3");
+        let i2c_4 = cfg_feature!(I2cBus::I2c4, "i2c4");
+        let i2c_5 = cfg_feature!(I2cBus::I2c5, "i2c5");
+        let i2c_6 = cfg_feature!(I2cBus::I2c6, "i2c6");
         I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 }
     }
 
