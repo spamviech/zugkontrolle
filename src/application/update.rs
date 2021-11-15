@@ -433,6 +433,8 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
 
+        let _ = self.geschwindigkeiten.remove(&name_clone);
+
         match self.modal_status.overlay_mut() {
             Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                 geschwindigkeit_auswahl.entfernen(&name_clone);
