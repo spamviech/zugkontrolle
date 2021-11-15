@@ -20,11 +20,13 @@ struct I2cState {
 }
 
 #[cfg(not(raspi))]
+const MIN_BUS: u8 = 6;
+#[cfg(not(raspi))]
 const MAX_BUS: u8 = 6;
 
 #[cfg(not(raspi))]
 static I2C: Lazy<RwLock<I2cState>> =
-    Lazy::new(|| RwLock::new(I2cState { buses: (0..=MAX_BUS).collect() }));
+    Lazy::new(|| RwLock::new(I2cState { buses: (MIN_BUS..=MAX_BUS).collect() }));
 
 #[cfg(not(raspi))]
 impl I2cState {
