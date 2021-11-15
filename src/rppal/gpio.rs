@@ -21,11 +21,13 @@ struct GpioState {
 }
 
 #[cfg(not(raspi))]
+const MIN_PIN: u8 = 0;
+#[cfg(not(raspi))]
 const MAX_PIN: u8 = 27;
 
 #[cfg(not(raspi))]
 static GPIO: Lazy<RwLock<GpioState>> =
-    Lazy::new(|| RwLock::new(GpioState { pins: (1..=MAX_PIN).collect() }));
+    Lazy::new(|| RwLock::new(GpioState { pins: (MIN_PIN..=MAX_PIN).collect() }));
 
 #[cfg(not(raspi))]
 impl GpioState {
