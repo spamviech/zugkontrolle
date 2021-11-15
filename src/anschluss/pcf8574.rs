@@ -21,6 +21,7 @@ use crate::{
         pin::input,
         {level::Level, trigger::Trigger},
     },
+    args::ARGS,
     rppal::{
         gpio::{self, Gpio, Pin},
         i2c::{self, I2c},
@@ -43,6 +44,9 @@ pub enum InitFehler {
 
 impl I2cMitPins {
     fn neu(i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+        if !i2c_bus.aktiviert() {
+            return Err(InitFehler::Deaktiviert(i2c_bus));
+        }
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_gpio_fehler = |fehler| InitFehler::Gpio { i2c_bus, fehler };
@@ -100,6 +104,7 @@ impl Pcf8574PortState {
     }
 }
 
+// TODO verwende stattdessen HashSet?
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
 macro_rules! matrix {
@@ -262,6 +267,17 @@ impl I2cBus {
             I2cBus::I2c6 => (22, 23),
         }
     }
+
+    fn aktiviert(&self) -> bool {
+        match self {
+            I2cBus::I2c0_1 => ARGS.i2c0_1,
+            // I2cBus::I2c2 =>  ARGS.i2c2,
+            I2cBus::I2c3 => ARGS.i2c3,
+            I2cBus::I2c4 => ARGS.i2c4,
+            I2cBus::I2c5 => ARGS.i2c5,
+            I2cBus::I2c6 => ARGS.i2c6,
+        }
+    }
 }
 
 /// Singleton für Zugriff auf raspberry pi Anschlüsse.
@@ -301,24 +317,12 @@ impl From<InVerwendung> for ReservierenFehler {
 
 impl I2cState {
     fn neu() -> I2cState {
-        macro_rules! cfg_feature {
-            ($i2c_bus:expr, $feature:tt) => {{
-                #[cfg(feature = $feature)]
-                {
-                    I2cMitPins::erstelle_arc_und_pcf8574_state($i2c_bus)
-                }
-                #[cfg(not(feature = $feature))]
-                {
-                    Err(InitFehler::Deaktiviert($i2c_bus))
-                }
-            }};
-        }
-        let i2c_0_1 = cfg_feature!(I2cBus::I2c0_1, "i2c0_1");
-        // let i2c_2 = cfg_feature!(I2cBus::I2c2, "i2c2");
-        let i2c_3 = cfg_feature!(I2cBus::I2c3, "i2c3");
-        let i2c_4 = cfg_feature!(I2cBus::I2c4, "i2c4");
-        let i2c_5 = cfg_feature!(I2cBus::I2c5, "i2c5");
-        let i2c_6 = cfg_feature!(I2cBus::I2c6, "i2c6");
+        let i2c_0_1 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c0_1);
+        // let i2c_2 = I2cMitPins::erstelle_arc_und_pcf8574_state((I2cBus::I2c2);
+        let i2c_3 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c3);
+        let i2c_4 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c4);
+        let i2c_5 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c5);
+        let i2c_6 = I2cMitPins::erstelle_arc_und_pcf8574_state(I2cBus::I2c6);
         I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 }
     }
 

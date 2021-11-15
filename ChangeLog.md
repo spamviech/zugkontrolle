@@ -17,6 +17,7 @@
 - Bei Drag&Drop wird ein einrasten vor loslassen des Gleises angezeigt
 - Klicks müssen nicht mehr aufs Pixel genau das Gleis treffen
 - Bibliothek erlaubt assoziieren von Streckenabschnitten mit einer Geschwindigkeit
+- Bibliothek erlaubt Verwendung anderer I2c-Kanäle für Pcf8574-Anschlüsse
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.

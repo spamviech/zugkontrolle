@@ -33,36 +33,15 @@
     variant_size_differences
 )]
 
-use iced::{Application, Settings};
-use simple_logger::SimpleLogger;
-use zugkontrolle::{
-    application::{fonts, icon::icon},
-    args::{self, Args},
-    Lego, Märklin, Zugkontrolle,
-};
+use iced::{window, Application, Settings};
+use zugkontrolle::application::{fonts, icon::icon, App};
 
-fn main() -> Result<(), iced::Error> {
-    let args = Args::from_env();
-    let verbose = args.verbose;
-    let zugtyp = args.zugtyp;
-
-    let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
-    SimpleLogger::new()
-        .with_level(log::LevelFilter::Error)
-        .with_module_level("zugkontrolle", log_level)
-        .init()
-        .expect("failed to initialize error logging");
-
+fn main() -> iced::Result {
     let settings = Settings {
-        window: iced::window::Settings { size: (1024, 768), icon: icon(), ..Default::default() },
+        window: window::Settings { size: (1024, 768), icon: icon(), ..window::Settings::default() },
         default_font: Some(&fonts::REGULAR),
-        ..Settings::with_flags(args)
+        ..Settings::default()
     };
 
-    match zugtyp {
-        args::Zugtyp::Märklin => Zugkontrolle::<Märklin>::run(settings)?,
-        args::Zugtyp::Lego => Zugkontrolle::<Lego>::run(settings)?,
-    }
-
-    Ok(())
+    App::run(settings)
 }

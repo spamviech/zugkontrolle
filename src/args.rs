@@ -3,9 +3,12 @@
 use std::str::FromStr;
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
+use once_cell::sync::Lazy;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
+
+pub static ARGS: Lazy<Args> = Lazy::new(Args::from_env);
 
 #[derive(Debug)]
 struct Wrapper(Args);
@@ -28,7 +31,7 @@ impl FromArgs for Wrapper {
     }
 }
 
-#[derive(Debug, FromArgs)]
+#[derive(Debug, Clone, FromArgs)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 #[argh(subcommand, name = "Args")]
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
@@ -60,6 +63,30 @@ pub struct Args {
     #[argh(option, short = 'w')]
     /// winkel bei Programmstart
     pub winkel: Option<f32>,
+
+    #[argh(option, default = "true")]
+    /// i2c channel auf pins 2 und 3 (bus 0 oder 1), standard an
+    pub i2c0_1: bool,
+
+    // #[argh(option, default = "false")]
+    // /// i2c channel auf pins 2? und ? (bus 2), standard aus
+    // pub i2c2: bool,
+    //
+    #[argh(option, default = "false")]
+    /// i2c channel auf pins 4 und 5 (bus 3), standard aus
+    pub i2c3: bool,
+
+    #[argh(option, default = "false")]
+    /// i2c channel auf pins 8 und 9 (bus 4), standard aus
+    pub i2c4: bool,
+
+    #[argh(option, default = "false")]
+    /// i2c channel auf pins 12 und 13 (bus 5), standard aus
+    pub i2c5: bool,
+
+    #[argh(option, default = "false")]
+    /// i2c channel auf pins 22 und 23 (bus 6), standard aus
+    pub i2c6: bool,
 
     #[argh(switch)]
     /// zeige zusätzliche Informationen in der Konsole an

@@ -9,17 +9,6 @@ resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-default = ["i2c0_1"]
-# try enabling (or mocking) the specified i2c bus
-# for more information see
-# https://docs.rs/rppal/0.13.1/rppal/i2c/index.html
-i2c0_1 = []
-i2c3 = []
-i2c4 = []
-i2c5 = []
-i2c6 = []
-
 [dependencies.zugkontrolle-derive]
 path = "zugkontrolle-derive"
 

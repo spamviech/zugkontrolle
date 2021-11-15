@@ -10,7 +10,9 @@ use std::{
     time::Instant,
 };
 
+use log::error;
 use serde::{Deserialize, Serialize};
+use simple_logger::SimpleLogger;
 use version::version;
 
 use self::{
@@ -24,9 +26,10 @@ use self::{
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
-    args::Args,
+    args::{Args, ARGS},
     farbe::Farbe,
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
+    zugtyp::{Lego, Märklin},
 };
 
 pub mod anschluss;
@@ -369,6 +372,87 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
+#[derive(Debug)]
+pub enum App {
+    Märklin(Zugkontrolle<Märklin>),
+    Lego(Zugkontrolle<Lego>),
+}
+
+#[derive(Debug)]
+pub enum AppNachricht {
+    Märklin(Nachricht<Märklin>),
+    Lego(Nachricht<Lego>),
+}
+impl From<Nachricht<Märklin>> for AppNachricht {
+    fn from(nachricht: Nachricht<Märklin>) -> Self {
+        AppNachricht::Märklin(nachricht)
+    }
+}
+impl From<Nachricht<Lego>> for AppNachricht {
+    fn from(nachricht: Nachricht<Lego>) -> Self {
+        AppNachricht::Lego(nachricht)
+    }
+}
+
+impl iced::Application for App {
+    type Executor = iced::executor::Default;
+    type Flags = ();
+    type Message = AppNachricht;
+
+    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        match ARGS.zugtyp {
+            crate::args::Zugtyp::Märklin => {
+                let (zugkontrolle, command) = Zugkontrolle::new(flags);
+                (App::Märklin(zugkontrolle), command.map(AppNachricht::from))
+            }
+            crate::args::Zugtyp::Lego => {
+                let (zugkontrolle, command) = Zugkontrolle::new(flags);
+                (App::Märklin(zugkontrolle), command.map(AppNachricht::from))
+            }
+        }
+    }
+
+    fn title(&self) -> String {
+        match self {
+            App::Märklin(zugkontrolle) => zugkontrolle.title(),
+            App::Lego(zugkontrolle) => zugkontrolle.title(),
+        }
+    }
+
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut iced::Clipboard,
+    ) -> iced::Command<Self::Message> {
+        match (self, message) {
+            (App::Märklin(zugkontrolle), AppNachricht::Märklin(nachricht)) => {
+                zugkontrolle.update(nachricht, clipboard).map(AppNachricht::from)
+            }
+            (App::Lego(zugkontrolle), AppNachricht::Lego(nachricht)) => {
+                zugkontrolle.update(nachricht, clipboard).map(AppNachricht::from)
+            }
+            (application, message) => {
+                error!("Wrong message type: {:?}, {:?}", application, message);
+                iced::Command::none()
+            }
+        }
+    }
+
+    fn view(&mut self) -> iced::Element<'_, Self::Message> {
+        match self {
+            App::Märklin(zugkontrolle) => zugkontrolle.view().map(AppNachricht::from),
+            App::Lego(zugkontrolle) => zugkontrolle.view().map(AppNachricht::from),
+        }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Self::Message> {
+        match self {
+            App::Märklin(zugkontrolle) => zugkontrolle.subscription().map(AppNachricht::from),
+            App::Lego(zugkontrolle) => zugkontrolle.subscription().map(AppNachricht::from),
+        }
+    }
+}
+
 pub struct Zugkontrolle<Z: Zugtyp> {
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
@@ -437,25 +521,33 @@ where
     <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = Args;
+    type Flags = ();
     type Message = Nachricht<Z>;
 
-    fn new(args: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
+    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let Args { pfad, modus, zoom, x, y, winkel, verbose, .. } = &*ARGS;
+
+        let log_level = if *verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
+        SimpleLogger::new()
+            .with_level(log::LevelFilter::Error)
+            .with_module_level("zugkontrolle", log_level)
+            .init()
+            .expect("failed to initialize error logging");
+
         let mut messages = Vec::new();
         if let Some(modus) = modus {
-            messages.push(Nachricht::Modus(modus));
+            messages.push(Nachricht::Modus(*modus));
         }
         let gleise = Gleise::neu();
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
             messages.push(Nachricht::Laden(pfad.clone()));
-            aktueller_pfad = pfad;
+            aktueller_pfad = pfad.clone();
         } else {
             aktueller_pfad = format!("{}.zug", Z::NAME);
         };
         if let Some(zoom) = zoom {
-            messages.push(Nachricht::Skalieren(Skalar(zoom)))
+            messages.push(Nachricht::Skalieren(Skalar(*zoom)))
         }
         if x.is_some() || y.is_some() {
             messages.push(Nachricht::Position(Vektor {
@@ -464,7 +556,7 @@ where
             }))
         }
         if let Some(winkel) = winkel {
-            messages.push(Nachricht::Winkel(Winkel(winkel)))
+            messages.push(Nachricht::Winkel(Winkel(*winkel)))
         }
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
@@ -587,11 +679,11 @@ where
         command
     }
 
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
-        iced::Subscription::from_recipe(self.empfänger.clone())
-    }
-
     fn view(&mut self) -> iced::Element<'_, Self::Message> {
         self.view()
+    }
+
+    fn subscription(&self) -> iced::Subscription<Self::Message> {
+        iced::Subscription::from_recipe(self.empfänger.clone())
     }
 }
