@@ -20,7 +20,7 @@ struct I2cState {
 }
 
 #[cfg(not(raspi))]
-const MIN_BUS: u8 = 6;
+const MIN_BUS: u8 = 0;
 #[cfg(not(raspi))]
 const MAX_BUS: u8 = 6;
 
