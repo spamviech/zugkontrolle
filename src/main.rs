@@ -33,15 +33,8 @@
     variant_size_differences
 )]
 
-use iced::{window, Application, Settings};
-use zugkontrolle::application::{fonts, icon::icon, App};
+use zugkontrolle::application::{App, Fehler};
 
-fn main() -> iced::Result {
-    let settings = Settings {
-        window: window::Settings { size: (1024, 768), icon: icon(), ..window::Settings::default() },
-        default_font: Some(&fonts::REGULAR),
-        ..Settings::default()
-    };
-
-    App::run(settings)
+fn main() -> Result<(), Fehler> {
+    App::run()
 }
