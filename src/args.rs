@@ -93,6 +93,10 @@ pub struct Args {
     pub verbose: bool,
 
     #[argh(switch)]
+    /// speichere Log-Nachrichten zusätzlich in einer Datei
+    pub log_to_file: bool,
+
+    #[argh(switch)]
     /// zeige die aktuelle Version
     version: bool,
 }

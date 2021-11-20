@@ -1,7 +1,7 @@
 //! unit tests für das anschluss-Modul
 
+use flexi_logger::{LogSpecBuilder, Logger};
 use num_x::u3;
-use simple_logger::SimpleLogger;
 
 use crate::anschluss::{
     level::Level,
@@ -10,11 +10,13 @@ use crate::anschluss::{
 
 #[test]
 fn drop_semantics() {
-    SimpleLogger::new()
-        .with_level(log::LevelFilter::Error)
-        .with_module_level("zugkontrolle", log::LevelFilter::Debug)
-        .init()
-        .expect("failed to initialize error logging");
+    let mut log_spec_builder = LogSpecBuilder::new();
+    let _ = log_spec_builder
+        .default(log::LevelFilter::Error)
+        .module("zugkontrolle", log::LevelFilter::Debug);
+    let log_spec = log_spec_builder.finalize();
+    let log_handle =
+        Logger::with(log_spec).log_to_stderr().start().expect("failed to initialize error logging");
 
     let llln_beschreibung = Beschreibung {
         i2c_bus: I2cBus::I2c0_1,
@@ -54,6 +56,8 @@ fn drop_semantics() {
         port0,
         "Aufruf von llln nach erneutem drop.",
     );
+
+    drop(log_handle);
 }
 
 fn reserviere_erwarte_erfolg(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) -> Port {

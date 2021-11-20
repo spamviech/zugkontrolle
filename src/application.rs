@@ -10,8 +10,8 @@ use std::{
     time::Instant,
 };
 
+use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger};
 use serde::{Deserialize, Serialize};
-use simple_logger::SimpleLogger;
 use version::version;
 
 use self::{
@@ -372,16 +372,13 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-#[derive(Debug)]
-pub enum App {
-    Märklin(Zugkontrolle<Märklin>),
-    Lego(Zugkontrolle<Lego>),
-}
+#[allow(missing_debug_implementations, missing_copy_implementations)]
+pub enum App {}
 
 #[derive(Debug)]
 pub enum Fehler {
     Iced(iced::Error),
-    Log(log::SetLoggerError),
+    FlexiLogger(FlexiLoggerError),
 }
 
 impl From<iced::Error> for Fehler {
@@ -390,9 +387,9 @@ impl From<iced::Error> for Fehler {
     }
 }
 
-impl From<log::SetLoggerError> for Fehler {
-    fn from(error: log::SetLoggerError) -> Self {
-        Fehler::Log(error)
+impl From<FlexiLoggerError> for Fehler {
+    fn from(error: FlexiLoggerError) -> Self {
+        Fehler::FlexiLogger(error)
     }
 }
 
@@ -409,15 +406,26 @@ impl App {
         };
 
         let log_level = if ARGS.verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
-        SimpleLogger::new()
-            .with_level(log::LevelFilter::Error)
-            .with_module_level("zugkontrolle", log_level)
-            .init()?;
+        let mut log_spec_builder = LogSpecBuilder::new();
+        let _ = log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
+        let log_spec = log_spec_builder.finalize();
+        let logger_base = Logger::with(log_spec);
+        let logger = if ARGS.log_to_file {
+            logger_base
+                .log_to_file(FileSpec::default().directory("log"))
+                .duplicate_to_stderr(Duplicate::All)
+        } else {
+            logger_base.log_to_stderr()
+        };
+        let logger_handle = logger.start()?;
 
         match ARGS.zugtyp {
             args::Zugtyp::Märklin => <Zugkontrolle<Märklin> as iced::Application>::run(settings)?,
             args::Zugtyp::Lego => <Zugkontrolle<Lego> as iced::Application>::run(settings)?,
         }
+
+        // explizit drop aufrufen, damit logger_handle lang genau in scope bleibt.
+        drop(logger_handle);
 
         Ok(())
     }
