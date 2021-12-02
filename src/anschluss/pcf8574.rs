@@ -31,7 +31,9 @@ use crate::{
 #[derive(Debug)]
 struct I2cMitPins {
     i2c: I2c,
+    #[allow(dead_code)]
     sda: Pin,
+    #[allow(dead_code)]
     scl: Pin,
 }
 
@@ -68,7 +70,6 @@ impl I2cMitPins {
 
 #[derive(Debug)]
 struct Pcf8574PortState {
-    pcf8574: Arc<Mutex<Pcf8574>>,
     port0: Option<Port>,
     port1: Option<Port>,
     port2: Option<Port>,
@@ -98,8 +99,7 @@ impl Pcf8574PortState {
             port4: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(4))),
             port5: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(5))),
             port6: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(6))),
-            port7: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(7))),
-            pcf8574,
+            port7: Some(Port::neu(pcf8574, beschreibung, u3::new(7))),
         }
     }
 }

@@ -11,8 +11,8 @@ pub mod pwm;
 
 #[derive(Debug)]
 pub struct ReservierenFehler {
-    pin: u8,
-    fehler: rppal::gpio::Error,
+    pub pin: u8,
+    pub fehler: rppal::gpio::Error,
 }
 
 /// Ein Gpio Pin.

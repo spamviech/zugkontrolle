@@ -98,6 +98,7 @@ pub struct Args {
 
     #[argh(switch)]
     /// zeige die aktuelle Version
+    #[allow(dead_code)]
     version: bool,
 }
 
