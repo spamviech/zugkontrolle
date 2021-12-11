@@ -8,14 +8,12 @@ use std::{
     array,
     collections::HashMap,
     fmt::Debug,
-    mem,
     sync::{Arc, Mutex, RwLock},
 };
 
 use itertools::iproduct;
 use log::{debug, error};
 use num_x::{u3, u7};
-use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -74,42 +72,6 @@ impl I2cMitPins {
     }
 }
 
-#[derive(Debug)]
-struct Pcf8574PortState {
-    port0: Option<Port>,
-    port1: Option<Port>,
-    port2: Option<Port>,
-    port3: Option<Port>,
-    port4: Option<Port>,
-    port5: Option<Port>,
-    port6: Option<Port>,
-    port7: Option<Port>,
-}
-
-impl Pcf8574PortState {
-    fn neu(
-        i2c_bus: I2cBus,
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        i2c: Arc<Mutex<I2cMitPins>>,
-    ) -> Pcf8574PortState {
-        let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(i2c_bus, a0, a1, a2, variante, i2c)));
-        let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
-        Pcf8574PortState {
-            port0: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(0))),
-            port1: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(1))),
-            port2: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(2))),
-            port3: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(3))),
-            port4: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(4))),
-            port5: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(5))),
-            port6: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(6))),
-            port7: Some(Port::neu(pcf8574, beschreibung, u3::new(7))),
-        }
-    }
-}
-
 fn alle_level() -> array::IntoIter<Level, 2> {
     [Level::Low, Level::High].into_iter()
 }
@@ -119,19 +81,22 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 }
 
 #[derive(Debug)]
-struct Pcf8574State2(HashMap<Beschreibung, Pcf8574PortState>);
+struct Pcf8574State(HashMap<(Beschreibung, u3), Port>);
 
-impl Pcf8574State2 {
-    fn neu(i2c_bus: I2cBus, i2c: Arc<Mutex<I2cMitPins>>) -> Self {
-        let mut iter = iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
-        let map = iter
-            .map(|(a0, a1, a2, variante)| {
+impl Pcf8574State {
+    fn neu(i2c_bus: I2cBus, i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
+        let map = iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten(), 0..8)
+            .map(|(a0, a1, a2, variante, port)| {
                 let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
-                let port_state = Pcf8574PortState::neu(i2c_bus, a0, a1, a2, variante, i2c.clone());
-                (beschreibung, port_state)
+                let pcf8574 =
+                    Arc::new(Mutex::new(Pcf8574::neu(i2c_bus, a0, a1, a2, variante, i2c.clone())));
+                (
+                    (beschreibung, u3::new(port)),
+                    Port::neu(pcf8574.clone(), beschreibung, u3::new(0)),
+                )
             })
             .collect();
-        Pcf8574State2(map)
+        Pcf8574State(map)
     }
 
     fn reserviere_pcf8574_port(
@@ -139,144 +104,18 @@ impl Pcf8574State2 {
         beschreibung: Beschreibung,
         port: u3,
     ) -> Result<Port, InVerwendung> {
-        todo!()
+        debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
+        self.0.remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
     }
 
     fn rückgabe_pcf8574_port(&mut self, port: Port) {
-        todo!()
+        debug!("rückgabe {:?}", port);
+        let port_opt = self.0.insert((port.beschreibung().clone(), port.port()), port);
+        if let Some(bisher) = port_opt {
+            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
+        }
     }
 }
-
-// TODO verwende stattdessen HashSet?
-/// originally taken from: https://www.ecorax.net/macro-bunker-1/
-/// adjusted to 4 arguments
-macro_rules! matrix {
-    ( $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt $(: $value:ident)?) => {
-        matrix! { $inner_macro $($k $ls $ms $ns)+ $(: $value)?}
-    };
-    ( $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+ $(: $value:ident)?) => {
-        matrix! { $inner_macro $($( $k $l $ms $ns )+)+ $(: $value)? }
-    };
-    ( $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+ $(: $value:ident)?) => {
-        matrix! { $inner_macro $($( $k $l $m $ns )+)+ $(: $value)? }
-    };
-    ( $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:ident),+])+ $(: $value:ident)?) => {
-         $inner_macro! { $($($k $l $m $n),+),+ $(: $value)? }
-    };
-}
-macro_rules! llln_to_hhha {
-    ($inner_macro:ident $(: $value:expr)?) => {
-        matrix! {$inner_macro  [l,h] [l,h] [l,h] [n,a] $(: $value)?}
-    };
-}
-macro_rules! level {
-    (l) => {
-        Level::Low
-    };
-    (h) => {
-        Level::High
-    };
-}
-macro_rules! variante {
-    (n) => {
-        Variante::Normal
-    };
-    (a) => {
-        Variante::A
-    };
-}
-macro_rules! pcf8574_state_struct {
-    ( $($a0:ident $a1:ident $a2:ident $variante:ident),* ) => {
-        paste! {
-            #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
-            #[derive(Debug)]
-            struct Pcf8574State {
-                $(
-                    [<$a0 $a1 $a2 $variante>]: Pcf8574PortState,
-                )*
-            }
-            impl Pcf8574State {
-                fn neu(i2c_bus: I2cBus, i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
-                    Pcf8574State {
-                        $(
-                            [<$a0 $a1 $a2 $variante>]: Pcf8574PortState::neu(
-                                i2c_bus,
-                                level!($a0),
-                                level!($a1),
-                                level!($a2),
-                                variante!($variante),
-                                i2c.clone()
-                            ),
-                        )*
-                    }
-                }
-
-                fn reserviere_pcf8574_port(&mut self, beschreibung: Beschreibung, port: u3)
-                    -> Result<Port, InVerwendung>
-                {
-                    match beschreibung {
-                        $(
-                            Beschreibung {
-                                i2c_bus: _,
-                                a0: level!($a0),
-                                a1: level!($a1),
-                                a2: level!($a2),
-                                variante: variante!($variante),
-                            } => {
-                                debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-                                let port_opt = match u8::from(port) {
-                                    0 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port0, None),
-                                    1 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port1, None),
-                                    2 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port2, None),
-                                    3 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port3, None),
-                                    4 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port4, None),
-                                    5 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port5, None),
-                                    6 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port6, None),
-                                    7 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port7, None),
-                                    _ => None,
-                                };
-                                port_opt.ok_or(InVerwendung {beschreibung, port})
-                            }
-                        ),*
-                    }
-                }
-
-                fn rückgabe_pcf8574_port(&mut self, port: Port)  {
-                    match port.beschreibung() {
-                        $(
-                            Beschreibung {
-                                i2c_bus: _,
-                                a0: level!($a0),
-                                a1: level!($a1),
-                                a2: level!($a2),
-                                variante: variante!($variante),
-                            } => {
-                                debug!("rückgabe {:?}", port);
-                                let port_u8 = u8::from(port.port());
-                                let s_port = Some(port);
-                                let port_opt = match port_u8 {
-                                    0 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port0, s_port),
-                                    1 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port1, s_port),
-                                    2 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port2, s_port),
-                                    3 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port3, s_port),
-                                    4 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port4, s_port),
-                                    5 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port5, s_port),
-                                    6 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port6, s_port),
-                                    7 => mem::replace(&mut self.[<$a0 $a1 $a2 $variante>].port7, s_port),
-                                    _ => None,
-                                };
-                                if let Some(bisher) = port_opt {
-                                    error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
-                                }
-                            }
-                        ),*
-                    }
-                }
-            }
-        }
-    };
-}
-llln_to_hhha! {pcf8574_state_struct}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum I2cBus {
