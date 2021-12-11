@@ -1,17 +1,13 @@
 //! Low level Steuerung eines i2c Kanals.
 
 #[cfg(not(raspi))]
-use std::{
-    collections::HashSet,
-    fmt::Debug,
-    io,
-    sync::{RwLock, RwLockWriteGuard},
-};
+use std::{collections::HashSet, fmt::Debug, io};
 
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
 use once_cell::sync::Lazy;
+use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -30,14 +26,9 @@ static I2C: Lazy<RwLock<I2cState>> =
 
 #[cfg(not(raspi))]
 impl I2cState {
+    #[inline(always)]
     fn write_static<'t>() -> RwLockWriteGuard<'t, I2cState> {
-        match I2C.write() {
-            Ok(guard) => guard,
-            Err(poison_error) => {
-                error!("Pwm-static poisoned: {:?}", poison_error);
-                poison_error.into_inner()
-            }
-        }
+        I2C.write()
     }
 }
 

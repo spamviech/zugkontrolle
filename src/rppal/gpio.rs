@@ -1,18 +1,13 @@
 //! Low level Steuerung von Gpio Pins.
 
 #[cfg(not(raspi))]
-use std::{
-    collections::HashSet,
-    io,
-    ops::Not,
-    sync::{RwLock, RwLockWriteGuard},
-    time::Duration,
-};
+use std::{collections::HashSet, io, ops::Not, time::Duration};
 
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
 use once_cell::sync::Lazy;
+use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -31,14 +26,9 @@ static GPIO: Lazy<RwLock<GpioState>> =
 
 #[cfg(not(raspi))]
 impl GpioState {
+    #[inline(always)]
     fn write_static<'t>() -> RwLockWriteGuard<'t, GpioState> {
-        match GPIO.write() {
-            Ok(guard) => guard,
-            Err(poison_error) => {
-                error!("Gpio-static poisoned: {:?}", poison_error);
-                poison_error.into_inner()
-            }
-        }
+        GPIO.write()
     }
 }
 /// Provides access to the Raspberry Pi’s GPIO peripheral.

@@ -21,6 +21,7 @@ bincode = "1.3.3"
 once_cell = "1.8.0"
 num-traits = "0.2.14"
 itertools = "0.10.3"
+parking_lot = "0.11.2"
 argh = "0.1.6"
 
 [dependencies.num_x]

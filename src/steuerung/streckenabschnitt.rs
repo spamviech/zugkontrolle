@@ -1,8 +1,8 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::Arc;
 
-use log::error;
+use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,11 +13,6 @@ use crate::{
     },
     farbe::Farbe,
 };
-
-fn heile_poison<T>(poison_error: PoisonError<T>) -> T {
-    error!("Anschluss-Mutex für Streckenabschnitt poisoned!");
-    poison_error.into_inner()
-}
 
 /// Steuerung der Stromzufuhr.
 #[derive(Debug)]
@@ -45,8 +40,9 @@ impl Streckenabschnitt {
         self.lock_anschluss().umstellen()
     }
 
+    #[inline(always)]
     pub(crate) fn lock_anschluss<'t>(&'t self) -> MutexGuard<'t, OutputAnschluss> {
-        self.anschluss.lock().unwrap_or_else(heile_poison)
+        self.anschluss.lock()
     }
 }
 
@@ -62,7 +58,7 @@ impl Serialisiere for Streckenabschnitt {
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match Arc::try_unwrap(self.anschluss) {
-            Ok(mutex) => mutex.into_inner().unwrap_or_else(heile_poison).anschlüsse(),
+            Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen

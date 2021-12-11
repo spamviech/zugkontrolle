@@ -3,13 +3,14 @@
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter},
-    sync::{mpsc::Sender, Arc, Mutex, MutexGuard, PoisonError},
+    sync::{mpsc::Sender, Arc},
     thread::{self, sleep},
     time::Duration,
     usize,
 };
 
 use log::{debug, error};
+use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -29,11 +30,6 @@ pub trait Leiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
 }
 
-fn heile_poison<T>(poison_error: PoisonError<T>) -> T {
-    error!("Leiter-Mutex für Geschwindigkeit poisoned!");
-    poison_error.into_inner()
-}
-
 #[derive(Debug, zugkontrolle_derive::Clone)]
 pub struct Geschwindigkeit<Leiter> {
     leiter: Arc<Mutex<Leiter>>,
@@ -50,8 +46,9 @@ impl<Leiter> Geschwindigkeit<Leiter> {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
 
+    #[inline(always)]
     pub(crate) fn lock_leiter<'t>(&'t self) -> MutexGuard<'t, Leiter> {
-        self.leiter.lock().unwrap_or_else(heile_poison)
+        self.leiter.lock()
     }
 }
 
@@ -89,7 +86,7 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match Arc::try_unwrap(self.leiter) {
-            Ok(mutex) => mutex.into_inner().unwrap_or_else(heile_poison).anschlüsse(),
+            Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen

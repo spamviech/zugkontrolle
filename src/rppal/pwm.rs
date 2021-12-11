@@ -5,7 +5,6 @@ use std::{
     f64,
     fmt::{Debug, Display},
     io,
-    sync::{RwLock, RwLockWriteGuard},
     time::Duration,
 };
 
@@ -15,6 +14,7 @@ use log::{debug, error};
 use num_traits::NumCast;
 #[cfg(not(raspi))]
 use once_cell::sync::Lazy;
+use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -33,14 +33,9 @@ static PWM: Lazy<RwLock<PwmState>> = Lazy::new(|| {
 
 #[cfg(not(raspi))]
 impl PwmState {
+    #[inline(always)]
     fn write_static<'t>() -> RwLockWriteGuard<'t, PwmState> {
-        match PWM.write() {
-            Ok(guard) => guard,
-            Err(poison_error) => {
-                error!("Pwm-static poisoned: {:?}", poison_error);
-                poison_error.into_inner()
-            }
-        }
+        PWM.write()
     }
 
     fn write_channel<'t>(&'t mut self, channel: Channel) -> &'t mut Option<Pwm> {

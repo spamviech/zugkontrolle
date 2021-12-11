@@ -3,12 +3,13 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::{mpsc::Sender, Arc, Mutex, PoisonError},
+    sync::{mpsc::Sender, Arc},
     thread::{self, sleep},
     time::Duration,
 };
 
-use log::{debug, error};
+use log::debug;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -16,11 +17,6 @@ use crate::anschluss::{
     pwm, Fehler, Fließend, InputAnschluss, OutputAnschluss,
 };
 use crate::lookup::Lookup;
-
-fn heile_poison<T>(poison_error: PoisonError<T>, name: &Name) -> T {
-    error!("Anschlüsse-Mutex für Weiche {} poisoned!", name.0);
-    poison_error.into_inner()
-}
 
 /// Name einer Weiche.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -66,21 +62,16 @@ where
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.anschlüsse, &self.name, richtung)?;
+        Self::schalten_aux(&mut self.anschlüsse, richtung)?;
         self.letzte_richtung = self.aktuelle_richtung.clone();
         self.aktuelle_richtung = richtung.clone();
         Ok(())
     }
 
     fn schalten_aux(
-        mutex: &mut Arc<Mutex<Anschlüsse>>,
-        name: &Name,
-        richtung: &Richtung,
+        mutex: &mut Arc<Mutex<Anschlüsse>>, richtung: &Richtung
     ) -> Result<(), Fehler> {
-        let mut anschlüsse = mutex.lock().unwrap_or_else(|poison_error| {
-            error!("Anschlüsse-Mutex von Weiche {} poisoned!", name.0);
-            poison_error.into_inner()
-        });
+        let mut anschlüsse = mutex.lock();
         let anschluss = anschlüsse.get_mut(richtung);
         anschluss.einstellen(Fließend::Fließend)?;
         sleep(SCHALTZEIT);
@@ -105,8 +96,7 @@ where
         let mut mutex_clone = self.anschlüsse.clone();
         let richtung_clone = richtung.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = Self::schalten_aux(&mut mutex_clone, &name_clone, &richtung_clone)
-            {
+            if let Err(fehler) = Self::schalten_aux(&mut mutex_clone, &richtung_clone) {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
                     debug!("Message-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
@@ -131,21 +121,13 @@ where
             name: self.name.clone(),
             aktuelle_richtung: self.aktuelle_richtung.clone(),
             letzte_richtung: self.letzte_richtung.clone(),
-            anschlüsse: self
-                .anschlüsse
-                .lock()
-                .unwrap_or_else(|poison_error| heile_poison(poison_error, &self.name))
-                .serialisiere(),
+            anschlüsse: self.anschlüsse.lock().serialisiere(),
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let name = self.name;
         match Arc::try_unwrap(self.anschlüsse) {
-            Ok(mutex) => mutex
-                .into_inner()
-                .unwrap_or_else(|poison_error| heile_poison(poison_error, &name))
-                .anschlüsse(),
+            Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen

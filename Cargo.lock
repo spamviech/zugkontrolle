@@ -2715,6 +2715,7 @@ dependencies = [
  "num-traits",
  "num_x",
  "once_cell",
+ "parking_lot",
  "rppal",
  "rstar",
  "serde",

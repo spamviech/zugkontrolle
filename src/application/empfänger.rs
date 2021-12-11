@@ -5,13 +5,14 @@ use std::{
     pin::Pin,
     sync::{
         mpsc::{Receiver, RecvError},
-        Arc, Mutex,
+        Arc,
     },
     task::{Context, Poll},
 };
 
 use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
-use log::{debug, error};
+use log::debug;
+use parking_lot::Mutex;
 
 /// Warte auf eine Nachricht
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
@@ -47,13 +48,7 @@ impl<Nachricht: Unpin> Stream for Empfänger<Nachricht> {
 
     fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let unpinned = Pin::into_inner(self);
-        let receiver = match unpinned.receiver.lock() {
-            Ok(receiver) => receiver,
-            Err(poison_error) => {
-                error!("Receiver-Mutex von Empfänger poisoned!");
-                poison_error.into_inner()
-            }
-        };
+        let receiver = unpinned.receiver.lock();
         match receiver.recv() {
             Ok(nachricht) => Poll::Ready(Some(nachricht)),
             Err(RecvError) => {
