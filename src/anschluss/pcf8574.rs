@@ -5,11 +5,14 @@
 //! so dass es zu keinen Deadlocks kommen sollte.
 
 use std::{
+    array,
+    collections::HashMap,
     fmt::Debug,
     mem,
     sync::{Arc, Mutex, RwLock},
 };
 
+use itertools::iproduct;
 use log::{debug, error};
 use num_x::{u3, u7};
 use paste::paste;
@@ -104,6 +107,43 @@ impl Pcf8574PortState {
             port6: Some(Port::neu(pcf8574.clone(), beschreibung, u3::new(6))),
             port7: Some(Port::neu(pcf8574, beschreibung, u3::new(7))),
         }
+    }
+}
+
+fn alle_level() -> array::IntoIter<Level, 2> {
+    [Level::Low, Level::High].into_iter()
+}
+
+fn alle_varianten() -> array::IntoIter<Variante, 2> {
+    [Variante::Normal, Variante::A].into_iter()
+}
+
+#[derive(Debug)]
+struct Pcf8574State2(HashMap<Beschreibung, Pcf8574PortState>);
+
+impl Pcf8574State2 {
+    fn neu(i2c_bus: I2cBus, i2c: Arc<Mutex<I2cMitPins>>) -> Self {
+        let mut iter = iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
+        let map = iter
+            .map(|(a0, a1, a2, variante)| {
+                let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
+                let port_state = Pcf8574PortState::neu(i2c_bus, a0, a1, a2, variante, i2c.clone());
+                (beschreibung, port_state)
+            })
+            .collect();
+        Pcf8574State2(map)
+    }
+
+    fn reserviere_pcf8574_port(
+        &mut self,
+        beschreibung: Beschreibung,
+        port: u3,
+    ) -> Result<Port, InVerwendung> {
+        todo!()
+    }
+
+    fn rückgabe_pcf8574_port(&mut self, port: Port) {
+        todo!()
     }
 }
 
