@@ -278,7 +278,11 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 ),
                 OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => (
                     Anschluss::Pcf8574Port(
-                        match pcf8574::I2cState::reserviere_pcf8574_port(beschreibung, port) {
+                        match pcf8574::I2cState::reserviere_pcf8574_port(
+                            todo!(),
+                            beschreibung,
+                            port,
+                        ) {
                             Ok(port) => port,
                             Err(error) => fehler!(error),
                         },
@@ -464,8 +468,11 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     Err(error) => fehler!(error),
                 }),
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    let port = match pcf8574::I2cState::reserviere_pcf8574_port(beschreibung, port)
-                    {
+                    let port = match pcf8574::I2cState::reserviere_pcf8574_port(
+                        todo!(),
+                        beschreibung,
+                        port,
+                    ) {
                         Ok(port) => port,
                         Err(error) => fehler!(error),
                     };

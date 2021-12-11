@@ -61,8 +61,8 @@ fn drop_semantics() {
 }
 
 fn reserviere_erwarte_erfolg(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) -> Port {
-    let llln =
-        I2cState::reserviere_pcf8574_port(beschreibung.clone(), port).expect(assert_nachricht);
+    let llln = I2cState::reserviere_pcf8574_port(todo!(), beschreibung.clone(), port)
+        .expect(assert_nachricht);
     assert_eq!(llln.beschreibung(), &beschreibung, "{}", assert_nachricht);
     assert_eq!(llln.port(), port, "{}", assert_nachricht);
     llln
@@ -72,7 +72,7 @@ fn reserviere_erwarte_in_verwendung(beschreibung: Beschreibung, port: u3, assert
 }
 fn in_verwendung_eq(beschreibung: Beschreibung, port: u3) -> bool {
     if let Err(ReservierenFehler::InVerwendung(in_verwendung)) =
-        I2cState::reserviere_pcf8574_port(beschreibung, port)
+        I2cState::reserviere_pcf8574_port(todo!(), beschreibung, port)
     {
         in_verwendung == InVerwendung { beschreibung, port }
     } else {
