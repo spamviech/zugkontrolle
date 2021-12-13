@@ -10,6 +10,24 @@ pub mod output;
 pub mod pwm;
 
 #[derive(Debug)]
+pub struct Gpio(rppal::gpio::Gpio);
+
+impl Gpio {
+    #[inline(always)]
+    pub fn neu() -> Result<Gpio, rppal::gpio::Error> {
+        rppal::gpio::Gpio::new().map(Gpio)
+    }
+
+    /// Reserviere den gewählten Gpio pin.
+    pub fn reserviere_pin(&self, pin: u8) -> Result<Pin, ReservierenFehler> {
+        match self.0.get(pin) {
+            Ok(pin) => Ok(Pin(pin)),
+            Err(fehler) => Err(ReservierenFehler { pin, fehler }),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ReservierenFehler {
     pub pin: u8,
     pub fehler: rppal::gpio::Error,
@@ -20,14 +38,6 @@ pub struct ReservierenFehler {
 pub struct Pin(rppal::gpio::Pin);
 
 impl Pin {
-    /// Reserviere den gewählten Gpio pin.
-    pub fn reserviere(pin: u8) -> Result<Pin, ReservierenFehler> {
-        let konvertiere_fehler = |fehler| ReservierenFehler { pin, fehler };
-        let gpio = rppal::gpio::Gpio::new().map_err(konvertiere_fehler)?;
-        let pin = Pin(gpio.get(pin).map_err(konvertiere_fehler)?);
-        Ok(pin)
-    }
-
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.

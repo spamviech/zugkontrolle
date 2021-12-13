@@ -270,7 +270,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
             }
             let (anschluss, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => (
-                    Anschluss::Pin(match Pin::reserviere(pin) {
+                    Anschluss::Pin(match pin::Gpio::reserviere_pin(todo!(), pin) {
                         Ok(pin) => pin,
                         Err(error) => fehler!(error),
                     }),
@@ -434,7 +434,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.set_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = Pin::reserviere(pin)?.into_input();
+                        let interrupt = pin::Gpio::reserviere_pin(todo!(), pin)?.into_input();
                         let _ = port.set_interrupt_pin(interrupt)?;
                     }
                 }
@@ -463,10 +463,12 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             }
         } else {
             match self {
-                InputSerialisiert::Pin { pin } => InputAnschluss::Pin(match Pin::reserviere(pin) {
-                    Ok(anschluss) => anschluss.into_input(),
-                    Err(error) => fehler!(error),
-                }),
+                InputSerialisiert::Pin { pin } => {
+                    InputAnschluss::Pin(match pin::Gpio::reserviere_pin(todo!(), pin) {
+                        Ok(anschluss) => anschluss.into_input(),
+                        Err(error) => fehler!(error),
+                    })
+                }
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     let port = match pcf8574::I2cState::reserviere_pcf8574_port(
                         todo!(),
