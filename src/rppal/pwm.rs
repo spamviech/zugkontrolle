@@ -13,7 +13,7 @@ use log::{debug, error};
 #[cfg(not(raspi))]
 use num_traits::NumCast;
 #[cfg(not(raspi))]
-use once_cell::sync::Lazy;
+use parking_lot::const_rwlock;
 use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
@@ -24,11 +24,9 @@ struct PwmState {
 }
 
 #[cfg(not(raspi))]
-static PWM: Lazy<RwLock<PwmState>> = Lazy::new(|| {
-    RwLock::new(PwmState {
-        pwm0: Some(Pwm::init(Channel::Pwm0)),
-        pwm1: Some(Pwm::init(Channel::Pwm1)),
-    })
+static PWM: RwLock<PwmState> = const_rwlock(PwmState {
+    pwm0: Some(Pwm::init(Channel::Pwm0)),
+    pwm1: Some(Pwm::init(Channel::Pwm1)),
 });
 
 #[cfg(not(raspi))]
@@ -96,7 +94,7 @@ fn period(frequency: f64) -> Duration {
 
 #[cfg(not(raspi))]
 impl Pwm {
-    fn init(channel: Channel) -> Pwm {
+    const fn init(channel: Channel) -> Pwm {
         Pwm {
             channel,
             period: Duration::ZERO,
