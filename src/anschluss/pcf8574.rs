@@ -26,6 +26,7 @@ use crate::{
 #[derive(Debug)]
 struct I2cMitPins {
     i2c: I2c,
+    i2c_bus: I2cBus,
     #[allow(dead_code)]
     sda: Pin,
     #[allow(dead_code)]
@@ -49,7 +50,7 @@ impl I2cMitPins {
         let gpio = Gpio::new().map_err(&konvertiere_gpio_fehler)?;
         let sda = gpio.get(sda).map_err(&konvertiere_gpio_fehler)?;
         let scl = gpio.get(scl).map_err(konvertiere_gpio_fehler)?;
-        Ok(I2cMitPins { i2c, sda, scl })
+        Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
 
     fn erstelle_arc_und_pcf8574_state(
@@ -60,7 +61,7 @@ impl I2cMitPins {
         if settings.aktiviert(i2c_bus) {
             I2cMitPins::neu(i2c_bus).map(|i2c| {
                 let arc = Arc::new(Mutex::new(i2c));
-                Ok((arc.clone(), RwLock::new(Pcf8574State::neu(i2c_bus, arc))))
+                Ok((arc.clone(), RwLock::new(Pcf8574State::neu(arc))))
             })
         } else {
             Ok(Err(Deaktiviert(i2c_bus)))
@@ -80,12 +81,12 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 struct Pcf8574State(HashMap<(Beschreibung, u3), Port>);
 
 impl Pcf8574State {
-    fn neu(i2c_bus: I2cBus, i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
+    fn neu(i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
+        let i2c_bus = i2c.lock().i2c_bus;
         let map = iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten(), 0..8)
             .map(|(a0, a1, a2, variante, port)| {
                 let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
-                let pcf8574 =
-                    Arc::new(Mutex::new(Pcf8574::neu(i2c_bus, a0, a1, a2, variante, i2c.clone())));
+                let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
                 (
                     (beschreibung, u3::new(port)),
                     Port::neu(pcf8574.clone(), beschreibung, u3::new(0)),
@@ -253,7 +254,7 @@ impl I2cState {
 
     fn rückgabe_pcf8574_port(&self, port: Port) -> Result<(), &Deaktiviert> {
         let pcf8574 = port.pcf8574.lock();
-        let i2c_bus = pcf8574.i2c_bus;
+        let i2c_bus = pcf8574.beschreibung.i2c_bus;
         drop(pcf8574);
         let (_i2c, pcf8574_state_lock) = self.i2c_bus(i2c_bus)?;
         let mut pcf8574_state = pcf8574_state_lock.write();
@@ -267,6 +268,7 @@ pub(super) enum Modus {
     High,
     Low,
 }
+
 impl From<Level> for Modus {
     fn from(level: Level) -> Self {
         match level {
@@ -305,11 +307,7 @@ impl Eq for Modus {}
 /// Ein Pcf8574, gesteuert über I2C.
 #[derive(Debug)]
 pub struct Pcf8574 {
-    i2c_bus: I2cBus,
-    a0: Level,
-    a1: Level,
-    a2: Level,
-    variante: Variante,
+    beschreibung: Beschreibung,
     ports: [Modus; 8],
     interrupt: Option<input::Pin>,
     i2c: Arc<Mutex<I2cMitPins>>,
@@ -325,25 +323,13 @@ pub struct Beschreibung {
 }
 
 impl Pcf8574 {
-    fn beschreibung(&self) -> Beschreibung {
-        let Pcf8574 { i2c_bus, a0, a1, a2, variante, .. } = self;
-        Beschreibung { i2c_bus: *i2c_bus, a0: *a0, a1: *a1, a2: *a2, variante: *variante }
+    fn beschreibung(&self) -> &Beschreibung {
+        &self.beschreibung
     }
 
-    fn neu(
-        i2c_bus: I2cBus,
-        a0: Level,
-        a1: Level,
-        a2: Level,
-        variante: Variante,
-        i2c: Arc<Mutex<I2cMitPins>>,
-    ) -> Self {
+    fn neu(beschreibung: Beschreibung, i2c: Arc<Mutex<I2cMitPins>>) -> Self {
         Pcf8574 {
-            i2c_bus,
-            a0,
-            a1,
-            a2,
-            variante,
+            beschreibung,
             ports: [
                 Modus::Input { trigger: Trigger::Disabled, callback: None },
                 Modus::Input { trigger: Trigger::Disabled, callback: None },
@@ -361,7 +347,7 @@ impl Pcf8574 {
 
     /// 7-bit i2c-Adresse ohne R/W-Bit
     fn i2c_adresse(&self) -> u7 {
-        let Pcf8574 { a0, a1, a2, variante, .. } = self;
+        let Pcf8574 { beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante }, .. } = self;
         let mut adresse = u7::new(match variante {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
@@ -384,7 +370,7 @@ impl Pcf8574 {
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
     fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
         let beschreibung = self.beschreibung();
-        let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
+        let map_fehler = |fehler| Fehler::I2c { beschreibung: *beschreibung, fehler };
         let mut i2c_with_pins = self.i2c.lock();
         i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
         let mut buf = [0; 1];
@@ -427,7 +413,7 @@ impl Pcf8574 {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
         let mut i2c_with_pins = self.i2c.lock();
-        let map_fehler = |fehler| Fehler::I2c { beschreibung: beschreibung.clone(), fehler };
+        let map_fehler = |fehler| Fehler::I2c { beschreibung: *beschreibung, fehler };
         i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
         let mut wert = 0;
         for (port, modus) in self.ports.iter().enumerate() {
@@ -446,13 +432,11 @@ impl Pcf8574 {
 }
 impl PartialEq for Pcf8574 {
     fn eq(&self, other: &Self) -> bool {
-        self.a0 == other.a0
-            && self.a1 == other.a1
-            && self.a2 == other.a2
-            && self.variante == other.variante
+        self.beschreibung == other.beschreibung
     }
 }
 impl Eq for Pcf8574 {}
+
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Variante {
@@ -488,7 +472,7 @@ impl Drop for Port {
 
 impl Port {
     fn neu(pcf8574: Arc<Mutex<Pcf8574>>, beschreibung: Beschreibung, port: u3) -> Self {
-        Port { pcf8574, port, beschreibung }
+        Port { pcf8574, beschreibung, port }
     }
 
     #[inline(always)]
@@ -645,7 +629,7 @@ impl InputPort {
                     last[i] = current[i];
                 }
             }).map_err(|fehler| match fehler {
-                input::Fehler::Gpio {pin:_, fehler} => Fehler::Gpio {beschreibung: pcf8574.beschreibung(), fehler},
+                input::Fehler::Gpio {pin:_, fehler} => Fehler::Gpio {beschreibung: *pcf8574.beschreibung(), fehler},
             })?;
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
