@@ -9,7 +9,7 @@ use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 use itertools::iproduct;
 use log::{debug, error};
 use num_x::{u3, u7};
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -111,30 +111,38 @@ fn alle_ports() -> array::IntoIter<u3, 8> {
 }
 
 #[derive(Debug)]
-pub struct Pcf8574State(HashMap<(Beschreibung, u3), Port>);
+pub struct Pcf8574State(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
 
 impl Pcf8574State {
     pub fn neu(gpio: &mut Gpio, settings: I2cSettings) -> Result<Pcf8574State, InitFehler> {
-        let mut map = HashMap::new();
-        for i2c_bus in alle_i2c_bus() {
-            if !settings.aktiviert(i2c_bus) {
-                continue;
-            }
-            let i2c = Arc::new(Mutex::new(I2cMitPins::neu(gpio, i2c_bus)?));
-            let beschreibungen =
-                iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
-            for (a0, a1, a2, variante) in beschreibungen {
-                let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
-                let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
-                for port_num in alle_ports() {
-                    let port_struct = Port::neu(pcf8574.clone(), beschreibung, port_num);
-                    if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
-                        error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
+        let arc = Arc::new(RwLock::new(HashMap::new()));
+        {
+            let mut map = arc.write();
+            for i2c_bus in alle_i2c_bus() {
+                if !settings.aktiviert(i2c_bus) {
+                    continue;
+                }
+                let i2c = Arc::new(Mutex::new(I2cMitPins::neu(gpio, i2c_bus)?));
+                let beschreibungen =
+                    iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
+                for (a0, a1, a2, variante) in beschreibungen {
+                    let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
+                    let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
+                    for port_num in alle_ports() {
+                        let port_struct = Port::neu(
+                            pcf8574.clone(),
+                            Pcf8574State(arc.clone()),
+                            beschreibung,
+                            port_num,
+                        );
+                        if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
+                            error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
+                        }
                     }
                 }
             }
         }
-        Ok(Pcf8574State(map))
+        Ok(Pcf8574State(arc))
     }
 
     pub fn reserviere_pcf8574_port(
@@ -143,12 +151,12 @@ impl Pcf8574State {
         port: u3,
     ) -> Result<Port, InVerwendung> {
         debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-        self.0.remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
+        self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
     }
 
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
         debug!("rückgabe {:?}", port);
-        let port_opt = self.0.insert((port.beschreibung().clone(), port.port()), port);
+        let port_opt = self.0.write().insert((port.beschreibung().clone(), port.port()), port);
         if let Some(bisher) = port_opt {
             error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
         }
@@ -399,6 +407,7 @@ pub enum Variante {
 #[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
+    pcf8574_state: Pcf8574State,
     beschreibung: Beschreibung,
     port: u3,
 }
@@ -411,19 +420,24 @@ impl PartialEq for Port {
 impl Eq for Port {}
 impl Drop for Port {
     fn drop(&mut self) {
-        let port_replacement =
-            Port::neu(self.pcf8574.clone(), self.beschreibung().clone(), self.port());
-        // FIXME global oder Referenz in struct notwendig um im Drop-Handler darauf zugreifen zu können
-        // if let Err(fehler) = I2C.rückgabe_pcf8574_port(port_replacement) {
-        //     error!("Fehler bei Rückgabe eines Pcf8574-Ports: {:?}", fehler)
-        // }
-        todo!()
+        let port_ersatz = Port::neu(
+            self.pcf8574.clone(),
+            Pcf8574State(self.pcf8574_state.0.clone()),
+            *self.beschreibung(),
+            self.port(),
+        );
+        self.pcf8574_state.rückgabe_pcf8574_port(port_ersatz)
     }
 }
 
 impl Port {
-    fn neu(pcf8574: Arc<Mutex<Pcf8574>>, beschreibung: Beschreibung, port: u3) -> Self {
-        Port { pcf8574, beschreibung, port }
+    fn neu(
+        pcf8574: Arc<Mutex<Pcf8574>>,
+        pcf8574_state: Pcf8574State,
+        beschreibung: Beschreibung,
+        port: u3,
+    ) -> Self {
+        Port { pcf8574, pcf8574_state, beschreibung, port }
     }
 
     #[inline(always)]
