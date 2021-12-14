@@ -19,7 +19,7 @@ impl Gpio {
     }
 
     /// Reserviere den gewählten Gpio pin.
-    pub fn reserviere_pin(&self, pin: u8) -> Result<Pin, ReservierenFehler> {
+    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, ReservierenFehler> {
         match self.0.get(pin) {
             Ok(pin) => Ok(Pin(pin)),
             Err(fehler) => Err(ReservierenFehler { pin, fehler }),

@@ -4,21 +4,21 @@
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
 //! so dass es zu keinen Deadlocks kommen sollte.
 
-use std::{array, collections::HashMap, fmt::Debug, sync::Arc};
+use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
 use itertools::iproduct;
 use log::{debug, error};
 use num_x::{u3, u7};
-use parking_lot::{Mutex, RwLock};
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        pin::input,
+        pin::{self, input, Gpio, Pin},
         {level::Level, trigger::Trigger},
     },
     rppal::{
-        gpio::{self, Gpio, Pin},
+        gpio::{self},
         i2c::{self, I2c},
     },
 };
@@ -26,6 +26,7 @@ use crate::{
 #[derive(Debug)]
 struct I2cMitPins {
     i2c: I2c,
+    #[allow(dead_code)]
     i2c_bus: I2cBus,
     #[allow(dead_code)]
     sda: Pin,
@@ -36,37 +37,64 @@ struct I2cMitPins {
 #[derive(Debug)]
 pub enum InitFehler {
     I2c { i2c_bus: I2cBus, fehler: i2c::Error },
-    Gpio { i2c_bus: I2cBus, fehler: gpio::Error },
+    Pin { i2c_bus: I2cBus, fehler: pin::ReservierenFehler },
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
-    fn neu(i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+    fn neu(gpio: &mut Gpio, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
-        let konvertiere_gpio_fehler = |fehler| InitFehler::Gpio { i2c_bus, fehler };
-        let gpio = Gpio::new().map_err(&konvertiere_gpio_fehler)?;
-        let sda = gpio.get(sda).map_err(&konvertiere_gpio_fehler)?;
-        let scl = gpio.get(scl).map_err(konvertiere_gpio_fehler)?;
+        let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
+        let sda = gpio.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
+        let scl = gpio.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
         Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
+}
 
-    fn erstelle_arc_und_pcf8574_state(
-        settings: I2cSettings,
-        i2c_bus: I2cBus,
-    ) -> Result<Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>, InitFehler>
-    {
-        if settings.aktiviert(i2c_bus) {
-            I2cMitPins::neu(i2c_bus).map(|i2c| {
-                let arc = Arc::new(Mutex::new(i2c));
-                Ok((arc.clone(), RwLock::new(Pcf8574State::neu(arc))))
-            })
-        } else {
-            Ok(Err(Deaktiviert(i2c_bus)))
+// FIXME anstelle von globaler ARGS-Variable verwenden
+/// Einstellung über aktivierte I2c-Channel
+#[derive(Debug, Clone, Copy)]
+pub struct I2cSettings {
+    /// i2c channel auf pins 2 und 3 (bus 0 oder 1)
+    pub i2c0_1: bool,
+    // /// i2c channel auf pins 2? und ? (bus 2)
+    // pub i2c2: bool,
+    /// i2c channel auf pins 4 und 5 (bus 3)
+    pub i2c3: bool,
+    /// i2c channel auf pins 8 und 9 (bus 4)
+    pub i2c4: bool,
+    /// i2c channel auf pins 12 und 13 (bus 5)
+    pub i2c5: bool,
+    /// i2c channel auf pins 22 und 23 (bus 6)
+    pub i2c6: bool,
+}
+
+impl I2cSettings {
+    fn aktiviert(&self, i2c_bus: I2cBus) -> bool {
+        match i2c_bus {
+            I2cBus::I2c0_1 => self.i2c0_1,
+            // I2cBus::I2c2 => self.i2c2,
+            I2cBus::I2c3 => self.i2c3,
+            I2cBus::I2c4 => self.i2c4,
+            I2cBus::I2c5 => self.i2c5,
+            I2cBus::I2c6 => self.i2c6,
         }
     }
+}
+
+fn alle_i2c_bus() -> array::IntoIter<I2cBus, 5> {
+    [
+        I2cBus::I2c0_1,
+        // I2cBus::I2c2,
+        I2cBus::I2c3,
+        I2cBus::I2c4,
+        I2cBus::I2c5,
+        I2cBus::I2c6,
+    ]
+    .into_iter()
 }
 
 fn alle_level() -> array::IntoIter<Level, 2> {
@@ -77,26 +105,39 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
+fn alle_ports() -> array::IntoIter<u3, 8> {
+    [u3::new(0), u3::new(1), u3::new(2), u3::new(3), u3::new(4), u3::new(5), u3::new(6), u3::new(7)]
+        .into_iter()
+}
+
 #[derive(Debug)]
-struct Pcf8574State(HashMap<(Beschreibung, u3), Port>);
+pub struct Pcf8574State(HashMap<(Beschreibung, u3), Port>);
 
 impl Pcf8574State {
-    fn neu(i2c: Arc<Mutex<I2cMitPins>>) -> Pcf8574State {
-        let i2c_bus = i2c.lock().i2c_bus;
-        let map = iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten(), 0..8)
-            .map(|(a0, a1, a2, variante, port)| {
+    pub fn neu(gpio: &mut Gpio, settings: I2cSettings) -> Result<Pcf8574State, InitFehler> {
+        let mut map = HashMap::new();
+        for i2c_bus in alle_i2c_bus() {
+            if !settings.aktiviert(i2c_bus) {
+                continue;
+            }
+            let i2c = Arc::new(Mutex::new(I2cMitPins::neu(gpio, i2c_bus)?));
+            let beschreibungen =
+                iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
+            for (a0, a1, a2, variante) in beschreibungen {
                 let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                 let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
-                (
-                    (beschreibung, u3::new(port)),
-                    Port::neu(pcf8574.clone(), beschreibung, u3::new(0)),
-                )
-            })
-            .collect();
-        Pcf8574State(map)
+                for port_num in alle_ports() {
+                    let port_struct = Port::neu(pcf8574.clone(), beschreibung, port_num);
+                    if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
+                        error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
+                    }
+                }
+            }
+        }
+        Ok(Pcf8574State(map))
     }
 
-    fn reserviere_pcf8574_port(
+    pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: Beschreibung,
         port: u3,
@@ -105,7 +146,7 @@ impl Pcf8574State {
         self.0.remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
     }
 
-    fn rückgabe_pcf8574_port(&mut self, port: Port) {
+    pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
         debug!("rückgabe {:?}", port);
         let port_opt = self.0.insert((port.beschreibung().clone(), port.port()), port);
         if let Some(bisher) = port_opt {
@@ -148,48 +189,6 @@ impl I2cBus {
     }
 }
 
-// FIXME anstelle von globaler ARGS-Variable verwenden
-/// Einstellung über aktivierte I2c-Channel
-#[derive(Debug, Clone, Copy)]
-pub struct I2cSettings {
-    /// i2c channel auf pins 2 und 3 (bus 0 oder 1)
-    pub i2c0_1: bool,
-    // /// i2c channel auf pins 2? und ? (bus 2)
-    // pub i2c2: bool,
-    /// i2c channel auf pins 4 und 5 (bus 3)
-    pub i2c3: bool,
-    /// i2c channel auf pins 8 und 9 (bus 4)
-    pub i2c4: bool,
-    /// i2c channel auf pins 12 und 13 (bus 5)
-    pub i2c5: bool,
-    /// i2c channel auf pins 22 und 23 (bus 6)
-    pub i2c6: bool,
-}
-
-impl I2cSettings {
-    fn aktiviert(&self, i2c_bus: I2cBus) -> bool {
-        match i2c_bus {
-            I2cBus::I2c0_1 => self.i2c0_1,
-            // I2cBus::I2c2 => self.i2c2,
-            I2cBus::I2c3 => self.i2c3,
-            I2cBus::I2c4 => self.i2c4,
-            I2cBus::I2c5 => self.i2c5,
-            I2cBus::I2c6 => self.i2c6,
-        }
-    }
-}
-
-/// Zugriff auf raspberry pi I2c Kanäle.
-#[derive(Debug)]
-pub struct I2cState {
-    i2c_0_1: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-    // i2c_2: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-    i2c_3: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-    i2c_4: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-    i2c_5: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-    i2c_6: Result<(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), Deaktiviert>,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InVerwendung {
     pub beschreibung: Beschreibung,
@@ -212,54 +211,6 @@ impl From<Deaktiviert> for ReservierenFehler {
 impl From<InVerwendung> for ReservierenFehler {
     fn from(fehler: InVerwendung) -> Self {
         ReservierenFehler::InVerwendung(fehler)
-    }
-}
-
-impl I2cState {
-    pub fn neu(settings: I2cSettings) -> Result<I2cState, InitFehler> {
-        let i2c_0_1 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings, I2cBus::I2c0_1)?;
-        // let i2c_2 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings,I2cBus::I2c2)?;
-        let i2c_3 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings, I2cBus::I2c3)?;
-        let i2c_4 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings, I2cBus::I2c4)?;
-        let i2c_5 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings, I2cBus::I2c5)?;
-        let i2c_6 = I2cMitPins::erstelle_arc_und_pcf8574_state(settings, I2cBus::I2c6)?;
-        Ok(I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 })
-    }
-
-    fn i2c_bus(
-        &self,
-        i2c_bus: I2cBus,
-    ) -> Result<&(Arc<Mutex<I2cMitPins>>, RwLock<Pcf8574State>), &Deaktiviert> {
-        let I2cState { i2c_0_1, i2c_3, i2c_4, i2c_5, i2c_6 } = self;
-        let i2c = match i2c_bus {
-            I2cBus::I2c0_1 => i2c_0_1,
-            I2cBus::I2c3 => i2c_3,
-            I2cBus::I2c4 => i2c_4,
-            I2cBus::I2c5 => i2c_5,
-            I2cBus::I2c6 => i2c_6,
-        };
-        i2c.as_ref()
-    }
-
-    pub fn reserviere_pcf8574_port(
-        &self,
-        beschreibung: Beschreibung,
-        port: u3,
-    ) -> Result<Port, ReservierenFehler> {
-        let i2c_bus = beschreibung.i2c_bus;
-        let (_i2c, pcf8574_state_lock) = self.i2c_bus(i2c_bus).map_err(Clone::clone)?;
-        let mut pcf8574_state = pcf8574_state_lock.write();
-        pcf8574_state.reserviere_pcf8574_port(beschreibung, port).map_err(ReservierenFehler::from)
-    }
-
-    fn rückgabe_pcf8574_port(&self, port: Port) -> Result<(), &Deaktiviert> {
-        let pcf8574 = port.pcf8574.lock();
-        let i2c_bus = pcf8574.beschreibung.i2c_bus;
-        drop(pcf8574);
-        let (_i2c, pcf8574_state_lock) = self.i2c_bus(i2c_bus)?;
-        let mut pcf8574_state = pcf8574_state_lock.write();
-        pcf8574_state.rückgabe_pcf8574_port(port);
-        Ok(())
     }
 }
 

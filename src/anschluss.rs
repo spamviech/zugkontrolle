@@ -278,7 +278,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 ),
                 OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => (
                     Anschluss::Pcf8574Port(
-                        match pcf8574::I2cState::reserviere_pcf8574_port(
+                        match pcf8574::Pcf8574State::reserviere_pcf8574_port(
                             todo!(),
                             beschreibung,
                             port,
@@ -470,7 +470,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     })
                 }
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    let port = match pcf8574::I2cState::reserviere_pcf8574_port(
+                    let port = match pcf8574::Pcf8574State::reserviere_pcf8574_port(
                         todo!(),
                         beschreibung,
                         port,
@@ -513,6 +513,11 @@ impl From<pcf8574::ReservierenFehler> for ReservierenFehler {
         ReservierenFehler::Pcf8574(fehler)
     }
 }
+impl From<pcf8574::InVerwendung> for ReservierenFehler {
+    fn from(fehler: pcf8574::InVerwendung) -> Self {
+        ReservierenFehler::Pcf8574(fehler.into())
+    }
+}
 
 #[derive(Debug)]
 pub enum Fehler {
@@ -542,6 +547,11 @@ impl From<pin::ReservierenFehler> for Fehler {
 }
 impl From<pcf8574::ReservierenFehler> for Fehler {
     fn from(fehler: pcf8574::ReservierenFehler) -> Self {
+        Fehler::Reservieren(fehler.into())
+    }
+}
+impl From<pcf8574::InVerwendung> for Fehler {
+    fn from(fehler: pcf8574::InVerwendung) -> Self {
         Fehler::Reservieren(fehler.into())
     }
 }
