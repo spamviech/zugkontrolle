@@ -234,7 +234,9 @@ impl Reserviere<Pin> for Serialisiert {
                 input_nicht_benötigt,
             })
         } else {
-            match anschluss::pin::Gpio::reserviere_pin(todo!(), self.0).map(super::Pin::into_pwm) {
+            match anschluss::pin::PinStatus::reserviere_pin(todo!(), self.0)
+                .map(super::Pin::into_pwm)
+            {
                 Ok(anschluss) => Ok(Reserviert {
                     anschluss,
                     pwm_nicht_benötigt,

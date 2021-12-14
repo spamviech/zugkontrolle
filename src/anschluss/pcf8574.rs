@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        pin::{self, input, Gpio, Pin},
+        pin::{self, input, Pin, PinStatus},
         {level::Level, trigger::Trigger},
     },
     rppal::{
-        gpio::{self},
+        gpio,
         i2c::{self, I2c},
     },
 };
@@ -44,12 +44,12 @@ pub enum InitFehler {
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
-    fn neu(gpio: &mut Gpio, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+    fn neu(pin_status: &mut PinStatus, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
-        let sda = gpio.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
-        let scl = gpio.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
+        let sda = pin_status.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
+        let scl = pin_status.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
         Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
 }
@@ -111,10 +111,13 @@ fn alle_ports() -> array::IntoIter<u3, 8> {
 }
 
 #[derive(Debug)]
-pub struct Pcf8574State(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
+pub struct Pcf8574Status(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
 
-impl Pcf8574State {
-    pub fn neu(gpio: &mut Gpio, settings: I2cSettings) -> Result<Pcf8574State, InitFehler> {
+impl Pcf8574Status {
+    pub fn neu(
+        pin_status: &mut PinStatus,
+        settings: I2cSettings,
+    ) -> Result<Pcf8574Status, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
@@ -122,7 +125,7 @@ impl Pcf8574State {
                 if !settings.aktiviert(i2c_bus) {
                     continue;
                 }
-                let i2c = Arc::new(Mutex::new(I2cMitPins::neu(gpio, i2c_bus)?));
+                let i2c = Arc::new(Mutex::new(I2cMitPins::neu(pin_status, i2c_bus)?));
                 let beschreibungen =
                     iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
                 for (a0, a1, a2, variante) in beschreibungen {
@@ -131,7 +134,7 @@ impl Pcf8574State {
                     for port_num in alle_ports() {
                         let port_struct = Port::neu(
                             pcf8574.clone(),
-                            Pcf8574State(arc.clone()),
+                            Pcf8574Status(arc.clone()),
                             beschreibung,
                             port_num,
                         );
@@ -142,7 +145,7 @@ impl Pcf8574State {
                 }
             }
         }
-        Ok(Pcf8574State(arc))
+        Ok(Pcf8574Status(arc))
     }
 
     pub fn reserviere_pcf8574_port(
@@ -407,7 +410,7 @@ pub enum Variante {
 #[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
-    pcf8574_state: Pcf8574State,
+    pcf8574_state: Pcf8574Status,
     beschreibung: Beschreibung,
     port: u3,
 }
@@ -422,7 +425,7 @@ impl Drop for Port {
     fn drop(&mut self) {
         let port_ersatz = Port::neu(
             self.pcf8574.clone(),
-            Pcf8574State(self.pcf8574_state.0.clone()),
+            Pcf8574Status(self.pcf8574_state.0.clone()),
             *self.beschreibung(),
             self.port(),
         );
@@ -433,7 +436,7 @@ impl Drop for Port {
 impl Port {
     fn neu(
         pcf8574: Arc<Mutex<Pcf8574>>,
-        pcf8574_state: Pcf8574State,
+        pcf8574_state: Pcf8574Status,
         beschreibung: Beschreibung,
         port: u3,
     ) -> Self {
@@ -551,7 +554,6 @@ impl InputPort {
     ) -> Result<Option<input::Pin>, Fehler> {
         let mut previous = {
             // set up callback.
-            let beschreibung = self.adresse().clone();
             let pcf8574 = &mut *self.0.pcf8574.lock();
             let mut last = pcf8574.read()?;
             let arc_clone = self.0.pcf8574.clone();
