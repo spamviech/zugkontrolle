@@ -11,7 +11,7 @@ use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
-struct I2cState {
+struct I2cStore {
     buses: HashSet<u8>,
 }
 
@@ -21,13 +21,13 @@ const MIN_BUS: u8 = 0;
 const MAX_BUS: u8 = 6;
 
 #[cfg(not(raspi))]
-static I2C: Lazy<RwLock<I2cState>> =
-    Lazy::new(|| RwLock::new(I2cState { buses: (MIN_BUS..=MAX_BUS).collect() }));
+static I2C: Lazy<RwLock<I2cStore>> =
+    Lazy::new(|| RwLock::new(I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() }));
 
 #[cfg(not(raspi))]
-impl I2cState {
+impl I2cStore {
     #[inline(always)]
-    fn write_static<'t>() -> RwLockWriteGuard<'t, I2cState> {
+    fn write_static<'t>() -> RwLockWriteGuard<'t, I2cStore> {
         I2C.write()
     }
 }
@@ -46,7 +46,7 @@ pub struct I2c {
 #[cfg(not(raspi))]
 impl Drop for I2c {
     fn drop(&mut self) {
-        if !I2cState::write_static().buses.insert(self.bus) {
+        if !I2cStore::write_static().buses.insert(self.bus) {
             error!("Dropped i2c bus was still available: {:?}", self.bus)
         }
     }
@@ -61,7 +61,7 @@ impl I2c {
 
     /// Constructs a new `I2c` using the specified bus.
     pub fn with_bus(bus: u8) -> Result<I2c> {
-        if I2cState::write_static().buses.remove(&bus) {
+        if I2cStore::write_static().buses.remove(&bus) {
             Ok(I2c { bus, slave_address: 0 })
         } else {
             Err(Error::Io(io::Error::new(

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        pin::{self, input, Pin, PinStatus},
+        pin::{self, input, Pin, PinLager},
         {level::Level, trigger::Trigger},
     },
     rppal::{
@@ -44,7 +44,7 @@ pub enum InitFehler {
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
-    fn neu(pin_status: &mut PinStatus, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+    fn neu(pin_status: &mut PinLager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
@@ -111,13 +111,13 @@ fn alle_ports() -> array::IntoIter<u3, 8> {
 }
 
 #[derive(Debug)]
-pub struct Pcf8574Status(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
+pub struct Pcf8574Lager(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
 
-impl Pcf8574Status {
+impl Pcf8574Lager {
     pub fn neu(
-        pin_status: &mut PinStatus,
+        pin_status: &mut PinLager,
         settings: I2cSettings,
-    ) -> Result<Pcf8574Status, InitFehler> {
+    ) -> Result<Pcf8574Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
@@ -134,7 +134,7 @@ impl Pcf8574Status {
                     for port_num in alle_ports() {
                         let port_struct = Port::neu(
                             pcf8574.clone(),
-                            Pcf8574Status(arc.clone()),
+                            Pcf8574Lager(arc.clone()),
                             beschreibung,
                             port_num,
                         );
@@ -145,7 +145,7 @@ impl Pcf8574Status {
                 }
             }
         }
-        Ok(Pcf8574Status(arc))
+        Ok(Pcf8574Lager(arc))
     }
 
     pub fn reserviere_pcf8574_port(
@@ -410,7 +410,7 @@ pub enum Variante {
 #[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
-    pcf8574_state: Pcf8574Status,
+    pcf8574_lager: Pcf8574Lager,
     beschreibung: Beschreibung,
     port: u3,
 }
@@ -425,22 +425,22 @@ impl Drop for Port {
     fn drop(&mut self) {
         let port_ersatz = Port::neu(
             self.pcf8574.clone(),
-            Pcf8574Status(self.pcf8574_state.0.clone()),
+            Pcf8574Lager(self.pcf8574_lager.0.clone()),
             *self.beschreibung(),
             self.port(),
         );
-        self.pcf8574_state.rückgabe_pcf8574_port(port_ersatz)
+        self.pcf8574_lager.rückgabe_pcf8574_port(port_ersatz)
     }
 }
 
 impl Port {
     fn neu(
         pcf8574: Arc<Mutex<Pcf8574>>,
-        pcf8574_state: Pcf8574Status,
+        pcf8574_lager: Pcf8574Lager,
         beschreibung: Beschreibung,
         port: u3,
     ) -> Self {
-        Port { pcf8574, pcf8574_state, beschreibung, port }
+        Port { pcf8574, pcf8574_lager, beschreibung, port }
     }
 
     #[inline(always)]

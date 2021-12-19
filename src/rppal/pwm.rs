@@ -18,26 +18,26 @@ use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
-struct PwmState {
+struct PwmStore {
     pwm0: Option<Pwm>,
     pwm1: Option<Pwm>,
 }
 
 #[cfg(not(raspi))]
-static PWM: RwLock<PwmState> = const_rwlock(PwmState {
+static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
     pwm0: Some(Pwm::init(Channel::Pwm0)),
     pwm1: Some(Pwm::init(Channel::Pwm1)),
 });
 
 #[cfg(not(raspi))]
-impl PwmState {
+impl PwmStore {
     #[inline(always)]
-    fn write_static<'t>() -> RwLockWriteGuard<'t, PwmState> {
+    fn write_static<'t>() -> RwLockWriteGuard<'t, PwmStore> {
         PWM.write()
     }
 
     fn write_channel<'t>(&'t mut self, channel: Channel) -> &'t mut Option<Pwm> {
-        let PwmState { pwm0, pwm1 } = self;
+        let PwmStore { pwm0, pwm1 } = self;
         match channel {
             Channel::Pwm0 => pwm0,
             Channel::Pwm1 => pwm1,
@@ -61,7 +61,7 @@ pub struct Pwm {
 #[cfg(not(raspi))]
 impl Drop for Pwm {
     fn drop(&mut self) {
-        let mut guard = PwmState::write_static();
+        let mut guard = PwmStore::write_static();
         let pwm = guard.write_channel(self.channel);
         match pwm {
             Some(pwm) => {
@@ -106,7 +106,7 @@ impl Pwm {
 
     /// Constructs a new Pwm.
     pub fn new(channel: Channel) -> Result<Pwm> {
-        let mut guard = PwmState::write_static();
+        let mut guard = PwmStore::write_static();
         let pwm = guard.write_channel(channel);
         pwm.take()
             .ok_or(Error::Io(io::Error::new(io::ErrorKind::AlreadyExists, channel.to_string())))

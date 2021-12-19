@@ -11,7 +11,7 @@ use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
-struct GpioState {
+struct GpioStore {
     pins: HashSet<u8>,
 }
 
@@ -21,13 +21,13 @@ const MIN_PIN: u8 = 0;
 const MAX_PIN: u8 = 27;
 
 #[cfg(not(raspi))]
-static GPIO: Lazy<RwLock<GpioState>> =
-    Lazy::new(|| RwLock::new(GpioState { pins: (MIN_PIN..=MAX_PIN).collect() }));
+static GPIO: Lazy<RwLock<GpioStore>> =
+    Lazy::new(|| RwLock::new(GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() }));
 
 #[cfg(not(raspi))]
-impl GpioState {
+impl GpioStore {
     #[inline(always)]
-    fn write_static<'t>() -> RwLockWriteGuard<'t, GpioState> {
+    fn write_static<'t>() -> RwLockWriteGuard<'t, GpioStore> {
         GPIO.write()
     }
 }
@@ -58,7 +58,7 @@ impl Gpio {
     /// [`OutputPin`]: struct.OutputPin.html
     /// [`Error::PinNotAvailable`]: enum.Error.html#variant.PinNotAvailable
     pub fn get(&self, pin: u8) -> Result<Pin> {
-        if GpioState::write_static().pins.remove(&pin) {
+        if GpioStore::write_static().pins.remove(&pin) {
             Ok(Pin(pin))
         } else {
             Err(Error::PinNotAvailable(pin))
@@ -75,7 +75,7 @@ pub struct Pin(u8);
 #[cfg(not(raspi))]
 impl Drop for Pin {
     fn drop(&mut self) {
-        if !GpioState::write_static().pins.insert(self.0) {
+        if !GpioStore::write_static().pins.insert(self.0) {
             error!("Dropped pin was still available: {}", self.0)
         }
     }
