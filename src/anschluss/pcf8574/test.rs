@@ -5,7 +5,7 @@ use num_x::u3;
 
 use crate::anschluss::{
     level::Level,
-    pcf8574::{Beschreibung, I2cBus, InVerwendung, Pcf8574Lager, Port, Variante},
+    pcf8574::{self, Beschreibung, I2cBus, InVerwendung, Port, Variante},
 };
 
 #[test]
@@ -61,7 +61,7 @@ fn drop_semantics() {
 }
 
 fn reserviere_erwarte_erfolg(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) -> Port {
-    let llln = Pcf8574Lager::reserviere_pcf8574_port(todo!(), beschreibung.clone(), port)
+    let llln = pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung.clone(), port)
         .expect(assert_nachricht);
     assert_eq!(llln.beschreibung(), &beschreibung, "{}", assert_nachricht);
     assert_eq!(llln.port(), port, "{}", assert_nachricht);
@@ -71,7 +71,8 @@ fn reserviere_erwarte_in_verwendung(beschreibung: Beschreibung, port: u3, assert
     assert!(in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
 }
 fn in_verwendung_eq(beschreibung: Beschreibung, port: u3) -> bool {
-    if let Err(in_verwendung) = Pcf8574Lager::reserviere_pcf8574_port(todo!(), beschreibung, port) {
+    if let Err(in_verwendung) = pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung, port)
+    {
         in_verwendung == InVerwendung { beschreibung, port }
     } else {
         false

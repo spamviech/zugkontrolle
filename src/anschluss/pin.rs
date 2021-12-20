@@ -10,12 +10,12 @@ pub mod output;
 pub mod pwm;
 
 #[derive(Debug)]
-pub struct PinLager(rppal::gpio::Gpio);
+pub struct Lager(rppal::gpio::Gpio);
 
-impl PinLager {
+impl Lager {
     #[inline(always)]
-    pub fn neu() -> Result<PinLager, rppal::gpio::Error> {
-        rppal::gpio::Gpio::new().map(PinLager)
+    pub fn neu() -> Result<Lager, rppal::gpio::Error> {
+        rppal::gpio::Gpio::new().map(Lager)
     }
 
     /// Reserviere den gewählten Gpio pin.

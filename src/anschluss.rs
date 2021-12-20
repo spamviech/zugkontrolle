@@ -6,26 +6,78 @@ use log::error;
 use num_x::u3;
 use serde::{Deserialize, Serialize};
 
-pub use self::de_serialisieren::{Reserviere, Reserviert, Serialisiere};
-use self::pcf8574::I2cBus;
+pub use self::{
+    de_serialisieren::{Reserviere, Reserviert, Serialisiere},
+    pcf8574::I2cBus,
+};
+use crate::rppal;
 
 pub mod level;
 pub use level::*;
 
 #[path = "anschluss/polarität.rs"]
 pub mod polarität;
-pub use polarität::*;
+pub use polarität::{Fließend, Polarität};
 
 pub mod trigger;
-pub use trigger::*;
+pub use trigger::Trigger;
 
 pub mod pin;
-pub use pin::*;
+pub use pin::{input, output, pwm, Pin};
 
 pub mod pcf8574;
 pub use pcf8574::Pcf8574;
 
 pub mod de_serialisieren;
+
+#[derive(Debug)]
+pub struct Lager {
+    pub pin: pin::Lager,
+    pub pcf8574: pcf8574::Lager,
+}
+
+#[derive(Debug)]
+pub enum InitFehler {
+    Pin(rppal::gpio::Error),
+    Pcf8574(pcf8574::InitFehler),
+}
+
+impl From<rppal::gpio::Error> for InitFehler {
+    fn from(fehler: rppal::gpio::Error) -> Self {
+        InitFehler::Pin(fehler)
+    }
+}
+impl From<pcf8574::InitFehler> for InitFehler {
+    fn from(fehler: pcf8574::InitFehler) -> Self {
+        InitFehler::Pcf8574(fehler)
+    }
+}
+
+impl Lager {
+    pub fn neu(settings: pcf8574::I2cSettings) -> Result<Lager, InitFehler> {
+        let mut pin = pin::Lager::neu()?;
+        let pcf8574 = pcf8574::Lager::neu(&mut pin, settings)?;
+        Ok(Lager { pin, pcf8574 })
+    }
+
+    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Anschluss, ReservierenFehler> {
+        match self.pin.reserviere_pin(pin) {
+            Ok(pin) => Ok(Anschluss::Pin(pin)),
+            Err(fehler) => Err(fehler.into()),
+        }
+    }
+
+    pub fn reserviere_pcf8574_port(
+        &mut self,
+        beschreibung: pcf8574::Beschreibung,
+        port: u3,
+    ) -> Result<Anschluss, ReservierenFehler> {
+        match self.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
+            Ok(port) => Ok(Anschluss::Pcf8574Port(port)),
+            Err(fehler) => Err(fehler.into()),
+        }
+    }
+}
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -270,7 +322,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
             }
             let (anschluss, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => (
-                    Anschluss::Pin(match pin::PinLager::reserviere_pin(todo!(), pin) {
+                    Anschluss::Pin(match pin::Lager::reserviere_pin(todo!(), pin) {
                         Ok(pin) => pin,
                         Err(error) => fehler!(error),
                     }),
@@ -278,11 +330,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 ),
                 OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => (
                     Anschluss::Pcf8574Port(
-                        match pcf8574::Pcf8574Lager::reserviere_pcf8574_port(
-                            todo!(),
-                            beschreibung,
-                            port,
-                        ) {
+                        match pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung, port) {
                             Ok(port) => port,
                             Err(error) => fehler!(error),
                         },
@@ -434,7 +482,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.set_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = pin::PinLager::reserviere_pin(todo!(), pin)?.into_input();
+                        let interrupt = pin::Lager::reserviere_pin(todo!(), pin)?.into_input();
                         let _ = port.set_interrupt_pin(interrupt)?;
                     }
                 }
@@ -464,13 +512,13 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         } else {
             match self {
                 InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(match pin::PinLager::reserviere_pin(todo!(), pin) {
+                    InputAnschluss::Pin(match pin::Lager::reserviere_pin(todo!(), pin) {
                         Ok(anschluss) => anschluss.into_input(),
                         Err(error) => fehler!(error),
                     })
                 }
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    let port = match pcf8574::Pcf8574Lager::reserviere_pcf8574_port(
+                    let port = match pcf8574::Lager::reserviere_pcf8574_port(
                         todo!(),
                         beschreibung,
                         port,

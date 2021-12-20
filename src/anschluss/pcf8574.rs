@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        pin::{self, input, Pin, PinLager},
+        pin::{self, input, Pin},
         {level::Level, trigger::Trigger},
     },
     rppal::{
@@ -44,7 +44,7 @@ pub enum InitFehler {
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
-    fn neu(pin_status: &mut PinLager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+    fn neu(pin_status: &mut pin::Lager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
@@ -54,7 +54,6 @@ impl I2cMitPins {
     }
 }
 
-// FIXME anstelle von globaler ARGS-Variable verwenden
 /// Einstellung über aktivierte I2c-Channel
 #[derive(Debug, Clone, Copy)]
 pub struct I2cSettings {
@@ -111,13 +110,10 @@ fn alle_ports() -> array::IntoIter<u3, 8> {
 }
 
 #[derive(Debug)]
-pub struct Pcf8574Lager(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
+pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
 
-impl Pcf8574Lager {
-    pub fn neu(
-        pin_status: &mut PinLager,
-        settings: I2cSettings,
-    ) -> Result<Pcf8574Lager, InitFehler> {
+impl Lager {
+    pub fn neu(pin_status: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
@@ -132,12 +128,8 @@ impl Pcf8574Lager {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
                     for port_num in alle_ports() {
-                        let port_struct = Port::neu(
-                            pcf8574.clone(),
-                            Pcf8574Lager(arc.clone()),
-                            beschreibung,
-                            port_num,
-                        );
+                        let port_struct =
+                            Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
                         if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
                             error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
                         }
@@ -145,7 +137,7 @@ impl Pcf8574Lager {
                 }
             }
         }
-        Ok(Pcf8574Lager(arc))
+        Ok(Lager(arc))
     }
 
     pub fn reserviere_pcf8574_port(
@@ -410,7 +402,7 @@ pub enum Variante {
 #[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
-    pcf8574_lager: Pcf8574Lager,
+    lager: Lager,
     beschreibung: Beschreibung,
     port: u3,
 }
@@ -425,22 +417,22 @@ impl Drop for Port {
     fn drop(&mut self) {
         let port_ersatz = Port::neu(
             self.pcf8574.clone(),
-            Pcf8574Lager(self.pcf8574_lager.0.clone()),
+            Lager(self.lager.0.clone()),
             *self.beschreibung(),
             self.port(),
         );
-        self.pcf8574_lager.rückgabe_pcf8574_port(port_ersatz)
+        self.lager.rückgabe_pcf8574_port(port_ersatz)
     }
 }
 
 impl Port {
     fn neu(
         pcf8574: Arc<Mutex<Pcf8574>>,
-        pcf8574_lager: Pcf8574Lager,
+        lager: Lager,
         beschreibung: Beschreibung,
         port: u3,
     ) -> Self {
-        Port { pcf8574, pcf8574_lager, beschreibung, port }
+        Port { pcf8574, lager, beschreibung, port }
     }
 
     #[inline(always)]
