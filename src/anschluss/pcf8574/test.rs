@@ -10,6 +10,8 @@ use crate::anschluss::{
 };
 
 #[test]
+// FIXME Test verursacht stack overflow
+// kein Problem in main code, sollte aber trotzdem behoben werden
 fn drop_semantics() {
     let mut log_spec_builder = LogSpecBuilder::new();
     let _ = log_spec_builder
@@ -33,7 +35,6 @@ fn drop_semantics() {
 
     let i2c_settings =
         I2cSettings { i2c0_1: true, i2c3: false, i2c4: false, i2c5: false, i2c6: false };
-
     let mut pin_lager = pin::Lager::neu().expect("pin::Lager erstellen fehlgeschlagen!");
     let mut lager =
         Lager::neu(&mut pin_lager, i2c_settings).expect("pcf8574::Lager erstellen fehlgeschlagen!");
