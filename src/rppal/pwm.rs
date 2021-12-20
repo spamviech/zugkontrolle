@@ -13,8 +13,7 @@ use log::{debug, error};
 #[cfg(not(raspi))]
 use num_traits::NumCast;
 #[cfg(not(raspi))]
-use parking_lot::const_rwlock;
-use parking_lot::{RwLock, RwLockWriteGuard};
+use parking_lot::{const_rwlock, RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
 #[derive(Debug)]

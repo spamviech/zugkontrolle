@@ -7,6 +7,7 @@ use std::{collections::HashSet, io, ops::Not, time::Duration};
 use log::{debug, error};
 #[cfg(not(raspi))]
 use once_cell::sync::Lazy;
+#[cfg(not(raspi))]
 use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(raspi))]
