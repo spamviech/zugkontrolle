@@ -5,7 +5,8 @@ use num_x::u3;
 
 use crate::anschluss::{
     level::Level,
-    pcf8574::{self, Beschreibung, I2cBus, InVerwendung, Port, Variante},
+    pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
+    pin,
 };
 
 #[test]
@@ -15,8 +16,10 @@ fn drop_semantics() {
         .default(log::LevelFilter::Error)
         .module("zugkontrolle", log::LevelFilter::Debug);
     let log_spec = log_spec_builder.finalize();
-    let log_handle =
-        Logger::with(log_spec).log_to_stderr().start().expect("failed to initialize error logging");
+    let log_handle = Logger::with(log_spec)
+        .log_to_stderr()
+        .start()
+        .expect("Logging initialisieren fehlgeschlagen!");
 
     let llln_beschreibung = Beschreibung {
         i2c_bus: I2cBus::I2c0_1,
@@ -28,22 +31,33 @@ fn drop_semantics() {
     let port0 = u3::new(0);
     let port1 = u3::new(1);
 
-    let llln = reserviere_erwarte_erfolg(llln_beschreibung.clone(), port0, "1. Aufruf von llln.");
-    reserviere_erwarte_in_verwendung(
+    let i2c_settings =
+        I2cSettings { i2c0_1: true, i2c3: false, i2c4: false, i2c5: false, i2c6: false };
+
+    let mut pin_lager = pin::Lager::neu().expect("pin::Lager erstellen fehlgeschlagen!");
+    let mut lager =
+        Lager::neu(&mut pin_lager, i2c_settings).expect("pcf8574::Lager erstellen fehlgeschlagen!");
+
+    let llln =
+        lager.reserviere_erwarte_erfolg(llln_beschreibung.clone(), port0, "1. Aufruf von llln.");
+    lager.reserviere_erwarte_in_verwendung(
         llln_beschreibung.clone(),
         port0,
         "Aufruf von llln mit vorherigem Ergebnis in scope.",
     );
     drop(llln);
 
-    let llln0 =
-        reserviere_erwarte_erfolg(llln_beschreibung.clone(), port0, "Aufruf von llln nach drop.");
-    let llln1 = reserviere_erwarte_erfolg(
+    let llln0 = lager.reserviere_erwarte_erfolg(
+        llln_beschreibung.clone(),
+        port0,
+        "Aufruf von llln nach drop.",
+    );
+    let llln1 = lager.reserviere_erwarte_erfolg(
         llln_beschreibung.clone(),
         port1,
         "Aufruf von llln nach drop, alternativer port.",
     );
-    reserviere_erwarte_in_verwendung(
+    lager.reserviere_erwarte_in_verwendung(
         llln_beschreibung.clone(),
         port1,
         "Aufruf von llln1 mit vorherigem Ergebnis in scope.",
@@ -51,7 +65,7 @@ fn drop_semantics() {
     drop(llln0);
     drop(llln1);
 
-    let _ = reserviere_erwarte_erfolg(
+    let _ = lager.reserviere_erwarte_erfolg(
         llln_beschreibung.clone(),
         port0,
         "Aufruf von llln nach erneutem drop.",
@@ -60,21 +74,32 @@ fn drop_semantics() {
     drop(log_handle);
 }
 
-fn reserviere_erwarte_erfolg(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) -> Port {
-    let llln = pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung.clone(), port)
-        .expect(assert_nachricht);
-    assert_eq!(llln.beschreibung(), &beschreibung, "{}", assert_nachricht);
-    assert_eq!(llln.port(), port, "{}", assert_nachricht);
-    llln
-}
-fn reserviere_erwarte_in_verwendung(beschreibung: Beschreibung, port: u3, assert_nachricht: &str) {
-    assert!(in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
-}
-fn in_verwendung_eq(beschreibung: Beschreibung, port: u3) -> bool {
-    if let Err(in_verwendung) = pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung, port)
-    {
-        in_verwendung == InVerwendung { beschreibung, port }
-    } else {
-        false
+impl Lager {
+    fn reserviere_erwarte_erfolg(
+        &mut self,
+        beschreibung: Beschreibung,
+        port: u3,
+        assert_nachricht: &str,
+    ) -> Port {
+        let llln =
+            self.reserviere_pcf8574_port(beschreibung.clone(), port).expect(assert_nachricht);
+        assert_eq!(llln.beschreibung(), &beschreibung, "{}", assert_nachricht);
+        assert_eq!(llln.port(), port, "{}", assert_nachricht);
+        llln
+    }
+    fn reserviere_erwarte_in_verwendung(
+        &mut self,
+        beschreibung: Beschreibung,
+        port: u3,
+        assert_nachricht: &str,
+    ) {
+        assert!(self.in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
+    }
+    fn in_verwendung_eq(&mut self, beschreibung: Beschreibung, port: u3) -> bool {
+        if let Err(in_verwendung) = self.reserviere_pcf8574_port(beschreibung, port) {
+            in_verwendung == InVerwendung { beschreibung, port }
+        } else {
+            false
+        }
     }
 }
