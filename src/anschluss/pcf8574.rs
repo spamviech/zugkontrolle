@@ -421,7 +421,7 @@ impl Drop for Port {
             *self.beschreibung(),
             self.port(),
         );
-        self.lager.rückgabe_pcf8574_port(port_ersatz)
+        self.lager.rückgabe_pcf8574_port(port_ersatz);
     }
 }
 

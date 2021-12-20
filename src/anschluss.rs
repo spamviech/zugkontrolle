@@ -291,6 +291,7 @@ impl Serialisiere for OutputAnschluss {
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     fn reserviere(
         self,
+        lager: &mut Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -310,38 +311,31 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 }
             }
         } else {
-            macro_rules! fehler {
-                ($error:expr) => {
-                    return Err(de_serialisieren::Fehler {
-                        fehler: $error.into(),
-                        pwm_pins,
-                        output_anschlüsse: output_nicht_benötigt,
-                        input_anschlüsse,
-                    })
+            macro_rules! unwrap_return {
+                ($result:expr) => {
+                    match $result {
+                        Ok(anschluss) => anschluss,
+                        Err(fehler) => {
+                            return Err(de_serialisieren::Fehler {
+                                fehler: fehler.into(),
+                                pwm_pins,
+                                output_anschlüsse: output_nicht_benötigt,
+                                input_anschlüsse,
+                            })
+                        }
+                    }
                 };
             }
-            let (anschluss, polarität) = match self {
-                OutputSerialisiert::Pin { pin, polarität } => (
-                    Anschluss::Pin(match pin::Lager::reserviere_pin(todo!(), pin) {
-                        Ok(pin) => pin,
-                        Err(error) => fehler!(error),
-                    }),
-                    polarität,
-                ),
-                OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => (
-                    Anschluss::Pcf8574Port(
-                        match pcf8574::Lager::reserviere_pcf8574_port(todo!(), beschreibung, port) {
-                            Ok(port) => port,
-                            Err(error) => fehler!(error),
-                        },
-                    ),
-                    polarität,
-                ),
+            let (anschluss_res, polarität) = match self {
+                OutputSerialisiert::Pin { pin, polarität } => {
+                    (lager.reserviere_pin(pin), polarität)
+                }
+                OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
+                    (lager.reserviere_pcf8574_port(beschreibung, port), polarität)
+                }
             };
-            match anschluss.into_output(polarität) {
-                Ok(anschluss) => anschluss,
-                Err(error) => fehler!(error),
-            }
+            let anschluss = unwrap_return!(anschluss_res);
+            unwrap_return!(anschluss.into_output(polarität))
         };
         Ok(Reserviert {
             anschluss,
@@ -452,6 +446,7 @@ impl Serialisiere for InputAnschluss {
 impl Reserviere<InputAnschluss> for InputSerialisiert {
     fn reserviere(
         self,
+        lager: &mut Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -482,7 +477,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.set_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = pin::Lager::reserviere_pin(todo!(), pin)?.into_input();
+                        let interrupt = lager.pin.reserviere_pin(pin)?.into_input();
                         let _ = port.set_interrupt_pin(interrupt)?;
                     }
                 }
@@ -494,46 +489,33 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             }
             Ok(anschluss)
         };
-        macro_rules! fehler {
-            ($error:expr) => {
-                return Err(de_serialisieren::Fehler {
-                    fehler: $error.into(),
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse: input_nicht_benötigt,
-                })
+        macro_rules! unwrap_return {
+            ($result:expr) => {
+                match $result {
+                    Ok(anschluss) => anschluss,
+                    Err(fehler) => {
+                        return Err(de_serialisieren::Fehler {
+                            fehler: fehler.into(),
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse: input_nicht_benötigt,
+                        })
+                    }
+                }
             };
         }
         let anschluss = if let Some(anschluss) = gesuchter_anschluss {
-            match interrupt_konfigurieren(anschluss) {
-                Ok(anschluss) => anschluss,
-                Err(error) => fehler!(error),
-            }
+            unwrap_return!(interrupt_konfigurieren(anschluss))
         } else {
             match self {
                 InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(match pin::Lager::reserviere_pin(todo!(), pin) {
-                        Ok(anschluss) => anschluss.into_input(),
-                        Err(error) => fehler!(error),
-                    })
+                    InputAnschluss::Pin(unwrap_return!(lager.pin.reserviere_pin(pin)).into_input())
                 }
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    let port = match pcf8574::Lager::reserviere_pcf8574_port(
-                        todo!(),
-                        beschreibung,
-                        port,
-                    ) {
-                        Ok(port) => port,
-                        Err(error) => fehler!(error),
-                    };
-                    let input_port = match port.into_input() {
-                        Ok(input_port) => input_port,
-                        Err(error) => fehler!(error),
-                    };
-                    match interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)) {
-                        Ok(anschluss) => anschluss,
-                        Err(error) => fehler!(error),
-                    }
+                    let port =
+                        unwrap_return!(lager.pcf8574.reserviere_pcf8574_port(beschreibung, port));
+                    let input_port = unwrap_return!(port.into_input());
+                    unwrap_return!(interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)))
                 }
             }
         };

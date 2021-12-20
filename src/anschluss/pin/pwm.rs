@@ -220,6 +220,7 @@ impl Serialisiere for Pin {
 impl Reserviere<Pin> for Serialisiert {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<Pin>,
         output_nicht_benötigt: Vec<OutputAnschluss>,
         input_nicht_benötigt: Vec<InputAnschluss>,
@@ -234,7 +235,7 @@ impl Reserviere<Pin> for Serialisiert {
                 input_nicht_benötigt,
             })
         } else {
-            match anschluss::pin::Lager::reserviere_pin(todo!(), self.0).map(super::Pin::into_pwm) {
+            match lager.pin.reserviere_pin(self.0).map(super::Pin::into_pwm) {
                 Ok(anschluss) => Ok(Reserviert {
                     anschluss,
                     pwm_nicht_benötigt,

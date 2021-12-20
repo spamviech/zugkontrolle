@@ -34,6 +34,7 @@ pub type Result<R> = std::result::Result<Reserviert<R>, Fehler>;
 pub trait Reserviere<R> {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
