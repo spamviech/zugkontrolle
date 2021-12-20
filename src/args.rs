@@ -3,12 +3,9 @@
 use std::str::FromStr;
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
-use once_cell::sync::Lazy;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
-
-pub static ARGS: Lazy<Args> = Lazy::new(Args::from_env);
 
 #[derive(Debug)]
 struct Wrapper(Args);

@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         Fließend, OutputAnschluss, OutputSerialisiert,
     },
@@ -105,7 +104,6 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
     fn gleis_anschlüsse_anpassen<T, W>(
         &mut self,
-        lager: &mut anschluss::Lager,
         gleis_art: &str,
         id: GleisId<T>,
         anschlüsse_save: Option<<W as Serialisiere>::Serialisiert>,
@@ -130,7 +128,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         (None, (Vec::new(), Vec::new(), Vec::new()))
                     };
                 match anschlüsse_save.reserviere(
-                    lager,
+                    &mut self.lager,
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
@@ -149,7 +147,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                         if let Some(steuerung_save) = steuerung_save {
                             let save_clone = steuerung_save.clone();
                             match steuerung_save.reserviere(
-                                lager,
+                                &mut self.lager,
                                 pwm_pins,
                                 output_anschlüsse,
                                 input_anschlüsse,
@@ -280,7 +278,6 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
-        lager: &mut anschluss::Lager,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         farbe: Farbe,
@@ -313,7 +310,12 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                 // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
                 // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
                 // beim hinzufügen.
-                match anschluss_definition.reserviere(lager, Vec::new(), Vec::new(), Vec::new()) {
+                match anschluss_definition.reserviere(
+                    &mut self.lager,
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.aktuell = Some((
                             StreckenabschnittId {
@@ -459,12 +461,10 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
     pub fn anschlüsse_anpassen(
         &mut self,
-        lager: &mut anschluss::Lager,
         anschlüsse_anpassen: AnschlüsseAnpassen<Z>,
     ) -> Option<Nachricht<Z>> {
         match anschlüsse_anpassen {
             AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
-                lager,
                 "Weiche",
                 id,
                 anschlüsse_save,
@@ -472,7 +472,6 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
             ),
             AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_save) => self
                 .gleis_anschlüsse_anpassen(
-                    lager,
                     "DreiwegeWeiche",
                     id,
                     anschlüsse_save,
@@ -480,7 +479,6 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                 ),
             AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_save) => self
                 .gleis_anschlüsse_anpassen(
-                    lager,
                     "KurvenWeiche",
                     id,
                     anschlüsse_save,
@@ -488,14 +486,12 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
                 ),
             AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_save) => self
                 .gleis_anschlüsse_anpassen(
-                    lager,
                     "SKurvenWeiche",
                     id,
                     anschlüsse_save,
                     Gleise::steuerung_s_kurven_weiche,
                 ),
             AnschlüsseAnpassen::Kreuzung(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
-                lager,
                 "Kreuzung",
                 id,
                 anschlüsse_save,
@@ -522,7 +518,6 @@ where
 {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
-        lager: &mut anschluss::Lager,
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
     ) {
@@ -537,8 +532,12 @@ where
             } else {
                 (None, (Vec::new(), Vec::new(), Vec::new()))
             };
-        match geschwindigkeit_save.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)
-        {
+        match geschwindigkeit_save.reserviere(
+            &mut self.lager,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        ) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                 match modal_status.overlay_mut() {
                     Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
@@ -581,7 +580,7 @@ where
                 if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
                     let serialisiert_clone = serialisiert.clone();
                     match serialisiert.reserviere(
-                        lager,
+                        &mut self.lager,
                         pwm_pins,
                         output_anschlüsse,
                         input_anschlüsse,
@@ -1042,8 +1041,8 @@ where
 #[allow(single_use_lifetimes)]
 impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
     #[inline(always)]
-    pub fn laden(&mut self, lager: &mut anschluss::Lager, pfad: String) {
-        match self.gleise.laden(lager, &pfad) {
+    pub fn laden(&mut self, pfad: String) {
+        match self.gleise.laden(&mut self.lager, &pfad) {
             Ok(()) => {
                 self.geschwindigkeiten = self
                     .gleise

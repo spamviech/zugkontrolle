@@ -529,6 +529,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 }
 
 #[derive(Debug)]
+#[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     Pin(pin::ReservierenFehler),
     Pcf8574(pcf8574::ReservierenFehler),

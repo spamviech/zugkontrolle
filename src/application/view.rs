@@ -64,6 +64,7 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
             drehen,
             zoom,
             speichern_laden,
+            lager: _,
             speichern_gefärbt: _,
             bewegung: _,
             sender: _,

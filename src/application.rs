@@ -26,7 +26,7 @@ use self::{
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
-    args::{self, Args, ARGS},
+    args::{self, Args},
     farbe::Farbe,
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
     zugtyp::{Lego, Märklin},
@@ -379,22 +379,32 @@ pub enum App {}
 pub enum Fehler {
     Iced(iced::Error),
     FlexiLogger(FlexiLoggerError),
+    Anschluss(crate::anschluss::InitFehler),
 }
 
 impl From<iced::Error> for Fehler {
-    fn from(error: iced::Error) -> Self {
-        Fehler::Iced(error)
+    fn from(fehler: iced::Error) -> Self {
+        Fehler::Iced(fehler)
     }
 }
-
 impl From<FlexiLoggerError> for Fehler {
-    fn from(error: FlexiLoggerError) -> Self {
-        Fehler::FlexiLogger(error)
+    fn from(fehler: FlexiLoggerError) -> Self {
+        Fehler::FlexiLogger(fehler)
+    }
+}
+impl From<crate::anschluss::InitFehler> for Fehler {
+    fn from(fehler: crate::anschluss::InitFehler) -> Self {
+        Fehler::Anschluss(fehler)
     }
 }
 
 impl App {
-    pub fn run() -> Result<(), Fehler> {
+    pub fn run(args: Args) -> Result<(), Fehler> {
+        let Args { i2c0_1, i2c3, i2c4, i2c5, i2c6, zugtyp, verbose, log_to_file, .. } = args;
+        let i2c_settings =
+            crate::anschluss::pcf8574::I2cSettings { i2c0_1, i2c3, i2c4, i2c5, i2c6 };
+        let lager = crate::anschluss::Lager::neu(i2c_settings)?;
+
         let settings = iced::Settings {
             window: iced::window::Settings {
                 size: (1024, 768),
@@ -402,15 +412,15 @@ impl App {
                 ..iced::window::Settings::default()
             },
             default_font: Some(&fonts::REGULAR),
-            ..iced::Settings::default()
+            ..iced::Settings::with_flags((args, lager))
         };
 
-        let log_level = if ARGS.verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
+        let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
         let mut log_spec_builder = LogSpecBuilder::new();
         let _ = log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
         let log_spec = log_spec_builder.finalize();
         let logger_base = Logger::with(log_spec);
-        let logger = if ARGS.log_to_file {
+        let logger = if log_to_file {
             logger_base
                 .log_to_file(FileSpec::default().directory("log"))
                 .duplicate_to_stderr(Duplicate::All)
@@ -419,7 +429,7 @@ impl App {
         };
         let logger_handle = logger.start()?;
 
-        match ARGS.zugtyp {
+        match zugtyp {
             args::Zugtyp::Märklin => <Zugkontrolle<Märklin> as iced::Application>::run(settings)?,
             args::Zugtyp::Lego => <Zugkontrolle<Lego> as iced::Application>::run(settings)?,
         }
@@ -433,6 +443,7 @@ impl App {
 
 pub struct Zugkontrolle<Z: Zugtyp> {
     gleise: Gleise<Z>,
+    lager: crate::anschluss::Lager,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<GeradeUnit<Z>>>,
     kurven: Vec<Button<KurveUnit<Z>>>,
@@ -466,6 +477,7 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Zugkontrolle")
             .field("gleise", &self.gleise)
+            .field("lager", &self.lager)
             .field("scrollable_state", &self.scrollable_state)
             .field("geraden", &self.geraden)
             .field("kurven", &self.kurven)
@@ -499,15 +511,15 @@ where
     <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = ();
+    type Flags = (Args, crate::anschluss::Lager);
     type Message = Nachricht<Z>;
 
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let Args { pfad, modus, zoom, x, y, winkel, .. } = &*ARGS;
+    fn new((args, lager): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
 
         let mut messages = Vec::new();
         if let Some(modus) = modus {
-            messages.push(Nachricht::Modus(*modus));
+            messages.push(Nachricht::Modus(modus));
         }
         let gleise = Gleise::neu();
         let aktueller_pfad: String;
@@ -518,7 +530,7 @@ where
             aktueller_pfad = format!("{}.zug", Z::NAME);
         };
         if let Some(zoom) = zoom {
-            messages.push(Nachricht::Skalieren(Skalar(*zoom)))
+            messages.push(Nachricht::Skalieren(Skalar(zoom)))
         }
         if x.is_some() || y.is_some() {
             messages.push(Nachricht::Position(Vektor {
@@ -527,11 +539,12 @@ where
             }))
         }
         if let Some(winkel) = winkel {
-            messages.push(Nachricht::Winkel(Winkel(*winkel)))
+            messages.push(Nachricht::Winkel(Winkel(winkel)))
         }
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
             gleise,
+            lager,
             scrollable_state: iced::scrollable::State::new(),
             geraden: Z::geraden().into_iter().map(Button::neu).collect(),
             kurven: Z::kurven().into_iter().map(Button::neu).collect(),
