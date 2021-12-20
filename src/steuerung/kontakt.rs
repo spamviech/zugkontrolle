@@ -9,6 +9,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
+    self,
     de_serialisieren::{self, AnschlussOderSerialisiert, Reserviere, Reserviert, Serialisiere},
     pwm, Fehler, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
 };
@@ -153,6 +154,7 @@ impl Serialisiere for Kontakt {
 impl Reserviere<Kontakt> for KontaktSerialisiert {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -162,7 +164,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             mut input_nicht_benötigt,
-        } = self.anschluss.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         let anschluss = match Kontakt::neu(self.name, anschluss, self.trigger) {
             Ok(anschluss) => anschluss,
             Err((fehler, anschluss)) => {

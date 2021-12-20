@@ -77,6 +77,7 @@ impl<T: Serialisiere> Serialisiere for Gleis<T> {
 impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<crate::anschluss::pwm::Pin>,
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
@@ -86,7 +87,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.definition.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.definition.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Gleis { definition: definition_reserviert, position: self.position },
             pwm_nicht_benötigt,

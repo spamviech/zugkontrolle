@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
+        self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
         Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
@@ -72,6 +73,7 @@ impl Serialisiere for Streckenabschnitt {
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -81,7 +83,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.anschluss.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Streckenabschnitt::neu(self.farbe, anschluss),
             pwm_nicht_benötigt,

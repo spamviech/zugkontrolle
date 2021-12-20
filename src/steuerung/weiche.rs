@@ -13,6 +13,7 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
+    self,
     de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
     pwm, Fehler, Fließend, InputAnschluss, OutputAnschluss,
 };
@@ -147,6 +148,7 @@ where
 {
     fn reserviere(
         self,
+        lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
@@ -156,7 +158,7 @@ where
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.anschlüsse.reserviere(pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.anschlüsse.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
         Ok(Reserviert {
             anschluss: Weiche::neu(
                 self.name,
