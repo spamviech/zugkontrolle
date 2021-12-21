@@ -413,8 +413,10 @@ impl PartialEq for Port {
     }
 }
 impl Eq for Port {}
+
 impl Drop for Port {
     fn drop(&mut self) {
+        debug!("drop {:?}", self);
         let port_ersatz = Port::neu(
             self.pcf8574.clone(),
             Lager(self.lager.0.clone()),
