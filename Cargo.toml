@@ -11,6 +11,7 @@ resolver = "2"
 
 [dependencies.zugkontrolle-derive]
 path = "zugkontrolle-derive"
+version = "3.0.0"
 
 [dependencies]
 rstar = "0.9.1"
