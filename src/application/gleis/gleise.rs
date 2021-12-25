@@ -42,6 +42,15 @@ enum ModusDaten<Z> {
     Fahren,
 }
 
+impl<Z> ModusDaten<Z> {
+    fn neu(modus: Modus) -> Self {
+        match modus {
+            Modus::Bauen => ModusDaten::Bauen { gehalten: None, last: Instant::now() },
+            Modus::Fahren => ModusDaten::Fahren,
+        }
+    }
+}
+
 /// Anzeige aller Gleise.
 pub struct Gleise<Z: Zugtyp> {
     canvas: Cache,
@@ -72,15 +81,15 @@ where
 }
 
 impl<Z: Zugtyp> Gleise<Z> {
-    pub fn neu() -> Self {
+    pub fn neu(modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
             canvas: canvas::Cache::neu(),
-            pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
-            skalieren: Skalar(1.),
+            pivot,
+            skalieren,
             zustand: Zustand::neu(),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
-            modus: ModusDaten::Bauen { gehalten: None, last: Instant::now() },
+            modus: ModusDaten::neu(modus),
         }
     }
 
@@ -94,10 +103,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Wechsel den aktuellen Modus zu `modus`.
     pub fn moduswechsel(&mut self, modus: Modus) {
-        self.modus = match modus {
-            Modus::Bauen => ModusDaten::Bauen { gehalten: None, last: Instant::now() },
-            Modus::Fahren => ModusDaten::Fahren,
-        };
+        self.modus = ModusDaten::neu(modus);
     }
 
     /// Aktuelle Pivot-Punkt und Dreh-Winkel

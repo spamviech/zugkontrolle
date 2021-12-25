@@ -517,30 +517,22 @@ where
     fn new((args, lager): Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
 
-        let mut messages = Vec::new();
-        if let Some(modus) = modus {
-            messages.push(Nachricht::Modus(modus));
-        }
-        let gleise = Gleise::neu();
+        let gleise = Gleise::neu(
+            modus,
+            Position { punkt: Vektor { x: Skalar(x), y: Skalar(y) }, winkel: Winkel(winkel) },
+            Skalar(zoom),
+        );
+
+        let command: iced::Command<Self::Message>;
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
-            messages.push(Nachricht::Laden(pfad.clone()));
+            command = Nachricht::Laden(pfad.clone()).als_command();
             aktueller_pfad = pfad.clone();
         } else {
+            command = iced::Command::none();
             aktueller_pfad = format!("{}.zug", Z::NAME);
         };
-        if let Some(zoom) = zoom {
-            messages.push(Nachricht::Skalieren(Skalar(zoom)))
-        }
-        if x.is_some() || y.is_some() {
-            messages.push(Nachricht::Position(Vektor {
-                x: Skalar(x.unwrap_or(0.)),
-                y: Skalar(y.unwrap_or(0.)),
-            }))
-        }
-        if let Some(winkel) = winkel {
-            messages.push(Nachricht::Winkel(Winkel(winkel)))
-        }
+
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
             gleise,
@@ -568,11 +560,7 @@ where
             sender,
             empfänger: Empfänger::neu(receiver),
         };
-        let command = if messages.is_empty() {
-            iced::Command::none()
-        } else {
-            iced::Command::batch(messages.into_iter().map(Nachricht::als_command))
-        };
+
         (zugkontrolle, command)
     }
 

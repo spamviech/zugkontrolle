@@ -33,7 +33,7 @@ impl FromArgs for Wrapper {
 #[argh(subcommand, name = "Args")]
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
 pub struct Args {
-    #[argh(option, short = 'z', default = "Zugtyp::Märklin")]
+    #[argh(option, default = "Zugtyp::Märklin")]
     /// verwendeter Zugtyp
     pub zugtyp: Zugtyp,
 
@@ -41,25 +41,25 @@ pub struct Args {
     /// dateiname
     pub pfad: Option<String>,
 
-    #[argh(option, short = 'm')]
+    #[argh(option, short = 'm', default = "Modus::Bauen")]
     /// modus bei Programmstart
-    pub modus: Option<Modus>,
+    pub modus: Modus,
 
-    #[argh(option, short = 'z')]
+    #[argh(option, short = 'z', default = "1.")]
     /// zoom bei Programmstart
-    pub zoom: Option<f32>,
+    pub zoom: f32,
 
-    #[argh(option, short = 'x')]
+    #[argh(option, short = 'x', default = "0.")]
     /// x-position bei Programmstart
-    pub x: Option<f32>,
+    pub x: f32,
 
-    #[argh(option, short = 'y')]
+    #[argh(option, short = 'y', default = "0.")]
     /// y-position bei Programmstart
-    pub y: Option<f32>,
+    pub y: f32,
 
-    #[argh(option, short = 'w')]
+    #[argh(option, short = 'w', default = "0.")]
     /// winkel bei Programmstart
-    pub winkel: Option<f32>,
+    pub winkel: f32,
 
     #[argh(option, default = "true")]
     /// i2c channel auf pins 2 und 3 (bus 0 oder 1), standard an
