@@ -176,7 +176,7 @@ fn ersetze_generic(
     }
 }
 
-pub fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
+pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
     let mut errors = Vec::new();
 
     let mut methoden_definitionen: Option<TokenStream> = None;

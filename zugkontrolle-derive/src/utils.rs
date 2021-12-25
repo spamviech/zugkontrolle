@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-pub fn mark_fields_generic<'t, T>(
+#[allow(single_use_lifetimes)]
+pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t syn::Field>,
     generic_types: &mut HashMap<&syn::Ident, (T, bool)>,
 ) {
@@ -14,8 +15,8 @@ pub fn mark_fields_generic<'t, T>(
                         *v = true
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

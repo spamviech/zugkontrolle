@@ -5,7 +5,7 @@ use std::convert::identity;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenStream {
+pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
@@ -76,7 +76,7 @@ pub fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenStream {
         return quote! {
             compile_error!(#error_message);
             #ast
-        }
+        };
     }
     let chain_ident = format_ident!("{}_chain", ident);
     quote! {

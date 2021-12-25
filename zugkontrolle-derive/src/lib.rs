@@ -1,3 +1,38 @@
+//! Macros für zugkontrolle
+
+// Enable all warnings except box_pointers, non_ascii_idents, unstable_features
+#![warn(
+    absolute_paths_not_starting_with_crate,
+    elided_lifetimes_in_paths,
+    explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    meta_variable_misuse,
+    missing_abi,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    missing_docs,
+    noop_method_call,
+    pointer_structural_match,
+    rust_2021_incompatible_closure_captures,
+    rust_2021_incompatible_or_patterns,
+    rust_2021_prefixes_incompatible_syntax,
+    rust_2021_prelude_collisions,
+    single_use_lifetimes,
+    trivial_casts,
+    trivial_numeric_casts,
+    unreachable_pub,
+    unsafe_code,
+    unsafe_op_in_unsafe_fn,
+    unused_crate_dependencies,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    unused_qualifications,
+    unused_results,
+    variant_size_differences
+)]
+
 use proc_macro::TokenStream;
 use syn;
 
@@ -5,6 +40,7 @@ pub(crate) mod utils;
 
 mod debug;
 #[proc_macro_derive(Debug)]
+/// Erzeuge eine [Debug]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -16,6 +52,7 @@ pub fn debug_derive(input: TokenStream) -> TokenStream {
 
 mod clone;
 #[proc_macro_derive(Clone)]
+/// Erzeuge eine [Clone]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -27,6 +64,7 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
 
 mod lookup;
 #[proc_macro_attribute]
+/// Erzeuge eine Struktur und zugehörige [zugkontrolle::lookup::Lookup]-Implementierung für das Enum.
 pub fn impl_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse_macro_input!(item);
@@ -36,6 +74,7 @@ pub fn impl_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod modus;
 #[proc_macro_attribute]
+/// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse_macro_input!(item);
@@ -45,6 +84,7 @@ pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod chain;
 #[proc_macro_attribute]
+/// Erzeuge eine identische Methode mit /_chain/-Suffix, die Method-chaining erlaubt.
 pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse_macro_input!(item);
@@ -54,6 +94,8 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod richtung;
 #[proc_macro_attribute]
+/// Erzeuge ein Richtung-Enum mit identischen Varianten bis auf /Anfang/,
+/// sowie eine zugehörige [zugkontrolle::lookup::Lookup]-Struktur.
 pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse_macro_input!(item);
@@ -63,6 +105,10 @@ pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod alias;
 #[proc_macro_attribute]
+/// Erzeuge /*Serialisiert/ und /'Unit/ Typ-Synonyme,
+/// sowie [zugkontrolle::anschluss::de_serialisieren::Serialisiere]
+/// und [zugkontrolle::::anschluss::de_serialisieren::Reserviere] Implementierungen.
+///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
 /// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
@@ -75,6 +121,9 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
 
 mod daten;
 #[proc_macro_attribute]
+/// Erstelle spezialisierte Methoden für alle Gleis-Typen mit entsprechendem Suffix.
+/// Notwendig, damit `DatenAuswahl` kein Teil des APIs wird.
+///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
 /// Es wird erwartet, dass die Funktion genau einen generic Typ hat,

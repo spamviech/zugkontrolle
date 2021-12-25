@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
-pub fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
+pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -> TokenStream {
     let mut errors = Vec::new();
 
     let syn::ItemStruct { vis, ident, fields, generics, .. } = &item;

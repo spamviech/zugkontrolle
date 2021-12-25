@@ -3,7 +3,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
+pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
     // parse args
     let mut arg_vis: Option<syn::Visibility> = None;
     let mut arg_ident: Option<syn::Ident> = None;
@@ -16,13 +16,13 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
                         "List arguments not supported, but {} was given",
                         quote!(#list)
                     ));
-                },
+                }
                 syn::Meta::NameValue(name) => {
                     errors.push(format!(
                         "NameValue arguments not supported, but {} was given",
                         quote!(#name)
                     ));
-                },
+                }
                 syn::Meta::Path(syn::Path { segments, .. }) => {
                     let mut iter = segments.into_iter();
                     if let Some(syn::PathSegment { ident, .. }) = iter.next() {
@@ -51,14 +51,14 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
                     } else {
                         errors.push(format!("empty path segments {}", quote!(#segments)))
                     }
-                },
+                }
             },
             syn::NestedMeta::Lit(lit) => {
                 errors.push(format!(
                     "Literal arguments not supported, but {} was given",
                     quote!(#lit)
                 ));
-            },
+            }
         }
     }
     if errors.len() > 0 {
@@ -66,7 +66,7 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
         return quote! {
             compile_error!(#error_message);
             #ast
-        }
+        };
     }
 
     let syn::ItemEnum { vis, ident, variants, .. } = &ast;

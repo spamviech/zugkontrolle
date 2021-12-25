@@ -8,7 +8,7 @@ use quote::{format_ident, quote};
 
 use crate::utils::mark_fields_generic;
 
-pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
+pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
     let syn::DeriveInput { ident, data, generics, .. } = ast;
 
     let mut generic_lifetimes = Vec::new();
@@ -20,7 +20,7 @@ pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(lt),
             syn::GenericParam::Type(ty) => {
                 generic_type_names.push(&ty.ident);
-                generic_types.insert(&ty.ident, (&ty.bounds, false));
+                let _ = generic_types.insert(&ty.ident, (&ty.bounds, false));
             }
             syn::GenericParam::Const(_c) => {}
         }
