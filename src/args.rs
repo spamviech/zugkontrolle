@@ -1,6 +1,6 @@
 //! Kommandozeilen-Argumente.
 
-use std::str::FromStr;
+use std::{ffi::OsString, str::FromStr};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
@@ -124,6 +124,55 @@ impl FromStr for Zugtyp {
             "Märklin" => Ok(Zugtyp::Märklin),
             "Lego" => Ok(Zugtyp::Lego),
             _ => Err(s.to_string()),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ArgName {
+    pub long: String,
+    pub short: Option<char>,
+}
+
+pub struct Parser<T, E> {
+    pub parse: Box<dyn Fn(&OsString) -> Result<T, E>>,
+}
+
+impl<T, E> std::fmt::Debug for Parser<T, E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Parser").field("parse", &"<function>").finish()
+    }
+}
+
+impl<T, E> Parser<T, E> {
+    pub fn neu(parse: impl 'static + Fn(&OsString) -> Result<T, E>) -> Self {
+        Parser { parse: Box::new(parse) }
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseStringFehler<E> {
+    KonvertiereOsString(OsString),
+    ParseFehler(E),
+}
+
+impl<E> From<E> for ParseStringFehler<E> {
+    fn from(fehler: E) -> Self {
+        ParseStringFehler::ParseFehler(fehler)
+    }
+}
+
+impl<T: FromStr> Parser<T, ParseStringFehler<T::Err>> {
+    pub fn try_from_str() -> Self {
+        Parser {
+            parse: Box::new(|os_string| {
+                T::from_str(
+                    os_string
+                        .to_str()
+                        .ok_or_else(|| ParseStringFehler::KonvertiereOsString(os_string.clone()))?,
+                )
+                .map_err(ParseStringFehler::from)
+            }),
         }
     }
 }
