@@ -20,3 +20,34 @@ pub(crate) fn mark_fields_generic<'t, T>(
         }
     }
 }
+
+pub(crate) fn parse_attributes_fn(
+    attrs: &Vec<syn::Attribute>,
+    name: &str,
+) -> Result<Vec<syn::WherePredicate>, syn::Error> {
+    attrs
+        .iter()
+        .filter(|syn::Attribute { path: syn::Path { segments, .. }, .. }| {
+            segments.len() == 1 && segments[0].ident == name
+        })
+        .map(|syn::Attribute { tokens, .. }| syn::parse2(tokens.clone()))
+        .collect()
+}
+
+macro_rules! parse_attributes {
+    ($attrs:expr, $name:expr) => {
+        match crate::utils::parse_attributes_fn($attrs, $name) {
+            Ok(vec) => vec,
+            Err(parse_error) => {
+                let error = format!(
+                    "Parse-error parsing constraints for zugkontrolle_debug: {:?}",
+                    parse_error
+                );
+                return quote! {
+                    compile_error!(#error)
+                };
+            }
+        }
+    };
+}
+pub(crate) use parse_attributes;

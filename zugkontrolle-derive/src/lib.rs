@@ -39,7 +39,7 @@ use syn;
 pub(crate) mod utils;
 
 mod debug;
-#[proc_macro_derive(Debug)]
+#[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]
 /// Erzeuge eine [Debug]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -51,7 +51,7 @@ pub fn debug_derive(input: TokenStream) -> TokenStream {
 }
 
 mod clone;
-#[proc_macro_derive(Clone)]
+#[proc_macro_derive(Clone, attributes(zugkontrolle_clone))]
 /// Erzeuge eine [Clone]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree

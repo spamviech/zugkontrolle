@@ -6,15 +6,21 @@ use std::iter;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::utils::mark_fields_generic;
+use crate::utils::{mark_fields_generic, parse_attributes};
 
 pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
-    let syn::DeriveInput { ident, data, generics, .. } = ast;
+    let syn::DeriveInput { ident, data, generics, attrs, .. } = ast;
+
+    let where_predicates = parse_attributes!(attrs, "zugkontrolle_debug");
+    let mut where_clause = generics.where_clause.clone().unwrap_or(syn::WhereClause {
+        where_token: syn::Token!(where)(proc_macro2::Span::call_site()),
+        predicates: syn::punctuated::Punctuated::new(),
+    });
+    where_clause.predicates.extend(where_predicates);
 
     let mut generic_lifetimes = Vec::new();
     let mut generic_types = HashMap::new();
     let mut generic_type_names = Vec::new();
-    let where_clause = &generics.where_clause;
     for g in generics.params.iter() {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(lt),
