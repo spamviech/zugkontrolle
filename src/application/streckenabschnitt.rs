@@ -160,7 +160,7 @@ impl AuswahlStatus {
         (
             name.clone(),
             (
-                format!("{}", &*streckenabschnitt.lock_anschluss()),
+                streckenabschnitt.lock_anschluss().to_string(),
                 streckenabschnitt.farbe.clone(),
                 button::State::new(),
                 button::State::new(),
