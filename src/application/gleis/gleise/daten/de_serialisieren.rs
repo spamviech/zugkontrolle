@@ -24,29 +24,14 @@ pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialis
     geschwindigkeit::Name,
     (GeschwindigkeitSerialisiert<<Z as Zugtyp>::Leiter>, StreckenabschnittMapSerialisiert<Z>),
 >;
-#[derive(Serialize, Deserialize)]
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+#[zugkontrolle_debug(Z: Zugtyp,<Z::Leiter as Serialisiere>::Serialisiert: Debug)]
 pub struct ZustandSerialisiert<Z: Zugtyp> {
     pub(crate) zugtyp: String,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert<Z>,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Z>,
     pub(crate) pläne: Vec<Plan>,
-}
-
-impl<Z> Debug for ZustandSerialisiert<Z>
-where
-    Z: Zugtyp,
-    <Z::Leiter as Serialisiere>::Serialisiert: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ZustandSerialisiert")
-            .field("zugtyp", &self.zugtyp)
-            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
-            .field("ohne_geschwindigkeit", &self.ohne_geschwindigkeit)
-            .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .field("pläne", &self.pläne)
-            .finish()
-    }
 }
 
 impl<Z: Zugtyp> Zustand<Z> {

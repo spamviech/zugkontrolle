@@ -538,40 +538,19 @@ enum InterneAuswahlNachricht {
     Löschen(Name),
 }
 
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+#[zugkontrolle_debug(
+    Leiter::Serialisiert: Debug,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug,
+)]
+#[zugkontrolle_clone(
+    Leiter: Serialisiere,
+    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Clone,
+)]
 pub enum AuswahlNachricht<Leiter: Serialisiere> {
     Schließen,
     Hinzufügen(Name, <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert),
     Löschen(Name),
-}
-
-impl<Leiter> Debug for AuswahlNachricht<Leiter>
-where
-    Leiter: Serialisiere,
-    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Schließen => write!(f, "Schließen"),
-            Self::Hinzufügen(arg0, arg1) => {
-                f.debug_tuple("Hinzufügen").field(arg0).field(arg1).finish()
-            }
-            Self::Löschen(arg0) => f.debug_tuple("Löschen").field(arg0).finish(),
-        }
-    }
-}
-
-impl<Leiter> Clone for AuswahlNachricht<Leiter>
-where
-    Leiter: Serialisiere,
-    <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Clone,
-{
-    fn clone(&self) -> Self {
-        match self {
-            Self::Schließen => Self::Schließen,
-            Self::Hinzufügen(arg0, arg1) => Self::Hinzufügen(arg0.clone(), arg1.clone()),
-            Self::Löschen(arg0) => Self::Löschen(arg0.clone()),
-        }
-    }
 }
 
 pub struct Auswahl<'t, Leiter, R>

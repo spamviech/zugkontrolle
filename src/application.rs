@@ -150,6 +150,8 @@ impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
     }
 }
 
+#[derive(zugkontrolle_derive::Debug)]
+#[zugkontrolle_debug(Z: Zugtyp, <Z::Leiter as Serialisiere>::Serialisiert: Debug)]
 pub enum Nachricht<Z: Zugtyp> {
     Gleis {
         gleis: AnyGleisUnit<Z>,
@@ -192,80 +194,6 @@ pub enum Nachricht<Z: Zugtyp> {
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Z>,
     },
-}
-
-impl<Z> Debug for Nachricht<Z>
-where
-    Z: Zugtyp,
-    <Z::Leiter as Serialisiere>::Serialisiert: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Gleis { gleis, grab_height } => f
-                .debug_struct("Gleis")
-                .field("gleis", gleis)
-                .field("grab_height", grab_height)
-                .finish(),
-            Self::Modus(arg0) => f.debug_tuple("Modus").field(arg0).finish(),
-            Self::Bewegen(arg0) => f.debug_tuple("Bewegen").field(arg0).finish(),
-            Self::BewegungAusführen => write!(f, "BewegungAusführen"),
-            Self::Position(arg0) => f.debug_tuple("Position").field(arg0).finish(),
-            Self::Winkel(arg0) => f.debug_tuple("Winkel").field(arg0).finish(),
-            Self::Skalieren(arg0) => f.debug_tuple("Skalieren").field(arg0).finish(),
-            Self::SchließeModal => write!(f, "SchließeModal"),
-            Self::SchließeMessageBox => write!(f, "SchließeMessageBox"),
-            Self::ZeigeAuswahlStreckenabschnitt => write!(f, "ZeigeAuswahlStreckenabschnitt"),
-            Self::WähleStreckenabschnitt(arg0) => {
-                f.debug_tuple("WähleStreckenabschnitt").field(arg0).finish()
-            }
-            Self::HinzufügenStreckenabschnitt(arg0, arg1, arg2, arg3) => f
-                .debug_tuple("HinzufügenStreckenabschnitt")
-                .field(arg0)
-                .field(arg1)
-                .field(arg2)
-                .field(arg3)
-                .finish(),
-            Self::LöscheStreckenabschnitt(arg0) => {
-                f.debug_tuple("LöscheStreckenabschnitt").field(arg0).finish()
-            }
-            Self::SetzeStreckenabschnitt(arg0) => {
-                f.debug_tuple("SetzeStreckenabschnitt").field(arg0).finish()
-            }
-            Self::StreckenabschnittFestlegen(arg0) => {
-                f.debug_tuple("StreckenabschnittFestlegen").field(arg0).finish()
-            }
-            Self::Speichern(arg0) => f.debug_tuple("Speichern").field(arg0).finish(),
-            Self::EntferneSpeichernFarbe(arg0) => {
-                f.debug_tuple("EntferneSpeichernFarbe").field(arg0).finish()
-            }
-            Self::Laden(arg0) => f.debug_tuple("Laden").field(arg0).finish(),
-            Self::GeschwindigkeitAnzeige { name, nachricht } => f
-                .debug_struct("GeschwindigkeitAnzeige")
-                .field("name", name)
-                .field("nachricht", nachricht)
-                .finish(),
-            Self::ZeigeAuswahlGeschwindigkeit => write!(f, "ZeigeAuswahlGeschwindigkeit"),
-            Self::HinzufügenGeschwindigkeit(arg0, arg1) => {
-                f.debug_tuple("HinzufügenGeschwindigkeit").field(arg0).field(arg1).finish()
-            }
-            Self::LöscheGeschwindigkeit(arg0) => {
-                f.debug_tuple("LöscheGeschwindigkeit").field(arg0).finish()
-            }
-            Self::ZeigeAnschlüsseAnpassen(arg0) => {
-                f.debug_tuple("ZeigeAnschlüsseAnpassen").field(arg0).finish()
-            }
-            Self::AnschlüsseAnpassen(arg0) => {
-                f.debug_tuple("AnschlüsseAnpassen").field(arg0).finish()
-            }
-            Self::FahrenAktion(arg0) => f.debug_tuple("FahrenAktion").field(arg0).finish(),
-            Self::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => f
-                .debug_struct("AsyncFehler")
-                .field("titel", titel)
-                .field("nachricht", nachricht)
-                .field("zustand_zurücksetzen", zustand_zurücksetzen)
-                .finish(),
-        }
-    }
 }
 
 impl<Z: Zugtyp> From<gleise::Nachricht<Z>> for Nachricht<Z> {
@@ -441,6 +369,8 @@ impl App {
     }
 }
 
+#[derive(zugkontrolle_derive::Debug)]
+#[zugkontrolle_debug(Z: Zugtyp, Z::Leiter: Debug)]
 pub struct Zugkontrolle<Z: Zugtyp> {
     gleise: Gleise<Z>,
     lager: crate::anschluss::Lager,
@@ -467,41 +397,6 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     sender: Sender<Nachricht<Z>>,
     empfänger: Empfänger<Nachricht<Z>>,
     // TODO Plan
-}
-
-impl<Z> Debug for Zugkontrolle<Z>
-where
-    Z: Zugtyp,
-    Z::Leiter: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Zugkontrolle")
-            .field("gleise", &self.gleise)
-            .field("lager", &self.lager)
-            .field("scrollable_state", &self.scrollable_state)
-            .field("geraden", &self.geraden)
-            .field("kurven", &self.kurven)
-            .field("weichen", &self.weichen)
-            .field("dreiwege_weichen", &self.dreiwege_weichen)
-            .field("kurven_weichen", &self.kurven_weichen)
-            .field("s_kurven_weichen", &self.s_kurven_weichen)
-            .field("kreuzungen", &self.kreuzungen)
-            .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .field("modal_state", &self.modal_status)
-            .field("streckenabschnitt_aktuell", &self.streckenabschnitt_aktuell)
-            .field("streckenabschnitt_aktuell_festlegen", &self.streckenabschnitt_aktuell_festlegen)
-            .field("geschwindigkeit_button_state", &self.geschwindigkeit_button_state)
-            .field("message_box", &self.message_box)
-            .field("bewegen", &self.bewegen)
-            .field("drehen", &self.drehen)
-            .field("zoom", &self.zoom)
-            .field("speichern_laden", &self.speichern_laden)
-            .field("speichern_gefärbt", &self.speichern_gefärbt)
-            .field("bewegung", &self.bewegung)
-            .field("sender", &self.sender)
-            .field("empfänger", &self.empfänger)
-            .finish()
-    }
 }
 
 #[allow(single_use_lifetimes)]

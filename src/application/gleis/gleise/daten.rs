@@ -103,24 +103,12 @@ type GeschwindigkeitMap<Z> = HashMap<
     geschwindigkeit::Name,
     (Geschwindigkeit<<Z as Zugtyp>::Leiter>, StreckenabschnittMap<Z>),
 >;
+#[derive(zugkontrolle_derive::Debug)]
+#[zugkontrolle_debug(Z: Zugtyp, <Z as Zugtyp>::Leiter: Debug)]
 pub struct Zustand<Z: Zugtyp> {
     pub(crate) ohne_streckenabschnitt: GleiseDaten<Z>,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap<Z>,
     pub(crate) geschwindigkeiten: GeschwindigkeitMap<Z>,
-}
-
-impl<Z> Debug for Zustand<Z>
-where
-    Z: Zugtyp,
-    <Z as Zugtyp>::Leiter: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Zustand")
-            .field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)
-            .field("ohne_geschwindigkeit", &self.ohne_geschwindigkeit)
-            .field("geschwindigkeiten", &self.geschwindigkeiten)
-            .finish()
-    }
 }
 
 impl<Z: Zugtyp> Zustand<Z> {

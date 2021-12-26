@@ -245,6 +245,7 @@ impl Debug for Modus {
         }
     }
 }
+
 /// Gleichheit unabhängig vom callback.
 impl PartialEq for Modus {
     fn eq(&self, other: &Modus) -> bool {

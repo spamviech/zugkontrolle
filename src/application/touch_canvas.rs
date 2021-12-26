@@ -10,13 +10,9 @@ use iced_native::{
 };
 use log::trace;
 
+#[derive(zugkontrolle_derive::Debug)]
+#[zugkontrolle_debug(Message: Debug, P: Debug + Program<Message>)]
 pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
-
-impl<Message: Debug, P: Debug + Program<Message>> Debug for Canvas<Message, P> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Canvas").field(&self.0).finish()
-    }
-}
 
 impl<Message, P: Program<Message>> Canvas<Message, P> {
     pub fn new(program: P) -> Self {
