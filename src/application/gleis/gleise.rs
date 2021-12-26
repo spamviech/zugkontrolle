@@ -52,6 +52,8 @@ impl<Z> ModusDaten<Z> {
 }
 
 /// Anzeige aller Gleise.
+#[derive(zugkontrolle_derive::Debug)]
+#[zugkontrolle_debug(Z: Zugtyp, <Z as Zugtyp>::Leiter: Debug)]
 pub struct Gleise<Z: Zugtyp> {
     canvas: Cache,
     pivot: Position,
@@ -60,24 +62,6 @@ pub struct Gleise<Z: Zugtyp> {
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten<Z>,
-}
-
-impl<Z> Debug for Gleise<Z>
-where
-    Z: Zugtyp,
-    <Z as Zugtyp>::Leiter: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Gleise")
-            .field("canvas", &self.canvas)
-            .field("pivot", &self.pivot)
-            .field("skalieren", &self.skalieren)
-            .field("zustand", &self.zustand)
-            .field("last_mouse", &self.last_mouse)
-            .field("last_size", &self.last_size)
-            .field("modus", &self.modus)
-            .finish()
-    }
 }
 
 impl<Z: Zugtyp> Gleise<Z> {

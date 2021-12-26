@@ -2,6 +2,8 @@
 
 use std::collections::HashMap;
 
+use syn::parse::Parser;
+
 #[allow(single_use_lifetimes)]
 pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t syn::Field>,
@@ -24,14 +26,22 @@ pub(crate) fn mark_fields_generic<'t, T>(
 pub(crate) fn parse_attributes_fn(
     attrs: &Vec<syn::Attribute>,
     name: &str,
-) -> Result<Vec<syn::WherePredicate>, syn::Error> {
-    attrs
+) -> Result<impl Iterator<Item = syn::WherePredicate>, syn::Error> {
+    let intermediate: Vec<syn::punctuated::Punctuated<syn::WherePredicate, syn::Token!(,)>> = attrs
         .iter()
         .filter(|syn::Attribute { path: syn::Path { segments, .. }, .. }| {
             segments.len() == 1 && segments[0].ident == name
         })
-        .map(|syn::Attribute { tokens, .. }| syn::parse2(tokens.clone()))
-        .collect()
+        .map(|syn::Attribute { tokens, .. }| {
+            let tokens_str = tokens.to_string();
+            let len = tokens_str.len();
+            // entferne Klammern als String, syn::parenthesized weigert sich zu kooperieren
+            let slice = &tokens_str[1..len - 1];
+            let parser = syn::punctuated::Punctuated::parse_terminated;
+            parser.parse_str(slice)
+        })
+        .collect::<Result<_, _>>()?;
+    Ok(intermediate.into_iter().flat_map(syn::punctuated::Punctuated::into_iter))
 }
 
 macro_rules! parse_attributes {
@@ -44,7 +54,7 @@ macro_rules! parse_attributes {
                     parse_error
                 );
                 return quote! {
-                    compile_error!(#error)
+                    compile_error! { #error }
                 };
             }
         }
