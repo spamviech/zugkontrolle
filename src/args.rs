@@ -1,6 +1,6 @@
 //! Kommandozeilen-Argumente.
 
-use std::{ffi::OsString, str::FromStr};
+use std::{ffi::OsString, fmt::Debug, str::FromStr};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
@@ -129,16 +129,46 @@ impl FromStr for Zugtyp {
 }
 
 #[derive(Debug)]
-pub struct ArgName {
-    pub long: String,
-    pub short: Option<char>,
+pub struct ArgBeschreibung<T> {
+    pub lang: String,
+    pub kurz: Option<char>,
+    pub hilfe: Option<String>,
+    pub standard: Option<T>,
+}
+
+pub enum Arg<T> {
+    // besser mit GAT, aber noch nicht Teil von rust
+    Flag {
+        beschreibung: ArgBeschreibung<bool>,
+    },
+    Wert {
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: Box<dyn Fn(&OsString) -> Result<T, OsString>>,
+    },
+}
+
+impl<T: Debug> Debug for Arg<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Flag { beschreibung } => {
+                f.debug_struct("Flag").field("arg", beschreibung).finish()
+            }
+            Self::Wert { beschreibung, meta_var, parse: _ } => f
+                .debug_struct("Wert")
+                .field("arg", beschreibung)
+                .field("meta_var", meta_var)
+                .field("parse", &"<function>")
+                .finish(),
+        }
+    }
 }
 
 pub struct Parser<T, E> {
     pub parse: Box<dyn Fn(&OsString) -> Result<T, E>>,
 }
 
-impl<T, E> std::fmt::Debug for Parser<T, E> {
+impl<T, E> Debug for Parser<T, E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Parser").field("parse", &"<function>").finish()
     }
@@ -152,7 +182,7 @@ impl<T, E> Parser<T, E> {
 
 #[derive(Debug)]
 pub enum ParseStringFehler<E> {
-    KonvertiereOsString(OsString),
+    KonvertiereOsString,
     ParseFehler(E),
 }
 
@@ -166,12 +196,10 @@ impl<T: FromStr> Parser<T, ParseStringFehler<T::Err>> {
     pub fn try_from_str() -> Self {
         Parser {
             parse: Box::new(|os_string| {
-                T::from_str(
-                    os_string
-                        .to_str()
-                        .ok_or_else(|| ParseStringFehler::KonvertiereOsString(os_string.clone()))?,
-                )
-                .map_err(ParseStringFehler::from)
+                os_string
+                    .to_str()
+                    .ok_or(ParseStringFehler::KonvertiereOsString)
+                    .and_then(|s| T::from_str(s).map_err(ParseStringFehler::from))
             }),
         }
     }
