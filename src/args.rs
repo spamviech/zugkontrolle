@@ -167,12 +167,12 @@ impl ParsedArg {
             } else {
                 match arg.into_string() {
                     Ok(string) => {
-                        let parsed_name: Option<ParsedArgName>;
+                        let mut parsed_name = None;
                         let mut parsed_wert = None;
                         if let Some(lang) = string.strip_prefix("--") {
                             if let Some((name, wert)) = lang.split_once('=') {
                                 parsed_name = Some(ParsedArgName::Lang(name.to_string()));
-                                parsed_wert = Some(wert);
+                                parsed_wert = Some(wert.to_string());
                             } else {
                                 parsed_name = Some(ParsedArgName::Lang(lang.to_string()));
                             }
@@ -183,8 +183,9 @@ impl ParsedArg {
                             let mut chars = kurz.chars();
                             let first = chars.next();
                             let second = chars.next();
-                            if second == Some('=') {
-                                todo!()
+                            if let (Some(name), Some('=')) = (first, second) {
+                                parsed_name = Some(ParsedArgName::Kurz(name));
+                                parsed_wert = Some(chars.collect());
                             } else {
                                 for c in kurz.chars() {
                                     let _ = ParsedArgName::Kurz(c);
@@ -194,7 +195,13 @@ impl ParsedArg {
                         } else {
                             todo!()
                         }
-                        todo!()
+                        if let Some(name) = parsed_name {
+                            if let Some(wert) = parsed_wert {
+                                todo!()
+                            } else {
+                                todo!()
+                            }
+                        }
                     }
                     // TODO "--lang=<some_os_string>", "-k[=]<some_os_string>" wird nicht unterstützt
                     Err(os_string) => errors.push(ParseArgFehler::KonvertiereName(os_string)),
