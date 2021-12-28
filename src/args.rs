@@ -118,9 +118,9 @@ pub enum ParsedArgName {
 }
 
 #[derive(Debug)]
-pub enum ParsedArg {
-    Flag { name: ParsedArgName, aktiviert: bool },
-    Wert { name: ParsedArgName, wert: OsString },
+pub enum ParsedArg<'t> {
+    Flag { name: ArgName<'t>, aktiviert: bool },
+    Wert { name: ArgName<'t>, wert: OsString },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -155,17 +155,17 @@ pub enum Konfiguriert {
     Wert,
 }
 
-impl ArgKonfiguration<'_> {
-    pub fn ist_konfiguriert(self, geparsed: &ParsedArgName) -> Option<Konfiguriert> {
+impl<'t> ArgKonfiguration<'t> {
+    pub fn ist_konfiguriert(self, geparsed: &ParsedArgName) -> Option<(Konfiguriert, ArgName<'t>)> {
         match self {
             ArgKonfiguration::Flag(name) => {
                 if name.passend(geparsed) {
-                    Some(Konfiguriert::Flag(true))
+                    Some((Konfiguriert::Flag(true), name))
                 } else {
                     match geparsed {
                         ParsedArgName::Lang(lang) if lang.starts_with("no-") => {
                             if name.passend(&ParsedArgName::Lang(lang[3..].to_string())) {
-                                Some(Konfiguriert::Flag(false))
+                                Some((Konfiguriert::Flag(false), name))
                             } else {
                                 None
                             }
@@ -174,7 +174,9 @@ impl ArgKonfiguration<'_> {
                     }
                 }
             }
-            ArgKonfiguration::Wert(name) if name.passend(geparsed) => Some(Konfiguriert::Wert),
+            ArgKonfiguration::Wert(name) if name.passend(geparsed) => {
+                Some((Konfiguriert::Wert, name))
+            }
             _ => None,
         }
     }
@@ -190,22 +192,22 @@ pub enum ParseArgFehler {
     WertFürFlag { name: ParsedArgName, wert: String },
 }
 
-impl ParsedArg {
-    pub fn from_env(
-        konfiguriert: &[ArgKonfiguration<'_>],
-    ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
+impl ParsedArg<'_> {
+    pub fn from_env<'t>(
+        konfiguriert: &'t [ArgKonfiguration<'t>],
+    ) -> Result<Vec<ParsedArg<'t>>, Vec<ParseArgFehler>> {
         ParsedArg::parse(konfiguriert, env::args_os())
     }
 
-    pub fn parse(
-        konfiguriert: &[ArgKonfiguration<'_>],
+    pub fn parse<'t>(
+        konfiguriert: &'t [ArgKonfiguration<'t>],
         args: impl Iterator<Item = OsString>,
-    ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
+    ) -> Result<Vec<ParsedArg<'t>>, Vec<ParseArgFehler>> {
         let mut parsed_args = Vec::new();
         let mut errors = Vec::new();
         let mut wert_name = None;
         for arg in args {
-            if let Some(name) = wert_name.take() {
+            if let Some((_parsed_name, name)) = wert_name.take() {
                 parsed_args.push(ParsedArg::Wert { name, wert: arg })
             } else {
                 match arg.into_string() {
@@ -235,11 +237,18 @@ impl ParsedArg {
                                 // nur zusammenfassen mehrerer Flag-Kurzformen
                                 for c in kurz.chars() {
                                     let name = ParsedArgName::Kurz(c);
-                                    let bekannt = konfiguriert.iter().any(|config| {
-                                        config.ist_konfiguriert(&name)
-                                            == Some(Konfiguriert::Flag(true))
+                                    let mut bekannt = konfiguriert.iter().filter_map(|config| {
+                                        config.ist_konfiguriert(&name).and_then(
+                                            |(konfiguriert, konfigurierter_name)| {
+                                                if konfiguriert == Konfiguriert::Flag(true) {
+                                                    Some(konfigurierter_name)
+                                                } else {
+                                                    None
+                                                }
+                                            },
+                                        )
                                     });
-                                    if bekannt {
+                                    if let Some(name) = bekannt.next() {
                                         parsed_args.push(ParsedArg::Flag { name, aktiviert: true })
                                     } else {
                                         errors
@@ -250,27 +259,51 @@ impl ParsedArg {
                         } else {
                             errors.push(ParseArgFehler::InvaliderName(string))
                         }
-                        if let Some(name) = parsed_name {
+                        if let Some(parsed_name) = parsed_name {
                             let konfigurationen: Vec<_> = konfiguriert
                                 .iter()
-                                .map(|config| config.ist_konfiguriert(&name))
+                                .map(|config| config.ist_konfiguriert(&parsed_name))
                                 .filter_map(identity)
                                 .collect();
+                            fn ist_wert_konfiguration(
+                                (konfiguriert, _name): &(Konfiguriert, ArgName<'_>),
+                            ) -> bool {
+                                *konfiguriert == Konfiguriert::Wert
+                            }
                             if konfigurationen.is_empty() {
-                                errors.push(ParseArgFehler::NichtKonfigurierterName(name))
+                                errors.push(ParseArgFehler::NichtKonfigurierterName(parsed_name))
                             } else if let Some(wert) = parsed_wert {
-                                if konfigurationen.contains(&Konfiguriert::Wert) {
+                                if let Some((_konfiguriert, name)) =
+                                    konfigurationen.into_iter().find(ist_wert_konfiguration)
+                                {
                                     parsed_args.push(ParsedArg::Wert { name, wert: wert.into() })
                                 } else {
-                                    errors.push(ParseArgFehler::WertFürFlag { name, wert })
+                                    errors.push(ParseArgFehler::WertFürFlag {
+                                        name: parsed_name,
+                                        wert,
+                                    })
                                 }
                             } else {
-                                if konfigurationen.contains(&Konfiguriert::Wert) {
-                                    wert_name = Some(name)
-                                } else if konfigurationen.contains(&Konfiguriert::Flag(true)) {
-                                    parsed_args.push(ParsedArg::Flag { name, aktiviert: true })
+                                if let Some(ix) =
+                                    konfigurationen.iter().position(ist_wert_konfiguration)
+                                {
+                                    wert_name = Some((parsed_name, konfigurationen[ix].1))
+                                } else if let Some((aktiviert, name)) = konfigurationen
+                                    .into_iter()
+                                    .flat_map(|(konfiguriert, name)| {
+                                        if let Konfiguriert::Flag(aktiviert) = konfiguriert {
+                                            Some((aktiviert, name))
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .next()
+                                {
+                                    parsed_args.push(ParsedArg::Flag { name, aktiviert })
                                 } else {
-                                    parsed_args.push(ParsedArg::Flag { name, aktiviert: false })
+                                    // Sollte nicht eintreten, aber besser als ein Crash
+                                    errors
+                                        .push(ParseArgFehler::NichtKonfigurierterName(parsed_name))
                                 }
                             }
                         }
@@ -281,8 +314,8 @@ impl ParsedArg {
             }
         }
 
-        if let Some(name) = wert_name.take() {
-            errors.push(ParseArgFehler::FehlenderWert(name))
+        if let Some((parsed_name, _name)) = wert_name.take() {
+            errors.push(ParseArgFehler::FehlenderWert(parsed_name))
         }
 
         if errors.is_empty() {
