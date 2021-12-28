@@ -137,9 +137,9 @@ pub struct ArgBeschreibung<T> {
 }
 
 pub enum Arg<T> {
-    // besser mit GAT, aber noch nicht Teil von rust
     Flag {
-        beschreibung: ArgBeschreibung<bool>,
+        beschreibung: ArgBeschreibung<T>,
+        aus_bool: Box<dyn Fn(bool) -> T>,
     },
     Wert {
         beschreibung: ArgBeschreibung<T>,
@@ -151,9 +151,11 @@ pub enum Arg<T> {
 impl<T: Debug> Debug for Arg<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Flag { beschreibung } => {
-                f.debug_struct("Flag").field("arg", beschreibung).finish()
-            }
+            Self::Flag { beschreibung, aus_bool: _ } => f
+                .debug_struct("Flag")
+                .field("arg", beschreibung)
+                .field("aus_bool", &"<function>")
+                .finish(),
             Self::Wert { beschreibung, meta_var, parse: _ } => f
                 .debug_struct("Wert")
                 .field("arg", beschreibung)
