@@ -1,6 +1,11 @@
 //! Kommandozeilen-Argumente.
 
-use std::{ffi::OsString, fmt::Debug, str::FromStr};
+use std::{
+    env,
+    ffi::OsString,
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
@@ -110,6 +115,36 @@ impl Args {
     }
 }
 
+#[derive(Debug)]
+#[allow(variant_size_differences)]
+pub enum ParsedArgName {
+    Short(char),
+    Long(String),
+}
+
+#[derive(Debug)]
+pub enum ParsedArg {
+    Flag { name: ParsedArgName, aktiviert: bool },
+    Wert { name: ParsedArgName, wert: OsString },
+}
+
+#[derive(Debug)]
+pub enum ParseArgFehler {
+    KonvertiereOsString(OsString),
+}
+
+impl ParsedArg {
+    pub fn from_env() -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
+        ParsedArg::parse(env::args_os())
+    }
+
+    pub fn parse(
+        args: impl Iterator<Item = OsString>,
+    ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Zugtyp {
     Märklin,
@@ -136,6 +171,18 @@ pub struct ArgBeschreibung<T> {
     pub standard: Option<T>,
 }
 
+impl<T: Display> ArgBeschreibung<T> {
+    pub fn als_os_string(self) -> ArgBeschreibung<OsString> {
+        let ArgBeschreibung { lang, kurz, hilfe, ref standard } = self;
+        ArgBeschreibung {
+            lang,
+            kurz,
+            hilfe,
+            standard: standard.as_ref().map(ToString::to_string).map(OsString::from),
+        }
+    }
+}
+
 pub enum Arg<T> {
     Flag {
         beschreibung: ArgBeschreibung<T>,
@@ -144,7 +191,7 @@ pub enum Arg<T> {
     Wert {
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: Box<dyn Fn(&OsString) -> Result<T, OsString>>,
+        parse: Box<dyn Fn(OsString) -> Result<T, OsString>>,
     },
 }
 
@@ -162,6 +209,22 @@ impl<T: Debug> Debug for Arg<T> {
                 .field("meta_var", meta_var)
                 .field("parse", &"<function>")
                 .finish(),
+        }
+    }
+}
+
+impl<T: Display> Arg<T> {
+    pub fn als_os_string(self) -> Arg<OsString> {
+        match self {
+            Arg::Flag { beschreibung, aus_bool: _ } => Arg::Flag {
+                beschreibung: beschreibung.als_os_string(),
+                aus_bool: Box::new(|b| b.to_string().into()),
+            },
+            Arg::Wert { beschreibung, meta_var, parse: _ } => Arg::Wert {
+                beschreibung: beschreibung.als_os_string(),
+                meta_var,
+                parse: Box::new(Ok),
+            },
         }
     }
 }
