@@ -1,6 +1,7 @@
 //! Kommandozeilen-Argumente.
 
 use std::{
+    convert::identity,
     env,
     ffi::OsString,
     fmt::{Debug, Display},
@@ -128,23 +129,71 @@ pub enum ParsedArg {
     Wert { name: ParsedArgName, wert: OsString },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ArgName<'t> {
     pub lang: &'t String,
     pub kurz: &'t Option<char>,
 }
 
-#[derive(Debug)]
+impl ArgName<'_> {
+    pub fn passend(self, parsed: &ParsedArgName) -> bool {
+        match (self, parsed) {
+            (ArgName { kurz: Some(konfiguriert), .. }, ParsedArgName::Kurz(geparsed)) => {
+                konfiguriert == geparsed
+            }
+            (ArgName { lang: konfiguriert, .. }, ParsedArgName::Lang(geparsed)) => {
+                konfiguriert == geparsed
+            }
+            (_, _) => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum ArgKonfiguration<'t> {
     Flag(ArgName<'t>),
     Wert(ArgName<'t>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Konfiguriert {
+    Flag(bool),
+    Wert,
+}
+
+impl ArgKonfiguration<'_> {
+    pub fn ist_konfiguriert(self, geparsed: &ParsedArgName) -> Option<Konfiguriert> {
+        match self {
+            ArgKonfiguration::Flag(name) => {
+                if name.passend(geparsed) {
+                    Some(Konfiguriert::Flag(true))
+                } else {
+                    match geparsed {
+                        ParsedArgName::Lang(lang) if lang.starts_with("no-") => {
+                            if name.passend(&ParsedArgName::Lang(lang[3..].to_string())) {
+                                Some(Konfiguriert::Flag(false))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    }
+                }
+            }
+            ArgKonfiguration::Wert(name) if name.passend(geparsed) => Some(Konfiguriert::Wert),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ParseArgFehler {
     KonvertiereName(OsString),
+    InvaliderName(String),
     NichtKonfigurierterName(ParsedArgName),
+    NichtKonfigurierteFlagKurzform(char),
     FehlenderWert(ParsedArgName),
+    WertFürFlag { name: ParsedArgName, wert: String },
 }
 
 impl ParsedArg {
@@ -187,19 +236,48 @@ impl ParsedArg {
                                 parsed_name = Some(ParsedArgName::Kurz(name));
                                 parsed_wert = Some(chars.collect());
                             } else {
+                                // "-k<Wert>" wird nicht unterstützt,
+                                // verwende stattdessen "-k <Wert>" oder "-k=<Wert>"
+                                // nur zusammenfassen mehrerer Flag-Kurzformen
                                 for c in kurz.chars() {
-                                    let _ = ParsedArgName::Kurz(c);
-                                    todo!()
+                                    let name = ParsedArgName::Kurz(c);
+                                    let bekannt = konfiguriert.iter().any(|config| {
+                                        config.ist_konfiguriert(&name)
+                                            == Some(Konfiguriert::Flag(true))
+                                    });
+                                    if bekannt {
+                                        parsed_args.push(ParsedArg::Flag { name, aktiviert: true })
+                                    } else {
+                                        errors
+                                            .push(ParseArgFehler::NichtKonfigurierteFlagKurzform(c))
+                                    }
                                 }
                             }
                         } else {
-                            todo!()
+                            errors.push(ParseArgFehler::InvaliderName(string))
                         }
                         if let Some(name) = parsed_name {
-                            if let Some(wert) = parsed_wert {
-                                todo!()
+                            let konfigurationen: Vec<_> = konfiguriert
+                                .iter()
+                                .map(|config| config.ist_konfiguriert(&name))
+                                .filter_map(identity)
+                                .collect();
+                            if konfigurationen.is_empty() {
+                                errors.push(ParseArgFehler::NichtKonfigurierterName(name))
+                            } else if let Some(wert) = parsed_wert {
+                                if konfigurationen.contains(&Konfiguriert::Wert) {
+                                    parsed_args.push(ParsedArg::Wert { name, wert: wert.into() })
+                                } else {
+                                    errors.push(ParseArgFehler::WertFürFlag { name, wert })
+                                }
                             } else {
-                                todo!()
+                                if konfigurationen.contains(&Konfiguriert::Wert) {
+                                    wert_name = Some(name)
+                                } else if konfigurationen.contains(&Konfiguriert::Flag(true)) {
+                                    parsed_args.push(ParsedArg::Flag { name, aktiviert: true })
+                                } else {
+                                    parsed_args.push(ParsedArg::Flag { name, aktiviert: false })
+                                }
                             }
                         }
                     }
