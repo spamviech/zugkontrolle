@@ -118,8 +118,8 @@ impl Args {
 #[derive(Debug)]
 #[allow(variant_size_differences)]
 pub enum ParsedArgName {
-    Short(char),
-    Long(String),
+    Kurz(char),
+    Lang(String),
 }
 
 #[derive(Debug)]
@@ -142,21 +142,75 @@ pub enum ArgKonfiguration<'t> {
 
 #[derive(Debug)]
 pub enum ParseArgFehler {
-    KonvertiereOsString(OsString),
+    KonvertiereName(OsString),
+    NichtKonfigurierterName(ParsedArgName),
+    FehlenderWert(ParsedArgName),
 }
 
 impl ParsedArg {
     pub fn from_env(
-        konfiguriert: Vec<ArgKonfiguration<'_>>,
+        konfiguriert: &[ArgKonfiguration<'_>],
     ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
         ParsedArg::parse(konfiguriert, env::args_os())
     }
 
     pub fn parse(
-        konfiguriert: Vec<ArgKonfiguration<'_>>,
+        konfiguriert: &[ArgKonfiguration<'_>],
         args: impl Iterator<Item = OsString>,
     ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
-        todo!()
+        let mut parsed_args = Vec::new();
+        let mut errors = Vec::new();
+        let mut wert_name = None;
+        for arg in args {
+            if let Some(name) = wert_name.take() {
+                parsed_args.push(ParsedArg::Wert { name, wert: arg })
+            } else {
+                match arg.into_string() {
+                    Ok(string) => {
+                        let parsed_name: Option<ParsedArgName>;
+                        let mut parsed_wert = None;
+                        if let Some(lang) = string.strip_prefix("--") {
+                            if let Some((name, wert)) = lang.split_once('=') {
+                                parsed_name = Some(ParsedArgName::Lang(name.to_string()));
+                                parsed_wert = Some(wert);
+                            } else {
+                                parsed_name = Some(ParsedArgName::Lang(lang.to_string()));
+                            }
+                        } else if let Some(kurz) = string.strip_prefix('-') {
+                            // TODO sauberer mit graphemes
+                            // https://crates.io/crates/unicode-segmentation
+                            // Für reine ascii-Characters nicht notwendig
+                            let mut chars = kurz.chars();
+                            let first = chars.next();
+                            let second = chars.next();
+                            if second == Some('=') {
+                                todo!()
+                            } else {
+                                for c in kurz.chars() {
+                                    let _ = ParsedArgName::Kurz(c);
+                                    todo!()
+                                }
+                            }
+                        } else {
+                            todo!()
+                        }
+                        todo!()
+                    }
+                    // TODO "--lang=<some_os_string>", "-k[=]<some_os_string>" wird nicht unterstützt
+                    Err(os_string) => errors.push(ParseArgFehler::KonvertiereName(os_string)),
+                }
+            }
+        }
+
+        if let Some(name) = wert_name.take() {
+            errors.push(ParseArgFehler::FehlenderWert(name))
+        }
+
+        if errors.is_empty() {
+            Ok(parsed_args)
+        } else {
+            Err(errors)
+        }
     }
 }
 
