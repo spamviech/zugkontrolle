@@ -129,16 +129,31 @@ pub enum ParsedArg {
 }
 
 #[derive(Debug)]
+pub struct ArgName<'t> {
+    pub lang: &'t String,
+    pub kurz: &'t Option<char>,
+}
+
+#[derive(Debug)]
+pub enum ArgKonfiguration<'t> {
+    Flag(ArgName<'t>),
+    Wert(ArgName<'t>),
+}
+
+#[derive(Debug)]
 pub enum ParseArgFehler {
     KonvertiereOsString(OsString),
 }
 
 impl ParsedArg {
-    pub fn from_env() -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
-        ParsedArg::parse(env::args_os())
+    pub fn from_env(
+        konfiguriert: Vec<ArgKonfiguration<'_>>,
+    ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
+        ParsedArg::parse(konfiguriert, env::args_os())
     }
 
     pub fn parse(
+        konfiguriert: Vec<ArgKonfiguration<'_>>,
         args: impl Iterator<Item = OsString>,
     ) -> Result<Vec<ParsedArg>, Vec<ParseArgFehler>> {
         todo!()
@@ -171,15 +186,10 @@ pub struct ArgBeschreibung<T> {
     pub standard: Option<T>,
 }
 
-impl<T: Display> ArgBeschreibung<T> {
-    pub fn als_os_string(self) -> ArgBeschreibung<OsString> {
-        let ArgBeschreibung { lang, kurz, hilfe, ref standard } = self;
-        ArgBeschreibung {
-            lang,
-            kurz,
-            hilfe,
-            standard: standard.as_ref().map(ToString::to_string).map(OsString::from),
-        }
+impl<T> ArgBeschreibung<T> {
+    pub fn als_arg_name(&self) -> ArgName<'_> {
+        let ArgBeschreibung { lang, kurz, .. } = self;
+        ArgName { lang, kurz }
     }
 }
 
@@ -214,17 +224,10 @@ impl<T: Debug> Debug for Arg<T> {
 }
 
 impl<T: Display> Arg<T> {
-    pub fn als_os_string(self) -> Arg<OsString> {
+    pub fn als_arg_konfiguration(&self) -> ArgKonfiguration<'_> {
         match self {
-            Arg::Flag { beschreibung, aus_bool: _ } => Arg::Flag {
-                beschreibung: beschreibung.als_os_string(),
-                aus_bool: Box::new(|b| b.to_string().into()),
-            },
-            Arg::Wert { beschreibung, meta_var, parse: _ } => Arg::Wert {
-                beschreibung: beschreibung.als_os_string(),
-                meta_var,
-                parse: Box::new(Ok),
-            },
+            Arg::Flag { beschreibung, .. } => ArgKonfiguration::Flag(beschreibung.als_arg_name()),
+            Arg::Wert { beschreibung, .. } => ArgKonfiguration::Wert(beschreibung.als_arg_name()),
         }
     }
 }
