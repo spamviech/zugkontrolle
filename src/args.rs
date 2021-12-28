@@ -1,12 +1,6 @@
 //! Kommandozeilen-Argumente.
 
-use std::{
-    convert::identity,
-    env,
-    ffi::OsString,
-    fmt::{Debug, Display},
-    str::FromStr,
-};
+use std::{convert::identity, env, ffi::OsString, fmt::Debug, str::FromStr};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
@@ -362,52 +356,11 @@ impl<T: Debug> Debug for Arg<T> {
     }
 }
 
-impl<T: Display> Arg<T> {
+impl<T> Arg<T> {
     pub fn als_arg_konfiguration(&self) -> ArgKonfiguration<'_> {
         match self {
             Arg::Flag { beschreibung, .. } => ArgKonfiguration::Flag(beschreibung.als_arg_name()),
             Arg::Wert { beschreibung, .. } => ArgKonfiguration::Wert(beschreibung.als_arg_name()),
-        }
-    }
-}
-
-pub struct Parser<T, E> {
-    pub parse: Box<dyn Fn(&OsString) -> Result<T, E>>,
-}
-
-impl<T, E> Debug for Parser<T, E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Parser").field("parse", &"<function>").finish()
-    }
-}
-
-impl<T, E> Parser<T, E> {
-    pub fn neu(parse: impl 'static + Fn(&OsString) -> Result<T, E>) -> Self {
-        Parser { parse: Box::new(parse) }
-    }
-}
-
-#[derive(Debug)]
-pub enum ParseStringFehler<E> {
-    KonvertiereOsString,
-    ParseFehler(E),
-}
-
-impl<E> From<E> for ParseStringFehler<E> {
-    fn from(fehler: E) -> Self {
-        ParseStringFehler::ParseFehler(fehler)
-    }
-}
-
-impl<T: FromStr> Parser<T, ParseStringFehler<T::Err>> {
-    pub fn try_from_str() -> Self {
-        Parser {
-            parse: Box::new(|os_string| {
-                os_string
-                    .to_str()
-                    .ok_or(ParseStringFehler::KonvertiereOsString)
-                    .and_then(|s| T::from_str(s).map_err(ParseStringFehler::from))
-            }),
         }
     }
 }
