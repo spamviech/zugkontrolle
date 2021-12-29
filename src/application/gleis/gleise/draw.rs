@@ -38,6 +38,7 @@ pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
 
 fn fülle_alle_gleise<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
     streckenabschnitt_farbe: &Farbe,
@@ -49,7 +50,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben
-            for (path, transparenz) in definition.fülle() {
+            for (path, transparenz) in definition.fülle(spurweite) {
                 let a = transparent(rectangle, *streckenabschnitt_fließend)
                     .kombiniere(transparenz)
                     .alpha();
@@ -65,6 +66,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
 
 fn zeichne_alle_gleise<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {
@@ -74,7 +76,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
-            for path in definition.zeichne() {
+            for path in definition.zeichne(spurweite) {
                 frame.with_save(|frame| {
                     let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                     frame.stroke(
@@ -93,6 +95,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
 
 fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten_und_andere_verbindung: F,
 ) where
@@ -106,7 +109,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
-            definition.verbindungen().for_each(|_name, &verbindung| {
+            definition.verbindungen(spurweite).for_each(|_name, &verbindung| {
                 let verbindung_an_position = Verbindung {
                     position: position.transformation(verbindung.position),
                     richtung: position.winkel + verbindung.richtung,
@@ -138,13 +141,14 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
 
 fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
-        let (relative_position, beschreibung, name) = definition.beschreibung_und_name();
+        let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
             (None, Some(name)) => Some(name.clone()),
@@ -171,9 +175,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     }
 }
 
-fn ist_gehalten_test<'t, Z>(
-    gehalten_id: Option<&'t AnyId<Z>>,
-) -> impl Fn(AnyIdRef<'t, Z>) -> bool + 't {
+fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl Fn(AnyIdRef<'t>) -> bool + 't {
     move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
 }
 

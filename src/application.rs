@@ -68,7 +68,7 @@ pub enum AnyGleisUnit {
 }
 macro_rules! impl_any_gleis_from {
     ($type:ident) => {
-        impl<Z> From<$type> for AnyGleisUnit {
+        impl From<$type> for AnyGleisUnit {
             fn from(gleis: $type) -> AnyGleisUnit {
                 AnyGleisUnit::$type(gleis.into())
             }

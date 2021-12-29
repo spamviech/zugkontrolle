@@ -258,9 +258,9 @@ impl_any_id_ref_from! {KurvenWeiche}
 impl_any_id_ref_from! {SKurvenWeiche}
 impl_any_id_ref_from! {Kreuzung}
 
-impl<Z> AnyIdRef<'_, Z> {
+impl AnyIdRef<'_> {
     /// Klone die Referenzen um eine neue Id zu erzeugen.
-    pub(in crate::application::gleis::gleise) fn als_id(self) -> AnyId<Z> {
+    pub(in crate::application::gleis::gleise) fn als_id(self) -> AnyId {
         match self {
             AnyIdRef::Gerade(gleis_id_ref) => AnyId::from(GleisId {
                 rectangle: *gleis_id_ref.rectangle,

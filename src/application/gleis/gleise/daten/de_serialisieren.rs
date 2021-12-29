@@ -345,7 +345,7 @@ pub(crate) struct GleiseDatenSerialisiert {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
-impl<Z> GleiseDatenSerialisiert<Z> {
+impl GleiseDatenSerialisiert {
     pub(crate) fn neu() -> Self {
         GleiseDatenSerialisiert {
             geraden: Vec::new(),
@@ -359,9 +359,9 @@ impl<Z> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Leiter> GleiseDaten<Leiter> {
+impl GleiseDaten {
     /// Erzeuge eine serealisierbare Repräsentation
-    fn serialisiere(&self) -> GleiseDatenSerialisiert<Leiter> {
+    fn serialisiere(&self) -> GleiseDatenSerialisiert {
         macro_rules! rstern_to_vecs {
             ($($rstern:ident),* $(,)?) => {
                 GleiseDatenSerialisiert {
@@ -423,7 +423,7 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
     )
 }
 
-impl<Leiter> GleiseDatenSerialisiert<Leiter> {
+impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -431,7 +431,7 @@ impl<Leiter> GleiseDatenSerialisiert<Leiter> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> Result<Reserviert<GleiseDaten<Leiter>>, anschluss::Fehler> {
+    ) -> Result<Reserviert<GleiseDaten>, anschluss::Fehler> {
         macro_rules! reserviere_anschlüsse {
             ($($rstern: ident),* $(,)?) => {
                 $(

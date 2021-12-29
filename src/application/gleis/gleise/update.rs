@@ -35,14 +35,14 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T, Z>(
+fn gleis_an_position<'t, T>(
     streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
-) -> Option<(AnyIdRef<'t, Z>, Vektor, Winkel)>
+) -> Option<(AnyIdRef<'t>, Vektor, Winkel)>
 where
     T: Zeichnen,
-    AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+    AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
