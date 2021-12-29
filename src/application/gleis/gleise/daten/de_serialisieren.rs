@@ -17,7 +17,7 @@ use crate::{
     },
     application::gleis::gleise::{daten::*, Fehler, Gleise},
     steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
     zugtyp::Zugtyp,
@@ -622,7 +622,37 @@ impl<Leiter: Serialisiere> Gleise<Leiter> {
     }
 }
 
-impl<Leiter: Serialisiere> Gleise<Leiter> {
+pub trait BekannterLeiter: Sized {
+    const NAME: &'static str;
+
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
+}
+
+impl BekannterLeiter for Mittelleiter {
+    const NAME: &'static str = "Mittelleiter";
+
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+        if name == "Märklin" {
+            Some(Zugtyp::märklin())
+        } else {
+            None
+        }
+    }
+}
+
+impl BekannterLeiter for Zweileiter {
+    const NAME: &'static str = "Zweileiter";
+
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+        if name == "Lego" {
+            Some(Zugtyp::lego())
+        } else {
+            None
+        }
+    }
+}
+
+impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
     pub fn laden(
         &mut self,
         lager: &mut anschluss::Lager,
@@ -645,8 +675,8 @@ impl<Leiter: Serialisiere> Gleise<Leiter> {
         let zustand_serialisiert: ZustandSerialisiert<Leiter> = bincode::deserialize(slice)
             .or_else(|aktuell| {
                 bincode::deserialize(slice)
-                    .map(v2::GleiseVecs::<Leiter>::into)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
+                    .and_then(v2::GleiseVecs::<Leiter>::try_into)
             })?;
 
         let leiter: String = todo!("leiter");

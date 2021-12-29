@@ -18,7 +18,10 @@ use self::{
     drehen::Drehen,
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
-    gleis::{gleise::*, *},
+    gleis::{
+        gleise::{daten::de_serialisieren::BekannterLeiter, *},
+        *,
+    },
     icon::icon,
     style::*,
     typen::*,
@@ -404,7 +407,7 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
 #[allow(single_use_lifetimes)]
 impl<Leiter> iced::Application for Zugkontrolle<Leiter>
 where
-    Leiter: 'static + LeiterAnzeige + Serialisiere + Display,
+    Leiter: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + Display,
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;

@@ -21,7 +21,7 @@ use crate::{
         geschwindigkeit::{self, LeiterAnzeige},
         gleis,
         gleis::gleise::{
-            daten::{DatenAuswahl, StreckenabschnittMap},
+            daten::{de_serialisieren::BekannterLeiter, DatenAuswahl, StreckenabschnittMap},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
@@ -1032,7 +1032,7 @@ where
     }
 }
 
-impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
+impl<Leiter: LeiterAnzeige + BekannterLeiter> Zugkontrolle<Leiter> {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {
             Ok(()) => {

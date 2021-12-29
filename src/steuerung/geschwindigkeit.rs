@@ -28,9 +28,6 @@ pub trait Leiter {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
-
-    /// Name des Leiters
-    const NAME: &'static str;
 }
 
 #[derive(Debug, zugkontrolle_derive::Clone)]
@@ -368,8 +365,6 @@ impl Leiter for Mittelleiter {
             }
         }
     }
-
-    const NAME: &'static str = "Mittelleiter";
 }
 
 impl Geschwindigkeit<Mittelleiter> {
@@ -467,8 +462,6 @@ impl Leiter for Zweileiter {
             }
         }
     }
-
-    const NAME: &'static str = "Zweileiter";
 }
 
 impl Geschwindigkeit<Zweileiter> {

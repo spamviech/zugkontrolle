@@ -12,7 +12,10 @@ use crate::{
     application::{
         gleis::{
             gerade::GeradeSerialisiert,
-            gleise::daten as aktuell,
+            gleise::{
+                self,
+                daten::{self as aktuell, de_serialisieren::BekannterLeiter},
+            },
             kreuzung::KreuzungSerialisiert,
             kurve::KurveSerialisiert,
             weiche::{
@@ -26,7 +29,6 @@ use crate::{
         geschwindigkeit, plan::Plan, streckenabschnitt,
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
-    zugtyp::Zugtyp,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -249,10 +251,12 @@ impl<'de, Leiter: Serialisiere> Deserialize<'de> for GleiseVecs<Leiter> {
     }
 }
 
-impl<Leiter: Serialisiere> From<GleiseVecs<Leiter>>
+impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
     for aktuell::de_serialisieren::ZustandSerialisiert<Leiter>
 {
-    fn from(v2: GleiseVecs<Leiter>) -> Self {
+    type Error = gleise::Fehler;
+
+    fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, gleise::Fehler> {
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
             .streckenabschnitte
@@ -300,17 +304,16 @@ impl<Leiter: Serialisiere> From<GleiseVecs<Leiter>>
                 )
             })
             .collect();
-        aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp: match &v2.name {
-                // "Märklin" => Zugtyp::märklin(),
-                // "Lego" => Zugtyp::lego(),
-                _ => todo!("Fehler!"),
-            },
-            leiter: todo!("leiter"),
+        let leiter = Leiter::NAME;
+        let zugtyp = Leiter::bekannter_zugtyp(leiter)
+            .ok_or_else(|| gleise::Fehler::FalscherLeiter(leiter.to_string()))?;
+        Ok(aktuell::de_serialisieren::ZustandSerialisiert {
+            zugtyp,
+            leiter: leiter.to_string(),
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,
             pläne: v2.pläne,
-        }
+        })
     }
 }
