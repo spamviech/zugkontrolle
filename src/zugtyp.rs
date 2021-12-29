@@ -1,11 +1,10 @@
-//! Zugtyp Trait + Phantom-Typen + Spurweite
+//! Zugtyp + Spurweite
 
-use std::fmt::{Debug, Display};
+use std::{fmt::Debug, marker::PhantomData};
 
-use crate::{
-    anschluss::de_serialisieren::Serialisiere,
-    application::{geschwindigkeit::LeiterAnzeige, gleis::*},
-};
+use serde::{Deserialize, Serialize};
+
+use crate::application::gleis::*;
 
 pub mod lego;
 pub use lego::Lego;
@@ -17,19 +16,18 @@ pub use märklin::Märklin;
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Spurweite(pub f32);
-pub trait Zugtyp: Sized {
-    /// Spurweite in mm.
-    const SPURWEITE: Spurweite;
-    const NAME: &'static str;
 
-    /// Art der Stromzufuhr.
-    type Leiter: Serialisiere + LeiterAnzeige + Display;
-
-    fn geraden() -> Vec<GeradeUnit<Self>>;
-    fn kurven() -> Vec<KurveUnit<Self>>;
-    fn weichen() -> Vec<WeicheUnit<Self>>;
-    fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>>;
-    fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>>;
-    fn s_kurven_weichen() -> Vec<SKurvenWeicheUnit<Self>>;
-    fn kreuzungen() -> Vec<KreuzungUnit<Self>>;
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone, Serialize, Deserialize)]
+pub struct Zugtyp<Leiter> {
+    name: String,
+    leiter: PhantomData<fn() -> Leiter>,
+    spurweite: Spurweite,
+    geraden: Vec<GeradeUnit<Self>>,
+    kurven: Vec<KurveUnit<Self>>,
+    weichen: Vec<WeicheUnit<Self>>,
+    dreiwege_weichen: Vec<DreiwegeWeicheUnit<Self>>,
+    kurven_weichen: Vec<KurvenWeicheUnit<Self>>,
+    s_kurven_weichen: Vec<SKurvenWeicheUnit<Self>>,
+    kreuzungen: Vec<KreuzungUnit<Self>>,
 }
