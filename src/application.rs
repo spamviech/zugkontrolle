@@ -210,7 +210,7 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<T, Leiter> ButtonNachricht<NachrichtClone<Leiter>> for T
+impl<T, Leiter: LeiterAnzeige> ButtonNachricht<NachrichtClone<Leiter>> for T
 where
     T: Clone + Into<AnyGleisUnit>,
 {
@@ -223,7 +223,7 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<Leiter: Serialisiere> Nachricht<Leiter>
+impl<Leiter: LeiterAnzeige + Serialisiere> Nachricht<Leiter>
 where
     Leiter::Serialisiert: Debug + Send,
 {
@@ -261,7 +261,7 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
 >;
 type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
 
-pub enum AuswahlStatus<Leiter> {
+pub enum AuswahlStatus<Leiter: LeiterAnzeige> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
     Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
@@ -272,7 +272,7 @@ pub enum AuswahlStatus<Leiter> {
     KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
 }
 
-impl<Leiter> Debug for AuswahlStatus<Leiter> {
+impl<Leiter: LeiterAnzeige> Debug for AuswahlStatus<Leiter> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Streckenabschnitt(arg0) => {
@@ -373,7 +373,7 @@ impl App {
 }
 
 #[derive(Debug)]
-pub struct Zugkontrolle<Leiter> {
+pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     gleise: Gleise<Leiter>,
     lager: crate::anschluss::Lager,
     scrollable_state: iced::scrollable::State,
@@ -402,7 +402,7 @@ pub struct Zugkontrolle<Leiter> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<Leiter: Serialisiere> iced::Application for Zugkontrolle<Leiter>
+impl<Leiter: LeiterAnzeige + Serialisiere> iced::Application for Zugkontrolle<Leiter>
 where
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
