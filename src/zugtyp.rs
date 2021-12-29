@@ -14,14 +14,14 @@ pub mod märklin;
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone, Serialize, Deserialize)]
 pub struct Zugtyp<Leiter> {
-    name: String,
-    leiter: PhantomData<fn() -> Leiter>,
-    spurweite: Spurweite,
-    geraden: Vec<GeradeUnit>,
-    kurven: Vec<KurveUnit>,
-    weichen: Vec<WeicheUnit>,
-    dreiwege_weichen: Vec<DreiwegeWeicheUnit>,
-    kurven_weichen: Vec<KurvenWeicheUnit>,
-    s_kurven_weichen: Vec<SKurvenWeicheUnit>,
-    kreuzungen: Vec<KreuzungUnit>,
+    pub name: String,
+    pub leiter: PhantomData<fn() -> Leiter>,
+    pub spurweite: Spurweite,
+    pub geraden: Vec<GeradeUnit>,
+    pub kurven: Vec<KurveUnit>,
+    pub weichen: Vec<WeicheUnit>,
+    pub dreiwege_weichen: Vec<DreiwegeWeicheUnit>,
+    pub kurven_weichen: Vec<KurvenWeicheUnit>,
+    pub s_kurven_weichen: Vec<SKurvenWeicheUnit>,
+    pub kreuzungen: Vec<KreuzungUnit>,
 }

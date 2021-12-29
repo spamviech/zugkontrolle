@@ -11,7 +11,6 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger};
-use serde::{Deserialize, Serialize};
 use version::version;
 
 use self::{
@@ -32,7 +31,7 @@ use crate::{
         self,
         geschwindigkeit::{GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
     },
-    zugtyp::{lego, märklin},
+    zugtyp::{lego, märklin, Zugtyp},
 };
 
 pub mod anschluss;
