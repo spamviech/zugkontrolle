@@ -1,5 +1,7 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     application::gleis::verbindung::{self, Verbindung},
     lookup::Lookup,
@@ -18,7 +20,6 @@ pub use self::{
     vektor::Vektor,
     winkel::{Trigonometrie, Winkel, WinkelGradmaß},
 };
-pub use crate::zugtyp::Zugtyp;
 
 pub mod canvas;
 pub mod mm;
@@ -28,7 +29,7 @@ pub mod vektor;
 pub mod winkel;
 
 /// Spurweite \[mm\]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Spurweite(pub f32);
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/

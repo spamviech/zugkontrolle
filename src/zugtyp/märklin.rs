@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 use crate::{
     application::{gleis::*, typen::*},
     steuerung::geschwindigkeit::Mittelleiter,
+    zugtyp::Zugtyp,
 };
 
 impl Zugtyp<Mittelleiter> {
