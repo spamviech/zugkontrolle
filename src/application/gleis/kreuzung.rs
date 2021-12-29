@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer Kreuzung
 
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;

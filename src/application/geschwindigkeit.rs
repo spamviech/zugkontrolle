@@ -21,7 +21,7 @@ use crate::{
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     non_empty::{MaybeEmpty, NonEmpty},
     steuerung::geschwindigkeit::{
-        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Leiter, Mittelleiter, Zweileiter,
+        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter,
     },
 };
 

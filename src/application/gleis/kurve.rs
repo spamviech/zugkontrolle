@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer Kurve
 
-use std::{f32::consts::PI, fmt::Debug, marker::PhantomData};
+use std::{f32::consts::PI, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;

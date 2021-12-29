@@ -19,7 +19,6 @@ use crate::{
         typen::*,
     },
     steuerung::Streckenabschnitt,
-    zugtyp::Zugtyp,
 };
 
 impl<Leiter> Gleise<Leiter> {

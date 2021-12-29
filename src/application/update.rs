@@ -9,7 +9,6 @@ use std::{
 };
 
 use log::{debug, error};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
