@@ -28,11 +28,20 @@ pub trait Leiter {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
+
+    /// Name des Leiters
+    const NAME: &'static str;
 }
 
 #[derive(Debug, zugkontrolle_derive::Clone)]
 pub struct Geschwindigkeit<Leiter> {
     leiter: Arc<Mutex<Leiter>>,
+}
+
+impl<L: Leiter> Geschwindigkeit<L> {
+    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
+        self.lock_leiter().geschwindigkeit(wert)
+    }
 }
 
 impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
@@ -348,13 +357,9 @@ const PWM_FREQUENZ: f64 = 50.;
 const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: f64 = 16. / 25.;
 const UMDREHENZEIT: Duration = Duration::from_millis(500);
 
-impl Leiter for Geschwindigkeit<Mittelleiter> {
-    /// 0 deaktiviert die Stromzufuhr.
-    /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
-    /// Pwm: 0-u8::MAX
-    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+impl Leiter for Mittelleiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *self.lock_leiter() {
+        match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
             }
@@ -363,6 +368,8 @@ impl Leiter for Geschwindigkeit<Mittelleiter> {
             }
         }
     }
+
+    const NAME: &'static str = "Mittelleiter";
 }
 
 impl Geschwindigkeit<Mittelleiter> {
@@ -449,9 +456,9 @@ impl Display for Zweileiter {
     }
 }
 
-impl Leiter for Geschwindigkeit<Zweileiter> {
+impl Leiter for Zweileiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        match &mut *self.lock_leiter() {
+        match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
             }
@@ -460,6 +467,8 @@ impl Leiter for Geschwindigkeit<Zweileiter> {
             }
         }
     }
+
+    const NAME: &'static str = "Zweileiter";
 }
 
 impl Geschwindigkeit<Zweileiter> {
