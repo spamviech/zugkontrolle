@@ -26,8 +26,9 @@ pub struct DreiwegeWeiche
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 impl<Z> DreiwegeWeicheUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
+    pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

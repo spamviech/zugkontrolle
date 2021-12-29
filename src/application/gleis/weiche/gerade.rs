@@ -29,8 +29,14 @@ pub struct Weiche<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAn
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 impl<Z> WeicheUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, orientierung: Orientierung) -> Self {
+    pub const fn neu(
+        länge: Länge,
+        radius: Radius,
+        winkel: Winkel,
+        orientierung: Orientierung,
+    ) -> Self {
         WeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

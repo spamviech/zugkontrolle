@@ -20,8 +20,9 @@ pub struct Gerade<Z, Anschluss = Option<Kontakt>> {
     pub beschreibung: Option<String>,
     pub kontakt: Anschluss,
 }
+
 impl<Z> GeradeUnit<Z> {
-    pub fn neu(länge: Länge) -> Self {
+    pub const fn neu(länge: Länge) -> Self {
         GeradeUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

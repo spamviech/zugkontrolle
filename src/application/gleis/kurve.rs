@@ -24,8 +24,9 @@ pub struct Kurve<Z, Anschluss = Option<Kontakt>> {
     pub beschreibung: Option<String>,
     pub kontakt: Anschluss,
 }
+
 impl<Z> KurveUnit<Z> {
-    pub fn neu(radius: Radius, winkel: Winkel) -> Self {
+    pub const fn neu(radius: Radius, winkel: Winkel) -> Self {
         KurveUnit {
             zugtyp: PhantomData,
             radius: radius.als_skalar(),

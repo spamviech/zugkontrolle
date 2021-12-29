@@ -29,8 +29,14 @@ pub struct KurvenWeiche<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, Rich
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 impl<Z> KurvenWeicheUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, winkel: Winkel, orientierung: Orientierung) -> Self {
+    pub const fn neu(
+        länge: Länge,
+        radius: Radius,
+        winkel: Winkel,
+        orientierung: Orientierung,
+    ) -> Self {
         KurvenWeicheUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),

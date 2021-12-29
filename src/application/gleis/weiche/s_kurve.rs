@@ -39,8 +39,9 @@ pub struct SKurvenWeiche
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 impl<Z> SKurvenWeicheUnit<Z> {
-    pub fn neu(
+    pub const fn neu(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,

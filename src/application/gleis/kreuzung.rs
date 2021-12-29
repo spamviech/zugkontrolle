@@ -28,13 +28,15 @@ pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, Richtung
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
     MitKurve,
     OhneKurve,
 }
+
 impl<Z> KreuzungUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
+    pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         KreuzungUnit {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
