@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer Weiche
 
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
@@ -19,9 +19,8 @@ use crate::{
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Weiche<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
-    pub zugtyp: PhantomData<fn() -> Z>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Weiche<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -30,7 +29,7 @@ pub struct Weiche<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAn
     pub steuerung: Anschlüsse,
 }
 
-impl<Z> WeicheUnit<Z> {
+impl WeicheUnit {
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -38,7 +37,6 @@ impl<Z> WeicheUnit<Z> {
         orientierung: Orientierung,
     ) -> Self {
         WeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -56,7 +54,6 @@ impl<Z> WeicheUnit<Z> {
         beschreibung: impl Into<String>,
     ) -> Self {
         WeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -66,11 +63,13 @@ impl<Z> WeicheUnit<Z> {
         }
     }
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Orientierung {
     Links,
     Rechts,
 }
+
 #[create_richtung]
 #[impl_lookup(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -80,14 +79,14 @@ pub enum VerbindungName {
     Kurve,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Z, Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
         let Weiche { länge, radius, winkel, .. } = *self;
-        let rechteck_gerade = gerade::rechteck::<Z>(länge);
-        let rechteck_kurve = kurve::rechteck::<Z>(radius, winkel);
+        let rechteck_gerade = gerade::rechteck(länge);
+        let rechteck_kurve = kurve::rechteck(radius, winkel);
         rechteck_gerade.einschließend(rechteck_kurve)
     }
 
@@ -199,7 +198,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+                    y: start_height + multiplier * beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
             },
@@ -227,8 +226,8 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
         // sub-checks
         let mut relative_vector = relative_position - start;
         relative_vector.y *= multiplier;
-        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
+        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
@@ -244,7 +243,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weich
                 multiplier = Skalar(-1.);
             }
         };
-        let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        let halbe_beschränkung = beschränkung().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },

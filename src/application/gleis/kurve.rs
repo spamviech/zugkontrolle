@@ -16,24 +16,17 @@ use crate::{
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[alias_serialisiert_unit(KontaktSerialisiert)]
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kurve<Z, Anschluss = Option<Kontakt>> {
-    pub zugtyp: PhantomData<fn() -> Z>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Kurve<Anschluss = Option<Kontakt>> {
     pub radius: Skalar,
     pub winkel: Winkel,
     pub beschreibung: Option<String>,
     pub kontakt: Anschluss,
 }
 
-impl<Z> KurveUnit<Z> {
+impl KurveUnit {
     pub const fn neu(radius: Radius, winkel: Winkel) -> Self {
-        KurveUnit {
-            zugtyp: PhantomData,
-            radius: radius.als_skalar(),
-            winkel,
-            beschreibung: None,
-            kontakt: (),
-        }
+        KurveUnit { radius: radius.als_skalar(), winkel, beschreibung: None, kontakt: () }
     }
 
     pub fn neu_mit_beschreibung(
@@ -42,7 +35,6 @@ impl<Z> KurveUnit<Z> {
         beschreibung: impl Into<String>,
     ) -> Self {
         KurveUnit {
-            zugtyp: PhantomData,
             radius: radius.als_skalar(),
             winkel,
             beschreibung: Some(beschreibung.into()),
@@ -58,12 +50,12 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
+impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
-        rechteck::<Z>(self.radius, self.winkel)
+        rechteck(self.radius, self.winkel)
     }
 
     fn zeichne(&self) -> Vec<Pfad> {
@@ -96,8 +88,7 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
             Position {
                 punkt: Vektor {
                     x: self.radius * half_angle.sin(),
-                    y: beschränkung::<Z>().halbiert()
-                        + self.radius * (Skalar(1.) - half_angle.cos()),
+                    y: beschränkung().halbiert() + self.radius * (Skalar(1.) - half_angle.cos()),
                 },
                 winkel: Winkel(0.),
             },
@@ -107,11 +98,11 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     }
 
     fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
-        innerhalb::<Z>(self.radius, self.winkel, relative_position, ungenauigkeit)
+        innerhalb(self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
     fn verbindungen(&self) -> Self::Verbindungen {
-        let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        let halbe_beschränkung = beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
@@ -128,16 +119,16 @@ impl<Z: Zugtyp, Anschluss: MitName> Zeichnen for Kurve<Z, Anschluss> {
     }
 }
 
-pub(crate) fn rechteck<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Rechteck {
+pub(crate) fn rechteck(radius: Skalar, winkel: Winkel) -> Rechteck {
     // Hilfswerte
-    let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
+    let radius_begrenzung_außen = radius_begrenzung_außen(radius);
     let breite_faktor;
     let höhe_vergleich;
     let position_x_faktor;
     if winkel < winkel::FRAC_PI_2 {
         breite_faktor = winkel.sin();
-        höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
-            + beschränkung::<Z>() * winkel.cos();
+        höhe_vergleich =
+            radius_begrenzung_außen * (Skalar(1.) - winkel.cos()) + beschränkung() * winkel.cos();
         position_x_faktor = Skalar(0.);
     } else {
         breite_faktor = Skalar(1.);
@@ -153,7 +144,7 @@ pub(crate) fn rechteck<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Rechteck {
     let ecke_a = Vektor { x: position_x_faktor * radius_begrenzung_außen, y: Skalar(0.) };
     // Maximale Koordinaten
     let breite = radius_begrenzung_außen * breite_faktor;
-    let höhe = beschränkung::<Z>().max(&höhe_vergleich);
+    let höhe = beschränkung().max(&höhe_vergleich);
     let ecke_b = Vektor { x: breite, y: höhe };
     // Rückgabewert
     Rechteck { ecke_a, ecke_b }
@@ -181,8 +172,7 @@ impl Beschränkung {
     }
 }
 
-pub(crate) fn zeichne<Z, P, A>(
-    _zugtyp: PhantomData<fn() -> Z>,
+pub(crate) fn zeichne<P, A>(
     radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
@@ -193,40 +183,36 @@ pub(crate) fn zeichne<Z, P, A>(
     ),
 ) -> Pfad
 where
-    Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| {
-            zeichne_internal::<Z, P, A>(builder, radius, winkel, beschränkungen)
-        }),
+        Box::new(move |builder| zeichne_internal::<P, A>(builder, radius, winkel, beschränkungen)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 // factor_y is expected to be -1 or +1, although other values should work as well
-fn zeichne_internal<Z, P, A>(
+fn zeichne_internal<P, A>(
     path_builder: &mut pfad::Erbauer<P, A>,
     radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
 ) where
-    Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
     // Utility Größen
-    let spurweite: Skalar = spurweite::<Z>();
-    let beschränkung: Skalar = beschränkung::<Z>();
+    let spurweite: Skalar = spurweite();
+    let beschränkung: Skalar = beschränkung();
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
     let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: beschränkung };
-    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
-    let radius_außen = radius_begrenzung_außen - abstand::<Z>();
+    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen(radius);
+    let radius_außen = radius_begrenzung_außen - abstand();
     let radius_innen = radius_außen - spurweite;
     let begrenzung0 = gleis_links_oben
         + radius_begrenzung_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
@@ -262,8 +248,7 @@ fn zeichne_internal<Z, P, A>(
     );
 }
 
-pub(crate) fn fülle<Z, P, A>(
-    _zugtyp: PhantomData<fn() -> Z>,
+pub(crate) fn fülle<P, A>(
     radius: Skalar,
     winkel: Winkel,
     transformations: Vec<Transformation>,
@@ -273,32 +258,30 @@ pub(crate) fn fülle<Z, P, A>(
     ),
 ) -> Pfad
 where
-    Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, radius, winkel)),
+        Box::new(move |builder| fülle_internal::<P, A>(builder, radius, winkel)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 /// Geplant für canvas::PathType::EvenOdd
-fn fülle_internal<Z, P, A>(path_builder: &mut pfad::Erbauer<P, A>, radius: Skalar, winkel: Winkel)
+fn fülle_internal<P, A>(path_builder: &mut pfad::Erbauer<P, A>, radius: Skalar, winkel: Winkel)
 where
-    Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let spurweite = spurweite::<Z>();
-    let abstand = abstand::<Z>();
+    let spurweite = spurweite();
+    let abstand = abstand();
     let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
-    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
+    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
     let radius_innen = radius_außen - spurweite;
     let bogen_zentrum =
@@ -342,15 +325,15 @@ where
 }
 
 #[allow(unused_qualifications)]
-pub(crate) fn innerhalb<Z: Zugtyp>(
+pub(crate) fn innerhalb(
     radius: Skalar,
     winkel: Winkel,
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> bool {
-    let spurweite = spurweite::<Z>();
-    let abstand = abstand::<Z>();
-    let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
+    let spurweite = spurweite();
+    let abstand = abstand();
+    let radius_begrenzung_außen = radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
     let radius_innen = radius_außen - spurweite;
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };

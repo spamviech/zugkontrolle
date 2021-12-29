@@ -1,7 +1,5 @@
 //! Definition und zeichnen einer Weiche
 
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
@@ -26,10 +24,8 @@ use crate::{
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
 #[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche
-<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
-    pub zugtyp: PhantomData<fn() -> Z>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SKurvenWeiche<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -40,7 +36,7 @@ pub struct SKurvenWeiche
     pub steuerung: Anschlüsse,
 }
 
-impl<Z> SKurvenWeicheUnit<Z> {
+impl SKurvenWeicheUnit {
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -50,7 +46,6 @@ impl<Z> SKurvenWeicheUnit<Z> {
         direction: Orientierung,
     ) -> Self {
         SKurvenWeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -72,7 +67,6 @@ impl<Z> SKurvenWeicheUnit<Z> {
         beschreibung: impl Into<String>,
     ) -> Self {
         SKurvenWeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -85,19 +79,17 @@ impl<Z> SKurvenWeicheUnit<Z> {
     }
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
-    for SKurvenWeiche<Z, Anschlüsse>
-{
+impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self) -> Rechteck {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
-        let rechteck_gerade = gerade::rechteck::<Z>(länge);
-        let rechteck_kurve = kurve::rechteck::<Z>(radius, winkel);
-        let rechteck_kurve_reverse = kurve::rechteck::<Z>(radius_reverse, winkel_reverse);
-        let radius_außen = radius_begrenzung_außen::<Z>(radius);
-        let radius_innen = radius_begrenzung_innen::<Z>(radius);
+        let rechteck_gerade = gerade::rechteck(länge);
+        let rechteck_kurve = kurve::rechteck(radius, winkel);
+        let rechteck_kurve_reverse = kurve::rechteck(radius_reverse, winkel_reverse);
+        let radius_außen = radius_begrenzung_außen(radius);
+        let radius_innen = radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
         let eins_minus_winkel_cos = Skalar(1.) - winkel.cos();
         let verschieben = Vektor {
@@ -114,7 +106,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
 
     fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -125,7 +117,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung::<Z>(),
+                    y: multiplier * beschränkung(),
                 }),
             ]
         };
@@ -196,7 +188,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
 
     fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -207,7 +199,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung::<Z>(),
+                    y: multiplier * beschränkung(),
                 }),
             ]
         };
@@ -311,7 +303,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+                    y: start_height + multiplier * beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
             },
@@ -336,7 +328,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             }
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
         let multiplied_winkel = multiplier.0 * self.winkel;
         let s_kurve_start_vector = Vektor {
             x: multiplier * radius_begrenzung_außen * multiplied_winkel.sin(),
@@ -346,11 +338,11 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
-        s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung::<Z>() };
+        s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung() };
         s_kurve_vector.y = -s_kurve_vector.y;
-        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb::<Z>(
+        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(
                 self.radius_reverse,
                 self.winkel_reverse,
                 s_kurve_vector,
@@ -372,10 +364,8 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             }
         };
         let angle_difference = self.winkel - self.winkel_reverse;
-        let anfang = Vektor {
-            x: Skalar(0.),
-            y: start_height + multiplier * beschränkung::<Z>().halbiert(),
-        };
+        let anfang =
+            Vektor { x: Skalar(0.), y: start_height + multiplier * beschränkung().halbiert() };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             gerade: Verbindung {
