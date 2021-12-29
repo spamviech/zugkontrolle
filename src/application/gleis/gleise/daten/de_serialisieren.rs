@@ -679,7 +679,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
                     .and_then(v2::GleiseVecs::<Leiter>::try_into)
             })?;
 
-        let leiter: String = todo!("leiter");
+        let leiter = Leiter::NAME.to_string();
         if zustand_serialisiert.leiter != leiter {
             return Err(Fehler::FalscherLeiter(zustand_serialisiert.leiter));
         }
