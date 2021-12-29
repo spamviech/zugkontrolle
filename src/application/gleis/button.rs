@@ -33,19 +33,22 @@ impl<T> Button<T> {
 }
 
 impl<T: Zeichnen> Button<T> {
-    pub fn rechteck(&self) -> Rechteck {
-        self.gleis.rechteck().verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
+    pub fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+        self.gleis
+            .rechteck(spurweite)
+            .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
     pub fn als_iced_widget<'t, Nachricht>(
         &'t mut self,
+        spurweite: Spurweite,
         breite: Option<u16>,
     ) -> iced::Container<'t, Nachricht>
     where
         Nachricht: 'static,
         T: ButtonNachricht<Nachricht>,
     {
-        let größe = self.gleis.rechteck().größe();
+        let größe = self.gleis.rechteck(spurweite).größe();
         let standard_breite = NumCast::from((STROKE_WIDTH + größe.x).0.ceil()).unwrap_or(u16::MAX);
         let höhe =
             NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
@@ -86,7 +89,8 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                     ..Default::default()
                 },
             );
-            let rechteck = self.gleis.rechteck();
+            let spurweite = todo!("spurweite");
+            let rechteck = self.gleis.rechteck(spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(-rechteck_position));
             let größe = rechteck.größe();
@@ -103,7 +107,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                     Skalar(0.5) * Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING },
                 ));
             }
-            for path in self.gleis.zeichne() {
+            for path in self.gleis.zeichne(spurweite) {
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -116,7 +120,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                 });
             }
             if let (relative_position, Some(content), _unit_name) =
-                self.gleis.beschreibung_und_name()
+                self.gleis.beschreibung_und_name(spurweite)
             {
                 frame.with_save(|frame| {
                     move_to_position(frame, &relative_position);

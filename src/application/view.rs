@@ -288,6 +288,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
     gleise: &Gleise<Leiter>,
 ) -> iced::Row<'t, Nachricht<Leiter>> {
+    let spurweite = todo!("spurweite");
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();
@@ -299,13 +300,13 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                 ($($vec: expr),*) => {
                     max_width = max_width.max(iter::empty()
                         $(.chain($vec.iter().map(|button| {
-                            let größe = button.rechteck().größe();
+                            let größe = button.rechteck(spurweite).größe();
                             NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX)
                         })))*
                         .max());
                     $(
                         for button in $vec {
-                            scrollable = scrollable.push(button.als_iced_widget(max_width));
+                            scrollable = scrollable.push(button.als_iced_widget(spurweite, max_width));
                         }
                     )*
                 }

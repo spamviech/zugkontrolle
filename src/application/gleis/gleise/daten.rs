@@ -284,8 +284,9 @@ impl<Leiter> Zustand<Leiter> {
     }
 
     fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
+        let spurweite = todo!("spurweite");
         let mut snap = None;
-        let verbindungen = definition.verbindungen_an_position(position.clone());
+        let verbindungen = definition.verbindungen_an_position(spurweite, position.clone());
         verbindungen.for_each(|verbindung_name, verbindung| {
             if snap.is_none() {
                 let (mut überlappende, _gehalten) =
@@ -294,7 +295,12 @@ impl<Leiter> Zustand<Leiter> {
             }
         });
         snap.map_or(position, |(einrasten_name, einrasten_verbindung)| {
-            Position::anliegend_position(definition, &einrasten_name, einrasten_verbindung)
+            Position::anliegend_position(
+                spurweite,
+                definition,
+                &einrasten_name,
+                einrasten_verbindung,
+            )
         })
     }
 
@@ -306,11 +312,12 @@ impl<Leiter> Zustand<Leiter> {
         streckenabschnitt: Option<StreckenabschnittId>,
         einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler> {
+        let spurweite = todo!("spurweite");
         if einrasten {
             position = self.einraste_position(&definition, position)
         }
         // Berechne Bounding Box.
-        let rectangle = Rectangle::from(definition.rechteck_an_position(&position));
+        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
         // Füge zu RStern hinzu.
         self.daten_mut(&streckenabschnitt)?
             .rstern_mut()
@@ -331,8 +338,10 @@ impl<Leiter> Zustand<Leiter> {
         T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
+        let spurweite = todo!("spurweite");
         // berechne neue position
-        let position = Position::anliegend_position(&definition, verbindung_name, ziel_verbindung);
+        let position =
+            Position::anliegend_position(spurweite, &definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
         self.hinzufügen(definition, position, streckenabschnitt, false)
     }
@@ -343,6 +352,7 @@ impl<Leiter> Zustand<Leiter> {
         gleis_id: &mut GleisId<T>,
         berechne_position: impl FnOnce(&Zustand<Leiter>, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
+        let spurweite = todo!("spurweite");
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         // Entferne aktuellen Eintrag.
         let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
@@ -354,7 +364,7 @@ impl<Leiter> Zustand<Leiter> {
         // Wegen Referenz auf self muss rstern kurzfristig vergessen werden.
         let position_neu = berechne_position(self, &gleis);
         let definition = gleis.definition;
-        let rectangle = Rectangle::from(definition.rechteck_an_position(&position_neu));
+        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position_neu));
         let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
         rstern.insert(GeomWithData::new(
             rectangle.clone(),
@@ -382,7 +392,6 @@ impl<Leiter> Zustand<Leiter> {
     }
 
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    #[inline(always)]
     pub(crate) fn bewegen_anliegend<T>(
         &mut self,
         gleis_id: &mut GleisId<T>,
@@ -393,8 +402,9 @@ impl<Leiter> Zustand<Leiter> {
         T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
+        let spurweite = todo!("spurweite");
         self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
-            Position::anliegend_position(definition, verbindung_name, ziel_verbindung)
+            Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung)
         })
     }
 
@@ -484,6 +494,7 @@ impl GleiseDaten {
         T: Zeichnen + DatenAuswahl + 't,
         AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
+        let spurweite = todo!("spurweite");
         let vektor_genauigkeit = Vektor {
             x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
             y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
@@ -508,7 +519,7 @@ impl GleiseDaten {
                 let kandidat_verbindungen = kandidat
                     .data
                     .definition
-                    .verbindungen_an_position(kandidat.data.position.clone());
+                    .verbindungen_an_position(spurweite, kandidat.data.position.clone());
                 for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
                     if (verbindung.position - kandidat_verbindung.position).länge()
                         < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
