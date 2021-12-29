@@ -7,11 +7,9 @@ use serde::{Deserialize, Serialize};
 use crate::application::gleis::*;
 
 pub mod lego;
-pub use lego::Lego;
 // path attribute necessary due to non-ascii module name (at least for now)
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
-pub use märklin::Märklin;
 
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
