@@ -22,7 +22,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     #[zugkontrolle_derive::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T>(
@@ -33,7 +33,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let gleis_id =
@@ -54,8 +54,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
-        GleisId<T>: Into<AnyId<Z>>,
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        GleisId<T>: Into<AnyId>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let mut canvas_position = self.last_mouse;
@@ -101,7 +101,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let gleis_id = self.zustand.hinzufügen_anliegend(
@@ -125,7 +125,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         einrasten: bool,
     ) -> Result<(), GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
@@ -144,7 +144,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         ziel_verbindung: Verbindung,
     ) -> Result<(), GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
@@ -158,7 +158,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Entferne das Gleis assoziiert mit der `GleisId`.
     pub(crate) fn entfernen<T>(&mut self, gleis_id: GleisId<T>) -> Result<Gleis<T>, GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let data = self.zustand.entfernen(gleis_id)?;
@@ -175,7 +175,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         gleis_id: GleisId<T>,
     ) -> Result<(), GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let _ = self.entfernen(gleis_id)?;
@@ -184,7 +184,7 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// `Streckenabschnitt` und aktueller `Fließend`-Zustand
     /// für das Gleis mit der übergebenen `AnyId`.
-    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl<Z>>(
+    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisIdFehler> {
@@ -241,7 +241,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         streckenabschnitt_neu: Option<StreckenabschnittId>,
     ) -> Result<(), GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl<Z>,
+        T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;

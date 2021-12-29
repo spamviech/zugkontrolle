@@ -21,7 +21,6 @@ use crate::{
     },
     farbe::Farbe,
     steuerung::geschwindigkeit,
-    zugtyp::Zugtyp,
 };
 
 pub mod style;
@@ -134,7 +133,7 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
-    pub fn neu<Z: Zugtyp>(gleise: &Gleise<Z>) -> AuswahlStatus {
+    pub fn neu<Leiter>(gleise: &Gleise<Leiter>) -> AuswahlStatus {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),

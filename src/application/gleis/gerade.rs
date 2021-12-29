@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer Gerade
 
-use std::{fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{fmt::Debug, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
@@ -20,7 +20,7 @@ pub struct Gerade<Anschluss = Option<Kontakt>> {
     pub kontakt: Anschluss,
 }
 
-impl<Z> GeradeUnit<Z> {
+impl GeradeUnit {
     pub const fn neu(länge: Länge) -> Self {
         GeradeUnit { länge: länge.als_skalar(), beschreibung: None, kontakt: () }
     }

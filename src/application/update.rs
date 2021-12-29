@@ -39,22 +39,21 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-impl<Z> Nachricht<Z>
+impl<Leiter> Nachricht<Leiter>
 where
-    Z: Zugtyp + 'static,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
+    <Leiter as Serialisiere>::Serialisiert: Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
         sleep(dauer);
         self
     }
 
-    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Z>> {
+    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Leiter>> {
         iced::Command::perform(self.nach_sleep(dauer), identity)
     }
 }
 
-impl<Z: Zugtyp> Zugkontrolle<Z> {
+impl<Leiter> Zugkontrolle<Leiter> {
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
         self.message_box.zeige_modal(MessageBox {
             titel,
@@ -73,15 +72,15 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         gleis_art: &str,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Z>,
+            &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
         erzeuge_modal_status: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Status,
         erzeuge_modal: impl Fn(
             Status,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Z>>,
-        ) -> AuswahlStatus<Z>,
-        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Z>
+            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Leiter>>,
+        ) -> AuswahlStatus<Leiter>,
+        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Leiter>
             + 'static,
     ) {
         let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
@@ -108,10 +107,10 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         id: GleisId<T>,
         anschlüsse_save: Option<<W as Serialisiere>::Serialisiert>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Z>,
+            &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
-    ) -> Option<Nachricht<Z>>
+    ) -> Option<Nachricht<Leiter>>
     where
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
@@ -185,7 +184,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 
     #[zugkontrolle_derive::erstelle_daten_methoden]
-    pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl<Z>>(
+    pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
@@ -215,7 +214,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         }
     }
 
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit<Z>, klick_höhe: Skalar) {
+    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
             .aktuell
@@ -396,7 +395,7 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
         }
     }
 
-    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId<Z>) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = mit_any_id!(
                 &mut any_id,
@@ -461,8 +460,8 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
 
     pub fn anschlüsse_anpassen(
         &mut self,
-        anschlüsse_anpassen: AnschlüsseAnpassen<Z>,
-    ) -> Option<Nachricht<Z>> {
+        anschlüsse_anpassen: AnschlüsseAnpassen<Leiter>,
+    ) -> Option<Nachricht<Leiter>> {
         match anschlüsse_anpassen {
             AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
                 "Weiche",
@@ -511,15 +510,14 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 }
 
-impl<Z> Zugkontrolle<Z>
+impl<Leiter> Zugkontrolle<Leiter>
 where
-    Z: Zugtyp,
-    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: GeschwindigkeitSerialisiert<Z::Leiter>,
+        geschwindigkeit_save: GeschwindigkeitSerialisiert<Leiter>,
     ) {
         let Zugkontrolle { gleise, modal_status, geschwindigkeiten, .. } = self;
         let (alt_serialisiert_und_map, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
@@ -552,7 +550,7 @@ where
                 }
                 let _ = geschwindigkeiten.insert(
                     name.clone(),
-                    <Z::Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
+                    <Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
                 );
                 let streckenabschnitt_map =
                     if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
@@ -625,12 +623,12 @@ where
     }
 }
 
-impl<Z: Zugtyp> Zugkontrolle<Z> {
+impl<Leiter> Zugkontrolle<Leiter> {
     fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Z>,
+            &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
@@ -649,12 +647,12 @@ impl<Z: Zugtyp> Zugkontrolle<Z> {
     }
 }
 
-impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
+impl<Leiter> Zugkontrolle<Leiter> {
     fn geschwindigkeit_anzeige_zurücksetzen(
         &mut self,
         name: geschwindigkeit::Name,
-        zustand_zurücksetzen: <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ) -> Option<iced::Command<Nachricht<Z>>> {
+        zustand_zurücksetzen: <Leiter as LeiterAnzeige>::ZustandZurücksetzen,
+    ) -> Option<iced::Command<Nachricht<Leiter>>> {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         // Entfernte Geschwindigkeit wird ignoriert,
         // da es nur um eine Reaktion auf einen Fehler geht
@@ -669,7 +667,7 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
         }
         let geschwindigkeit = unwrap_or_return!(gleise.geschwindigkeit_mut(&name));
         let anzeige_status = unwrap_or_return!(geschwindigkeiten.get_mut(&name));
-        let cmd = <Z::Leiter as LeiterAnzeige>::zustand_zurücksetzen(
+        let cmd = <Leiter as LeiterAnzeige>::zustand_zurücksetzen(
             geschwindigkeit,
             anzeige_status,
             zustand_zurücksetzen,
@@ -684,8 +682,8 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
         &mut self,
         titel: String,
         nachricht: String,
-        zustand_zurücksetzen: ZustandZurücksetzen<Z>,
-    ) -> Option<iced::Command<Nachricht<Z>>> {
+        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
+    ) -> Option<iced::Command<Nachricht<Leiter>>> {
         let mut command = None;
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
@@ -732,17 +730,16 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
     }
 }
 
-impl<Z> Zugkontrolle<Z>
+impl<Leiter> Zugkontrolle<Leiter>
 where
-    Z: Zugtyp + 'static,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
+    <Leiter as Serialisiere>::Serialisiert: Send,
 {
     fn weiche_stellen<T, Richtung, Anschlüsse>(
         &mut self,
         gleis_art: &'static str,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Z>,
+            &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
@@ -751,7 +748,7 @@ where
         nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
             + Send
             + 'static,
-        zustand_zurücksetzen: impl FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Z>
+        zustand_zurücksetzen: impl FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter>
             + Send
             + 'static,
     ) where
@@ -793,7 +790,7 @@ where
         }
     }
 
-    pub fn fahren_aktion(&mut self, any_id: AnyId<Z>) {
+    pub fn fahren_aktion(&mut self, any_id: AnyId) {
         match any_id {
             AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
             AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
@@ -879,12 +876,12 @@ where
     }
 
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Z>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Leiter>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.as_sleep_command(Duration::from_millis(20))
     }
 
-    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Nachricht<Z>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Nachricht<Leiter>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -899,17 +896,16 @@ where
     }
 }
 
-impl<Z> Zugkontrolle<Z>
+impl<Leiter> Zugkontrolle<Leiter>
 where
-    Z: Zugtyp + 'static,
-    Z::Leiter: LeiterAnzeige,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
+    Leiter: LeiterAnzeige,
+    <Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
         name: geschwindigkeit::Name,
-        nachricht: <<Z as Zugtyp>::Leiter as LeiterAnzeige>::Nachricht,
-    ) -> Option<iced::Command<Nachricht<Z>>> {
+        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
+    ) -> Option<iced::Command<Nachricht<Leiter>>> {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         macro_rules! unwrap_or_error_return {
             ($value:expr) => {
@@ -927,7 +923,7 @@ where
         let geschwindigkeit = unwrap_or_error_return!(gleise.geschwindigkeit_mut(&name));
         let anzeige_status = unwrap_or_error_return!(geschwindigkeiten.get_mut(&name));
         let name_clone = name.clone();
-        let update_result = <Z::Leiter as LeiterAnzeige>::anzeige_update(
+        let update_result = <Leiter as LeiterAnzeige>::anzeige_update(
             geschwindigkeit,
             anzeige_status,
             nachricht,
@@ -959,7 +955,7 @@ where
         }
     }
 
-    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId<Z>) {
+    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
         match any_id {
             AnyId::Gerade(id) => {
                 debug!("Anschlüsse für Gerade {:?} anpassen.", id)
@@ -1011,12 +1007,11 @@ where
     }
 }
 
-impl<Z> Zugkontrolle<Z>
+impl<Leiter> Zugkontrolle<Leiter>
 where
-    Z: Zugtyp + Serialize + 'static,
-    <<Z as Zugtyp>::Leiter as Serialisiere>::Serialisiert: Send,
+    <Leiter as Serialisiere>::Serialisiert: Send,
 {
-    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Z>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Leiter>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
@@ -1038,9 +1033,7 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
-impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
-    #[inline(always)]
+impl<Leiter> Zugkontrolle<Leiter> {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {
             Ok(()) => {
@@ -1048,7 +1041,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Zugkontrolle<Z> {
                     .gleise
                     .geschwindigkeiten()
                     .map(|(name, _geschwindigkeit)| {
-                        (name.clone(), Z::Leiter::anzeige_status_neu(name.clone()))
+                        (name.clone(), Leiter::anzeige_status_neu(name.clone()))
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;

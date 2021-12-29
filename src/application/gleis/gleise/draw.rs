@@ -27,7 +27,6 @@ use crate::{
     farbe::Farbe,
     lookup::Lookup,
     steuerung::streckenabschnitt::Streckenabschnitt,
-    zugtyp::Zugtyp,
 };
 
 pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
@@ -184,15 +183,15 @@ struct GehaltenVerbindung {
     andere_gehalten: bool,
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId<Z>>,
+        gehalten_id: Option<&'t AnyId>,
     ) -> impl Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung + 't
     where
         T: Zeichnen,
-        AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
         let ist_gehalten = ist_gehalten_test(gehalten_id);
         move |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
@@ -235,7 +234,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<&AnyId<Z>>;
+                let gehalten_id: Option<&AnyId>;
                 let modus_bauen: bool;
                 match modus {
                     ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
@@ -276,7 +275,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                                     let any_id_ref =  AnyIdRef::from(GleisIdRef {
                                         rectangle,
                                         streckenabschnitt: Some(streckenabschnitt_id),
-                                        phantom: PhantomData::<fn() -> $gleis<Z>>
+                                        phantom: PhantomData::<fn() -> $gleis>
                                     });
                                     ist_gehalten(any_id_ref)
                                 } else {
@@ -289,7 +288,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                         daten,
                         fülle_alle_gleise,
                         transparenz,
-                        farbe,
+                        &farbe,
                         fließend
                     }
                 }
@@ -300,7 +299,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                                phantom: PhantomData::<fn() -> $gleis>
                             }))
                         };
                     }
@@ -314,7 +313,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten_und_andere_verbindung {
                         ($gleis: ident) => {
-                            self.ist_gehalten_und_andere_verbindung::<$gleis<Z>>(
+                            self.ist_gehalten_und_andere_verbindung::<$gleis>(
                                 streckenabschnitt,
                                 gehalten_id
                             )
@@ -333,7 +332,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                                phantom: PhantomData::<fn() -> $gleis>
                             }))
                         };
                     }

@@ -7,12 +7,9 @@ use std::{
 
 use log::error;
 
-use crate::{
-    application::{
-        gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
-        typen::*,
-    },
-    zugtyp::Zugtyp,
+use crate::application::{
+    gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
+    typen::*,
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.
@@ -64,17 +61,14 @@ where
     None
 }
 
-fn aktion_gleis_an_position<'t, Z: 't>(
+fn aktion_gleis_an_position<'t>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
-    modus: &'t mut ModusDaten<Z>,
-    daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)>,
+    modus: &'t mut ModusDaten,
+    daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
-) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
-where
-    Z: Zugtyp,
-{
+) -> (iced::canvas::event::Status, Option<Nachricht>) {
     let mut message = None;
     let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
@@ -130,13 +124,13 @@ where
     (status, message)
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     pub fn update(
         &mut self,
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
         let mut event_status = iced::canvas::event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };

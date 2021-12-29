@@ -1,13 +1,11 @@
 //! Erstelle Methoden für alle Typen in GleiseDaten
 
-use std::iter;
-
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated,
-    token::{And, As, Comma, Gt, Lt, Mut, SelfValue},
+    token::{And, As, Gt, Lt, Mut, SelfValue},
     Type, *,
 };
 
@@ -196,19 +194,6 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
             PathSegment { ident: format_ident!("application"), arguments: PathArguments::None },
             PathSegment { ident: format_ident!("gleis"), arguments: PathArguments::None },
         ];
-        let ty_args: Punctuated<GenericArgument, Comma> =
-            iter::once(GenericArgument::Type(Type::Path(TypePath {
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: iter::once(PathSegment {
-                        ident: format_ident!("Z"),
-                        arguments: PathArguments::None,
-                    })
-                    .collect(),
-                },
-            })))
-            .collect();
         let erzeuge_typ_segments = |name: &str| {
             let mut segments = start_segments.clone();
             segments.push(PathSegment {
@@ -216,7 +201,7 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
                 arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
                     colon2_token: None,
                     lt_token: Lt { spans: [Span::mixed_site()] },
-                    args: ty_args.clone(),
+                    args: Punctuated::new(),
                     gt_token: Gt { spans: [Span::mixed_site()] },
                 }),
             });
