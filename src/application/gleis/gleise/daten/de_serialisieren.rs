@@ -25,7 +25,8 @@ pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialis
         geschwindigkeit::Name,
         (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
     >;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+#[zugkontrolle_debug(<Leiter as Serialisiere>::Serialisiert: Debug)]
 pub struct ZustandSerialisiert<Leiter: Serialisiere> {
     pub(crate) zugtyp: Zugtyp<Leiter>,
     pub(crate) leiter: String,
@@ -390,6 +391,7 @@ impl GleiseDaten {
 }
 
 fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
+    spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     source: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
@@ -416,7 +418,8 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
             } = gleis_save
                 .reserviere(lager, acc.1, acc.2, acc.3)
                 .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-            let rectangle = Rectangle::from(gleis.definition.rechteck_an_position(&gleis.position));
+            let rectangle =
+                Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
             acc.0.push(GeomWithData::new(rectangle, gleis));
             Ok((acc.0, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt))
         },
@@ -437,6 +440,7 @@ impl GleiseDatenSerialisiert {
                 $(
                     let ($rstern, pwm_pins, output_anschlüsse, input_anschlüsse) =
                         reserviere_anschlüsse(
+                            todo!("spurweite"),
                             lager,
                             self.$rstern,
                             pwm_pins,
@@ -466,7 +470,7 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl<Leiter> Gleise<Leiter> {
+impl<Leiter: Serialisiere> Gleise<Leiter> {
     pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
@@ -474,7 +478,7 @@ impl<Leiter> Gleise<Leiter> {
     }
 }
 
-impl<Leiter> Gleise<Leiter> {
+impl<Leiter: Serialisiere> Gleise<Leiter> {
     pub fn laden(
         &mut self,
         lager: &mut anschluss::Lager,
@@ -500,7 +504,9 @@ impl<Leiter> Gleise<Leiter> {
                     .map(v2::GleiseVecs::<Leiter>::into)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
             })?;
-        if zustand_serialisiert.leiter != todo!("name") {
+
+        let leiter: String = todo!("leiter");
+        if zustand_serialisiert.leiter != leiter {
             return Err(Fehler::FalscherLeiter(zustand_serialisiert.leiter));
         }
 

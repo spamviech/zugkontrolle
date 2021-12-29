@@ -92,7 +92,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         // Gerade
         paths.push(gerade::zeichne(
-            self.zugtyp,
+            spurweite,
             self.länge,
             true,
             rechts_transformations.clone(),
@@ -100,7 +100,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         ));
         // Links
         paths.push(kurve::zeichne(
-            self.zugtyp,
+            spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
@@ -109,7 +109,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         ));
         // Rechts
         paths.push(kurve::zeichne(
-            self.zugtyp,
+            spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
@@ -146,7 +146,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         // Gerade
         paths.push((
             gerade::fülle(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 rechts_transformations.clone(),
                 pfad::Erbauer::with_normal_axis,
@@ -156,7 +156,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         // Links
         paths.push((
             kurve::fülle(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 links_transformations,
@@ -167,7 +167,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         // Rechts
         paths.push((
             kurve::fülle(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 rechts_transformations,
@@ -204,16 +204,16 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         ungenauigkeit: Skalar,
     ) -> bool {
         // utility sizes
-        let Vektor { x: _, y: height } = self.rechteck().ecke_max();
+        let Vektor { x: _, y: height } = self.rechteck(spurweite).ecke_max();
         let half_height = height.halbiert();
         let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         // sub-checks
         let relative_vector = relative_position - start;
         let inverted_vector = Vektor { x: relative_vector.x, y: beschränkung - relative_vector.y };
-        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, inverted_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, inverted_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {

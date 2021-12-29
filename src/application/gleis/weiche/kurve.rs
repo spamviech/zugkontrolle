@@ -78,8 +78,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
-        let rechteck_gerade = gerade::rechteck(länge);
-        let rechteck_kurve = kurve::rechteck(radius, winkel);
+        let rechteck_gerade = gerade::rechteck(spurweite, länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
         let rechteck_kurve_verschoben =
             rechteck_kurve.clone().verschiebe_chain(&Vektor { x: länge, y: Skalar(0.) });
         rechteck_gerade.einschließend(rechteck_kurve).einschließend(rechteck_kurve_verschoben)
@@ -97,7 +97,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Innere Kurve
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Alle,
@@ -106,7 +106,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 false,
                 transformations.clone(),
@@ -115,7 +115,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             // Äußere Kurve
             transformations.push(außen_transformation);
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Ende,
@@ -125,7 +125,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
         } else {
             // Innere Kurve
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Alle,
@@ -134,7 +134,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 false,
                 Vec::new(),
@@ -142,7 +142,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             ));
             // Äußere Kurve
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Ende,
@@ -172,7 +172,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             // Innere Kurve
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     transformations.clone(),
@@ -183,7 +183,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             // Gerade vor äußerer Kurve
             paths.push((
                 gerade::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.länge,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
@@ -194,7 +194,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             transformations.push(außen_transformation);
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     transformations,
@@ -206,7 +206,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             // Innere Kurve
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     Vec::new(),
@@ -216,18 +216,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             ));
             // Gerade vor äußerer Kurve
             paths.push((
-                gerade::fülle(
-                    self.zugtyp,
-                    self.länge,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
+                gerade::fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
                 außen_transparenz,
             ));
             // Äußere Kurve
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     vec![außen_transformation],
@@ -285,7 +280,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -295,9 +290,15 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
         let verschoben_vector = relative_vector - Vektor { x: self.länge, y: Skalar(0.) };
-        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, verschoben_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(
+                spurweite,
+                self.radius,
+                self.winkel,
+                verschoben_vector,
+                ungenauigkeit,
+            )
     }
 
     fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {

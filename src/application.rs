@@ -2,7 +2,7 @@
 
 use std::{
     convert::identity,
-    fmt::Debug,
+    fmt::{Debug, Display},
     sync::{
         mpsc::{channel, Sender},
         Arc,
@@ -223,8 +223,9 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<Leiter: LeiterAnzeige + Serialisiere> Nachricht<Leiter>
+impl<Leiter> Nachricht<Leiter>
 where
+    Leiter: 'static + LeiterAnzeige + Serialisiere,
     Leiter::Serialisiert: Debug + Send,
 {
     fn als_command(self) -> iced::Command<Nachricht<Leiter>> {
@@ -402,8 +403,9 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<Leiter: LeiterAnzeige + Serialisiere> iced::Application for Zugkontrolle<Leiter>
+impl<Leiter> iced::Application for Zugkontrolle<Leiter>
 where
+    Leiter: 'static + LeiterAnzeige + Serialisiere + Display,
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
@@ -430,7 +432,7 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-        } = todo!();
+        }: Zugtyp<Leiter> = todo!();
 
         let command: iced::Command<Self::Message>;
         let aktueller_pfad: String;

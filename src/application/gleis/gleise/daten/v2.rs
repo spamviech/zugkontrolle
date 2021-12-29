@@ -104,8 +104,8 @@ impl<Leiter: Serialisiere> From<GleiseVecs<Leiter>>
             .collect();
         aktuell::de_serialisieren::ZustandSerialisiert {
             zugtyp: match &v2.name {
-                "Märklin" => Zugtyp::märklin(),
-                "Lego" => Zugtyp::lego(),
+                // "Märklin" => Zugtyp::märklin(),
+                // "Lego" => Zugtyp::lego(),
                 _ => todo!("Fehler!"),
             },
             leiter: todo!("leiter"),

@@ -46,16 +46,16 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
-        rechteck(self.länge)
+        rechteck(spurweite, self.länge)
     }
 
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        vec![zeichne(self.zugtyp, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
+        vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         vec![(
-            fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+            fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
             Transparenz::Voll,
         )]
     }
@@ -82,7 +82,7 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> bool {
-        innerhalb(self.länge, relative_position, ungenauigkeit)
+        innerhalb(spurweite, self.länge, relative_position, ungenauigkeit)
     }
 
     fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
@@ -123,7 +123,9 @@ where
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| zeichne_internal::<P, A>(builder, länge, beschränkungen)),
+        Box::new(move |builder| {
+            zeichne_internal::<P, A>(spurweite, builder, länge, beschränkungen)
+        }),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
@@ -142,7 +144,7 @@ fn zeichne_internal<P, A>(
     let beschränkung_oben = Skalar(0.);
     let beschränkung_unten = beschränkung_oben + spurweite.beschränkung();
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    let gleis_unten = gleis_oben + spurweite();
+    let gleis_unten = gleis_oben + spurweite.spurweite();
     // Beschränkungen
     if beschränkungen {
         path_builder.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into());
@@ -173,7 +175,7 @@ where
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fülle_internal::<P, A>(builder, länge)),
+        Box::new(move |builder| fülle_internal::<P, A>(spurweite, builder, länge)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }

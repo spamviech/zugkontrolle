@@ -61,7 +61,6 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         vec![zeichne(
             spurweite,
-            self.zugtyp,
             self.radius,
             self.winkel,
             Beschränkung::Alle,
@@ -74,7 +73,6 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         vec![(
             fülle(
                 spurweite,
-                self.zugtyp,
                 self.radius,
                 self.winkel,
                 Vec::new(),
@@ -221,7 +219,7 @@ fn zeichne_internal<P, A>(
     A: From<Bogen> + Into<Bogen>,
 {
     // Utility Größen
-    let spurweite: Skalar = spurweite.spurweite();
+    let spurweite_skalar: Skalar = spurweite.spurweite();
     let beschränkung: Skalar = spurweite.beschränkung();
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
@@ -229,7 +227,7 @@ fn zeichne_internal<P, A>(
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: beschränkung };
     let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - spurweite.abstand();
-    let radius_innen = radius_außen - spurweite;
+    let radius_innen = radius_außen - spurweite_skalar;
     let begrenzung0 = gleis_links_oben
         + radius_begrenzung_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
     let begrenzung1 = begrenzung0 + beschränkung * Vektor { x: -winkel.sin(), y: winkel.cos() };
@@ -296,7 +294,7 @@ fn fülle_internal<P, A>(
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let spurweite = spurweite.spurweite();
+    let spurweite_skalar = spurweite.spurweite();
     let abstand = spurweite.abstand();
     let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
@@ -304,17 +302,17 @@ fn fülle_internal<P, A>(
     let winkel_ende: Winkel = winkel_anfang + winkel;
     let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
-    let radius_innen = radius_außen - spurweite;
+    let radius_innen = radius_außen - spurweite_skalar;
     let bogen_zentrum =
         beschränkung_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Koordinaten links
     let gleis_links_oben = beschränkung_links_oben + Vektor { x: Skalar(0.), y: abstand };
-    let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: spurweite };
+    let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: spurweite_skalar };
     // Koordinaten rechts
     let gleis_rechts_oben: Vektor = gleis_links_oben
         + radius_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
-    let gleis_rechts_unten: Vektor =
-        gleis_rechts_oben + Vektor { x: -spurweite * winkel.sin(), y: spurweite * winkel.cos() };
+    let gleis_rechts_unten: Vektor = gleis_rechts_oben
+        + Vektor { x: -spurweite_skalar * winkel.sin(), y: spurweite_skalar * winkel.cos() };
     // obere Kurve
     path_builder.arc(
         Bogen {
@@ -353,11 +351,11 @@ pub(crate) fn innerhalb(
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> bool {
-    let spurweite = spurweite();
+    let spurweite_skalar = spurweite.spurweite();
     let abstand = spurweite.abstand();
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
-    let radius_innen = radius_außen - spurweite;
+    let radius_innen = radius_außen - spurweite_skalar;
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };
     let radius_vector = bogen_zentrum - relative_position;
     let länge = radius_vector.länge();

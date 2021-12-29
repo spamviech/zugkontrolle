@@ -255,15 +255,17 @@ impl<Leiter> Gleise<Leiter> {
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
                 let ist_gehalten = ist_gehalten_test(gehalten_id);
 
+                let spurweite = todo!("spurweite");
+
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
-                        $funktion(frame, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
                     };
                 }
                 // Hintergrund

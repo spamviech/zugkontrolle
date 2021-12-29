@@ -89,8 +89,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let winkel = self.winkel();
-        let rechteck_kurve = kurve::rechteck(self.radius, winkel);
-        let rechteck_gerade = gerade::rechteck(self.länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, self.radius, winkel);
+        let rechteck_gerade = gerade::rechteck(spurweite, self.länge);
         let beschränkung = spurweite.beschränkung();
         let höhe_verschoben = rechteck_kurve.ecke_max().y - beschränkung;
         let verschieben = Vektor { x: Skalar(0.), y: höhe_verschoben };
@@ -136,14 +136,14 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         ];
         // Geraden
         paths.push(gerade::zeichne(
-            self.zugtyp,
+            spurweite,
             self.länge,
             true,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
         paths.push(gerade::zeichne(
-            self.zugtyp,
+            spurweite,
             self.länge,
             true,
             gedreht_transformations.clone(),
@@ -152,7 +152,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         // Kurven
         if self.variante == Variante::MitKurve {
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
@@ -160,7 +160,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
                 pfad::Erbauer::with_normal_axis,
             ));
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
@@ -200,7 +200,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         // Geraden
         paths.push((
             gerade::fülle(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 horizontal_transformations.clone(),
                 pfad::Erbauer::with_normal_axis,
@@ -209,7 +209,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         ));
         paths.push((
             gerade::fülle(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 gedreht_transformations.clone(),
                 pfad::Erbauer::with_invert_y,
@@ -220,7 +220,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         if self.variante == Variante::MitKurve {
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     winkel,
                     horizontal_transformations,
@@ -230,7 +230,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
             ));
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     winkel,
                     gedreht_transformations,
@@ -269,7 +269,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         ungenauigkeit: Skalar,
     ) -> bool {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck().ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -280,11 +280,22 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         let mut gedreht_vector = (relative_position - zentrum).rotiert(-winkel);
         gedreht_vector.y = -gedreht_vector.y;
         gedreht_vector += zentrum - start;
-        gerade::innerhalb(self.länge, horizontal_vector, ungenauigkeit)
-            || gerade::innerhalb(self.länge, gedreht_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, horizontal_vector, ungenauigkeit)
+            || gerade::innerhalb(spurweite, self.länge, gedreht_vector, ungenauigkeit)
             || (self.variante == Variante::MitKurve
-                && (kurve::innerhalb(self.radius, winkel, horizontal_vector, ungenauigkeit)
-                    || kurve::innerhalb(self.radius, winkel, gedreht_vector, ungenauigkeit)))
+                && (kurve::innerhalb(
+                    spurweite,
+                    self.radius,
+                    winkel,
+                    horizontal_vector,
+                    ungenauigkeit,
+                ) || kurve::innerhalb(
+                    spurweite,
+                    self.radius,
+                    winkel,
+                    gedreht_vector,
+                    ungenauigkeit,
+                )))
     }
 
     fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {

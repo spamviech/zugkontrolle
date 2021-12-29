@@ -29,7 +29,7 @@ use crate::application::{
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
-    fn mit_teil_nachricht<Leiter: LeiterAnzeige>(
+    fn mit_teil_nachricht<Leiter: 'static + LeiterAnzeige>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<Leiter> + 'static,
     ) -> iced::Element<'t, Nachricht<Leiter>> {
@@ -39,7 +39,7 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
+impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn view(&mut self) -> iced::Element<'_, Nachricht<Leiter>> {
         let Zugkontrolle {
             gleise,
@@ -198,7 +198,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     }
 }
 
-fn top_row<'t, Leiter: LeiterAnzeige>(
+fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -275,7 +275,7 @@ fn top_row<'t, Leiter: LeiterAnzeige>(
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'t, Leiter: LeiterAnzeige>(
+fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Button<GeradeUnit>>,

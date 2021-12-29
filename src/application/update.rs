@@ -1045,8 +1045,10 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;
             }
-            Err(err) => self
-                .zeige_message_box(format!("Fehler beim Laden von {}", pfad), format!("{:?}", err)),
+            Err(fehler) => self.zeige_message_box(
+                format!("Fehler beim Laden von {}", pfad),
+                format!("{:?}", fehler),
+            ),
         }
     }
 }

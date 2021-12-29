@@ -85,9 +85,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
-        let rechteck_gerade = gerade::rechteck(länge);
-        let rechteck_kurve = kurve::rechteck(radius, winkel);
-        let rechteck_kurve_reverse = kurve::rechteck(radius_reverse, winkel_reverse);
+        let rechteck_gerade = gerade::rechteck(spurweite, länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
+        let rechteck_kurve_reverse = kurve::rechteck(spurweite, radius_reverse, winkel_reverse);
         let radius_außen = spurweite.radius_begrenzung_außen(radius);
         let radius_innen = spurweite.radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
@@ -129,7 +129,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Gerade
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 true,
                 transformations.clone(),
@@ -137,7 +137,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Keine,
@@ -147,7 +147,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(Skalar(-1.)));
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
@@ -157,7 +157,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         } else {
             // Gerade
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 true,
                 Vec::new(),
@@ -165,7 +165,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Keine,
@@ -174,7 +174,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             ));
             // Kurve nach innen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
@@ -217,7 +217,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             // Gerade
             paths.push((
                 gerade::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.länge,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
@@ -227,7 +227,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             // Kurve nach außen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     transformations.clone(),
@@ -239,7 +239,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             transformations.extend(s_kurve_transformations(Skalar(-1.)));
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius_reverse,
                     self.winkel_reverse,
                     transformations,
@@ -250,18 +250,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         } else {
             // Gerade
             paths.push((
-                gerade::fülle(
-                    self.zugtyp,
-                    self.länge,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
+                gerade::fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
                 gerade_transparenz,
             ));
             // Kurve nach außen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     Vec::new(),
@@ -272,7 +267,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             // Kurve nach innen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius_reverse,
                     self.winkel_reverse,
                     s_kurve_transformations(Skalar(1.)),
@@ -330,7 +325,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -348,9 +343,10 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
         s_kurve_vector -= Vektor { x: Skalar(0.), y: spurweite.beschränkung() };
         s_kurve_vector.y = -s_kurve_vector.y;
-        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
             || kurve::innerhalb(
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 s_kurve_vector,

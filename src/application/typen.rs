@@ -35,7 +35,7 @@ pub struct Spurweite(pub f32);
 impl Spurweite {
     /// Abstand beider Schienen
     pub fn spurweite(&self) -> Skalar {
-        self.spurweite.als_skalar()
+        Skalar(self.0)
     }
     /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
     pub fn abstand(&self) -> Skalar {

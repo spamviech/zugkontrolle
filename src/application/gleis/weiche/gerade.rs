@@ -85,27 +85,27 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let Weiche { länge, radius, winkel, .. } = *self;
-        let rechteck_gerade = gerade::rechteck(länge);
-        let rechteck_kurve = kurve::rechteck(radius, winkel);
+        let rechteck_gerade = gerade::rechteck(spurweite, länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
         rechteck_gerade.einschließend(rechteck_kurve)
     }
 
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        let Weiche { länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
             let size: Vektor = self.rechteck(spurweite).ecke_max();
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             vec![
                 gerade::zeichne(
-                    zugtyp,
+                    spurweite,
                     länge,
                     true,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
                 ),
                 kurve::zeichne(
-                    zugtyp,
+                    spurweite,
                     radius,
                     winkel,
                     kurve::Beschränkung::Ende,
@@ -115,9 +115,15 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             ]
         } else {
             vec![
-                gerade::zeichne(zugtyp, länge, true, Vec::new(), pfad::Erbauer::with_normal_axis),
+                gerade::zeichne(
+                    spurweite,
+                    länge,
+                    true,
+                    Vec::new(),
+                    pfad::Erbauer::with_normal_axis,
+                ),
                 kurve::zeichne(
-                    zugtyp,
+                    spurweite,
                     radius,
                     winkel,
                     kurve::Beschränkung::Ende,
@@ -129,7 +135,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
-        let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
+        let Weiche { länge, radius, winkel, orientierung, .. } = *self;
         let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
@@ -142,7 +148,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             vec![
                 (
                     gerade::fülle(
-                        zugtyp,
+                        spurweite,
                         länge,
                         transformations.clone(),
                         pfad::Erbauer::with_invert_y,
@@ -151,7 +157,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
                 ),
                 (
                     kurve::fülle(
-                        zugtyp,
+                        spurweite,
                         radius,
                         winkel,
                         transformations,
@@ -163,12 +169,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         } else {
             vec![
                 (
-                    gerade::fülle(zugtyp, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+                    gerade::fülle(spurweite, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
                     gerade_transparenz,
                 ),
                 (
                     kurve::fülle(
-                        zugtyp,
+                        spurweite,
                         radius,
                         winkel,
                         Vec::new(),
@@ -234,8 +240,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         // sub-checks
         let mut relative_vector = relative_position - start;
         relative_vector.y *= multiplier;
-        gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
     }
 
     fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {

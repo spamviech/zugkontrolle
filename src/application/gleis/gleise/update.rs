@@ -36,6 +36,7 @@ const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
+    spurweite: Spurweite,
     streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
@@ -49,7 +50,7 @@ where
         let Gleis { definition, position } = &geom_with_data.data;
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {
+        if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             let any_id = AnyIdRef::from(GleisIdRef {
                 rectangle,
                 streckenabschnitt,
@@ -64,6 +65,7 @@ where
 fn aktion_gleis_an_position<'t>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
+    spurweite: Spurweite,
     modus: &'t mut ModusDaten,
     daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)>,
     pivot: &'t Position,
@@ -83,13 +85,33 @@ fn aktion_gleis_an_position<'t>(
                     s_kurven_weichen,
                     kreuzungen,
                 } = maps;
-                acc.or_else(|| gleis_an_position(streckenabschnitt, geraden, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kurven, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, dreiwege_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kurven_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, s_kurven_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kreuzungen, canvas_pos))
+                acc.or_else(|| gleis_an_position(spurweite, streckenabschnitt, geraden, canvas_pos))
+                    .or_else(|| gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos))
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos)
+                    })
+                    .or_else(|| {
+                        gleis_an_position(
+                            spurweite,
+                            streckenabschnitt,
+                            dreiwege_weichen,
+                            canvas_pos,
+                        )
+                    })
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, kurven_weichen, canvas_pos)
+                    })
+                    .or_else(|| {
+                        gleis_an_position(
+                            spurweite,
+                            streckenabschnitt,
+                            s_kurven_weichen,
+                            canvas_pos,
+                        )
+                    })
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos)
+                    })
             });
             match modus {
                 ModusDaten::Bauen { gehalten, last } => {
@@ -142,6 +164,7 @@ impl<Leiter> Gleise<Leiter> {
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
+                    todo!("spurweite"),
                     modus,
                     zustand.alle_geschwindigkeit_streckenabschnitt_daten(),
                     pivot,
