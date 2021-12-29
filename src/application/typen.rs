@@ -27,26 +27,32 @@ pub mod skalar;
 pub mod vektor;
 pub mod winkel;
 
+/// Spurweite \[mm\]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Spurweite(pub f32);
+
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
-/// Abstand beider Schienen
-pub fn spurweite<Z: Zugtyp>() -> Skalar {
-    Z::SPURWEITE.als_skalar()
-}
-/// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp>() -> Skalar {
-    spurweite::<Z>() / Skalar(3.)
-}
-/// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschränkung<Z: Zugtyp>() -> Skalar {
-    spurweite::<Z>() + abstand::<Z>().doppelt()
-}
-/// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Skalar) -> Skalar {
-    radius - Skalar(0.5) * spurweite::<Z>() - abstand::<Z>()
-}
-/// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
-    radius + Skalar(0.5) * spurweite::<Z>() + abstand::<Z>()
+impl Spurweite {
+    /// Abstand beider Schienen
+    pub fn spurweite(&self) -> Skalar {
+        self.spurweite.als_skalar()
+    }
+    /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
+    pub fn abstand(&self) -> Skalar {
+        self.spurweite() / Skalar(3.)
+    }
+    /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
+    pub fn beschränkung(&self) -> Skalar {
+        self.spurweite() + self.abstand().doppelt()
+    }
+    /// Innerster Radius (inklusive Beschränkung) einer Kurve
+    pub fn radius_begrenzung_innen(&self, radius: Skalar) -> Skalar {
+        radius - self.spurweite().halbiert() - self.abstand()
+    }
+    /// Äußerster Radius (inklusive Beschränkung) einer Kurve
+    pub fn radius_begrenzung_außen(&self, radius: Skalar) -> Skalar {
+        radius + self.spurweite().halbiert() + self.abstand()
+    }
 }
 
 /// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt
