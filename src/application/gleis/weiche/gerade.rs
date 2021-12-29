@@ -83,17 +83,17 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let Weiche { länge, radius, winkel, .. } = *self;
         let rechteck_gerade = gerade::rechteck(länge);
         let rechteck_kurve = kurve::rechteck(radius, winkel);
         rechteck_gerade.einschließend(rechteck_kurve)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             vec![
@@ -128,7 +128,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         }
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         let Weiche { zugtyp, länge, radius, winkel, orientierung, .. } = *self;
         let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
@@ -136,7 +136,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
         if orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             vec![
@@ -180,7 +180,10 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         }
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -189,7 +192,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -198,7 +201,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    y: start_height + multiplier * beschränkung().halbiert(),
+                    y: start_height + multiplier * spurweite.beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
             },
@@ -207,7 +210,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -217,7 +225,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -230,7 +238,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -239,11 +247,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                start_height = self.rechteck().ecke_max().y;
+                start_height = self.rechteck(spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             }
         };
-        let halbe_beschränkung = beschränkung().halbiert();
+        let halbe_beschränkung = spurweite.beschränkung().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },

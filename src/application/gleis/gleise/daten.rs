@@ -108,7 +108,7 @@ pub struct Zustand<Leiter> {
     pub(crate) geschwindigkeiten: GeschwindigkeitMap<Leiter>,
 }
 
-impl Zustand {
+impl<Leiter> Zustand<Leiter> {
     pub fn neu() -> Self {
         Zustand {
             ohne_streckenabschnitt: GleiseDaten::neu(),
@@ -341,7 +341,7 @@ impl Zustand {
     fn bewegen_aux<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        berechne_position: impl FnOnce(&Zustand, &Gleis<T>) -> Position,
+        berechne_position: impl FnOnce(&Zustand<Leiter>, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         // Entferne aktuellen Eintrag.
@@ -418,6 +418,7 @@ impl Zustand {
 impl Position {
     /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
     fn anliegend_position<T>(
+        spurweite: Spurweite,
         definition: &T,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
@@ -426,7 +427,7 @@ impl Position {
         T: Zeichnen,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let verbindungen = definition.verbindungen();
+        let verbindungen = definition.verbindungen(spurweite);
         let verbindung = verbindungen.get(verbindung_name);
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
         Position {

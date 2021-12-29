@@ -45,25 +45,30 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         rechteck(self.länge)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         vec![zeichne(self.zugtyp, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         vec![(
             fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
             Transparenz::Voll,
         )]
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         (
             Position {
-                punkt: Vektor { x: self.länge.halbiert(), y: beschränkung().halbiert() },
+                punkt: Vektor {
+                    x: self.länge.halbiert(), y: spurweite.beschränkung().halbiert()
+                },
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref(),
@@ -71,14 +76,19 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         innerhalb(self.länge, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
         let gleis_links = Skalar(0.);
         let gleis_rechts = gleis_links + self.länge;
-        let beschränkung_mitte = beschränkung().halbiert();
+        let beschränkung_mitte = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {
                 position: Vektor { x: gleis_links, y: beschränkung_mitte },
@@ -92,11 +102,12 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
     }
 }
 
-pub(crate) fn rechteck(länge: Skalar) -> Rechteck {
-    Rechteck::mit_größe(Vektor { x: länge, y: beschränkung() })
+pub(crate) fn rechteck(spurweite: Spurweite, länge: Skalar) -> Rechteck {
+    Rechteck::mit_größe(Vektor { x: länge, y: spurweite.beschränkung() })
 }
 
 pub(crate) fn zeichne<P, A>(
+    spurweite: Spurweite,
     länge: Skalar,
     beschränkungen: bool,
     transformations: Vec<Transformation>,
@@ -118,6 +129,7 @@ where
 }
 
 fn zeichne_internal<P, A>(
+    spurweite: Spurweite,
     path_builder: &mut pfad::Erbauer<P, A>,
     länge: Skalar,
     beschränkungen: bool,
@@ -128,8 +140,8 @@ fn zeichne_internal<P, A>(
     let gleis_links = Skalar(0.);
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    let beschränkung_unten = beschränkung_oben + beschränkung();
-    let gleis_oben = beschränkung_oben + abstand();
+    let beschränkung_unten = beschränkung_oben + spurweite.beschränkung();
+    let gleis_oben = beschränkung_oben + spurweite.abstand();
     let gleis_unten = gleis_oben + spurweite();
     // Beschränkungen
     if beschränkungen {
@@ -146,6 +158,7 @@ fn zeichne_internal<P, A>(
 }
 
 pub(crate) fn fülle<P, A>(
+    spurweite: Spurweite,
     länge: Skalar,
     transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
@@ -165,8 +178,11 @@ where
     path_builder.baue_unter_transformationen(transformations)
 }
 
-fn fülle_internal<P, A>(path_builder: &mut pfad::Erbauer<P, A>, länge: Skalar)
-where
+fn fülle_internal<P, A>(
+    spurweite: Spurweite,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    länge: Skalar,
+) where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -174,8 +190,8 @@ where
     let gleis_links = Skalar(0.);
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    let gleis_oben = beschränkung_oben + abstand();
-    let gleis_unten = gleis_oben + spurweite();
+    let gleis_oben = beschränkung_oben + spurweite.abstand();
+    let gleis_unten = gleis_oben + spurweite.spurweite();
     // Zeichne Umriss
     path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into());
@@ -184,9 +200,14 @@ where
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
 }
 
-pub(crate) fn innerhalb(länge: Skalar, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+pub(crate) fn innerhalb(
+    spurweite: Spurweite,
+    länge: Skalar,
+    relative_position: Vektor,
+    ungenauigkeit: Skalar,
+) -> bool {
     relative_position.x + ungenauigkeit >= Skalar(0.)
         && relative_position.x - ungenauigkeit <= länge
-        && relative_position.y + ungenauigkeit >= abstand()
-        && relative_position.y - ungenauigkeit <= abstand() + spurweite()
+        && relative_position.y + ungenauigkeit >= spurweite.abstand()
+        && relative_position.y - ungenauigkeit <= spurweite.abstand() + spurweite.spurweite()
 }

@@ -83,13 +83,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
         let rechteck_gerade = gerade::rechteck(länge);
         let rechteck_kurve = kurve::rechteck(radius, winkel);
         let rechteck_kurve_reverse = kurve::rechteck(radius_reverse, winkel_reverse);
-        let radius_außen = radius_begrenzung_außen(radius);
-        let radius_innen = radius_begrenzung_innen(radius);
+        let radius_außen = spurweite.radius_begrenzung_außen(radius);
+        let radius_innen = spurweite.radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
         let eins_minus_winkel_cos = Skalar(1.) - winkel.cos();
         let verschieben = Vektor {
@@ -104,9 +104,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             .einschließend(rechteck_kurve_reverse_verschoben)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -117,14 +117,14 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung(),
+                    y: multiplier * spurweite.beschränkung(),
                 }),
             ]
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Gerade
@@ -186,9 +186,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         paths
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -199,7 +199,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung(),
+                    y: multiplier * spurweite.beschränkung(),
                 }),
             ]
         };
@@ -211,7 +211,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Gerade
@@ -285,7 +285,10 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         paths
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -294,7 +297,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -303,7 +306,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    y: start_height + multiplier * beschränkung().halbiert(),
+                    y: start_height + multiplier * spurweite.beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
             },
@@ -312,7 +315,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -328,7 +336,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             }
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
-        let radius_begrenzung_außen = radius_begrenzung_außen(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let multiplied_winkel = multiplier.0 * self.winkel;
         let s_kurve_start_vector = Vektor {
             x: multiplier * radius_begrenzung_außen * multiplied_winkel.sin(),
@@ -338,7 +346,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
-        s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung() };
+        s_kurve_vector -= Vektor { x: Skalar(0.), y: spurweite.beschränkung() };
         s_kurve_vector.y = -s_kurve_vector.y;
         gerade::innerhalb(self.länge, relative_vector, ungenauigkeit)
             || kurve::innerhalb(self.radius, self.winkel, relative_vector, ungenauigkeit)
@@ -350,7 +358,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             )
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -359,13 +367,15 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                start_height = self.rechteck().ecke_max().y;
+                start_height = self.rechteck(spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             }
         };
         let angle_difference = self.winkel - self.winkel_reverse;
-        let anfang =
-            Vektor { x: Skalar(0.), y: start_height + multiplier * beschränkung().halbiert() };
+        let anfang = Vektor {
+            x: Skalar(0.),
+            y: start_height + multiplier * spurweite.beschränkung().halbiert(),
+        };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             gerade: Verbindung {

@@ -54,12 +54,13 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
-        rechteck(self.radius, self.winkel)
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+        rechteck(spurweite, self.radius, self.winkel)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         vec![zeichne(
+            spurweite,
             self.zugtyp,
             self.radius,
             self.winkel,
@@ -69,9 +70,10 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         )]
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         vec![(
             fülle(
+                spurweite,
                 self.zugtyp,
                 self.radius,
                 self.winkel,
@@ -82,13 +84,17 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         )]
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         let half_angle = 0.5 * self.winkel;
         (
             Position {
                 punkt: Vektor {
                     x: self.radius * half_angle.sin(),
-                    y: beschränkung().halbiert() + self.radius * (Skalar(1.) - half_angle.cos()),
+                    y: spurweite.beschränkung().halbiert()
+                        + self.radius * (Skalar(1.) - half_angle.cos()),
                 },
                 winkel: Winkel(0.),
             },
@@ -97,12 +103,17 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
-        innerhalb(self.radius, self.winkel, relative_position, ungenauigkeit)
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
+        innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
-        let halbe_beschränkung = beschränkung().halbiert();
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+        let halbe_beschränkung = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
@@ -119,16 +130,16 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     }
 }
 
-pub(crate) fn rechteck(radius: Skalar, winkel: Winkel) -> Rechteck {
+pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> Rechteck {
     // Hilfswerte
-    let radius_begrenzung_außen = radius_begrenzung_außen(radius);
+    let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
     let breite_faktor;
     let höhe_vergleich;
     let position_x_faktor;
     if winkel < winkel::FRAC_PI_2 {
         breite_faktor = winkel.sin();
-        höhe_vergleich =
-            radius_begrenzung_außen * (Skalar(1.) - winkel.cos()) + beschränkung() * winkel.cos();
+        höhe_vergleich = radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
+            + spurweite.beschränkung() * winkel.cos();
         position_x_faktor = Skalar(0.);
     } else {
         breite_faktor = Skalar(1.);
@@ -144,7 +155,7 @@ pub(crate) fn rechteck(radius: Skalar, winkel: Winkel) -> Rechteck {
     let ecke_a = Vektor { x: position_x_faktor * radius_begrenzung_außen, y: Skalar(0.) };
     // Maximale Koordinaten
     let breite = radius_begrenzung_außen * breite_faktor;
-    let höhe = beschränkung().max(&höhe_vergleich);
+    let höhe = spurweite.beschränkung().max(&höhe_vergleich);
     let ecke_b = Vektor { x: breite, y: höhe };
     // Rückgabewert
     Rechteck { ecke_a, ecke_b }
@@ -156,6 +167,7 @@ pub(crate) enum Beschränkung {
     Ende,
     Alle,
 }
+
 impl Beschränkung {
     fn anfangs_beschränkung(&self) -> bool {
         match self {
@@ -173,6 +185,7 @@ impl Beschränkung {
 }
 
 pub(crate) fn zeichne<P, A>(
+    spurweite: Spurweite,
     radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
@@ -189,13 +202,16 @@ where
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| zeichne_internal::<P, A>(builder, radius, winkel, beschränkungen)),
+        Box::new(move |builder| {
+            zeichne_internal::<P, A>(spurweite, builder, radius, winkel, beschränkungen)
+        }),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 // factor_y is expected to be -1 or +1, although other values should work as well
 fn zeichne_internal<P, A>(
+    spurweite: Spurweite,
     path_builder: &mut pfad::Erbauer<P, A>,
     radius: Skalar,
     winkel: Winkel,
@@ -205,14 +221,14 @@ fn zeichne_internal<P, A>(
     A: From<Bogen> + Into<Bogen>,
 {
     // Utility Größen
-    let spurweite: Skalar = spurweite();
-    let beschränkung: Skalar = beschränkung();
+    let spurweite: Skalar = spurweite.spurweite();
+    let beschränkung: Skalar = spurweite.beschränkung();
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
     let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: beschränkung };
-    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen(radius);
-    let radius_außen = radius_begrenzung_außen - abstand();
+    let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
+    let radius_außen = radius_begrenzung_außen - spurweite.abstand();
     let radius_innen = radius_außen - spurweite;
     let begrenzung0 = gleis_links_oben
         + radius_begrenzung_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
@@ -249,6 +265,7 @@ fn zeichne_internal<P, A>(
 }
 
 pub(crate) fn fülle<P, A>(
+    spurweite: Spurweite,
     radius: Skalar,
     winkel: Winkel,
     transformations: Vec<Transformation>,
@@ -264,24 +281,28 @@ where
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fülle_internal::<P, A>(builder, radius, winkel)),
+        Box::new(move |builder| fülle_internal::<P, A>(spurweite, builder, radius, winkel)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 /// Geplant für canvas::PathType::EvenOdd
-fn fülle_internal<P, A>(path_builder: &mut pfad::Erbauer<P, A>, radius: Skalar, winkel: Winkel)
-where
+fn fülle_internal<P, A>(
+    spurweite: Spurweite,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    radius: Skalar,
+    winkel: Winkel,
+) where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let spurweite = spurweite();
-    let abstand = abstand();
+    let spurweite = spurweite.spurweite();
+    let abstand = spurweite.abstand();
     let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
-    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen(radius);
+    let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
     let radius_innen = radius_außen - spurweite;
     let bogen_zentrum =
@@ -326,14 +347,15 @@ where
 
 #[allow(unused_qualifications)]
 pub(crate) fn innerhalb(
+    spurweite: Spurweite,
     radius: Skalar,
     winkel: Winkel,
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> bool {
     let spurweite = spurweite();
-    let abstand = abstand();
-    let radius_begrenzung_außen = radius_begrenzung_außen(radius);
+    let abstand = spurweite.abstand();
+    let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
     let radius_innen = radius_außen - spurweite;
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };

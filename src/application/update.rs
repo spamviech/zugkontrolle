@@ -36,7 +36,6 @@ use crate::{
     steuerung::{
         geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
-    zugtyp::Zugtyp,
 };
 
 impl<Leiter> Nachricht<Leiter>

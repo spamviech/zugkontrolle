@@ -66,11 +66,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
-        let rechteck_gerade = gerade::rechteck(länge);
-        let rechteck_kurve = kurve::rechteck(radius, winkel);
-        let beschränkung = beschränkung();
+        let rechteck_gerade = gerade::rechteck(spurweite, länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
+        let beschränkung = spurweite.beschränkung();
         let höhe_verschoben = rechteck_kurve.ecke_max().y - beschränkung;
         let verschieben = Vektor { x: Skalar(0.), y: höhe_verschoben };
         let rechteck_gerade_verschoben = rechteck_gerade.verschiebe_chain(&verschieben);
@@ -80,11 +80,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
             .einschließend(rechteck_kurve_verschoben)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let size: Vektor = self.rechteck().ecke_max();
+        let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
-        let beschränkung = beschränkung();
+        let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         let mut paths = Vec::new();
         let rechts_transformations = vec![Transformation::Translation(start)];
@@ -120,11 +120,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         paths
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let size: Vektor = self.rechteck().ecke_max();
+        let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
-        let beschränkung = beschränkung();
+        let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         let mut paths = Vec::new();
         let rechts_transformations = vec![Transformation::Translation(start)];
@@ -179,10 +179,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         paths
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
-        let size: Vektor = self.rechteck().ecke_max();
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
+        let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
-        let halbe_beschränkung = beschränkung().halbiert();
+        let halbe_beschränkung = spurweite.beschränkung().halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
         (
             Position {
@@ -194,11 +197,16 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         // utility sizes
         let Vektor { x: _, y: height } = self.rechteck().ecke_max();
         let half_height = height.halbiert();
-        let beschränkung = beschränkung();
+        let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         // sub-checks
         let relative_vector = relative_position - start;
@@ -208,8 +216,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
             || kurve::innerhalb(self.radius, self.winkel, inverted_vector, ungenauigkeit)
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
-        let height: Skalar = self.rechteck().ecke_max().y;
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+        let height: Skalar = self.rechteck(spurweite).ecke_max().y;
         let half_height = height.halbiert();
         let länge: Skalar = self.länge;
         let radius: Skalar = self.radius;
