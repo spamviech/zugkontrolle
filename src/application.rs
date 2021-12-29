@@ -187,17 +187,17 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId),
-    AnschlüsseAnpassen(AnschlüsseAnpassen),
+    AnschlüsseAnpassen(AnschlüsseAnpassen<Leiter>),
     FahrenAktion(AnyId),
     AsyncFehler {
         titel: String,
         nachricht: String,
-        zustand_zurücksetzen: ZustandZurücksetzen,
+        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
     },
 }
 
 impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
-    fn from(message: gleise::Nachricht<Leiter>) -> Self {
+    fn from(message: gleise::Nachricht) -> Self {
         match message {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
                 Nachricht::SetzeStreckenabschnitt(any_id)
@@ -385,7 +385,7 @@ pub struct Zugkontrolle<Leiter> {
     s_kurven_weichen: Vec<Button<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Button<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<Leiter>,
-    modal_status: modal::Status<AuswahlStatus>,
+    modal_status: modal::Status<AuswahlStatus<Leiter>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,

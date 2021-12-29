@@ -573,7 +573,7 @@ pub enum Fehler {
     IO(std::io::Error),
     BincodeSerialisieren(bincode::Error),
     BincodeDeserialisieren { aktuell: bincode::Error, v2: bincode::Error },
-    FalscherZugtyp(String),
+    FalscherLeiter(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
     StreckenabschnittEntfernt(StreckenabschnittId),

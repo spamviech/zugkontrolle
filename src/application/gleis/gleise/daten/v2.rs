@@ -36,22 +36,22 @@ pub(crate) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Z: Zugtyp> {
+pub(crate) struct GleiseVecs<Leiter> {
     pub(crate) name: String,
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
     pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
-    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Z::Leiter>,
+    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Leiter>,
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::de_serialisieren::ZustandSerialisiert<Z> {
-    fn from(v2: GleiseVecs<Z>) -> Self {
+impl<Leiter> From<GleiseVecs<Leiter>> for aktuell::de_serialisieren::ZustandSerialisiert<Leiter> {
+    fn from(v2: GleiseVecs<Leiter>) -> Self {
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
             .streckenabschnitte
@@ -100,7 +100,12 @@ impl<Z: Zugtyp> From<GleiseVecs<Z>> for aktuell::de_serialisieren::ZustandSerial
             })
             .collect();
         aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp: v2.name,
+            zugtyp: match &v2.name {
+                "Märklin" => Zugtyp::märklin(),
+                "Lego" => Zugtyp::lego(),
+                _ => todo!("Fehler!"),
+            },
+            leiter: todo!("leiter"),
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,

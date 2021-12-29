@@ -18,26 +18,27 @@ use crate::{
     },
 };
 
-pub(in crate::application::gleis::gleise::daten) type StreckenabschnittMapSerialisiert<Z> =
-    HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert<Z>)>;
-pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Z> = HashMap<
-    geschwindigkeit::Name,
-    (GeschwindigkeitSerialisiert<<Z as Zugtyp>::Leiter>, StreckenabschnittMapSerialisiert<Z>),
->;
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-#[zugkontrolle_debug(Z: Zugtyp,<Z::Leiter as Serialisiere>::Serialisiert: Debug)]
-pub struct ZustandSerialisiert<Z: Zugtyp> {
-    pub(crate) zugtyp: String,
-    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert<Z>,
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert<Z>,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Z>,
+pub(in crate::application::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
+    HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert)>;
+pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> =
+    HashMap<
+        geschwindigkeit::Name,
+        (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
+    >;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ZustandSerialisiert<Leiter> {
+    pub(crate) zugtyp: Zugtyp<Leiter>,
+    pub(crate) leiter: String,
+    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
+    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Z: Zugtyp> Zustand<Z> {
+impl<Leiter> Zustand<Leiter> {
     /// Erzeuge eine serealisierbare Repräsentation.
-    pub fn serialisiere(&self) -> ZustandSerialisiert<Z> {
-        let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap<Z>| {
+    pub fn serialisiere(&self) -> ZustandSerialisiert<Leiter> {
+        let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
                 .map(|(name, (streckenabschnitt, _fließend, daten))| {
                     (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
@@ -45,7 +46,8 @@ impl<Z: Zugtyp> Zustand<Z> {
                 .collect()
         };
         ZustandSerialisiert {
-            zugtyp: Z::NAME.to_string(),
+            zugtyp: todo!("name"),
+            leiter: todo!("leiter"),
             ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
             ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
             geschwindigkeiten: self
@@ -82,8 +84,8 @@ impl<Z: Zugtyp> Zustand<Z> {
             output_anschlüsse.extend(output.into_iter());
             input_anschlüsse.extend(input.into_iter());
         }
-        fn collect_gleis_anschlüsse<T: DatenAuswahl<Z> + Serialisiere, Z: Zugtyp>(
-            daten: &mut GleiseDaten<Z>,
+        fn collect_gleis_anschlüsse<T: DatenAuswahl + Serialisiere>(
+            daten: &mut GleiseDaten,
             pwm_pins: &mut Vec<pwm::Pin>,
             output_anschlüsse: &mut Vec<OutputAnschluss>,
             input_anschlüsse: &mut Vec<InputAnschluss>,
@@ -99,15 +101,15 @@ impl<Z: Zugtyp> Zustand<Z> {
                 )
             }
         }
-        fn collect_daten_anschlüsse<Z: Zugtyp>(
-            daten: &mut GleiseDaten<Z>,
+        fn collect_daten_anschlüsse(
+            daten: &mut GleiseDaten,
             pwm_pins: &mut Vec<pwm::Pin>,
             output_anschlüsse: &mut Vec<OutputAnschluss>,
             input_anschlüsse: &mut Vec<InputAnschluss>,
         ) {
             macro_rules! collect_gleis_anschlüsse {
                 ($($typ: ident),* $(,)?) => {$(
-                    collect_gleis_anschlüsse::<$typ<Z>, Z>(
+                    collect_gleis_anschlüsse::<$typ>(
                         daten,
                         pwm_pins,
                         output_anschlüsse,
@@ -131,8 +133,8 @@ impl<Z: Zugtyp> Zustand<Z> {
             &mut output_anschlüsse,
             &mut input_anschlüsse,
         );
-        fn collect_streckenabschnitt_map_anschlüsse<Z: Zugtyp>(
-            streckenabschnitt_map: &mut StreckenabschnittMap<Z>,
+        fn collect_streckenabschnitt_map_anschlüsse(
+            streckenabschnitt_map: &mut StreckenabschnittMap,
             pwm_pins: &mut Vec<pwm::Pin>,
             output_anschlüsse: &mut Vec<OutputAnschluss>,
             input_anschlüsse: &mut Vec<InputAnschluss>,
@@ -178,8 +180,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 }
 
-#[allow(single_use_lifetimes)]
-impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
+impl<Leiter> ZustandSerialisiert<Leiter> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -187,9 +188,10 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> Result<Zustand<Z>, anschluss::Fehler> {
+    ) -> Result<Zustand<Leiter>, anschluss::Fehler> {
         let ZustandSerialisiert {
             zugtyp: _,
+            leiter,
             ohne_streckenabschnitt,
             ohne_geschwindigkeit,
             geschwindigkeiten,
@@ -207,13 +209,13 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
             output_anschlüsse,
             input_anschlüsse,
         )?;
-        fn reserviere_streckenabschnitt_map<Z: Zugtyp>(
+        fn reserviere_streckenabschnitt_map(
             lager: &mut anschluss::Lager,
-            streckenabschnitt_map: StreckenabschnittMapSerialisiert<Z>,
+            streckenabschnitt_map: StreckenabschnittMapSerialisiert,
             pwm_pins: Vec<pwm::Pin>,
             output_anschlüsse: Vec<OutputAnschluss>,
             input_anschlüsse: Vec<InputAnschluss>,
-        ) -> Result<Reserviert<StreckenabschnittMap<Z>>, anschluss::Fehler> {
+        ) -> Result<Reserviert<StreckenabschnittMap>, anschluss::Fehler> {
             streckenabschnitt_map.into_iter().fold(
                 Ok(Reserviert {
                     anschluss: HashMap::new(),
@@ -332,15 +334,15 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> ZustandSerialisiert<Z> {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub(crate) struct GleiseDatenSerialisiert<Z> {
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert<Z>>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert<Z>>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert<Z>>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert<Z>>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert<Z>>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert<Z>>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert<Z>>>,
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct GleiseDatenSerialisiert {
+    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
+    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
+    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
+    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
 impl<Z> GleiseDatenSerialisiert<Z> {
@@ -357,9 +359,9 @@ impl<Z> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp> GleiseDaten<Z> {
+impl<Leiter> GleiseDaten<Leiter> {
     /// Erzeuge eine serealisierbare Repräsentation
-    fn serialisiere(&self) -> GleiseDatenSerialisiert<Z> {
+    fn serialisiere(&self) -> GleiseDatenSerialisiert<Leiter> {
         macro_rules! rstern_to_vecs {
             ($($rstern:ident),* $(,)?) => {
                 GleiseDatenSerialisiert {
@@ -421,7 +423,7 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere>(
     )
 }
 
-impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
+impl<Leiter> GleiseDatenSerialisiert<Leiter> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -429,7 +431,7 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> Result<Reserviert<GleiseDaten<Z>>, anschluss::Fehler> {
+    ) -> Result<Reserviert<GleiseDaten<Leiter>>, anschluss::Fehler> {
         macro_rules! reserviere_anschlüsse {
             ($($rstern: ident),* $(,)?) => {
                 $(
@@ -464,7 +466,7 @@ impl<Z: Zugtyp> GleiseDatenSerialisiert<Z> {
     }
 }
 
-impl<Z: Zugtyp + Serialize> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
@@ -472,8 +474,7 @@ impl<Z: Zugtyp + Serialize> Gleise<Z> {
     }
 }
 
-#[allow(single_use_lifetimes)]
-impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     pub fn laden(
         &mut self,
         lager: &mut anschluss::Lager,
@@ -493,14 +494,14 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
         let mut content = Vec::new();
         let _ = file.read_to_end(&mut content)?;
         let slice = content.as_slice();
-        let zustand_serialisiert: ZustandSerialisiert<Z> =
-            bincode::deserialize(slice).or_else(|aktuell| {
+        let zustand_serialisiert: ZustandSerialisiert<Leiter> = bincode::deserialize(slice)
+            .or_else(|aktuell| {
                 bincode::deserialize(slice)
-                    .map(v2::GleiseVecs::<Z>::into)
+                    .map(v2::GleiseVecs::<Leiter>::into)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
             })?;
-        if zustand_serialisiert.zugtyp != Z::NAME {
-            return Err(Fehler::FalscherZugtyp(zustand_serialisiert.zugtyp));
+        if zustand_serialisiert.leiter != todo!("name") {
+            return Err(Fehler::FalscherLeiter(zustand_serialisiert.leiter));
         }
 
         // reserviere Anschlüsse
