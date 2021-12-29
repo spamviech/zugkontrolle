@@ -257,6 +257,13 @@ impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
     type Error = gleise::Fehler;
 
     fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, gleise::Fehler> {
+        let leiter = Leiter::NAME;
+        let zugtyp = Leiter::bekannter_zugtyp(leiter)
+            .ok_or_else(|| gleise::Fehler::FalscherLeiter(leiter.to_string()))?;
+        if zugtyp.name != v2.name {
+            return Err(gleise::Fehler::FalscherLeiter(leiter.to_string()));
+        }
+
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
             .streckenabschnitte
@@ -304,9 +311,6 @@ impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
                 )
             })
             .collect();
-        let leiter = Leiter::NAME;
-        let zugtyp = Leiter::bekannter_zugtyp(leiter)
-            .ok_or_else(|| gleise::Fehler::FalscherLeiter(leiter.to_string()))?;
         Ok(aktuell::de_serialisieren::ZustandSerialisiert {
             zugtyp,
             leiter: leiter.to_string(),
