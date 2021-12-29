@@ -26,7 +26,7 @@ pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialis
         (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
     >;
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ZustandSerialisiert<Leiter> {
+pub struct ZustandSerialisiert<Leiter: Serialisiere> {
     pub(crate) zugtyp: Zugtyp<Leiter>,
     pub(crate) leiter: String,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
@@ -35,7 +35,7 @@ pub struct ZustandSerialisiert<Leiter> {
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Leiter> Zustand<Leiter> {
+impl<Leiter: Serialisiere> Zustand<Leiter> {
     /// Erzeuge eine serealisierbare Repräsentation.
     pub fn serialisiere(&self) -> ZustandSerialisiert<Leiter> {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
@@ -180,7 +180,7 @@ impl<Leiter> Zustand<Leiter> {
     }
 }
 
-impl<Leiter> ZustandSerialisiert<Leiter> {
+impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,

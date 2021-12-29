@@ -89,13 +89,13 @@ impl Modus {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug)]
-pub enum AnschlüsseAnpassen<Z> {
-    Weiche(GleisId<Weiche<Z>>, Option<WeicheSerialisiert>),
-    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>, Option<DreiwegeWeicheSerialisiert>),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>, Option<KurvenWeicheSerialisiert>),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, Option<WeicheSerialisiert>),
-    Kreuzung(GleisId<Kreuzung<Z>>, Option<WeicheSerialisiert>),
+#[derive(Debug)]
+pub enum AnschlüsseAnpassen {
+    Weiche(GleisId<Weiche>, Option<WeicheSerialisiert>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
+    KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
+    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<WeicheSerialisiert>),
+    Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
 #[derive(zugkontrolle_derive::Debug)]
@@ -187,7 +187,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     ZeigeAnschlüsseAnpassen(AnyId),
-    AnschlüsseAnpassen(AnschlüsseAnpassen<Leiter>),
+    AnschlüsseAnpassen(AnschlüsseAnpassen),
     FahrenAktion(AnyId),
     AsyncFehler {
         titel: String,

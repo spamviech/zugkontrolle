@@ -2,7 +2,7 @@
 
 use std::{
     convert::identity,
-    fmt::Debug,
+    fmt::{Debug, Display},
     sync::Arc,
     thread::sleep,
     time::{Duration, Instant},
@@ -40,6 +40,7 @@ use crate::{
 
 impl<Leiter> Nachricht<Leiter>
 where
+    Leiter: 'static + LeiterAnzeige,
     <Leiter as Serialisiere>::Serialisiert: Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
@@ -52,7 +53,7 @@ where
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter> {
+impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
         self.message_box.zeige_modal(MessageBox {
             titel,
@@ -79,7 +80,7 @@ impl<Leiter> Zugkontrolle<Leiter> {
             Status,
             Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Leiter>>,
         ) -> AuswahlStatus<Leiter>,
-        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen<Leiter>
+        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen
             + 'static,
     ) {
         let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
@@ -430,36 +431,9 @@ impl<Leiter> Zugkontrolle<Leiter> {
         }
     }
 
-    pub fn zeige_auswahl_geschwindigkeit(&mut self) {
-        self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
-            geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
-        ))
-    }
-
-    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
-        let name_clone = name.clone();
-        if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
-            self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
-        }
-
-        let _ = self.geschwindigkeiten.remove(&name_clone);
-
-        match self.modal_status.overlay_mut() {
-            Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-                geschwindigkeit_auswahl.entfernen(&name_clone);
-            }
-            modal => {
-                error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
-                self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
-                    geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
-                ))
-            }
-        }
-    }
-
     pub fn anschlüsse_anpassen(
         &mut self,
-        anschlüsse_anpassen: AnschlüsseAnpassen<Leiter>,
+        anschlüsse_anpassen: AnschlüsseAnpassen,
     ) -> Option<Nachricht<Leiter>> {
         match anschlüsse_anpassen {
             AnschlüsseAnpassen::Weiche(id, anschlüsse_save) => self.gleis_anschlüsse_anpassen(
@@ -509,8 +483,38 @@ impl<Leiter> Zugkontrolle<Leiter> {
     }
 }
 
+impl<Leiter: LeiterAnzeige + Display> Zugkontrolle<Leiter> {
+    pub fn zeige_auswahl_geschwindigkeit(&mut self) {
+        self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
+            geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
+        ))
+    }
+
+    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+        let name_clone = name.clone();
+        if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
+            self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
+        }
+
+        let _ = self.geschwindigkeiten.remove(&name_clone);
+
+        match self.modal_status.overlay_mut() {
+            Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
+                geschwindigkeit_auswahl.entfernen(&name_clone);
+            }
+            modal => {
+                error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
+                self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
+                    geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
+                ))
+            }
+        }
+    }
+}
+
 impl<Leiter> Zugkontrolle<Leiter>
 where
+    Leiter: LeiterAnzeige + Display,
     <Leiter as Serialisiere>::Serialisiert: Debug + Clone,
 {
     pub fn geschwindigkeit_hinzufügen(
@@ -622,7 +626,7 @@ where
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter> {
+impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
         &mut self,
         id: GleisId<T>,
@@ -646,7 +650,11 @@ impl<Leiter> Zugkontrolle<Leiter> {
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter> {
+impl<Leiter> Zugkontrolle<Leiter>
+where
+    Leiter: LeiterAnzeige,
+    <Leiter as LeiterAnzeige>::Nachricht: 'static,
+{
     fn geschwindigkeit_anzeige_zurücksetzen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -655,17 +663,8 @@ impl<Leiter> Zugkontrolle<Leiter> {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         // Entfernte Geschwindigkeit wird ignoriert,
         // da es nur um eine Reaktion auf einen Fehler geht
-        macro_rules! unwrap_or_return {
-            ($value:expr) => {
-                if let Some(value) = $value {
-                    value
-                } else {
-                    return None;
-                }
-            };
-        }
-        let geschwindigkeit = unwrap_or_return!(gleise.geschwindigkeit_mut(&name));
-        let anzeige_status = unwrap_or_return!(geschwindigkeiten.get_mut(&name));
+        let geschwindigkeit = gleise.geschwindigkeit_mut(&name)?;
+        let anzeige_status = geschwindigkeiten.get_mut(&name)?;
         let cmd = <Leiter as LeiterAnzeige>::zustand_zurücksetzen(
             geschwindigkeit,
             anzeige_status,
@@ -731,9 +730,11 @@ impl<Leiter> Zugkontrolle<Leiter> {
 
 impl<Leiter> Zugkontrolle<Leiter>
 where
+    Leiter: 'static + LeiterAnzeige,
     <Leiter as Serialisiere>::Serialisiert: Send,
+    <Leiter as LeiterAnzeige>::Nachricht: 'static,
 {
-    fn weiche_stellen<T, Richtung, Anschlüsse>(
+    fn weiche_stellen<T, Richtung, Anschlüsse, NR, ZZ>(
         &mut self,
         gleis_art: &'static str,
         id: GleisId<T>,
@@ -744,16 +745,14 @@ where
             Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
             GleisIdFehler,
         >,
-        nächste_richtung: impl FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung
-            + Send
-            + 'static,
-        zustand_zurücksetzen: impl FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter>
-            + Send
-            + 'static,
+        nächste_richtung: NR,
+        zustand_zurücksetzen: ZZ,
     ) where
         T: 'static,
         Richtung: Clone + Send + 'static,
         Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
+        NR: FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung + Send + 'static,
+        ZZ: FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter> + Send + 'static,
     {
         let mut error_message = None;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
@@ -897,7 +896,7 @@ where
 
 impl<Leiter> Zugkontrolle<Leiter>
 where
-    Leiter: LeiterAnzeige,
+    Leiter: 'static + LeiterAnzeige,
     <Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn geschwindigkeit_anzeige_nachricht(
@@ -1008,6 +1007,7 @@ where
 
 impl<Leiter> Zugkontrolle<Leiter>
 where
+    Leiter: 'static + LeiterAnzeige,
     <Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Leiter>>> {
@@ -1032,7 +1032,7 @@ where
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter> {
+impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {
             Ok(()) => {

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    anschluss::de_serialisieren::Serialisiere,
     application::{
         gleis::{
             gerade::GeradeSerialisiert,
@@ -36,7 +37,7 @@ pub(crate) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct GleiseVecs<Leiter> {
+pub(crate) struct GleiseVecs<Leiter: Serialisiere> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
     pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
@@ -50,7 +51,9 @@ pub(crate) struct GleiseVecs<Leiter> {
     pub(crate) pläne: Vec<Plan>,
 }
 
-impl<Leiter> From<GleiseVecs<Leiter>> for aktuell::de_serialisieren::ZustandSerialisiert<Leiter> {
+impl<Leiter: Serialisiere> From<GleiseVecs<Leiter>>
+    for aktuell::de_serialisieren::ZustandSerialisiert<Leiter>
+{
     fn from(v2: GleiseVecs<Leiter>) -> Self {
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
