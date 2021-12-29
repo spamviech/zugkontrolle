@@ -64,18 +64,18 @@ impl<T> PartialEq for GleisId<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(zugkontrolle_derive::Debug)]
-pub enum AnyId<Z> {
-    Gerade(GleisId<Gerade<Z>>),
-    Kurve(GleisId<Kurve<Z>>),
-    Weiche(GleisId<Weiche<Z>>),
-    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
-    Kreuzung(GleisId<Kreuzung<Z>>),
+#[derive(Debug)]
+pub enum AnyId {
+    Gerade(GleisId<Gerade>),
+    Kurve(GleisId<Kurve>),
+    Weiche(GleisId<Weiche>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>),
+    KurvenWeiche(GleisId<KurvenWeiche>),
+    SKurvenWeiche(GleisId<SKurvenWeiche>),
+    Kreuzung(GleisId<Kreuzung>),
 }
 
-impl<Z> PartialEq for AnyId<Z> {
+impl PartialEq for AnyId {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (AnyId::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
@@ -119,7 +119,7 @@ macro_rules! mit_any_id {
 }
 pub(crate) use mit_any_id;
 
-impl<Z> AnyId<Z> {
+impl AnyId {
     fn aus_ref<T>(gleis_id: &GleisId<T>) -> Self
     where
         GleisId<T>: Into<Self>,
@@ -127,15 +127,15 @@ impl<Z> AnyId<Z> {
         gleis_id.klonen().into()
     }
 
-    pub(in crate::application) fn klonen(&self) -> AnyId<Z> {
+    pub(in crate::application) fn klonen(&self) -> AnyId {
         mit_any_id!(self, Self::aus_ref)
     }
 }
 
 macro_rules! impl_any_id_from {
     ($type: ident) => {
-        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
-            fn from(gleis_id: GleisId<$type<Z>>) -> Self {
+        impl From<GleisId<$type>> for AnyId {
+            fn from(gleis_id: GleisId<$type>) -> Self {
                 AnyId::$type(gleis_id)
             }
         }
@@ -197,18 +197,18 @@ impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
 
 #[allow(single_use_lifetimes)]
 #[derive(zugkontrolle_derive::Debug)]
-pub(in crate::application::gleis::gleise) enum AnyIdRef<'t, Z> {
-    Gerade(GleisIdRef<'t, Gerade<Z>>),
-    Kurve(GleisIdRef<'t, Kurve<Z>>),
-    Weiche(GleisIdRef<'t, Weiche<Z>>),
-    DreiwegeWeiche(GleisIdRef<'t, DreiwegeWeiche<Z>>),
-    KurvenWeiche(GleisIdRef<'t, KurvenWeiche<Z>>),
-    SKurvenWeiche(GleisIdRef<'t, SKurvenWeiche<Z>>),
-    Kreuzung(GleisIdRef<'t, Kreuzung<Z>>),
+pub(in crate::application::gleis::gleise) enum AnyIdRef<'t> {
+    Gerade(GleisIdRef<'t, Gerade>),
+    Kurve(GleisIdRef<'t, Kurve>),
+    Weiche(GleisIdRef<'t, Weiche>),
+    DreiwegeWeiche(GleisIdRef<'t, DreiwegeWeiche>),
+    KurvenWeiche(GleisIdRef<'t, KurvenWeiche>),
+    SKurvenWeiche(GleisIdRef<'t, SKurvenWeiche>),
+    Kreuzung(GleisIdRef<'t, Kreuzung>),
 }
 
-impl<'t, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'_, Z> {
-    fn eq(&self, other: &AnyIdRef<'t, Z>) -> bool {
+impl<'t> PartialEq<AnyIdRef<'t>> for AnyIdRef<'_> {
+    fn eq(&self, other: &AnyIdRef<'t>) -> bool {
         match (self, other) {
             (AnyIdRef::Gerade(l0), AnyIdRef::Gerade(r0)) => l0 == r0,
             (AnyIdRef::Kurve(l0), AnyIdRef::Kurve(r0)) => l0 == r0,
@@ -221,8 +221,8 @@ impl<'t, Z> PartialEq<AnyIdRef<'t, Z>> for AnyIdRef<'_, Z> {
         }
     }
 }
-impl<Z> PartialEq<AnyId<Z>> for AnyIdRef<'_, Z> {
-    fn eq(&self, other: &AnyId<Z>) -> bool {
+impl PartialEq<AnyId> for AnyIdRef<'_> {
+    fn eq(&self, other: &AnyId) -> bool {
         match (self, other) {
             (AnyIdRef::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
             (AnyIdRef::Kurve(l0), AnyId::Kurve(r0)) => l0 == r0,
@@ -235,16 +235,16 @@ impl<Z> PartialEq<AnyId<Z>> for AnyIdRef<'_, Z> {
         }
     }
 }
-impl<'t, Z> PartialEq<AnyIdRef<'t, Z>> for AnyId<Z> {
-    fn eq(&self, other: &AnyIdRef<'t, Z>) -> bool {
+impl<'t> PartialEq<AnyIdRef<'t>> for AnyId {
+    fn eq(&self, other: &AnyIdRef<'t>) -> bool {
         other.eq(self)
     }
 }
 
 macro_rules! impl_any_id_ref_from {
     ($type: ident) => {
-        impl<'t, Z> From<GleisIdRef<'t, $type<Z>>> for AnyIdRef<'t, Z> {
-            fn from(gleis_id: GleisIdRef<'t, $type<Z>>) -> Self {
+        impl<'t> From<GleisIdRef<'t, $type>> for AnyIdRef<'t> {
+            fn from(gleis_id: GleisIdRef<'t, $type>) -> Self {
                 AnyIdRef::$type(gleis_id)
             }
         }

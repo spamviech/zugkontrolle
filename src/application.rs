@@ -28,8 +28,11 @@ use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
     args::{self, Args},
     farbe::Farbe,
-    steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
-    zugtyp::{Lego, Märklin},
+    steuerung::{
+        self,
+        geschwindigkeit::{GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
+    },
+    zugtyp::{lego, märklin},
 };
 
 pub mod anschluss;
@@ -53,20 +56,20 @@ pub mod update;
 pub mod view;
 pub mod weiche;
 
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum AnyGleisUnit<Z> {
-    GeradeUnit(GeradeUnit<Z>),
-    KurveUnit(KurveUnit<Z>),
-    WeicheUnit(WeicheUnit<Z>),
-    DreiwegeWeicheUnit(DreiwegeWeicheUnit<Z>),
-    KurvenWeicheUnit(KurvenWeicheUnit<Z>),
-    SKurvenWeicheUnit(SKurvenWeicheUnit<Z>),
-    KreuzungUnit(KreuzungUnit<Z>),
+#[derive(Debug, Clone)]
+pub enum AnyGleisUnit {
+    GeradeUnit(GeradeUnit),
+    KurveUnit(KurveUnit),
+    WeicheUnit(WeicheUnit),
+    DreiwegeWeicheUnit(DreiwegeWeicheUnit),
+    KurvenWeicheUnit(KurvenWeicheUnit),
+    SKurvenWeicheUnit(SKurvenWeicheUnit),
+    KreuzungUnit(KreuzungUnit),
 }
 macro_rules! impl_any_gleis_from {
     ($type:ident) => {
-        impl<Z> From<$type<Z>> for AnyGleisUnit<Z> {
-            fn from(gleis: $type<Z>) -> AnyGleisUnit<Z> {
+        impl<Z> From<$type> for AnyGleisUnit {
+            fn from(gleis: $type) -> AnyGleisUnit {
                 AnyGleisUnit::$type(gleis.into())
             }
         }
@@ -96,48 +99,45 @@ pub enum AnschlüsseAnpassen<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug)]
-pub enum ZustandZurücksetzen<Z: Zugtyp> {
-    Weiche(GleisId<Weiche<Z>>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
+pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
+    Weiche(GleisId<Weiche>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
     DreiwegeWeiche(
-        GleisId<DreiwegeWeiche<Z>>,
+        GleisId<DreiwegeWeiche>,
         gleis::weiche::dreiwege::Richtung,
         gleis::weiche::dreiwege::Richtung,
     ),
     KurvenWeiche(
-        GleisId<KurvenWeiche<Z>>,
+        GleisId<KurvenWeiche>,
         gleis::weiche::kurve::Richtung,
         gleis::weiche::kurve::Richtung,
     ),
     SKurvenWeiche(
-        GleisId<SKurvenWeiche<Z>>,
+        GleisId<SKurvenWeiche>,
         gleis::weiche::s_kurve::Richtung,
         gleis::weiche::s_kurve::Richtung,
     ),
-    Kreuzung(GleisId<Kreuzung<Z>>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
-    GeschwindigkeitAnzeige(
-        geschwindigkeit::Name,
-        <Z::Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ),
+    Kreuzung(GleisId<Kreuzung>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
+    GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit Button.
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-enum NachrichtClone<Z: Zugtyp> {
+enum NachrichtClone<Leiter: LeiterAnzeige> {
     Gleis {
-        gleis: AnyGleisUnit<Z>,
+        gleis: AnyGleisUnit,
         grab_height: Skalar,
     },
     Skalieren(Skalar),
     SchließeMessageBox,
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
-        nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
+        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
     },
     ZeigeAuswahlGeschwindigkeit,
 }
 
-impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
-    fn from(nachricht_clone: NachrichtClone<Z>) -> Self {
+impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
+    fn from(nachricht_clone: NachrichtClone<Leiter>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, grab_height } => Nachricht::Gleis { gleis, grab_height },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
@@ -151,10 +151,10 @@ impl<Z: Zugtyp> From<NachrichtClone<Z>> for Nachricht<Z> {
 }
 
 #[derive(zugkontrolle_derive::Debug)]
-#[zugkontrolle_debug(Z: Zugtyp, <Z::Leiter as Serialisiere>::Serialisiert: Debug)]
-pub enum Nachricht<Z: Zugtyp> {
+#[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
+pub enum Nachricht<Leiter: LeiterAnzeige> {
     Gleis {
-        gleis: AnyGleisUnit<Z>,
+        gleis: AnyGleisUnit,
         grab_height: Skalar,
     },
     Modus(Modus),
@@ -174,30 +174,30 @@ pub enum Nachricht<Z: Zugtyp> {
         OutputSerialisiert,
     ),
     LöscheStreckenabschnitt(StreckenabschnittId),
-    SetzeStreckenabschnitt(AnyId<Z>),
+    SetzeStreckenabschnitt(AnyId),
     StreckenabschnittFestlegen(bool),
     Speichern(String),
     EntferneSpeichernFarbe(Instant),
     Laden(String),
     GeschwindigkeitAnzeige {
         name: geschwindigkeit::Name,
-        nachricht: <Z::Leiter as LeiterAnzeige>::Nachricht,
+        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
     },
     ZeigeAuswahlGeschwindigkeit,
-    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Z::Leiter>),
+    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>),
     LöscheGeschwindigkeit(geschwindigkeit::Name),
-    ZeigeAnschlüsseAnpassen(AnyId<Z>),
-    AnschlüsseAnpassen(AnschlüsseAnpassen<Z>),
-    FahrenAktion(AnyId<Z>),
+    ZeigeAnschlüsseAnpassen(AnyId),
+    AnschlüsseAnpassen(AnschlüsseAnpassen),
+    FahrenAktion(AnyId),
     AsyncFehler {
         titel: String,
         nachricht: String,
-        zustand_zurücksetzen: ZustandZurücksetzen<Z>,
+        zustand_zurücksetzen: ZustandZurücksetzen,
     },
 }
 
-impl<Z: Zugtyp> From<gleise::Nachricht<Z>> for Nachricht<Z> {
-    fn from(message: gleise::Nachricht<Z>) -> Self {
+impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
+    fn from(message: gleise::Nachricht<Leiter>) -> Self {
         match message {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
                 Nachricht::SetzeStreckenabschnitt(any_id)
@@ -210,12 +210,11 @@ impl<Z: Zugtyp> From<gleise::Nachricht<Z>> for Nachricht<Z> {
     }
 }
 
-impl<T, Z> ButtonNachricht<NachrichtClone<Z>> for T
+impl<T, Leiter> ButtonNachricht<NachrichtClone<Leiter>> for T
 where
-    T: Clone + Into<AnyGleisUnit<Z>>,
-    Z: Zugtyp,
+    T: Clone + Into<AnyGleisUnit>,
 {
-    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Z> {
+    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Leiter> {
         NachrichtClone::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
     }
 }
@@ -224,12 +223,11 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<Z> Nachricht<Z>
+impl<Leiter: Serialisiere> Nachricht<Leiter>
 where
-    Z: Zugtyp + 'static,
-    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Send,
+    Leiter::Serialisiert: Debug + Send,
 {
-    fn als_command(self) -> iced::Command<Nachricht<Z>> {
+    fn als_command(self) -> iced::Command<Nachricht<Leiter>> {
         iced::Command::perform(async_identity(self), identity)
     }
 }
@@ -261,17 +259,20 @@ type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
-type ErstelleAnschlussNachricht<T, Z> = Arc<dyn Fn(Option<T>) -> Nachricht<Z>>;
+type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
 
-pub enum AuswahlStatus<Z: Zugtyp> {
+pub enum AuswahlStatus<Leiter> {
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
-    Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Z>),
-    DreiwegeWeiche(DreiwegeWeicheStatus, ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Z>),
-    KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Z>),
+    Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
+    DreiwegeWeiche(
+        DreiwegeWeicheStatus,
+        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Leiter>,
+    ),
+    KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
 }
 
-impl<Z: Zugtyp> Debug for AuswahlStatus<Z> {
+impl<Leiter> Debug for AuswahlStatus<Leiter> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Streckenabschnitt(arg0) => {
@@ -358,8 +359,10 @@ impl App {
         let logger_handle = logger.start()?;
 
         match zugtyp {
-            args::Zugtyp::Märklin => <Zugkontrolle<Märklin> as iced::Application>::run(settings)?,
-            args::Zugtyp::Lego => <Zugkontrolle<Lego> as iced::Application>::run(settings)?,
+            args::Zugtyp::Märklin => {
+                <Zugkontrolle<Mittelleiter> as iced::Application>::run(settings)?
+            }
+            args::Zugtyp::Lego => <Zugkontrolle<Zweileiter> as iced::Application>::run(settings)?,
         }
 
         // explizit drop aufrufen, damit logger_handle lang genau in scope bleibt.
@@ -369,21 +372,20 @@ impl App {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug)]
-#[zugkontrolle_debug(Z: Zugtyp, Z::Leiter: Debug)]
-pub struct Zugkontrolle<Z: Zugtyp> {
-    gleise: Gleise<Z>,
+#[derive(Debug)]
+pub struct Zugkontrolle<Leiter> {
+    gleise: Gleise<Leiter>,
     lager: crate::anschluss::Lager,
     scrollable_state: iced::scrollable::State,
-    geraden: Vec<Button<GeradeUnit<Z>>>,
-    kurven: Vec<Button<KurveUnit<Z>>>,
-    weichen: Vec<Button<WeicheUnit<Z>>>,
-    dreiwege_weichen: Vec<Button<DreiwegeWeicheUnit<Z>>>,
-    kurven_weichen: Vec<Button<KurvenWeicheUnit<Z>>>,
-    s_kurven_weichen: Vec<Button<SKurvenWeicheUnit<Z>>>,
-    kreuzungen: Vec<Button<KreuzungUnit<Z>>>,
-    geschwindigkeiten: geschwindigkeit::Map<Z::Leiter>,
-    modal_status: modal::Status<AuswahlStatus<Z>>,
+    geraden: Vec<Button<GeradeUnit>>,
+    kurven: Vec<Button<KurveUnit>>,
+    weichen: Vec<Button<WeicheUnit>>,
+    dreiwege_weichen: Vec<Button<DreiwegeWeicheUnit>>,
+    kurven_weichen: Vec<Button<KurvenWeicheUnit>>,
+    s_kurven_weichen: Vec<Button<SKurvenWeicheUnit>>,
+    kreuzungen: Vec<Button<KreuzungUnit>>,
+    geschwindigkeiten: geschwindigkeit::Map<Leiter>,
+    modal_status: modal::Status<AuswahlStatus>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,
@@ -394,20 +396,19 @@ pub struct Zugkontrolle<Z: Zugtyp> {
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
-    sender: Sender<Nachricht<Z>>,
-    empfänger: Empfänger<Nachricht<Z>>,
+    sender: Sender<Nachricht<Leiter>>,
+    empfänger: Empfänger<Nachricht<Leiter>>,
     // TODO Plan
 }
 
 #[allow(single_use_lifetimes)]
-impl<Z> iced::Application for Zugkontrolle<Z>
+impl<Leiter: Serialisiere> iced::Application for Zugkontrolle<Leiter>
 where
-    Z: Zugtyp + Serialize + for<'de> Deserialize<'de> + 'static,
-    <Z::Leiter as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
+    Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
     type Flags = (Args, crate::anschluss::Lager);
-    type Message = Nachricht<Z>;
+    type Message = Nachricht<Leiter>;
 
     fn new((args, lager): Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
@@ -418,6 +419,19 @@ where
             Skalar(zoom),
         );
 
+        let Zugtyp {
+            name,
+            leiter: _,
+            spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        } = todo!();
+
         let command: iced::Command<Self::Message>;
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
@@ -425,7 +439,7 @@ where
             aktueller_pfad = pfad.clone();
         } else {
             command = iced::Command::none();
-            aktueller_pfad = format!("{}.zug", Z::NAME);
+            aktueller_pfad = format!("{}.zug", todo!("name"));
         };
 
         let (sender, receiver) = channel();
@@ -433,13 +447,13 @@ where
             gleise,
             lager,
             scrollable_state: iced::scrollable::State::new(),
-            geraden: Z::geraden().into_iter().map(Button::neu).collect(),
-            kurven: Z::kurven().into_iter().map(Button::neu).collect(),
-            weichen: Z::weichen().into_iter().map(Button::neu).collect(),
-            dreiwege_weichen: Z::dreiwege_weichen().into_iter().map(Button::neu).collect(),
-            kurven_weichen: Z::kurven_weichen().into_iter().map(Button::neu).collect(),
-            s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::neu).collect(),
-            kreuzungen: Z::kreuzungen().into_iter().map(Button::neu).collect(),
+            geraden: geraden.into_iter().map(Button::neu).collect(),
+            kurven: kurven.into_iter().map(Button::neu).collect(),
+            weichen: weichen.into_iter().map(Button::neu).collect(),
+            dreiwege_weichen: dreiwege_weichen.into_iter().map(Button::neu).collect(),
+            kurven_weichen: kurven_weichen.into_iter().map(Button::neu).collect(),
+            s_kurven_weichen: s_kurven_weichen.into_iter().map(Button::neu).collect(),
+            kreuzungen: kreuzungen.into_iter().map(Button::neu).collect(),
             geschwindigkeiten: geschwindigkeit::Map::new(),
             modal_status: modal::Status::neu(),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),

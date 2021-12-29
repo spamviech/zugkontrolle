@@ -97,21 +97,18 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     }
 }
 
-pub(in crate::application) type StreckenabschnittMap<Z> =
-    HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten<Z>)>;
-type GeschwindigkeitMap<Z> = HashMap<
-    geschwindigkeit::Name,
-    (Geschwindigkeit<<Z as Zugtyp>::Leiter>, StreckenabschnittMap<Z>),
->;
-#[derive(zugkontrolle_derive::Debug)]
-#[zugkontrolle_debug(Z: Zugtyp, <Z as Zugtyp>::Leiter: Debug)]
-pub struct Zustand<Z: Zugtyp> {
-    pub(crate) ohne_streckenabschnitt: GleiseDaten<Z>,
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMap<Z>,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMap<Z>,
+pub(in crate::application) type StreckenabschnittMap =
+    HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten)>;
+type GeschwindigkeitMap<Leiter> =
+    HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
+#[derive(Debug)]
+pub struct Zustand<Leiter> {
+    pub(crate) ohne_streckenabschnitt: GleiseDaten,
+    pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMap<Leiter>,
 }
 
-impl<Z: Zugtyp> Zustand<Z> {
+impl Zustand {
     pub fn neu() -> Self {
         Zustand {
             ohne_streckenabschnitt: GleiseDaten::neu(),
@@ -123,7 +120,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn streckenabschnitt_map(
         &self,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
-    ) -> Result<&StreckenabschnittMap<Z>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&StreckenabschnittMap, GeschwindigkeitEntferntFehler> {
         Ok(if let Some(name) = geschwindigkeit {
             &self
                 .geschwindigkeiten
@@ -138,7 +135,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn streckenabschnitt_map_mut(
         &mut self,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
-    ) -> Result<&mut StreckenabschnittMap<Z>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&mut StreckenabschnittMap, GeschwindigkeitEntferntFehler> {
         Ok(if let Some(name) = geschwindigkeit {
             &mut self
                 .geschwindigkeiten
@@ -153,7 +150,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn daten_mut(
         &mut self,
         streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&mut GleiseDaten<Z>, StreckenabschnittIdFehler> {
+    ) -> Result<&mut GleiseDaten, StreckenabschnittIdFehler> {
         Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
             let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
             let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
@@ -172,7 +169,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     pub(in crate::application) fn alle_streckenabschnitt_daten<'t>(
         &'t self,
-    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
+    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
         iter::once((None, &self.ohne_streckenabschnitt))
             .chain(self.ohne_geschwindigkeit.iter().map(
                 |(name, (_streckenabschnitt, _fließend, daten))| {
@@ -197,12 +194,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application) fn alle_streckenabschnitt_und_daten<'t>(
         &'t self,
     ) -> impl Iterator<
-        Item = (
-            StreckenabschnittIdRef<'t>,
-            &'t Streckenabschnitt,
-            &'t Fließend,
-            &'t GleiseDaten<Z>,
-        ),
+        Item = (StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend, &'t GleiseDaten),
     > {
         let iter_map = |geschwindigkeit: Option<&'t _>| {
             move |(name, (streckenabschnitt, fließend, daten)): (&'t _, &'t (_, _, _))| {
@@ -225,7 +217,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     pub(in crate::application) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(
         &'t self,
-    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)> {
+    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
         iter::once((None, &self.ohne_streckenabschnitt))
             .chain(self.ohne_geschwindigkeit.iter().map(
                 |(name, (_streckenabschnitt, _fließend, daten))| {
@@ -253,8 +245,8 @@ impl<Z: Zugtyp> Zustand<Z> {
     pub(in crate::application::gleis::gleise) fn überlappende_verbindungen<'t>(
         &'t self,
         verbindung: &'t Verbindung,
-        eigene_id: Option<&'t AnyIdRef<'t, Z>>,
-        gehalten_id: Option<&'t AnyId<Z>>,
+        eigene_id: Option<&'t AnyIdRef<'t>>,
+        gehalten_id: Option<&'t AnyId>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
         let überlappend = self.alle_geschwindigkeit_streckenabschnitt_daten().flat_map(
@@ -262,7 +254,7 @@ impl<Z: Zugtyp> Zustand<Z> {
                 macro_rules! überlappende_verbindungen {
                     ($gleis: ident) => {{
                         let (überlappend_daten, gehalten_daten) = daten
-                            .überlappende_verbindungen::<$gleis<Z>>(
+                            .überlappende_verbindungen::<$gleis>(
                                 verbindung,
                                 streckenabschnitt.clone(),
                                 eigene_id,
@@ -307,7 +299,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(crate) fn hinzufügen<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         definition: T,
         mut position: Position,
@@ -336,7 +328,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
-        T: Zeichnen + DatenAuswahl<Z>,
+        T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         // berechne neue position
@@ -346,10 +338,10 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 
     /// Bewege ein Gleis an die neue position.
-    fn bewegen_aux<T: Zeichnen + DatenAuswahl<Z>>(
+    fn bewegen_aux<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        berechne_position: impl FnOnce(&Zustand<Z>, &Gleis<T>) -> Position,
+        berechne_position: impl FnOnce(&Zustand, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         // Entferne aktuellen Eintrag.
@@ -375,7 +367,7 @@ impl<Z: Zugtyp> Zustand<Z> {
 
     /// Bewege ein Gleis an die neue position.
     #[inline(always)]
-    pub(crate) fn bewegen<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn bewegen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
         mut position_neu: Position,
@@ -398,7 +390,7 @@ impl<Z: Zugtyp> Zustand<Z> {
         ziel_verbindung: Verbindung,
     ) -> Result<(), GleisIdFehler>
     where
-        T: Zeichnen + DatenAuswahl<Z>,
+        T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
         self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
@@ -407,7 +399,7 @@ impl<Z: Zugtyp> Zustand<Z> {
     }
 
     /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T: Zeichnen + DatenAuswahl<Z>>(
+    pub(crate) fn entfernen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Gleis<T>, GleisIdFehler> {
@@ -451,18 +443,19 @@ impl Position {
 }
 
 pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
-#[derive(zugkontrolle_derive::Debug)]
-pub(crate) struct GleiseDaten<Z> {
-    pub(crate) geraden: RStern<Gerade<Z>>,
-    pub(crate) kurven: RStern<Kurve<Z>>,
-    pub(crate) weichen: RStern<Weiche<Z>>,
-    pub(crate) dreiwege_weichen: RStern<DreiwegeWeiche<Z>>,
-    pub(crate) kurven_weichen: RStern<KurvenWeiche<Z>>,
-    pub(crate) s_kurven_weichen: RStern<SKurvenWeiche<Z>>,
-    pub(crate) kreuzungen: RStern<Kreuzung<Z>>,
+
+#[derive(Debug)]
+pub(crate) struct GleiseDaten {
+    pub(crate) geraden: RStern<Gerade>,
+    pub(crate) kurven: RStern<Kurve>,
+    pub(crate) weichen: RStern<Weiche>,
+    pub(crate) dreiwege_weichen: RStern<DreiwegeWeiche>,
+    pub(crate) kurven_weichen: RStern<KurvenWeiche>,
+    pub(crate) s_kurven_weichen: RStern<SKurvenWeiche>,
+    pub(crate) kreuzungen: RStern<Kreuzung>,
 }
 
-impl<Z> GleiseDaten<Z> {
+impl GleiseDaten {
     /// Erstelle eine leere `GleiseDaten`-Struktur.
     pub(crate) fn neu() -> Self {
         GleiseDaten {
@@ -483,12 +476,12 @@ impl<Z> GleiseDaten<Z> {
         &'t self,
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        eigene_id: Option<&'t AnyIdRef<'t, Z>>,
-        gehalten_id: Option<&'t AnyId<Z>>,
+        eigene_id: Option<&'t AnyIdRef<'t>>,
+        gehalten_id: Option<&'t AnyId>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
-        T: Zeichnen + DatenAuswahl<Z> + 't,
-        AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+        T: Zeichnen + DatenAuswahl + 't,
+        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
         let vektor_genauigkeit = Vektor {
             x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
@@ -582,73 +575,73 @@ where
 
 /// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
 /// Kein schönes API, daher nur crate-public.
-pub(crate) trait DatenAuswahl<Z>: Sized {
-    fn rstern(gleise: &GleiseDaten<Z>) -> &RStern<Self>;
-    fn rstern_mut(gleise: &mut GleiseDaten<Z>) -> &mut RStern<Self>;
+pub(crate) trait DatenAuswahl: Sized {
+    fn rstern(gleise: &GleiseDaten) -> &RStern<Self>;
+    fn rstern_mut(gleise: &mut GleiseDaten) -> &mut RStern<Self>;
 }
-impl<Z> GleiseDaten<Z> {
+impl GleiseDaten {
     #[inline(always)]
-    pub(crate) fn rstern<T: DatenAuswahl<Z>>(&self) -> &RStern<T> {
+    pub(crate) fn rstern<T: DatenAuswahl>(&self) -> &RStern<T> {
         T::rstern(self)
     }
     #[inline(always)]
-    pub(crate) fn rstern_mut<T: DatenAuswahl<Z>>(&mut self) -> &mut RStern<T> {
+    pub(crate) fn rstern_mut<T: DatenAuswahl>(&mut self) -> &mut RStern<T> {
         T::rstern_mut(self)
     }
 }
-impl<Z> DatenAuswahl<Z> for Gerade<Z> {
-    fn rstern(GleiseDaten { geraden, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for Gerade {
+    fn rstern(GleiseDaten { geraden, .. }: &GleiseDaten) -> &RStern<Self> {
         geraden
     }
-    fn rstern_mut(GleiseDaten { geraden, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { geraden, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         geraden
     }
 }
-impl<Z> DatenAuswahl<Z> for Kurve<Z> {
-    fn rstern(GleiseDaten { kurven, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for Kurve {
+    fn rstern(GleiseDaten { kurven, .. }: &GleiseDaten) -> &RStern<Self> {
         kurven
     }
-    fn rstern_mut(GleiseDaten { kurven, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kurven, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         kurven
     }
 }
-impl<Z> DatenAuswahl<Z> for Weiche<Z> {
-    fn rstern(GleiseDaten { weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for Weiche {
+    fn rstern(GleiseDaten { weichen, .. }: &GleiseDaten) -> &RStern<Self> {
         weichen
     }
-    fn rstern_mut(GleiseDaten { weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { weichen, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         weichen
     }
 }
-impl<Z> DatenAuswahl<Z> for DreiwegeWeiche<Z> {
-    fn rstern(GleiseDaten { dreiwege_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for DreiwegeWeiche {
+    fn rstern(GleiseDaten { dreiwege_weichen, .. }: &GleiseDaten) -> &RStern<Self> {
         dreiwege_weichen
     }
-    fn rstern_mut(GleiseDaten { dreiwege_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { dreiwege_weichen, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         dreiwege_weichen
     }
 }
-impl<Z> DatenAuswahl<Z> for KurvenWeiche<Z> {
-    fn rstern(GleiseDaten { kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for KurvenWeiche {
+    fn rstern(GleiseDaten { kurven_weichen, .. }: &GleiseDaten) -> &RStern<Self> {
         kurven_weichen
     }
-    fn rstern_mut(GleiseDaten { kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kurven_weichen, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         kurven_weichen
     }
 }
-impl<Z> DatenAuswahl<Z> for SKurvenWeiche<Z> {
-    fn rstern(GleiseDaten { s_kurven_weichen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for SKurvenWeiche {
+    fn rstern(GleiseDaten { s_kurven_weichen, .. }: &GleiseDaten) -> &RStern<Self> {
         s_kurven_weichen
     }
-    fn rstern_mut(GleiseDaten { s_kurven_weichen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { s_kurven_weichen, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         s_kurven_weichen
     }
 }
-impl<Z> DatenAuswahl<Z> for Kreuzung<Z> {
-    fn rstern(GleiseDaten { kreuzungen, .. }: &GleiseDaten<Z>) -> &RStern<Self> {
+impl DatenAuswahl for Kreuzung {
+    fn rstern(GleiseDaten { kreuzungen, .. }: &GleiseDaten) -> &RStern<Self> {
         kreuzungen
     }
-    fn rstern_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten<Z>) -> &mut RStern<Self> {
+    fn rstern_mut(GleiseDaten { kreuzungen, .. }: &mut GleiseDaten) -> &mut RStern<Self> {
         kreuzungen
     }
 }
