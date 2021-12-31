@@ -85,8 +85,8 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
         let zugtyp = seq.next_element()?.ok_or_else(|| invalid_length_fehler(0))?;
         let leiter = seq.next_element()?.ok_or_else(|| invalid_length_fehler(1))?;
         let ohne_streckenabschnitt = seq.next_element()?.ok_or_else(|| invalid_length_fehler(2))?;
-        let ohne_geschwindigkeit = seq.next_element()?.ok_or_else(|| invalid_length_fehler(3))?;
-        let geschwindigkeiten = seq.next_element()?.ok_or_else(|| invalid_length_fehler(4))?;
+        let ohne_geschwindigkeit = seq.next_element()?.unwrap_or_else(HashMap::new);
+        let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
         let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
         Ok(ZustandSerialisiert {
             zugtyp,
@@ -152,10 +152,8 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
         let leiter = leiter.ok_or_else(|| de::Error::missing_field("leiter"))?;
         let ohne_streckenabschnitt = ohne_streckenabschnitt
             .ok_or_else(|| de::Error::missing_field("ohne_streckenabschnitt"))?;
-        let ohne_geschwindigkeit =
-            ohne_geschwindigkeit.ok_or_else(|| de::Error::missing_field("ohne_geschwindigkeit"))?;
-        let geschwindigkeiten =
-            geschwindigkeiten.ok_or_else(|| de::Error::missing_field("geschwindigkeiten"))?;
+        let ohne_geschwindigkeit = ohne_geschwindigkeit.unwrap_or_else(HashMap::new);
+        let geschwindigkeiten = geschwindigkeiten.unwrap_or_else(HashMap::new);
         let pläne = pläne.unwrap_or_else(Vec::new);
         Ok(ZustandSerialisiert {
             zugtyp,
