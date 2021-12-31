@@ -467,11 +467,14 @@ where
                 InternalMessage::A2(a2) => self.beschreibung.a2 = a2,
                 InternalMessage::Variante(variante) => self.beschreibung.variante = variante,
                 InternalMessage::Port(port) => {
-                    *self.port = if port > u8::from(u3::MAX) {
+                    // u3: TryFrom<u8> nicht implementiert
+                    // NumCast::from ebenfalls nicht möglich (auch bei aktiviertem "num"-feature)
+                    // daher `u3::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
+                    *self.port = if port <= u8::from(u3::MAX) {
+                        u3::new(port)
+                    } else {
                         error!("Port {} > u3::MAX {}", port, u3::MAX);
                         u3::MAX
-                    } else {
-                        u3::new(port)
                     }
                 }
                 InternalMessage::Modus(msg) => (self.update_modus)(self.modus, msg),

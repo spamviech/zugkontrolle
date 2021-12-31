@@ -1614,7 +1614,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61b6527ca60778d8fe24ed501d81828975da152e6103f75596f012188d26339a"
 dependencies = [
  "cfg-if 0.1.10",
- "num-traits",
  "serde",
 ]
 
