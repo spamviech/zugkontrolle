@@ -1,6 +1,12 @@
 //! Kommandozeilen-Argumente.
 
-use std::{convert::identity, env, ffi::OsString, fmt::Debug, str::FromStr};
+use std::{
+    convert::identity,
+    env,
+    ffi::OsString,
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use version::version;
@@ -359,6 +365,13 @@ impl<T> ArgBeschreibung<T> {
     }
 }
 
+impl<T: Display> ArgBeschreibung<T> {
+    pub fn als_string_beschreibung(self) -> ArgBeschreibung<String> {
+        let ArgBeschreibung { lang, kurz, hilfe, standard } = self;
+        ArgBeschreibung { lang, kurz, hilfe, standard: standard.map(|t| t.to_string()) }
+    }
+}
+
 pub enum Arg<T> {
     Flag {
         beschreibung: ArgBeschreibung<T>,
@@ -395,5 +408,51 @@ impl<T> Arg<T> {
             Arg::Flag { beschreibung, .. } => ArgKonfiguration::Flag(beschreibung.als_arg_name()),
             Arg::Wert { beschreibung, .. } => ArgKonfiguration::Wert(beschreibung.als_arg_name()),
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum ArgString {
+    Flag { beschreibung: ArgBeschreibung<String> },
+    Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
+}
+
+pub struct ArgKombination<T> {
+    pub beschreibung: Vec<ArgString>,
+    pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<&OsString>>>,
+    // Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<&OsString>>
+    // with combine2(impl Fn(A, B) -> C, Arg<A>, Arg<B>) -> Arg<C>
+}
+
+impl<T> Debug for ArgKombination<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ArgKombination")
+            .field("beschreibung", &self.beschreibung)
+            .field("parse", &"<function>")
+            .finish()
+    }
+}
+
+impl<T: Display> ArgKombination<T> {
+    pub fn aus_arg(arg: Arg<T>) -> ArgKombination<T> {
+        match arg {
+            Arg::Flag { beschreibung, aus_bool } => ArgKombination {
+                beschreibung: vec![ArgString::Flag {
+                    beschreibung: beschreibung.als_string_beschreibung(),
+                }],
+                parse: Box::new(|args| todo!()),
+            },
+            Arg::Wert { beschreibung, meta_var, parse } => ArgKombination {
+                beschreibung: vec![ArgString::Wert {
+                    beschreibung: beschreibung.als_string_beschreibung(),
+                    meta_var,
+                }],
+                parse: Box::new(|args| todo!()),
+            },
+        }
+    }
+
+    pub fn kombiniere2<A, B>(f: impl Fn(A, B) -> T, a: Arg<A>, b: Arg<B>) -> ArgKombination<T> {
+        todo!()
     }
 }
