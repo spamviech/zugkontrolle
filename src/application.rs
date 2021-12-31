@@ -376,7 +376,7 @@ impl App {
             )?,
         }
 
-        // explizit drop aufrufen, damit logger_handle lang genau in scope bleibt.
+        // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
         drop(logger_handle);
 
         Ok(())
