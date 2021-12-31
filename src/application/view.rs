@@ -1,7 +1,5 @@
 //! Methoden für die view-Methode des iced::Application-Traits
 
-use std::iter;
-
 use log::error;
 use num_traits::NumCast;
 
@@ -289,7 +287,6 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
     gleise: &Gleise<Leiter>,
 ) -> iced::Row<'t, Nachricht<Leiter>> {
-    let spurweite = todo!("spurweite");
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();
@@ -299,8 +296,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
             let mut max_width = None;
             fn buttons_hinzufügen<'t, Leiter, T>(
                 max_width: &mut Option<u16>,
-                spurweite: Spurweite,
-                scrollable: &'t mut iced::Scrollable<'t, NachrichtClone<Leiter>>,
+                scrollable: &mut iced::Scrollable<'t, NachrichtClone<Leiter>>,
                 buttons: &'t mut Vec<Button<T>>,
             ) where
                 Leiter: 'static + LeiterAnzeige,
@@ -308,17 +304,17 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
             {
                 take_mut::take(scrollable, |mut scrollable| {
                     for button in buttons {
-                        let größe = button.rechteck(spurweite).größe();
+                        let größe = button.rechteck().größe();
                         let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
                         *max_width = (*max_width).max(Some(breite));
-                        scrollable = scrollable.push(button.als_iced_widget(spurweite, *max_width))
+                        scrollable = scrollable.push(button.als_iced_widget(*max_width))
                     }
                     scrollable
                 })
             }
             macro_rules! buttons_hinzufügen {
-                ($($vec: expr),*) => {
-                    $(buttons_hinzufügen(&mut max_width, spurweite, &mut scrollable, $vec);)*
+                ($($vec: expr),* $(,)?) => {
+                    $(buttons_hinzufügen(&mut max_width, &mut scrollable, $vec);)*
                 }
             }
             buttons_hinzufügen!(

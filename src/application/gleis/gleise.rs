@@ -16,6 +16,7 @@ use crate::{
     anschluss::{self, Fließend},
     application::typen::*,
     steuerung::{geschwindigkeit, streckenabschnitt, Geschwindigkeit, Streckenabschnitt},
+    zugtyp::Zugtyp,
 };
 
 pub mod daten;
@@ -64,12 +65,12 @@ pub struct Gleise<Leiter> {
 }
 
 impl<Leiter> Gleise<Leiter> {
-    pub fn neu(modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
+    pub fn neu(zugtyp: Zugtyp<Leiter>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
             canvas: canvas::Cache::neu(),
             pivot,
             skalieren,
-            zustand: Zustand::neu(),
+            zustand: Zustand::neu(zugtyp),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
@@ -369,6 +370,16 @@ impl<Leiter> Gleise<Leiter> {
             .geschwindigkeiten
             .iter()
             .map(|(name, (geschwindigkeit, _streckenabschnitt_map))| (name, geschwindigkeit))
+    }
+
+    /// Verwendeter Zugtyp.
+    pub fn zugtyp(&self) -> &Zugtyp<Leiter> {
+        &self.zustand.zugtyp
+    }
+
+    /// Spurweite des verwendeten Zugtyps.
+    pub fn spurweite(&self) -> Spurweite {
+        self.zustand.zugtyp.spurweite
     }
 }
 

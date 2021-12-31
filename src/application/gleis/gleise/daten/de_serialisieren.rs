@@ -214,7 +214,14 @@ impl<Leiter: Serialisiere> Zustand<Leiter> {
     }
 
     /// Erhalten alle verwendeten Anschlüsse.
+    #[inline(always)]
     pub fn anschlüsse(mut self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.anschlüsse_ausgeben()
+    }
+
+    fn anschlüsse_ausgeben(
+        &mut self,
+    ) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         let mut pwm_pins = Vec::new();
         let mut output_anschlüsse = Vec::new();
         let mut input_anschlüsse = Vec::new();
@@ -475,7 +482,12 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
                 })
             },
         )?;
-        Ok(Zustand { ohne_streckenabschnitt, ohne_geschwindigkeit, geschwindigkeiten })
+        Ok(Zustand {
+            zugtyp: self.zugtyp,
+            ohne_streckenabschnitt,
+            ohne_geschwindigkeit,
+            geschwindigkeiten,
+        })
     }
 }
 
@@ -658,14 +670,12 @@ impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
     ) -> Result<(), Fehler> {
-        // aktuellen Zustand zurücksetzen
+        // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.leeren();
-        let zustand = std::mem::replace(&mut self.zustand, Zustand::neu());
+        let (pwm_pins, output_anschlüsse, input_anschlüsse) = self.zustand.anschlüsse_ausgeben();
+
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
-
-        // sammle bisherige Anschlüsse
-        let (pwm_pins, output_anschlüsse, input_anschlüsse) = zustand.anschlüsse();
 
         // lese & parse Datei
         let mut file = std::fs::File::open(pfad)?;

@@ -22,33 +22,33 @@ const GREY_OUT_OF_BOUNDS: canvas::Color = canvas::Color::from_rgb(
 #[derive(Debug)]
 pub struct Button<T> {
     gleis: T,
+    spurweite: Spurweite,
     canvas: Cache,
     in_bounds: bool,
 }
 
 impl<T> Button<T> {
-    pub fn neu(gleis: T) -> Self {
-        Button { gleis, canvas: Cache::neu(), in_bounds: false }
+    pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
+        Button { gleis, spurweite, canvas: Cache::neu(), in_bounds: false }
     }
 }
 
 impl<T: Zeichnen> Button<T> {
-    pub fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    pub fn rechteck(&self) -> Rechteck {
         self.gleis
-            .rechteck(spurweite)
+            .rechteck(self.spurweite)
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
     pub fn als_iced_widget<'t, Nachricht>(
         &'t mut self,
-        spurweite: Spurweite,
         breite: Option<u16>,
     ) -> iced::Container<'t, Nachricht>
     where
         Nachricht: 'static,
         T: ButtonNachricht<Nachricht>,
     {
-        let größe = self.gleis.rechteck(spurweite).größe();
+        let größe = self.gleis.rechteck(self.spurweite).größe();
         let standard_breite = NumCast::from((STROKE_WIDTH + größe.x).0.ceil()).unwrap_or(u16::MAX);
         let höhe =
             NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
@@ -89,7 +89,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                     ..Default::default()
                 },
             );
-            let spurweite = todo!("spurweite");
+            let spurweite = self.spurweite;
             let rechteck = self.gleis.rechteck(spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(-rechteck_position));

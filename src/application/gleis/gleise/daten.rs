@@ -22,7 +22,7 @@ use crate::{
                     AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId,
                     StreckenabschnittIdRef,
                 },
-                GleisIdFehler, StreckenabschnittIdFehler,
+                GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
             },
             kreuzung::{Kreuzung, KreuzungSerialisiert},
             kurve::{Kurve, KurveSerialisiert},
@@ -43,9 +43,8 @@ use crate::{
         plan::Plan,
         streckenabschnitt::{self, Streckenabschnitt},
     },
+    zugtyp::Zugtyp,
 };
-
-use super::GeschwindigkeitEntferntFehler;
 
 pub mod de_serialisieren;
 pub mod v2;
@@ -103,14 +102,16 @@ type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
 #[derive(Debug)]
 pub struct Zustand<Leiter> {
+    pub(crate) zugtyp: Zugtyp<Leiter>,
     pub(crate) ohne_streckenabschnitt: GleiseDaten,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
     pub(crate) geschwindigkeiten: GeschwindigkeitMap<Leiter>,
 }
 
 impl<Leiter> Zustand<Leiter> {
-    pub fn neu() -> Self {
+    pub fn neu(zugtyp: Zugtyp<Leiter>) -> Self {
         Zustand {
+            zugtyp,
             ohne_streckenabschnitt: GleiseDaten::neu(),
             ohne_geschwindigkeit: StreckenabschnittMap::new(),
             geschwindigkeiten: GeschwindigkeitMap::new(),
@@ -255,6 +256,7 @@ impl<Leiter> Zustand<Leiter> {
                     ($gleis: ident) => {{
                         let (überlappend_daten, gehalten_daten) = daten
                             .überlappende_verbindungen::<$gleis>(
+                                self.zugtyp.spurweite,
                                 verbindung,
                                 streckenabschnitt.clone(),
                                 eigene_id,
@@ -284,7 +286,7 @@ impl<Leiter> Zustand<Leiter> {
     }
 
     fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
-        let spurweite = todo!("spurweite");
+        let spurweite = self.zugtyp.spurweite;
         let mut snap = None;
         let verbindungen = definition.verbindungen_an_position(spurweite, position.clone());
         verbindungen.for_each(|verbindung_name, verbindung| {
@@ -312,7 +314,7 @@ impl<Leiter> Zustand<Leiter> {
         streckenabschnitt: Option<StreckenabschnittId>,
         einrasten: bool,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler> {
-        let spurweite = todo!("spurweite");
+        let spurweite = self.zugtyp.spurweite;
         if einrasten {
             position = self.einraste_position(&definition, position)
         }
@@ -338,7 +340,7 @@ impl<Leiter> Zustand<Leiter> {
         T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let spurweite = todo!("spurweite");
+        let spurweite = self.zugtyp.spurweite;
         // berechne neue position
         let position =
             Position::anliegend_position(spurweite, &definition, verbindung_name, ziel_verbindung);
@@ -352,7 +354,7 @@ impl<Leiter> Zustand<Leiter> {
         gleis_id: &mut GleisId<T>,
         berechne_position: impl FnOnce(&Zustand<Leiter>, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
-        let spurweite = todo!("spurweite");
+        let spurweite = self.zugtyp.spurweite;
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         // Entferne aktuellen Eintrag.
         let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
@@ -402,7 +404,7 @@ impl<Leiter> Zustand<Leiter> {
         T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
     {
-        let spurweite = todo!("spurweite");
+        let spurweite = self.zugtyp.spurweite;
         self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
             Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung)
         })
@@ -485,6 +487,7 @@ impl GleiseDaten {
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
     fn überlappende_verbindungen<'t, T>(
         &'t self,
+        spurweite: Spurweite,
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
         eigene_id: Option<&'t AnyIdRef<'t>>,
@@ -494,7 +497,6 @@ impl GleiseDaten {
         T: Zeichnen + DatenAuswahl + 't,
         AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
-        let spurweite = todo!("spurweite");
         let vektor_genauigkeit = Vektor {
             x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
             y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,

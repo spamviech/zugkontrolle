@@ -34,7 +34,7 @@ use crate::{
         self,
         geschwindigkeit::{GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
     },
-    zugtyp::{lego, märklin, Zugtyp},
+    zugtyp::Zugtyp,
 };
 
 pub mod anschluss;
@@ -337,15 +337,21 @@ impl App {
             crate::anschluss::pcf8574::I2cSettings { i2c0_1, i2c3, i2c4, i2c5, i2c6 };
         let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
-        let settings = iced::Settings {
-            window: iced::window::Settings {
-                size: (1024, 768),
-                icon: icon(),
-                ..iced::window::Settings::default()
-            },
-            default_font: Some(&fonts::REGULAR),
-            ..iced::Settings::with_flags((args, lager))
-        };
+        fn erstelle_settings<Leiter>(
+            args: Args,
+            lager: crate::anschluss::Lager,
+            zugtyp: Zugtyp<Leiter>,
+        ) -> iced::Settings<(Args, crate::anschluss::Lager, Zugtyp<Leiter>)> {
+            iced::Settings {
+                window: iced::window::Settings {
+                    size: (1024, 768),
+                    icon: icon(),
+                    ..iced::window::Settings::default()
+                },
+                default_font: Some(&fonts::REGULAR),
+                ..iced::Settings::with_flags((args, lager, zugtyp))
+            }
+        }
 
         let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
         let mut log_spec_builder = LogSpecBuilder::new();
@@ -362,10 +368,12 @@ impl App {
         let logger_handle = logger.start()?;
 
         match zugtyp {
-            args::Zugtyp::Märklin => {
-                <Zugkontrolle<Mittelleiter> as iced::Application>::run(settings)?
-            }
-            args::Zugtyp::Lego => <Zugkontrolle<Zweileiter> as iced::Application>::run(settings)?,
+            args::Zugtyp::Märklin => <Zugkontrolle<Mittelleiter> as iced::Application>::run(
+                erstelle_settings(args, lager, Zugtyp::märklin()),
+            )?,
+            args::Zugtyp::Lego => <Zugkontrolle<Zweileiter> as iced::Application>::run(
+                erstelle_settings(args, lager, Zugtyp::lego()),
+            )?,
         }
 
         // explizit drop aufrufen, damit logger_handle lang genau in scope bleibt.
@@ -411,30 +419,11 @@ where
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Args, crate::anschluss::Lager);
+    type Flags = (Args, crate::anschluss::Lager, Zugtyp<Leiter>);
     type Message = Nachricht<Leiter>;
 
-    fn new((args, lager): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new((args, lager, zugtyp): Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
-
-        let gleise = Gleise::neu(
-            modus,
-            Position { punkt: Vektor { x: Skalar(x), y: Skalar(y) }, winkel: Winkel(winkel) },
-            Skalar(zoom),
-        );
-
-        let Zugtyp {
-            name,
-            leiter: _,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        }: Zugtyp<Leiter> = todo!();
 
         let command: iced::Command<Self::Message>;
         let aktueller_pfad: String;
@@ -443,21 +432,41 @@ where
             aktueller_pfad = pfad.clone();
         } else {
             command = iced::Command::none();
-            aktueller_pfad = format!("{}.zug", todo!("name"));
+            aktueller_pfad = zugtyp.name.clone();
         };
+
+        macro_rules! erstelle_button {
+            () => {
+                |gleis| Button::neu(gleis.clone(), zugtyp.spurweite)
+            };
+        }
+        let geraden = zugtyp.geraden.iter().map(erstelle_button!()).collect();
+        let kurven = zugtyp.kurven.iter().map(erstelle_button!()).collect();
+        let weichen = zugtyp.weichen.iter().map(erstelle_button!()).collect();
+        let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_button!()).collect();
+        let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_button!()).collect();
+        let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_button!()).collect();
+        let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_button!()).collect();
+
+        let gleise = Gleise::neu(
+            zugtyp,
+            modus,
+            Position { punkt: Vektor { x: Skalar(x), y: Skalar(y) }, winkel: Winkel(winkel) },
+            Skalar(zoom),
+        );
 
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,
             scrollable_state: iced::scrollable::State::new(),
-            geraden: geraden.into_iter().map(Button::neu).collect(),
-            kurven: kurven.into_iter().map(Button::neu).collect(),
-            weichen: weichen.into_iter().map(Button::neu).collect(),
-            dreiwege_weichen: dreiwege_weichen.into_iter().map(Button::neu).collect(),
-            kurven_weichen: kurven_weichen.into_iter().map(Button::neu).collect(),
-            s_kurven_weichen: s_kurven_weichen.into_iter().map(Button::neu).collect(),
-            kreuzungen: kreuzungen.into_iter().map(Button::neu).collect(),
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
             geschwindigkeiten: geschwindigkeit::Map::new(),
             modal_status: modal::Status::neu(),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
