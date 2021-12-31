@@ -85,21 +85,16 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for GleiseVecsVisitor<Leiter> {
 
     fn visit_seq<V: SeqAccess<'de>>(self, mut seq: V) -> Result<GleiseVecs<Leiter>, V::Error> {
         let name = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
-        let geraden = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(1, &self))?;
-        let kurven = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(2, &self))?;
-        let weichen = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(3, &self))?;
-        let dreiwege_weichen =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(4, &self))?;
-        let kurven_weichen =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
-        let s_kurven_weichen =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
-        let kreuzungen = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
-        let streckenabschnitte =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
-        let geschwindigkeiten =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
-        let pläne = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
+        let geraden = seq.next_element()?.unwrap_or_else(Vec::new);
+        let kurven = seq.next_element()?.unwrap_or_else(Vec::new);
+        let weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        let dreiwege_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        let kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        let s_kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        let kreuzungen = seq.next_element()?.unwrap_or_else(Vec::new);
+        let streckenabschnitte = seq.next_element()?.unwrap_or_else(HashMap::new);
+        let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
+        let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
         Ok(GleiseVecs {
             name,
             geraden,
@@ -198,21 +193,16 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for GleiseVecsVisitor<Leiter> {
             }
         }
         let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-        let geraden = geraden.ok_or_else(|| de::Error::missing_field("geraden"))?;
-        let kurven = kurven.ok_or_else(|| de::Error::missing_field("kurven"))?;
-        let weichen = weichen.ok_or_else(|| de::Error::missing_field("weichen"))?;
-        let dreiwege_weichen =
-            dreiwege_weichen.ok_or_else(|| de::Error::missing_field("dreiwege_weichen"))?;
-        let kurven_weichen =
-            kurven_weichen.ok_or_else(|| de::Error::missing_field("kurven_weichen"))?;
-        let s_kurven_weichen =
-            s_kurven_weichen.ok_or_else(|| de::Error::missing_field("s_kurven_weichen"))?;
-        let kreuzungen = kreuzungen.ok_or_else(|| de::Error::missing_field("kreuzungen"))?;
-        let streckenabschnitte =
-            streckenabschnitte.ok_or_else(|| de::Error::missing_field("streckenabschnitte"))?;
-        let geschwindigkeiten =
-            geschwindigkeiten.ok_or_else(|| de::Error::missing_field("geschwindigkeiten"))?;
-        let pläne = pläne.ok_or_else(|| de::Error::missing_field("pläne"))?;
+        let geraden = geraden.unwrap_or_else(Vec::new);
+        let kurven = kurven.unwrap_or_else(Vec::new);
+        let weichen = weichen.unwrap_or_else(Vec::new);
+        let dreiwege_weichen = dreiwege_weichen.unwrap_or_else(Vec::new);
+        let kurven_weichen = kurven_weichen.unwrap_or_else(Vec::new);
+        let s_kurven_weichen = s_kurven_weichen.unwrap_or_else(Vec::new);
+        let kreuzungen = kreuzungen.unwrap_or_else(Vec::new);
+        let streckenabschnitte = streckenabschnitte.unwrap_or_else(HashMap::new);
+        let geschwindigkeiten = geschwindigkeiten.unwrap_or_else(HashMap::new);
+        let pläne = pläne.unwrap_or_else(Vec::new);
         Ok(GleiseVecs {
             name,
             geraden,
