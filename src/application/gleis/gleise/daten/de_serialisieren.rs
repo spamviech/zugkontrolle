@@ -180,7 +180,7 @@ impl<'de, Leiter: Serialisiere> Deserialize<'de> for ZustandSerialisiert<Leiter>
     }
 }
 
-impl<Leiter: Serialisiere> Zustand<Leiter> {
+impl<Leiter: Serialisiere + BekannterLeiter> Zustand<Leiter> {
     /// Erzeuge eine serealisierbare Repräsentation.
     pub fn serialisiere(&self) -> ZustandSerialisiert<Leiter> {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
@@ -190,9 +190,10 @@ impl<Leiter: Serialisiere> Zustand<Leiter> {
                 })
                 .collect()
         };
+
         ZustandSerialisiert {
-            zugtyp: todo!("name"),
-            leiter: todo!("leiter"),
+            zugtyp: self.zugtyp.clone(),
+            leiter: Leiter::NAME.to_string(),
             ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
             ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
             geschwindigkeiten: self
@@ -332,7 +333,7 @@ impl<Leiter: Serialisiere> Zustand<Leiter> {
     }
 }
 
-impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
+impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -342,8 +343,8 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> Result<Zustand<Leiter>, anschluss::Fehler> {
         let ZustandSerialisiert {
-            zugtyp: _,
-            leiter,
+            zugtyp,
+            leiter: _,
             ohne_streckenabschnitt,
             ohne_geschwindigkeit,
             geschwindigkeiten,
@@ -356,12 +357,14 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
             output_nicht_benötigt,
             input_nicht_benötigt,
         } = ohne_streckenabschnitt.reserviere(
+            zugtyp.spurweite,
             lager,
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
         )?;
         fn reserviere_streckenabschnitt_map(
+            spurweite: Spurweite,
             lager: &mut anschluss::Lager,
             streckenabschnitt_map: StreckenabschnittMapSerialisiert,
             pwm_pins: Vec<pwm::Pin>,
@@ -401,6 +404,7 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
                         output_nicht_benötigt,
                         input_nicht_benötigt,
                     } = daten.reserviere(
+                        spurweite,
                         lager,
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
@@ -422,6 +426,7 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
             output_nicht_benötigt,
             input_nicht_benötigt,
         } = reserviere_streckenabschnitt_map(
+            zugtyp.spurweite,
             lager,
             ohne_geschwindigkeit,
             pwm_nicht_benötigt,
@@ -467,6 +472,7 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 } = reserviere_streckenabschnitt_map(
+                    zugtyp.spurweite,
                     lager,
                     streckenabschnitt_map,
                     pwm_nicht_benötigt,
@@ -482,12 +488,7 @@ impl<Leiter: Serialisiere> ZustandSerialisiert<Leiter> {
                 })
             },
         )?;
-        Ok(Zustand {
-            zugtyp: self.zugtyp,
-            ohne_streckenabschnitt,
-            ohne_geschwindigkeit,
-            geschwindigkeiten,
-        })
+        Ok(Zustand { zugtyp, ohne_streckenabschnitt, ohne_geschwindigkeit, geschwindigkeiten })
     }
 }
 
@@ -586,6 +587,7 @@ impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
+        spurweite: Spurweite,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
@@ -596,7 +598,7 @@ impl GleiseDatenSerialisiert {
                 $(
                     let ($rstern, pwm_pins, output_anschlüsse, input_anschlüsse) =
                         reserviere_anschlüsse(
-                            todo!("spurweite"),
+                            spurweite,
                             lager,
                             self.$rstern,
                             pwm_pins,
@@ -623,14 +625,6 @@ impl GleiseDatenSerialisiert {
             s_kurven_weichen,
             kreuzungen,
         }
-    }
-}
-
-impl<Leiter: Serialisiere> Gleise<Leiter> {
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
-        let serialisiert = self.zustand.serialisiere();
-        let file = std::fs::File::create(pfad)?;
-        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
 }
 
@@ -665,6 +659,12 @@ impl BekannterLeiter for Zweileiter {
 }
 
 impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
+        let serialisiert = self.zustand.serialisiere();
+        let file = std::fs::File::create(pfad)?;
+        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
+    }
+
     pub fn laden(
         &mut self,
         lager: &mut anschluss::Lager,

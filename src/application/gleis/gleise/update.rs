@@ -160,11 +160,12 @@ impl<Leiter> Gleise<Leiter> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
             )) => {
+                let spurweite = self.spurweite();
                 let Gleise { modus, zustand, pivot, skalieren, .. } = self;
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
-                    todo!("spurweite"),
+                    spurweite,
                     modus,
                     zustand.alle_geschwindigkeit_streckenabschnitt_daten(),
                     pivot,

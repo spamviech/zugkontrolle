@@ -47,7 +47,7 @@ where
         self
     }
 
-    fn as_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Leiter>> {
+    fn als_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Leiter>> {
         iced::Command::perform(self.nach_sleep(dauer), identity)
     }
 }
@@ -875,7 +875,7 @@ where
     #[inline(always)]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Leiter>> {
         self.bewegung = Some(bewegung);
-        Nachricht::BewegungAusführen.as_sleep_command(Duration::from_millis(20))
+        Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
     }
 
     pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Nachricht<Leiter>>> {
@@ -886,7 +886,7 @@ where
                     .vektor(Skalar(1.) / self.gleise.skalierfaktor())
                     .rotiert(-self.gleise.pivot().winkel),
             );
-            Some(Nachricht::BewegungAusführen.as_sleep_command(Duration::from_millis(20)))
+            Some(Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20)))
         } else {
             None
         }
@@ -1006,7 +1006,7 @@ where
 
 impl<Leiter> Zugkontrolle<Leiter>
 where
-    Leiter: 'static + LeiterAnzeige,
+    Leiter: 'static + LeiterAnzeige + BekannterLeiter,
     <Leiter as Serialisiere>::Serialisiert: Send,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Leiter>>> {
@@ -1017,7 +1017,7 @@ where
                 let speicher_zeit = Instant::now();
                 self.speichern_gefärbt = Some(speicher_zeit.clone());
                 let command = Nachricht::EntferneSpeichernFarbe(speicher_zeit)
-                    .as_sleep_command(Duration::from_secs(2));
+                    .als_sleep_command(Duration::from_secs(2));
                 Some(command)
             }
             Err(err) => {

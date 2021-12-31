@@ -223,6 +223,7 @@ impl<Leiter> Gleise<Leiter> {
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
+        let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
         // bounds müssen an Position angepasst werden:
@@ -254,8 +255,6 @@ impl<Leiter> Gleise<Leiter> {
                 };
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
                 let ist_gehalten = ist_gehalten_test(gehalten_id);
-
-                let spurweite = todo!("spurweite");
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
