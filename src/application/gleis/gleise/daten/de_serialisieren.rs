@@ -81,15 +81,13 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
         self,
         mut seq: V,
     ) -> Result<ZustandSerialisiert<Leiter>, V::Error> {
-        let zugtyp = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
-        let leiter = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(1, &self))?;
-        let ohne_streckenabschnitt =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(2, &self))?;
-        let ohne_geschwindigkeit =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(3, &self))?;
-        let geschwindigkeiten =
-            seq.next_element()?.ok_or_else(|| de::Error::invalid_length(4, &self))?;
-        let pläne = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(5, &self))?;
+        let invalid_length_fehler = |n: usize| de::Error::invalid_length(n, &self);
+        let zugtyp = seq.next_element()?.ok_or_else(|| invalid_length_fehler(0))?;
+        let leiter = seq.next_element()?.ok_or_else(|| invalid_length_fehler(1))?;
+        let ohne_streckenabschnitt = seq.next_element()?.ok_or_else(|| invalid_length_fehler(2))?;
+        let ohne_geschwindigkeit = seq.next_element()?.ok_or_else(|| invalid_length_fehler(3))?;
+        let geschwindigkeiten = seq.next_element()?.ok_or_else(|| invalid_length_fehler(4))?;
+        let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
         Ok(ZustandSerialisiert {
             zugtyp,
             leiter,
@@ -158,7 +156,7 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
             ohne_geschwindigkeit.ok_or_else(|| de::Error::missing_field("ohne_geschwindigkeit"))?;
         let geschwindigkeiten =
             geschwindigkeiten.ok_or_else(|| de::Error::missing_field("geschwindigkeiten"))?;
-        let pläne = pläne.ok_or_else(|| de::Error::missing_field("pläne"))?;
+        let pläne = pläne.unwrap_or_else(Vec::new);
         Ok(ZustandSerialisiert {
             zugtyp,
             leiter,
