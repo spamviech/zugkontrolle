@@ -25,7 +25,8 @@ use crate::application::{
     style::rule,
     touch_canvas,
     typen::*,
-    weiche, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone, Zugkontrolle,
+    weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone,
+    Zugkontrolle,
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
@@ -296,22 +297,31 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_width = None;
-            macro_rules! add_buttons {
+            fn buttons_hinzufügen<'t, Leiter, T>(
+                max_width: &mut Option<u16>,
+                spurweite: Spurweite,
+                scrollable: &'t mut iced::Scrollable<'t, NachrichtClone<Leiter>>,
+                buttons: &'t mut Vec<Button<T>>,
+            ) where
+                Leiter: 'static + LeiterAnzeige,
+                T: Zeichnen + Clone + Into<AnyGleisUnit>,
+            {
+                take_mut::take(scrollable, |mut scrollable| {
+                    for button in buttons {
+                        let größe = button.rechteck(spurweite).größe();
+                        let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
+                        *max_width = (*max_width).max(Some(breite));
+                        scrollable = scrollable.push(button.als_iced_widget(spurweite, *max_width))
+                    }
+                    scrollable
+                })
+            }
+            macro_rules! buttons_hinzufügen {
                 ($($vec: expr),*) => {
-                    max_width = max_width.max(iter::empty()
-                        $(.chain($vec.iter().map(|button| {
-                            let größe = button.rechteck(spurweite).größe();
-                            NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX)
-                        })))*
-                        .max());
-                    $(
-                        for button in $vec {
-                            scrollable = scrollable.push(button.als_iced_widget(spurweite, max_width));
-                        }
-                    )*
+                    $(buttons_hinzufügen(&mut max_width, spurweite, &mut scrollable, $vec);)*
                 }
             }
-            add_buttons!(
+            buttons_hinzufügen!(
                 geraden,
                 kurven,
                 weichen,
