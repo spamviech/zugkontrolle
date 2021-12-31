@@ -16,8 +16,13 @@
 - Länger dauernde Aktionen (z.B. Weiche schalten) werden in einem eigenen Thread ausgeführt
 - Bei Drag&Drop wird ein einrasten vor loslassen des Gleises angezeigt
 - Klicks müssen nicht mehr aufs Pixel genau das Gleis treffen
-- Bibliothek erlaubt assoziieren von Streckenabschnitten mit einer Geschwindigkeit
-- Bibliothek erlaubt Verwendung anderer I2c-Kanäle für Pcf8574-Anschlüsse
+- Bibliothek: erlaube assoziieren von Streckenabschnitten mit einer Geschwindigkeit
+- Bibliothek: erlaube Verwendung anderer I2c-Kanäle für Pcf8574-Anschlüsse
+- Bibliothek: Zugtyp kein Typ-Parameter mehr, sonder ein echter Typ gespeichert im Gleise-Zustand
+  - Dadurch Spurweite als zusätzlicher Parameter vieler Funktionen
+  - Leiter als Parameter, sofern notwendig (z.B. Geschwindigkeit)
+  - Teil des Speicherformats
+  - Ermöglicht im Prinzip nachträgliches hinzufügen neuer Gleise zu einem Zugtyp
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.

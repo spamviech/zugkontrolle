@@ -1,7 +1,5 @@
 //! Definition und zeichnen einer Weiche
 
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
 
@@ -26,10 +24,8 @@ use crate::{
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
 #[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche
-<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
-    pub zugtyp: PhantomData<fn() -> Z>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SKurvenWeiche<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,
@@ -39,8 +35,9 @@ pub struct SKurvenWeiche
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
-impl<Z> SKurvenWeicheUnit<Z> {
-    pub fn neu(
+
+impl SKurvenWeicheUnit {
+    pub const fn neu(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
@@ -49,7 +46,6 @@ impl<Z> SKurvenWeicheUnit<Z> {
         direction: Orientierung,
     ) -> Self {
         SKurvenWeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -71,7 +67,6 @@ impl<Z> SKurvenWeicheUnit<Z> {
         beschreibung: impl Into<String>,
     ) -> Self {
         SKurvenWeicheUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
@@ -84,19 +79,17 @@ impl<Z> SKurvenWeicheUnit<Z> {
     }
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
-    for SKurvenWeiche<Z, Anschlüsse>
-{
+impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
-        let rechteck_gerade = gerade::rechteck::<Z>(länge);
-        let rechteck_kurve = kurve::rechteck::<Z>(radius, winkel);
-        let rechteck_kurve_reverse = kurve::rechteck::<Z>(radius_reverse, winkel_reverse);
-        let radius_außen = radius_begrenzung_außen::<Z>(radius);
-        let radius_innen = radius_begrenzung_innen::<Z>(radius);
+        let rechteck_gerade = gerade::rechteck(spurweite, länge);
+        let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
+        let rechteck_kurve_reverse = kurve::rechteck(spurweite, radius_reverse, winkel_reverse);
+        let radius_außen = spurweite.radius_begrenzung_außen(radius);
+        let radius_innen = spurweite.radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
         let eins_minus_winkel_cos = Skalar(1.) - winkel.cos();
         let verschieben = Vektor {
@@ -111,9 +104,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             .einschließend(rechteck_kurve_reverse_verschoben)
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -124,19 +117,19 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung::<Z>(),
+                    y: multiplier * spurweite.beschränkung(),
                 }),
             ]
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Gerade
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 true,
                 transformations.clone(),
@@ -144,7 +137,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Keine,
@@ -154,7 +147,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(Skalar(-1.)));
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
@@ -164,7 +157,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         } else {
             // Gerade
             paths.push(gerade::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 true,
                 Vec::new(),
@@ -172,7 +165,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 self.winkel,
                 kurve::Beschränkung::Keine,
@@ -181,7 +174,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             ));
             // Kurve nach innen
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
@@ -193,9 +186,9 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         paths
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformations = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
@@ -206,7 +199,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    y: multiplier * beschränkung::<Z>(),
+                    y: multiplier * spurweite.beschränkung(),
                 }),
             ]
         };
@@ -218,13 +211,13 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
-            let size: Vektor = self.rechteck().ecke_max();
+            let size: Vektor = self.rechteck(spurweite).ecke_max();
             let mut transformations =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
             // Gerade
             paths.push((
                 gerade::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.länge,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
@@ -234,7 +227,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             // Kurve nach außen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     transformations.clone(),
@@ -246,7 +239,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             transformations.extend(s_kurve_transformations(Skalar(-1.)));
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius_reverse,
                     self.winkel_reverse,
                     transformations,
@@ -257,18 +250,13 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         } else {
             // Gerade
             paths.push((
-                gerade::fülle(
-                    self.zugtyp,
-                    self.länge,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
+                gerade::fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
                 gerade_transparenz,
             ));
             // Kurve nach außen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     self.winkel,
                     Vec::new(),
@@ -279,7 +267,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             // Kurve nach innen
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius_reverse,
                     self.winkel_reverse,
                     s_kurve_transformations(Skalar(1.)),
@@ -292,7 +280,10 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         paths
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -301,7 +292,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
@@ -310,7 +301,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+                    y: start_height + multiplier * spurweite.beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
             },
@@ -319,7 +310,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -329,13 +325,13 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                let size: Vektor = self.rechteck().ecke_max();
+                let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             }
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
-        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
+        let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let multiplied_winkel = multiplier.0 * self.winkel;
         let s_kurve_start_vector = Vektor {
             x: multiplier * radius_begrenzung_außen * multiplied_winkel.sin(),
@@ -345,11 +341,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
-        s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung::<Z>() };
+        s_kurve_vector -= Vektor { x: Skalar(0.), y: spurweite.beschränkung() };
         s_kurve_vector.y = -s_kurve_vector.y;
-        gerade::innerhalb::<Z>(self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb::<Z>(
+        gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
+            || kurve::innerhalb(
+                spurweite,
                 self.radius_reverse,
                 self.winkel_reverse,
                 s_kurve_vector,
@@ -357,7 +354,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
             )
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -366,14 +363,14 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen
                 multiplier = Skalar(1.);
             }
             Orientierung::Links => {
-                start_height = self.rechteck().ecke_max().y;
+                start_height = self.rechteck(spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             }
         };
         let angle_difference = self.winkel - self.winkel_reverse;
         let anfang = Vektor {
             x: Skalar(0.),
-            y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+            y: start_height + multiplier * spurweite.beschränkung().halbiert(),
         };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },

@@ -44,4 +44,4 @@ pub mod steuerung;
 pub mod zugtyp;
 
 pub use application::{gleis::Gleise, Zugkontrolle};
-pub use zugtyp::{Lego, Märklin};
+pub use zugtyp::{lego, märklin};

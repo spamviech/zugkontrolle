@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer Kreuzung
 
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_derive::alias_serialisiert_unit;
@@ -19,24 +19,24 @@ use crate::{
 
 /// Definition einer Kreuzung
 #[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Z, Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
-    pub zugtyp: PhantomData<fn() -> Z>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Kreuzung<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub variante: Variante,
     pub beschreibung: Option<String>,
     pub steuerung: Anschlüsse,
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
     MitKurve,
     OhneKurve,
 }
-impl<Z> KreuzungUnit<Z> {
-    pub fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
+
+impl KreuzungUnit {
+    pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         KreuzungUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             variante,
@@ -52,7 +52,6 @@ impl<Z> KreuzungUnit<Z> {
         beschreibung: impl Into<String>,
     ) -> Self {
         KreuzungUnit {
-            zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             variante,
@@ -62,7 +61,7 @@ impl<Z> KreuzungUnit<Z> {
     }
 }
 
-impl<Z, Anschlüsse> Kreuzung<Z, Anschlüsse> {
+impl<Anschlüsse> Kreuzung<Anschlüsse> {
     fn winkel(&self) -> Winkel {
         // winkel solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
         // https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
@@ -84,15 +83,15 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Z, Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self) -> Rechteck {
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
         let winkel = self.winkel();
-        let rechteck_kurve = kurve::rechteck::<Z>(self.radius, winkel);
-        let rechteck_gerade = gerade::rechteck::<Z>(self.länge);
-        let beschränkung = beschränkung::<Z>();
+        let rechteck_kurve = kurve::rechteck(spurweite, self.radius, winkel);
+        let rechteck_gerade = gerade::rechteck(spurweite, self.länge);
+        let beschränkung = spurweite.beschränkung();
         let höhe_verschoben = rechteck_kurve.ecke_max().y - beschränkung;
         let verschieben = Vektor { x: Skalar(0.), y: höhe_verschoben };
         let rechteck_gerade_verschoben = rechteck_gerade.clone().verschiebe_chain(&verschieben);
@@ -115,12 +114,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         }
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck().ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
-        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung::<Z>().halbiert() };
+        let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
         let zentrum = Vektor { x: half_width, y: half_height };
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
@@ -137,14 +136,14 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         ];
         // Geraden
         paths.push(gerade::zeichne(
-            self.zugtyp,
+            spurweite,
             self.länge,
             true,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
         paths.push(gerade::zeichne(
-            self.zugtyp,
+            spurweite,
             self.länge,
             true,
             gedreht_transformations.clone(),
@@ -153,7 +152,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         // Kurven
         if self.variante == Variante::MitKurve {
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
@@ -161,7 +160,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
                 pfad::Erbauer::with_normal_axis,
             ));
             paths.push(kurve::zeichne(
-                self.zugtyp,
+                spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
@@ -173,12 +172,12 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         paths
     }
 
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck().ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
-        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung::<Z>().halbiert() };
+        let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
         let zentrum = Vektor { x: half_width, y: half_height };
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
@@ -201,7 +200,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         // Geraden
         paths.push((
             gerade::fülle(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 horizontal_transformations.clone(),
                 pfad::Erbauer::with_normal_axis,
@@ -210,7 +209,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         ));
         paths.push((
             gerade::fülle(
-                self.zugtyp,
+                spurweite,
                 self.länge,
                 gedreht_transformations.clone(),
                 pfad::Erbauer::with_invert_y,
@@ -221,7 +220,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         if self.variante == Variante::MitKurve {
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     winkel,
                     horizontal_transformations,
@@ -231,7 +230,7 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
             ));
             paths.push((
                 kurve::fülle(
-                    self.zugtyp,
+                    spurweite,
                     self.radius,
                     winkel,
                     gedreht_transformations,
@@ -244,11 +243,14 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         paths
     }
 
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>) {
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>) {
         // utility sizes
-        let size: Vektor = self.rechteck().ecke_max();
+        let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
-        let halbe_beschränkung = beschränkung::<Z>().halbiert();
+        let halbe_beschränkung = spurweite.beschränkung().halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
         (
             Position {
@@ -260,12 +262,17 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         )
     }
 
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool {
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck().ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
-        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung::<Z>().halbiert() };
+        let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
         let zentrum = Vektor { x: half_width, y: half_height };
         let winkel = self.winkel();
         // sub-checks
@@ -273,15 +280,26 @@ impl<Z: Zugtyp, Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuz
         let mut gedreht_vector = (relative_position - zentrum).rotiert(-winkel);
         gedreht_vector.y = -gedreht_vector.y;
         gedreht_vector += zentrum - start;
-        gerade::innerhalb::<Z>(self.länge, horizontal_vector, ungenauigkeit)
-            || gerade::innerhalb::<Z>(self.länge, gedreht_vector, ungenauigkeit)
+        gerade::innerhalb(spurweite, self.länge, horizontal_vector, ungenauigkeit)
+            || gerade::innerhalb(spurweite, self.länge, gedreht_vector, ungenauigkeit)
             || (self.variante == Variante::MitKurve
-                && (kurve::innerhalb::<Z>(self.radius, winkel, horizontal_vector, ungenauigkeit)
-                    || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector, ungenauigkeit)))
+                && (kurve::innerhalb(
+                    spurweite,
+                    self.radius,
+                    winkel,
+                    horizontal_vector,
+                    ungenauigkeit,
+                ) || kurve::innerhalb(
+                    spurweite,
+                    self.radius,
+                    winkel,
+                    gedreht_vector,
+                    ungenauigkeit,
+                )))
     }
 
-    fn verbindungen(&self) -> Self::Verbindungen {
-        let Vektor { x: _, y: height } = self.rechteck().ecke_max();
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+        let Vektor { x: _, y: height } = self.rechteck(spurweite).ecke_max();
         let half_height = height.halbiert();
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };

@@ -1,46 +1,31 @@
 //! This modules defines all Lego (9V) rails I have access to.
 
-use std::f32::consts::PI;
+use std::{f32::consts::PI, marker::PhantomData};
 
-use serde::{Deserialize, Serialize};
+use crate::{
+    application::{gleis::*, typen::*},
+    steuerung::geschwindigkeit::Zweileiter,
+    zugtyp::Zugtyp,
+};
 
-use crate::application::{gleis::*, typen::*};
-use crate::steuerung::geschwindigkeit::Zweileiter;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Lego;
-impl Zugtyp for Lego {
-    type Leiter = Zweileiter;
-
-    const NAME: &'static str = "Lego";
-    const SPURWEITE: Spurweite = Spurweite(38.);
-
-    fn geraden() -> Vec<GeradeUnit<Self>> {
-        vec![gerade()]
-    }
-
-    fn kurven() -> Vec<KurveUnit<Self>> {
-        vec![kurve()]
-    }
-
-    fn weichen() -> Vec<WeicheUnit<Self>> {
-        vec![]
-    }
-
-    fn dreiwege_weichen() -> Vec<DreiwegeWeicheUnit<Self>> {
-        vec![]
-    }
-
-    fn kurven_weichen() -> Vec<KurvenWeicheUnit<Self>> {
-        vec![]
-    }
-
-    fn s_kurven_weichen() -> Vec<SKurvenWeicheUnit<Self>> {
-        vec![weiche(weiche::Orientierung::Links), weiche(weiche::Orientierung::Rechts)]
-    }
-
-    fn kreuzungen() -> Vec<KreuzungUnit<Self>> {
-        vec![kreuzung()]
+impl Zugtyp<Zweileiter> {
+    /// Lego
+    pub fn lego() -> Zugtyp<Zweileiter> {
+        Zugtyp {
+            name: "Lego".to_string(),
+            leiter: PhantomData,
+            spurweite: Spurweite(38.),
+            geraden: vec![gerade()],
+            kurven: vec![kurve()],
+            weichen: vec![],
+            dreiwege_weichen: vec![],
+            kurven_weichen: vec![],
+            s_kurven_weichen: vec![
+                weiche(weiche::Orientierung::Links),
+                weiche(weiche::Orientierung::Rechts),
+            ],
+            kreuzungen: vec![kreuzung()],
+        }
     }
 }
 
@@ -73,12 +58,12 @@ const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
-pub fn gerade() -> GeradeUnit<Lego> {
+pub fn gerade() -> GeradeUnit {
     Gerade::neu(LENGTH)
 }
 
 const ANGLE: Winkel = Winkel(ANGLE_VALUE);
-pub fn kurve() -> KurveUnit<Lego> {
+pub fn kurve() -> KurveUnit {
     Kurve::neu(RADIUS, ANGLE)
 }
 
@@ -103,11 +88,11 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeicheUnit<Lego> {
+pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeicheUnit {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
 
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
-pub fn kreuzung() -> KreuzungUnit<Lego> {
+pub fn kreuzung() -> KreuzungUnit {
     Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve)
 }

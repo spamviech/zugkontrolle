@@ -27,7 +27,6 @@ use crate::{
     farbe::Farbe,
     lookup::Lookup,
     steuerung::streckenabschnitt::Streckenabschnitt,
-    zugtyp::Zugtyp,
 };
 
 pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
@@ -39,6 +38,7 @@ pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
 
 fn fülle_alle_gleise<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
     streckenabschnitt_farbe: &Farbe,
@@ -50,7 +50,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben
-            for (path, transparenz) in definition.fülle() {
+            for (path, transparenz) in definition.fülle(spurweite) {
                 let a = transparent(rectangle, *streckenabschnitt_fließend)
                     .kombiniere(transparenz)
                     .alpha();
@@ -66,6 +66,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
 
 fn zeichne_alle_gleise<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {
@@ -75,7 +76,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
-            for path in definition.zeichne() {
+            for path in definition.zeichne(spurweite) {
                 frame.with_save(|frame| {
                     let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                     frame.stroke(
@@ -94,6 +95,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
 
 fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten_und_andere_verbindung: F,
 ) where
@@ -107,7 +109,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
-            definition.verbindungen().for_each(|_name, &verbindung| {
+            definition.verbindungen(spurweite).for_each(|_name, &verbindung| {
                 let verbindung_an_position = Verbindung {
                     position: position.transformation(verbindung.position),
                     richtung: position.winkel + verbindung.richtung,
@@ -139,13 +141,14 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
 
 fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     frame: &mut Frame<'_>,
+    spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
-        let (relative_position, beschreibung, name) = definition.beschreibung_und_name();
+        let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
             (None, Some(name)) => Some(name.clone()),
@@ -172,9 +175,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     }
 }
 
-fn ist_gehalten_test<'t, Z>(
-    gehalten_id: Option<&'t AnyId<Z>>,
-) -> impl Fn(AnyIdRef<'t, Z>) -> bool + 't {
+fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl Fn(AnyIdRef<'t>) -> bool + 't {
     move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
 }
 
@@ -184,15 +185,15 @@ struct GehaltenVerbindung {
     andere_gehalten: bool,
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId<Z>>,
+        gehalten_id: Option<&'t AnyId>,
     ) -> impl Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung + 't
     where
         T: Zeichnen,
-        AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
         let ist_gehalten = ist_gehalten_test(gehalten_id);
         move |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
@@ -222,6 +223,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
+        let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
         // bounds müssen an Position angepasst werden:
@@ -235,7 +237,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<&AnyId<Z>>;
+                let gehalten_id: Option<&AnyId>;
                 let modus_bauen: bool;
                 match modus {
                     ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
@@ -256,13 +258,13 @@ impl<Z: Zugtyp> Gleise<Z> {
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
-                        $funktion(frame, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, &$daten.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
+                        $funktion(frame, spurweite, &$daten.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
                     };
                 }
                 // Hintergrund
@@ -276,7 +278,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                                     let any_id_ref =  AnyIdRef::from(GleisIdRef {
                                         rectangle,
                                         streckenabschnitt: Some(streckenabschnitt_id),
-                                        phantom: PhantomData::<fn() -> $gleis<Z>>
+                                        phantom: PhantomData::<fn() -> $gleis>
                                     });
                                     ist_gehalten(any_id_ref)
                                 } else {
@@ -289,7 +291,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                         daten,
                         fülle_alle_gleise,
                         transparenz,
-                        farbe,
+                        &farbe,
                         fließend
                     }
                 }
@@ -300,7 +302,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                                phantom: PhantomData::<fn() -> $gleis>
                             }))
                         };
                     }
@@ -314,7 +316,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten_und_andere_verbindung {
                         ($gleis: ident) => {
-                            self.ist_gehalten_und_andere_verbindung::<$gleis<Z>>(
+                            self.ist_gehalten_und_andere_verbindung::<$gleis>(
                                 streckenabschnitt,
                                 gehalten_id
                             )
@@ -333,7 +335,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis<Z>>
+                                phantom: PhantomData::<fn() -> $gleis>
                             }))
                         };
                     }

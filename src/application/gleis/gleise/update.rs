@@ -7,12 +7,9 @@ use std::{
 
 use log::error;
 
-use crate::{
-    application::{
-        gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
-        typen::*,
-    },
-    zugtyp::Zugtyp,
+use crate::application::{
+    gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
+    typen::*,
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.
@@ -38,21 +35,22 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T, Z>(
+fn gleis_an_position<'t, T>(
+    spurweite: Spurweite,
     streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
-) -> Option<(AnyIdRef<'t, Z>, Vektor, Winkel)>
+) -> Option<(AnyIdRef<'t>, Vektor, Winkel)>
 where
     T: Zeichnen,
-    AnyIdRef<'t, Z>: From<GleisIdRef<'t, T>>,
+    AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(rotated_pos, KLICK_GENAUIGKEIT) {
+        if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             let any_id = AnyIdRef::from(GleisIdRef {
                 rectangle,
                 streckenabschnitt,
@@ -64,17 +62,15 @@ where
     None
 }
 
-fn aktion_gleis_an_position<'t, Z: 't>(
+fn aktion_gleis_an_position<'t>(
     bounds: &'t iced::Rectangle,
     cursor: &'t iced::canvas::Cursor,
-    modus: &'t mut ModusDaten<Z>,
-    daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten<Z>)>,
+    spurweite: Spurweite,
+    modus: &'t mut ModusDaten,
+    daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
-) -> (iced::canvas::event::Status, Option<Nachricht<Z>>)
-where
-    Z: Zugtyp,
-{
+) -> (iced::canvas::event::Status, Option<Nachricht>) {
     let mut message = None;
     let mut status = iced::canvas::event::Status::Ignored;
     if cursor.is_over(&bounds) {
@@ -89,13 +85,33 @@ where
                     s_kurven_weichen,
                     kreuzungen,
                 } = maps;
-                acc.or_else(|| gleis_an_position(streckenabschnitt, geraden, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kurven, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, dreiwege_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kurven_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, s_kurven_weichen, canvas_pos))
-                    .or_else(|| gleis_an_position(streckenabschnitt, kreuzungen, canvas_pos))
+                acc.or_else(|| gleis_an_position(spurweite, streckenabschnitt, geraden, canvas_pos))
+                    .or_else(|| gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos))
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos)
+                    })
+                    .or_else(|| {
+                        gleis_an_position(
+                            spurweite,
+                            streckenabschnitt,
+                            dreiwege_weichen,
+                            canvas_pos,
+                        )
+                    })
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, kurven_weichen, canvas_pos)
+                    })
+                    .or_else(|| {
+                        gleis_an_position(
+                            spurweite,
+                            streckenabschnitt,
+                            s_kurven_weichen,
+                            canvas_pos,
+                        )
+                    })
+                    .or_else(|| {
+                        gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos)
+                    })
             });
             match modus {
                 ModusDaten::Bauen { gehalten, last } => {
@@ -130,13 +146,13 @@ where
     (status, message)
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
+impl<Leiter> Gleise<Leiter> {
     pub fn update(
         &mut self,
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
         let mut event_status = iced::canvas::event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
@@ -144,10 +160,12 @@ impl<Z: Zugtyp> Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
             )) => {
+                let spurweite = self.spurweite();
                 let Gleise { modus, zustand, pivot, skalieren, .. } = self;
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
+                    spurweite,
                     modus,
                     zustand.alle_geschwindigkeit_streckenabschnitt_daten(),
                     pivot,

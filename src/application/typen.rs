@@ -1,5 +1,7 @@
 //! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     application::gleis::verbindung::{self, Verbindung},
     lookup::Lookup,
@@ -18,7 +20,6 @@ pub use self::{
     vektor::Vektor,
     winkel::{Trigonometrie, Winkel, WinkelGradmaß},
 };
-pub use crate::zugtyp::Zugtyp;
 
 pub mod canvas;
 pub mod mm;
@@ -27,26 +28,32 @@ pub mod skalar;
 pub mod vektor;
 pub mod winkel;
 
+/// Spurweite \[mm\]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+pub struct Spurweite(pub f32);
+
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
-/// Abstand beider Schienen
-pub fn spurweite<Z: Zugtyp>() -> Skalar {
-    Z::SPURWEITE.als_skalar()
-}
-/// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp>() -> Skalar {
-    spurweite::<Z>() / Skalar(3.)
-}
-/// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschränkung<Z: Zugtyp>() -> Skalar {
-    spurweite::<Z>() + abstand::<Z>().doppelt()
-}
-/// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Skalar) -> Skalar {
-    radius - Skalar(0.5) * spurweite::<Z>() - abstand::<Z>()
-}
-/// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
-    radius + Skalar(0.5) * spurweite::<Z>() + abstand::<Z>()
+impl Spurweite {
+    /// Abstand beider Schienen
+    pub fn spurweite(&self) -> Skalar {
+        Skalar(self.0)
+    }
+    /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
+    pub fn abstand(&self) -> Skalar {
+        self.spurweite() / Skalar(3.)
+    }
+    /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
+    pub fn beschränkung(&self) -> Skalar {
+        self.spurweite() + self.abstand().doppelt()
+    }
+    /// Innerster Radius (inklusive Beschränkung) einer Kurve
+    pub fn radius_begrenzung_innen(&self, radius: Skalar) -> Skalar {
+        radius - self.spurweite().halbiert() - self.abstand()
+    }
+    /// Äußerster Radius (inklusive Beschränkung) einer Kurve
+    pub fn radius_begrenzung_außen(&self, radius: Skalar) -> Skalar {
+        radius + self.spurweite().halbiert() + self.abstand()
+    }
 }
 
 /// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt
@@ -85,53 +92,62 @@ impl Transparenz {
     }
 }
 
-pub trait Zeichnen
-where
-    Self::Verbindungen: verbindung::Lookup<Self::VerbindungName>,
-{
+pub trait Zeichnen {
     /// Einschließendes Rechteck bei Position `(0,0)`.
-    fn rechteck(&self) -> Rechteck;
+    fn rechteck(&self, spurweite: Spurweite) -> Rechteck;
 
     /// Einschließendes Rechteck, wenn sich das Gleis an der `Position` befindet.
-    fn rechteck_an_position(&self, position: &Position) -> Rechteck {
-        self.rechteck()
+    fn rechteck_an_position(&self, spurweite: Spurweite, position: &Position) -> Rechteck {
+        self.rechteck(spurweite)
             .respektiere_rotation_chain(&position.winkel)
             .verschiebe_chain(&position.punkt)
     }
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit `canvas::FillRule::EvenOdd` gefüllt.
-    fn fülle(&self) -> Vec<(Pfad, Transparenz)>;
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
-    fn zeichne(&self) -> Vec<Pfad>;
+    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad>;
 
     /// Position für, sowie Beschreibung und Name (falls verfügbar).
-    fn beschreibung_und_name(&self) -> (Position, Option<&String>, Option<&String>);
+    fn beschreibung_und_name(
+        &self,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&String>, Option<&String>);
 
     /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
-    fn innerhalb(&self, relative_position: Vektor, ungenauigkeit: Skalar) -> bool;
+    fn innerhalb(
+        &self,
+        spurweite: Spurweite,
+        relative_position: Vektor,
+        ungenauigkeit: Skalar,
+    ) -> bool;
 
     /// Identifier for `Verbindungen`.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
     /// Speicher-Typ für `Verbindung`.
     /// Muss `verbindung::Lookup<Self::VerbindungName>` implementieren.
-    type Verbindungen;
+    type Verbindungen: verbindung::Lookup<Self::VerbindungName>;
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
-    fn verbindungen(&self) -> Self::Verbindungen;
+    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen;
 
     /// Absolute Position der Verbindungen, wenn sich das Gleis an der `Position` befindet.
-    fn verbindungen_an_position(&self, position: Position) -> Self::Verbindungen {
-        self.verbindungen().map(|&Verbindung { position: verbindung_position, richtung }| {
-            Verbindung {
+    fn verbindungen_an_position(
+        &self,
+        spurweite: Spurweite,
+        position: Position,
+    ) -> Self::Verbindungen {
+        self.verbindungen(spurweite).map(
+            |&Verbindung { position: verbindung_position, richtung }| Verbindung {
                 position: position.transformation(verbindung_position),
                 richtung: position.winkel + richtung,
-            }
-        })
+            },
+        )
     }
 }
 

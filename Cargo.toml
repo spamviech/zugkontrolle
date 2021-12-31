@@ -26,7 +26,7 @@ argh = "0.1.6"
 
 [dependencies.num_x]
 version = "0.2.2"
-features = ["use_serde", "num"]
+features = ["use_serde"]
 
 [dependencies.serde]
 version = "1.0.130"

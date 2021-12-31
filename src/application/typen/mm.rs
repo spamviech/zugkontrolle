@@ -3,7 +3,7 @@
 use std::ops::Div;
 
 // re-export
-pub use crate::zugtyp::Spurweite;
+pub use crate::application::typen::Spurweite;
 
 /// Längenmaß \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]

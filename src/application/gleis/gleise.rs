@@ -16,6 +16,7 @@ use crate::{
     anschluss::{self, Fließend},
     application::typen::*,
     steuerung::{geschwindigkeit, streckenabschnitt, Geschwindigkeit, Streckenabschnitt},
+    zugtyp::Zugtyp,
 };
 
 pub mod daten;
@@ -26,9 +27,9 @@ pub mod id;
 pub mod steuerung;
 pub mod update;
 
-#[derive(zugkontrolle_derive::Debug)]
-struct Gehalten<Z> {
-    gleis_id: AnyId<Z>,
+#[derive(Debug)]
+struct Gehalten {
+    gleis_id: AnyId,
     halte_position: Vektor,
     winkel: Winkel,
     bewegt: bool,
@@ -36,13 +37,13 @@ struct Gehalten<Z> {
 
 // Aktueller Modus von `Gleise`
 #[zugkontrolle_derive::make_enum(pub, Modus)]
-#[derive(zugkontrolle_derive::Debug)]
-enum ModusDaten<Z> {
-    Bauen { gehalten: Option<Gehalten<Z>>, last: Instant },
+#[derive(Debug)]
+enum ModusDaten {
+    Bauen { gehalten: Option<Gehalten>, last: Instant },
     Fahren,
 }
 
-impl<Z> ModusDaten<Z> {
+impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
             Modus::Bauen => ModusDaten::Bauen { gehalten: None, last: Instant::now() },
@@ -52,25 +53,24 @@ impl<Z> ModusDaten<Z> {
 }
 
 /// Anzeige aller Gleise.
-#[derive(zugkontrolle_derive::Debug)]
-#[zugkontrolle_debug(Z: Zugtyp, <Z as Zugtyp>::Leiter: Debug)]
-pub struct Gleise<Z: Zugtyp> {
+#[derive(Debug)]
+pub struct Gleise<Leiter> {
     canvas: Cache,
     pivot: Position,
     skalieren: Skalar,
-    zustand: Zustand<Z>,
+    zustand: Zustand<Leiter>,
     last_mouse: Vektor,
     last_size: Vektor,
-    modus: ModusDaten<Z>,
+    modus: ModusDaten,
 }
 
-impl<Z: Zugtyp> Gleise<Z> {
-    pub fn neu(modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
+impl<Leiter> Gleise<Leiter> {
+    pub fn neu(zugtyp: Zugtyp<Leiter>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
             canvas: canvas::Cache::neu(),
             pivot,
             skalieren,
-            zustand: Zustand::neu(),
+            zustand: Zustand::neu(zugtyp),
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
@@ -249,17 +249,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         &'t self,
     ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &Fließend))>
     {
-        let iter_map =
-            |(geschwindigkeit, streckenabschnitt_map): (_, &'t StreckenabschnittMap<Z>)| {
-                streckenabschnitt_map.iter().map(
-                    move |(name, (streckenabschnitt, fließend, _maps))| {
-                        (
-                            StreckenabschnittIdRef { geschwindigkeit, name },
-                            (streckenabschnitt, fließend),
-                        )
-                    },
-                )
-            };
+        let iter_map = |(geschwindigkeit, streckenabschnitt_map): (_, &'t StreckenabschnittMap)| {
+            streckenabschnitt_map.iter().map(move |(name, (streckenabschnitt, fließend, _maps))| {
+                (StreckenabschnittIdRef { geschwindigkeit, name }, (streckenabschnitt, fließend))
+            })
+        };
         iter::once((None, &self.zustand.ohne_geschwindigkeit))
             .chain(self.zustand.geschwindigkeiten.iter().map(
                 |(geschwindigkeit_name, (_geschwindigkeit, streckenabschnitt_map))| {
@@ -275,8 +269,8 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<Z::Leiter>,
-    ) -> Option<Geschwindigkeit<Z::Leiter>> {
+        geschwindigkeit: Geschwindigkeit<Leiter>,
+    ) -> Option<Geschwindigkeit<Leiter>> {
         match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher = std::mem::replace(&mut occupied.get_mut().0, geschwindigkeit);
@@ -293,7 +287,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
-    ) -> Option<&'s Geschwindigkeit<Z::Leiter>> {
+    ) -> Option<&'s Geschwindigkeit<Leiter>> {
         self.zustand
             .geschwindigkeiten
             .get(name)
@@ -304,7 +298,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
-    ) -> Option<&'s mut Geschwindigkeit<Z::Leiter>> {
+    ) -> Option<&'s mut Geschwindigkeit<Leiter>> {
         self.zustand
             .geschwindigkeiten
             .get_mut(name)
@@ -317,7 +311,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub fn geschwindigkeit_entfernen(
         &mut self,
         name: geschwindigkeit::Name,
-    ) -> Result<Option<Geschwindigkeit<Z::Leiter>>, GeschwindigkeitEntfernenFehler> {
+    ) -> Result<Option<Geschwindigkeit<Leiter>>, GeschwindigkeitEntfernenFehler> {
         if let Some((name_entry, (geschwindigkeit, streckenabschnitt_map))) =
             self.zustand.geschwindigkeiten.remove_entry(&name)
         {
@@ -341,9 +335,9 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(in crate::application) fn geschwindigkeit_mit_streckenabschnitten_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<Z::Leiter>,
-        streckenabschnitt_map: StreckenabschnittMap<Z>,
-    ) -> Option<(Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)> {
+        geschwindigkeit: Geschwindigkeit<Leiter>,
+        streckenabschnitt_map: StreckenabschnittMap,
+    ) -> Option<(Geschwindigkeit<Leiter>, StreckenabschnittMap)> {
         match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher =
@@ -364,26 +358,32 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(in crate::application) fn geschwindigkeit_mit_streckenabschnitten_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Option<(Geschwindigkeit<Z::Leiter>, StreckenabschnittMap<Z>)> {
+    ) -> Option<(Geschwindigkeit<Leiter>, StreckenabschnittMap)> {
         self.zustand.geschwindigkeiten.remove(name)
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn geschwindigkeiten(
         &self,
-    ) -> impl Iterator<Item = (&geschwindigkeit::Name, &Geschwindigkeit<Z::Leiter>)> {
+    ) -> impl Iterator<Item = (&geschwindigkeit::Name, &Geschwindigkeit<Leiter>)> {
         self.zustand
             .geschwindigkeiten
             .iter()
             .map(|(name, (geschwindigkeit, _streckenabschnitt_map))| (name, geschwindigkeit))
     }
+
+    /// Verwendeter Zugtyp.
+    pub fn zugtyp(&self) -> &Zugtyp<Leiter> {
+        &self.zustand.zugtyp
+    }
+
+    /// Spurweite des verwendeten Zugtyps.
+    pub fn spurweite(&self) -> Spurweite {
+        self.zustand.zugtyp.spurweite
+    }
 }
 
-impl<Z> Gleise<Z>
-where
-    Z: Zugtyp,
-    Z::Leiter: Debug,
-{
+impl<Leiter: Debug> Gleise<Leiter> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Existiert bei der neuen Geschwindigkeit ein Streckenabschnitt mit identischem Namen
     /// wird dieser überschrieben und zurückgegeben.
@@ -517,8 +517,8 @@ where
     }
 }
 
-fn streckenabschnitt_entfernen<T, Z>(
-    streckenabschnitt_map: &mut StreckenabschnittMap<Z>,
+fn streckenabschnitt_entfernen<T>(
+    streckenabschnitt_map: &mut StreckenabschnittMap,
     streckenabschnitt_id: StreckenabschnittId,
     gefunden: impl FnOnce((Streckenabschnitt, Fließend)) -> T,
     bereits_entfernt: impl FnOnce(StreckenabschnittId) -> Result<T, StreckenabschnittBearbeitenFehler>,
@@ -539,13 +539,13 @@ fn streckenabschnitt_entfernen<T, Z>(
 }
 
 #[derive(zugkontrolle_derive::Debug)]
-pub enum Nachricht<Z> {
-    SetzeStreckenabschnitt(AnyId<Z>),
-    AnschlüsseAnpassen(AnyId<Z>),
-    FahrenAktion(AnyId<Z>),
+pub enum Nachricht {
+    SetzeStreckenabschnitt(AnyId),
+    AnschlüsseAnpassen(AnyId),
+    FahrenAktion(AnyId),
 }
 
-impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {
+impl<Leiter> iced::canvas::Program<Nachricht> for Gleise<Leiter> {
     #[inline(always)]
     fn draw(
         &self,
@@ -561,7 +561,7 @@ impl<Z: Zugtyp> iced::canvas::Program<Nachricht<Z>> for Gleise<Z> {
         event: iced::canvas::Event,
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht<Z>>) {
+    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
         self.update(event, bounds, cursor)
     }
 
@@ -584,7 +584,7 @@ pub enum Fehler {
     IO(std::io::Error),
     BincodeSerialisieren(bincode::Error),
     BincodeDeserialisieren { aktuell: bincode::Error, v2: bincode::Error },
-    FalscherZugtyp(String),
+    FalscherLeiter(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
     StreckenabschnittEntfernt(StreckenabschnittId),

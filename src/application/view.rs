@@ -1,49 +1,45 @@
 //! Methoden für die view-Methode des iced::Application-Traits
 
-use std::iter;
-
 use log::error;
 use num_traits::NumCast;
 
-use crate::{
-    application::{
-        bewegen::Bewegen,
-        button::Button,
-        drehen::Drehen,
-        geschwindigkeit::{self, LeiterAnzeige},
-        gleis::{
-            gerade::GeradeUnit,
-            gleise::Gleise,
-            kreuzung::KreuzungUnit,
-            kurve::KurveUnit,
-            weiche::{
-                dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-                s_kurve::SKurvenWeicheUnit,
-            },
+use crate::application::{
+    bewegen::Bewegen,
+    button::Button,
+    drehen::Drehen,
+    geschwindigkeit::{self, LeiterAnzeige},
+    gleis::{
+        gerade::GeradeUnit,
+        gleise::Gleise,
+        kreuzung::KreuzungUnit,
+        kurve::KurveUnit,
+        weiche::{
+            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+            s_kurve::SKurvenWeicheUnit,
         },
-        modal::Modal,
-        scrollable, speichern_laden, streckenabschnitt,
-        style::rule,
-        touch_canvas,
-        typen::*,
-        weiche, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone, Zugkontrolle,
     },
-    zugtyp::Zugtyp,
+    modal::Modal,
+    scrollable, speichern_laden, streckenabschnitt,
+    style::rule,
+    touch_canvas,
+    typen::*,
+    weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone,
+    Zugkontrolle,
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
-    fn mit_teil_nachricht<Z: Zugtyp + 'static>(
+    fn mit_teil_nachricht<Leiter: 'static + LeiterAnzeige>(
         self,
-        konstruktor: impl Fn(Msg) -> Nachricht<Z> + 'static,
-    ) -> iced::Element<'t, Nachricht<Z>> {
+        konstruktor: impl Fn(Msg) -> Nachricht<Leiter> + 'static,
+    ) -> iced::Element<'t, Nachricht<Leiter>> {
         self.into().map(konstruktor)
     }
 }
 
 impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
-    pub fn view(&mut self) -> iced::Element<'_, Nachricht<Z>> {
+impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
+    pub fn view(&mut self) -> iced::Element<'_, Nachricht<Leiter>> {
         let Zugkontrolle {
             gleise,
             scrollable_state,
@@ -98,7 +94,7 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
             gleise,
         );
 
-        let column: iced::Element<'_, Nachricht<Z>> = iced::Column::new()
+        let column: iced::Element<'_, Nachricht<Leiter>> = iced::Column::new()
             .push(top_row)
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
@@ -137,19 +133,19 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
-            AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl) => iced::Element::from(
-                <<Z as Zugtyp>::Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
-            )
-            .map(|message| {
-                use geschwindigkeit::AuswahlNachricht::*;
-                match message {
-                    Schließen => Nachricht::SchließeModal,
-                    Hinzufügen(name, geschwindigkeit) => {
-                        Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-                    }
-                    Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
-                }
-            }),
+            AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                iced::Element::from(<Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl))
+                    .map(|message| {
+                        use geschwindigkeit::AuswahlNachricht::*;
+                        match message {
+                            Schließen => Nachricht::SchließeModal,
+                            Hinzufügen(name, geschwindigkeit) => {
+                                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+                            }
+                            Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
+                        }
+                    })
+            }
             AuswahlStatus::Weiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -201,7 +197,7 @@ impl<Z: Zugtyp + 'static> Zugkontrolle<Z> {
     }
 }
 
-fn top_row<'t, Z: Zugtyp + 'static>(
+fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -211,7 +207,7 @@ fn top_row<'t, Z: Zugtyp + 'static>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Status,
-) -> iced::Row<'t, Nachricht<Z>> {
+) -> iced::Row<'t, Nachricht<Leiter>> {
     let modus_radios = iced::Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
@@ -278,19 +274,19 @@ fn top_row<'t, Z: Zugtyp + 'static>(
         .height(iced::Length::Shrink)
 }
 
-fn row_with_scrollable<'t, Z: Zugtyp + 'static>(
+fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
-    geraden: &'t mut Vec<Button<GeradeUnit<Z>>>,
-    kurven: &'t mut Vec<Button<KurveUnit<Z>>>,
-    weichen: &'t mut Vec<Button<WeicheUnit<Z>>>,
-    dreiwege_weichen: &'t mut Vec<Button<DreiwegeWeicheUnit<Z>>>,
-    kurven_weichen: &'t mut Vec<Button<KurvenWeicheUnit<Z>>>,
-    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit<Z>>>,
-    kreuzungen: &'t mut Vec<Button<KreuzungUnit<Z>>>,
-    geschwindigkeiten: &'t mut geschwindigkeit::Map<Z::Leiter>,
-    gleise: &Gleise<Z>,
-) -> iced::Row<'t, Nachricht<Z>> {
+    geraden: &'t mut Vec<Button<GeradeUnit>>,
+    kurven: &'t mut Vec<Button<KurveUnit>>,
+    weichen: &'t mut Vec<Button<WeicheUnit>>,
+    dreiwege_weichen: &'t mut Vec<Button<DreiwegeWeicheUnit>>,
+    kurven_weichen: &'t mut Vec<Button<KurvenWeicheUnit>>,
+    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit>>,
+    kreuzungen: &'t mut Vec<Button<KreuzungUnit>>,
+    geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
+    gleise: &Gleise<Leiter>,
+) -> iced::Row<'t, Nachricht<Leiter>> {
     let mut scrollable = iced::Scrollable::new(scrollable_state);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();
@@ -298,22 +294,30 @@ fn row_with_scrollable<'t, Z: Zugtyp + 'static>(
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_width = None;
-            macro_rules! add_buttons {
-                ($($vec: expr),*) => {
-                    max_width = max_width.max(iter::empty()
-                        $(.chain($vec.iter().map(|button| {
-                            let größe = button.rechteck().größe();
-                            NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX)
-                        })))*
-                        .max());
-                    $(
-                        for button in $vec {
-                            scrollable = scrollable.push(button.als_iced_widget(max_width));
-                        }
-                    )*
+            fn buttons_hinzufügen<'t, Leiter, T>(
+                max_width: &mut Option<u16>,
+                scrollable: &mut iced::Scrollable<'t, NachrichtClone<Leiter>>,
+                buttons: &'t mut Vec<Button<T>>,
+            ) where
+                Leiter: 'static + LeiterAnzeige,
+                T: Zeichnen + Clone + Into<AnyGleisUnit>,
+            {
+                take_mut::take(scrollable, |mut scrollable| {
+                    for button in buttons {
+                        let größe = button.rechteck().größe();
+                        let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
+                        *max_width = (*max_width).max(Some(breite));
+                        scrollable = scrollable.push(button.als_iced_widget(*max_width))
+                    }
+                    scrollable
+                })
+            }
+            macro_rules! buttons_hinzufügen {
+                ($($vec: expr),* $(,)?) => {
+                    $(buttons_hinzufügen(&mut max_width, &mut scrollable, $vec);)*
                 }
             }
-            add_buttons!(
+            buttons_hinzufügen!(
                 geraden,
                 kurven,
                 weichen,
@@ -337,11 +341,12 @@ fn row_with_scrollable<'t, Z: Zugtyp + 'static>(
                 };
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
-                    iced::Element::from(Z::Leiter::anzeige_neu(geschwindigkeit, anzeige_status))
-                        .map(move |nachricht| NachrichtClone::GeschwindigkeitAnzeige {
+                    iced::Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_status)).map(
+                        move |nachricht| NachrichtClone::GeschwindigkeitAnzeige {
                             name: name_clone.clone(),
                             nachricht,
-                        }),
+                        },
+                    ),
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
