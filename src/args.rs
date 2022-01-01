@@ -380,7 +380,7 @@ pub enum Arg<T> {
     Wert {
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: Box<dyn Fn(OsString) -> Result<T, OsString>>,
+        parse: Box<dyn Fn(&OsString) -> Result<T, &OsString>>,
     },
 }
 
@@ -434,21 +434,35 @@ impl<T> Debug for ArgKombination<T> {
 }
 
 impl<T: Display> ArgKombination<T> {
+    pub fn flag(beschreibung: ArgBeschreibung<T>, parse: impl Fn(bool) -> T) -> ArgKombination<T> {
+        ArgKombination {
+            beschreibung: vec![ArgString::Flag {
+                beschreibung: beschreibung.als_string_beschreibung(),
+            }],
+            parse: Box::new(|args| todo!()),
+        }
+    }
+
+    pub fn wert(
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+    ) -> ArgKombination<T> {
+        ArgKombination {
+            beschreibung: vec![ArgString::Wert {
+                beschreibung: beschreibung.als_string_beschreibung(),
+                meta_var,
+            }],
+            parse: Box::new(|args| todo!()),
+        }
+    }
+
     pub fn aus_arg(arg: Arg<T>) -> ArgKombination<T> {
         match arg {
-            Arg::Flag { beschreibung, aus_bool } => ArgKombination {
-                beschreibung: vec![ArgString::Flag {
-                    beschreibung: beschreibung.als_string_beschreibung(),
-                }],
-                parse: Box::new(|args| todo!()),
-            },
-            Arg::Wert { beschreibung, meta_var, parse } => ArgKombination {
-                beschreibung: vec![ArgString::Wert {
-                    beschreibung: beschreibung.als_string_beschreibung(),
-                    meta_var,
-                }],
-                parse: Box::new(|args| todo!()),
-            },
+            Arg::Flag { beschreibung, aus_bool } => ArgKombination::flag(beschreibung, aus_bool),
+            Arg::Wert { beschreibung, meta_var, parse } => {
+                ArgKombination::wert(beschreibung, meta_var, parse)
+            }
         }
     }
 
