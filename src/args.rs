@@ -4,13 +4,14 @@ use std::{
     convert::identity,
     env,
     ffi::OsString,
-    fmt::{Debug, Display},
+    fmt::{Debug, Display, Write},
     iter,
     str::FromStr,
 };
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use itertools::Itertools;
+use log::error;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
@@ -411,9 +412,10 @@ impl<T> ArgBeschreibung<T> {
 }
 
 impl<T: Display> ArgBeschreibung<T> {
-    pub fn als_string_beschreibung(self) -> ArgBeschreibung<String> {
+    pub fn als_string_beschreibung(self) -> (ArgBeschreibung<String>, Option<T>) {
         let ArgBeschreibung { lang, kurz, hilfe, standard } = self;
-        ArgBeschreibung { lang, kurz, hilfe, standard: standard.map(|t| t.to_string()) }
+        let standard_string = standard.as_ref().map(ToString::to_string);
+        (ArgBeschreibung { lang, kurz, hilfe, standard: standard_string }, standard)
     }
 }
 
@@ -464,7 +466,7 @@ pub enum ArgString {
 
 pub struct ArgKombination<T> {
     pub beschreibung: Vec<ArgString>,
-    pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<&OsString>>>,
+    pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<String>>>,
     // Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<&OsString>>
     // with combine2(impl Fn(A, B) -> C, Arg<A>, Arg<B>) -> Arg<C>
 }
@@ -478,27 +480,56 @@ impl<T> Debug for ArgKombination<T> {
     }
 }
 
-impl<T: Display> ArgKombination<T> {
-    pub fn flag(beschreibung: ArgBeschreibung<T>, parse: impl Fn(bool) -> T) -> ArgKombination<T> {
-        ArgKombination {
-            beschreibung: vec![ArgString::Flag {
-                beschreibung: beschreibung.als_string_beschreibung(),
-            }],
-            parse: Box::new(|args| todo!()),
-        }
-    }
-
-    pub fn wert(
+impl<T: 'static + Display + Clone> ArgKombination<T> {
+    pub fn flag(
         beschreibung: ArgBeschreibung<T>,
-        meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+        parse: impl 'static + Fn(bool) -> T,
     ) -> ArgKombination<T> {
+        // TODO Kombination aus mehreren Flags, z.B. "-abc"
+        // bei `kombiniereN` berücksichtigen?
+        let name_kurz = beschreibung.kurz;
+        let name_lang = beschreibung.lang.clone();
+        let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         ArgKombination {
-            beschreibung: vec![ArgString::Wert {
-                beschreibung: beschreibung.als_string_beschreibung(),
-                meta_var,
-            }],
-            parse: Box::new(|args| todo!()),
+            beschreibung: vec![ArgString::Flag { beschreibung }],
+            parse: Box::new(move |args| {
+                let mut ergebnis = None;
+                let mut nicht_verwendet = Vec::new();
+                for arg in args.iter() {
+                    if let Some(string) = arg.to_str() {
+                        if let Some(lang) = string.strip_prefix("--") {
+                            if lang == name_lang {
+                                ergebnis = Some(parse(true));
+                                break;
+                            } else if let Some(negiert) = lang.strip_prefix("no-") {
+                                if negiert == name_lang {
+                                    ergebnis = Some(parse(false));
+                                    break;
+                                }
+                            }
+                        } else if let Some(kurz) = string.strip_prefix("-") {
+                            if kurz.chars().exactly_one().ok() == name_kurz {
+                                ergebnis = Some(parse(true));
+                                break;
+                            }
+                        }
+                    }
+                    nicht_verwendet.push(*arg);
+                }
+                if let Some(wert) = ergebnis {
+                    Ok((wert, nicht_verwendet))
+                } else if let Some(wert) = &standard {
+                    Ok((wert.clone(), args))
+                } else {
+                    let mut fehlermeldung = format!("Fehlende Flag: `--[no-]{}`", name_lang);
+                    if let Some(kurz) = &name_kurz {
+                        if let Err(fehler) = write!(&mut fehlermeldung, "| -{}", kurz) {
+                            error!("Fehler beim erstellen der Fehlermeldung: {:?}", fehler)
+                        }
+                    }
+                    Err(vec![fehlermeldung.clone()])
+                }
+            }),
         }
     }
 
@@ -510,7 +541,23 @@ impl<T: Display> ArgKombination<T> {
             }
         }
     }
+}
 
+impl<T: Display> ArgKombination<T> {
+    pub fn wert(
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+    ) -> ArgKombination<T> {
+        let (beschreibung, standard) = beschreibung.als_string_beschreibung();
+        ArgKombination {
+            beschreibung: vec![ArgString::Wert { beschreibung, meta_var }],
+            parse: Box::new(|args| todo!()),
+        }
+    }
+}
+
+impl<T> ArgKombination<T> {
     pub fn kombiniere2<A, B>(f: impl Fn(A, B) -> T, a: Arg<A>, b: Arg<B>) -> ArgKombination<T> {
         todo!()
     }
