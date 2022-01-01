@@ -483,7 +483,7 @@ impl<T> Debug for ArgKombination<T> {
 impl<T: 'static + Display + Clone> ArgKombination<T> {
     pub fn flag(
         beschreibung: ArgBeschreibung<T>,
-        parse: impl 'static + Fn(bool) -> T,
+        konvertiere: impl 'static + Fn(bool) -> T,
     ) -> ArgKombination<T> {
         // TODO Kombination aus mehreren Flags, z.B. "-abc"
         // bei `kombiniereN` berücksichtigen?
@@ -499,17 +499,17 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                     if let Some(string) = arg.to_str() {
                         if let Some(lang) = string.strip_prefix("--") {
                             if lang == name_lang {
-                                ergebnis = Some(parse(true));
+                                ergebnis = Some(konvertiere(true));
                                 break;
                             } else if let Some(negiert) = lang.strip_prefix("no-") {
                                 if negiert == name_lang {
-                                    ergebnis = Some(parse(false));
+                                    ergebnis = Some(konvertiere(false));
                                     break;
                                 }
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
                             if kurz.chars().exactly_one().ok() == name_kurz {
-                                ergebnis = Some(parse(true));
+                                ergebnis = Some(konvertiere(true));
                                 break;
                             }
                         }
