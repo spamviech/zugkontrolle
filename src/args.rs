@@ -5,10 +5,12 @@ use std::{
     env,
     ffi::OsString,
     fmt::{Debug, Display},
+    iter,
     str::FromStr,
 };
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
+use itertools::Itertools;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
@@ -116,7 +118,7 @@ impl Args {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(variant_size_differences)]
 pub enum ParsedArgName {
     Kurz(char),
@@ -186,6 +188,20 @@ impl<'t> ArgKonfiguration<'t> {
             _ => None,
         }
     }
+
+    pub fn ist_konfiguriert_als(
+        self,
+        geparsed: &ParsedArgName,
+        soll: Konfiguriert,
+    ) -> Option<ArgName<'t>> {
+        self.ist_konfiguriert(geparsed).and_then(|(konfiguriert, konfigurierter_name)| {
+            if konfiguriert == soll {
+                Some(konfigurierter_name)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -209,6 +225,11 @@ impl ParsedArg<'_> {
         konfiguriert: &'t [ArgKonfiguration<'t>],
         args: impl Iterator<Item = OsString>,
     ) -> Result<Vec<ParsedArg<'t>>, Vec<ParseArgFehler>> {
+        let konfiguriert_als = |name, konfiguration| {
+            konfiguriert
+                .iter()
+                .filter_map(move |config| config.ist_konfiguriert_als(&name, konfiguration))
+        };
         let mut parsed_args = Vec::new();
         let mut errors = Vec::new();
         let mut wert_name = None;
@@ -218,14 +239,16 @@ impl ParsedArg<'_> {
             } else {
                 match arg.into_string() {
                     Ok(string) => {
+                        // Parse Name und Wert
                         let mut parsed_name = None;
-                        let mut parsed_wert = None;
+                        let parsed_wert;
                         if let Some(lang) = string.strip_prefix("--") {
                             if let Some((name, wert)) = lang.split_once('=') {
-                                parsed_name = Some(ParsedArgName::Lang(name.to_string()));
+                                parsed_name = Some((ParsedArgName::Lang(name.to_string()), None));
                                 parsed_wert = Some(wert.to_string());
                             } else {
-                                parsed_name = Some(ParsedArgName::Lang(lang.to_string()));
+                                parsed_name = Some((ParsedArgName::Lang(lang.to_string()), None));
+                                parsed_wert = None;
                             }
                         } else if let Some(kurz) = string.strip_prefix('-') {
                             // TODO sauberer mit graphemes
@@ -233,42 +256,64 @@ impl ParsedArg<'_> {
                             // Für reine ascii-Characters nicht notwendig
                             let mut chars = kurz.chars();
                             let first = chars.next();
-                            let second = chars.next();
-                            if let (Some(name), Some('=')) = (first, second) {
-                                parsed_name = Some(ParsedArgName::Kurz(name));
-                                parsed_wert = Some(chars.collect());
-                            } else {
-                                // "-k<Wert>" wird nicht unterstützt,
-                                // verwende stattdessen "-k <Wert>" oder "-k=<Wert>"
-                                // nur zusammenfassen mehrerer Flag-Kurzformen
-                                for c in kurz.chars() {
-                                    let name = ParsedArgName::Kurz(c);
-                                    let mut bekannt = konfiguriert.iter().filter_map(|config| {
-                                        config.ist_konfiguriert(&name).and_then(
-                                            |(konfiguriert, konfigurierter_name)| {
-                                                if konfiguriert == Konfiguriert::Flag(true) {
-                                                    Some(konfigurierter_name)
-                                                } else {
-                                                    None
-                                                }
-                                            },
-                                        )
-                                    });
-                                    if let Some(name) = bekannt.next() {
-                                        parsed_args.push(ParsedArg::Flag { name, aktiviert: true })
+                            if let Some(c) = first {
+                                let name = ParsedArgName::Kurz(c);
+                                let second = chars.next();
+                                let bekannt_wert =
+                                    konfiguriert_als(name.clone(), Konfiguriert::Wert).next();
+                                if let Some('=') = second {
+                                    // "-k=<Wert>"
+                                    parsed_name = Some((name, None));
+                                    parsed_wert = Some(chars.collect());
+                                } else if let Some(arg_name) = bekannt_wert {
+                                    parsed_name =
+                                        Some((name, Some((Konfiguriert::Wert, arg_name))));
+                                    if let Some(c_wert) = second {
+                                        // "-k<Wert>"
+                                        parsed_wert =
+                                            Some(iter::once(c_wert).chain(chars).collect());
                                     } else {
-                                        errors
-                                            .push(ParseArgFehler::NichtKonfigurierteFlagKurzform(c))
+                                        // "-k <Wert>"
+                                        parsed_wert = None;
                                     }
+                                } else {
+                                    // "-abc"
+                                    // zusammenfassen mehrerer Flag-Kurzformen (oder eine einzelne)
+                                    // TODO ist erneuter Aufruf von `kurz.chars()` hier zu bevorzugen?
+                                    for c in iter::once(c).chain(second.into_iter()).chain(chars) {
+                                        let name = ParsedArgName::Kurz(c);
+                                        let mut bekannt =
+                                            konfiguriert_als(name, Konfiguriert::Flag(true));
+                                        if let Some(name) = bekannt.next() {
+                                            parsed_args
+                                                .push(ParsedArg::Flag { name, aktiviert: true })
+                                        } else {
+                                            errors.push(
+                                                ParseArgFehler::NichtKonfigurierteFlagKurzform(c),
+                                            )
+                                        }
+                                    }
+                                    parsed_wert = None;
                                 }
+                            } else {
+                                // "-"
+                                parsed_wert = None;
+                                errors.push(ParseArgFehler::InvaliderName(string));
                             }
                         } else {
-                            errors.push(ParseArgFehler::InvaliderName(string))
+                            // Name, der nicht mit "-" beginnt
+                            // TODO Positions-Argumente nicht unterstützt
+                            parsed_wert = None;
+                            errors.push(ParseArgFehler::InvaliderName(string));
                         }
-                        if let Some(parsed_name) = parsed_name {
-                            let konfigurationen: Vec<_> = konfiguriert
-                                .iter()
-                                .map(|config| config.ist_konfiguriert(&parsed_name))
+                        // Auswerten von geparstem Namen und Wert
+                        if let Some((parsed_name, arg_konfiguration_name)) = parsed_name {
+                            let konfigurationen: Vec<_> = iter::once(arg_konfiguration_name)
+                                .chain(
+                                    konfiguriert
+                                        .iter()
+                                        .map(|config| config.ist_konfiguriert(&parsed_name)),
+                                )
                                 .filter_map(identity)
                                 .collect();
                             fn ist_wert_konfiguration(
