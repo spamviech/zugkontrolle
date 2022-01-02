@@ -4,14 +4,14 @@ use std::{
     convert::identity,
     env,
     ffi::OsString,
-    fmt::{Debug, Display, Write},
+    fmt::{Debug, Display},
     iter,
     str::FromStr,
 };
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
 use itertools::Itertools;
-use log::error;
+use unicode_segmentation::UnicodeSegmentation;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
@@ -120,9 +120,8 @@ impl Args {
 }
 
 #[derive(Debug, Clone)]
-#[allow(variant_size_differences)]
 pub enum ParsedArgName {
-    Kurz(char),
+    Kurz(String),
     Lang(String),
 }
 
@@ -135,7 +134,7 @@ pub enum ParsedArg<'t> {
 #[derive(Debug, Clone, Copy)]
 pub struct ArgName<'t> {
     pub lang: &'t String,
-    pub kurz: &'t Option<char>,
+    pub kurz: &'t Option<String>,
 }
 
 impl ArgName<'_> {
@@ -210,7 +209,7 @@ pub enum ParseArgFehler {
     KonvertiereName(OsString),
     InvaliderName(String),
     NichtKonfigurierterName(ParsedArgName),
-    NichtKonfigurierteFlagKurzform(char),
+    NichtKonfigurierteFlagKurzform(String),
     FehlenderWert(ParsedArgName),
     WertFürFlag { name: ParsedArgName, wert: String },
 }
@@ -255,14 +254,14 @@ impl ParsedArg<'_> {
                             // TODO sauberer mit graphemes
                             // https://crates.io/crates/unicode-segmentation
                             // Für reine ascii-Characters nicht notwendig
-                            let mut chars = kurz.chars();
+                            let mut chars = kurz.graphemes(true);
                             let first = chars.next();
                             if let Some(c) = first {
-                                let name = ParsedArgName::Kurz(c);
+                                let name = ParsedArgName::Kurz(c.to_owned());
                                 let second = chars.next();
                                 let bekannt_wert =
                                     konfiguriert_als(name.clone(), Konfiguriert::Wert).next();
-                                if let Some('=') = second {
+                                if let Some("=") = second {
                                     // "-k=<Wert>"
                                     parsed_name = Some((name, None));
                                     parsed_wert = Some(chars.collect());
@@ -280,9 +279,8 @@ impl ParsedArg<'_> {
                                 } else {
                                     // "-abc"
                                     // zusammenfassen mehrerer Flag-Kurzformen (oder eine einzelne)
-                                    // TODO ist erneuter Aufruf von `kurz.chars()` hier zu bevorzugen?
                                     for c in iter::once(c).chain(second.into_iter()).chain(chars) {
-                                        let name = ParsedArgName::Kurz(c);
+                                        let name = ParsedArgName::Kurz(c.to_owned());
                                         let mut bekannt =
                                             konfiguriert_als(name, Konfiguriert::Flag(true));
                                         if let Some(name) = bekannt.next() {
@@ -290,7 +288,9 @@ impl ParsedArg<'_> {
                                                 .push(ParsedArg::Flag { name, aktiviert: true })
                                         } else {
                                             errors.push(
-                                                ParseArgFehler::NichtKonfigurierteFlagKurzform(c),
+                                                ParseArgFehler::NichtKonfigurierteFlagKurzform(
+                                                    c.to_owned(),
+                                                ),
                                             )
                                         }
                                     }
@@ -399,7 +399,7 @@ impl FromStr for Zugtyp {
 #[derive(Debug)]
 pub struct ArgBeschreibung<T> {
     pub lang: String,
-    pub kurz: Option<char>,
+    pub kurz: Option<String>,
     pub hilfe: Option<String>,
     pub standard: Option<T>,
 }
@@ -487,7 +487,7 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
     ) -> ArgKombination<T> {
         // TODO Kombination aus mehreren Flags, z.B. "-abc"
         // bei `kombiniereN` berücksichtigen?
-        let name_kurz = beschreibung.kurz;
+        let name_kurz = beschreibung.kurz.clone();
         let name_lang = beschreibung.lang.clone();
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         ArgKombination {
@@ -508,7 +508,9 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                                 }
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
-                            if kurz.chars().exactly_one().ok() == name_kurz {
+                            if kurz.graphemes(true).exactly_one().ok()
+                                == name_kurz.as_ref().map(String::as_str)
+                            {
                                 ergebnis = Some(konvertiere(true));
                                 break;
                             }
@@ -524,7 +526,7 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                     let mut fehlermeldung = format!("Fehlende Flag: `--[no-]{}`", name_lang);
                     if let Some(kurz) = &name_kurz {
                         fehlermeldung.push_str("| -");
-                        fehlermeldung.push(*kurz);
+                        fehlermeldung.push_str(kurz);
                     }
                     Err(vec![fehlermeldung.clone()])
                 }

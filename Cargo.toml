@@ -23,6 +23,7 @@ num-traits = "0.2.14"
 itertools = "0.10.3"
 parking_lot = "0.11.2"
 argh = "0.1.6"
+unicode-segmentation = "1.8.0"
 
 [dependencies.num_x]
 version = "0.2.2"

@@ -2718,6 +2718,7 @@ dependencies = [
  "rstar",
  "serde",
  "take_mut",
+ "unicode-segmentation",
  "version",
  "zugkontrolle-derive",
 ]
