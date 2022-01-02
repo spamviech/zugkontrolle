@@ -11,6 +11,8 @@ use std::{
 use itertools::Itertools;
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::non_empty::NonEmpty;
+
 #[derive(Debug, Clone)]
 pub enum ParsedArgName {
     Kurz(String),
@@ -302,7 +304,7 @@ pub enum ArgString {
 pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
-    pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<String>>>,
+    pub parse: Box<dyn Fn(Vec<&OsString>) -> (Result<T, Vec<String>>, Vec<&OsString>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -375,9 +377,9 @@ impl<T: 'static + Display + Clone> Arg<T> {
                     nicht_verwendet.push(*arg);
                 }
                 if let Some(wert) = ergebnis {
-                    Ok((wert, nicht_verwendet))
+                    (Ok(wert), nicht_verwendet)
                 } else if let Some(wert) = &standard {
-                    Ok((wert.clone(), args))
+                    (Ok(wert.clone()), args)
                 } else {
                     let mut fehlermeldung =
                         format!("{}: --[{}]{}", fehlende_flag, invertiere_prefix_minus, name_lang);
@@ -385,7 +387,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str(" | -");
                         fehlermeldung.push_str(kurz);
                     }
-                    Err(vec![fehlermeldung.clone()])
+                    (Err(vec![fehlermeldung.clone()]), nicht_verwendet)
                 }
             }),
         }
@@ -414,7 +416,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
     pub fn wert(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, String>,
+        parse: impl 'static + Fn(&OsString) -> Result<T, String>,
         fehlender_wert: &'static str,
     ) -> Arg<T> {
         let name_kurz = beschreibung.kurz.clone();
@@ -426,17 +428,28 @@ impl<T: 'static + Display + Clone> Arg<T> {
             flag_kurzformen: Vec::new(),
             parse: Box::new(move |args| {
                 let mut ergebnis = None;
+                let mut fehler = Vec::new();
+                let mut name_ohne_wert = false;
                 let mut nicht_verwendet = Vec::new();
                 for arg in args.iter() {
-                    if let Some(string) = arg.to_str() {
+                    if name_ohne_wert {
+                        match parse(arg) {
+                            Ok(wert) => ergebnis = Some(wert),
+                            Err(parse_fehler) => fehler.push(parse_fehler),
+                        }
+                        name_ohne_wert = false;
+                        continue;
+                    } else if let Some(string) = arg.to_str() {
                         todo!()
                     }
                     nicht_verwendet.push(*arg);
                 }
-                if let Some(wert) = ergebnis {
-                    Ok((wert, nicht_verwendet))
+                if !fehler.is_empty() {
+                    (Err(fehler), nicht_verwendet)
+                } else if let Some(wert) = ergebnis {
+                    (Ok(wert), nicht_verwendet)
                 } else if let Some(wert) = &standard {
-                    Ok((wert.clone(), args))
+                    (Ok(wert.clone()), args)
                 } else {
                     let mut fehlermeldung =
                         format!("{}: --{} {}", fehlender_wert, name_lang, meta_var_clone);
@@ -446,7 +459,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str("[=| ]");
                         fehlermeldung.push_str(&meta_var_clone);
                     }
-                    Err(vec![fehlermeldung.clone()])
+                    (Err(vec![fehlermeldung.clone()]), nicht_verwendet)
                 }
             }),
         }
@@ -465,8 +478,23 @@ macro_rules! kombiniere {
             beschreibungen,
             flag_kurzformen,
             parse: Box::new(move |args| {
-                $(let ($args, args) = ($args.parse)(args)?;)*
-                Ok(($funktion($($args),*), args))
+                #[allow(unused_mut)]
+                let mut fehler = Vec::new();
+                $(
+                    let (ergebnis, args) = ($args.parse)(args);
+                    let $args = match ergebnis {
+                        Ok(wert) => Some(wert),
+                        Err(parse_fehler) => {
+                            fehler.extend(parse_fehler);
+                            None
+                        }
+                    };
+                )*
+                if fehler.is_empty() {
+                    (Ok($funktion($($args.unwrap()),*)), args)
+                } else {
+                    (Err(fehler), args)
+                }
             }),
         }
     }};
