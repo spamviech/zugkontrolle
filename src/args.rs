@@ -519,13 +519,13 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                         if let Some(lang) = string.strip_prefix("--") {
                             if lang == name_lang {
                                 ergebnis = Some(konvertiere(true));
-                                break;
+                                continue;
                             } else if let Some(negiert) =
                                 lang.strip_prefix(&invertiere_prefix_minus)
                             {
                                 if negiert == name_lang {
                                     ergebnis = Some(konvertiere(false));
-                                    break;
+                                    continue;
                                 }
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
@@ -533,7 +533,7 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                                 == name_kurz.as_ref().map(String::as_str)
                             {
                                 ergebnis = Some(konvertiere(true));
-                                break;
+                                continue;
                             }
                         }
                     }
