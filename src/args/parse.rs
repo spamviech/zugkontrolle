@@ -440,7 +440,19 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         name_ohne_wert = false;
                         continue;
                     } else if let Some(string) = arg.to_str() {
-                        todo!()
+                        if let Some(lang) = string.strip_prefix("--") {
+                            if lang == name_lang {
+                                todo!();
+                                continue;
+                            }
+                        } else if let Some(kurz) = string.strip_prefix("-") {
+                            let mut graphemes = kurz.graphemes(true);
+                            if graphemes.next() == name_kurz.as_ref().map(String::as_str) {
+                                let peekable = graphemes.peekable();
+                                todo!();
+                                continue;
+                            }
+                        }
                     }
                     nicht_verwendet.push(*arg);
                 }
