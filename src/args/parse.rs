@@ -47,7 +47,7 @@ pub enum ParseErgebnis<T> {
 pub struct Arg<T> {
     beschreibungen: Vec<ArgString>,
     flag_kurzformen: Vec<String>,
-    parse: Box<dyn Fn(Vec<&OsStr>) -> (ParseErgebnis<T>, Vec<&OsStr>)>,
+    parse: Box<dyn Fn(Vec<Option<&OsStr>>) -> (ParseErgebnis<T>, Vec<Option<&OsStr>>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -58,8 +58,6 @@ impl<T> Debug for Arg<T> {
             .finish()
     }
 }
-
-// TODO insert separator to avoid accidental pairings
 
 impl<T: 'static + Display + Clone> Arg<T> {
     #[inline(always)]
@@ -96,17 +94,19 @@ impl<T: 'static + Display + Clone> Arg<T> {
                 let name_kurz_existiert = name_kurz_str.is_some();
                 let mut ergebnis = None;
                 let mut nicht_verwendet = Vec::new();
-                for arg in args.iter() {
-                    if let Some(string) = arg.to_str() {
+                for arg in args {
+                    if let Some(string) = arg.and_then(OsStr::to_str) {
                         if let Some(lang) = string.strip_prefix("--") {
                             if lang == name_lang {
                                 ergebnis = Some(konvertiere(true));
+                                nicht_verwendet.push(None);
                                 continue;
                             } else if let Some(negiert) =
                                 lang.strip_prefix(&invertiere_prefix_minus)
                             {
                                 if negiert == name_lang {
                                     ergebnis = Some(konvertiere(false));
+                                    nicht_verwendet.push(None);
                                     continue;
                                 }
                             }
@@ -114,17 +114,18 @@ impl<T: 'static + Display + Clone> Arg<T> {
                             if let Some(kurz) = string.strip_prefix('-') {
                                 if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
                                     ergebnis = Some(konvertiere(true));
+                                    nicht_verwendet.push(None);
                                     continue;
                                 }
                             }
                         }
                     }
-                    nicht_verwendet.push(*arg);
+                    nicht_verwendet.push(arg);
                 }
-                if let Some(wert) = ergebnis {
-                    (ParseErgebnis::Wert(wert), nicht_verwendet)
+                let ergebnis = if let Some(wert) = ergebnis {
+                    ParseErgebnis::Wert(wert)
                 } else if let Some(wert) = &standard {
-                    (ParseErgebnis::Wert(wert.clone()), args)
+                    ParseErgebnis::Wert(wert.clone())
                 } else {
                     let mut fehlermeldung =
                         format!("{}: --[{}]{}", fehlende_flag, invertiere_prefix_minus, name_lang);
@@ -132,8 +133,9 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str(" | -");
                         fehlermeldung.push_str(kurz);
                     }
-                    (ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
-                }
+                    ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung))
+                };
+                (ergebnis, nicht_verwendet)
             }),
         }
     }
@@ -166,6 +168,13 @@ impl<T: 'static + Display + Clone> Arg<T> {
         let name_lang = beschreibung.lang.clone();
         let meta_var_clone = meta_var.clone();
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
+        let mut fehlermeldung = format!("{}: --{} {}", fehlender_wert, name_lang, meta_var_clone);
+        if let Some(kurz) = &name_kurz {
+            fehlermeldung.push_str(" | -");
+            fehlermeldung.push_str(kurz);
+            fehlermeldung.push_str("[=| ]");
+            fehlermeldung.push_str(&meta_var_clone);
+        }
         Arg {
             beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
             flag_kurzformen: Vec::new(),
@@ -176,24 +185,31 @@ impl<T: 'static + Display + Clone> Arg<T> {
                 let mut fehler = Vec::new();
                 let mut name_ohne_wert = false;
                 let mut nicht_verwendet = Vec::new();
-                let mut parse_auswerten = |arg| match parse(arg) {
-                    Ok(wert) => ergebnis = Some(wert),
-                    Err(parse_fehler) => fehler.push(parse_fehler),
+                let mut parse_auswerten = |arg| {
+                    if let Some(wert_os_str) = arg {
+                        match parse(wert_os_str) {
+                            Ok(wert) => ergebnis = Some(wert),
+                            Err(parse_fehler) => fehler.push(parse_fehler),
+                        }
+                    } else {
+                        fehler.push(fehlermeldung.clone())
+                    }
                 };
-                for arg in args.iter() {
+                for arg in args {
                     if name_ohne_wert {
                         parse_auswerten(arg);
                         name_ohne_wert = false;
                         continue;
-                    } else if let Some(string) = arg.to_str() {
+                    } else if let Some(string) = arg.and_then(OsStr::to_str) {
                         if let Some(lang) = string.strip_prefix("--") {
                             if let Some((name, wert_str)) = lang.split_once('=') {
                                 if name == name_lang {
-                                    parse_auswerten(wert_str.as_ref());
+                                    parse_auswerten(Some(wert_str.as_ref()));
                                     continue;
                                 }
                             } else if lang == name_lang {
                                 name_ohne_wert = true;
+                                nicht_verwendet.push(None);
                                 continue;
                             }
                         } else if name_kurz_existiert {
@@ -207,31 +223,27 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                         rest
                                     } else {
                                         name_ohne_wert = true;
+                                        nicht_verwendet.push(None);
                                         continue;
                                     };
-                                    parse_auswerten(wert_str.as_ref());
+                                    parse_auswerten(Some(wert_str.as_ref()));
                                 }
                             }
                         }
                     }
-                    nicht_verwendet.push(*arg);
+                    nicht_verwendet.push(arg);
                 }
                 if let Some(fehler) = NonEmpty::from_vec(fehler) {
                     (ParseErgebnis::Fehler(fehler), nicht_verwendet)
                 } else if let Some(wert) = ergebnis {
                     (ParseErgebnis::Wert(wert), nicht_verwendet)
                 } else if let Some(wert) = &standard {
-                    (ParseErgebnis::Wert(wert.clone()), args)
+                    (ParseErgebnis::Wert(wert.clone()), nicht_verwendet)
                 } else {
-                    let mut fehlermeldung =
-                        format!("{}: --{} {}", fehlender_wert, name_lang, meta_var_clone);
-                    if let Some(kurz) = &name_kurz {
-                        fehlermeldung.push_str(" | -");
-                        fehlermeldung.push_str(kurz);
-                        fehlermeldung.push_str("[=| ]");
-                        fehlermeldung.push_str(&meta_var_clone);
-                    }
-                    (ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
+                    (
+                        ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung.clone())),
+                        nicht_verwendet,
+                    )
                 }
             }),
         }
@@ -332,16 +344,18 @@ impl<T: 'static> Arg<T> {
                 let mut nachrichten = Vec::new();
                 let mut zeige_nachricht = || nachrichten.push(nachricht.clone());
                 for arg in args {
-                    if let Some(string) = arg.to_str() {
+                    if let Some(string) = arg.and_then(OsStr::to_str) {
                         if let Some(lang) = string.strip_prefix("--") {
                             if lang == name_lang {
                                 zeige_nachricht();
+                                nicht_verwendet.push(None);
                                 continue;
                             }
                         } else if name_kurz_existiert {
                             if let Some(kurz) = string.strip_prefix('-') {
                                 if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
                                     zeige_nachricht();
+                                    nicht_verwendet.push(None);
                                     continue;
                                 }
                             }
