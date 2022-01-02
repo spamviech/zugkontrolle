@@ -4,6 +4,7 @@ use std::{
     env,
     ffi::OsStr,
     fmt::{Debug, Display},
+    iter,
     path::{Path, PathBuf},
 };
 
@@ -14,7 +15,7 @@ use void::Void;
 
 use crate::non_empty::NonEmpty;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ArgBeschreibung<T> {
     pub lang: String,
     pub kurz: Option<String>,
@@ -300,7 +301,10 @@ impl<T: 'static> Arg<T> {
             .unwrap_or(programm_name);
         let benutzen = format!("./{} [{}]", exe_name, optionen);
         let hilfe_text = format!("{}\n{}\n", name_und_version, benutzen);
-        for beschreibung in self.beschreibungen.iter() {
+        let eigener_arg_string = ArgString::Flag {
+            beschreibung: eigene_beschreibung.clone().als_string_beschreibung().0,
+        };
+        for beschreibung in self.beschreibungen.iter().chain(iter::once(&eigener_arg_string)) {
             match beschreibung {
                 ArgString::Flag { beschreibung } => todo!(),
                 ArgString::Wert { beschreibung, meta_var } => todo!(),
