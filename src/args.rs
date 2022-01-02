@@ -580,7 +580,23 @@ impl<T: 'static + Display + Clone> Arg<T> {
 }
 
 impl<T> Arg<T> {
-    pub fn kombiniere2<A, B>(f: impl Fn(A, B) -> T, a: Arg<A>, b: Arg<B>) -> Arg<T> {
-        todo!()
+    pub fn kombiniere2<A: 'static, B: 'static>(
+        f: impl 'static + Fn(A, B) -> T,
+        a: Arg<A>,
+        b: Arg<B>,
+    ) -> Arg<T> {
+        let mut beschreibungen = a.beschreibungen;
+        beschreibungen.extend(b.beschreibungen.into_iter());
+        let mut flag_kurzformen = a.flag_kurzformen;
+        flag_kurzformen.extend(b.flag_kurzformen.into_iter());
+        Arg {
+            beschreibungen,
+            flag_kurzformen,
+            parse: Box::new(move |args| {
+                let (a, args_nach_a) = (a.parse)(args)?;
+                let (b, args_nach_b) = (b.parse)(args_nach_a)?;
+                Ok((f(a, b), args_nach_b))
+            }),
+        }
     }
 }
