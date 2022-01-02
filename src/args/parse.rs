@@ -283,7 +283,7 @@ impl<T: 'static> Arg<T> {
             hilfe: Some("Zeigt diesen Text an.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN")
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN", "standard")
     }
 
     #[inline(always)]
@@ -294,7 +294,7 @@ impl<T: 'static> Arg<T> {
             hilfe: Some("Show this text.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS")
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS", "default")
     }
 
     pub fn erstelle_hilfe(
@@ -302,6 +302,7 @@ impl<T: 'static> Arg<T> {
         eigene_beschreibung: ArgBeschreibung<Void>,
         programm_name: &str,
         optionen: &str,
+        standard: &str,
     ) -> Arg<T> {
         let name_und_version = format!("{} {}", programm_name, version!());
         let current_exe = env::current_exe().ok();
@@ -312,13 +313,27 @@ impl<T: 'static> Arg<T> {
             .and_then(OsStr::to_str)
             .unwrap_or(programm_name);
         let benutzen = format!("./{} [{}]", exe_name, optionen);
-        let hilfe_text = format!("{}\n{}\n", name_und_version, benutzen);
+        let mut hilfe_text = format!("{}\n{}\n\n{}:\n", name_und_version, benutzen, optionen);
         let eigener_arg_string = ArgString::Flag {
             beschreibung: eigene_beschreibung.clone().als_string_beschreibung().0,
         };
         for beschreibung in self.beschreibungen.iter().chain(iter::once(&eigener_arg_string)) {
             match beschreibung {
-                ArgString::Flag { beschreibung } => todo!(),
+                ArgString::Flag { beschreibung } => {
+                    hilfe_text.push_str("  --");
+                    todo!("invertiere_prefix (frühes_beenden?, Unterschiede zwischen Flags?)");
+                    hilfe_text.push_str(&beschreibung.lang);
+                    if let Some(kurz) = &beschreibung.kurz {
+                        hilfe_text.push_str(" | -");
+                        hilfe_text.push_str(kurz);
+                    }
+                    if let Some(hilfe) = &beschreibung.hilfe {
+                        hilfe_text.push('\t');
+                        todo!("Hilfe sollte identisch eingerückt sein!");
+                        hilfe_text.push_str(hilfe);
+                    }
+                    hilfe_text.push('\n');
+                }
                 ArgString::Wert { beschreibung, meta_var } => todo!(),
             }
         }
