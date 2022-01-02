@@ -32,11 +32,17 @@ pub enum ArgString {
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
 
-// TODO EarlyExit Optionen
+#[derive(Debug)]
+pub enum ParseErgebnis<T> {
+    Wert(T),
+    FrühesBeenden(NonEmpty<String>),
+    Fehler(NonEmpty<String>),
+}
+
 pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
-    pub parse: Box<dyn Fn(Vec<&OsStr>) -> (Result<T, NonEmpty<String>>, Vec<&OsStr>)>,
+    pub parse: Box<dyn Fn(Vec<&OsStr>) -> (ParseErgebnis<T>, Vec<&OsStr>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -109,9 +115,9 @@ impl<T: 'static + Display + Clone> Arg<T> {
                     nicht_verwendet.push(*arg);
                 }
                 if let Some(wert) = ergebnis {
-                    (Ok(wert), nicht_verwendet)
+                    (ParseErgebnis::Wert(wert), nicht_verwendet)
                 } else if let Some(wert) = &standard {
-                    (Ok(wert.clone()), args)
+                    (ParseErgebnis::Wert(wert.clone()), args)
                 } else {
                     let mut fehlermeldung =
                         format!("{}: --[{}]{}", fehlende_flag, invertiere_prefix_minus, name_lang);
@@ -119,14 +125,12 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str(" | -");
                         fehlermeldung.push_str(kurz);
                     }
-                    (Err(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
+                    (ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
                 }
             }),
         }
     }
-}
 
-impl<T: 'static + Display + Clone> Arg<T> {
     #[inline(always)]
     pub fn wert_deutsch(
         beschreibung: ArgBeschreibung<T>,
@@ -206,11 +210,11 @@ impl<T: 'static + Display + Clone> Arg<T> {
                     nicht_verwendet.push(*arg);
                 }
                 if let Some(fehler) = NonEmpty::from_vec(fehler) {
-                    (Err(fehler), nicht_verwendet)
+                    (ParseErgebnis::Fehler(fehler), nicht_verwendet)
                 } else if let Some(wert) = ergebnis {
-                    (Ok(wert), nicht_verwendet)
+                    (ParseErgebnis::Wert(wert), nicht_verwendet)
                 } else if let Some(wert) = &standard {
-                    (Ok(wert.clone()), args)
+                    (ParseErgebnis::Wert(wert.clone()), args)
                 } else {
                     let mut fehlermeldung =
                         format!("{}: --{} {}", fehlender_wert, name_lang, meta_var_clone);
@@ -220,7 +224,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str("[=| ]");
                         fehlermeldung.push_str(&meta_var_clone);
                     }
-                    (Err(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
+                    (ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
                 }
             }),
         }
@@ -241,20 +245,28 @@ macro_rules! kombiniere {
             parse: Box::new(move |args| {
                 #[allow(unused_mut)]
                 let mut fehler = Vec::new();
+                #[allow(unused_mut)]
+                let mut frühes_beenden = Vec::new();
                 $(
                     let (ergebnis, args) = ($args.parse)(args);
                     let $args = match ergebnis {
-                        Ok(wert) => Some(wert),
-                        Err(parse_fehler) => {
+                        ParseErgebnis::Wert(wert) => Some(wert),
+                        ParseErgebnis::FrühesBeenden(nachrichten) => {
+                            frühes_beenden.extend(nachrichten);
+                            None
+                        }
+                        ParseErgebnis::Fehler(parse_fehler) => {
                             fehler.extend(parse_fehler);
                             None
                         }
                     };
                 )*
                 if let Some(fehler) = NonEmpty::from_vec(fehler) {
-                    (Err(fehler), args)
+                    (ParseErgebnis::Fehler(fehler), args)
+                } else if let Some(nachrichten) = NonEmpty::from_vec(frühes_beenden) {
+                    (ParseErgebnis::FrühesBeenden(nachrichten), args)
                 } else {
-                    (Ok($funktion($($args.unwrap()),*)), args)
+                    (ParseErgebnis::Wert($funktion($($args.unwrap()),*)), args)
                 }
             }),
         }
