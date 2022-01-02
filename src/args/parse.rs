@@ -339,8 +339,6 @@ impl<T: 'static + Display + Clone> Arg<T> {
         fehlende_flag: &'static str,
         invertiere_prefix: &str,
     ) -> Arg<T> {
-        // TODO Kombination aus mehreren Flags, z.B. "-abc"
-        // bei `kombiniereN` berücksichtigen?
         let name_kurz = beschreibung.kurz.clone();
         let name_lang = beschreibung.lang.clone();
         let invertiere_prefix_minus = format!("{}-", invertiere_prefix);
@@ -349,6 +347,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
             beschreibungen: vec![ArgString::Flag { beschreibung }],
             flag_kurzformen: name_kurz.iter().cloned().collect(),
             parse: Box::new(move |args| {
+                let name_kurz_str = name_kurz.as_ref().map(String::as_str);
                 let mut ergebnis = None;
                 let mut nicht_verwendet = Vec::new();
                 for arg in args.iter() {
@@ -366,9 +365,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                 }
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
-                            if kurz.graphemes(true).exactly_one().ok()
-                                == name_kurz.as_ref().map(String::as_str)
-                            {
+                            if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
                                 ergebnis = Some(konvertiere(true));
                                 continue;
                             }
@@ -427,6 +424,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
             beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
             flag_kurzformen: Vec::new(),
             parse: Box::new(move |args| {
+                let name_kurz_str = name_kurz.as_ref().map(String::as_str);
                 let mut ergebnis = None;
                 let mut fehler = Vec::new();
                 let mut name_ohne_wert = false;
@@ -455,8 +453,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
                             let mut graphemes = kurz.graphemes(true);
-                            if graphemes.next() == name_kurz.as_ref().map(String::as_str) {
-                                let peekable = graphemes.peekable();
+                            if graphemes.next() == name_kurz_str {
                                 todo!();
                                 continue;
                             }
