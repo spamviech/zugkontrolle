@@ -453,24 +453,47 @@ impl<T: 'static + Display + Clone> Arg<T> {
     }
 }
 
-impl<T> Arg<T> {
-    pub fn kombiniere2<A: 'static, B: 'static>(
-        f: impl 'static + Fn(A, B) -> T,
-        a: Arg<A>,
-        b: Arg<B>,
-    ) -> Arg<T> {
-        let mut beschreibungen = a.beschreibungen;
-        beschreibungen.extend(b.beschreibungen);
-        let mut flag_kurzformen = a.flag_kurzformen;
-        flag_kurzformen.extend(b.flag_kurzformen);
+macro_rules! kombiniere {
+    ($funktion: expr => $($args: ident),*) => {{
+        #[allow(unused_mut)]
+        let mut beschreibungen = Vec::new();
+        $(beschreibungen.extend($args.beschreibungen);)*
+        #[allow(unused_mut)]
+        let mut flag_kurzformen = Vec::new();
+        $(flag_kurzformen.extend($args.flag_kurzformen);)*
         Arg {
             beschreibungen,
             flag_kurzformen,
             parse: Box::new(move |args| {
-                let (a, args_nach_a) = (a.parse)(args)?;
-                let (b, args_nach_b) = (b.parse)(args_nach_a)?;
-                Ok((f(a, b), args_nach_b))
+                $(let ($args, args) = ($args.parse)(args)?;)*
+                Ok(($funktion($($args),*), args))
             }),
         }
-    }
+    }};
+}
+pub(crate) use kombiniere;
+
+macro_rules! impl_kombiniere_n {
+    ($name: ident ($($var: ident: $ty_var: ident),*)) => {
+        pub fn $name<$($ty_var: 'static),*>(
+            f: impl 'static + Fn($($ty_var),*) -> T,
+            $($var: Arg<$ty_var>),*
+        ) -> Arg<T> {
+            kombiniere!(f=>$($var),*)
+        }
+
+    };
+}
+
+impl<T> Arg<T> {
+    impl_kombiniere_n! {konstant()}
+    impl_kombiniere_n! {konvertiere(a: A)}
+    impl_kombiniere_n! {kombiniere2(a: A, b: B)}
+    impl_kombiniere_n! {kombiniere3(a: A, b: B, c: C)}
+    impl_kombiniere_n! {kombiniere4(a: A, b: B, c: C, d: D)}
+    impl_kombiniere_n! {kombiniere5(a: A, b: B, c: C, d: D, e: E)}
+    impl_kombiniere_n! {kombiniere6(a: A, b: B, c: C, d: D, e: E, f: F)}
+    impl_kombiniere_n! {kombiniere7(a: A, b: B, c: C, d: D, e: E, f: F, g: G)}
+    impl_kombiniere_n! {kombiniere8(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H)}
+    impl_kombiniere_n! {kombiniere9(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I)}
 }
