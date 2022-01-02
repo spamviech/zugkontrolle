@@ -3,7 +3,7 @@
 use std::{
     convert::identity,
     env,
-    ffi::OsString,
+    ffi::{OsStr, OsString},
     fmt::{Debug, Display},
     iter,
 };
@@ -304,7 +304,7 @@ pub enum ArgString {
 pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
-    pub parse: Box<dyn Fn(Vec<&OsString>) -> (Result<T, NonEmpty<String>>, Vec<&OsString>)>,
+    pub parse: Box<dyn Fn(Vec<&OsStr>) -> (Result<T, NonEmpty<String>>, Vec<&OsStr>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -416,7 +416,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
     pub fn wert(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl 'static + Fn(&OsString) -> Result<T, String>,
+        parse: impl 'static + Fn(&OsStr) -> Result<T, String>,
         fehlender_wert: &'static str,
     ) -> Arg<T> {
         let name_kurz = beschreibung.kurz.clone();
@@ -441,8 +441,16 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         continue;
                     } else if let Some(string) = arg.to_str() {
                         if let Some(lang) = string.strip_prefix("--") {
-                            if lang == name_lang {
-                                todo!();
+                            if let Some((name, wert_string)) = lang.split_once('=') {
+                                if name == name_lang {
+                                    match parse(wert_string.as_ref()) {
+                                        Ok(wert) => ergebnis = Some(wert),
+                                        Err(parse_fehler) => fehler.push(parse_fehler),
+                                    }
+                                    continue;
+                                }
+                            } else if lang == name_lang {
+                                name_ohne_wert = true;
                                 continue;
                             }
                         } else if let Some(kurz) = string.strip_prefix("-") {
