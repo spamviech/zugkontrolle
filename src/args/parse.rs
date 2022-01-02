@@ -7,6 +7,8 @@ use std::{
 
 use itertools::Itertools;
 use unicode_segmentation::UnicodeSegmentation;
+use version::version;
+use void::Void;
 
 use crate::non_empty::NonEmpty;
 
@@ -27,7 +29,7 @@ impl<T: Display> ArgBeschreibung<T> {
 }
 
 #[derive(Debug)]
-pub enum ArgString {
+enum ArgString {
     Flag { beschreibung: ArgBeschreibung<String> },
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
@@ -40,9 +42,9 @@ pub enum ParseErgebnis<T> {
 }
 
 pub struct Arg<T> {
-    pub beschreibungen: Vec<ArgString>,
-    pub flag_kurzformen: Vec<String>,
-    pub parse: Box<dyn Fn(Vec<&OsStr>) -> (ParseErgebnis<T>, Vec<&OsStr>)>,
+    beschreibungen: Vec<ArgString>,
+    flag_kurzformen: Vec<String>,
+    parse: Box<dyn Fn(Vec<&OsStr>) -> (ParseErgebnis<T>, Vec<&OsStr>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -53,6 +55,8 @@ impl<T> Debug for Arg<T> {
             .finish()
     }
 }
+
+// TODO insert separator to avoid accidental pairings
 
 impl<T: 'static + Display + Clone> Arg<T> {
     #[inline(always)]
@@ -225,6 +229,66 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str(&meta_var_clone);
                     }
                     (ParseErgebnis::Fehler(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
+                }
+            }),
+        }
+    }
+}
+
+impl<T: 'static> Arg<T> {
+    pub fn version(self, programm_name: &str) -> Arg<T> {
+        Arg::frühes_beenden(
+            self,
+            ArgBeschreibung {
+                lang: "version".to_owned(),
+                kurz: Some("v".to_owned()),
+                hilfe: Some("Zeigt die aktuelle Version an.".to_owned()),
+                standard: None,
+            },
+            format!("{} {}", programm_name, version!()),
+        )
+    }
+
+    pub fn frühes_beenden(self, beschreibung: ArgBeschreibung<Void>, nachricht: String) -> Arg<T> {
+        let Arg { mut beschreibungen, mut flag_kurzformen, parse } = self;
+        let name_kurz = beschreibung.kurz.clone();
+        let name_lang = beschreibung.lang.clone();
+        let (beschreibung, _standard) = beschreibung.als_string_beschreibung();
+        if let Some(kurz) = &beschreibung.kurz {
+            flag_kurzformen.push(kurz.clone())
+        }
+        beschreibungen.push(ArgString::Flag { beschreibung });
+        Arg {
+            beschreibungen,
+            flag_kurzformen,
+            parse: Box::new(move |args| {
+                let name_kurz_str = name_kurz.as_ref().map(String::as_str);
+                let name_kurz_existiert = name_kurz_str.is_some();
+                let mut nicht_verwendet = Vec::new();
+                let mut nachrichten = Vec::new();
+                let mut zeige_nachricht = || nachrichten.push(nachricht.clone());
+                for arg in args {
+                    if let Some(string) = arg.to_str() {
+                        if let Some(lang) = string.strip_prefix("--") {
+                            if lang == name_lang {
+                                zeige_nachricht();
+                                continue;
+                            }
+                        } else if name_kurz_existiert {
+                            if let Some(kurz) = string.strip_prefix('-') {
+                                if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
+                                    zeige_nachricht();
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    nicht_verwendet.push(arg);
+                }
+                if let Some(frühes_beenden) = NonEmpty::from_vec(nachrichten) {
+                    (ParseErgebnis::FrühesBeenden(frühes_beenden), nicht_verwendet)
+                } else {
+                    parse(nicht_verwendet)
                 }
             }),
         }
