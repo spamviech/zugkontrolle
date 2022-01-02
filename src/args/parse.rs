@@ -79,6 +79,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
             flag_kurzformen: name_kurz.iter().cloned().collect(),
             parse: Box::new(move |args| {
                 let name_kurz_str = name_kurz.as_ref().map(String::as_str);
+                let name_kurz_existiert = name_kurz_str.is_some();
                 let mut ergebnis = None;
                 let mut nicht_verwendet = Vec::new();
                 for arg in args.iter() {
@@ -95,10 +96,12 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                     continue;
                                 }
                             }
-                        } else if let Some(kurz) = string.strip_prefix("-") {
-                            if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
-                                ergebnis = Some(konvertiere(true));
-                                continue;
+                        } else if name_kurz_existiert {
+                            if let Some(kurz) = string.strip_prefix("-") {
+                                if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
+                                    ergebnis = Some(konvertiere(true));
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -156,6 +159,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
             flag_kurzformen: Vec::new(),
             parse: Box::new(move |args| {
                 let name_kurz_str = name_kurz.as_ref().map(String::as_str);
+                let name_kurz_existiert = name_kurz_str.is_some();
                 let mut ergebnis = None;
                 let mut fehler = Vec::new();
                 let mut name_ohne_wert = false;
@@ -182,11 +186,13 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                 name_ohne_wert = true;
                                 continue;
                             }
-                        } else if let Some(kurz) = string.strip_prefix("-") {
-                            let mut graphemes = kurz.graphemes(true);
-                            if graphemes.next() == name_kurz_str {
-                                todo!();
-                                continue;
+                        } else if name_kurz_existiert {
+                            if let Some(kurz) = string.strip_prefix("-") {
+                                let mut graphemes = kurz.graphemes(true);
+                                if graphemes.next() == name_kurz_str {
+                                    todo!();
+                                    continue;
+                                }
                             }
                         }
                     }
