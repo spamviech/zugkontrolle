@@ -32,6 +32,7 @@ pub enum ArgString {
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
 
+// TODO EarlyExit Optionen
 pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
@@ -97,7 +98,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                 }
                             }
                         } else if name_kurz_existiert {
-                            if let Some(kurz) = string.strip_prefix("-") {
+                            if let Some(kurz) = string.strip_prefix('-') {
                                 if kurz.graphemes(true).exactly_one().ok() == name_kurz_str {
                                     ergebnis = Some(konvertiere(true));
                                     continue;
@@ -164,22 +165,20 @@ impl<T: 'static + Display + Clone> Arg<T> {
                 let mut fehler = Vec::new();
                 let mut name_ohne_wert = false;
                 let mut nicht_verwendet = Vec::new();
+                let mut parse_auswerten = |arg| match parse(arg) {
+                    Ok(wert) => ergebnis = Some(wert),
+                    Err(parse_fehler) => fehler.push(parse_fehler),
+                };
                 for arg in args.iter() {
                     if name_ohne_wert {
-                        match parse(arg) {
-                            Ok(wert) => ergebnis = Some(wert),
-                            Err(parse_fehler) => fehler.push(parse_fehler),
-                        }
+                        parse_auswerten(arg);
                         name_ohne_wert = false;
                         continue;
                     } else if let Some(string) = arg.to_str() {
                         if let Some(lang) = string.strip_prefix("--") {
                             if let Some((name, wert_string)) = lang.split_once('=') {
                                 if name == name_lang {
-                                    match parse(wert_string.as_ref()) {
-                                        Ok(wert) => ergebnis = Some(wert),
-                                        Err(parse_fehler) => fehler.push(parse_fehler),
-                                    }
+                                    parse_auswerten(wert_string.as_ref());
                                     continue;
                                 }
                             } else if lang == name_lang {
@@ -187,11 +186,20 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                 continue;
                             }
                         } else if name_kurz_existiert {
-                            if let Some(kurz) = string.strip_prefix("-") {
+                            if let Some(kurz) = string.strip_prefix('-') {
                                 let mut graphemes = kurz.graphemes(true);
                                 if graphemes.next() == name_kurz_str {
-                                    todo!();
-                                    continue;
+                                    let rest = graphemes.as_str();
+                                    let wert_string =
+                                        if let Some(wert_string) = rest.strip_prefix('=') {
+                                            wert_string
+                                        } else if !rest.is_empty() {
+                                            rest
+                                        } else {
+                                            name_ohne_wert = true;
+                                            continue;
+                                        };
+                                    parse_auswerten(wert_string.as_ref());
                                 }
                             }
                         }
