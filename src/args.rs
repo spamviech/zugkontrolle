@@ -586,9 +586,9 @@ impl<T> Arg<T> {
         b: Arg<B>,
     ) -> Arg<T> {
         let mut beschreibungen = a.beschreibungen;
-        beschreibungen.extend(b.beschreibungen.into_iter());
+        beschreibungen.extend(b.beschreibungen);
         let mut flag_kurzformen = a.flag_kurzformen;
-        flag_kurzformen.extend(b.flag_kurzformen.into_iter());
+        flag_kurzformen.extend(b.flag_kurzformen);
         Arg {
             beschreibungen,
             flag_kurzformen,
