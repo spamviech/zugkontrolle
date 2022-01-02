@@ -419,81 +419,42 @@ impl<T: Display> ArgBeschreibung<T> {
     }
 }
 
-pub enum Arg<T> {
-    Flag {
-        beschreibung: ArgBeschreibung<T>,
-        aus_bool: Box<dyn Fn(bool) -> T>,
-    },
-    Wert {
-        beschreibung: ArgBeschreibung<T>,
-        meta_var: String,
-        parse: Box<dyn Fn(&OsString) -> Result<T, &OsString>>,
-    },
-}
-
-impl<T: Debug> Debug for Arg<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Flag { beschreibung, aus_bool: _ } => f
-                .debug_struct("Flag")
-                .field("arg", beschreibung)
-                .field("aus_bool", &"<function>")
-                .finish(),
-            Self::Wert { beschreibung, meta_var, parse: _ } => f
-                .debug_struct("Wert")
-                .field("arg", beschreibung)
-                .field("meta_var", meta_var)
-                .field("parse", &"<function>")
-                .finish(),
-        }
-    }
-}
-
-impl<T> Arg<T> {
-    pub fn als_arg_konfiguration(&self) -> ArgKonfiguration<'_> {
-        match self {
-            Arg::Flag { beschreibung, .. } => ArgKonfiguration::Flag(beschreibung.als_arg_name()),
-            Arg::Wert { beschreibung, .. } => ArgKonfiguration::Wert(beschreibung.als_arg_name()),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum ArgString {
     Flag { beschreibung: ArgBeschreibung<String> },
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
 
-pub struct ArgKombination<T> {
+pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
     pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<String>>>,
 }
 
-impl<T> Debug for ArgKombination<T> {
+impl<T> Debug for Arg<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ArgKombination")
+        f.debug_struct("Arg")
             .field("beschreibungen", &self.beschreibungen)
             .field("parse", &"<function>")
             .finish()
     }
 }
 
-impl<T: 'static + Display + Clone> ArgKombination<T> {
+impl<T: 'static + Display + Clone> Arg<T> {
     #[inline(always)]
     pub fn flag_deutsch(
         beschreibung: ArgBeschreibung<T>,
         konvertiere: impl 'static + Fn(bool) -> T,
-    ) -> ArgKombination<T> {
-        ArgKombination::flag(beschreibung, konvertiere, "Fehlende Flag", "kein")
+    ) -> Arg<T> {
+        Arg::flag(beschreibung, konvertiere, "Fehlende Flag", "kein")
     }
 
     #[inline(always)]
     pub fn flag_english(
         beschreibung: ArgBeschreibung<T>,
         konvertiere: impl 'static + Fn(bool) -> T,
-    ) -> ArgKombination<T> {
-        ArgKombination::flag(beschreibung, konvertiere, "Missing Flag", "no")
+    ) -> Arg<T> {
+        Arg::flag(beschreibung, konvertiere, "Missing Flag", "no")
     }
 
     pub fn flag(
@@ -501,14 +462,14 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
         konvertiere: impl 'static + Fn(bool) -> T,
         fehlende_flag: &'static str,
         invertiere_prefix: &str,
-    ) -> ArgKombination<T> {
+    ) -> Arg<T> {
         // TODO Kombination aus mehreren Flags, z.B. "-abc"
         // bei `kombiniereN` berücksichtigen?
         let name_kurz = beschreibung.kurz.clone();
         let name_lang = beschreibung.lang.clone();
         let invertiere_prefix_minus = format!("{}-", invertiere_prefix);
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
-        ArgKombination {
+        Arg {
             beschreibungen: vec![ArgString::Flag { beschreibung }],
             flag_kurzformen: name_kurz.iter().cloned().collect(),
             parse: Box::new(move |args| {
@@ -557,27 +518,36 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
     }
 }
 
-impl<T: 'static + Display + Clone> ArgKombination<T> {
+impl<T: 'static + Display + Clone> Arg<T> {
     #[inline(always)]
     pub fn wert_deutsch(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, &OsString>,
-    ) -> ArgKombination<T> {
+        parse: impl Fn(&OsString) -> Result<T, String>,
+    ) -> Arg<T> {
+        todo!()
+    }
+
+    #[inline(always)]
+    pub fn value_english(
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: impl Fn(&OsString) -> Result<T, String>,
+    ) -> Arg<T> {
         todo!()
     }
 
     pub fn wert(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+        parse: impl Fn(&OsString) -> Result<T, String>,
         fehlender_wert: &'static str,
-    ) -> ArgKombination<T> {
+    ) -> Arg<T> {
         let name_kurz = beschreibung.kurz.clone();
         let name_lang = beschreibung.lang.clone();
         let meta_var_clone = meta_var.clone();
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
-        ArgKombination {
+        Arg {
             beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
             flag_kurzformen: Vec::new(),
             parse: Box::new(move |args| {
@@ -607,21 +577,10 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
             }),
         }
     }
-
-    pub fn aus_arg(arg: Arg<T>) -> ArgKombination<T> {
-        match arg {
-            Arg::Flag { beschreibung, aus_bool } => {
-                ArgKombination::flag_deutsch(beschreibung, aus_bool)
-            }
-            Arg::Wert { beschreibung, meta_var, parse } => {
-                ArgKombination::wert_deutsch(beschreibung, meta_var, parse)
-            }
-        }
-    }
 }
 
-impl<T> ArgKombination<T> {
-    pub fn kombiniere2<A, B>(f: impl Fn(A, B) -> T, a: Arg<A>, b: Arg<B>) -> ArgKombination<T> {
+impl<T> Arg<T> {
+    pub fn kombiniere2<A, B>(f: impl Fn(A, B) -> T, a: Arg<A>, b: Arg<B>) -> Arg<T> {
         todo!()
     }
 }
