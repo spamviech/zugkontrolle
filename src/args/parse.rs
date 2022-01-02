@@ -1,7 +1,7 @@
 //! Parsen von Kommandozeilen-Argumenten, inklusiver automatisch generierter (deutscher) Hilfe.
 
 use std::{
-    ffi::{OsStr, OsString},
+    ffi::OsStr,
     fmt::{Debug, Display},
 };
 
@@ -127,18 +127,18 @@ impl<T: 'static + Display + Clone> Arg<T> {
     pub fn wert_deutsch(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, String>,
+        parse: impl 'static + Fn(&OsStr) -> Result<T, String>,
     ) -> Arg<T> {
-        todo!()
+        Arg::wert(beschreibung, meta_var, parse, "Fehlender Wert")
     }
 
     #[inline(always)]
     pub fn value_english(
         beschreibung: ArgBeschreibung<T>,
         meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, String>,
+        parse: impl 'static + Fn(&OsStr) -> Result<T, String>,
     ) -> Arg<T> {
-        todo!()
+        Arg::wert(beschreibung, meta_var, parse, "Missing Value")
     }
 
     pub fn wert(
