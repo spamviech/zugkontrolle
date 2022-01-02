@@ -465,16 +465,15 @@ pub enum ArgString {
 }
 
 pub struct ArgKombination<T> {
-    pub beschreibung: Vec<ArgString>,
+    pub beschreibungen: Vec<ArgString>,
+    pub flag_kurzformen: Vec<String>,
     pub parse: Box<dyn Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<String>>>,
-    // Fn(Vec<&OsString>) -> Result<(T, Vec<&OsString>), Vec<&OsString>>
-    // with combine2(impl Fn(A, B) -> C, Arg<A>, Arg<B>) -> Arg<C>
 }
 
 impl<T> Debug for ArgKombination<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ArgKombination")
-            .field("beschreibung", &self.beschreibung)
+            .field("beschreibungen", &self.beschreibungen)
             .field("parse", &"<function>")
             .finish()
     }
@@ -491,7 +490,8 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
         let name_lang = beschreibung.lang.clone();
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         ArgKombination {
-            beschreibung: vec![ArgString::Flag { beschreibung }],
+            beschreibungen: vec![ArgString::Flag { beschreibung }],
+            flag_kurzformen: name_kurz.iter().cloned().collect(),
             parse: Box::new(move |args| {
                 let mut ergebnis = None;
                 let mut nicht_verwendet = Vec::new();
@@ -552,7 +552,8 @@ impl<T: Display> ArgKombination<T> {
     ) -> ArgKombination<T> {
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         ArgKombination {
-            beschreibung: vec![ArgString::Wert { beschreibung, meta_var }],
+            beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
+            flag_kurzformen: Vec::new(),
             parse: Box::new(|args| todo!()),
         }
     }
