@@ -480,14 +480,33 @@ impl<T> Debug for ArgKombination<T> {
 }
 
 impl<T: 'static + Display + Clone> ArgKombination<T> {
+    #[inline(always)]
+    pub fn flag_deutsch(
+        beschreibung: ArgBeschreibung<T>,
+        konvertiere: impl 'static + Fn(bool) -> T,
+    ) -> ArgKombination<T> {
+        ArgKombination::flag(beschreibung, konvertiere, "Fehlende Flag", "kein")
+    }
+
+    #[inline(always)]
+    pub fn flag_english(
+        beschreibung: ArgBeschreibung<T>,
+        konvertiere: impl 'static + Fn(bool) -> T,
+    ) -> ArgKombination<T> {
+        ArgKombination::flag(beschreibung, konvertiere, "Missing Flag", "no")
+    }
+
     pub fn flag(
         beschreibung: ArgBeschreibung<T>,
         konvertiere: impl 'static + Fn(bool) -> T,
+        fehlende_flag: &'static str,
+        invertiere_prefix: &str,
     ) -> ArgKombination<T> {
         // TODO Kombination aus mehreren Flags, z.B. "-abc"
         // bei `kombiniereN` berücksichtigen?
         let name_kurz = beschreibung.kurz.clone();
         let name_lang = beschreibung.lang.clone();
+        let invertiere_prefix_minus = format!("{}-", invertiere_prefix);
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         ArgKombination {
             beschreibungen: vec![ArgString::Flag { beschreibung }],
@@ -501,7 +520,9 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                             if lang == name_lang {
                                 ergebnis = Some(konvertiere(true));
                                 break;
-                            } else if let Some(negiert) = lang.strip_prefix("no-") {
+                            } else if let Some(negiert) =
+                                lang.strip_prefix(&invertiere_prefix_minus)
+                            {
                                 if negiert == name_lang {
                                     ergebnis = Some(konvertiere(false));
                                     break;
@@ -523,7 +544,8 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                 } else if let Some(wert) = &standard {
                     Ok((wert.clone(), args))
                 } else {
-                    let mut fehlermeldung = format!("Fehlende Flag: `--[no-]{}`", name_lang);
+                    let mut fehlermeldung =
+                        format!("{}: --[{}]{}", fehlende_flag, invertiere_prefix_minus, name_lang);
                     if let Some(kurz) = &name_kurz {
                         fehlermeldung.push_str("| -");
                         fehlermeldung.push_str(kurz);
@@ -536,7 +558,9 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
 
     pub fn aus_arg(arg: Arg<T>) -> ArgKombination<T> {
         match arg {
-            Arg::Flag { beschreibung, aus_bool } => ArgKombination::flag(beschreibung, aus_bool),
+            Arg::Flag { beschreibung, aus_bool } => {
+                ArgKombination::flag_deutsch(beschreibung, aus_bool)
+            }
             Arg::Wert { beschreibung, meta_var, parse } => {
                 ArgKombination::wert(beschreibung, meta_var, parse)
             }
