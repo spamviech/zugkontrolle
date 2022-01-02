@@ -176,9 +176,9 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         continue;
                     } else if let Some(string) = arg.to_str() {
                         if let Some(lang) = string.strip_prefix("--") {
-                            if let Some((name, wert_string)) = lang.split_once('=') {
+                            if let Some((name, wert_str)) = lang.split_once('=') {
                                 if name == name_lang {
-                                    parse_auswerten(wert_string.as_ref());
+                                    parse_auswerten(wert_str.as_ref());
                                     continue;
                                 }
                             } else if lang == name_lang {
@@ -190,16 +190,15 @@ impl<T: 'static + Display + Clone> Arg<T> {
                                 let mut graphemes = kurz.graphemes(true);
                                 if graphemes.next() == name_kurz_str {
                                     let rest = graphemes.as_str();
-                                    let wert_string =
-                                        if let Some(wert_string) = rest.strip_prefix('=') {
-                                            wert_string
-                                        } else if !rest.is_empty() {
-                                            rest
-                                        } else {
-                                            name_ohne_wert = true;
-                                            continue;
-                                        };
-                                    parse_auswerten(wert_string.as_ref());
+                                    let wert_str = if let Some(wert_str) = rest.strip_prefix('=') {
+                                        wert_str
+                                    } else if !rest.is_empty() {
+                                        rest
+                                    } else {
+                                        name_ohne_wert = true;
+                                        continue;
+                                    };
+                                    parse_auswerten(wert_str.as_ref());
                                 }
                             }
                         }
