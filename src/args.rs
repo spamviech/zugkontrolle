@@ -547,8 +547,60 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                     let mut fehlermeldung =
                         format!("{}: --[{}]{}", fehlende_flag, invertiere_prefix_minus, name_lang);
                     if let Some(kurz) = &name_kurz {
-                        fehlermeldung.push_str("| -");
+                        fehlermeldung.push_str(" | -");
                         fehlermeldung.push_str(kurz);
+                    }
+                    Err(vec![fehlermeldung.clone()])
+                }
+            }),
+        }
+    }
+}
+
+impl<T: 'static + Display + Clone> ArgKombination<T> {
+    #[inline(always)]
+    pub fn wert_deutsch(
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+    ) -> ArgKombination<T> {
+        todo!()
+    }
+
+    pub fn wert(
+        beschreibung: ArgBeschreibung<T>,
+        meta_var: String,
+        parse: impl Fn(&OsString) -> Result<T, &OsString>,
+        fehlender_wert: &'static str,
+    ) -> ArgKombination<T> {
+        let name_kurz = beschreibung.kurz.clone();
+        let name_lang = beschreibung.lang.clone();
+        let meta_var_clone = meta_var.clone();
+        let (beschreibung, standard) = beschreibung.als_string_beschreibung();
+        ArgKombination {
+            beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
+            flag_kurzformen: Vec::new(),
+            parse: Box::new(move |args| {
+                let mut ergebnis = None;
+                let mut nicht_verwendet = Vec::new();
+                for arg in args.iter() {
+                    if let Some(string) = arg.to_str() {
+                        todo!()
+                    }
+                    nicht_verwendet.push(*arg);
+                }
+                if let Some(wert) = ergebnis {
+                    Ok((wert, nicht_verwendet))
+                } else if let Some(wert) = &standard {
+                    Ok((wert.clone(), args))
+                } else {
+                    let mut fehlermeldung =
+                        format!("{}: --{} {}", fehlender_wert, name_lang, meta_var_clone);
+                    if let Some(kurz) = &name_kurz {
+                        fehlermeldung.push_str(" | -");
+                        fehlermeldung.push_str(kurz);
+                        fehlermeldung.push_str("[=| ]");
+                        fehlermeldung.push_str(&meta_var_clone);
                     }
                     Err(vec![fehlermeldung.clone()])
                 }
@@ -562,23 +614,8 @@ impl<T: 'static + Display + Clone> ArgKombination<T> {
                 ArgKombination::flag_deutsch(beschreibung, aus_bool)
             }
             Arg::Wert { beschreibung, meta_var, parse } => {
-                ArgKombination::wert(beschreibung, meta_var, parse)
+                ArgKombination::wert_deutsch(beschreibung, meta_var, parse)
             }
-        }
-    }
-}
-
-impl<T: Display> ArgKombination<T> {
-    pub fn wert(
-        beschreibung: ArgBeschreibung<T>,
-        meta_var: String,
-        parse: impl Fn(&OsString) -> Result<T, &OsString>,
-    ) -> ArgKombination<T> {
-        let (beschreibung, standard) = beschreibung.als_string_beschreibung();
-        ArgKombination {
-            beschreibungen: vec![ArgString::Wert { beschreibung, meta_var }],
-            flag_kurzformen: Vec::new(),
-            parse: Box::new(|args| todo!()),
         }
     }
 }
