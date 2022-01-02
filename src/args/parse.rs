@@ -1,8 +1,10 @@
 //! Parsen von Kommandozeilen-Argumenten, inklusiver automatisch generierter (deutscher) Hilfe.
 
 use std::{
+    env,
     ffi::OsStr,
     fmt::{Debug, Display},
+    path::{Path, PathBuf},
 };
 
 use itertools::Itertools;
@@ -236,17 +238,75 @@ impl<T: 'static + Display + Clone> Arg<T> {
 }
 
 impl<T: 'static> Arg<T> {
-    pub fn version(self, programm_name: &str) -> Arg<T> {
-        Arg::frühes_beenden(
-            self,
-            ArgBeschreibung {
-                lang: "version".to_owned(),
-                kurz: Some("v".to_owned()),
-                hilfe: Some("Zeigt die aktuelle Version an.".to_owned()),
-                standard: None,
-            },
-            format!("{} {}", programm_name, version!()),
-        )
+    pub fn version_deutsch(self, programm_name: &str) -> Arg<T> {
+        let beschreibung = ArgBeschreibung {
+            lang: "version".to_owned(),
+            kurz: Some("v".to_owned()),
+            hilfe: Some("Zeigt die aktuelle Version an.".to_owned()),
+            standard: None,
+        };
+        self.zeige_version(beschreibung, programm_name)
+    }
+
+    pub fn version_english(self, programm_name: &str) -> Arg<T> {
+        let beschreibung = ArgBeschreibung {
+            lang: "version".to_owned(),
+            kurz: Some("v".to_owned()),
+            hilfe: Some("Show the current version.".to_owned()),
+            standard: None,
+        };
+        self.zeige_version(beschreibung, programm_name)
+    }
+
+    pub fn zeige_version(self, beschreibung: ArgBeschreibung<Void>, programm_name: &str) -> Arg<T> {
+        self.frühes_beenden(beschreibung, format!("{} {}", programm_name, version!()))
+    }
+
+    #[inline(always)]
+    pub fn hilfe(self, programm_name: &str) -> Arg<T> {
+        let beschreibung = ArgBeschreibung {
+            lang: "hilfe".to_owned(),
+            kurz: Some("h".to_owned()),
+            hilfe: Some("Zeigt diesen Text an.".to_owned()),
+            standard: None,
+        };
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN")
+    }
+
+    #[inline(always)]
+    pub fn help(self, programm_name: &str) -> Arg<T> {
+        let beschreibung = ArgBeschreibung {
+            lang: "help".to_owned(),
+            kurz: Some("h".to_owned()),
+            hilfe: Some("Show this text.".to_owned()),
+            standard: None,
+        };
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS")
+    }
+
+    pub fn erstelle_hilfe(
+        self,
+        eigene_beschreibung: ArgBeschreibung<Void>,
+        programm_name: &str,
+        optionen: &str,
+    ) -> Arg<T> {
+        let name_und_version = format!("{} {}", programm_name, version!());
+        let current_exe = env::current_exe().ok();
+        let exe_name = current_exe
+            .as_ref()
+            .map(PathBuf::as_path)
+            .and_then(Path::file_name)
+            .and_then(OsStr::to_str)
+            .unwrap_or(programm_name);
+        let benutzen = format!("./{} [{}]", exe_name, optionen);
+        let hilfe_text = format!("{}\n{}\n", name_und_version, benutzen);
+        for beschreibung in self.beschreibungen.iter() {
+            match beschreibung {
+                ArgString::Flag { beschreibung } => todo!(),
+                ArgString::Wert { beschreibung, meta_var } => todo!(),
+            }
+        }
+        self.frühes_beenden(eigene_beschreibung, hilfe_text)
     }
 
     pub fn frühes_beenden(self, beschreibung: ArgBeschreibung<Void>, nachricht: String) -> Arg<T> {
