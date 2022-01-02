@@ -304,7 +304,7 @@ pub enum ArgString {
 pub struct Arg<T> {
     pub beschreibungen: Vec<ArgString>,
     pub flag_kurzformen: Vec<String>,
-    pub parse: Box<dyn Fn(Vec<&OsString>) -> (Result<T, Vec<String>>, Vec<&OsString>)>,
+    pub parse: Box<dyn Fn(Vec<&OsString>) -> (Result<T, NonEmpty<String>>, Vec<&OsString>)>,
 }
 
 impl<T> Debug for Arg<T> {
@@ -387,7 +387,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str(" | -");
                         fehlermeldung.push_str(kurz);
                     }
-                    (Err(vec![fehlermeldung.clone()]), nicht_verwendet)
+                    (Err(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
                 }
             }),
         }
@@ -444,7 +444,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                     }
                     nicht_verwendet.push(*arg);
                 }
-                if !fehler.is_empty() {
+                if let Some(fehler) = NonEmpty::from_vec(fehler) {
                     (Err(fehler), nicht_verwendet)
                 } else if let Some(wert) = ergebnis {
                     (Ok(wert), nicht_verwendet)
@@ -459,7 +459,7 @@ impl<T: 'static + Display + Clone> Arg<T> {
                         fehlermeldung.push_str("[=| ]");
                         fehlermeldung.push_str(&meta_var_clone);
                     }
-                    (Err(vec![fehlermeldung.clone()]), nicht_verwendet)
+                    (Err(NonEmpty::singleton(fehlermeldung)), nicht_verwendet)
                 }
             }),
         }
@@ -490,10 +490,10 @@ macro_rules! kombiniere {
                         }
                     };
                 )*
-                if fehler.is_empty() {
-                    (Ok($funktion($($args.unwrap()),*)), args)
-                } else {
+                if let Some(fehler) = NonEmpty::from_vec(fehler) {
                     (Err(fehler), args)
+                } else {
+                    (Ok($funktion($($args.unwrap()),*)), args)
                 }
             }),
         }
