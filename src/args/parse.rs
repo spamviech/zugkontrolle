@@ -329,7 +329,7 @@ impl<T: 'static> Arg<T> {
             name_regex: &String,
             beschreibung: &ArgBeschreibung<String>,
         ) {
-            hilfe_text.push_str("--");
+            hilfe_text.push_str("  ");
             hilfe_text.push_str(name_regex);
             let bisherige_breite = 2 + name_regex.graphemes(true).count();
             let einrücken = " ".repeat(name_regex_breite - bisherige_breite);
@@ -509,4 +509,41 @@ impl<T> Arg<T> {
     impl_kombiniere_n! {kombiniere7(a: A, b: B, c: C, d: D, e: E, f: F, g: G)}
     impl_kombiniere_n! {kombiniere8(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H)}
     impl_kombiniere_n! {kombiniere9(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I)}
+}
+
+#[test]
+fn hilfe_test() {
+    use std::{convert::identity, ffi::OsString};
+    let arg = Arg::hilfe(
+        Arg::flag_deutsch(
+            ArgBeschreibung {
+                lang: "test".to_owned(),
+                kurz: None,
+                hilfe: Some("hilfe".to_owned()),
+                standard: Some(false),
+            },
+            identity,
+        ),
+        "programm",
+        20,
+    );
+    let hilfe = OsString::from("--hilfe".to_owned());
+    match (arg.parse)(vec![Some(&hilfe)]) {
+        (ParseErgebnis::FrühesBeenden(nachrichten), nicht_verwendet) => {
+            let übrige = nicht_verwendet.iter().filter_map(Option::as_ref).count();
+            if übrige > 0 {
+                eprintln!("Nicht verwendete Argumente: {:?}", nicht_verwendet);
+                std::process::exit(1);
+            } else {
+                for nachricht in nachrichten {
+                    println!("{}", nachricht);
+                }
+                std::process::exit(0);
+            }
+        }
+        res => {
+            eprintln!("Unerwartetes Ergebnis: {:?}", res);
+            std::process::exit(2);
+        }
+    }
 }
