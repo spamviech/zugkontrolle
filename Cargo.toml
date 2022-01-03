@@ -24,6 +24,10 @@ itertools = "0.10.3"
 parking_lot = "0.11.2"
 argh = "0.1.6"
 
+[dependencies.nonempty]
+version = "0.7.0"
+features = ["serialize"]
+
 [dependencies.num_x]
 version = "0.2.2"
 features = ["use_serde"]
