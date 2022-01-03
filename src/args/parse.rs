@@ -263,14 +263,14 @@ impl<T: 'static> Arg<T> {
         self.zeige_version(beschreibung, programm_name, version)
     }
 
-    pub fn version_english(self, programm_name: &str, version: &str) -> Arg<T> {
+    pub fn version_english(self, program_name: &str, version: &str) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "version".to_owned(),
             kurz: Some("v".to_owned()),
             hilfe: Some("Show the current version.".to_owned()),
             standard: None,
         };
-        self.zeige_version(beschreibung, programm_name, version)
+        self.zeige_version(beschreibung, program_name, version)
     }
 
     pub fn zeige_version(
@@ -282,52 +282,54 @@ impl<T: 'static> Arg<T> {
         self.frühes_beenden(beschreibung, format!("{} {}", programm_name, version))
     }
 
-    #[inline(always)]
-    pub fn hilfe(self, programm_name: &str, version: &str, name_regex_breite: usize) -> Arg<T> {
+    pub fn hilfe(self, programm_name: &str, name_regex_breite: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "hilfe".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Zeigt diesen Text an.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(
-            beschreibung,
-            programm_name,
-            version,
-            "OPTIONEN",
-            "standard",
-            name_regex_breite,
-        )
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN", "standard", name_regex_breite)
     }
 
-    #[inline(always)]
-    pub fn help(self, programm_name: &str, version: &str, name_regex_width: usize) -> Arg<T> {
+    pub fn hilfe_und_version(
+        self,
+        programm_name: &str,
+        version: &str,
+        name_regex_breite: usize,
+    ) -> Arg<T> {
+        self.version_deutsch(programm_name, version)
+            .hilfe(&format!("{} {}", programm_name, version), name_regex_breite)
+    }
+
+    pub fn help(self, program_name: &str, name_regex_width: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "help".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Show this text.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(
-            beschreibung,
-            programm_name,
-            version,
-            "OPTIONS",
-            "default",
-            name_regex_width,
-        )
+        self.erstelle_hilfe(beschreibung, program_name, "OPTIONS", "default", name_regex_width)
+    }
+
+    pub fn help_and_version(
+        self,
+        program_name: &str,
+        version: &str,
+        name_regex_breite: usize,
+    ) -> Arg<T> {
+        self.version_english(program_name, version)
+            .help(&format!("{} {}", program_name, version), name_regex_breite)
     }
 
     pub fn erstelle_hilfe(
         self,
         eigene_beschreibung: ArgBeschreibung<Void>,
         programm_name: &str,
-        version: &str,
         optionen: &str,
         standard: &str,
         name_regex_breite: usize,
     ) -> Arg<T> {
-        let name_und_version = format!("{} {}", programm_name, version);
         let current_exe = env::current_exe().ok();
         let exe_name = current_exe
             .as_ref()
@@ -336,7 +338,7 @@ impl<T: 'static> Arg<T> {
             .and_then(OsStr::to_str)
             .unwrap_or(programm_name);
         let benutzen = format!("./{} [{}]", exe_name, optionen);
-        let mut hilfe_text = format!("{}\n{}\n\n{}:\n", name_und_version, benutzen, optionen);
+        let mut hilfe_text = format!("{}\n{}\n\n{}:\n", programm_name, benutzen, optionen);
         let eigener_arg_string = ArgString::Flag {
             beschreibung: eigene_beschreibung.clone().als_string_beschreibung().0,
             invertiere_prefix: None,
@@ -533,7 +535,7 @@ impl<T> Arg<T> {
 #[test]
 fn hilfe_test() {
     use std::{convert::identity, ffi::OsString};
-    let arg = Arg::hilfe(
+    let arg = Arg::hilfe_und_version(
         Arg::flag_deutsch(
             ArgBeschreibung {
                 lang: "test".to_owned(),
