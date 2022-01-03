@@ -10,7 +10,6 @@ use std::{
 
 use itertools::Itertools;
 use unicode_segmentation::UnicodeSegmentation;
-use version::version;
 use void::Void;
 
 use crate::non_empty::NonEmpty;
@@ -254,61 +253,81 @@ impl<T: 'static + Display + Clone> Arg<T> {
 }
 
 impl<T: 'static> Arg<T> {
-    pub fn version_deutsch(self, programm_name: &str) -> Arg<T> {
+    pub fn version_deutsch(self, programm_name: &str, version: &str) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "version".to_owned(),
             kurz: Some("v".to_owned()),
             hilfe: Some("Zeigt die aktuelle Version an.".to_owned()),
             standard: None,
         };
-        self.zeige_version(beschreibung, programm_name)
+        self.zeige_version(beschreibung, programm_name, version)
     }
 
-    pub fn version_english(self, programm_name: &str) -> Arg<T> {
+    pub fn version_english(self, programm_name: &str, version: &str) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "version".to_owned(),
             kurz: Some("v".to_owned()),
             hilfe: Some("Show the current version.".to_owned()),
             standard: None,
         };
-        self.zeige_version(beschreibung, programm_name)
+        self.zeige_version(beschreibung, programm_name, version)
     }
 
-    pub fn zeige_version(self, beschreibung: ArgBeschreibung<Void>, programm_name: &str) -> Arg<T> {
-        self.frühes_beenden(beschreibung, format!("{} {}", programm_name, version!()))
+    pub fn zeige_version(
+        self,
+        beschreibung: ArgBeschreibung<Void>,
+        programm_name: &str,
+        version: &str,
+    ) -> Arg<T> {
+        self.frühes_beenden(beschreibung, format!("{} {}", programm_name, version))
     }
 
     #[inline(always)]
-    pub fn hilfe(self, programm_name: &str, name_regex_breite: usize) -> Arg<T> {
+    pub fn hilfe(self, programm_name: &str, version: &str, name_regex_breite: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "hilfe".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Zeigt diesen Text an.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN", "standard", name_regex_breite)
+        self.erstelle_hilfe(
+            beschreibung,
+            programm_name,
+            version,
+            "OPTIONEN",
+            "standard",
+            name_regex_breite,
+        )
     }
 
     #[inline(always)]
-    pub fn help(self, programm_name: &str, name_regex_width: usize) -> Arg<T> {
+    pub fn help(self, programm_name: &str, version: &str, name_regex_width: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "help".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Show this text.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS", "default", name_regex_width)
+        self.erstelle_hilfe(
+            beschreibung,
+            programm_name,
+            version,
+            "OPTIONS",
+            "default",
+            name_regex_width,
+        )
     }
 
     pub fn erstelle_hilfe(
         self,
         eigene_beschreibung: ArgBeschreibung<Void>,
         programm_name: &str,
+        version: &str,
         optionen: &str,
         standard: &str,
         name_regex_breite: usize,
     ) -> Arg<T> {
-        let name_und_version = format!("{} {}", programm_name, version!());
+        let name_und_version = format!("{} {}", programm_name, version);
         let current_exe = env::current_exe().ok();
         let exe_name = current_exe
             .as_ref()
@@ -525,6 +544,7 @@ fn hilfe_test() {
             identity,
         ),
         "programm",
+        "0.test",
         20,
     );
     let hilfe = OsString::from("--hilfe".to_owned());
