@@ -36,6 +36,7 @@ enum ArgString {
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
 
+// TODO Eigener Fehler-Typ mit Display-Implementierung, parametrisiert über ParseFehler-Typ
 #[derive(Debug)]
 pub enum ParseErgebnis<T> {
     Wert(T),
@@ -43,6 +44,8 @@ pub enum ParseErgebnis<T> {
     Fehler(NonEmpty<String>),
 }
 
+// TODO parse-methode, die flag_kurzformen berücksichtigt
+// TODO shortcut zum direkten Verwenden von std::env::args_os
 pub struct Arg<T> {
     beschreibungen: Vec<ArgString>,
     flag_kurzformen: Vec<String>,
