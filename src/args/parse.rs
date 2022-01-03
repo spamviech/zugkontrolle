@@ -33,7 +33,7 @@ impl<T: Display> ArgBeschreibung<T> {
 
 #[derive(Debug)]
 enum ArgString {
-    Flag { beschreibung: ArgBeschreibung<String> },
+    Flag { beschreibung: ArgBeschreibung<String>, invertiere_prefix: Option<String> },
     Wert { beschreibung: ArgBeschreibung<String>, meta_var: String },
 }
 
@@ -87,7 +87,10 @@ impl<T: 'static + Display + Clone> Arg<T> {
         let invertiere_prefix_minus = format!("{}-", invertiere_prefix);
         let (beschreibung, standard) = beschreibung.als_string_beschreibung();
         Arg {
-            beschreibungen: vec![ArgString::Flag { beschreibung }],
+            beschreibungen: vec![ArgString::Flag {
+                beschreibung,
+                invertiere_prefix: Some(invertiere_prefix.to_owned()),
+            }],
             flag_kurzformen: name_kurz.iter().cloned().collect(),
             parse: Box::new(move |args| {
                 let name_kurz_str = name_kurz.as_ref().map(String::as_str);
@@ -317,6 +320,7 @@ impl<T: 'static> Arg<T> {
         let mut hilfe_text = format!("{}\n{}\n\n{}:\n", name_und_version, benutzen, optionen);
         let eigener_arg_string = ArgString::Flag {
             beschreibung: eigene_beschreibung.clone().als_string_beschreibung().0,
+            invertiere_prefix: None,
         };
         fn hilfe_zeile(
             standard: &str,
@@ -347,9 +351,13 @@ impl<T: 'static> Arg<T> {
         }
         for beschreibung in self.beschreibungen.iter().chain(iter::once(&eigener_arg_string)) {
             match beschreibung {
-                ArgString::Flag { beschreibung } => {
+                ArgString::Flag { beschreibung, invertiere_prefix } => {
                     let mut name_regex = "--".to_owned();
-                    todo!("invertiere_prefix (frühes_beenden?, Unterschiede zwischen Flags?)");
+                    if let Some(prefix) = invertiere_prefix {
+                        name_regex.push('[');
+                        name_regex.push_str(prefix);
+                        name_regex.push_str("]-");
+                    }
                     name_regex.push_str(&beschreibung.lang);
                     if let Some(kurz) = &beschreibung.kurz {
                         name_regex.push_str(" | -");
@@ -395,7 +403,7 @@ impl<T: 'static> Arg<T> {
         if let Some(kurz) = &beschreibung.kurz {
             flag_kurzformen.push(kurz.clone())
         }
-        beschreibungen.push(ArgString::Flag { beschreibung });
+        beschreibungen.push(ArgString::Flag { beschreibung, invertiere_prefix: None });
         Arg {
             beschreibungen,
             flag_kurzformen,
