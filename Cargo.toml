@@ -26,6 +26,10 @@ argh = "0.1.6"
 unicode-segmentation = "1.8.0"
 void = "1.0.2"
 
+[dependencies.nonempty]
+version = "0.7.0"
+features = ["serialize"]
+
 [dependencies.num_x]
 version = "0.2.2"
 features = ["use_serde"]

@@ -14,16 +14,27 @@ use iced_native::{
     Scrollable, Slider, Text, TextInput, Widget,
 };
 use log::error;
+use nonempty::NonEmpty;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
     anschluss::{polarität::Polarität, pwm, OutputSerialisiert, Serialisiere},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    non_empty::{MaybeEmpty, NonEmpty},
+    maybe_empty::MaybeEmpty,
     steuerung::geschwindigkeit::{
         Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter,
     },
 };
+
+fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
+    let i = ix.get();
+    // no need to check head, since `i` is non-zero
+    if i < non_empty.len() {
+        Some(non_empty.tail.remove(i - 1))
+    } else {
+        None
+    }
+}
 
 pub type Map<Leiter> = BTreeMap<Name, AnzeigeStatus<Leiter>>;
 
@@ -661,7 +672,7 @@ where
                     button::State::new(),
                 )),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
-                    let _ = ks_anschlüsse.remove(ix.get());
+                    let _ = remove_from_nonempty_tail(ks_anschlüsse, *ix);
                 }
             }
             *ks_anschlüsse_anpassen = None;
@@ -820,7 +831,7 @@ where
                 }
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
-                    let _ = self.ks_anschlüsse.remove(ix.get());
+                    let _ = remove_from_nonempty_tail(&mut self.ks_anschlüsse, ix);
                 }
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(

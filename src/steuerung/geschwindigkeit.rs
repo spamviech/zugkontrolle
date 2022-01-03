@@ -10,6 +10,7 @@ use std::{
 };
 
 use log::{debug, error};
+use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +20,7 @@ use crate::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pwm, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert, Polarität,
     },
-    non_empty::{MaybeEmpty, NonEmpty},
+    maybe_empty::MaybeEmpty,
 };
 
 pub trait Leiter {
@@ -182,6 +183,7 @@ fn geschwindigkeit_ks(
 
 pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         pin: Pwm,
@@ -415,6 +417,7 @@ impl Geschwindigkeit<Mittelleiter> {
 
 pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisiert>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         geschwindigkeit: Pwm,

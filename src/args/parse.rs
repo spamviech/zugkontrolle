@@ -9,10 +9,9 @@ use std::{
 };
 
 use itertools::Itertools;
+use nonempty::NonEmpty;
 use unicode_segmentation::UnicodeSegmentation;
 use void::Void;
-
-use crate::non_empty::NonEmpty;
 
 #[derive(Debug, Clone)]
 pub struct ArgBeschreibung<T> {
