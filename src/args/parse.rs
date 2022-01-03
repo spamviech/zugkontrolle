@@ -24,7 +24,7 @@ pub struct ArgBeschreibung<T> {
 }
 
 impl<T: Display> ArgBeschreibung<T> {
-    pub fn als_string_beschreibung(self) -> (ArgBeschreibung<String>, Option<T>) {
+    fn als_string_beschreibung(self) -> (ArgBeschreibung<String>, Option<T>) {
         let ArgBeschreibung { lang, kurz, hilfe, standard } = self;
         let standard_string = standard.as_ref().map(ToString::to_string);
         (ArgBeschreibung { lang, kurz, hilfe, standard: standard_string }, standard)
@@ -276,25 +276,25 @@ impl<T: 'static> Arg<T> {
     }
 
     #[inline(always)]
-    pub fn hilfe(self, programm_name: &str) -> Arg<T> {
+    pub fn hilfe(self, programm_name: &str, name_regex_breite: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "hilfe".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Zeigt diesen Text an.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN", "standard")
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONEN", "standard", name_regex_breite)
     }
 
     #[inline(always)]
-    pub fn help(self, programm_name: &str) -> Arg<T> {
+    pub fn help(self, programm_name: &str, name_regex_width: usize) -> Arg<T> {
         let beschreibung = ArgBeschreibung {
             lang: "help".to_owned(),
             kurz: Some("h".to_owned()),
             hilfe: Some("Show this text.".to_owned()),
             standard: None,
         };
-        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS", "default")
+        self.erstelle_hilfe(beschreibung, programm_name, "OPTIONS", "default", name_regex_width)
     }
 
     pub fn erstelle_hilfe(
@@ -303,6 +303,7 @@ impl<T: 'static> Arg<T> {
         programm_name: &str,
         optionen: &str,
         standard: &str,
+        name_regex_breite: usize,
     ) -> Arg<T> {
         let name_und_version = format!("{} {}", programm_name, version!());
         let current_exe = env::current_exe().ok();
@@ -317,24 +318,70 @@ impl<T: 'static> Arg<T> {
         let eigener_arg_string = ArgString::Flag {
             beschreibung: eigene_beschreibung.clone().als_string_beschreibung().0,
         };
+        fn hilfe_zeile(
+            standard: &str,
+            name_regex_breite: usize,
+            hilfe_text: &mut String,
+            name_regex: &String,
+            beschreibung: &ArgBeschreibung<String>,
+        ) {
+            hilfe_text.push_str("--");
+            hilfe_text.push_str(name_regex);
+            let bisherige_breite = 2 + name_regex.graphemes(true).count();
+            let einrücken = " ".repeat(name_regex_breite - bisherige_breite);
+            hilfe_text.push_str(&einrücken);
+            if let Some(hilfe) = &beschreibung.hilfe {
+                hilfe_text.push_str(hilfe);
+            }
+            if let Some(standard_wert) = &beschreibung.standard {
+                if beschreibung.hilfe.is_some() {
+                    hilfe_text.push(' ');
+                }
+                hilfe_text.push('[');
+                hilfe_text.push_str(standard);
+                hilfe_text.push_str(": ");
+                hilfe_text.push_str(standard_wert);
+                hilfe_text.push(']');
+            }
+            hilfe_text.push('\n');
+        }
         for beschreibung in self.beschreibungen.iter().chain(iter::once(&eigener_arg_string)) {
             match beschreibung {
                 ArgString::Flag { beschreibung } => {
-                    hilfe_text.push_str("  --");
+                    let mut name_regex = "--".to_owned();
                     todo!("invertiere_prefix (frühes_beenden?, Unterschiede zwischen Flags?)");
-                    hilfe_text.push_str(&beschreibung.lang);
+                    name_regex.push_str(&beschreibung.lang);
                     if let Some(kurz) = &beschreibung.kurz {
-                        hilfe_text.push_str(" | -");
-                        hilfe_text.push_str(kurz);
+                        name_regex.push_str(" | -");
+                        name_regex.push_str(kurz);
                     }
-                    if let Some(hilfe) = &beschreibung.hilfe {
-                        hilfe_text.push('\t');
-                        todo!("Hilfe sollte identisch eingerückt sein!");
-                        hilfe_text.push_str(hilfe);
-                    }
-                    hilfe_text.push('\n');
+                    hilfe_zeile(
+                        standard,
+                        name_regex_breite,
+                        &mut hilfe_text,
+                        &name_regex,
+                        beschreibung,
+                    );
                 }
-                ArgString::Wert { beschreibung, meta_var } => todo!(),
+                ArgString::Wert { beschreibung, meta_var } => {
+                    let mut name_regex = "--".to_owned();
+                    name_regex.push_str(&beschreibung.lang);
+                    name_regex.push_str("(=| )");
+                    name_regex.push_str(meta_var);
+                    if let Some(kurz) = &beschreibung.kurz {
+                        name_regex.push_str(" | -");
+                        name_regex.push_str(kurz);
+                        name_regex.push_str("[=| ]");
+                        name_regex.push_str(meta_var);
+                    }
+                    hilfe_zeile(
+                        standard,
+                        name_regex_breite,
+                        &mut hilfe_text,
+                        &name_regex,
+                        beschreibung,
+                    );
+                }
             }
         }
         self.frühes_beenden(eigene_beschreibung, hilfe_text)
