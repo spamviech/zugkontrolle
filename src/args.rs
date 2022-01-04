@@ -74,7 +74,7 @@ impl Args {
     /// Parse Kommandozeilen-Argumente.
     /// Ein einzelnes Argument (das nicht mit "-" beginnt) wird als Pfad interpretiert.
     pub fn parse_aus_env() -> Self {
-        let mut args: Vec<_> = env::args_os().collect();
+        let mut args: Vec<_> = env::args_os().skip(1).collect();
         if args.len() == 1 {
             if !args
                 .first()
