@@ -58,18 +58,18 @@ pub struct Args {
 #[derive(Debug, Clone, Copy, Parse)]
 #[kommandozeilen_argumente(deutsch)]
 pub struct I2cSettings {
-    /// i2c channel auf pins 2 und 3 (bus 0 oder 1)
+    /// I2C channel auf pins 2 und 3 (bus 0 oder 1)
     #[kommandozeilen_argumente(standard(true))]
     pub i2c0_1: bool,
-    // /// i2c channel auf pins 2? und ? (bus 2)
+    // /// I2C channel auf pins 2? und ? (bus 2)
     // pub i2c2: bool,
-    /// i2c channel auf pins 4 und 5 (bus 3)
+    /// I2C channel auf pins 4 und 5 (bus 3)
     pub i2c3: bool,
-    /// i2c channel auf pins 8 und 9 (bus 4)
+    /// I2C channel auf pins 8 und 9 (bus 4)
     pub i2c4: bool,
-    /// i2c channel auf pins 12 und 13 (bus 5)
+    /// I2C channel auf pins 12 und 13 (bus 5)
     pub i2c5: bool,
-    /// i2c channel auf pins 22 und 23 (bus 6)
+    /// I2C channel auf pins 22 und 23 (bus 6)
     pub i2c6: bool,
 }
 
