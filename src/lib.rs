@@ -43,5 +43,7 @@ pub mod rppal;
 pub mod steuerung;
 pub mod zugtyp;
 
-pub use application::{gleis::Gleise, Zugkontrolle};
-pub use zugtyp::{lego, märklin};
+pub use crate::{
+    application::{gleis::Gleise, Zugkontrolle},
+    zugtyp::Zugtyp,
+};

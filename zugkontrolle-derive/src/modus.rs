@@ -1,6 +1,7 @@
 //! Take a sum-type enum and produce an associated enum without any data
 
 use proc_macro2::TokenStream;
+use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
 pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
@@ -61,6 +62,16 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
             }
         }
     }
+    let derives = if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
+        let base_ident: syn::Ident = match zugkontrolle {
+            FoundCrate::Itself => format_ident!("{}", "crate"),
+            FoundCrate::Name(name) => format_ident!("{}", name),
+        };
+        quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #base_ident::args::ArgEnum)])
+    } else {
+        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string());
+        quote!()
+    };
     if errors.len() > 0 {
         let error_message = errors.join("\n");
         return quote! {
@@ -77,18 +88,17 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
     quote!(
         #ast
 
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #derives
         #enum_vis enum #enum_ident {
             #(#enum_variants),*
         }
+
         impl std::fmt::Display for #enum_ident {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let display = match self {
-                    #(#enum_ident::#enum_variants => #enum_variants_str),*
-                };
-                write!(f, "{}", display)
+                write!(f, "{:?}", self)
             }
         }
+
         impl From<#enum_ident> for String {
             fn from(modus: #enum_ident) -> Self {
                 format!("{}", modus)

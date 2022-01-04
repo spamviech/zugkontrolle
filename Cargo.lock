@@ -1248,7 +1248,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kommandozeilen_argumente"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#759f16bb62614d478de11652906a839b9b05be01"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#de51d1c5afb80b82217ce743a8e7ec34214eb725"
 dependencies = [
  "itertools",
  "kommandozeilen_argumente_derive",
@@ -1261,7 +1261,7 @@ dependencies = [
 [[package]]
 name = "kommandozeilen_argumente_derive"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#759f16bb62614d478de11652906a839b9b05be01"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#de51d1c5afb80b82217ce743a8e7ec34214eb725"
 dependencies = [
  "proc-macro-crate 1.1.0",
  "proc-macro2",
@@ -2769,9 +2769,7 @@ dependencies = [
  "rstar",
  "serde",
  "take_mut",
- "unicode-segmentation",
  "version",
- "void",
  "zugkontrolle-derive",
 ]
 

@@ -1,13 +1,18 @@
 //! Kommandozeilen-Argumente.
 
-use std::{env, fmt::Debug, str::FromStr};
+use std::{
+    env,
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use argh::{EarlyExit, FromArgs, TopLevelCommand};
+use kommandozeilen_argumente::Parse;
 use version::version;
 
 use crate::application::gleis::gleise::Modus;
 
-pub mod parse;
+pub use kommandozeilen_argumente::ArgEnum;
 
 #[derive(Debug)]
 struct Wrapper(Args);
@@ -30,10 +35,11 @@ impl FromArgs for Wrapper {
     }
 }
 
-#[derive(Debug, Clone, FromArgs)]
+#[derive(Debug, Clone, FromArgs, Parse)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
-#[argh(subcommand, name = "Args")]
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
+#[argh(subcommand, name = "Args")]
+#[kommandozeilen_argumente(deutsch, version, hilfe)]
 pub struct Args {
     #[argh(option, default = "Zugtyp::Märklin")]
     /// verwendeter Zugtyp
@@ -112,10 +118,16 @@ impl Args {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, ArgEnum)]
 pub enum Zugtyp {
     Märklin,
     Lego,
+}
+
+impl Display for Zugtyp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl FromStr for Zugtyp {
