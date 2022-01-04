@@ -26,6 +26,11 @@ argh = "0.1.6"
 unicode-segmentation = "1.8.0"
 void = "1.0.2"
 
+[dependencies.kommandozeilen_argumente]
+git = "https://github.com/spamviech/kommandozeilen_argumente"
+version = "0.1.0"
+features = ["derive"]
+
 [dependencies.nonempty]
 version = "0.7.0"
 features = ["serialize"]
