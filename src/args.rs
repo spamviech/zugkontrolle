@@ -16,6 +16,7 @@ use crate::application::{
 
 pub use kommandozeilen_argumente::ArgEnum;
 
+// TODO Doppelte Kurzformen anpassen!
 #[derive(Debug, Clone, Parse)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
