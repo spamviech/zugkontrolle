@@ -84,7 +84,8 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
         let invalid_length_fehler = |n: usize| de::Error::invalid_length(n, &self);
         let zugtyp = seq.next_element()?.ok_or_else(|| invalid_length_fehler(0))?;
         let leiter = seq.next_element()?.ok_or_else(|| invalid_length_fehler(1))?;
-        let ohne_streckenabschnitt = seq.next_element()?.ok_or_else(|| invalid_length_fehler(2))?;
+        let ohne_streckenabschnitt =
+            seq.next_element()?.unwrap_or_else(GleiseDatenSerialisiert::neu);
         let ohne_geschwindigkeit = seq.next_element()?.unwrap_or_else(HashMap::new);
         let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
         let pläne = seq.next_element()?.unwrap_or_else(Vec::new);

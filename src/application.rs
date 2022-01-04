@@ -332,9 +332,7 @@ impl From<crate::anschluss::InitFehler> for Fehler {
 
 impl App {
     pub fn run(args: Args) -> Result<(), Fehler> {
-        let Args { i2c0_1, i2c3, i2c4, i2c5, i2c6, zugtyp, verbose, log_to_file, .. } = args;
-        let i2c_settings =
-            crate::anschluss::pcf8574::I2cSettings { i2c0_1, i2c3, i2c4, i2c5, i2c6 };
+        let Args { i2c_settings, zugtyp, verbose, log_to_file, .. } = args;
         let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
         fn erstelle_settings<Leiter>(

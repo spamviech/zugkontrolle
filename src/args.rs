@@ -21,7 +21,7 @@ pub struct Args {
     #[kommandozeilen_argumente(standard(Zugtyp::Märklin))]
     pub zugtyp: Zugtyp,
 
-    /// Lade bei Programmstand die angegebene Datei
+    /// Lade bei Programmstart die angegebene Datei
     pub pfad: Option<String>,
 
     /// Modus bei Programmstart
@@ -44,30 +44,33 @@ pub struct Args {
     #[kommandozeilen_argumente(standard(0.))]
     pub winkel: f32,
 
-    /// I2C channel auf pins 2 und 3 (bus 0 oder 1)
-    #[kommandozeilen_argumente(standard(true))]
-    pub i2c0_1: bool,
-
-    // /// I2C channel auf pins 2? und ? (bus 2)
-    // pub i2c2: bool,
-    //
-    /// I2C channel auf pins 4 und 5 (bus 3)
-    pub i2c3: bool,
-
-    /// I2C channel auf pins 8 und 9 (bus 4)
-    pub i2c4: bool,
-
-    /// I2C channel auf pins 12 und 13 (bus 5)
-    pub i2c5: bool,
-
-    /// I2C channel auf pins 22 und 23 (bus 6)
-    pub i2c6: bool,
+    #[kommandozeilen_argumente(glätten)]
+    pub i2c_settings: I2cSettings,
 
     /// Zeige zusätzliche Informationen in der Konsole an
     pub verbose: bool,
 
     /// Speichere Log-Nachrichten zusätzlich in einer Datei
     pub log_to_file: bool,
+}
+
+/// Einstellung über aktivierte I2c-Channel
+#[derive(Debug, Clone, Copy, Parse)]
+#[kommandozeilen_argumente(deutsch)]
+pub struct I2cSettings {
+    /// i2c channel auf pins 2 und 3 (bus 0 oder 1)
+    #[kommandozeilen_argumente(standard(true))]
+    pub i2c0_1: bool,
+    // /// i2c channel auf pins 2? und ? (bus 2)
+    // pub i2c2: bool,
+    /// i2c channel auf pins 4 und 5 (bus 3)
+    pub i2c3: bool,
+    /// i2c channel auf pins 8 und 9 (bus 4)
+    pub i2c4: bool,
+    /// i2c channel auf pins 12 und 13 (bus 5)
+    pub i2c5: bool,
+    /// i2c channel auf pins 22 und 23 (bus 6)
+    pub i2c6: bool,
 }
 
 impl Args {

@@ -23,6 +23,8 @@ use crate::{
     },
 };
 
+pub use crate::args::I2cSettings;
+
 #[derive(Debug)]
 struct I2cMitPins {
     i2c: I2c,
@@ -52,23 +54,6 @@ impl I2cMitPins {
         let scl = pin_status.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
         Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
-}
-
-/// Einstellung über aktivierte I2c-Channel
-#[derive(Debug, Clone, Copy)]
-pub struct I2cSettings {
-    /// i2c channel auf pins 2 und 3 (bus 0 oder 1)
-    pub i2c0_1: bool,
-    // /// i2c channel auf pins 2? und ? (bus 2)
-    // pub i2c2: bool,
-    /// i2c channel auf pins 4 und 5 (bus 3)
-    pub i2c3: bool,
-    /// i2c channel auf pins 8 und 9 (bus 4)
-    pub i2c4: bool,
-    /// i2c channel auf pins 12 und 13 (bus 5)
-    pub i2c5: bool,
-    /// i2c channel auf pins 22 und 23 (bus 6)
-    pub i2c6: bool,
 }
 
 impl I2cSettings {
