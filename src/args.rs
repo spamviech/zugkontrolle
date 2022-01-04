@@ -2,13 +2,17 @@
 
 use std::{
     env,
+    ffi::OsString,
     fmt::{Debug, Display},
     process,
 };
 
-use kommandozeilen_argumente::Parse;
+use kommandozeilen_argumente::{parse::ArgumentArt, Arg, Beschreibung, Parse};
 
-use crate::application::gleis::gleise::Modus;
+use crate::application::{
+    gleis::gleise::Modus,
+    typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel},
+};
 
 pub use kommandozeilen_argumente::ArgEnum;
 
@@ -29,20 +33,16 @@ pub struct Args {
     pub modus: Modus,
 
     /// Zoom bei Programmstart
-    #[kommandozeilen_argumente(standard(1.))]
-    pub zoom: f32,
+    #[kommandozeilen_argumente(standard(Skalar(1.)))]
+    pub zoom: Skalar,
 
-    /// X-position bei Programmstart
-    #[kommandozeilen_argumente(standard(0.))]
-    pub x: f32,
-
-    /// Y-position bei Programmstart
-    #[kommandozeilen_argumente(standard(0.))]
-    pub y: f32,
+    /// Position bei Programmstart
+    #[kommandozeilen_argumente(standard(Vektor::null_vektor()))]
+    pub position: Vektor,
 
     /// Winkel bei Programmstart
-    #[kommandozeilen_argumente(standard(0.))]
-    pub winkel: f32,
+    #[kommandozeilen_argumente(standard(Winkel(0.)))]
+    pub winkel: Winkel,
 
     #[kommandozeilen_argumente(glätten)]
     pub i2c_settings: I2cSettings,
@@ -71,6 +71,89 @@ pub struct I2cSettings {
     pub i2c5: bool,
     /// i2c channel auf pins 22 und 23 (bus 6)
     pub i2c6: bool,
+}
+
+impl ArgumentArt for Vektor {
+    fn erstelle_arg(
+        beschreibung: Beschreibung<Self>,
+        _invertiere_prefix: &'static str,
+        meta_var: &str,
+    ) -> Arg<Self, OsString> {
+        Arg::wert_allgemein(
+            beschreibung,
+            meta_var.to_owned(),
+            None,
+            |arg| {
+                if let Some((x, y)) = arg
+                    .to_str()
+                    .and_then(|s| s.strip_prefix('('))
+                    .and_then(|s| s.strip_suffix(')'))
+                    .and_then(|s| s.split_once(','))
+                    .and_then(|(x_str, y_str)| Some((x_str.parse().ok()?, y_str.parse().ok()?)))
+                {
+                    return Ok(Vektor { x: Skalar(x), y: Skalar(y) });
+                }
+                Err(arg.to_owned())
+            },
+            |Vektor { x, y }| format!("({:.2}, {:.2})", x.0, y.0),
+        )
+    }
+
+    fn standard() -> Option<Self> {
+        Some(Vektor::null_vektor())
+    }
+}
+
+impl ArgumentArt for Winkel {
+    fn erstelle_arg(
+        beschreibung: Beschreibung<Self>,
+        _invertiere_prefix: &'static str,
+        meta_var: &str,
+    ) -> Arg<Self, OsString> {
+        Arg::wert_allgemein(
+            beschreibung,
+            meta_var.to_owned(),
+            None,
+            |arg| {
+                if let Some(winkel) = arg.to_str().and_then(|s| s.parse().ok()) {
+                    Ok(Winkel(winkel))
+                } else {
+                    Err(arg.to_owned())
+                }
+            },
+            |winkel| format!("{}", winkel.0),
+        )
+    }
+
+    fn standard() -> Option<Self> {
+        Some(Winkel(0.))
+    }
+}
+
+impl ArgumentArt for Skalar {
+    fn erstelle_arg(
+        beschreibung: Beschreibung<Self>,
+        _invertiere_prefix: &'static str,
+        meta_var: &str,
+    ) -> Arg<Self, OsString> {
+        Arg::wert_allgemein(
+            beschreibung,
+            meta_var.to_owned(),
+            None,
+            |arg| {
+                if let Some(skalar) = arg.to_str().and_then(|s| s.parse().ok()) {
+                    Ok(Skalar(skalar))
+                } else {
+                    Err(arg.to_owned())
+                }
+            },
+            |skalar| format!("{}", skalar.0),
+        )
+    }
+
+    fn standard() -> Option<Self> {
+        None
+    }
 }
 
 impl Args {

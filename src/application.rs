@@ -421,7 +421,7 @@ where
     type Message = Nachricht<Leiter>;
 
     fn new((args, lager, zugtyp): Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
+        let Args { pfad, modus, zoom, position, winkel, .. } = args;
 
         let command: iced::Command<Self::Message>;
         let aktueller_pfad: String;
@@ -446,12 +446,7 @@ where
         let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_button!()).collect();
         let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_button!()).collect();
 
-        let gleise = Gleise::neu(
-            zugtyp,
-            modus,
-            Position { punkt: Vektor { x: Skalar(x), y: Skalar(y) }, winkel: Winkel(winkel) },
-            Skalar(zoom),
-        );
+        let gleise = Gleise::neu(zugtyp, modus, Position { punkt: position, winkel }, zoom);
 
         let (sender, receiver) = channel();
         let zugkontrolle = Zugkontrolle {
