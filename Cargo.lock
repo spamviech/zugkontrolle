@@ -88,7 +88,7 @@ checksum = "45403b49e3954a4b8428a0ac21a4b7afadccf92bfd96273f1a58cd4812496ae0"
 dependencies = [
  "generic-array 0.12.4",
  "generic-array 0.13.3",
- "generic-array 0.14.4",
+ "generic-array 0.14.5",
  "stable_deref_trait",
 ]
 
@@ -761,9 +761,9 @@ dependencies = [
 
 [[package]]
 name = "generic-array"
-version = "0.14.4"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
+checksum = "fd48d33ec7f05fbfa152300fdad764757cbded343c1aa1cff2fbaf4134851803"
 dependencies = [
  "typenum",
  "version_check",
@@ -967,7 +967,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "634bd4d29cbf24424d0a4bfcbf80c6960129dc24424752a7d1d1390607023422"
 dependencies = [
  "as-slice",
- "generic-array 0.14.4",
+ "generic-array 0.14.5",
  "hash32",
  "stable_deref_trait",
 ]
@@ -1210,7 +1210,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kommandozeilen_argumente"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#cb5c1fcc3d0e33de3f2cf6d70df6b31907b82e1f"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#9962d0287491739ed620fbb93fbe02342a04e416"
 dependencies = [
  "itertools",
  "kommandozeilen_argumente_derive",
@@ -1223,7 +1223,7 @@ dependencies = [
 [[package]]
 name = "kommandozeilen_argumente_derive"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#cb5c1fcc3d0e33de3f2cf6d70df6b31907b82e1f"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#9962d0287491739ed620fbb93fbe02342a04e416"
 dependencies = [
  "proc-macro-crate 1.1.0",
  "proc-macro2",
