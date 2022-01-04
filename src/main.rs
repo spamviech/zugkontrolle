@@ -39,6 +39,6 @@ use zugkontrolle::{
 };
 
 fn main() -> Result<(), Fehler> {
-    let args = Args::from_env();
+    let args = Args::parse_aus_env();
     App::run(args)
 }

@@ -22,7 +22,6 @@ bincode = "1.3.3"
 num-traits = "0.2.14"
 itertools = "0.10.3"
 parking_lot = "0.11.2"
-argh = "0.1.6"
 
 [dependencies.kommandozeilen_argumente]
 git = "https://github.com/spamviech/kommandozeilen_argumente"
