@@ -51,7 +51,7 @@ pub struct Args {
     pub verbose: bool,
 
     /// Speichere Log-Nachrichten zusätzlich in einer Datei
-    pub log_to_file: bool,
+    pub erstelle_log_datei: bool,
 }
 
 /// Einstellung über aktivierte I2c-Channel
