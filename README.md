@@ -140,19 +140,19 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
     Bestimme die x- und y-Koordinaten der linken oberen Ecke.
 - -w WINKEL | --winkel WINKEL
     Bestimme den Dreh-Winkel bei Programmstart.
-- -i | `--[kein-]i2c0_1`
+- `--[kein-]i2c0_1`
     (De)aktiviere den I2C channel auf pins 2 und 3 (bus 0 oder 1)
-- -i | `--[kein-]i2c3`
+- `--[kein-]i2c3`
     (De)aktiviere den I2C channel auf pins 4 und 5 (bus 3)
-- -i | `--[kein-] i2c4`
+- `--[kein-] i2c4`
     (De)aktiviere den I2C channel auf pins 8 und 9 (bus 4)
-- -i | `--[kein-] i2c5`
+- `--[kein-] i2c5`
     (De)aktiviere den I2C channel auf pins 12 und 13 (bus 5)
-- -i | `--[kein-] i2c6`
+- `--[kein-] i2c6`
     (De)aktiviere den I2C channel auf pins 22 und 23 (bus 6)
 - --verbose
     Zeige zusätzliche (Debug) Informationen in der Kommandozeile an.
-- -e | --erstelle_log_datei
+- -l | --erstelle_log_datei
     Speichere Log-Informationen zusätzlich in einer Datei.
 
 ### Starten durch ziehen einer Datei auf die binary

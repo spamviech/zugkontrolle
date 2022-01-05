@@ -23,14 +23,15 @@ pub use kommandozeilen_argumente::ArgEnum;
 #[kommandozeilen_argumente(deutsch, version, hilfe)]
 pub struct Args {
     /// Verwendeter Zugtyp
-    #[kommandozeilen_argumente(standard(Zugtyp::Märklin))]
+    #[kommandozeilen_argumente(standard(Zugtyp::Märklin), kurz)]
     pub zugtyp: Zugtyp,
 
     /// Lade bei Programmstart die angegebene Datei
+    #[kommandozeilen_argumente(kurz)]
     pub pfad: Option<String>,
 
     /// Modus bei Programmstart
-    #[kommandozeilen_argumente(standard(Modus::Bauen))]
+    #[kommandozeilen_argumente(standard(Modus::Bauen), kurz)]
     pub modus: Modus,
 
     /// Zoom bei Programmstart
@@ -52,6 +53,7 @@ pub struct Args {
     pub verbose: bool,
 
     /// Speichere Log-Nachrichten zusätzlich in einer Datei
+    #[kommandozeilen_argumente(kurz = "l")]
     pub erstelle_log_datei: bool,
 }
 
