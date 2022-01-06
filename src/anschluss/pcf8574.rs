@@ -271,21 +271,20 @@ impl Pcf8574 {
     /// 7-bit i2c-Adresse ohne R/W-Bit
     fn i2c_adresse(&self) -> u7 {
         let Pcf8574 { beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante }, .. } = self;
-        let mut adresse = u7::try_from(match variante {
+        let mut adresse = match variante {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
-        })
-        .unwrap();
+        };
         if let Level::High = a0 {
-            adresse = adresse + u7::try_from(0b001).unwrap();
+            adresse = adresse + 0b001;
         }
         if let Level::High = a1 {
-            adresse = adresse + u7::try_from(0b010).unwrap();
+            adresse = adresse + 0b010;
         }
         if let Level::High = a2 {
-            adresse = adresse + u7::try_from(0b100).unwrap();
+            adresse = adresse + 0b100;
         }
-        adresse
+        u7::try_from(adresse).unwrap()
     }
 
     /// Lese von einem Pcf8574.
