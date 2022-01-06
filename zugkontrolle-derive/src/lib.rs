@@ -67,7 +67,7 @@ mod lookup;
 /// Erzeuge eine Struktur und zugehörige [zugkontrolle::lookup::Lookup]-Implementierung für das Enum.
 pub fn impl_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     lookup::impl_lookup(args, ast).into()
 }
@@ -77,7 +77,7 @@ mod modus;
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     modus::make_enum(args, ast).into()
 }
@@ -87,7 +87,7 @@ mod chain;
 /// Erzeuge eine identische Methode mit /_chain/-Suffix, die Method-chaining erlaubt.
 pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     chain::make_chain(args, ast).into()
 }
@@ -98,7 +98,7 @@ mod richtung;
 /// sowie eine zugehörige [zugkontrolle::lookup::Lookup]-Struktur.
 pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     richtung::create_richtung(args, ast).into()
 }
@@ -114,7 +114,7 @@ mod alias;
 /// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
 /// (Argument) über eine `serialisiere`-Methode möglich ist!
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     alias::alias_serialisiert_unit(attr.into(), ast).into()
 }
@@ -130,7 +130,16 @@ mod daten;
 // das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
 // Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
 pub fn erstelle_daten_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(item);
+    let ast = syn::parse(item).expect("Failed to parse input!");
 
     daten::erstelle_methoden(ast).into()
+}
+
+mod sum_type_from;
+#[proc_macro_derive(From)]
+/// Erzeuge [From]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
+pub fn derive_from(input: TokenStream) -> TokenStream {
+    let ast = syn::parse(input).expect("Failed to parse input!");
+
+    sum_type_from::impl_from(ast).into()
 }
