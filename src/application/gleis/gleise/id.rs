@@ -64,7 +64,7 @@ impl<T> PartialEq for GleisId<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 pub enum AnyId {
     Gerade(GleisId<Gerade>),
     Kurve(GleisId<Kurve>),
@@ -131,23 +131,6 @@ impl AnyId {
         mit_any_id!(self, Self::aus_ref)
     }
 }
-
-macro_rules! impl_any_id_from {
-    ($type: ident) => {
-        impl From<GleisId<$type>> for AnyId {
-            fn from(gleis_id: GleisId<$type>) -> Self {
-                AnyId::$type(gleis_id)
-            }
-        }
-    };
-}
-impl_any_id_from! {Gerade}
-impl_any_id_from! {Kurve}
-impl_any_id_from! {Weiche}
-impl_any_id_from! {DreiwegeWeiche}
-impl_any_id_from! {KurvenWeiche}
-impl_any_id_from! {SKurvenWeiche}
-impl_any_id_from! {Kreuzung}
 
 // completely remove any notion of ID?
 #[allow(single_use_lifetimes)]

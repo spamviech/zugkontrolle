@@ -711,22 +711,12 @@ impl Display for Fahrtrichtung {
     }
 }
 
+#[derive(Debug, zugkontrolle_derive::From)]
 #[allow(variant_size_differences)]
-#[derive(Debug)]
 pub enum Fehler {
     Anschluss(anschluss::Fehler),
     Pwm(pwm::Fehler),
     ZuWenigAnschlüsse { benötigt: u8, vorhanden: usize },
-}
-impl From<anschluss::Fehler> for Fehler {
-    fn from(error: anschluss::Fehler) -> Self {
-        Fehler::Anschluss(error)
-    }
-}
-impl From<pwm::Fehler> for Fehler {
-    fn from(error: pwm::Fehler) -> Self {
-        Fehler::Pwm(error)
-    }
 }
 
 /// Name einer Geschwindigkeit.

@@ -178,23 +178,11 @@ pub struct InVerwendung {
     pub port: u3,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, zugkontrolle_derive::From)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     Deaktiviert(Deaktiviert),
     InVerwendung(InVerwendung),
-}
-
-impl From<Deaktiviert> for ReservierenFehler {
-    fn from(fehler: Deaktiviert) -> Self {
-        ReservierenFehler::Deaktiviert(fehler)
-    }
-}
-
-impl From<InVerwendung> for ReservierenFehler {
-    fn from(fehler: InVerwendung) -> Self {
-        ReservierenFehler::InVerwendung(fehler)
-    }
 }
 
 pub(super) enum Modus {

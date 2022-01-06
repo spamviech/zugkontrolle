@@ -58,7 +58,7 @@ pub mod update;
 pub mod view;
 pub mod weiche;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, zugkontrolle_derive::From)]
 pub enum AnyGleisUnit {
     GeradeUnit(GeradeUnit),
     KurveUnit(KurveUnit),
@@ -68,22 +68,6 @@ pub enum AnyGleisUnit {
     SKurvenWeicheUnit(SKurvenWeicheUnit),
     KreuzungUnit(KreuzungUnit),
 }
-macro_rules! impl_any_gleis_from {
-    ($type:ident) => {
-        impl From<$type> for AnyGleisUnit {
-            fn from(gleis: $type) -> AnyGleisUnit {
-                AnyGleisUnit::$type(gleis.into())
-            }
-        }
-    };
-}
-impl_any_gleis_from! {GeradeUnit}
-impl_any_gleis_from! {KurveUnit}
-impl_any_gleis_from! {WeicheUnit}
-impl_any_gleis_from! {DreiwegeWeicheUnit}
-impl_any_gleis_from! {KurvenWeicheUnit}
-impl_any_gleis_from! {SKurvenWeicheUnit}
-impl_any_gleis_from! {KreuzungUnit}
 
 impl Modus {
     fn erstelle_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
@@ -307,27 +291,11 @@ struct MessageBox {
 #[allow(missing_debug_implementations, missing_copy_implementations)]
 pub enum App {}
 
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 pub enum Fehler {
     Iced(iced::Error),
     FlexiLogger(FlexiLoggerError),
     Anschluss(crate::anschluss::InitFehler),
-}
-
-impl From<iced::Error> for Fehler {
-    fn from(fehler: iced::Error) -> Self {
-        Fehler::Iced(fehler)
-    }
-}
-impl From<FlexiLoggerError> for Fehler {
-    fn from(fehler: FlexiLoggerError) -> Self {
-        Fehler::FlexiLogger(fehler)
-    }
-}
-impl From<crate::anschluss::InitFehler> for Fehler {
-    fn from(fehler: crate::anschluss::InitFehler) -> Self {
-        Fehler::Anschluss(fehler)
-    }
 }
 
 impl App {

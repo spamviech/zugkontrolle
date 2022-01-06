@@ -35,21 +35,10 @@ pub struct Lager {
     pub pcf8574: pcf8574::Lager,
 }
 
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 pub enum InitFehler {
     Pin(rppal::gpio::Error),
     Pcf8574(pcf8574::InitFehler),
-}
-
-impl From<rppal::gpio::Error> for InitFehler {
-    fn from(fehler: rppal::gpio::Error) -> Self {
-        InitFehler::Pin(fehler)
-    }
-}
-impl From<pcf8574::InitFehler> for InitFehler {
-    fn from(fehler: pcf8574::InitFehler) -> Self {
-        InitFehler::Pcf8574(fehler)
-    }
 }
 
 impl Lager {
@@ -79,22 +68,11 @@ impl Lager {
 }
 
 /// Ein Anschluss
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 #[allow(variant_size_differences)]
 pub enum Anschluss {
     Pin(Pin),
     Pcf8574Port(pcf8574::Port),
-}
-
-impl From<Pin> for Anschluss {
-    fn from(pin: Pin) -> Self {
-        Anschluss::Pin(pin)
-    }
-}
-impl From<pcf8574::Port> for Anschluss {
-    fn from(port: pcf8574::Port) -> Self {
-        Anschluss::Pcf8574Port(port)
-    }
 }
 
 fn write_bus(f: &mut Formatter<'_>, i2c_bus: &I2cBus) -> fmt::Result {
@@ -527,49 +505,26 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     Pin(pin::ReservierenFehler),
     Pcf8574(pcf8574::ReservierenFehler),
 }
-impl From<pin::ReservierenFehler> for ReservierenFehler {
-    fn from(fehler: pin::ReservierenFehler) -> Self {
-        ReservierenFehler::Pin(fehler)
-    }
-}
-impl From<pcf8574::ReservierenFehler> for ReservierenFehler {
-    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
-        ReservierenFehler::Pcf8574(fehler)
-    }
-}
+
 impl From<pcf8574::InVerwendung> for ReservierenFehler {
     fn from(fehler: pcf8574::InVerwendung) -> Self {
         ReservierenFehler::Pcf8574(fehler.into())
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_derive::From)]
 pub enum Fehler {
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),
     Reservieren(ReservierenFehler),
 }
-impl From<input::Fehler> for Fehler {
-    fn from(fehler: input::Fehler) -> Self {
-        Fehler::Input(fehler)
-    }
-}
-impl From<pcf8574::Fehler> for Fehler {
-    fn from(fehler: pcf8574::Fehler) -> Self {
-        Fehler::Pcf8574(fehler)
-    }
-}
-impl From<ReservierenFehler> for Fehler {
-    fn from(fehler: ReservierenFehler) -> Self {
-        Fehler::Reservieren(fehler)
-    }
-}
+
 impl From<pin::ReservierenFehler> for Fehler {
     fn from(fehler: pin::ReservierenFehler) -> Self {
         Fehler::Reservieren(fehler.into())
