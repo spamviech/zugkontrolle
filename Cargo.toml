@@ -14,14 +14,14 @@ path = "zugkontrolle-derive"
 version = "3.0.0"
 
 [dependencies]
-rstar = "0.9.1"
+bincode = "1.3.3"
+itertools = "0.10.3"
 log = "0.4.14"
+parking_lot = "0.11.2"
+num-traits = "0.2.14"
+rstar = "0.9.1"
 take_mut = "0.2.2"
 version = "3.0.0"
-bincode = "1.3.3"
-num-traits = "0.2.14"
-itertools = "0.10.3"
-parking_lot = "0.11.2"
 
 [dependencies.kommandozeilen_argumente]
 git = "https://github.com/spamviech/kommandozeilen_argumente"
@@ -31,10 +31,6 @@ features = ["derive"]
 [dependencies.nonempty]
 version = "0.7.0"
 features = ["serialize"]
-
-[dependencies.num_x]
-version = "0.2.2"
-features = ["use_serde"]
 
 [dependencies.serde]
 version = "1.0.130"

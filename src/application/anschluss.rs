@@ -8,7 +8,6 @@ use iced_native::{
     Length, Point, Radio, Renderer, Row, Text, Widget,
 };
 use log::error;
-use num_x::u3;
 
 use crate::{
     anschluss::{
@@ -19,6 +18,7 @@ use crate::{
         InputSerialisiert, OutputSerialisiert,
     },
     application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    ux::{u3, ZuGroß},
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
@@ -470,11 +470,12 @@ where
                     // u3: TryFrom<u8> nicht implementiert
                     // NumCast::from ebenfalls nicht möglich (auch bei aktiviertem "num"-feature)
                     // daher `u3::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
-                    *self.port = if port <= u8::from(u3::MAX) {
-                        u3::new(port)
-                    } else {
-                        error!("Port {} > u3::MAX {}", port, u3::MAX);
-                        u3::MAX
+                    *self.port = match u3::try_from(port) {
+                        Ok(port) => port,
+                        Err(ZuGroß(port)) => {
+                            error!("Port {} > u3::MAX {}", port, u3::MAX);
+                            u3::MAX
+                        }
                     }
                 }
                 InternalMessage::Modus(msg) => (self.update_modus)(self.modus, msg),

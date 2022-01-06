@@ -1,12 +1,14 @@
 //! unit tests für das anschluss-Modul
 
 use flexi_logger::{LogSpecBuilder, Logger};
-use num_x::u3;
 
-use crate::anschluss::{
-    level::Level,
-    pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
-    pin,
+use crate::{
+    anschluss::{
+        level::Level,
+        pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
+        pin,
+    },
+    ux::u3,
 };
 
 #[test]
@@ -30,8 +32,8 @@ fn drop_semantics() {
         a2: Level::Low,
         variante: Variante::Normal,
     };
-    let port0 = u3::new(0);
-    let port1 = u3::new(1);
+    let port0 = u3::MIN;
+    let port7 = u3::MAX;
 
     let i2c_settings =
         I2cSettings { i2c0_1: true, i2c3: false, i2c4: false, i2c5: false, i2c6: false };
@@ -55,12 +57,12 @@ fn drop_semantics() {
     );
     let llln1 = lager.reserviere_erwarte_erfolg(
         llln_beschreibung.clone(),
-        port1,
+        port7,
         "Aufruf von llln nach drop, alternativer port.",
     );
     lager.reserviere_erwarte_in_verwendung(
         llln_beschreibung.clone(),
-        port1,
+        port7,
         "Aufruf von llln1 mit vorherigem Ergebnis in scope.",
     );
     drop(llln0);

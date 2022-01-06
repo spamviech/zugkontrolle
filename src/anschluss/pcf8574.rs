@@ -8,7 +8,6 @@ use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
 use itertools::iproduct;
 use log::{debug, error};
-use num_x::{u3, u7};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +20,7 @@ use crate::{
         gpio,
         i2c::{self, I2c},
     },
+    ux::{u3, u7},
 };
 
 pub use crate::args::I2cSettings;
@@ -89,11 +89,6 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
-fn alle_ports() -> array::IntoIter<u3, 8> {
-    [u3::new(0), u3::new(1), u3::new(2), u3::new(3), u3::new(4), u3::new(5), u3::new(6), u3::new(7)]
-        .into_iter()
-}
-
 #[derive(Debug)]
 pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
 
@@ -112,7 +107,7 @@ impl Lager {
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
-                    for port_num in alle_ports() {
+                    for port_num in u3::alle_werte() {
                         let port_struct =
                             Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
                         if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
@@ -288,18 +283,19 @@ impl Pcf8574 {
     /// 7-bit i2c-Adresse ohne R/W-Bit
     fn i2c_adresse(&self) -> u7 {
         let Pcf8574 { beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante }, .. } = self;
-        let mut adresse = u7::new(match variante {
+        let mut adresse = u7::try_from(match variante {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
-        });
+        })
+        .unwrap();
         if let Level::High = a0 {
-            adresse = adresse + u7::new(0b001);
+            adresse = adresse + u7::try_from(0b001).unwrap();
         }
         if let Level::High = a1 {
-            adresse = adresse + u7::new(0b010);
+            adresse = adresse + u7::try_from(0b010).unwrap();
         }
         if let Level::High = a2 {
-            adresse = adresse + u7::new(0b100);
+            adresse = adresse + u7::try_from(0b100).unwrap();
         }
         adresse
     }

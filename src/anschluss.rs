@@ -3,14 +3,13 @@
 use std::fmt::{self, Display, Formatter};
 
 use log::error;
-use num_x::u3;
 use serde::{Deserialize, Serialize};
 
 pub use self::{
     de_serialisieren::{Reserviere, Reserviert, Serialisiere},
     pcf8574::I2cBus,
 };
-use crate::rppal;
+use crate::{rppal, ux::u3};
 
 pub mod level;
 pub use level::*;
