@@ -284,7 +284,7 @@ impl Pcf8574 {
         if let Level::High = a2 {
             adresse = adresse + 0b100;
         }
-        u7::try_from(adresse).unwrap()
+        u7::try_from(adresse).expect("I2C-Adresse eines Pcf8574 passt nicht in 7Bit!")
     }
 
     /// Lese von einem Pcf8574.
