@@ -2,28 +2,26 @@
 
 use std::{
     env,
-    ffi::OsString,
     fmt::{Debug, Display},
-    process,
+    num::NonZeroI32,
 };
 
-use kommandozeilen_argumente::{parse::ArgumentArt, Arg, Beschreibung, Parse};
+use kommandozeilen_argumente::{Argumente, Beschreibung, Parse, ParseArgument};
 
 use crate::application::{
     gleis::gleise::Modus,
-    typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel},
+    typen::{skalar::Skalar, winkel::Winkel},
 };
 
 pub use kommandozeilen_argumente::ArgEnum;
 
-// TODO Position muss mit Anführungszeichen übergeben werden!
 #[derive(Debug, Clone, Parse)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
 #[kommandozeilen_argumente(deutsch, version, hilfe)]
 pub struct Args {
     /// Verwendeter Zugtyp
-    #[kommandozeilen_argumente(standard(Zugtyp::Märklin), kurz)]
+    #[kommandozeilen_argumente(standard: Zugtyp::Märklin, kurz)]
     pub zugtyp: Zugtyp,
 
     /// Lade bei Programmstart die angegebene Datei
@@ -31,19 +29,23 @@ pub struct Args {
     pub pfad: Option<String>,
 
     /// Modus bei Programmstart
-    #[kommandozeilen_argumente(standard(Modus::Bauen), kurz)]
+    #[kommandozeilen_argumente(standard: Modus::Bauen, kurz)]
     pub modus: Modus,
 
     /// Zoom bei Programmstart
-    #[kommandozeilen_argumente(standard(Skalar(1.)))]
+    #[kommandozeilen_argumente(standard: Skalar(1.))]
     pub zoom: Skalar,
 
-    /// Position bei Programmstart
-    #[kommandozeilen_argumente(standard(Vektor::null_vektor()))]
-    pub position: Vektor,
+    /// X-Position bei Programmstart
+    #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
+    pub x: Skalar,
+
+    /// Y-Position bei Programmstart
+    #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
+    pub y: Skalar,
 
     /// Winkel bei Programmstart
-    #[kommandozeilen_argumente(standard(Winkel(0.)))]
+    #[kommandozeilen_argumente(standard: Winkel(0.))]
     pub winkel: Winkel,
 
     #[kommandozeilen_argumente(glätten)]
@@ -53,7 +55,7 @@ pub struct Args {
     pub verbose: bool,
 
     /// Speichere Log-Nachrichten zusätzlich in einer Datei
-    #[kommandozeilen_argumente(kurz = "l")]
+    #[kommandozeilen_argumente(kurz: l)]
     pub erstelle_log_datei: bool,
 }
 
@@ -62,7 +64,7 @@ pub struct Args {
 #[kommandozeilen_argumente(deutsch)]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1)
-    #[kommandozeilen_argumente(standard(true))]
+    #[kommandozeilen_argumente(standard: true)]
     pub i2c0_1: bool,
     // /// I2C channel auf pins 2? und ? (bus 2)
     // pub i2c2: bool,
@@ -76,55 +78,19 @@ pub struct I2cSettings {
     pub i2c6: bool,
 }
 
-impl ArgumentArt for Vektor {
+impl ParseArgument for Winkel {
     fn erstelle_arg(
         beschreibung: Beschreibung<Self>,
-        _invertiere_prefix: &'static str,
+        invertiere_prefix: &'static str,
         meta_var: &str,
-    ) -> Arg<Self, OsString> {
-        Arg::wert_allgemein(
-            beschreibung,
-            meta_var.to_owned(),
-            None,
-            |arg| {
-                if let Some((x, y)) = arg
-                    .to_str()
-                    .and_then(|s| s.strip_prefix('('))
-                    .and_then(|s| s.strip_suffix(')'))
-                    .and_then(|s| s.split_once(','))
-                    .and_then(|(x_str, y_str)| Some((x_str.parse().ok()?, y_str.parse().ok()?)))
-                {
-                    return Ok(Vektor { x: Skalar(x), y: Skalar(y) });
-                }
-                Err(arg.to_owned())
-            },
-            |Vektor { x, y }| format!("({:.2}, {:.2})", x.0, y.0),
-        )
-    }
-
-    fn standard() -> Option<Self> {
-        Some(Vektor::null_vektor())
-    }
-}
-
-impl ArgumentArt for Winkel {
-    fn erstelle_arg(
-        beschreibung: Beschreibung<Self>,
-        _invertiere_prefix: &'static str,
-        meta_var: &str,
-    ) -> Arg<Self, OsString> {
-        Arg::wert_allgemein(
-            beschreibung,
-            meta_var.to_owned(),
-            None,
-            |arg| {
-                if let Some(winkel) = arg.to_str().and_then(|s| s.parse().ok()) {
-                    Ok(Winkel(winkel))
-                } else {
-                    Err(arg.to_owned())
-                }
-            },
-            |winkel| format!("{}", winkel.0),
+    ) -> Argumente<Self, String> {
+        Argumente::konvertiere(
+            Winkel,
+            f32::erstelle_arg(
+                beschreibung.konvertiere(|winkel| winkel.0),
+                invertiere_prefix,
+                meta_var,
+            ),
         )
     }
 
@@ -133,24 +99,19 @@ impl ArgumentArt for Winkel {
     }
 }
 
-impl ArgumentArt for Skalar {
+impl ParseArgument for Skalar {
     fn erstelle_arg(
         beschreibung: Beschreibung<Self>,
-        _invertiere_prefix: &'static str,
+        invertiere_prefix: &'static str,
         meta_var: &str,
-    ) -> Arg<Self, OsString> {
-        Arg::wert_allgemein(
-            beschreibung,
-            meta_var.to_owned(),
-            None,
-            |arg| {
-                if let Some(skalar) = arg.to_str().and_then(|s| s.parse().ok()) {
-                    Ok(Skalar(skalar))
-                } else {
-                    Err(arg.to_owned())
-                }
-            },
-            |skalar| format!("{}", skalar.0),
+    ) -> Argumente<Self, String> {
+        Argumente::konvertiere(
+            Skalar,
+            f32::erstelle_arg(
+                beschreibung.konvertiere(|winkel| winkel.0),
+                invertiere_prefix,
+                meta_var,
+            ),
         )
     }
 
@@ -175,37 +136,7 @@ impl Args {
                 args.insert(0, "--pfad".to_owned().into());
             }
         }
-        let (ergebnis, nicht_benötigt) = Args::parse(args.into_iter());
-        match ergebnis {
-            kommandozeilen_argumente::ParseErgebnis::Wert(wert) if nicht_benötigt.is_empty() => {
-                wert
-            }
-            kommandozeilen_argumente::ParseErgebnis::Wert(_wert) => {
-                eprintln!("Nicht verwendete Kommandozeilen-Argumente:");
-                for arg in nicht_benötigt {
-                    match arg.into_string() {
-                        Ok(string) => eprintln!("{}", string),
-                        Err(os_string) => eprintln!("{:?}", os_string),
-                    }
-                }
-                process::exit(1)
-            }
-            kommandozeilen_argumente::ParseErgebnis::FrühesBeenden(nachrichten) => {
-                for nachricht in nachrichten {
-                    println!("{}", nachricht);
-                }
-                process::exit(0)
-            }
-            kommandozeilen_argumente::ParseErgebnis::Fehler(fehler_sammlung) => {
-                for fehler in fehler_sammlung {
-                    match fehler.als_string() {
-                        Ok(string_fehler) => eprintln!("{}", string_fehler.fehlermeldung()),
-                        Err(os_string_fehler) => eprintln!("{:?}", os_string_fehler),
-                    }
-                }
-                process::exit(2)
-            }
-        }
+        Args::parse_mit_fehlermeldung(args.into_iter(), NonZeroI32::new(1).expect("1 != 0"))
     }
 }
 

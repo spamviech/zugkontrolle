@@ -138,9 +138,9 @@ checksum = "ad807f2fc2bf185eeb98ff3a901bd46dc5ad58163d0fa4577ba0d25674d71708"
 
 [[package]]
 name = "bumpalo"
-version = "3.9.0"
+version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c9d2f2b0fb88a112154ed81e30b0a491c29322afe1db3b6eec5811f5ba0"
+checksum = "a4a45a46ab1f2412e53d3a0ade76ffad2025804294569aae387231a0cd6e0899"
 
 [[package]]
 name = "bytemuck"
@@ -1210,7 +1210,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kommandozeilen_argumente"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#b97e96ad1f30c0208cea4c1581469051ba7a63bc"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#b6cd0110afbf15c529f53ddb5f17bf4c1b4b8c5e"
 dependencies = [
  "either",
  "itertools",
@@ -1224,7 +1224,7 @@ dependencies = [
 [[package]]
 name = "kommandozeilen_argumente_derive"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#b97e96ad1f30c0208cea4c1581469051ba7a63bc"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#b6cd0110afbf15c529f53ddb5f17bf4c1b4b8c5e"
 dependencies = [
  "proc-macro-crate 1.1.0",
  "proc-macro2",
@@ -2312,7 +2312,7 @@ version = "0.2.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a317bf8f9fba2476b4b2c85ef4c4af8ff39c3c7f0cdfeed4f82c34a880aa837b"
 dependencies = [
- "bumpalo 3.9.0",
+ "bumpalo 3.9.1",
  "lazy_static",
  "log",
  "proc-macro2",
