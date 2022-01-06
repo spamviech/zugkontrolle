@@ -39,33 +39,23 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
             syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
                 mark_fields_generic(named.iter(), &mut generic_types);
                 let fs_iter = named.iter().map(|field| &field.ident);
-                let fs_vec: Vec<&Option<syn::Ident>> = fs_iter.clone().collect();
-                let fs_str = fs_vec.iter().map(|mid| match mid {
+                let fs_str = fs_iter.clone().map(|mid| match mid {
                     Some(id) => id.to_string() + ": ",
                     None => String::new(),
                 });
                 quote! {
-                    let #ident {#(#fs_iter),*} = self;
-                    write!(f, "{} {{", #ident_str)?;
-                    #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
-                    write!(f, "}}")
+                    f.debug_struct(#ident_str)
+                        #(.field(#fs_str, &self.#fs_iter))*
+                        .finish()
                 }
             }
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 mark_fields_generic(unnamed.iter(), &mut generic_types);
-                let fs_iter = unnamed.iter().map(|field| &field.ident);
-                let mut i: usize = 0;
-                let fs_str: Vec<syn::Ident> = fs_iter
-                    .map(|_| {
-                        i += 1;
-                        format_ident!("i{}", i)
-                    })
-                    .collect();
+                let range = (0..unnamed.len()).map(syn::Index::from);
                 quote! {
-                    let #ident (#(#fs_str),*) = self;
-                    write!(f, "{} (", #ident_str)?;
-                    #(write!(f, "{:?}, ", #fs_str)?);*;
-                    write!(f, ")")
+                    f.debug_tuple(#ident_str)
+                        #(.field(&self.#range))*
+                        .finish()
                 }
             }
             syn::Fields::Unit => quote! {
@@ -81,16 +71,16 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                         syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
                             mark_fields_generic(named.iter(), &mut generic_types);
                             let fs_iter = named.iter().map(|field| &field.ident);
-                            let fs_vec: Vec<&Option<syn::Ident>> = fs_iter.clone().collect();
+                            let fs_vec: Vec<&Option<syn::Ident>> = fs_iter.collect();
                             let fs_str = fs_vec.iter().map(|mid| match mid {
                                 Some(id) => id.to_string() + ": ",
                                 None => String::new(),
                             });
                             quote! {
-                                #ident::#variant_ident {#(#fs_iter),*} => {
-                                    write!(f, "{} {{", #variant_ident_str)?;
-                                    #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
-                                    write!(f, "}}")
+                                #ident::#variant_ident {#(#fs_vec),*} => {
+                                    f.debug_struct(#variant_ident_str)
+                                        #(.field(#fs_str, #fs_vec))*
+                                        .finish()
                                 }
                             }
                         }
@@ -106,9 +96,9 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                                 .collect();
                             quote! {
                                 #ident::#variant_ident (#(#fs_str),*) => {
-                                    write!(f, "{} (", #variant_ident_str)?;
-                                    #(write!(f, "{:?}, ", #fs_str)?);*;
-                                    write!(f, ")")
+                                    f.debug_tuple(#ident_str)
+                                        #(.field(#fs_str))*
+                                        .finish()
                                 }
                             }
                         }
