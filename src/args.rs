@@ -18,7 +18,7 @@ pub use kommandozeilen_argumente::ArgEnum;
 #[derive(Debug, Clone, Parse)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
-#[kommandozeilen_argumente(deutsch, version, hilfe)]
+#[kommandozeilen_argumente(deutsch, version, hilfe(hilfe, help; h))]
 pub struct Args {
     /// Verwendeter Zugtyp
     #[kommandozeilen_argumente(standard: Zugtyp::Märklin, kurz)]
@@ -79,14 +79,14 @@ pub struct I2cSettings {
 }
 
 impl ParseArgument for Winkel {
-    fn erstelle_arg(
+    fn argumente(
         beschreibung: Beschreibung<Self>,
         invertiere_prefix: &'static str,
         meta_var: &str,
     ) -> Argumente<Self, String> {
         Argumente::konvertiere(
             Winkel,
-            f32::erstelle_arg(
+            f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
                 invertiere_prefix,
                 meta_var,
@@ -100,14 +100,14 @@ impl ParseArgument for Winkel {
 }
 
 impl ParseArgument for Skalar {
-    fn erstelle_arg(
+    fn argumente(
         beschreibung: Beschreibung<Self>,
         invertiere_prefix: &'static str,
         meta_var: &str,
     ) -> Argumente<Self, String> {
         Argumente::konvertiere(
             Skalar,
-            f32::erstelle_arg(
+            f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
                 invertiere_prefix,
                 meta_var,
