@@ -383,9 +383,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ed27e177f16d65f0f0c22a213e17c696ace5dd64b14258b52f9417ccb52db4"
+checksum = "e54ea8bc3fb1ee042f5aace6e3c6e025d3874866da222930f70ce62aceba0bfa"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-utils",
@@ -404,9 +404,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec02e091aa634e2c3ada4a392989e7c3116673ef0ac5b72232439094d73b7fd"
+checksum = "97242a70df9b89a65d0b6df3c4bf5b9ce03c5b7309019777fbde37e7537f8762"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-utils",
@@ -417,9 +417,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d82cfc11ce7f2c3faef78d8a684447b40d503d9681acebed6cb728d45940c4db"
+checksum = "cfcae03edb34f947e64acdb1c33ec169824e20657e9ecb61cef6c8c74dcb8120"
 dependencies = [
  "cfg-if 1.0.0",
  "lazy_static",
@@ -581,9 +581,9 @@ dependencies = [
 
 [[package]]
 name = "flexi_logger"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2917b8937f4d36d9df8b15a51428b6a1b2726ec57402b0c94b4dfc393a409e5"
+checksum = "0b51b4517f4422bfa0515dafcc10b4cc4cd3953d69a19608fd74afb3b19e227c"
 dependencies = [
  "ansi_term",
  "atty",
@@ -1210,7 +1210,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kommandozeilen_argumente"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#e54924ab416e0ac58a4aa3c8974af02fe2157c7a"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#22d5e3f6f9279a3ca356accbc9f3d077ed1490eb"
 dependencies = [
  "either",
  "itertools",
@@ -1224,9 +1224,8 @@ dependencies = [
 [[package]]
 name = "kommandozeilen_argumente_derive"
 version = "0.1.0"
-source = "git+https://github.com/spamviech/kommandozeilen_argumente#e54924ab416e0ac58a4aa3c8974af02fe2157c7a"
+source = "git+https://github.com/spamviech/kommandozeilen_argumente#22d5e3f6f9279a3ca356accbc9f3d077ed1490eb"
 dependencies = [
- "proc-macro-crate 1.1.0",
  "proc-macro2",
  "quote",
  "syn",

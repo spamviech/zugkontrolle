@@ -18,7 +18,7 @@ pub use kommandozeilen_argumente::ArgEnum;
 #[derive(Debug, Clone, Parse)]
 // subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
-#[kommandozeilen_argumente(deutsch, version, hilfe(hilfe, help; h))]
+#[kommandozeilen_argumente(deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
 pub struct Args {
     /// Verwendeter Zugtyp
     #[kommandozeilen_argumente(standard: Zugtyp::Märklin, kurz)]
@@ -48,6 +48,7 @@ pub struct Args {
     #[kommandozeilen_argumente(standard: Winkel(0.))]
     pub winkel: Winkel,
 
+    /// I2CSettings für die Programmdauer
     #[kommandozeilen_argumente(glätten)]
     pub i2c_settings: I2cSettings,
 
@@ -55,8 +56,8 @@ pub struct Args {
     pub verbose: bool,
 
     /// Speichere Log-Nachrichten zusätzlich in einer Datei
-    #[kommandozeilen_argumente(kurz: l)]
-    pub erstelle_log_datei: bool,
+    #[kommandozeilen_argumente(kurz: l, invertiere_präfix: keine)]
+    pub log_datei: bool,
 }
 
 /// Einstellung über aktivierte I2c-Channel
@@ -64,7 +65,7 @@ pub struct Args {
 #[kommandozeilen_argumente(deutsch)]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1)
-    #[kommandozeilen_argumente(standard: true)]
+    #[kommandozeilen_argumente(standard: true, lang: [i2c0_1, i2c0, i2c1])]
     pub i2c0_1: bool,
     // /// I2C channel auf pins 2? und ? (bus 2)
     // pub i2c2: bool,

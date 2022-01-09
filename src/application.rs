@@ -300,7 +300,7 @@ pub enum Fehler {
 
 impl App {
     pub fn run(args: Args) -> Result<(), Fehler> {
-        let Args { i2c_settings, zugtyp, verbose, erstelle_log_datei, .. } = args;
+        let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
         let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
         fn erstelle_settings<Leiter>(
@@ -324,7 +324,7 @@ impl App {
         let _ = log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
         let log_spec = log_spec_builder.finalize();
         let logger_base = Logger::with(log_spec);
-        let logger = if erstelle_log_datei {
+        let logger = if log_datei {
             logger_base
                 .log_to_file(FileSpec::default().directory("log"))
                 .duplicate_to_stderr(Duplicate::All)
