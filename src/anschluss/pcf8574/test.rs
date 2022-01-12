@@ -8,7 +8,7 @@ use crate::{
         pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
         pin,
     },
-    ux::u3,
+    kleiner_als::kleiner_8,
 };
 
 #[test]
@@ -32,8 +32,8 @@ fn drop_semantics() {
         a2: Level::Low,
         variante: Variante::Normal,
     };
-    let port0 = u3::MIN;
-    let port7 = u3::MAX;
+    let port0 = kleiner_8::MIN;
+    let port7 = kleiner_8::MAX;
 
     let i2c_settings =
         I2cSettings { i2c0_1: true, i2c3: false, i2c4: false, i2c5: false, i2c6: false };
@@ -81,7 +81,7 @@ impl Lager {
     fn reserviere_erwarte_erfolg(
         &mut self,
         beschreibung: Beschreibung,
-        port: u3,
+        port: kleiner_8,
         assert_nachricht: &str,
     ) -> Port {
         let llln =
@@ -93,12 +93,12 @@ impl Lager {
     fn reserviere_erwarte_in_verwendung(
         &mut self,
         beschreibung: Beschreibung,
-        port: u3,
+        port: kleiner_8,
         assert_nachricht: &str,
     ) {
         assert!(self.in_verwendung_eq(beschreibung, port), "{}", assert_nachricht)
     }
-    fn in_verwendung_eq(&mut self, beschreibung: Beschreibung, port: u3) -> bool {
+    fn in_verwendung_eq(&mut self, beschreibung: Beschreibung, port: kleiner_8) -> bool {
         if let Err(in_verwendung) = self.reserviere_pcf8574_port(beschreibung, port) {
             in_verwendung == InVerwendung { beschreibung, port }
         } else {

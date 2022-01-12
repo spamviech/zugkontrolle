@@ -16,11 +16,11 @@ use crate::{
         pin::{self, input, Pin},
         {level::Level, trigger::Trigger},
     },
+    kleiner_als::{kleiner_128, kleiner_8},
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
-    ux::{u3, u7},
 };
 
 pub use crate::args::I2cSettings;
@@ -90,7 +90,7 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 }
 
 #[derive(Debug)]
-pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, u3), Port>>>);
+pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
 
 impl Lager {
     pub fn neu(pin_status: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
@@ -107,7 +107,7 @@ impl Lager {
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
-                    for port_num in u3::alle_werte() {
+                    for port_num in kleiner_8::alle_werte() {
                         let port_struct =
                             Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
                         if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
@@ -123,7 +123,7 @@ impl Lager {
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: Beschreibung,
-        port: u3,
+        port: kleiner_8,
     ) -> Result<Port, InVerwendung> {
         debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
         self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
@@ -175,7 +175,7 @@ impl I2cBus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InVerwendung {
     pub beschreibung: Beschreibung,
-    pub port: u3,
+    pub port: kleiner_8,
 }
 
 #[derive(Debug, Clone, Copy, zugkontrolle_derive::From)]
@@ -269,7 +269,7 @@ impl Pcf8574 {
     }
 
     /// 7-bit i2c-Adresse ohne R/W-Bit
-    fn i2c_adresse(&self) -> u7 {
+    fn i2c_adresse(&self) -> kleiner_128 {
         let Pcf8574 { beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante }, .. } = self;
         let mut adresse = match variante {
             Variante::Normal => 0x20,
@@ -284,7 +284,7 @@ impl Pcf8574 {
         if let Level::High = a2 {
             adresse = adresse + 0b100;
         }
-        u7::try_from(adresse).expect("I2C-Adresse eines Pcf8574 passt nicht in 7Bit!")
+        kleiner_128::try_from(adresse).expect("I2C-Adresse eines Pcf8574 passt nicht in 7Bit!")
     }
 
     /// Lese von einem Pcf8574.
@@ -316,7 +316,7 @@ impl Pcf8574 {
     /// Konvertiere einen Port als Input.
     fn port_as_input<C: Fn(Level) + Send + Sync + 'static>(
         &mut self,
-        port: u3,
+        port: kleiner_8,
         trigger: Trigger,
         callback: Option<C>,
     ) -> Result<(), Fehler> {
@@ -332,7 +332,7 @@ impl Pcf8574 {
 
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
-    fn write_port(&mut self, port: u3, level: Level) -> Result<(), Fehler> {
+    fn write_port(&mut self, port: kleiner_8, level: Level) -> Result<(), Fehler> {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
         let mut i2c_with_pins = self.i2c.lock();
@@ -373,7 +373,7 @@ pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
     lager: Lager,
     beschreibung: Beschreibung,
-    port: u3,
+    port: kleiner_8,
 }
 
 impl PartialEq for Port {
@@ -401,7 +401,7 @@ impl Port {
         pcf8574: Arc<Mutex<Pcf8574>>,
         lager: Lager,
         beschreibung: Beschreibung,
-        port: u3,
+        port: kleiner_8,
     ) -> Self {
         Port { pcf8574, lager, beschreibung, port }
     }
@@ -412,7 +412,7 @@ impl Port {
     }
 
     #[inline(always)]
-    pub fn port(&self) -> u3 {
+    pub fn port(&self) -> kleiner_8 {
         self.port
     }
 
@@ -440,7 +440,7 @@ impl OutputPort {
     }
 
     #[inline(always)]
-    pub fn port(&self) -> u3 {
+    pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
@@ -483,7 +483,7 @@ impl InputPort {
     }
 
     #[inline(always)]
-    pub fn port(&self) -> u3 {
+    pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 

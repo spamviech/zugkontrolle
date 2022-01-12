@@ -85,8 +85,8 @@ macro_rules! definiere_typ {
     };
 }
 
-definiere_typ! {u3, 7, "Datentyp mit maximal 3 Bytes ohne Vorzeichen (0-7)."}
-definiere_typ! {u7, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen (0-127)."}
+definiere_typ! {kleiner_8, 7, "Datentyp mit maximal 3 Bytes ohne Vorzeichen (0-7)."}
+definiere_typ! {kleiner_128, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen (0-127)."}
 
 /// Fehler beim konvertieren von [u8] in einen kleineren Datentyp.
 #[derive(Debug, Clone, Copy)]

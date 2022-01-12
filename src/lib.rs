@@ -37,11 +37,11 @@ pub mod anschluss;
 pub mod application;
 pub mod args;
 pub mod farbe;
+pub mod kleiner_als;
 pub mod lookup;
 pub mod maybe_empty;
 pub mod rppal;
 pub mod steuerung;
-pub mod ux;
 pub mod zugtyp;
 
 pub use crate::{

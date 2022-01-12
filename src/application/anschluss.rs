@@ -18,7 +18,7 @@ use crate::{
         InputSerialisiert, OutputSerialisiert,
     },
     application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    ux::{u3, ZuGroß},
+    kleiner_als::{kleiner_8, ZuGroß},
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
@@ -29,7 +29,7 @@ pub struct Status<T> {
     pin: u8,
     beschreibung: Beschreibung,
     port_state: number_input::State,
-    port: u3,
+    port: kleiner_8,
     modus: T,
 }
 
@@ -123,7 +123,7 @@ impl<T> Status<T> {
     fn anschluss<M>(
         &self,
         make_pin: impl Fn(u8, &T) -> M,
-        make_port: impl Fn(Beschreibung, u3, &T) -> M,
+        make_port: impl Fn(Beschreibung, kleiner_8, &T) -> M,
     ) -> M {
         if self.active_tab == 0 {
             make_pin(self.pin, &self.modus)
@@ -132,7 +132,11 @@ impl<T> Status<T> {
         }
     }
 
-    fn neu(pin: Option<u8>, beschreibung_port: Option<(Beschreibung, u3)>, modus: T) -> Self {
+    fn neu(
+        pin: Option<u8>,
+        beschreibung_port: Option<(Beschreibung, kleiner_8)>,
+        modus: T,
+    ) -> Self {
         let active_tab = if beschreibung_port.is_some() { 1 } else { 0 };
         let pin = pin.unwrap_or(0);
         let (beschreibung, port) = beschreibung_port.unwrap_or((
@@ -143,7 +147,7 @@ impl<T> Status<T> {
                 a2: Level::Low,
                 variante: Variante::Normal,
             },
-            u3::MIN,
+            kleiner_8::MIN,
         ));
         Status {
             active_tab,
@@ -167,7 +171,7 @@ impl<T> Status<T> {
     }
 
     #[inline(always)]
-    fn neu_mit_initial_port(beschreibung: Beschreibung, port: u3, modus: T) -> Self {
+    fn neu_mit_initial_port(beschreibung: Beschreibung, port: kleiner_8, modus: T) -> Self {
         Status::neu(None, Some((beschreibung, port)), modus)
     }
 }
@@ -197,11 +201,11 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     active_tab: &'a mut usize,
     pin: &'a mut u8,
     beschreibung: &'a mut Beschreibung,
-    port: &'a mut u3,
+    port: &'a mut kleiner_8,
     modus: &'a mut T,
     update_modus: &'a dyn Fn(&mut T, I),
     make_pin: &'a dyn Fn(u8, &T) -> M,
-    make_port: Box<dyn Fn(Beschreibung, u3, &T) -> M>,
+    make_port: Box<dyn Fn(Beschreibung, kleiner_8, &T) -> M>,
 }
 
 impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
@@ -355,7 +359,7 @@ where
         view_modus: impl FnOnce(&'a mut IO, Beschreibung) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
         make_pin: &'a impl Fn(u8, &T) -> M,
-        make_port: impl 'static + Fn(Beschreibung, u3, &T) -> M,
+        make_port: impl 'static + Fn(Beschreibung, kleiner_8, &T) -> M,
     ) -> Self {
         let Status { active_tab, pin_state, pin, beschreibung, port_state, port, modus } = status;
         let (view_modus, modus) = view_modus(modus, *beschreibung);
@@ -380,7 +384,7 @@ where
             .push(NumberInput::new(
                 port_state,
                 u8::from(*port),
-                u8::from(u3::MAX),
+                u8::from(kleiner_8::MAX),
                 InternalMessage::Port,
             ));
         // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
@@ -467,14 +471,14 @@ where
                 InternalMessage::A2(a2) => self.beschreibung.a2 = a2,
                 InternalMessage::Variante(variante) => self.beschreibung.variante = variante,
                 InternalMessage::Port(port) => {
-                    // u3: TryFrom<u8> nicht implementiert
+                    // kleiner_8: TryFrom<u8> nicht implementiert
                     // NumCast::from ebenfalls nicht möglich (auch bei aktiviertem "num"-feature)
-                    // daher `u3::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
-                    *self.port = match u3::try_from(port) {
+                    // daher `kleiner_8::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
+                    *self.port = match kleiner_8::try_from(port) {
                         Ok(port) => port,
                         Err(ZuGroß(port)) => {
-                            error!("Port {} > u3::MAX {}", port, u3::MAX);
-                            u3::MAX
+                            error!("Port {} > kleiner_8::MAX {}", port, kleiner_8::MAX);
+                            kleiner_8::MAX
                         }
                     }
                 }

@@ -9,7 +9,7 @@ pub use self::{
     de_serialisieren::{Reserviere, Reserviert, Serialisiere},
     pcf8574::I2cBus,
 };
-use crate::{rppal, ux::u3};
+use crate::{kleiner_als::kleiner_8, rppal};
 
 pub mod level;
 pub use level::*;
@@ -58,7 +58,7 @@ impl Lager {
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: pcf8574::Beschreibung,
-        port: u3,
+        port: kleiner_8,
     ) -> Result<Anschluss, ReservierenFehler> {
         match self.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
             Ok(port) => Ok(Anschluss::Pcf8574Port(port)),
@@ -217,7 +217,7 @@ impl OutputAnschluss {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     Pin { pin: u8, polarität: Polarität },
-    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: u3, polarität: Polarität },
+    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: kleiner_8, polarität: Polarität },
 }
 
 impl OutputSerialisiert {
@@ -371,7 +371,7 @@ impl InputAnschluss {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     Pin { pin: u8 },
-    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: u3, interrupt: Option<u8> },
+    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: kleiner_8, interrupt: Option<u8> },
 }
 
 impl InputSerialisiert {
