@@ -13,69 +13,68 @@ use crate::application::{
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
-pub use kommandozeilen_argumente::ArgEnum;
+pub use kommandozeilen_argumente::EnumArgument;
 
 #[derive(Debug, Clone, Parse)]
-// subcommand umd direkte Verwendung (impl TopLevelCommand) von `argh::from_env` zu verhindern.
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
-#[kommandozeilen_argumente(deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
+#[kommandozeilen_argumente(sprache: deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
 pub struct Args {
-    /// Verwendeter Zugtyp
+    /// Verwendeter Zugtyp.
     #[kommandozeilen_argumente(standard: Zugtyp::Märklin, kurz)]
     pub zugtyp: Zugtyp,
 
-    /// Lade bei Programmstart die angegebene Datei
+    /// Lade bei Programmstart die angegebene Datei.
     #[kommandozeilen_argumente(kurz)]
     pub pfad: Option<String>,
 
-    /// Modus bei Programmstart
+    /// Modus bei Programmstart.
     #[kommandozeilen_argumente(standard: Modus::Bauen, kurz)]
     pub modus: Modus,
 
-    /// Zoom bei Programmstart
+    /// Zoom bei Programmstart.
     #[kommandozeilen_argumente(standard: Skalar(1.))]
     pub zoom: Skalar,
 
-    /// X-Position bei Programmstart
+    /// X-Position bei Programmstart.
     #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
     pub x: Skalar,
 
-    /// Y-Position bei Programmstart
+    /// Y-Position bei Programmstart.
     #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
     pub y: Skalar,
 
-    /// Winkel bei Programmstart
+    /// Winkel bei Programmstart.
     #[kommandozeilen_argumente(standard: Winkel(0.))]
     pub winkel: Winkel,
 
-    /// I2CSettings für die Programmdauer
+    /// I2CSettings für die Programmdauer.
     #[kommandozeilen_argumente(glätten)]
     pub i2c_settings: I2cSettings,
 
-    /// Zeige zusätzliche Informationen in der Konsole an
+    /// Zeige zusätzliche Informationen in der Konsole an.
     pub verbose: bool,
 
-    /// Speichere Log-Nachrichten zusätzlich in einer Datei
+    /// Speichere Log-Nachrichten zusätzlich in einer Datei.
     #[kommandozeilen_argumente(kurz: l, invertiere_präfix: keine)]
     pub log_datei: bool,
 }
 
-/// Einstellung über aktivierte I2c-Channel
+/// Einstellung über aktivierte I2c-Channel.
 #[derive(Debug, Clone, Copy, Parse)]
-#[kommandozeilen_argumente(deutsch)]
+#[kommandozeilen_argumente(sprache: deutsch)]
 pub struct I2cSettings {
-    /// I2C channel auf pins 2 und 3 (bus 0 oder 1)
+    /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
     #[kommandozeilen_argumente(standard: true, lang: [i2c0_1, i2c0, i2c1])]
     pub i2c0_1: bool,
-    // /// I2C channel auf pins 2? und ? (bus 2)
+    // /// I2C channel auf pins ? und ? (bus 2).
     // pub i2c2: bool,
-    /// I2C channel auf pins 4 und 5 (bus 3)
+    /// I2C channel auf pins 4 und 5 (bus 3).
     pub i2c3: bool,
-    /// I2C channel auf pins 8 und 9 (bus 4)
+    /// I2C channel auf pins 8 und 9 (bus 4).
     pub i2c4: bool,
-    /// I2C channel auf pins 12 und 13 (bus 5)
+    /// I2C channel auf pins 12 und 13 (bus 5).
     pub i2c5: bool,
-    /// I2C channel auf pins 22 und 23 (bus 6)
+    /// I2C channel auf pins 22 und 23 (bus 6).
     pub i2c6: bool,
 }
 
@@ -141,7 +140,7 @@ impl Args {
     }
 }
 
-#[derive(Debug, Clone, Copy, ArgEnum)]
+#[derive(Debug, Clone, Copy, EnumArgument)]
 pub enum Zugtyp {
     Märklin,
     Lego,
@@ -149,6 +148,6 @@ pub enum Zugtyp {
 
 impl Display for Zugtyp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        Debug::fmt(self, f)
     }
 }

@@ -17,13 +17,13 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
                         "List arguments not supported, but {} was given",
                         quote!(#list)
                     ));
-                }
+                },
                 syn::Meta::NameValue(name) => {
                     errors.push(format!(
                         "NameValue arguments not supported, but {} was given",
                         quote!(#name)
                     ));
-                }
+                },
                 syn::Meta::Path(syn::Path { segments, .. }) => {
                     let mut iter = segments.into_iter();
                     if let Some(syn::PathSegment { ident, .. }) = iter.next() {
@@ -52,14 +52,14 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
                     } else {
                         errors.push(format!("empty path segments {}", quote!(#segments)))
                     }
-                }
+                },
             },
             syn::NestedMeta::Lit(lit) => {
                 errors.push(format!(
                     "Literal arguments not supported, but {} was given",
                     quote!(#lit)
                 ));
-            }
+            },
         }
     }
     let derives = if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
@@ -67,7 +67,7 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
-        quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #base_ident::args::ArgEnum)])
+        quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #base_ident::args::EnumArgument)])
     } else {
         errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string());
         quote!()
