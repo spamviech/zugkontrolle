@@ -167,15 +167,15 @@ impl Program<Nachricht> for Bewegen {
                         nachricht = Some(Nachricht::Zurücksetzen)
                     }
                 }
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) if self.bewegung => {
                 // beende nur gestartete Bewegungen
                 self.bewegung = false;
                 nachricht = Some(Nachricht::BeendeBewegung)
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         (iced::canvas::event::Status::Ignored, nachricht)

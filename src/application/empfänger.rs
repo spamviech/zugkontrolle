@@ -54,7 +54,7 @@ impl<Nachricht: Unpin> Stream for Empfänger<Nachricht> {
             Err(RecvError) => {
                 debug!("Channel for Message subscription disconnected!");
                 Poll::Ready(None)
-            }
+            },
         }
     }
 }

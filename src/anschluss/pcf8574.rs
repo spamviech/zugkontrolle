@@ -204,10 +204,10 @@ impl Debug for Modus {
         match self {
             Modus::Input { trigger, callback: Some(_) } => {
                 write!(f, "Input {{trigger: {:?}, callback: Some(_)}}", trigger)
-            }
+            },
             Modus::Input { trigger, callback: None } => {
                 write!(f, "Input {{trigger: {:?}, callback: None}}", trigger)
-            }
+            },
             Modus::High => write!(f, "High"),
             Modus::Low => write!(f, "Low"),
         }
@@ -465,7 +465,7 @@ impl OutputPort {
                 Modus::Input { .. } => {
                     error!("Output pin configured as input: {:?}", self);
                     Level::Low
-                }
+                },
             }
         };
         self.write(level)

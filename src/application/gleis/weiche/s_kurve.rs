@@ -290,12 +290,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         (
             Position {
@@ -323,12 +323,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
@@ -361,11 +361,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 start_height = self.rechteck(spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         let angle_difference = self.winkel - self.winkel_reverse;
         let anfang = Vektor {

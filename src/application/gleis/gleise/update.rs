@@ -132,14 +132,14 @@ fn aktion_gleis_an_position<'t>(
                         }
                         status = iced::canvas::event::Status::Captured
                     }
-                }
+                },
                 ModusDaten::Fahren => {
                     if let Some((any_id_ref, _halte_position, _winkel)) = gleis_an_position {
                         let gleis_id = any_id_ref.als_id();
                         message = Some(Nachricht::FahrenAktion(gleis_id));
                         status = iced::canvas::event::Status::Captured
                     }
-                }
+                },
             }
         }
     }
@@ -173,7 +173,7 @@ impl<Leiter> Gleise<Leiter> {
                 );
                 event_status = click_result.0;
                 message = click_result.1;
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
@@ -194,7 +194,7 @@ impl<Leiter> Gleise<Leiter> {
                         event_status = iced::canvas::event::Status::Captured;
                     }
                 }
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 if let Some(canvas_pos) =
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
@@ -205,8 +205,8 @@ impl<Leiter> Gleise<Leiter> {
                     }
                     event_status = iced::canvas::event::Status::Captured
                 }
-            }
-            _otherwise => {}
+            },
+            _otherwise => {},
         };
         if event_status == iced::canvas::event::Status::Captured {
             self.canvas.leeren()

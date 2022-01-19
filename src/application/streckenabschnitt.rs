@@ -357,7 +357,7 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                         wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
                     ));
                     messages.push(AuswahlNachricht::Schließe)
-                }
+                },
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(
                         None,
@@ -365,10 +365,10 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
                         self.neu_farbe.clone(),
                         self.neu_anschluss.clone(),
                     ));
-                }
+                },
                 InterneAuswahlNachricht::Lösche(name) => {
                     messages.push(AuswahlNachricht::Lösche(erstelle_id(name)))
-                }
+                },
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
                 InterneAuswahlNachricht::Anschluss(anschluss) => *self.neu_anschluss = anschluss,

@@ -61,7 +61,7 @@ impl<'t> Status<Input<'t>> {
             InputSerialisiert::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
             InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt } => {
                 Status::neu_mit_initial_port(beschreibung, port, make_modus(interrupt.unwrap_or(0)))
-            }
+            },
         }
     }
 
@@ -99,10 +99,10 @@ impl Status<Output> {
         match initial {
             OutputSerialisiert::Pin { pin, polarität } => {
                 Self::neu_mit_initial_pin(pin, Output { polarität })
-            }
+            },
             OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
                 Self::neu_mit_initial_port(beschreibung, port, Output { polarität })
-            }
+            },
         }
     }
 
@@ -405,7 +405,7 @@ where
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
-            }
+            },
             ZeigeModus::Beide => {
                 let tabs = vec![
                     (
@@ -419,7 +419,7 @@ where
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
-            }
+            },
         };
         Auswahl {
             row,
@@ -479,9 +479,9 @@ where
                         Err(ZuGroß(port)) => {
                             error!("Port {} > kleiner_8::MAX {}", port, kleiner_8::MAX);
                             kleiner_8::MAX
-                        }
+                        },
                     }
-                }
+                },
                 InternalMessage::Modus(msg) => (self.update_modus)(self.modus, msg),
             }
             status = event::Status::Captured;

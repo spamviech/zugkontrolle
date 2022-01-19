@@ -26,7 +26,7 @@ impl Background {
             Background::Blue(blue) => iced::Color::from_rgb(0., 0., *blue),
             Background::GreyTransparent { grey, alpha } => {
                 iced::Color::from_rgba(*grey, *grey, *grey, *alpha)
-            }
+            },
         }
     }
 }

@@ -130,7 +130,7 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
             NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
                 Nachricht::GeschwindigkeitAnzeige { name, nachricht }
-            }
+            },
             NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
         }
     }
@@ -187,10 +187,10 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
         match message {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
                 Nachricht::SetzeStreckenabschnitt(any_id)
-            }
+            },
             gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
                 Nachricht::ZeigeAnschlüsseAnpassen(any_id)
-            }
+            },
             gleise::Nachricht::FahrenAktion(any_id) => Nachricht::FahrenAktion(any_id),
         }
     }
@@ -264,11 +264,11 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlStatus<Leiter> {
         match self {
             Self::Streckenabschnitt(arg0) => {
                 f.debug_tuple("Streckenabschnitt").field(arg0).finish()
-            }
+            },
             Self::Geschwindigkeit(arg0) => f.debug_tuple("Geschwindigkeit").field(arg0).finish(),
             Self::Weiche(arg0, _arg1) => {
                 f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
-            }
+            },
             Self::DreiwegeWeiche(arg0, _arg1) => f
                 .debug_tuple("DreiwegeWeiche")
                 .field(arg0)
@@ -276,7 +276,7 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlStatus<Leiter> {
                 .finish(),
             Self::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
-            }
+            },
         }
     }
 }
@@ -463,14 +463,14 @@ where
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
                 command = self.bewegung_starten(bewegung)
-            }
+            },
             Nachricht::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung_beenden(),
             Nachricht::Bewegen(bewegen::Nachricht::Zurücksetzen) => self.bewegung_zurücksetzen(),
             Nachricht::BewegungAusführen => {
                 if let Some(cmd) = self.bewegung_ausführen() {
                     command = cmd
                 }
-            }
+            },
             Nachricht::Position(position) => self.gleise.setze_pivot(position),
             Nachricht::Winkel(winkel) => self.gleise.winkel(winkel),
             Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
@@ -490,45 +490,45 @@ where
             ),
             Nachricht::LöscheStreckenabschnitt(streckenabschnitt_id) => {
                 self.streckenabschnitt_löschen(streckenabschnitt_id)
-            }
+            },
             Nachricht::SetzeStreckenabschnitt(any_id) => {
                 self.gleis_setzte_streckenabschnitt(any_id)
-            }
+            },
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
-            }
+            },
             Nachricht::SchließeMessageBox => self.schließe_message_box(),
             Nachricht::Speichern(pfad) => {
                 if let Some(cmd) = self.speichern(pfad) {
                     command = cmd
                 }
-            }
+            },
             Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit)
-            }
+            },
             Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::GeschwindigkeitAnzeige { name, nachricht } => {
                 if let Some(cmd) = self.geschwindigkeit_anzeige_nachricht(name, nachricht) {
                     command = cmd
                 }
-            }
+            },
             Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
-            }
+            },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
             Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = message.als_command()
                 }
-            }
+            },
             Nachricht::FahrenAktion(any_id) => self.fahren_aktion(any_id),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
                 if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
                     command = cmd
                 }
-            }
+            },
         }
 
         command

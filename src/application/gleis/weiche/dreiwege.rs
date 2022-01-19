@@ -135,13 +135,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 None => (Transparenz::Voll, Transparenz::Voll, Transparenz::Voll),
                 Some(Richtung::Gerade) => {
                     (Transparenz::Voll, Transparenz::Reduziert, Transparenz::Reduziert)
-                }
+                },
                 Some(Richtung::Links) => {
                     (Transparenz::Reduziert, Transparenz::Voll, Transparenz::Reduziert)
-                }
+                },
                 Some(Richtung::Rechts) => {
                     (Transparenz::Reduziert, Transparenz::Reduziert, Transparenz::Voll)
-                }
+                },
             };
         // Gerade
         paths.push((

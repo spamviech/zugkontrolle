@@ -175,7 +175,7 @@ impl<Leiter> Gleise<Leiter> {
                     name,
                     streckenabschnitt,
                 ))
-            }
+            },
         };
         let entry = streckenabschnitt_map.entry(name.clone());
         let bisher = match entry {
@@ -185,11 +185,11 @@ impl<Leiter> Gleise<Leiter> {
                 let bisherig_fließend = value.1;
                 value.1 = fließend;
                 Some((streckenabschnitt, bisherig_fließend))
-            }
+            },
             Entry::Vacant(vacant) => {
                 let _ = vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
                 None
-            }
+            },
         };
         Ok((StreckenabschnittId { geschwindigkeit: geschwindigkeit.cloned(), name }, bisher))
     }
@@ -275,11 +275,11 @@ impl<Leiter> Gleise<Leiter> {
             Entry::Occupied(mut occupied) => {
                 let bisher = std::mem::replace(&mut occupied.get_mut().0, geschwindigkeit);
                 Some(bisher)
-            }
+            },
             Entry::Vacant(vacant) => {
                 let _ = vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
                 None
-            }
+            },
         }
     }
 
@@ -343,11 +343,11 @@ impl<Leiter> Gleise<Leiter> {
                 let bisher =
                     std::mem::replace(occupied.get_mut(), (geschwindigkeit, streckenabschnitt_map));
                 Some(bisher)
-            }
+            },
             Entry::Vacant(vacant) => {
                 let _ = vacant.insert((geschwindigkeit, StreckenabschnittMap::new()));
                 None
-            }
+            },
         }
     }
 
@@ -421,12 +421,12 @@ impl<Leiter: Debug> Gleise<Leiter> {
                             streckenabschnitt,
                             fließend,
                         )
-                    }
+                    },
                     None => {
                         return Err(StreckenabschnittBearbeitenFehler::GeschwindigkeitEntfernt(
                             geschwindigkeit_name,
                         ))
-                    }
+                    },
                 }
             } else {
                 let (streckenabschnitt, fließend) = streckenabschnitt_entfernen(
@@ -466,7 +466,7 @@ impl<Leiter: Debug> Gleise<Leiter> {
                 *streckenabschnitt_id = id_neu;
                 self.canvas.leeren();
                 Ok(bisher)
-            }
+            },
             Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
                 geschwindigkeit_neu,
                 streckenabschnitt,
@@ -512,7 +512,7 @@ impl<Leiter: Debug> Gleise<Leiter> {
                     }
                 }
                 Err(StreckenabschnittBearbeitenFehler::GeschwindigkeitEntfernt(geschwindigkeit_neu))
-            }
+            },
         }
     }
 }
@@ -573,7 +573,7 @@ impl<Leiter> iced::canvas::Program<Nachricht> for Gleise<Leiter> {
         match &self.modus {
             ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
                 iced::mouse::Interaction::Pointer
-            }
+            },
             _ => iced::mouse::Interaction::default(),
         }
     }
@@ -613,7 +613,7 @@ impl From<GleisIdFehler> for Fehler {
             GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
             GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
                 Fehler::StreckenabschnittEntfernt(streckenabschnitt)
-            }
+            },
             GleisIdFehler::GeschwindigkeitEntfernt(name) => Fehler::GeschwindigkeitEntfernt(name),
         }
     }
@@ -642,10 +642,10 @@ impl From<StreckenabschnittIdFehler> for Fehler {
         match fehler {
             StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
                 Fehler::StreckenabschnittEntfernt(streckenabschnitt)
-            }
+            },
             StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 Fehler::GeschwindigkeitEntfernt(geschwindigkeit)
-            }
+            },
         }
     }
 }
@@ -654,10 +654,10 @@ impl From<StreckenabschnittIdFehler> for GleisIdFehler {
         match fehler {
             StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
                 GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt)
-            }
+            },
             StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 GleisIdFehler::GeschwindigkeitEntfernt(geschwindigkeit)
-            }
+            },
         }
     }
 }

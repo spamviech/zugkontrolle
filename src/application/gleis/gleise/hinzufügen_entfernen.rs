@@ -256,7 +256,7 @@ impl<Leiter> Gleise<Leiter> {
                 neue_daten.rstern_mut().insert(geom_with_data);
                 gleis_id.streckenabschnitt = streckenabschnitt_neu;
                 Ok(())
-            }
+            },
             Err(fehler) => {
                 let daten = match self.zustand.daten_mut(&streckenabschnitt) {
                     Ok(bisherige_daten) => bisherige_daten,
@@ -266,11 +266,11 @@ impl<Leiter> Gleise<Leiter> {
                         wiederherstellen_fehler, geom_with_data.data
                     );
                         &mut self.zustand.ohne_streckenabschnitt
-                    }
+                    },
                 };
                 daten.rstern_mut().insert(geom_with_data);
                 Err(fehler.into())
-            }
+            },
         }
     }
 }

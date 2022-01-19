@@ -129,7 +129,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                             farbe,
                             output,
                         )
-                    }
+                    },
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
@@ -141,11 +141,11 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                             Schließen => Nachricht::SchließeModal,
                             Hinzufügen(name, geschwindigkeit) => {
                                 Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-                            }
+                            },
                             Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
                         }
                     })
-            }
+            },
             AuswahlStatus::Weiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -155,7 +155,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                         Schließen => Nachricht::SchließeModal,
                     }
                 })
-            }
+            },
             AuswahlStatus::DreiwegeWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -165,7 +165,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                         Schließen => Nachricht::SchließeModal,
                     }
                 })
-            }
+            },
             AuswahlStatus::KurvenWeiche(status, als_message) => {
                 let als_message_clone = als_message.clone();
                 iced::Element::from(weiche::Auswahl::neu(status)).map(move |message| {
@@ -175,7 +175,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                         Schließen => Nachricht::SchließeModal,
                     }
                 })
-            }
+            },
         })
         .on_esc(&|| Nachricht::SchließeModal);
 
@@ -245,10 +245,10 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
                 .map(|message| match message {
                     streckenabschnitt::AnzeigeNachricht::Auswählen => {
                         Nachricht::ZeigeAuswahlStreckenabschnitt
-                    }
+                    },
                     streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
                         Nachricht::StreckenabschnittFestlegen(festlegen)
-                    }
+                    },
                 }),
             )
             .push(
@@ -329,7 +329,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
             if let Some(max) = max_width {
                 width = iced::Length::Units(max + scroller_width);
             }
-        }
+        },
         Modus::Fahren => {
             scrollable = scrollable.push(iced::Text::new("Geschwindigkeiten")).spacing(1);
             for (name, anzeige_status) in geschwindigkeiten {
@@ -350,7 +350,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
-        }
+        },
     }
     iced::Row::new()
         .push(

@@ -191,7 +191,7 @@ where
                 InterneNachricht::Name(name) => *self.name = name,
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *self.anschlüsse.get_mut(&richtung) = anschluss
-                }
+                },
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert {
                         name: Name(self.name.clone()),
@@ -199,7 +199,7 @@ where
                         letzte_richtung: Default::default(),
                         anschlüsse: self.anschlüsse.clone(),
                     })))
-                }
+                },
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }

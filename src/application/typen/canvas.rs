@@ -78,7 +78,7 @@ impl<'t> Frame<'t> {
         match transformation {
             Transformation::Translation(Vektor { x, y }) => {
                 self.0.translate(iced::Vector { x: x.0, y: y.0 })
-            }
+            },
             Transformation::Rotation(winkel) => self.0.rotate(winkel.0),
             Transformation::Skalieren(scale) => self.0.scale(scale.0),
         }

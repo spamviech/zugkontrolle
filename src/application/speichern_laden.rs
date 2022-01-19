@@ -120,10 +120,10 @@ impl<'a, R: Renderer + row::Renderer> Widget<Nachricht, R> for SpeichernLaden<'a
             match message {
                 InterneNachricht::Speichern => {
                     messages.push(Nachricht::Speichern(self.aktueller_pfad.clone()))
-                }
+                },
                 InterneNachricht::Laden => {
                     messages.push(Nachricht::Laden(self.aktueller_pfad.clone()))
-                }
+                },
                 InterneNachricht::Pfad(pfad) => *self.aktueller_pfad = pfad,
             }
         }

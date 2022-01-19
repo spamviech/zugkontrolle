@@ -246,11 +246,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 start_height = size.y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         (
             Position {
@@ -278,12 +278,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 let size: Vektor = self.rechteck(spurweite).ecke_max();
                 start_height = size.y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
@@ -309,11 +309,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
             Orientierung::Rechts => {
                 start_height = Skalar(0.);
                 multiplier = Skalar(1.);
-            }
+            },
             Orientierung::Links => {
                 start_height = self.rechteck(spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
-            }
+            },
         };
         let halbe_beschränkung: Skalar = spurweite.beschränkung().halbiert();
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };

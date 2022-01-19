@@ -15,6 +15,6 @@ pub fn icon() -> Option<Icon> {
         Err(fehler) => {
             error!("Fehler beim Konvertieren des Application Icons: {:?}", fehler);
             None
-        }
+        },
     }
 }

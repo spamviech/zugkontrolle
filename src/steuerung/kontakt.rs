@@ -78,7 +78,7 @@ impl Kontakt {
                     Err(SendError(_level)) => {
                         // channel was disconnected, so no need to send to it anymore
                         let _ = senders.remove(i);
-                    }
+                    },
                 }
             }
         });
@@ -175,7 +175,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                     output_anschlüsse: output_nicht_benötigt,
                     input_anschlüsse: input_nicht_benötigt,
                 });
-            }
+            },
         };
         Ok(Reserviert {
             anschluss,

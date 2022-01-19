@@ -116,37 +116,37 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
                         return Err(de::Error::duplicate_field("zugtyp"));
                     }
                     zugtyp = Some(map.next_value()?)
-                }
+                },
                 ZustandField::Leiter => {
                     if leiter.is_some() {
                         return Err(de::Error::duplicate_field("leiter"));
                     }
                     leiter = Some(map.next_value()?)
-                }
+                },
                 ZustandField::Ohne_Streckenabschnitt => {
                     if ohne_streckenabschnitt.is_some() {
                         return Err(de::Error::duplicate_field("ohne_streckenabschnitt"));
                     }
                     ohne_streckenabschnitt = Some(map.next_value()?)
-                }
+                },
                 ZustandField::Ohne_Geschwindigkeit => {
                     if ohne_geschwindigkeit.is_some() {
                         return Err(de::Error::duplicate_field("ohne_geschwindigkeit"));
                     }
                     ohne_geschwindigkeit = Some(map.next_value()?)
-                }
+                },
                 ZustandField::Geschwindigkeiten => {
                     if geschwindigkeiten.is_some() {
                         return Err(de::Error::duplicate_field("geschwindigkeiten"));
                     }
                     geschwindigkeiten = Some(map.next_value()?)
-                }
+                },
                 ZustandField::Pläne => {
                     if pläne.is_some() {
                         return Err(de::Error::duplicate_field("pläne"));
                     }
                     pläne = Some(map.next_value()?)
-                }
+                },
             }
         }
         let zugtyp = zugtyp.ok_or_else(|| de::Error::missing_field("zugtyp"))?;

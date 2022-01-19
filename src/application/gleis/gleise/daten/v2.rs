@@ -129,67 +129,67 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for GleiseVecsVisitor<Leiter> {
                         return Err(de::Error::duplicate_field("name"));
                     }
                     name = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Geraden => {
                     if geraden.is_some() {
                         return Err(de::Error::duplicate_field("geraden"));
                     }
                     geraden = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Kurven => {
                     if kurven.is_some() {
                         return Err(de::Error::duplicate_field("kurven"));
                     }
                     kurven = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Weichen => {
                     if weichen.is_some() {
                         return Err(de::Error::duplicate_field("weichen"));
                     }
                     weichen = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Dreiwege_Weichen => {
                     if dreiwege_weichen.is_some() {
                         return Err(de::Error::duplicate_field("dreiwege_weichen"));
                     }
                     dreiwege_weichen = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Kurven_Weichen => {
                     if kurven_weichen.is_some() {
                         return Err(de::Error::duplicate_field("kurven_weichen"));
                     }
                     kurven_weichen = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::S_Kurven_Weichen => {
                     if s_kurven_weichen.is_some() {
                         return Err(de::Error::duplicate_field("s_kurven_weichen"));
                     }
                     s_kurven_weichen = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Kreuzungen => {
                     if kreuzungen.is_some() {
                         return Err(de::Error::duplicate_field("kreuzungen"));
                     }
                     kreuzungen = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Streckenabschnitte => {
                     if streckenabschnitte.is_some() {
                         return Err(de::Error::duplicate_field("streckenabschnitte"));
                     }
                     streckenabschnitte = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Geschwindigkeiten => {
                     if geschwindigkeiten.is_some() {
                         return Err(de::Error::duplicate_field("geschwindigkeiten"));
                     }
                     geschwindigkeiten = Some(map.next_value()?)
-                }
+                },
                 GleiseVecsField::Pläne => {
                     if pläne.is_some() {
                         return Err(de::Error::duplicate_field("pläne"));
                     }
                     pläne = Some(map.next_value()?)
-                }
+                },
             }
         }
         let name = name.ok_or_else(|| de::Error::missing_field("name"))?;

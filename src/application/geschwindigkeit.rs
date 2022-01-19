@@ -164,7 +164,7 @@ impl LeiterAnzeige for Mittelleiter {
             NachrichtMittelleiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
-            }
+            },
             NachrichtMittelleiter::Umdrehen => {
                 let bisherige_geschwindigkeit = anzeige_status.aktuelle_geschwindigkeit;
                 let titel = format!("Umdrehen von Geschwindigkeit {}", anzeige_status.name.0);
@@ -176,7 +176,7 @@ impl LeiterAnzeige for Mittelleiter {
                     )
                 });
                 anzeige_status.aktuelle_geschwindigkeit = 0;
-            }
+            },
         }
         Ok(iced::Command::none())
     }
@@ -295,7 +295,7 @@ impl LeiterAnzeige for Zweileiter {
             NachrichtZweileiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
-            }
+            },
             NachrichtZweileiter::Fahrtrichtung(fahrtrichtung) => {
                 let bisherige_fahrtrichtung = anzeige_status.fahrtrichtung_state;
                 let bisherige_geschwindigkeit = anzeige_status.aktuelle_geschwindigkeit;
@@ -315,7 +315,7 @@ impl LeiterAnzeige for Zweileiter {
                 });
                 anzeige_status.aktuelle_geschwindigkeit = 0;
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
-            }
+            },
         }
         Ok(iced::Command::none())
     }
@@ -673,7 +673,7 @@ where
                 )),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
                     let _ = remove_from_nonempty_tail(ks_anschlüsse, *ix);
-                }
+                },
             }
             *ks_anschlüsse_anpassen = None;
         }
@@ -810,11 +810,11 @@ where
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
                     *self.umdrehen_anschluss = anschluss
-                }
+                },
                 InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
                     *self.pwm_polarität = polarität
-                }
+                },
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
                     if let Some(anschluss) = self.ks_anschlüsse.get_mut(ix) {
                         **anschluss = anschluss_neu
@@ -825,14 +825,14 @@ where
                             self.ks_anschlüsse.len()
                         )
                     }
-                }
+                },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
-                }
+                },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
                     let _ = remove_from_nonempty_tail(&mut self.ks_anschlüsse, ix);
-                }
+                },
                 InterneAuswahlNachricht::Hinzufügen => {
                     messages.push(AuswahlNachricht::Hinzufügen(
                         Name(self.neu_name.clone()),
@@ -855,10 +855,10 @@ where
                             },
                         },
                     ))
-                }
+                },
                 InterneAuswahlNachricht::Löschen(name) => {
                     messages.push(AuswahlNachricht::Löschen(name))
-                }
+                },
             }
         }
         status

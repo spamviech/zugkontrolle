@@ -134,7 +134,7 @@ where
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
                 // Gebe stattdessen keine Anschlüsse zurück
                 (Vec::new(), Vec::new(), Vec::new())
-            }
+            },
         }
     }
 }

@@ -158,7 +158,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                     iced::canvas::event::Status::Captured,
                     Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
-            }
+            },
             _ => (iced::canvas::event::Status::Ignored, None),
         }
     }

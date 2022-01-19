@@ -99,14 +99,14 @@ impl Program<Winkel> for Drehen {
                         self.grabbed = true
                     }
                 }
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) if self.grabbed => {
                 self.canvas.leeren();
                 self.grabbed = false;
                 status = iced::canvas::event::Status::Captured;
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
                 if self.grabbed {
                     self.canvas.leeren();
@@ -128,8 +128,8 @@ impl Program<Winkel> for Drehen {
                 } else if cursor.is_over(&bounds) {
                     self.canvas.leeren()
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
         (status, winkel)
     }

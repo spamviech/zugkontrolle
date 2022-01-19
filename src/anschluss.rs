@@ -117,7 +117,7 @@ impl Display for Anschluss {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.beschreibung())?;
                 write!(f, "-{})", port.port())
-            }
+            },
         }
     }
 }
@@ -128,10 +128,10 @@ impl Anschluss {
         Ok(match self {
             Anschluss::Pin(pin) => {
                 OutputAnschluss::Pin { pin: pin.into_output(gesperrt_level), polarität }
-            }
+            },
             Anschluss::Pcf8574Port(port) => {
                 OutputAnschluss::Pcf8574Port { port: port.into_output(gesperrt_level)?, polarität }
-            }
+            },
         })
     }
 
@@ -156,12 +156,12 @@ impl Display for OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 write!(f, "Pin({}, {})", pin.pin(), polarität)
-            }
+            },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.adresse())?;
                 write!(f, "-{}, {})", port.port(), polarität)
-            }
+            },
         }
     }
 }
@@ -171,10 +171,10 @@ impl OutputAnschluss {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 pin.write(fließend.with_polarity(*polarität))
-            }
+            },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 port.write(fließend.with_polarity(*polarität))?
-            }
+            },
         })
     }
 
@@ -226,7 +226,7 @@ impl OutputSerialisiert {
         match (self, other) {
             (OutputSerialisiert::Pin { pin: p0, .. }, OutputSerialisiert::Pin { pin: p1, .. }) => {
                 p0 == p1
-            }
+            },
             (
                 OutputSerialisiert::Pcf8574Port {
                     beschreibung: beschreibung_a, port: port_a, ..
@@ -247,7 +247,7 @@ impl Serialisiere for OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
                 OutputSerialisiert::Pin { pin: pin.pin(), polarität: *polarität }
-            }
+            },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 let beschreibung = port.adresse();
                 let port = port.port();
@@ -256,7 +256,7 @@ impl Serialisiere for OutputAnschluss {
                     port: port.into(),
                     polarität: *polarität,
                 }
-            }
+            },
         }
     }
 
@@ -285,7 +285,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
                 OutputAnschluss::Pcf8574Port { port, .. } => {
                     OutputAnschluss::Pcf8574Port { port, polarität }
-                }
+                },
             }
         } else {
             macro_rules! unwrap_return {
@@ -299,17 +299,17 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                                 output_anschlüsse: output_nicht_benötigt,
                                 input_anschlüsse,
                             })
-                        }
+                        },
                     }
                 };
             }
             let (anschluss_res, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => {
                     (lager.reserviere_pin(pin), polarität)
-                }
+                },
                 OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
                     (lager.reserviere_pcf8574_port(beschreibung, port), polarität)
-                }
+                },
             };
             let anschluss = unwrap_return!(anschluss_res);
             unwrap_return!(anschluss.into_output(polarität))
@@ -339,7 +339,7 @@ impl Display for InputAnschluss {
                 write!(f, "Pcf8574Port(")?;
                 write_adresse(f, port.adresse())?;
                 write!(f, "-{})", port.port())
-            }
+            },
         }
     }
 }
@@ -411,7 +411,7 @@ impl Serialisiere for InputAnschluss {
                 let interrupt = port.interrupt_pin().unwrap_or(None);
                 let port = port.port();
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }
-            }
+            },
         }
     }
 
@@ -443,7 +443,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 match (anschluss, self_interrupt) {
                     (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
                         acc.0 = Some(pin)
-                    }
+                    },
                     (anschluss, _self_interrupt) => acc.1.push(anschluss),
                 }
                 acc
@@ -477,7 +477,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                             output_anschlüsse,
                             input_anschlüsse: input_nicht_benötigt,
                         })
-                    }
+                    },
                 }
             };
         }
@@ -487,13 +487,13 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             match self {
                 InputSerialisiert::Pin { pin } => {
                     InputAnschluss::Pin(unwrap_return!(lager.pin.reserviere_pin(pin)).into_input())
-                }
+                },
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     let port =
                         unwrap_return!(lager.pcf8574.reserviere_pcf8574_port(beschreibung, port));
                     let input_port = unwrap_return!(port.into_input());
                     unwrap_return!(interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)))
-                }
+                },
             }
         };
         Ok(Reserviert {

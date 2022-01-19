@@ -119,7 +119,7 @@ impl Pin {
                     .is_enabled()
                     .map_err(|fehler| Fehler::Pwm { pin: self.pin(), fehler })?;
                 Ok(if enabled { &self.config } else { &None })
-            }
+            },
             Pwm::Software(_pin) => Ok(&self.config),
         }
     }
@@ -142,14 +142,14 @@ impl Pin {
                             pwm_channel.set_pulse_width(Duration::ZERO).map_err(map_fehler)?;
                             pwm_channel.set_period(period).map_err(map_fehler)?;
                             pwm_channel.set_pulse_width(pulse_width).map_err(map_fehler)?;
-                        }
+                        },
                         Time::Frequency { frequency, duty_cycle } => {
                             pwm_channel.set_frequency(frequency, duty_cycle).map_err(map_fehler)?;
-                        }
+                        },
                     }
                 }
                 Ok(pwm_channel.enable().map_err(map_fehler)?)
-            }
+            },
             Pwm::Software(pwm_pin) => {
                 let map_fehler = |fehler| Fehler::Gpio { pin, fehler };
                 match config.time {
@@ -158,15 +158,15 @@ impl Pin {
                             pulse_width = period - pulse_width;
                         }
                         Ok(pwm_pin.set_pwm(period, pulse_width).map_err(map_fehler)?)
-                    }
+                    },
                     Time::Frequency { frequency, mut duty_cycle } => {
                         if config.polarity == Polarität::Invertiert {
                             duty_cycle = 1. - duty_cycle;
                         }
                         Ok(pwm_pin.set_pwm_frequency(frequency, duty_cycle).map_err(map_fehler)?)
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -176,10 +176,10 @@ impl Pin {
         Ok(match &mut self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable().map_err(|fehler| Fehler::Pwm { pin, fehler })?;
-            }
+            },
             Pwm::Software(pwm_pin) => {
                 pwm_pin.clear_pwm().map_err(|fehler| Fehler::Gpio { pin, fehler })?;
-            }
+            },
         })
     }
 }

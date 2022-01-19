@@ -134,7 +134,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     Ok(Reserviert { anschluss, .. }) => {
                         let _ = steuerung.insert(anschluss);
                         message = Some(Nachricht::SchließeModal)
-                    }
+                    },
                     Err(de_serialisieren::Fehler {
                         fehler,
                         pwm_pins,
@@ -152,18 +152,18 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                             ) {
                                 Ok(Reserviert { anschluss, .. }) => {
                                     let _ = steuerung.insert(anschluss);
-                                }
+                                },
                                 Err(error) => {
                                     fehlermeldung.push_str(&format!(
                                     "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
                                     error, save_clone
                                 ));
-                                }
+                                },
                             }
                         }
                         let _ = error_message
                             .insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
-                    }
+                    },
                 }
             } else {
                 let _ = steuerung.take();
@@ -244,13 +244,13 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
             AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
             AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
                 hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
-            }
+            },
             AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
                 hinzufügen_gehalten_bei_maus!(kurven_weiche)
-            }
+            },
             AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
                 hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
-            }
+            },
             AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
         }
     }
@@ -301,7 +301,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     format!("Streckenabschnitt {:?} anpassen", id_ref),
                     fehlermeldung,
                 )
-            }
+            },
             _fehler => {
                 // Streckenabschnitt hat nur einen Anschluss,
                 // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
@@ -326,7 +326,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                         match self.modal_status.overlay_mut() {
                             Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
                                 streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
-                            }
+                            },
                             modal => {
                                 error!(
                                     "Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}",
@@ -335,7 +335,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                                 self.modal_status.zeige_modal(AuswahlStatus::Streckenabschnitt(
                                     streckenabschnitt::AuswahlStatus::neu(&self.gleise),
                                 ))
-                            }
+                            },
                         }
                         if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
                             geschwindigkeit,
@@ -347,13 +347,13 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                                 format!("Streckenabschnitt {:?} angepasst: {:?}", id, ersetzt),
                             )
                         }
-                    }
+                    },
                     Err(fehler) => self.zeige_message_box(
                         format!("Hinzufügen Streckenabschnitt {:?}", id_ref),
                         format!("Fehler beim Hinzufügen: {:?}", fehler),
                     ),
                 }
-            }
+            },
         }
     }
 
@@ -374,7 +374,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         let name_clone = streckenabschnitt_id.name.clone();
         match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
             Ok(None) => error!("{}", nicht_gefunden_nachricht),
-            Ok(Some(_)) => {}
+            Ok(Some(_)) => {},
             Err(fehler) => self.zeige_message_box(
                 "Fehler bei Streckenabschnitt löschen!".to_string(),
                 format!("{:?}", fehler),
@@ -384,13 +384,13 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         match self.modal_status.overlay_mut() {
             Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
                 streckenabschnitt_auswahl.entfernen(&name_clone);
-            }
+            },
             modal => {
                 error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
                 self.modal_status.zeige_modal(AuswahlStatus::Streckenabschnitt(
                     streckenabschnitt::AuswahlStatus::neu(&self.gleise),
                 ))
-            }
+            },
         }
     }
 
@@ -500,13 +500,13 @@ impl<Leiter: LeiterAnzeige + Display> Zugkontrolle<Leiter> {
         match self.modal_status.overlay_mut() {
             Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                 geschwindigkeit_auswahl.entfernen(&name_clone);
-            }
+            },
             modal => {
                 error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
                 self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
                     geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
                 ))
-            }
+            },
         }
     }
 }
@@ -542,13 +542,13 @@ where
                 match modal_status.overlay_mut() {
                     Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                         geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
-                    }
+                    },
                     modal => {
                         error!("Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}", modal);
                         self.modal_status.zeige_modal(AuswahlStatus::Geschwindigkeit(
                             geschwindigkeit::AuswahlStatus::neu(self.gleise.geschwindigkeiten()),
                         ))
-                    }
+                    },
                 }
                 let _ = geschwindigkeiten.insert(
                     name.clone(),
@@ -569,7 +569,7 @@ where
                     geschwindigkeit,
                     streckenabschnitt_map,
                 );
-            }
+            },
             Err(de_serialisieren::Fehler {
                 fehler,
                 pwm_pins,
@@ -593,12 +593,12 @@ where
                                 geschwindigkeit,
                                 streckenabschnitt_map,
                             );
-                        }
+                        },
                         Err(de_serialisieren::Fehler { fehler, .. }) => {
                             match modal_status.overlay_mut() {
                                 Some(AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl)) => {
                                     geschwindigkeit_auswahl.entfernen(&name)
-                                }
+                                },
                                 modal => {
                                     error!(
                                         "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
@@ -609,18 +609,18 @@ where
                                             gleise.geschwindigkeiten(),
                                         ),
                                     ))
-                                }
+                                },
                             }
                             let _ = geschwindigkeiten.remove(&name);
                             fehlermeldung.push_str(&format!(
                                 "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
                                 fehler, serialisiert_clone
                             ));
-                        }
+                        },
                     }
                 }
                 self.zeige_message_box("Hinzufügen Geschwindigkeit".to_string(), fehlermeldung);
-            }
+            },
         }
     }
 }
@@ -720,7 +720,7 @@ where
                 ),
             ZustandZurücksetzen::GeschwindigkeitAnzeige(name, zustand_zurücksetzen) => {
                 command = self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
-            }
+            },
         }
         self.zeige_message_box(titel, nachricht);
         command
@@ -819,7 +819,7 @@ where
                                 error!("Invalider Zustand bei DreiwegeWeiche! Schalte auf Gerade.");
                                 *aktuelle_richtung = Richtung::Links;
                                 Richtung::Gerade
-                            }
+                            },
                         }
                     } else {
                         Richtung::Gerade
@@ -941,14 +941,14 @@ where
                     name: name_clone.clone(),
                     nachricht,
                 }))
-            }
+            },
             Err(error) => {
                 self.zeige_message_box(
                     format!("Fehler Geschwindigkeit {}", name.0),
                     format!("{:?}", error),
                 );
                 None
-            }
+            },
         }
     }
 
@@ -956,10 +956,10 @@ where
         match any_id {
             AnyId::Gerade(id) => {
                 debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-            }
+            },
             AnyId::Kurve(id) => {
                 debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-            }
+            },
             AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "Weiche",
                 id,
@@ -1019,14 +1019,14 @@ where
                 let command = Nachricht::EntferneSpeichernFarbe(speicher_zeit)
                     .als_sleep_command(Duration::from_secs(2));
                 Some(command)
-            }
+            },
             Err(err) => {
                 self.zeige_message_box(
                     format!("Fehler beim Speichern in {}", pfad),
                     format!("{:?}", err),
                 );
                 None
-            }
+            },
         }
     }
 }
@@ -1043,7 +1043,7 @@ impl<Leiter: LeiterAnzeige + BekannterLeiter> Zugkontrolle<Leiter> {
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;
-            }
+            },
             Err(fehler) => self.zeige_message_box(
                 format!("Fehler beim Laden von {}", pfad),
                 format!("{:?}", fehler),

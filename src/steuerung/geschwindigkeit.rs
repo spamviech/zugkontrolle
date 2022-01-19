@@ -105,7 +105,7 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
                 // Gebe stattdessen keine Anschlüsse zurück
                 (Vec::new(), Vec::new(), Vec::new())
-            }
+            },
         }
     }
 }
@@ -201,7 +201,7 @@ impl Display for Mittelleiter {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 write!(f, "Pwm({}, {})", pin.pin(), polarität)
-            }
+            },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 write!(f, "KonstanteSpannung(")?;
                 let mut first = true;
@@ -214,7 +214,7 @@ impl Display for Mittelleiter {
                     write!(f, "{}", anschluss)?;
                 }
                 write!(f, "-{})", umdrehen)
-            }
+            },
         }
     }
 }
@@ -226,7 +226,7 @@ impl Serialisiere for Mittelleiter {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Mittelleiter::Pwm { pin: pin.serialisiere(), polarität: *polarität }
-            }
+            },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
                 Mittelleiter::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
@@ -237,7 +237,7 @@ impl Serialisiere for Mittelleiter {
                     letzter_wert: *letzter_wert,
                     umdrehen: umdrehen.serialisiere(),
                 }
-            }
+            },
         }
     }
 
@@ -253,7 +253,7 @@ impl Serialisiere for Mittelleiter {
                     acc.2.extend(input.into_iter());
                     acc
                 })
-            }
+            },
         }
     }
 }
@@ -279,7 +279,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }
-            }
+            },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 let Reserviert {
                     anschluss: head,
@@ -313,11 +313,11 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                                     acc.2 = output_nicht_benötigt;
                                     acc.3 = input_nicht_benötigt;
                                     Ok(acc)
-                                }
+                                },
                                 Err(mut error) => {
                                     error.output_anschlüsse.extend(acc.0.into_iter());
                                     Err(error)
-                                }
+                                },
                             },
                             error => error,
                         },
@@ -343,7 +343,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }
-            }
+            },
         })
     }
 }
@@ -361,10 +361,10 @@ impl Leiter for Mittelleiter {
         match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
-            }
+            },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
-            }
+            },
         }
     }
 }
@@ -381,12 +381,12 @@ impl Geschwindigkeit<Mittelleiter> {
                 })?;
                 sleep(UMDREHENZEIT);
                 pin.disable()?
-            }
+            },
             Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
                 umdrehen.einstellen(Fließend::Fließend)?;
                 sleep(UMDREHENZEIT);
                 umdrehen.einstellen(Fließend::Gesperrt)?
-            }
+            },
         }
         Ok(())
     }
@@ -436,7 +436,7 @@ impl Display for Zweileiter {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 write!(f, "Pwm({}, {}-{})", geschwindigkeit.pin(), polarität, fahrtrichtung)
-            }
+            },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 write!(f, "KonstanteSpannung(")?;
                 let mut first = true;
@@ -449,7 +449,7 @@ impl Display for Zweileiter {
                     write!(f, "{}", anschluss)?;
                 }
                 write!(f, "-{})", fahrtrichtung)
-            }
+            },
         }
     }
 }
@@ -459,10 +459,10 @@ impl Leiter for Zweileiter {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
                 Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
-            }
+            },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
-            }
+            },
         }
     }
 }
@@ -551,7 +551,7 @@ impl Serialisiere for Zweileiter {
                     letzter_wert: *letzter_wert,
                     fahrtrichtung: fahrtrichtung.serialisiere(),
                 }
-            }
+            },
         }
     }
 
@@ -564,7 +564,7 @@ impl Serialisiere for Zweileiter {
                 output0.extend(output1.into_iter());
                 input0.extend(input1.into_iter());
                 (pwm0, output0, input0)
-            }
+            },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 let acc = fahrtrichtung.anschlüsse();
                 geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
@@ -574,7 +574,7 @@ impl Serialisiere for Zweileiter {
                     acc.2.extend(input.into_iter());
                     acc
                 })
-            }
+            },
         }
     }
 }
@@ -616,7 +616,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }
-            }
+            },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 let Reserviert {
                     anschluss: head,
@@ -650,11 +650,11 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                                     acc.2 = output_nicht_benötigt;
                                     acc.3 = input_nicht_benötigt;
                                     Ok(acc)
-                                }
+                                },
                                 Err(mut error) => {
                                     error.output_anschlüsse.extend(acc.0.into_iter());
                                     Err(error)
-                                }
+                                },
                             },
                             error => error,
                         },
@@ -680,7 +680,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }
-            }
+            },
         })
     }
 }

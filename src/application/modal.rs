@@ -136,7 +136,7 @@ where
                 ) => {
                     messages.push(esc_nachricht());
                     event::Status::Captured
-                }
+                },
                 _ => event::Status::Ignored,
             }
         }

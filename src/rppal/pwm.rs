@@ -65,7 +65,7 @@ impl Drop for Pwm {
         match pwm {
             Some(pwm) => {
                 error!("Dropped pwm channel {:?} was still available: {:?}\nDropped without restoring: {:?}", self.channel, pwm,self);
-            }
+            },
             None => {
                 *pwm = Some(Pwm {
                     channel: self.channel,
@@ -74,7 +74,7 @@ impl Drop for Pwm {
                     polarity: self.polarity,
                     enabled: false,
                 })
-            }
+            },
         }
     }
 }
