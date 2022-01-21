@@ -10,7 +10,7 @@ use std::{
     time::Instant,
 };
 
-use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger};
+use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use version::version;
 
 use self::{
@@ -299,19 +299,23 @@ impl App {
         let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
         let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
-        let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
-        let mut log_spec_builder = LogSpecBuilder::new();
-        let _ = log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
-        let log_spec = log_spec_builder.finalize();
-        let logger_base = Logger::with(log_spec);
-        let logger = if log_datei {
-            logger_base
-                .log_to_file(FileSpec::default().directory("log"))
-                .duplicate_to_stderr(Duplicate::All)
-        } else {
-            logger_base.log_to_stderr()
-        };
-        let logger_handle = logger.start()?;
+        fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
+            let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
+            let mut log_spec_builder = LogSpecBuilder::new();
+            let _ =
+                log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
+            let log_spec = log_spec_builder.finalize();
+            let logger_base = Logger::with(log_spec);
+            let logger = if log_datei {
+                logger_base
+                    .log_to_file(FileSpec::default().directory("log"))
+                    .duplicate_to_stderr(Duplicate::All)
+            } else {
+                logger_base.log_to_stderr()
+            };
+            logger.start()
+        }
+        let logger_handle = start_logger(verbose, log_datei)?;
 
         zugtyp.erstelle().ausführen(args, lager)?;
 
