@@ -9,9 +9,13 @@ import sys
 # https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
 # (make sure <toolchain-path>/bin is in PATH)
 
+# install windres and allow it to work
+# pacman -S mingw-w64-x86_64-binutils
+# pacman -S mingw-w64-x86_64-gcc
+
 binary_name = "zugkontrolle"
 target_path = "/home/pi/" + binary_name
-target_arch = "armv7-unknown-linux-musleabihf"
+target_arch = "armv7-unknown-linux-gnueabihf"
 source_path = "./target/" + target_arch + "/release/" + binary_name
 bin_path = "./bin/" + binary_name + "-" + target_arch
 build_command = ["cargo", "build", "--release", "--target=" + target_arch, "--no-default-features"]
