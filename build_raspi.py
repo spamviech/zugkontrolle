@@ -13,13 +13,16 @@ import sys
 # pacman -S mingw-w64-x86_64-binutils
 # pacman -S mingw-w64-x86_64-gcc
 
+# on linux 
+# sudo apt install arm-linux-gnueabihf-gcc
+
 binary_name = "zugkontrolle"
 target_path = "/home/pi/" + binary_name
 target_arch = "armv7-unknown-linux-gnueabihf"
 source_path = "./target/" + target_arch + "/release/" + binary_name
 bin_path = "./bin/" + binary_name + "-" + target_arch
 build_command = ["cargo", "build", "--release", "--target=" + target_arch, "--no-default-features"]
-strip_command = ["arm-none-linux-gnueabihf-strip", bin_path]
+strip_command = ["arm-linux-gnueabihf-strip", bin_path]
 
 def execute(command):
     print(" ".join(command))
