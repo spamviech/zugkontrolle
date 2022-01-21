@@ -8,12 +8,12 @@ fn main() {
                     any(target_arch = "arm", target_arch = "aarch64"),
                     target_vendor = "unknown",
                     target_os = "linux",
-                    target_env = "gnu"
+                    any(target_env = "gnu", target_env = "musl")
                 ) },
     }
 
     // Setup windows binary icon
-    #[cfg(windows)]
+    #[cfg(all(windows, feature = "win_binary_icon"))]
     {
         embed_resource::compile("resources.rc");
     }

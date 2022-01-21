@@ -8,6 +8,10 @@ publish = false
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["win_binary_icon"]
+# set the icon of the binary when compiling on windows for windows
+win_binary_icon = ["embed-resource"]
 
 [dependencies.zugkontrolle-derive]
 path = "zugkontrolle-derive"
@@ -62,17 +66,24 @@ default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 
 # can't be used on non-raspi systems
-[target.arm-unknown-linux-gnueabihf.dependencies]
 # raspi 0/1
+[target.arm-unknown-linux-gnueabihf.dependencies]
 rppal = "0.13.1"
 #rascam = "0.0.2"
-[target.armv7-unknown-linux-gnueabihf.dependencies]
+[target.arm-unknown-linux-musleabihf.dependencies]
+rppal = "0.13.1"
+#rascam = "0.0.2"
 # raspi 2/3/4
+[target.armv7-unknown-linux-gnueabihf.dependencies]
+rppal = "0.13.1"
+#rascam = "0.0.2"
+[target.armv7-unknown-linux-musleabihf.dependencies]
 rppal = "0.13.1"
 #rascam = "0.0.2"
 
 [build-dependencies]
 cfg_aliases = "0.1.1"
 
-[target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.6.5"
+[target.'cfg(windows)'.build-dependencies.embed-resource]
+version = "1.6.5"
+optional = true
