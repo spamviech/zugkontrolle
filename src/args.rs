@@ -8,9 +8,17 @@ use std::{
 
 use kommandozeilen_argumente::{Argumente, Beschreibung, Parse, ParseArgument};
 
-use crate::application::{
-    gleis::gleise::Modus,
-    typen::{skalar::Skalar, winkel::Winkel},
+use crate::{
+    anschluss::Lager,
+    application::{
+        fonts,
+        gleis::gleise::Modus,
+        icon::icon,
+        typen::{skalar::Skalar, winkel::Winkel},
+        Zugkontrolle,
+    },
+    steuerung::geschwindigkeit::{Mittelleiter, Zweileiter},
+    zugtyp::Zugtyp,
 };
 
 pub use kommandozeilen_argumente::EnumArgument;
@@ -20,8 +28,8 @@ pub use kommandozeilen_argumente::EnumArgument;
 #[kommandozeilen_argumente(sprache: deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
 pub struct Args {
     /// Verwendeter Zugtyp.
-    #[kommandozeilen_argumente(standard: Zugtyp::Märklin, kurz)]
-    pub zugtyp: Zugtyp,
+    #[kommandozeilen_argumente(standard: ZugtypArg::Märklin, kurz)]
+    pub zugtyp: ZugtypArg,
 
     /// Lade bei Programmstart die angegebene Datei.
     #[kommandozeilen_argumente(kurz)]
@@ -141,13 +149,54 @@ impl Args {
 }
 
 #[derive(Debug, Clone, Copy, EnumArgument)]
-pub enum Zugtyp {
+pub enum ZugtypArg {
     Märklin,
     Lego,
 }
 
-impl Display for Zugtyp {
+impl Display for ZugtypArg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(self, f)
+    }
+}
+
+pub trait ZugtypTrait {
+    fn ausführen(self: Box<Self>, args: Args, lager: Lager) -> iced::Result;
+}
+
+impl ZugtypTrait for Zugtyp<Mittelleiter> {
+    fn ausführen(self: Box<Self>, args: Args, lager: Lager) -> iced::Result {
+        <Zugkontrolle<Mittelleiter> as iced::Application>::run(erstelle_settings(args, lager, self))
+    }
+}
+
+impl ZugtypTrait for Zugtyp<Zweileiter> {
+    fn ausführen(self: Box<Self>, args: Args, lager: Lager) -> iced::Result {
+        <Zugkontrolle<Zweileiter> as iced::Application>::run(erstelle_settings(args, lager, self))
+    }
+}
+
+fn erstelle_settings<Leiter>(
+    args: Args,
+    lager: Lager,
+    zugtyp: Box<Zugtyp<Leiter>>,
+) -> iced::Settings<(Args, Lager, Zugtyp<Leiter>)> {
+    iced::Settings {
+        window: iced::window::Settings {
+            size: (1024, 768),
+            icon: icon(),
+            ..iced::window::Settings::default()
+        },
+        default_font: Some(&fonts::REGULAR),
+        ..iced::Settings::with_flags((args, lager, *zugtyp))
+    }
+}
+
+impl ZugtypArg {
+    pub(crate) fn erstelle(self) -> Box<dyn ZugtypTrait> {
+        match self {
+            ZugtypArg::Märklin => Box::new(Zugtyp::märklin()),
+            ZugtypArg::Lego => Box::new(Zugtyp::lego()),
+        }
     }
 }

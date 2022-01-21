@@ -22,18 +22,14 @@ use self::{
         gleise::{daten::de_serialisieren::BekannterLeiter, *},
         *,
     },
-    icon::icon,
     style::*,
     typen::*,
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
-    args::{self, Args},
+    args::Args,
     farbe::Farbe,
-    steuerung::{
-        self,
-        geschwindigkeit::{GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
-    },
+    steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
     zugtyp::Zugtyp,
 };
 
@@ -303,22 +299,6 @@ impl App {
         let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
         let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
-        fn erstelle_settings<Leiter>(
-            args: Args,
-            lager: crate::anschluss::Lager,
-            zugtyp: Zugtyp<Leiter>,
-        ) -> iced::Settings<(Args, crate::anschluss::Lager, Zugtyp<Leiter>)> {
-            iced::Settings {
-                window: iced::window::Settings {
-                    size: (1024, 768),
-                    icon: icon(),
-                    ..iced::window::Settings::default()
-                },
-                default_font: Some(&fonts::REGULAR),
-                ..iced::Settings::with_flags((args, lager, zugtyp))
-            }
-        }
-
         let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
         let mut log_spec_builder = LogSpecBuilder::new();
         let _ = log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
@@ -333,14 +313,7 @@ impl App {
         };
         let logger_handle = logger.start()?;
 
-        match zugtyp {
-            args::Zugtyp::Märklin => <Zugkontrolle<Mittelleiter> as iced::Application>::run(
-                erstelle_settings(args, lager, Zugtyp::märklin()),
-            )?,
-            args::Zugtyp::Lego => <Zugkontrolle<Zweileiter> as iced::Application>::run(
-                erstelle_settings(args, lager, Zugtyp::lego()),
-            )?,
-        }
+        zugtyp.erstelle().ausführen(args, lager)?;
 
         // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
         drop(logger_handle);
