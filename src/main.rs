@@ -33,12 +33,9 @@
     variant_size_differences
 )]
 
-use zugkontrolle::{
-    application::{App, Fehler},
-    args::Args,
-};
+use zugkontrolle::{application::Fehler, Args};
 
 fn main() -> Result<(), Fehler> {
     let args = Args::parse_aus_env();
-    App::run(args)
+    zugkontrolle::ausführen(args)
 }

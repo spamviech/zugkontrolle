@@ -11,6 +11,7 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
+use log::LevelFilter;
 use version::version;
 
 use self::{
@@ -284,9 +285,6 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-#[allow(missing_debug_implementations, missing_copy_implementations)]
-pub enum App {}
-
 #[derive(Debug, zugkontrolle_derive::From)]
 pub enum Fehler {
     Iced(iced::Error),
@@ -294,36 +292,33 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
-impl App {
-    pub fn run(args: Args) -> Result<(), Fehler> {
-        let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
-        let lager = crate::anschluss::Lager::neu(i2c_settings)?;
+pub fn ausführen(args: Args) -> Result<(), Fehler> {
+    let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
+    let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
-        fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
-            let log_level = if verbose { log::LevelFilter::Debug } else { log::LevelFilter::Warn };
-            let mut log_spec_builder = LogSpecBuilder::new();
-            let _ =
-                log_spec_builder.default(log::LevelFilter::Error).module("zugkontrolle", log_level);
-            let log_spec = log_spec_builder.finalize();
-            let logger_base = Logger::with(log_spec);
-            let logger = if log_datei {
-                logger_base
-                    .log_to_file(FileSpec::default().directory("log"))
-                    .duplicate_to_stderr(Duplicate::All)
-            } else {
-                logger_base.log_to_stderr()
-            };
-            logger.start()
-        }
-        let logger_handle = start_logger(verbose, log_datei)?;
-
-        zugtyp.erstelle().ausführen(args, lager)?;
-
-        // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
-        drop(logger_handle);
-
-        Ok(())
+    fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
+        let log_level = if verbose { LevelFilter::Debug } else { LevelFilter::Warn };
+        let mut log_spec_builder = LogSpecBuilder::new();
+        let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", log_level);
+        let log_spec = log_spec_builder.finalize();
+        let logger_base = Logger::with(log_spec);
+        let logger = if log_datei {
+            logger_base
+                .log_to_file(FileSpec::default().directory("log"))
+                .duplicate_to_stderr(Duplicate::All)
+        } else {
+            logger_base.log_to_stderr()
+        };
+        logger.start()
     }
+    let logger_handle = start_logger(verbose, log_datei)?;
+
+    zugtyp.erstelle().ausführen(args, lager)?;
+
+    // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
+    drop(logger_handle);
+
+    Ok(())
 }
 
 #[derive(Debug)]
