@@ -21,3 +21,6 @@ target/
 /deps.dot
 /deps.png
 build_all.sh
+build_raspi.sh
+/.cargo/
+
