@@ -28,31 +28,31 @@ pub use kommandozeilen_argumente::EnumArgument;
 #[kommandozeilen_argumente(sprache: deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
 pub struct Args {
     /// Verwendeter Zugtyp.
-    #[kommandozeilen_argumente(standard: ZugtypArg::Märklin, kurz)]
+    #[kommandozeilen_argumente(standard: ZugtypArg::Märklin, kurz, meta_var: ZUGTYP)]
     pub zugtyp: ZugtypArg,
 
     /// Lade bei Programmstart die angegebene Datei.
-    #[kommandozeilen_argumente(kurz)]
+    #[kommandozeilen_argumente(kurz, meta_var: DATEI)]
     pub pfad: Option<String>,
 
     /// Modus bei Programmstart.
-    #[kommandozeilen_argumente(standard: Modus::Bauen, kurz)]
+    #[kommandozeilen_argumente(standard: Modus::Bauen, kurz, meta_var: MODUS)]
     pub modus: Modus,
 
     /// Zoom bei Programmstart.
-    #[kommandozeilen_argumente(standard: Skalar(1.))]
+    #[kommandozeilen_argumente(standard: Skalar(1.), meta_var: ZOOM)]
     pub zoom: Skalar,
 
     /// X-Position bei Programmstart.
-    #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
+    #[kommandozeilen_argumente(standard: Skalar(0.), kurz, meta_var: X)]
     pub x: Skalar,
 
     /// Y-Position bei Programmstart.
-    #[kommandozeilen_argumente(standard: Skalar(0.), kurz)]
+    #[kommandozeilen_argumente(standard: Skalar(0.), kurz, meta_var: Y)]
     pub y: Skalar,
 
     /// Winkel bei Programmstart.
-    #[kommandozeilen_argumente(standard: Winkel(0.))]
+    #[kommandozeilen_argumente(standard: Winkel(0.), meta_var: WINKEL)]
     pub winkel: Winkel,
 
     /// I2CSettings für die Programmdauer.
