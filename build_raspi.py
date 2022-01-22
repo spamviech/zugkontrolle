@@ -4,6 +4,9 @@ import subprocess
 import shutil
 import sys
 
+# add rust target
+# rustup target add armv7-unknown-linux-gnueabihf
+
 # WINDOWS
 # download arm cross compiler toolchain
 # AArch32 target with hard float (arm-none-linux-gnueabihf)
