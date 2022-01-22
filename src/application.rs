@@ -370,7 +370,11 @@ where
             aktueller_pfad = pfad.clone();
         } else {
             command = iced::Command::none();
-            aktueller_pfad = zugtyp.name.clone();
+            aktueller_pfad = {
+                let mut pfad = zugtyp.name.clone();
+                pfad.push_str(".zug");
+                pfad
+            };
         };
 
         macro_rules! erstelle_button {
