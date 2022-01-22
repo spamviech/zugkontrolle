@@ -152,7 +152,7 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
     (De)aktiviere den I2C channel auf pins 22 und 23 (bus 6)
 - --verbose
     Zeige zusätzliche (Debug) Informationen in der Kommandozeile an.
-- -l | --erstelle_log_datei
+- -l | --log_datei
     Speichere Log-Informationen zusätzlich in einer Datei.
 
 ### Starten durch ziehen einer Datei auf die binary
@@ -161,7 +161,7 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
 
 - Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
 - Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
-    Stattdessen muss eine .desktop-Datei erstellt werden, die dass Verhalten unterstützt.
+    Stattdessen muss eine .desktop-Datei erstellt werden, die das Verhalten unterstützt.
 
     Eine .desktop-Datei kann folgendermaßen aussehen:
 
@@ -170,7 +170,7 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
     Type=Application
     Terminal=false
     Name[en_EN]=Zugkontrolle
-    Exec=sh -c "/home/pi/Desktop/Zugkontrolle-bin/Zugkontrolle %f"
+    Exec=sh -c "/home/pi/zugkontrolle/zugkontrolle %f"
     ```
 
   Die Anleitung stammt aus folgenden Quellen:
