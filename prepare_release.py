@@ -96,4 +96,4 @@ build(name, target=arm_target, strip_path=arm_strip_path)
 
 #build for host platform
 print()
-build(name, release=False, strip_path="strip", binary_extension=host_extension)
+build(name, strip_path="strip", binary_extension=host_extension)
