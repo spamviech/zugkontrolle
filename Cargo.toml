@@ -8,11 +8,6 @@ publish = false
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[features]
-default = ["win_binary_icon"]
-# set the icon of the binary when compiling on windows for windows
-win_binary_icon = ["embed-resource"]
-
 [dependencies.zugkontrolle-derive]
 path = "zugkontrolle-derive"
 version = "3.0.0"
@@ -84,6 +79,5 @@ rppal = "0.13.1"
 [build-dependencies]
 cfg_aliases = "0.1.1"
 
-[target.'cfg(windows)'.build-dependencies.embed-resource]
-version = "1.6.5"
-optional = true
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.6.5"
