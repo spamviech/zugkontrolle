@@ -52,12 +52,12 @@ source_path = "./target/" + target_arch + "/release/" + binary_name
 bin_path = "./bin/" + binary_name + "-" + target_arch
 build_command = ["cargo", "build", "--release", "--target=" + target_arch, "--no-default-features"]
 if sys.platform.startswith('linux'):
-    strip_path = "arm-linux-" + gnu_or_musl + "eabihf-strip"
+    strip_path = "arm-linux-gnueabihf-strip"
 elif sys.platform.startswith('win32'):
-    strip_path = "arm-none-linux-" + gnu_or_musl + "eabihf-strip"
+    strip_path = "arm-none-linux-gnueabihf-strip"
 else:
     raise HostOsNotSupported(sys.platform)
-strip_command = [strip_path, bin_path]
+strip_command = [strip_path, "--strip-all", bin_path]
 
 def execute(command):
     print(" ".join(command))
