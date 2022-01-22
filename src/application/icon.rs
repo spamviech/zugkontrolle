@@ -5,7 +5,7 @@ use std::include_bytes;
 use iced::window::Icon;
 use log::error;
 
-static DATA: &[u8] = include_bytes!("../../Icon/Zugkontrolle.data");
+static DATA: &[u8] = include_bytes!("../../icon/zugkontrolle.data");
 static WIDTH: u32 = 32;
 static HEIGHT: u32 = 32;
 
