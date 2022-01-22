@@ -23,7 +23,7 @@ linker = "arm-none-linux-gnueabihf-gcc"
 linker = "arm-none-linux-gnueabihf-gcc"
 """
 
-# install windres and allow it to work
+# install windres (+ strip) and allow it to work
 # pacman -S mingw-w64-x86_64-binutils
 # pacman -S mingw-w64-x86_64-gcc
 
@@ -38,34 +38,62 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "arm-linux-gnueabihf-gcc"
 """
 
+name = "zugkontrolle"
+# TODO automatically transfer to raspi, e.g. using scp
+# target_path = "/home/pi/" + binary_name
+# musl fails, since some dependency (probably iced-backend) requires dynamic library loading
+gnu_or_musl = "gnu"
+
 class HostOsNotSupported(Exception):
     def __init__(self, name):
         super().__init__(name)
         self.name = name
 
-binary_name = "zugkontrolle"
-target_path = "/home/pi/" + binary_name
-# musl fails, since some dependency (probably iced-backend) requires dynamic library loading
-gnu_or_musl = "gnu"
-target_arch = "armv7-unknown-linux-" + gnu_or_musl + "eabihf"
-source_path = "./target/" + target_arch + "/release/" + binary_name
-bin_path = "./bin/" + binary_name + "-" + target_arch
-build_command = ["cargo", "build", "--release", "--target=" + target_arch, "--no-default-features"]
-if sys.platform.startswith('linux'):
-    strip_path = "arm-linux-gnueabihf-strip"
-elif sys.platform.startswith('win32'):
-    strip_path = "arm-none-linux-gnueabihf-strip"
-else:
-    raise HostOsNotSupported(sys.platform)
-strip_command = [strip_path, "--strip-all", bin_path]
-
 def execute(command):
     print(" ".join(command))
     subprocess.run(command, check=True)
+    
+def move(src, dst):
+    print("shutil.copy2(" + src + ", " + dst + ")")
+    shutil.copy2(src, dst)
 
-execute(build_command)
+def build(program_name, release=True, target=None, strip_path=None, binary_extension=""):
+    binary_name = name + binary_extension
+    build_command = ["cargo", "build"]
+    bin_path = "./bin/" + binary_name
+    if release:
+        build_command.append("--release")
+        profile = "release"
+    else:
+        profile = "debug"
+    if target is None:
+        target_dir = ""
+    else:
+        build_command.append("--target=" + target)
+        target_dir = target + "/"
+        bin_path +=  "-" + target
+    source_path = "./target/" + target_dir + profile + "/" + binary_name
+    execute(build_command)
+    print()
+    move(source_path, bin_path)
+    if strip_path is not None:
+        strip_command = [strip_path, "--strip-all", bin_path]
+        print()
+        execute(strip_command)
+
+if sys.platform.startswith('linux'):
+    arm_strip_path = "arm-linux-gnueabihf-strip"
+    host_extension = ""
+elif sys.platform.startswith('win32'):
+    arm_strip_path = "arm-none-linux-gnueabihf-strip"
+    host_extension = ".exe"
+else:
+    raise HostOsNotSupported(sys.platform)
+
+# build for raspi in release mode
+arm_target = "armv7-unknown-linux-" + gnu_or_musl + "eabihf"
+build(name, target=arm_target, strip_path=arm_strip_path)
+
+#build for host platform
 print()
-print("shutil.copy2(" + source_path + ", " + bin_path + ")")
-shutil.copy2(source_path, bin_path)
-print()
-execute(strip_command)
+build(name, release=False, strip_path="strip", binary_extension=host_extension)
