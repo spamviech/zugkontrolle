@@ -120,39 +120,41 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
 
 ### Unterstütze Kommandozeilen-Parameter
 
-- -h | --hilfe
-    Zeige den Hilfstext an. Dieser wird automatisch erzeugt, wodurch Teile davon auf englisch sind.
-- -v | --version
+- `-h` | `--hilfe` | `--help`
+    Zeige den Hilfstext an.
+- `-v` | `--version`
     Zeige die aktuelle Version an.
-- -z ZUGTYP | --zugtyp ZUGTYP
+- `-z ZUGTYP` | `--zugtyp ZUGTYP`
     Starte mit dem übergebenen Zugtyp. Vorhandene Gleise und Geschwindigkeiten unterscheiden sich.
     Aktuell sind `Märklin` und `Lego` unterstützt.
-- -p DATEI | --pfad DATEI
+- `-p DATEI` | `--pfad DATEI`
     Versuche den in DATEI gespeicherten Zustand zu laden.
     Wenn die Datei nicht existiert/das falsche Format hat wird mit Fehlermeldung
     und einem leeren Zustand gestartet.
-- -m MODUS | --modus MODUS
+- `-m MODUS` | `--modus MODUS`
     Bestimme den Modus bei Programmstart.
     Aktuell sind `Bauen` und `Fahren` unterstützt.
-- -z ZOOM | --zoom ZOOM
+- `-z ZOOM` | `--zoom ZOOM`
     Bestimme den Zoom bei Programmstart.
-- -p (X, Y) | --position (X, Y)
-    Bestimme die x- und y-Koordinaten der linken oberen Ecke.
-- -w WINKEL | --winkel WINKEL
+- `-x X` | `--x X`
+    Bestimme die x-Koordinate der linken oberen Ecke.
+- -`y Y` | `--y Y`
+    Bestimme die y-Koordinate der linken oberen Ecke.
+- `-w WINKEL` | `--winkel WINKEL`
     Bestimme den Dreh-Winkel bei Programmstart.
 - `--[kein-]i2c0_1`
     (De)aktiviere den I2C channel auf pins 2 und 3 (bus 0 oder 1)
 - `--[kein-]i2c3`
     (De)aktiviere den I2C channel auf pins 4 und 5 (bus 3)
-- `--[kein-] i2c4`
+- `--[kein-]i2c4`
     (De)aktiviere den I2C channel auf pins 8 und 9 (bus 4)
-- `--[kein-] i2c5`
+- `--[kein-]i2c5`
     (De)aktiviere den I2C channel auf pins 12 und 13 (bus 5)
-- `--[kein-] i2c6`
+- `--[kein-]i2c6`
     (De)aktiviere den I2C channel auf pins 22 und 23 (bus 6)
-- --verbose
+- `--verbose`
     Zeige zusätzliche (Debug) Informationen in der Kommandozeile an.
-- -l | --log_datei
+- `-l` | `--log_datei`
     Speichere Log-Informationen zusätzlich in einer Datei.
 
 ### Starten durch ziehen einer Datei auf die binary
