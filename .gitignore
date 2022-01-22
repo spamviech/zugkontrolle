@@ -4,6 +4,7 @@
 dist-newstyle/
 dist/
 target/
+__pycache__/
 *~
 *.o
 

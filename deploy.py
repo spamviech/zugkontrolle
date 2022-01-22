@@ -1,6 +1,8 @@
 #!/bin/python3
 
-from build.action import build
+import subprocess
+import sys
+from build.action import build, send_to_raspi
 import build.config as config
 
 # add rust target
@@ -37,8 +39,6 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "arm-linux-gnueabihf-gcc"
 """
 
-# build for raspi in release mode
 bin_path = build(config.name, target=config.arm_target, strip_path=config.arm_strip_path)
-
-# build for host platform
-build(config.name, strip_path=config.host_strip_path, binary_extension=config.host_extension)
+# automatically transfer to raspi using scp
+send_to_raspi(config.name, bin_path, config.raspberry_user, config.raspberry_address)
