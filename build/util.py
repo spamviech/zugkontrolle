@@ -2,6 +2,7 @@
 
 import subprocess
 import shutil
+import sys
 
 first_command = True
 def print_newline_after_first_call():
