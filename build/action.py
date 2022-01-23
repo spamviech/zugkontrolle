@@ -34,5 +34,5 @@ def send_to_raspi(program_name, bin_path, raspberry_user, raspberry_address, bin
     scp_dst = rasperry_user_address + ":" + target_path
     scp_command = ["scp", bin_path, scp_dst]
     execute(scp_command)
-    ssh_command = ["ssh", rasperry_user_address, "\"chmod +x " + scp_dst + "\""]
+    ssh_command = ["ssh", rasperry_user_address, "chmod", "+x", target_path]
     execute(ssh_command)
