@@ -1,16 +1,16 @@
 //! Steuerung einer Modelleisenbahn.
 
 pub mod streckenabschnitt;
-pub use streckenabschnitt::Streckenabschnitt;
+pub use streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert};
 
 pub mod weiche;
 pub use weiche::{Weiche, WeicheSerialisiert};
 
 pub mod geschwindigkeit;
-pub use geschwindigkeit::Geschwindigkeit;
+pub use geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert};
 
 pub mod kontakt;
-pub use kontakt::Kontakt;
+pub use kontakt::{Kontakt, KontaktSerialisiert};
 
 pub mod plan;
 pub use plan::Plan;
