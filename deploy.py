@@ -8,6 +8,13 @@ import build.config as config
 # add rust target
 # rustup target add armv7-unknown-linux-gnueabihf
 
+# register ssh key on raspberry pi
+# https://arshovon.com/blog/logging-to-raspberry-pi-without-password/
+# (need to be called from an msys2-shell)
+# ssh-copy-id USER@RASPBERRY_IP_ADDRESS
+# (create key if none present)
+# ssh-keygen -t ed25519
+
 # WINDOWS
 # download arm cross compiler toolchain
 # AArch32 target with hard float (arm-none-linux-gnueabihf)
