@@ -95,12 +95,12 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod richtung;
 #[proc_macro_attribute]
 /// Erzeuge ein Richtung-Enum mit identischen Varianten bis auf /Anfang/,
-/// sowie eine zugehörige [zugkontrolle::lookup::Lookup]-Struktur.
-pub fn create_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
+/// sowie eine zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Struktur.
+pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse(item).expect("Failed to parse input!");
 
-    richtung::create_richtung(args, ast).into()
+    richtung::erstelle_richtung(args, ast).into()
 }
 
 mod alias;

@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
-pub(crate) fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
+pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
     let syn::ItemEnum { vis, variants, .. } = &item;

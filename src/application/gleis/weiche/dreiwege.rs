@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
+use zugkontrolle_derive::{alias_serialisiert_unit, erstelle_richtung};
 
 use crate::{
     application::gleis::{gerade, kurve, verbindung::Verbindung},
@@ -52,7 +52,7 @@ impl DreiwegeWeicheUnit {
     }
 }
 
-#[create_richtung]
+#[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
