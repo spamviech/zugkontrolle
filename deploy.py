@@ -11,6 +11,7 @@ import build.config as config
 # register ssh key on raspberry pi
 # https://arshovon.com/blog/logging-to-raspberry-pi-without-password/
 # (need to be called from an msys2-shell)
+# pacman -S openssh
 # ssh-copy-id USER@RASPBERRY_IP_ADDRESS
 # (create key if none present)
 # ssh-keygen -t ed25519
