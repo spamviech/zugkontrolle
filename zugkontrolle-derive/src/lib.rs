@@ -62,14 +62,14 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
     clone::impl_clone(&ast).into()
 }
 
-mod lookup;
+mod nachschlagen;
 #[proc_macro_attribute]
-/// Erzeuge eine Struktur und zugehörige [zugkontrolle::lookup::Lookup]-Implementierung für das Enum.
-pub fn impl_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
+/// Erzeuge eine Struktur und zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Implementierung für das Enum.
+pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse(item).expect("Failed to parse input!");
 
-    lookup::impl_lookup(args, ast).into()
+    nachschlagen::impl_nachschlagen(args, ast).into()
 }
 
 mod modus;

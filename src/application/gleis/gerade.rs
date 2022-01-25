@@ -7,7 +7,7 @@ use zugkontrolle_derive::alias_serialisiert_unit;
 
 use crate::{
     application::{typen::*, verbindung::Verbindung},
-    lookup::impl_lookup,
+    nachschlagen::impl_nachschlagen,
     steuerung::kontakt::{Kontakt, KontaktSerialisiert},
 };
 
@@ -34,7 +34,7 @@ impl GeradeUnit {
     }
 }
 
-#[impl_lookup(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,

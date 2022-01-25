@@ -11,7 +11,7 @@ use iced_native::{
 use crate::{
     anschluss::OutputSerialisiert,
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    lookup::Lookup,
+    nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
@@ -85,7 +85,7 @@ where
 impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: 'static + Clone + Display,
-    AnschlüsseSerialisiert: Lookup<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't
         + Renderer
         + container::Renderer
@@ -100,7 +100,9 @@ where
         + number_input::Renderer,
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
-    pub fn neu<AnschlüsseAuswahlStatus: Lookup<Richtung, anschluss::Status<anschluss::Output>>>(
+    pub fn neu<
+        AnschlüsseAuswahlStatus: Nachschlagen<Richtung, anschluss::Status<anschluss::Output>>,
+    >(
         status: &'t mut Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>,
     ) -> Self {
         let Status {
@@ -116,7 +118,7 @@ where
             TextInput::new(name_state, "<Name>", name, InterneNachricht::Name)
                 .width(Length::Units(200)),
         );
-        for (richtung, anschluss_status) in anschlüsse_state.refs_mut().into_iter() {
+        for (richtung, anschluss_status) in anschlüsse_state.referenzen_mut().into_iter() {
             column = column.push(Row::new().push(Text::new(format!("{}", richtung))).push(
                 Element::from(anschluss::Auswahl::neu_output(anschluss_status)).map(
                     move |anschluss_save| {
@@ -157,7 +159,7 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, Anschl
     for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: Clone + Default,
-    AnschlüsseSerialisiert: Clone + Lookup<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {
@@ -190,7 +192,7 @@ where
             match message {
                 InterneNachricht::Name(name) => *self.name = name,
                 InterneNachricht::Anschluss(richtung, anschluss) => {
-                    *self.anschlüsse.get_mut(&richtung) = anschluss
+                    *self.anschlüsse.erhalte_mut(&richtung) = anschluss
                 },
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert {
@@ -212,7 +214,7 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, Anschl
     for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
 where
     Richtung: 't + Clone + Default,
-    AnschlüsseSerialisiert: Clone + Lookup<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {

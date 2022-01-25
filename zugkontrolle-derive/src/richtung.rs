@@ -44,9 +44,9 @@ pub(crate) fn create_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -
 
         enum_definition = Some(quote! {
             type OutputAuswahl = #base_ident::application::anschluss::Status<#base_ident::application::anschluss::Output>;
-            #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
-            #[zugkontrolle_derive::impl_lookup(#base_ident::anschluss::OutputSerialisiert, AnschlüsseSerialisiert, Debug, Clone, Serialize, Deserialize)]
-            #[zugkontrolle_derive::impl_lookup(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
+            #[zugkontrolle_derive::impl_nachschlagen(#base_ident::anschluss::OutputAnschluss, Anschlüsse, Debug)]
+            #[zugkontrolle_derive::impl_nachschlagen(#base_ident::anschluss::OutputSerialisiert, AnschlüsseSerialisiert, Debug, Clone, Serialize, Deserialize)]
+            #[zugkontrolle_derive::impl_nachschlagen(OutputAuswahl, AnschlüsseAuswahlStatus, Debug)]
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
                 #(#enum_variants),*

@@ -12,12 +12,14 @@ use log::debug;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    self,
-    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-    pwm, Fehler, Fließend, InputAnschluss, OutputAnschluss,
+use crate::{
+    anschluss::{
+        self,
+        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        pwm, Fehler, Fließend, InputAnschluss, OutputAnschluss,
+    },
+    nachschlagen::Nachschlagen,
 };
-use crate::lookup::Lookup;
 
 /// Name einer Weiche.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -59,7 +61,7 @@ pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
 where
     Richtung: Clone,
-    Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send,
+    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send,
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Fehler> {
@@ -73,7 +75,7 @@ where
         mutex: &mut Arc<Mutex<Anschlüsse>>, richtung: &Richtung
     ) -> Result<(), Fehler> {
         let mut anschlüsse = mutex.lock();
-        let anschluss = anschlüsse.get_mut(richtung);
+        let anschluss = anschlüsse.erhalte_mut(richtung);
         anschluss.einstellen(Fließend::Fließend)?;
         sleep(SCHALTZEIT);
         anschluss.einstellen(Fließend::Gesperrt)?;
@@ -84,7 +86,7 @@ where
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
 where
     Richtung: Clone + Send + 'static,
-    Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
+    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn async_schalten<Nachricht: Send + 'static>(

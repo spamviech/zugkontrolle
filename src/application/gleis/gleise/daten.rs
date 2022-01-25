@@ -37,7 +37,7 @@ use crate::{
         typen::*,
         verbindung,
     },
-    lookup::Lookup,
+    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit},
         plan::Plan,
@@ -289,7 +289,7 @@ impl<Leiter> Zustand<Leiter> {
         let spurweite = self.zugtyp.spurweite;
         let mut snap = None;
         let verbindungen = definition.verbindungen_an_position(spurweite, position.clone());
-        verbindungen.for_each(|verbindung_name, verbindung| {
+        verbindungen.für_alle(|verbindung_name, verbindung| {
             if snap.is_none() {
                 let (mut überlappende, _gehalten) =
                     self.überlappende_verbindungen(verbindung, None, None);
@@ -338,7 +338,7 @@ impl<Leiter> Zustand<Leiter> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let spurweite = self.zugtyp.spurweite;
         // berechne neue position
@@ -402,7 +402,7 @@ impl<Leiter> Zustand<Leiter> {
     ) -> Result<(), GleisIdFehler>
     where
         T: Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let spurweite = self.zugtyp.spurweite;
         self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
@@ -437,10 +437,10 @@ impl Position {
     ) -> Position
     where
         T: Zeichnen,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let verbindungen = definition.verbindungen(spurweite);
-        let verbindung = verbindungen.get(verbindung_name);
+        let verbindung = verbindungen.erhalte(verbindung_name);
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
         Position {
             punkt: Vektor {
@@ -522,7 +522,7 @@ impl GleiseDaten {
                     .data
                     .definition
                     .verbindungen_an_position(spurweite, kandidat.data.position.clone());
-                for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.refs() {
+                for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.referenzen() {
                     if (verbindung.position - kandidat_verbindung.position).länge()
                         < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
                     {

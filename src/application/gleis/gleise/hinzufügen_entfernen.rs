@@ -33,7 +33,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let gleis_id =
             self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
@@ -55,7 +55,7 @@ impl<Leiter> Gleise<Leiter> {
     where
         GleisId<T>: Into<AnyId>,
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let mut canvas_position = self.last_mouse;
         let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
@@ -101,7 +101,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let gleis_id = self.zustand.hinzufügen_anliegend(
             definition,
@@ -125,7 +125,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
         // Erzwinge Neuzeichnen
@@ -144,7 +144,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
         // Erzwinge Neuzeichnen
@@ -158,7 +158,7 @@ impl<Leiter> Gleise<Leiter> {
     pub(crate) fn entfernen<T>(&mut self, gleis_id: GleisId<T>) -> Result<Gleis<T>, GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let data = self.zustand.entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
@@ -175,7 +175,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let _ = self.entfernen(gleis_id)?;
         Ok(())
@@ -241,7 +241,7 @@ impl<Leiter> Gleise<Leiter> {
     ) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Lookup<T::VerbindungName>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         let bisherige_daten = self.zustand.daten_mut(streckenabschnitt)?;
@@ -250,7 +250,7 @@ impl<Leiter> Gleise<Leiter> {
             .rstern_mut::<T>()
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisIdFehler::GleisEntfernt)?;
-        // Füge eintrag bei neuem Streckenabschnitt hinzu.
+        // Füge Eintrag bei neuem Streckenabschnitt hinzu.
         match self.zustand.daten_mut(&streckenabschnitt_neu) {
             Ok(neue_daten) => {
                 neue_daten.rstern_mut().insert(geom_with_data);

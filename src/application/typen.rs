@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     application::gleis::verbindung::{self, Verbindung},
-    lookup::Lookup,
+    nachschlagen::Nachschlagen,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
         weiche::Weiche,
@@ -128,8 +128,8 @@ pub trait Zeichnen {
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
     /// Speicher-Typ für `Verbindung`.
-    /// Muss `verbindung::Lookup<Self::VerbindungName>` implementieren.
-    type Verbindungen: verbindung::Lookup<Self::VerbindungName>;
+    /// Muss `verbindung::Nachschlagen<Self::VerbindungName>` implementieren.
+    type Verbindungen: verbindung::Nachschlagen<Self::VerbindungName>;
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
@@ -142,7 +142,7 @@ pub trait Zeichnen {
         spurweite: Spurweite,
         position: Position,
     ) -> Self::Verbindungen {
-        self.verbindungen(spurweite).map(
+        self.verbindungen(spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| Verbindung {
                 position: position.transformation(verbindung_position),
                 richtung: position.winkel + richtung,

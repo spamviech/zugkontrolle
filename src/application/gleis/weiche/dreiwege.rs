@@ -8,7 +8,7 @@ use zugkontrolle_derive::{alias_serialisiert_unit, create_richtung};
 use crate::{
     application::gleis::{gerade, kurve, verbindung::Verbindung},
     steuerung,
-    {application::typen::*, lookup::impl_lookup},
+    {application::typen::*, nachschlagen::impl_nachschlagen},
 };
 
 /// Definition einer Dreiwege-Weiche
@@ -53,7 +53,7 @@ impl DreiwegeWeicheUnit {
 }
 
 #[create_richtung]
-#[impl_lookup(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,

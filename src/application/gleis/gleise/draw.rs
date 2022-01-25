@@ -25,7 +25,7 @@ use crate::{
         verbindung::Verbindung,
     },
     farbe::Farbe,
-    lookup::Lookup,
+    nachschlagen::Nachschlagen,
     steuerung::streckenabschnitt::Streckenabschnitt,
 };
 
@@ -109,7 +109,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
-            definition.verbindungen(spurweite).for_each(|_name, &verbindung| {
+            definition.verbindungen(spurweite).für_alle(|_name, &verbindung| {
                 let verbindung_an_position = Verbindung {
                     position: position.transformation(verbindung.position),
                     richtung: position.winkel + verbindung.richtung,

@@ -1,6 +1,6 @@
 //! Verbindung zwischen zwei Gleisen
 
-use crate::{application::typen::*, lookup};
+use crate::{application::typen::*, nachschlagen};
 
 /// Ein `Verbindung` repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -12,6 +12,6 @@ pub struct Verbindung {
     pub richtung: Winkel,
 }
 
-/// Spezialisierung des Lookup-Traits auf `Verbindung` als Element.
-pub trait Lookup<Name>: lookup::Lookup<Name, Verbindung> {}
-impl<Name, T: lookup::Lookup<Name, Verbindung>> Lookup<Name> for T {}
+/// Spezialisierung des Nachschlagen-Traits auf `Verbindung` als Element.
+pub trait Nachschlagen<Name>: nachschlagen::Nachschlagen<Name, Verbindung> {}
+impl<Name, T: nachschlagen::Nachschlagen<Name, Verbindung>> Nachschlagen<Name> for T {}

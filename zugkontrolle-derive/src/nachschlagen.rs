@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
-pub(crate) fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
+pub(crate) fn impl_nachschlagen(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
     let syn::ItemEnum { vis, variants, ident, .. } = &item;
@@ -53,30 +53,30 @@ pub(crate) fn impl_lookup(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> To
             }
         });
         impl_lookup = Some(quote! {
-            impl #base_ident::lookup::Lookup<#ident, #element> for #struct_name {
-                fn get(&self, key: &#ident) -> &#element {
+            impl #base_ident::nachschlagen::Nachschlagen<#ident, #element> for #struct_name {
+                fn erhalte(&self, key: &#ident) -> &#element {
                     match key {
                         #(#ident::#enum_variants => &self.#struct_fields),*
                     }
                 }
-                fn get_mut(&mut self, key: &#ident) -> &mut #element {
+                fn erhalte_mut(&mut self, key: &#ident) -> &mut #element {
                     match key {
                         #(#ident::#enum_variants => &mut self.#struct_fields),*
                     }
                 }
-                fn for_each<F: FnMut(#ident, &#element)>(&self, mut action: F) {
+                fn für_alle<F: FnMut(#ident, &#element)>(&self, mut action: F) {
                     #(action(#ident::#enum_variants, &self.#struct_fields));*
                 }
-                fn map<F: Fn(&#element)->#element>(&self, mut action: F) -> Self {
+                fn zuordnen<F: Fn(&#element)->#element>(&self, mut action: F) -> Self {
                     #struct_name {
                         #(#struct_fields: action(&self.#struct_fields)),*
                     }
                 }
-                fn refs<'t>(&'t self) -> Vec<(#ident, &'t #element)> {
+                fn referenzen<'t>(&'t self) -> Vec<(#ident, &'t #element)> {
                     let #struct_name { #(#struct_fields),* } = self;
                     vec![ #((#ident::#enum_variants, #struct_fields)),* ]
                 }
-                fn refs_mut<'t>(&'t mut self) -> Vec<(#ident, &'t mut #element)> {
+                fn referenzen_mut<'t>(&'t mut self) -> Vec<(#ident, &'t mut #element)> {
                     let #struct_name { #(#struct_fields),* } = self;
                     vec![ #((#ident::#enum_variants, #struct_fields)),* ]
                 }

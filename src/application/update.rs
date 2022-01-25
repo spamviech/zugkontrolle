@@ -31,7 +31,7 @@ use crate::{
         Zugkontrolle, ZustandZurücksetzen,
     },
     farbe::Farbe,
-    lookup::Lookup,
+    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
@@ -749,7 +749,7 @@ where
     ) where
         T: 'static,
         Richtung: Clone + Send + 'static,
-        Anschlüsse: Lookup<Richtung, OutputAnschluss> + Send + 'static,
+        Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
         NR: FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung + Send + 'static,
         ZZ: FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter> + Send + 'static,
     {

@@ -10,7 +10,7 @@ use crate::{
         gleis::{gerade, kurve, verbindung::Verbindung},
         typen::*,
     },
-    lookup::impl_lookup,
+    nachschlagen::impl_nachschlagen,
     steuerung,
 };
 
@@ -71,7 +71,7 @@ pub enum Orientierung {
 }
 
 #[create_richtung]
-#[impl_lookup(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, en, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
