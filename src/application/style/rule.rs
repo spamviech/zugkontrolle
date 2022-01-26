@@ -1,16 +1,21 @@
-//! Style Strukturen für eine iced::Rule
+//! Style Strukturen für eine [iced::Rule].
 
-pub const SEPARATOR: Rule = Rule { color: iced::Color::BLACK, width: 1, radius: 0. };
+use iced::{
+    rule::{FillMode, Style, StyleSheet},
+    Color,
+};
+
+pub const SEPARATOR: Rule = Rule { color: Color::BLACK, width: 1, radius: 0. };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rule {
-    pub color: iced::Color,
+    pub color: Color,
     pub width: u16,
     pub radius: f32,
 }
-impl iced::rule::StyleSheet for Rule {
-    fn style(&self) -> iced::rule::Style {
+impl StyleSheet for Rule {
+    fn style(&self) -> Style {
         let Rule { color, radius, width } = *self;
-        iced::rule::Style { color, radius, width, fill_mode: iced::rule::FillMode::Full }
+        Style { color, radius, width, fill_mode: FillMode::Full }
     }
 }

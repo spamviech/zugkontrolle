@@ -1,4 +1,4 @@
-//! Methoden für die update-Methode des iced::Application-Traits
+//! Methoden für die update-Methode des [iced::Application]-Traits
 
 use std::{
     convert::identity,
@@ -8,6 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use iced::Command;
 use log::{debug, error};
 
 use crate::{
@@ -47,8 +48,8 @@ where
         self
     }
 
-    fn als_sleep_command(self, dauer: Duration) -> iced::Command<Nachricht<Leiter>> {
-        iced::Command::perform(self.nach_sleep(dauer), identity)
+    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<Leiter>> {
+        Command::perform(self.nach_sleep(dauer), identity)
     }
 }
 
@@ -658,7 +659,7 @@ where
         &mut self,
         name: geschwindigkeit::Name,
         zustand_zurücksetzen: <Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ) -> Option<iced::Command<Nachricht<Leiter>>> {
+    ) -> Option<Command<Nachricht<Leiter>>> {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         // Entfernte Geschwindigkeit wird ignoriert,
         // da es nur um eine Reaktion auf einen Fehler geht
@@ -680,7 +681,7 @@ where
         titel: String,
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
-    ) -> Option<iced::Command<Nachricht<Leiter>>> {
+    ) -> Option<Command<Nachricht<Leiter>>> {
         let mut command = None;
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
@@ -873,12 +874,12 @@ where
     }
 
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> iced::Command<Nachricht<Leiter>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<Leiter>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
     }
 
-    pub fn bewegung_ausführen(&mut self) -> Option<iced::Command<Nachricht<Leiter>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<Leiter>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -902,7 +903,7 @@ where
         &mut self,
         name: geschwindigkeit::Name,
         nachricht: <Leiter as LeiterAnzeige>::Nachricht,
-    ) -> Option<iced::Command<Nachricht<Leiter>>> {
+    ) -> Option<Command<Nachricht<Leiter>>> {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         macro_rules! unwrap_or_error_return {
             ($value:expr) => {
@@ -1009,7 +1010,7 @@ where
     Leiter: 'static + LeiterAnzeige + BekannterLeiter,
     <Leiter as Serialisiere>::Serialisiert: Send,
 {
-    pub fn speichern(&mut self, pfad: String) -> Option<iced::Command<Nachricht<Leiter>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<Leiter>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {

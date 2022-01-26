@@ -5,6 +5,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use iced::{
+    canvas::{event, Cursor, Event},
+    mouse, Rectangle,
+};
 use log::error;
 
 use crate::application::{
@@ -14,8 +18,8 @@ use crate::application::{
 
 /// Position des Cursors auf einem canvas mit `bounds`.
 fn berechne_canvas_position(
-    bounds: &iced::Rectangle,
-    cursor: &iced::canvas::Cursor,
+    bounds: &Rectangle,
+    cursor: &Cursor,
     pivot: &Position,
     skalieren: &Skalar,
 ) -> Option<Vektor> {
@@ -63,16 +67,16 @@ where
 }
 
 fn aktion_gleis_an_position<'t>(
-    bounds: &'t iced::Rectangle,
-    cursor: &'t iced::canvas::Cursor,
+    bounds: &'t Rectangle,
+    cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t mut ModusDaten,
     daten_iter: impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
-) -> (iced::canvas::event::Status, Option<Nachricht>) {
+) -> (event::Status, Option<Nachricht>) {
     let mut message = None;
-    let mut status = iced::canvas::event::Status::Ignored;
+    let mut status = event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
@@ -130,14 +134,14 @@ fn aktion_gleis_an_position<'t>(
                             message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()));
                             *gehalten = None
                         }
-                        status = iced::canvas::event::Status::Captured
+                        status = event::Status::Captured
                     }
                 },
                 ModusDaten::Fahren => {
                     if let Some((any_id_ref, _halte_position, _winkel)) = gleis_an_position {
                         let gleis_id = any_id_ref.als_id();
                         message = Some(Nachricht::FahrenAktion(gleis_id));
-                        status = iced::canvas::event::Status::Captured
+                        status = event::Status::Captured
                     }
                 },
             }
@@ -149,17 +153,15 @@ fn aktion_gleis_an_position<'t>(
 impl<Leiter> Gleise<Leiter> {
     pub fn update(
         &mut self,
-        event: iced::canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
-        let mut event_status = iced::canvas::event::Status::Ignored;
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Nachricht>) {
+        let mut event_status = event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
         match event {
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
-                iced::mouse::Button::Left,
-            )) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
                 let Gleise { modus, zustand, pivot, skalieren, .. } = self;
                 let click_result = aktion_gleis_an_position(
@@ -174,9 +176,7 @@ impl<Leiter> Gleise<Leiter> {
                 event_status = click_result.0;
                 message = click_result.1;
             },
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
-                iced::mouse::Button::Left,
-            )) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
                         if bewegt {
@@ -191,11 +191,11 @@ impl<Leiter> Gleise<Leiter> {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                             message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.klonen()));
                         }
-                        event_status = iced::canvas::event::Status::Captured;
+                        event_status = event::Status::Captured;
                     }
                 }
             },
-            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
                 if let Some(canvas_pos) =
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
@@ -203,12 +203,12 @@ impl<Leiter> Gleise<Leiter> {
                     if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
                         error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
                     }
-                    event_status = iced::canvas::event::Status::Captured
+                    event_status = event::Status::Captured
                 }
             },
             _otherwise => {},
         };
-        if event_status == iced::canvas::event::Status::Captured {
+        if event_status == event::Status::Captured {
             self.canvas.leeren()
         }
         (event_status, message)

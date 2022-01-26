@@ -1,21 +1,22 @@
-//! newtypes für einen iced::canvas::Frame und iced::canvas::Cache
+//! Newtypes für [iced::canvas::Frame] und [iced::canvas::Cache].
 
-use iced;
+use iced::{canvas::Geometry, Size};
+use serde::{Deserialize, Serialize};
+
+use crate::application::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
+
+pub mod pfad;
+
 // re-exports
 pub use iced::{
     canvas::{Fill, FillRule, Stroke, Text},
     Color, HorizontalAlignment, VerticalAlignment,
 };
-use serde::{Deserialize, Serialize};
-
-use crate::application::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
 pub use pfad::{Bogen, Pfad, Transformation};
 
-pub mod pfad;
-
-/// newtype auf /iced::canvas::Frame/-Reference, dessen Methoden meine Typen verwenden.
+/// Newtype auf [iced::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom `iced::Frame` liegt.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [iced::Frame] liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
 #[derive(Debug)]
@@ -48,7 +49,7 @@ impl<'t> Frame<'t> {
 
     /// Draws the characters of the given Text on the Frame, filling them with the given color.
     ///
-    /// **Warning:** problems regarding transformation/rotation/scaling from `iced::canvas::Frame`
+    /// **Warning:** problems regarding transformation/rotation/scaling from [iced::canvas::Frame]
     /// apply here as well!
     #[inline(always)]
     pub fn fill_text(&mut self, text: impl Into<Text>) {
@@ -92,7 +93,7 @@ impl Cache {
         Cache(iced::canvas::Cache::new())
     }
 
-    /// Leere den Cache, so dass er neu gezeichnet wird.
+    /// Leere den [Cache], so dass er neu gezeichnet wird.
     #[inline(always)]
     pub fn leeren(&mut self) {
         self.0.clear()
@@ -100,11 +101,11 @@ impl Cache {
 
     pub(crate) fn zeichnen_skaliert_von_pivot(
         &self,
-        bounds: iced::Size<f32>,
+        bounds: Size<f32>,
         pivot: &Position,
         skalieren: &Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> iced::canvas::Geometry {
+    ) -> Geometry {
         self.0.draw(bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
@@ -118,12 +119,8 @@ impl Cache {
         })
     }
 
-    /// Zeichne die `Geometry` über die übergebenen Closure und speichere sie im `Cache`.
-    pub fn zeichnen(
-        &self,
-        bounds: iced::Size<f32>,
-        draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> iced::canvas::Geometry {
+    /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [Cache].
+    pub fn zeichnen(&self, bounds: Size<f32>, draw_fn: impl Fn(&mut Frame<'_>)) -> Geometry {
         self.zeichnen_skaliert_von_pivot(
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
@@ -133,13 +130,14 @@ impl Cache {
     }
 }
 
-/// Position eines Gleises/Textes auf der Canvas
+/// Position eines Gleises/Textes auf dem Canvas.
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub punkt: Vektor,
     pub winkel: Winkel,
 }
+
 impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     pub fn transformation(&self, anchor: Vektor) -> Vektor {

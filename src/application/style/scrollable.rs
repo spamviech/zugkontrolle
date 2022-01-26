@@ -1,4 +1,9 @@
-//! Style-Strukturen for a iced::Scrollable
+//! Style-Strukturen für ein [iced::Scrollable].
+
+use iced::{
+    scrollable::{Scrollbar, Scroller, StyleSheet},
+    Color,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Collection {
@@ -14,14 +19,14 @@ impl Collection {
         self.width
     }
 
-    fn scrollbar(&self, grey_value: f32) -> iced::scrollable::Scrollbar {
-        let scroller_color = iced::Color::from_rgb(grey_value, grey_value, grey_value);
-        iced::scrollable::Scrollbar {
+    fn scrollbar(&self, grey_value: f32) -> Scrollbar {
+        let scroller_color = Color::from_rgb(grey_value, grey_value, grey_value);
+        Scrollbar {
             background: None,
             border_radius: 0.,
             border_width: 0.,
-            border_color: iced::Color::BLACK,
-            scroller: iced::scrollable::Scroller {
+            border_color: Color::BLACK,
+            scroller: Scroller {
                 color: scroller_color,
                 border_radius: 0.25 * (self.width as f32),
                 border_width: 0.,
@@ -31,16 +36,16 @@ impl Collection {
     }
 }
 
-impl iced::scrollable::StyleSheet for Collection {
-    fn active(&self) -> iced::scrollable::Scrollbar {
+impl StyleSheet for Collection {
+    fn active(&self) -> Scrollbar {
         self.scrollbar(0.7)
     }
 
-    fn hovered(&self) -> iced::scrollable::Scrollbar {
+    fn hovered(&self) -> Scrollbar {
         self.scrollbar(0.6)
     }
 
-    fn dragging(&self) -> iced::scrollable::Scrollbar {
+    fn dragging(&self) -> Scrollbar {
         self.scrollbar(0.5)
     }
 }

@@ -1,6 +1,9 @@
 //! Widget zur Anpassung des Pivot Punktes
 
-use iced::canvas::Program;
+use iced::{
+    canvas::{event, Cursor, Event, Geometry, Program},
+    mouse, Rectangle,
+};
 
 use crate::application::typen::*;
 
@@ -53,11 +56,7 @@ impl Bewegen {
 }
 
 impl Program<Nachricht> for Bewegen {
-    fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        _cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
+    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let size = bounds.size();
         let width = Skalar(size.width);
         let height = Skalar(size.height);
@@ -106,15 +105,13 @@ impl Program<Nachricht> for Bewegen {
 
     fn update(
         &mut self,
-        event: iced::canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Nachricht>) {
         let mut nachricht = None;
         match event {
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
-                iced::mouse::Button::Left,
-            )) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(&bounds) {
                     let size = bounds.size();
                     let width = Skalar(size.width);
@@ -168,9 +165,7 @@ impl Program<Nachricht> for Bewegen {
                     }
                 }
             },
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
-                iced::mouse::Button::Left,
-            )) if self.bewegung => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if self.bewegung => {
                 // beende nur gestartete Bewegungen
                 self.bewegung = false;
                 nachricht = Some(Nachricht::BeendeBewegung)
@@ -178,6 +173,6 @@ impl Program<Nachricht> for Bewegen {
             _ => {},
         }
 
-        (iced::canvas::event::Status::Ignored, nachricht)
+        (event::Status::Ignored, nachricht)
     }
 }

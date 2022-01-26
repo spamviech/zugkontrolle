@@ -2,6 +2,10 @@
 
 use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, iter, time::Instant};
 
+use iced::{
+    canvas::{event, Cursor, Event, Geometry, Program},
+    mouse, Rectangle,
+};
 use kommandozeilen_argumente::EnumArgument;
 use log::error;
 
@@ -546,36 +550,28 @@ pub enum Nachricht {
     FahrenAktion(AnyId),
 }
 
-impl<Leiter> iced::canvas::Program<Nachricht> for Gleise<Leiter> {
+impl<Leiter> Program<Nachricht> for Gleise<Leiter> {
     #[inline(always)]
-    fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
+    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         self.draw(bounds, cursor)
     }
 
     #[inline(always)]
     fn update(
         &mut self,
-        event: iced::canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Nachricht>) {
         self.update(event, bounds, cursor)
     }
 
-    fn mouse_interaction(
-        &self,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> iced::mouse::Interaction {
+    fn mouse_interaction(&self, bounds: Rectangle, cursor: Cursor) -> mouse::Interaction {
         match &self.modus {
             ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
-                iced::mouse::Interaction::Pointer
+                mouse::Interaction::Pointer
             },
-            _ => iced::mouse::Interaction::default(),
+            _ => mouse::Interaction::default(),
         }
     }
 }

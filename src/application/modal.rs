@@ -2,6 +2,7 @@
 
 use std::{fmt::Debug, hash::Hash};
 
+use iced::{Rectangle, Size};
 use iced_native::{
     container, event,
     keyboard::{self, KeyCode},
@@ -94,7 +95,7 @@ where
         defaults: &R::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-        viewport: &iced::Rectangle,
+        viewport: &Rectangle,
     ) -> R::Output {
         self.underlay.draw(renderer, defaults, layout, cursor_position, viewport)
     }
@@ -180,12 +181,7 @@ impl<'a, Nachricht: 'a, R: Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
 }
 
 impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
-    fn layout(
-        &self,
-        renderer: &R,
-        bounds: iced::Size,
-        position: Point,
-    ) -> iced_native::layout::Node {
+    fn layout(&self, renderer: &R, bounds: Size, position: Point) -> iced_native::layout::Node {
         let mut layout = self.0.layout(renderer, &layout::Limits::new(bounds, bounds));
         layout.move_to(position);
         layout

@@ -11,7 +11,7 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{Application, Clipboard, Command, Element, Radio, Subscription};
+use iced::{Application, Clipboard, Command, Element, Radio, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 
@@ -319,15 +319,15 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         argumente: Argumente,
         lager: Lager,
         zugtyp: Zugtyp<Leiter>,
-    ) -> iced::Settings<(Argumente, Lager, Zugtyp<Leiter>)> {
-        iced::Settings {
+    ) -> Settings<(Argumente, Lager, Zugtyp<Leiter>)> {
+        Settings {
             window: iced::window::Settings {
                 size: (1024, 768),
                 icon: icon(),
                 ..iced::window::Settings::default()
             },
             default_font: Some(&fonts::REGULAR),
-            ..iced::Settings::with_flags((argumente, lager, zugtyp))
+            ..Settings::with_flags((argumente, lager, zugtyp))
         }
     }
     match zugtyp {

@@ -1,6 +1,9 @@
 //! Widget zum Einstellen des Anzeigewinkels
 
-use iced::canvas::Program;
+use iced::{
+    canvas::{event, Cursor, Event, Fill, FillRule, Geometry, Program, Stroke},
+    mouse, Color, Rectangle,
+};
 
 use crate::application::typen::*;
 
@@ -18,11 +21,7 @@ impl Drehen {
 }
 
 impl Program<Winkel> for Drehen {
-    fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
+    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         let size = bounds.size();
         vec![self.canvas.zeichnen(size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
@@ -39,7 +38,7 @@ impl Program<Winkel> for Drehen {
                 .baue();
             frame.stroke(
                 &kreis_pfad,
-                iced::canvas::Stroke { color: iced::Color::BLACK, width: 1., ..Default::default() },
+                Stroke { color: Color::BLACK, width: 1., ..Default::default() },
             );
             let knopf_zentrum =
                 kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, self.winkel);
@@ -64,9 +63,9 @@ impl Program<Winkel> for Drehen {
             };
             frame.fill(
                 &knopf_pfad,
-                iced::canvas::Fill {
-                    color: iced::Color::from_rgb(knopf_grau, knopf_grau, knopf_grau),
-                    rule: iced::canvas::FillRule::EvenOdd,
+                Fill {
+                    color: Color::from_rgb(knopf_grau, knopf_grau, knopf_grau),
+                    rule: FillRule::EvenOdd,
                 },
             );
         })]
@@ -74,16 +73,14 @@ impl Program<Winkel> for Drehen {
 
     fn update(
         &mut self,
-        event: iced::canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Winkel>) {
-        let mut status = iced::canvas::event::Status::Ignored;
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Winkel>) {
+        let mut status = event::Status::Ignored;
         let mut winkel = None;
         match event {
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
-                iced::mouse::Button::Left,
-            )) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(&bounds) {
                     let relative_position = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
                     let size = bounds.size();
@@ -100,14 +97,12 @@ impl Program<Winkel> for Drehen {
                     }
                 }
             },
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
-                iced::mouse::Button::Left,
-            )) if self.grabbed => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if self.grabbed => {
                 self.canvas.leeren();
                 self.grabbed = false;
-                status = iced::canvas::event::Status::Captured;
+                status = event::Status::Captured;
             },
-            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 if self.grabbed {
                     self.canvas.leeren();
                     let relative_position = Vektor {

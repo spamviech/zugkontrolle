@@ -7,6 +7,7 @@ use std::{
     sync::mpsc::Sender,
 };
 
+use iced::Command;
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
 use iced_native::{
     button, column, container, event, overlay, radio, row, scrollable, slider, text, text_input,
@@ -74,13 +75,13 @@ pub trait LeiterAnzeige: Serialisiere + Sized {
         konvertiere_async_fehler: impl FnOnce(String, Fehler, Self::ZustandZurücksetzen) -> Nachricht
             + Send
             + 'static,
-    ) -> Result<iced::Command<Self::Nachricht>, Fehler>;
+    ) -> Result<Command<Self::Nachricht>, Fehler>;
 
     fn zustand_zurücksetzen(
         geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         zustand_zurücksetzen: Self::ZustandZurücksetzen,
-    ) -> iced::Command<Self::Nachricht>;
+    ) -> Command<Self::Nachricht>;
 
     fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
     where
@@ -159,7 +160,7 @@ impl LeiterAnzeige for Mittelleiter {
         konvertiere_async_fehler: impl FnOnce(String, Fehler, Self::ZustandZurücksetzen) -> Nachricht
             + Send
             + 'static,
-    ) -> Result<iced::Command<Self::Nachricht>, Fehler> {
+    ) -> Result<Command<Self::Nachricht>, Fehler> {
         match message {
             NachrichtMittelleiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;
@@ -178,16 +179,16 @@ impl LeiterAnzeige for Mittelleiter {
                 anzeige_status.aktuelle_geschwindigkeit = 0;
             },
         }
-        Ok(iced::Command::none())
+        Ok(Command::none())
     }
 
     fn zustand_zurücksetzen(
         _geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         zustand_zurücksetzen: Self::ZustandZurücksetzen,
-    ) -> iced::Command<Self::Nachricht> {
+    ) -> Command<Self::Nachricht> {
         anzeige_status.aktuelle_geschwindigkeit = zustand_zurücksetzen.bisherige_geschwindigkeit;
-        iced::Command::none()
+        Command::none()
     }
 
     fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>
@@ -290,7 +291,7 @@ impl LeiterAnzeige for Zweileiter {
         konvertiere_async_fehler: impl FnOnce(String, Fehler, Self::ZustandZurücksetzen) -> Nachricht
             + Send
             + 'static,
-    ) -> Result<iced::Command<Self::Nachricht>, Fehler> {
+    ) -> Result<Command<Self::Nachricht>, Fehler> {
         match message {
             NachrichtZweileiter::Geschwindigkeit(wert) => {
                 geschwindigkeit.geschwindigkeit(wert)?;
@@ -317,17 +318,17 @@ impl LeiterAnzeige for Zweileiter {
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
             },
         }
-        Ok(iced::Command::none())
+        Ok(Command::none())
     }
 
     fn zustand_zurücksetzen(
         _geschwindigkeit: &mut Geschwindigkeit<Self>,
         anzeige_status: &mut AnzeigeStatus<Self>,
         zustand_zurücksetzen: Self::ZustandZurücksetzen,
-    ) -> iced::Command<Self::Nachricht> {
+    ) -> Command<Self::Nachricht> {
         anzeige_status.fahrtrichtung_state = zustand_zurücksetzen.bisherige_fahrtrichtung;
         anzeige_status.aktuelle_geschwindigkeit = zustand_zurücksetzen.bisherige_geschwindigkeit;
-        iced::Command::none()
+        Command::none()
     }
 
     fn auswahl_neu<'t, R>(status: &'t mut AuswahlStatus) -> Auswahl<'t, Self, R>

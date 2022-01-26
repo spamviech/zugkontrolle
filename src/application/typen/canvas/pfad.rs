@@ -2,6 +2,10 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
+use iced::{
+    canvas::{path, Path},
+    Point,
+};
 use zugkontrolle_macros::chain;
 
 use crate::application::typen::{
@@ -15,7 +19,7 @@ use crate::application::typen::{
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
 #[derive(Debug)]
 pub struct Pfad {
-    pub(crate) pfad: iced::canvas::Path,
+    pub(crate) pfad: Path,
     pub(crate) transformationen: Vec<Transformation>,
 }
 
@@ -43,7 +47,7 @@ pub enum Transformation {
     Skalieren(Skalar),
 }
 
-/// Variante von `iced::canvas::path::Arc` mit `Invertiert`-Implementierung.
+/// Variante von [iced::canvas::path::Arc] mit [Invertiert]-Implementierung.
 ///
 /// Beschreibt einen Bogen um `zentrum` mit `radius` von Winkel `anfang` bis `ende`
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
@@ -55,10 +59,10 @@ pub struct Bogen {
     pub ende: Winkel,
 }
 
-/// Marker-Typ für 'Invertiert', X-Achse (Horizontal).
+/// Marker-Typ für [Invertiert], X-Achse (Horizontal).
 #[derive(Debug, Clone, Copy)]
 pub struct X;
-/// Marker-Typ für 'Invertiert', Y-Achse (Vertikal).
+/// Marker-Typ für [Invertiert], Y-Achse (Vertikal).
 #[derive(Debug, Clone, Copy)]
 pub struct Y;
 /// Hilf-Struktur um mich vor dummen Fehlern (z.B. doppeltes invertieren) zu bewahren.
@@ -115,13 +119,13 @@ where
     }
 }
 
-/// newtype auf einem `iced::canvas::path::Builder`
+/// Newtype auf einem [iced::canvas::path::Builder]
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
 /// Alle Methoden verwenden die hier definierten Typen.
 pub struct Erbauer<V, B> {
-    builder: iced::canvas::path::Builder,
+    builder: path::Builder,
     phantom_data: PhantomData<*const (V, B)>,
 }
 
@@ -137,7 +141,7 @@ impl<V, B> Debug for Erbauer<V, B> {
 impl Erbauer<Vektor, Bogen> {
     /// Erstelle einen neuen Erbauer.
     pub fn neu() -> Self {
-        Erbauer { builder: iced::canvas::path::Builder::new(), phantom_data: PhantomData }
+        Erbauer { builder: path::Builder::new(), phantom_data: PhantomData }
     }
 
     /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad.
@@ -157,14 +161,14 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     #[chain]
     pub fn move_to(&mut self, punkt: V) {
         let Vektor { x, y } = punkt.into();
-        self.builder.move_to(iced::Point { x: x.0, y: y.0 })
+        self.builder.move_to(Point { x: x.0, y: y.0 })
     }
 
     /// Zeichne einen Linie vom aktuellen Punkt zu `ziel`.
     #[chain]
     pub fn line_to(&mut self, ziel: V) {
         let Vektor { x, y } = ziel.into();
-        self.builder.line_to(iced::Point { x: x.0, y: y.0 })
+        self.builder.line_to(Point { x: x.0, y: y.0 })
     }
 
     /// Zeichne den beschriebenen Bogen.
@@ -173,8 +177,8 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     #[chain]
     pub fn arc(&mut self, bogen: B) {
         let Bogen { zentrum: Vektor { x, y }, radius, anfang, ende } = bogen.into();
-        self.builder.arc(iced::canvas::path::Arc {
-            center: iced::Point { x: x.0, y: y.0 },
+        self.builder.arc(path::Arc {
+            center: Point { x: x.0, y: y.0 },
             radius: radius.0,
             start_angle: anfang.0,
             end_angle: ende.0,

@@ -2,6 +2,10 @@
 
 use std::marker::PhantomData;
 
+use iced::{
+    canvas::{Cursor, Geometry},
+    Point,
+};
 use rstar::primitives::Rectangle;
 
 use crate::{
@@ -56,7 +60,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
                     .alpha();
                 frame.with_save(|frame| {
                     let Farbe { r, g, b } = *streckenabschnitt_farbe;
-                    let color = iced::Color { r, g, b, a };
+                    let color = canvas::Color { r, g, b, a };
                     frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
                 });
             }
@@ -164,7 +168,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
                 let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                 frame.fill_text(canvas::Text {
                     content,
-                    position: iced::Point::ORIGIN,
+                    position: Point::ORIGIN,
                     color: canvas::Color { a, ..canvas::Color::BLACK },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
                     vertical_alignment: canvas::VerticalAlignment::Center,
@@ -218,11 +222,7 @@ impl<Leiter> Gleise<Leiter> {
         }
     }
 
-    pub fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        _cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
+    pub fn draw(&self, bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)

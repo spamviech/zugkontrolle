@@ -1,5 +1,9 @@
 //! Knopf mit dem jeweiligen Gleis
 
+use iced::{
+    canvas::{event, Cursor, Event, Geometry, Program},
+    mouse, Canvas, Container, Length, Point, Rectangle,
+};
 use num_traits::NumCast;
 
 use crate::application::{gleis::gleise::draw::move_to_position, typen::*};
@@ -43,7 +47,7 @@ impl<T: Zeichnen> Button<T> {
     pub fn als_iced_widget<'t, Nachricht>(
         &'t mut self,
         breite: Option<u16>,
-    ) -> iced::Container<'t, Nachricht>
+    ) -> Container<'t, Nachricht>
     where
         Nachricht: 'static,
         T: ButtonNachricht<Nachricht>,
@@ -53,24 +57,18 @@ impl<T: Zeichnen> Button<T> {
         let höhe =
             NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
         // account for lines right at the edge
-        iced::Container::new(
-            iced::Canvas::new(self)
-                .width(iced::Length::Units(breite.unwrap_or(standard_breite)))
-                .height(iced::Length::Units(höhe)),
+        Container::new(
+            Canvas::new(self)
+                .width(Length::Units(breite.unwrap_or(standard_breite)))
+                .height(Length::Units(höhe)),
         )
-        .width(iced::Length::Fill)
-        .height(iced::Length::Shrink)
+        .width(Length::Fill)
+        .height(Length::Shrink)
     }
 }
 
-impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<Nachricht>
-    for Button<T>
-{
-    fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        _cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
+impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for Button<T> {
+    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         vec![self.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
@@ -126,7 +124,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
                     move_to_position(frame, &relative_position);
                     frame.fill_text(canvas::Text {
                         content: content.clone(),
-                        position: iced::Point::ORIGIN,
+                        position: Point::ORIGIN,
                         color: canvas::Color::BLACK,
                         horizontal_alignment: canvas::HorizontalAlignment::Center,
                         vertical_alignment: canvas::VerticalAlignment::Center,
@@ -139,27 +137,24 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> iced::canvas::Program<
 
     fn update(
         &mut self,
-        event: iced::canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: iced::canvas::Cursor,
-    ) -> (iced::canvas::event::Status, Option<Nachricht>) {
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Nachricht>) {
         let in_bounds = cursor.is_over(&bounds);
         if self.in_bounds != in_bounds {
             self.canvas.leeren();
             self.in_bounds = in_bounds;
         }
         match event {
-            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
-                iced::mouse::Button::Left,
-            )) if self.in_bounds => {
-                let iced::Point { x, y } =
-                    cursor.position_in(&bounds).unwrap_or(iced::Point { x: 0., y: 0. });
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if self.in_bounds => {
+                let Point { x, y } = cursor.position_in(&bounds).unwrap_or(Point { x: 0., y: 0. });
                 (
-                    iced::canvas::event::Status::Captured,
+                    event::Status::Captured,
                     Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
             },
-            _ => (iced::canvas::event::Status::Ignored, None),
+            _ => (event::Status::Ignored, None),
         }
     }
 }

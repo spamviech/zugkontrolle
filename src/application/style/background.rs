@@ -1,4 +1,6 @@
-//! Style Strukturen für die Hintergrund-Farbe eines iced::Container
+//! Style Strukturen für die Hintergrund-Farbe eines [iced::Container] oder [iced::Button].
+
+use iced::{button, container, Color};
 
 pub const WHITE: Background = Background::Grey(1.);
 pub const BLACK: Background = Background::Grey(0.);
@@ -18,30 +20,30 @@ pub enum Background {
 
 impl Background {
     /// Erzeuge die entsprechende Hintergrundfarbe.
-    pub fn color(&self) -> iced::Color {
+    pub fn color(&self) -> Color {
         match self {
-            Background::Grey(grey) => iced::Color::from_rgb(*grey, *grey, *grey),
-            Background::Red(red) => iced::Color::from_rgb(*red, 0., 0.),
-            Background::Green(green) => iced::Color::from_rgb(0., *green, 0.),
-            Background::Blue(blue) => iced::Color::from_rgb(0., 0., *blue),
+            Background::Grey(grey) => Color::from_rgb(*grey, *grey, *grey),
+            Background::Red(red) => Color::from_rgb(*red, 0., 0.),
+            Background::Green(green) => Color::from_rgb(0., *green, 0.),
+            Background::Blue(blue) => Color::from_rgb(0., 0., *blue),
             Background::GreyTransparent { grey, alpha } => {
-                iced::Color::from_rgba(*grey, *grey, *grey, *alpha)
+                Color::from_rgba(*grey, *grey, *grey, *alpha)
             },
         }
     }
 }
 
-impl iced::container::StyleSheet for Background {
-    fn style(&self) -> iced::container::Style {
-        iced::container::Style {
+impl container::StyleSheet for Background {
+    fn style(&self) -> container::Style {
+        container::Style {
             background: Some(iced::Background::Color(self.color())),
             ..Default::default()
         }
     }
 }
-impl iced::button::StyleSheet for Background {
-    fn active(&self) -> iced::button::Style {
-        iced::button::Style {
+impl button::StyleSheet for Background {
+    fn active(&self) -> button::Style {
+        button::Style {
             background: Some(iced::Background::Color(self.color())),
             ..Default::default()
         }
