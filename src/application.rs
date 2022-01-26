@@ -12,8 +12,8 @@ use std::{
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{Application, Clipboard, Command, Element, Radio, Subscription};
+use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
-use version::version;
 
 use self::{
     bewegen::{Bewegen, Bewegung},
@@ -444,7 +444,7 @@ where
     }
 
     fn title(&self) -> String {
-        format!("Zugkontrolle {}", version!())
+        format!("Zugkontrolle {}", crate_version!())
     }
 
     fn update(
