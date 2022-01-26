@@ -30,7 +30,7 @@ use self::{
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
-    args::{Args, ZugtypArg},
+    argumente::{Argumente, ZugtypArgument},
     farbe::Farbe,
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
     zugtyp::Zugtyp,
@@ -294,8 +294,8 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
-pub fn ausführen(args: Args) -> Result<(), Fehler> {
-    let Args { i2c_settings, zugtyp, verbose, log_datei, .. } = args;
+pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
+    let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
     let lager = crate::anschluss::Lager::neu(i2c_settings)?;
 
     fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
@@ -316,10 +316,10 @@ pub fn ausführen(args: Args) -> Result<(), Fehler> {
     let logger_handle = start_logger(verbose, log_datei)?;
 
     fn erstelle_settings<Leiter>(
-        args: Args,
+        argumente: Argumente,
         lager: Lager,
         zugtyp: Zugtyp<Leiter>,
-    ) -> iced::Settings<(Args, Lager, Zugtyp<Leiter>)> {
+    ) -> iced::Settings<(Argumente, Lager, Zugtyp<Leiter>)> {
         iced::Settings {
             window: iced::window::Settings {
                 size: (1024, 768),
@@ -327,12 +327,16 @@ pub fn ausführen(args: Args) -> Result<(), Fehler> {
                 ..iced::window::Settings::default()
             },
             default_font: Some(&fonts::REGULAR),
-            ..iced::Settings::with_flags((args, lager, zugtyp))
+            ..iced::Settings::with_flags((argumente, lager, zugtyp))
         }
     }
     match zugtyp {
-        ZugtypArg::Märklin => Zugkontrolle::run(erstelle_settings(args, lager, Zugtyp::märklin())),
-        ZugtypArg::Lego => Zugkontrolle::run(erstelle_settings(args, lager, Zugtyp::lego())),
+        ZugtypArgument::Märklin => {
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::märklin()))
+        },
+        ZugtypArgument::Lego => {
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::lego()))
+        },
     }?;
 
     // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
@@ -377,11 +381,11 @@ where
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Args, Lager, Zugtyp<Leiter>);
+    type Flags = (Argumente, Lager, Zugtyp<Leiter>);
     type Message = Nachricht<Leiter>;
 
-    fn new((args, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
-        let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
+    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
+        let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;
 
         let command: Command<Self::Message>;
         let aktueller_pfad: String;

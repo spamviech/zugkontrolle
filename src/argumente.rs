@@ -6,22 +6,20 @@ use std::{
     num::NonZeroI32,
 };
 
-use kommandozeilen_argumente::{Argumente, Beschreibung, Parse, ParseArgument};
+use kommandozeilen_argumente::{Beschreibung, EnumArgument, Parse, ParseArgument};
 
 use crate::application::{
     gleis::gleise::Modus,
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
-pub use kommandozeilen_argumente::EnumArgument;
-
 #[derive(Debug, Clone, Parse)]
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
 #[kommandozeilen_argumente(sprache: deutsch, version, hilfe(lang: [hilfe, help], kurz: h))]
-pub struct Args {
+pub struct Argumente {
     /// Verwendeter Zugtyp.
-    #[kommandozeilen_argumente(standard: ZugtypArg::Märklin, kurz, meta_var: ZUGTYP)]
-    pub zugtyp: ZugtypArg,
+    #[kommandozeilen_argumente(standard: ZugtypArgument::Märklin, kurz, meta_var: ZUGTYP)]
+    pub zugtyp: ZugtypArgument,
 
     /// Lade bei Programmstart die angegebene Datei.
     #[kommandozeilen_argumente(kurz, meta_var: DATEI)]
@@ -83,8 +81,8 @@ impl ParseArgument for Winkel {
         beschreibung: Beschreibung<Self>,
         invertiere_prefix: &'static str,
         meta_var: &str,
-    ) -> Argumente<Self, String> {
-        Argumente::konvertiere(
+    ) -> kommandozeilen_argumente::Argumente<Self, String> {
+        kommandozeilen_argumente::Argumente::konvertiere(
             Winkel,
             f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
@@ -104,8 +102,8 @@ impl ParseArgument for Skalar {
         beschreibung: Beschreibung<Self>,
         invertiere_prefix: &'static str,
         meta_var: &str,
-    ) -> Argumente<Self, String> {
-        Argumente::konvertiere(
+    ) -> kommandozeilen_argumente::Argumente<Self, String> {
+        kommandozeilen_argumente::Argumente::konvertiere(
             Skalar,
             f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
@@ -120,7 +118,7 @@ impl ParseArgument for Skalar {
     }
 }
 
-impl Args {
+impl Argumente {
     /// Parse Kommandozeilen-Argumente.
     /// Ein einzelnes Argument (das nicht mit "-" beginnt) wird als Pfad interpretiert.
     pub fn parse_aus_env() -> Self {
@@ -136,17 +134,17 @@ impl Args {
                 args.insert(0, "--pfad".to_owned().into());
             }
         }
-        Args::parse_mit_fehlermeldung(args.into_iter(), NonZeroI32::new(1).expect("1 != 0"))
+        Argumente::parse_mit_fehlermeldung(args.into_iter(), NonZeroI32::new(1).expect("1 != 0"))
     }
 }
 
 #[derive(Debug, Clone, Copy, EnumArgument)]
-pub enum ZugtypArg {
+pub enum ZugtypArgument {
     Märklin,
     Lego,
 }
 
-impl Display for ZugtypArg {
+impl Display for ZugtypArgument {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(self, f)
     }

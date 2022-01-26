@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-pub use crate::args::I2cSettings;
+pub use crate::argumente::I2cSettings;
 
 #[derive(Debug)]
 struct I2cMitPins {

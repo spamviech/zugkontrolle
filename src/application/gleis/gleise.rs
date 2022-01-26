@@ -2,6 +2,7 @@
 
 use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, iter, time::Instant};
 
+use kommandozeilen_argumente::EnumArgument;
 use log::error;
 
 pub use self::{
@@ -36,7 +37,7 @@ struct Gehalten {
 }
 
 // Aktueller Modus von `Gleise`
-#[zugkontrolle_macros::make_enum(pub, Modus)]
+#[zugkontrolle_macros::make_enum(pub, Modus, EnumArgument)]
 #[derive(Debug)]
 enum ModusDaten {
     Bauen { gehalten: Option<Gehalten>, last: Instant },

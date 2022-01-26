@@ -1,13 +1,13 @@
 //! Take a sum-type enum and produce an associated enum without any data
 
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
-pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
+pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
     // parse args
     let mut arg_vis: Option<syn::Visibility> = None;
     let mut arg_ident: Option<syn::Ident> = None;
+    let mut extra_derives = Vec::new();
     let mut errors = Vec::new();
     for arg in &args {
         match arg {
@@ -24,33 +24,23 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
                         quote!(#name)
                     ));
                 },
-                syn::Meta::Path(syn::Path { segments, .. }) => {
-                    let mut iter = segments.into_iter();
-                    if let Some(syn::PathSegment { ident, .. }) = iter.next() {
-                        if iter.count() == 0 {
-                            let id = ident.to_string();
-                            if let Ok(vis) = syn::parse_str(&id) {
-                                if arg_vis.is_none() {
-                                    arg_vis = Some(vis);
-                                } else {
-                                    errors.push(format!(
-                                        "duplicate visibility argument {}",
-                                        quote!(#id)
-                                    ));
-                                }
-                            } else if arg_ident.is_none() {
-                                arg_ident = Some(ident.clone());
+                syn::Meta::Path(path) => {
+                    if let Some(ident) = path.get_ident() {
+                        let id = ident.to_string();
+                        if let Ok(vis) = syn::parse_str(&id) {
+                            if arg_vis.is_none() {
+                                arg_vis = Some(vis);
                             } else {
-                                errors.push(format!(
-                                    "misspelled visibility of leftover argument {}",
-                                    quote!(#id)
-                                ));
+                                errors
+                                    .push(format!("duplicate visibility argument {}", quote!(#id)));
                             }
+                        } else if arg_ident.is_none() {
+                            arg_ident = Some(ident.clone());
                         } else {
-                            errors.push(format!("leftover path segments {}", quote! {iter}));
+                            extra_derives.push(quote!(#path));
                         }
                     } else {
-                        errors.push(format!("empty path segments {}", quote!(#segments)))
+                        extra_derives.push(quote!(#path));
                     }
                 },
             },
@@ -62,16 +52,7 @@ pub(crate) fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> Token
             },
         }
     }
-    let derives = if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
-        let base_ident: syn::Ident = match zugkontrolle {
-            FoundCrate::Itself => format_ident!("{}", "crate"),
-            FoundCrate::Name(name) => format_ident!("{}", name),
-        };
-        quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #base_ident::args::EnumArgument)])
-    } else {
-        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string());
-        quote!()
-    };
+    let derives = quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #(#extra_derives),*)]);
     if errors.len() > 0 {
         let error_message = errors.join("\n");
         return quote! {

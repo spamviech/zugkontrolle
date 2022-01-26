@@ -36,7 +36,7 @@
 
 pub mod anschluss;
 pub mod application;
-pub mod args;
+pub mod argumente;
 pub mod farbe;
 pub mod kleiner_als;
 pub mod maybe_empty;
@@ -47,6 +47,6 @@ pub mod zugtyp;
 
 pub use crate::{
     application::{ausführen, gleis::Gleise, Zugkontrolle},
-    args::Args,
+    argumente::Argumente,
     zugtyp::Zugtyp,
 };

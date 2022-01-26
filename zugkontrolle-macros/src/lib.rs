@@ -73,14 +73,14 @@ pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     nachschlagen::impl_nachschlagen(args, ast).into()
 }
 
-mod modus;
+mod erstelle_enum;
 #[proc_macro_attribute]
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
     let ast = syn::parse(item).expect("Failed to parse input!");
 
-    modus::make_enum(args, ast).into()
+    erstelle_enum::erstelle_enum(args, ast).into()
 }
 
 mod chain;

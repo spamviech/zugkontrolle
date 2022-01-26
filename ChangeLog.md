@@ -35,16 +35,20 @@
   - anchor.rs -> verbindung.rs
   - polarity.rs -> polarität.rs
   - maps.rs -> daten.rs
+  - args.rs -> argumente.rs
 - Refactoring: gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
-- Refactoring: diverse Nachrichten-Typen umbenannt Message->Error
+- Refactoring: diverse Nachrichten-Typen umbenannt Message->Nachricht
 - Refactoring: diverse Verbindungs-Typen umbenannt
   - AnchorName->VerbindungName
   - AnchorPoints->Verbindungen
 - Refactoring: Typ umbenannt GleiseMaps -> GleiseDaten
     Dazu Änderung der internen Repräsentation auf einen RTree
-- Refactoring: Typ umbenannt Grabbed -> Gehalten
+- Refactoring: Typen umbenannt:
+  - Grabbed -> Gehalten
+  - Args -> Argumente
+  - args::Zugtyp -> ZugtypArgument
 - Refactoring: GleisId neu gedacht
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleiseMap-Trait (jetzt DatenAuswahl) ist nicht mehr public.
