@@ -49,6 +49,7 @@
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleiseMap-Trait (jetzt DatenAuswahl) ist nicht mehr public.
     Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
+- Crate umbenannt: zugkontrolle-derive -> zugkontrolle-macros
 
 ## 2.0.1
 

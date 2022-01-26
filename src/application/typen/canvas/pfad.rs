@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-use zugkontrolle_derive::chain;
+use zugkontrolle_macros::chain;
 
 use crate::application::typen::{
     skalar::Skalar,

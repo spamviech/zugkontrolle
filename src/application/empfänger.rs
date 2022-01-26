@@ -15,7 +15,7 @@ use log::debug;
 use parking_lot::Mutex;
 
 /// Warte auf eine Nachricht
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct Empfänger<Nachricht> {
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }

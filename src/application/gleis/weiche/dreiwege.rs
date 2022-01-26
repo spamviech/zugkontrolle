@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::{alias_serialisiert_unit, erstelle_richtung};
+use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
 use crate::{
     application::gleis::{gerade, kurve, verbindung::Verbindung},

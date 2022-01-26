@@ -30,7 +30,7 @@ pub(in crate::application::gleis::gleise::daten) type GeschwindigkeitMapSerialis
         geschwindigkeit::Name,
         (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
     >;
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(<Leiter as Serialisiere>::Serialisiert: Debug)]
 pub struct ZustandSerialisiert<Leiter: Serialisiere> {
     pub(crate) zugtyp: Zugtyp<Leiter>,

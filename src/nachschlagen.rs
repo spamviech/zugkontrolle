@@ -1,6 +1,6 @@
 //! Trait für fehler-freies Nachschlagen von Elementen.
 
-pub use zugkontrolle_derive::impl_nachschlagen;
+pub use zugkontrolle_macros::impl_nachschlagen;
 
 /// Trait für fehler-freies Nachschlagen von Elementen.
 pub trait Nachschlagen<Name, Element> {

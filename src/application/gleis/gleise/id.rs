@@ -39,7 +39,7 @@ impl StreckenabschnittId {
 }
 
 /// Id für ein Gleis.
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 pub struct GleisId<T> {
     pub(in crate::application::gleis::gleise) rectangle: Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt: Option<StreckenabschnittId>,
@@ -64,7 +64,7 @@ impl<T> PartialEq for GleisId<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum AnyId {
     Gerade(GleisId<Gerade>),
     Kurve(GleisId<Kurve>),
@@ -158,7 +158,7 @@ impl<'t> StreckenabschnittIdRef<'t> {
 
 // completely remove any notion of ID?
 #[allow(single_use_lifetimes)]
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 pub(in crate::application) struct GleisIdRef<'t, T> {
     pub(in crate::application::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
     pub(in crate::application::gleis::gleise) streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
@@ -179,7 +179,7 @@ impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
 }
 
 #[allow(single_use_lifetimes)]
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 pub(in crate::application::gleis::gleise) enum AnyIdRef<'t> {
     Gerade(GleisIdRef<'t, Gerade>),
     Kurve(GleisIdRef<'t, Kurve>),

@@ -35,7 +35,7 @@ pub struct Lager {
     pub pcf8574: pcf8574::Lager,
 }
 
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum InitFehler {
     Pin(rppal::gpio::Error),
     Pcf8574(pcf8574::InitFehler),
@@ -68,7 +68,7 @@ impl Lager {
 }
 
 /// Ein Anschluss
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Anschluss {
     Pin(Pin),
@@ -505,7 +505,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
     }
 }
 
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     Pin(pin::ReservierenFehler),
@@ -518,7 +518,7 @@ impl From<pcf8574::InVerwendung> for ReservierenFehler {
     }
 }
 
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),

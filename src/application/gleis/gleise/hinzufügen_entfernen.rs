@@ -22,7 +22,7 @@ use crate::{
 };
 
 impl<Leiter> Gleise<Leiter> {
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T>(
         &mut self,
@@ -90,7 +90,7 @@ impl<Leiter> Gleise<Leiter> {
         Ok(gleis_id)
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
     pub(crate) fn hinzufügen_anliegend<T>(
         &mut self,
@@ -115,7 +115,7 @@ impl<Leiter> Gleise<Leiter> {
         Ok(gleis_id)
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Bewege ein Gleis an die neue position.
     pub(crate) fn bewegen<T>(
         &mut self,
@@ -134,7 +134,7 @@ impl<Leiter> Gleise<Leiter> {
         Ok(())
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
     pub(crate) fn bewegen_anliegend<T>(
         &mut self,
@@ -153,7 +153,7 @@ impl<Leiter> Gleise<Leiter> {
         Ok(())
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
     pub(crate) fn entfernen<T>(&mut self, gleis_id: GleisId<T>) -> Result<Gleis<T>, GleisIdFehler>
     where
@@ -232,7 +232,7 @@ impl<Leiter> Gleise<Leiter> {
         Ok(())
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
     pub(crate) fn setze_streckenabschnitt<T>(
         &mut self,

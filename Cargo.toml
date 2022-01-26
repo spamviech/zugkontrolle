@@ -8,8 +8,8 @@ publish = false
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[dependencies.zugkontrolle-derive]
-path = "zugkontrolle-derive"
+[dependencies.zugkontrolle-macros]
+path = "zugkontrolle-macros"
 version = "3.0.0"
 
 [dependencies]

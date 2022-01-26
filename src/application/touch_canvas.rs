@@ -10,7 +10,7 @@ use iced_native::{
 };
 use log::trace;
 
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Message: Debug, P: Debug + Program<Message>)]
 pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
 

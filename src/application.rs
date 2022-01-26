@@ -55,7 +55,7 @@ pub mod update;
 pub mod view;
 pub mod weiche;
 
-#[derive(Debug, Clone, zugkontrolle_derive::From)]
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AnyGleisUnit {
     GeradeUnit(GeradeUnit),
     KurveUnit(KurveUnit),
@@ -81,7 +81,7 @@ pub enum AnschlüsseAnpassen {
     Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
     Weiche(GleisId<Weiche>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
     DreiwegeWeiche(
@@ -104,7 +104,7 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit Button.
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 enum NachrichtClone<Leiter: LeiterAnzeige> {
     Gleis {
         gleis: AnyGleisUnit,
@@ -133,7 +133,7 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
     }
 }
 
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
 pub enum Nachricht<Leiter: LeiterAnzeige> {
     Gleis {
@@ -285,7 +285,7 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     Iced(iced::Error),
     FlexiLogger(FlexiLoggerError),

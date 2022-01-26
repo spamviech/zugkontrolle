@@ -182,7 +182,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         message
     }
 
-    #[zugkontrolle_derive::erstelle_daten_methoden]
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl>(
         &mut self,
         gleis_art: &str,

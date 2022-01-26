@@ -31,7 +31,7 @@ pub trait Leiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
 }
 
-#[derive(Debug, zugkontrolle_derive::Clone)]
+#[derive(Debug, zugkontrolle_macros::Clone)]
 pub struct Geschwindigkeit<Leiter> {
     leiter: Arc<Mutex<Leiter>>,
 }
@@ -60,10 +60,10 @@ impl<Leiter> Geschwindigkeit<Leiter> {
 }
 #[derive(Serialize, Deserialize)]
 // TODO verwende custom derive-Macros
-// `zugkontrolle_derive`-Macros erzeugen Fehler, wenn `Leiter::Serialisiert` verwendet wird
+// `zugkontrolle_macros`-Macros erzeugen Fehler, wenn `Leiter::Serialisiert` verwendet wird
 // `serde`-Macros erzeugen zusätzliche Constraints mit `<Leiter as Serialisiert>::Serialisiert`
 //
-// #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
+// #[derive(zugkontrolle_macros::Clone, zugkontrolle_macros::Debug, Serialize, Deserialize)]
 // #[zugkontrolle_clone(Leiter::Serialisiert: Clone)]
 // #[zugkontrolle_debug(Leiter::Serialisiert: Debug)]
 pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
@@ -711,7 +711,7 @@ impl Display for Fahrtrichtung {
     }
 }
 
-#[derive(Debug, zugkontrolle_derive::From)]
+#[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Fehler {
     Anschluss(anschluss::Fehler),

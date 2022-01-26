@@ -12,7 +12,7 @@ pub mod lego;
 pub mod märklin;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone, Serialize, Deserialize)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
 pub struct Zugtyp<Leiter> {
     pub name: String,
     pub leiter: PhantomData<fn() -> Leiter>,

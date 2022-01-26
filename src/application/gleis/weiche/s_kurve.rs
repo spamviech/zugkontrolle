@@ -1,7 +1,7 @@
 //! Definition und zeichnen einer Weiche
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::alias_serialisiert_unit;
+use zugkontrolle_macros::alias_serialisiert_unit;
 
 pub use crate::application::gleis::weiche::gerade::{
     Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,

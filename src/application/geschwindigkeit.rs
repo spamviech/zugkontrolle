@@ -549,7 +549,7 @@ enum InterneAuswahlNachricht {
     Löschen(Name),
 }
 
-#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(
     Leiter::Serialisiert: Debug,
     <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug,

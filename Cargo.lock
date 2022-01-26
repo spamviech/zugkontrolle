@@ -2732,11 +2732,11 @@ dependencies = [
  "serde",
  "take_mut",
  "version",
- "zugkontrolle-derive",
+ "zugkontrolle-macros",
 ]
 
 [[package]]
-name = "zugkontrolle-derive"
+name = "zugkontrolle-macros"
 version = "3.0.0"
 dependencies = [
  "Inflector",

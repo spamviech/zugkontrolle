@@ -3,7 +3,7 @@
 use std::{f32::consts::PI, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_derive::alias_serialisiert_unit;
+use zugkontrolle_macros::alias_serialisiert_unit;
 
 use crate::{
     application::{typen::*, verbindung::Verbindung},

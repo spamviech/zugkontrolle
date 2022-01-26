@@ -36,7 +36,7 @@ struct Gehalten {
 }
 
 // Aktueller Modus von `Gleise`
-#[zugkontrolle_derive::make_enum(pub, Modus)]
+#[zugkontrolle_macros::make_enum(pub, Modus)]
 #[derive(Debug)]
 enum ModusDaten {
     Bauen { gehalten: Option<Gehalten>, last: Instant },
@@ -538,7 +538,7 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_macros::Debug)]
 pub enum Nachricht {
     SetzeStreckenabschnitt(AnyId),
     AnschlüsseAnpassen(AnyId),
