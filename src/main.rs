@@ -1,6 +1,6 @@
-//! Steuerung einer Model-Eisenbahn über einen raspberry pi
+//! Steuerung einer Model-Eisenbahn über einen Raspberry Pi.
 
-// Enable all warnings except
+// Aktiviere alle Warnungen/Lints, außer:
 // box_pointers, non_ascii_idents, unstable_features, unused_crate_dependencies
 #![warn(
     absolute_paths_not_starting_with_crate,
