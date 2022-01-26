@@ -1,4 +1,4 @@
-//! iced::Application für die Gleis-Anzeige
+//! [Application] für die Gleis-Anzeige
 
 use std::{
     convert::identity,
@@ -11,6 +11,7 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
+use iced::{Application, Clipboard, Command, Element, Radio, Subscription};
 use log::LevelFilter;
 use version::version;
 
@@ -23,12 +24,13 @@ use self::{
         gleise::{daten::de_serialisieren::BekannterLeiter, *},
         *,
     },
+    icon::icon,
     style::*,
     typen::*,
 };
 use crate::{
-    anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
-    args::Args,
+    anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
+    args::{Args, ZugtypArg},
     farbe::Farbe,
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
     zugtyp::Zugtyp,
@@ -67,8 +69,8 @@ pub enum AnyGleisUnit {
 }
 
 impl Modus {
-    fn erstelle_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
-        iced::Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
+    fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus> {
+        Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
 
@@ -211,8 +213,8 @@ where
     Leiter: 'static + LeiterAnzeige + Serialisiere,
     Leiter::Serialisiert: Debug + Send,
 {
-    fn als_command(self) -> iced::Command<Nachricht<Leiter>> {
-        iced::Command::perform(async_identity(self), identity)
+    fn als_command(self) -> Command<Nachricht<Leiter>> {
+        Command::perform(async_identity(self), identity)
     }
 }
 
@@ -313,7 +315,25 @@ pub fn ausführen(args: Args) -> Result<(), Fehler> {
     }
     let logger_handle = start_logger(verbose, log_datei)?;
 
-    zugtyp.erstelle().ausführen(args, lager)?;
+    fn erstelle_settings<Leiter>(
+        args: Args,
+        lager: Lager,
+        zugtyp: Zugtyp<Leiter>,
+    ) -> iced::Settings<(Args, Lager, Zugtyp<Leiter>)> {
+        iced::Settings {
+            window: iced::window::Settings {
+                size: (1024, 768),
+                icon: icon(),
+                ..iced::window::Settings::default()
+            },
+            default_font: Some(&fonts::REGULAR),
+            ..iced::Settings::with_flags((args, lager, zugtyp))
+        }
+    }
+    match zugtyp {
+        ZugtypArg::Märklin => Zugkontrolle::run(erstelle_settings(args, lager, Zugtyp::märklin())),
+        ZugtypArg::Lego => Zugkontrolle::run(erstelle_settings(args, lager, Zugtyp::lego())),
+    }?;
 
     // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
     drop(logger_handle);
@@ -324,7 +344,7 @@ pub fn ausführen(args: Args) -> Result<(), Fehler> {
 #[derive(Debug)]
 pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     gleise: Gleise<Leiter>,
-    lager: crate::anschluss::Lager,
+    lager: Lager,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<GeradeUnit>>,
     kurven: Vec<Button<KurveUnit>>,
@@ -351,25 +371,25 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<Leiter> iced::Application for Zugkontrolle<Leiter>
+impl<Leiter> Application for Zugkontrolle<Leiter>
 where
     Leiter: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + Display,
     Leiter::Serialisiert: Debug + Clone + Unpin + Send,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Args, crate::anschluss::Lager, Zugtyp<Leiter>);
+    type Flags = (Args, Lager, Zugtyp<Leiter>);
     type Message = Nachricht<Leiter>;
 
-    fn new((args, lager, zugtyp): Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new((args, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Args { pfad, modus, zoom, x, y, winkel, .. } = args;
 
-        let command: iced::Command<Self::Message>;
+        let command: Command<Self::Message>;
         let aktueller_pfad: String;
         if let Some(pfad) = pfad {
             command = Nachricht::Laden(pfad.clone()).als_command();
             aktueller_pfad = pfad.clone();
         } else {
-            command = iced::Command::none();
+            command = Command::none();
             aktueller_pfad = {
                 let mut pfad = zugtyp.name.clone();
                 pfad.push_str(".zug");
@@ -430,9 +450,9 @@ where
     fn update(
         &mut self,
         message: Self::Message,
-        _clipboard: &mut iced::Clipboard,
-    ) -> iced::Command<Self::Message> {
-        let mut command = iced::Command::none();
+        _clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
+        let mut command = Command::none();
 
         match message {
             Nachricht::Gleis { gleis, grab_height } => self.gleis_hinzufügen(gleis, grab_height),
@@ -510,11 +530,11 @@ where
         command
     }
 
-    fn view(&mut self) -> iced::Element<'_, Self::Message> {
+    fn view(&mut self) -> Element<'_, Self::Message> {
         self.view()
     }
 
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
-        iced::Subscription::from_recipe(self.empfänger.clone())
+    fn subscription(&self) -> Subscription<Self::Message> {
+        Subscription::from_recipe(self.empfänger.clone())
     }
 }
