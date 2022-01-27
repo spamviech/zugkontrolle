@@ -39,13 +39,15 @@ pub(crate) fn impl_nachschlagen(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
 
         let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
 
+        // TODO fix upstream?
+        // to_snakecase wrongly adds a '_' before 'ß', even though it it a small letter
+        // possibly because there is no real uppercase character of it
         let struct_fields: Vec<syn::Ident> = enum_variants
-                .iter()
-                // TODO fix upstream?
-                // to_snakecase wrongly adds a '_' before 'ß', even though it it a small letter
-                // possibly because there is no real uppercase character of it
-                .map(|variant| format_ident!("{}", to_snake_case(&variant.to_string()).replace("_ß", "ß")))
-                .collect();
+            .iter()
+            .map(|variant| {
+                format_ident!("{}", to_snake_case(&variant.to_string()).replace("_ß", "ß"))
+            })
+            .collect();
         struct_definition = Some(quote! {
             #[derive(#(#derives),*)]
             #vis struct #struct_name {
