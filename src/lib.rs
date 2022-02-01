@@ -46,7 +46,7 @@ pub mod steuerung;
 pub mod zugtyp;
 
 pub use crate::{
-    application::{ausführen, gleis::Gleise, Zugkontrolle},
+    application::{ausführen, ausführen_aus_env, gleis::Gleise, Zugkontrolle},
     argumente::Argumente,
     zugtyp::Zugtyp,
 };

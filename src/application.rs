@@ -294,6 +294,12 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
+#[inline(always)]
+pub fn ausführen_aus_env() -> Result<(), Fehler> {
+    let args = Argumente::parse_aus_env();
+    ausführen(args)
+}
+
 pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
     let lager = crate::anschluss::Lager::neu(i2c_settings)?;
