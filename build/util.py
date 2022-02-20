@@ -1,5 +1,7 @@
 #!/bin/python3
 
+import os
+import os.path
 import subprocess
 import shutil
 import sys
@@ -22,5 +24,9 @@ def execute(command):
     
 def copy(src, dst):
     print_newline_after_first_call()
-    print("shutil.copy2(" + src + ", " + dst + ")")
+    dir = os.path.split(dst)[0]
+    if not os.path.isdir(dir):
+        print(f"os.mkdir({dir})")
+        os.mkdir(dir)
+    print(f"shutil.copy2({src}, {dst})")
     shutil.copy2(src, dst)
