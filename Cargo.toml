@@ -8,6 +8,10 @@ publish = false
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+strip = true
+
+# dependencies
 [dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
 version = "3.0.0"
