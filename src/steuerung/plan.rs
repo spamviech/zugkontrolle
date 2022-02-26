@@ -2,9 +2,20 @@
 
 use serde::{Deserialize, Serialize};
 
-/// TODO Dummy-Typ; wenn fertig wird er einen automatischen Fahrplan darstellen.
-/// Die erste Anpassung in einen sinnvollen Wert (wahrscheinlich ein Record struct)
-/// wird die SemVer nicht zwingend berücksichtigen (kann ohne erhöhen der major version erfolgen).
+// FIXME Benötigt eigenen Serialisiert-Typ
+/// Plan für einen automatischen Fahrplan.
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(missing_copy_implementations)]
-pub struct Plan;
+pub struct Plan {
+    pub aktionen: Vec<Aktion>,
+    pub endlosschleife: bool,
+}
+
+/// Eine Aktionen in einem Fahrplan.
+///
+/// Erstellen erster Aktionen führt nicht zwingend zu einem erhöhen der major version.
+/// Daher ist das enum als non_exhaustive markiert.
+#[non_exhaustive]
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(missing_copy_implementations)]
+pub enum Aktion {}
