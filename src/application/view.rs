@@ -7,16 +7,16 @@ use num_traits::NumCast;
 use crate::{
     application::{
         bewegen::Bewegen,
-        button::Button,
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
         modal::Modal,
-        scrollable, speichern_laden, streckenabschnitt,
-        style::rule,
+        speichern_laden, streckenabschnitt,
+        style::{rule, scrollable},
         touch_canvas, weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht,
         NachrichtClone, Zugkontrolle,
     },
     gleis::{
+        button::Button,
         gerade::GeradeUnit,
         gleise::Gleise,
         kreuzung::KreuzungUnit,
@@ -26,7 +26,7 @@ use crate::{
             s_kurve::SKurvenWeicheUnit,
         },
     },
-    typen::*,
+    typen::{skalar::Skalar, Zeichnen},
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {

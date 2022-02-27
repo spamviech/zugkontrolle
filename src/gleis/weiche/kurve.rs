@@ -5,20 +5,34 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
+pub use crate::gleis::weiche::gerade::Orientierung;
 use crate::{
-    gleis::{gerade, kurve, verbindung::Verbindung, weiche::gerade::Orientierung},
+    gleis::{gerade, kurve, verbindung::Verbindung},
     nachschlagen::impl_nachschlagen,
     steuerung,
-    typen::*,
+    typen::{
+        canvas::{
+            pfad::{self, Pfad, Transformation},
+            Position,
+        },
+        mm::{Länge, Radius, Spurweite},
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
+        MitName, MitRichtung, Transparenz, Zeichnen,
+    },
 };
 
 /// Definition einer Kurven-Weiche
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurvenWeiche<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct KurvenWeiche<
+    Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>,
+> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,

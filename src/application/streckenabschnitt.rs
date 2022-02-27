@@ -11,7 +11,7 @@ use iced_native::{
 
 pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
-    anschluss::{OutputSerialisiert, Polarität},
+    anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{
         anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
     },

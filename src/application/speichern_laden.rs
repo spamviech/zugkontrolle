@@ -7,7 +7,7 @@ use iced_native::{
     Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
 };
 
-use crate::application::{background, macros::reexport_no_event_methods};
+use crate::application::{macros::reexport_no_event_methods, style::background};
 
 #[derive(Debug)]
 pub struct Status {

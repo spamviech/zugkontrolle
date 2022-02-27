@@ -6,21 +6,31 @@ use iced::{
 };
 use num_traits::NumCast;
 
-use crate::{gleis::gleise::draw::move_to_position, typen::*};
+use crate::{
+    gleis::gleise::draw::move_to_position,
+    typen::{
+        canvas::{
+            pfad::{Pfad, Transformation},
+            Cache, Color, Fill, FillRule, HorizontalAlignment, Stroke, Text, VerticalAlignment,
+        },
+        mm::Spurweite,
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        Zeichnen,
+    },
+};
 
 const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 const PADDING: u16 = 2;
 const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 const GREY_IN_BOUNDS_VALUE: f32 = 0.7;
-const GREY_IN_BOUNDS: canvas::Color =
-    canvas::Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
+const GREY_IN_BOUNDS: Color =
+    Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
 const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
-const GREY_OUT_OF_BOUNDS: canvas::Color = canvas::Color::from_rgb(
-    GREY_OUT_OF_BOUNDS_VALUE,
-    GREY_OUT_OF_BOUNDS_VALUE,
-    GREY_OUT_OF_BOUNDS_VALUE,
-);
+const GREY_OUT_OF_BOUNDS: Color =
+    Color::from_rgb(GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE);
 
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
@@ -74,18 +84,14 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(
                 &border_path,
-                canvas::Fill {
+                Fill {
                     color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
-                    rule: canvas::FillRule::EvenOdd,
+                    rule: FillRule::EvenOdd,
                 },
             );
             frame.stroke(
                 &border_path,
-                canvas::Stroke {
-                    color: canvas::Color::BLACK,
-                    width: BORDER_WIDTH as f32,
-                    ..Default::default()
-                },
+                Stroke { color: Color::BLACK, width: BORDER_WIDTH as f32, ..Default::default() },
             );
             let spurweite = self.spurweite;
             let rechteck = self.gleis.rechteck(spurweite);
@@ -109,11 +115,7 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
-                        canvas::Stroke {
-                            color: canvas::Color::BLACK,
-                            width: STROKE_WIDTH.0,
-                            ..Default::default()
-                        },
+                        Stroke { color: Color::BLACK, width: STROKE_WIDTH.0, ..Default::default() },
                     );
                 });
             }
@@ -122,12 +124,12 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for
             {
                 frame.with_save(|frame| {
                     move_to_position(frame, &relative_position);
-                    frame.fill_text(canvas::Text {
+                    frame.fill_text(Text {
                         content: content.clone(),
                         position: Point::ORIGIN,
-                        color: canvas::Color::BLACK,
-                        horizontal_alignment: canvas::HorizontalAlignment::Center,
-                        vertical_alignment: canvas::VerticalAlignment::Center,
+                        color: Color::BLACK,
+                        horizontal_alignment: HorizontalAlignment::Center,
+                        vertical_alignment: VerticalAlignment::Center,
                         ..Default::default()
                     });
                 })

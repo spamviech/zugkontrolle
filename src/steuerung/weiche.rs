@@ -16,7 +16,9 @@ use crate::{
     anschluss::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-        pwm, Fehler, Fließend, InputAnschluss, OutputAnschluss,
+        pin::pwm,
+        polarität::Fließend,
+        Fehler, InputAnschluss, OutputAnschluss,
     },
     nachschlagen::Nachschlagen,
 };

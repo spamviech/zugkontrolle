@@ -12,13 +12,25 @@ use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
     nachschlagen::impl_nachschlagen,
     steuerung,
-    typen::*,
+    typen::{
+        canvas::{
+            pfad::{self, Pfad, Transformation},
+            Position,
+        },
+        mm::{Länge, Radius, Spurweite},
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
+        MitName, MitRichtung, Transparenz, Zeichnen,
+    },
 };
 
 /// Definition einer Kreuzung
-#[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct Kreuzung
+<Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub variante: Variante,

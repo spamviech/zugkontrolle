@@ -1,7 +1,5 @@
 //! Gpio Pin in verschiedenen Konfigurationen.
 
-pub use std::time::Duration;
-
 use self::pwm::Pwm;
 use crate::{anschluss::level::Level, rppal};
 

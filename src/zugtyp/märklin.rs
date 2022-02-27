@@ -2,7 +2,24 @@
 
 use std::marker::PhantomData;
 
-use crate::{gleis::*, steuerung::geschwindigkeit::Mittelleiter, typen::*, zugtyp::Zugtyp};
+use crate::{
+    gleis::{
+        gerade::{Gerade, GeradeUnit},
+        kreuzung::{self, Kreuzung, KreuzungUnit},
+        kurve::{Kurve, KurveUnit},
+        weiche::{
+            dreiwege::DreiwegeWeicheUnit,
+            gerade::{Orientierung, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+        },
+    },
+    steuerung::geschwindigkeit::Mittelleiter,
+    typen::{
+        mm::{Länge, Radius, Spurweite},
+        winkel::WinkelGradmaß,
+    },
+    zugtyp::Zugtyp,
+};
 
 impl Zugtyp<Mittelleiter> {
     /// Märklin
@@ -131,10 +148,10 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-pub fn weiche_5117(richtung: weiche::Orientierung) -> WeicheUnit {
+pub fn weiche_5117(richtung: Orientierung) -> WeicheUnit {
     let beschreibung = match richtung {
-        weiche::Orientierung::Links => "5117L",
-        weiche::Orientierung::Rechts => "5117R",
+        Orientierung::Links => "5117L",
+        Orientierung::Rechts => "5117R",
     };
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
@@ -145,15 +162,15 @@ pub fn weiche_5117(richtung: weiche::Orientierung) -> WeicheUnit {
     )
 }
 pub fn weiche_5117_rechts() -> WeicheUnit {
-    weiche_5117(weiche::Orientierung::Rechts)
+    weiche_5117(Orientierung::Rechts)
 }
 pub fn weiche_5117_links() -> WeicheUnit {
-    weiche_5117(weiche::Orientierung::Links)
+    weiche_5117(Orientierung::Links)
 }
-pub fn weiche_5137(richtung: weiche::Orientierung) -> WeicheUnit {
+pub fn weiche_5137(richtung: Orientierung) -> WeicheUnit {
     let beschreibung = match richtung {
-        weiche::Orientierung::Links => "5137L",
-        weiche::Orientierung::Rechts => "5137R",
+        Orientierung::Links => "5137L",
+        Orientierung::Rechts => "5137R",
     };
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
@@ -164,15 +181,15 @@ pub fn weiche_5137(richtung: weiche::Orientierung) -> WeicheUnit {
     )
 }
 pub fn weiche_5137_rechts() -> WeicheUnit {
-    weiche_5137(weiche::Orientierung::Rechts)
+    weiche_5137(Orientierung::Rechts)
 }
 pub fn weiche_5137_links() -> WeicheUnit {
-    weiche_5137(weiche::Orientierung::Links)
+    weiche_5137(Orientierung::Links)
 }
-pub fn weiche_5202(richtung: weiche::Orientierung) -> WeicheUnit {
+pub fn weiche_5202(richtung: Orientierung) -> WeicheUnit {
     let beschreibung = match richtung {
-        weiche::Orientierung::Links => "5202L",
-        weiche::Orientierung::Rechts => "5202R",
+        Orientierung::Links => "5202L",
+        Orientierung::Rechts => "5202R",
     };
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
@@ -183,10 +200,10 @@ pub fn weiche_5202(richtung: weiche::Orientierung) -> WeicheUnit {
     )
 }
 pub fn weiche_5202_rechts() -> WeicheUnit {
-    weiche_5202(weiche::Orientierung::Rechts)
+    weiche_5202(Orientierung::Rechts)
 }
 pub fn weiche_5202_links() -> WeicheUnit {
-    weiche_5202(weiche::Orientierung::Links)
+    weiche_5202(Orientierung::Links)
 }
 
 /*
@@ -206,10 +223,10 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeicheUnit {
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-pub fn kurven_weiche_5140(richtung: weiche::Orientierung) -> KurvenWeicheUnit {
+pub fn kurven_weiche_5140(richtung: Orientierung) -> KurvenWeicheUnit {
     let beschreibung = match richtung {
-        weiche::Orientierung::Links => "5140L",
-        weiche::Orientierung::Rechts => "5140R",
+        Orientierung::Links => "5140L",
+        Orientierung::Rechts => "5140R",
     };
     KurvenWeiche::neu_mit_beschreibung(
         Länge::neu(77.3),
@@ -220,10 +237,10 @@ pub fn kurven_weiche_5140(richtung: weiche::Orientierung) -> KurvenWeicheUnit {
     )
 }
 pub fn kurven_weiche_5140_rechts() -> KurvenWeicheUnit {
-    kurven_weiche_5140(weiche::Orientierung::Rechts)
+    kurven_weiche_5140(Orientierung::Rechts)
 }
 pub fn kurven_weiche_5140_links() -> KurvenWeicheUnit {
-    kurven_weiche_5140(weiche::Orientierung::Links)
+    kurven_weiche_5140(Orientierung::Links)
 }
 
 /*

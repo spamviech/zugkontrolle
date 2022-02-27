@@ -9,7 +9,7 @@ use iced::{
 use rstar::primitives::Rectangle;
 
 use crate::{
-    anschluss::Fließend,
+    anschluss::polarität::Fließend,
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -26,7 +26,19 @@ use crate::{
     },
     nachschlagen::Nachschlagen,
     steuerung::streckenabschnitt::Streckenabschnitt,
-    typen::*,
+    typen::{
+        canvas::{
+            pfad::{self, Transformation},
+            Color, Fill, FillRule, Frame, HorizontalAlignment, Position, Stroke, Text,
+            VerticalAlignment,
+        },
+        farbe::Farbe,
+        mm::Spurweite,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
+        Transparenz, Zeichnen,
+    },
 };
 
 pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
@@ -56,8 +68,8 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
                     .alpha();
                 frame.with_save(|frame| {
                     let Farbe { r, g, b } = *streckenabschnitt_farbe;
-                    let color = canvas::Color { r, g, b, a };
-                    frame.fill(&path, canvas::Fill { color, rule: canvas::FillRule::EvenOdd });
+                    let color = Color { r, g, b, a };
+                    frame.fill(&path, Fill { color, rule: FillRule::EvenOdd });
                 });
             }
         })
@@ -81,8 +93,8 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
                     let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                     frame.stroke(
                         &path,
-                        canvas::Stroke {
-                            color: canvas::Color { a, ..canvas::Color::BLACK },
+                        Stroke {
+                            color: Color { a, ..Color::BLACK },
                             width: 1.5,
                             ..Default::default()
                         },
@@ -119,7 +131,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
                         ist_gehalten_und_andere_verbindung(rectangle, verbindung_an_position);
                     let a = Transparenz::true_reduziert(gehalten).alpha();
                     let g = if andere_entgegengesetzt { 1. } else { 0. };
-                    let color = canvas::Color { r: 0., g, b: 1. - g, a };
+                    let color = Color { r: 0., g, b: 1. - g, a };
                     let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
                     let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
                     let verbindung_position = verbindung.position;
@@ -128,10 +140,10 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
                     path_builder.line_to(verbindung_position + richtung);
                     path_builder.line_to(verbindung_position - richtung_seite);
                     let path = path_builder.baue();
-                    frame.stroke(&path, canvas::Stroke { color, width: 1.5, ..Default::default() });
+                    frame.stroke(&path, Stroke { color, width: 1.5, ..Default::default() });
                     // fill on connect/snap for drag&drop
                     if andere_gehalten {
-                        frame.fill(&path, canvas::Fill { color, ..Default::default() });
+                        frame.fill(&path, Fill { color, ..Default::default() });
                     }
                 });
             });
@@ -162,12 +174,12 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
             frame.with_save(|frame| {
                 move_to_position(frame, &absolute_position);
                 let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
-                frame.fill_text(canvas::Text {
+                frame.fill_text(Text {
                     content,
                     position: Point::ORIGIN,
-                    color: canvas::Color { a, ..canvas::Color::BLACK },
-                    horizontal_alignment: canvas::HorizontalAlignment::Center,
-                    vertical_alignment: canvas::VerticalAlignment::Center,
+                    color: Color { a, ..Color::BLACK },
+                    horizontal_alignment: HorizontalAlignment::Center,
+                    vertical_alignment: VerticalAlignment::Center,
                     ..Default::default()
                 });
             })

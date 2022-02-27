@@ -13,7 +13,9 @@ use log::error;
 
 use crate::{
     gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
-    typen::*,
+    typen::{
+        canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,
+    },
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.

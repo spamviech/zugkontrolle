@@ -49,6 +49,6 @@ pub mod zugtyp;
 pub use crate::{
     application::{ausführen, ausführen_aus_env, Zugkontrolle},
     argumente::Argumente,
-    gleis::Gleise,
+    gleis::gleise::Gleise,
     zugtyp::Zugtyp,
 };

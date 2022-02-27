@@ -35,7 +35,15 @@ use crate::{
         geschwindigkeit::{self, Geschwindigkeit},
         streckenabschnitt::{self, Streckenabschnitt},
     },
-    typen::*,
+    typen::{
+        canvas::Position,
+        mm::Spurweite,
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
+        Zeichnen,
+    },
     zugtyp::Zugtyp,
 };
 
@@ -58,7 +66,7 @@ impl<T: Serialisiere> Serialisiere for Gleis<T> {
     fn anschlüsse(
         self,
     ) -> (
-        Vec<crate::anschluss::pwm::Pin>,
+        Vec<crate::anschluss::pin::pwm::Pin>,
         Vec<crate::anschluss::OutputAnschluss>,
         Vec<crate::anschluss::InputAnschluss>,
     ) {
@@ -70,7 +78,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<crate::anschluss::pwm::Pin>,
+        pwm_pins: Vec<crate::anschluss::pin::pwm::Pin>,
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
     ) -> anschluss::de_serialisieren::Result<Gleis<R>> {

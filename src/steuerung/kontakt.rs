@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 use crate::anschluss::{
     self,
     de_serialisieren::{self, AnschlussOderSerialisiert, Reserviere, Reserviert, Serialisiere},
-    pwm, Fehler, InputAnschluss, InputSerialisiert, Level, OutputAnschluss, Trigger,
+    level::Level,
+    pin::pwm,
+    trigger::Trigger,
+    Fehler, InputAnschluss, InputSerialisiert, OutputAnschluss,
 };
 
 /// Name eines Kontaktes.

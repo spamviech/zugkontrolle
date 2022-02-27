@@ -19,7 +19,9 @@ use nonempty::NonEmpty;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
-    anschluss::{polarität::Polarität, pwm, OutputSerialisiert, Serialisiere},
+    anschluss::{
+        de_serialisieren::Serialisiere, pin::pwm, polarität::Polarität, OutputSerialisiert,
+    },
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     maybe_empty::MaybeEmpty,
     steuerung::geschwindigkeit::{

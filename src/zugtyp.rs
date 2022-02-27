@@ -4,7 +4,18 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{gleis::*, typen::Spurweite};
+use crate::{
+    gleis::{
+        gerade::GeradeUnit,
+        kreuzung::KreuzungUnit,
+        kurve::KurveUnit,
+        weiche::{
+            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+            s_kurve::SKurvenWeicheUnit,
+        },
+    },
+    typen::mm::Spurweite,
+};
 
 pub mod lego;
 // path attribute necessary due to non-ascii module name (at least for now)

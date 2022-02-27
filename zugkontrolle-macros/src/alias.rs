@@ -60,7 +60,7 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                                 ),*
                             }
                         }
-                        fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                        fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pin::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
                             let mut pwm0 = Vec::new();
                             let mut output0 = Vec::new();
                             let mut input0 = Vec::new();
@@ -79,7 +79,7 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         fn reserviere(
                             self,
                             lager: &mut #base_ident::anschluss::Lager,
-                            pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                            pwm_nicht_benötigt: Vec<#base_ident::anschluss::pin::pwm::Pin>,
                             output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
                         ) -> #base_ident::anschluss::de_serialisieren::Result<#ident<#(#params),*>> {

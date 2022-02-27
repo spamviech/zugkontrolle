@@ -21,18 +21,33 @@ use self::{
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
     icon::icon,
-    style::*,
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
     argumente::{Argumente, ZugtypArgument},
     gleis::{
         self,
-        gleise::{daten::de_serialisieren::BekannterLeiter, *},
-        *,
+        button::{Button, ButtonNachricht},
+        gerade::GeradeUnit,
+        gleise::{
+            self,
+            daten::de_serialisieren::BekannterLeiter,
+            id::{AnyId, GleisId, StreckenabschnittId},
+            Gleise, Modus,
+        },
+        kreuzung::{Kreuzung, KreuzungUnit},
+        kurve::KurveUnit,
+        weiche::{
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+        },
     },
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
-    typen::*,
+    typen::{
+        canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel, MitName,
+    },
     zugtyp::Zugtyp,
 };
 
@@ -221,7 +236,7 @@ type WeicheStatus = weiche::Status<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
     gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
 >;
-type WeicheSerialisiert = steuerung::WeicheSerialisiert<
+type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
@@ -230,7 +245,7 @@ type DreiwegeWeicheStatus = weiche::Status<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
     gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
 >;
-type DreiwegeWeicheSerialisiert = steuerung::WeicheSerialisiert<
+type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
@@ -239,7 +254,7 @@ type KurvenWeicheStatus = weiche::Status<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
     gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
 >;
-type KurvenWeicheSerialisiert = steuerung::WeicheSerialisiert<
+type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;

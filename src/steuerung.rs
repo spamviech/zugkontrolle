@@ -13,4 +13,4 @@ pub mod kontakt;
 pub use kontakt::{Kontakt, KontaktSerialisiert};
 
 pub mod plan;
-pub use plan::Plan;
+pub use plan::{Aktion, AktionSerialisiert, Plan, PlanSerialisiert};

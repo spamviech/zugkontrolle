@@ -5,7 +5,15 @@ use iced::{
     mouse, Color, Rectangle,
 };
 
-use crate::typen::*;
+use crate::typen::{
+    canvas::{
+        pfad::{self, Bogen},
+        Cache,
+    },
+    skalar::Skalar,
+    vektor::{self, Vektor},
+    winkel::{self, Trigonometrie, Winkel},
+};
 
 #[derive(Debug)]
 pub struct Drehen {

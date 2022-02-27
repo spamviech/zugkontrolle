@@ -12,7 +12,9 @@ use crate::{
         gerade::Gerade,
         kreuzung::Kreuzung,
         kurve::Kurve,
-        weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+        weiche::{
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+        },
     },
     steuerung::{geschwindigkeit, streckenabschnitt},
     typen::vektor::Vektor,

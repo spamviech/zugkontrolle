@@ -12,7 +12,7 @@ pub use self::{
 use crate::{kleiner_als::kleiner_8, rppal};
 
 pub mod level;
-pub use level::*;
+pub use level::Level;
 
 #[path = "anschluss/polarität.rs"]
 pub mod polarität;

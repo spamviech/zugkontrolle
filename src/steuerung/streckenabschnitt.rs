@@ -10,7 +10,8 @@ use crate::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        polarität::Fließend,
+        Fehler, InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
     typen::farbe::Farbe,
 };

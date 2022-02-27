@@ -5,7 +5,15 @@ use iced::{
     mouse, Rectangle,
 };
 
-use crate::typen::*;
+use crate::typen::{
+    canvas::{
+        pfad::{self, Bogen},
+        Cache, Stroke,
+    },
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Bewegung {
@@ -100,7 +108,7 @@ impl Program<Nachricht> for Bewegen {
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
         let pfad = erbauer.baue();
-        vec![self.canvas.zeichnen(size, |frame| frame.stroke(&pfad, canvas::Stroke::default()))]
+        vec![self.canvas.zeichnen(size, |frame| frame.stroke(&pfad, Stroke::default()))]
     }
 
     fn update(

@@ -15,8 +15,8 @@ use crate::{
         },
         verbindung::{self, Verbindung},
     },
-    steuerung::Streckenabschnitt,
-    typen::*,
+    steuerung::streckenabschnitt::Streckenabschnitt,
+    typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
 };
 
 impl<Leiter> Gleise<Leiter> {

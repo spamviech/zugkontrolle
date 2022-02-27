@@ -42,7 +42,7 @@ use crate::{
         plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
-    typen::{vektor::Vektor, Spurweite, Zeichnen},
+    typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::Zugtyp,
 };
 

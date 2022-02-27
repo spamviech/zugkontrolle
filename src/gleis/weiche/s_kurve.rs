@@ -4,16 +4,27 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
 pub use crate::gleis::weiche::gerade::{
-    Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
+    Orientierung, Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
 };
 use crate::{
     gleis::{
         gerade, kurve,
         verbindung::Verbindung,
-        weiche::gerade::{Orientierung, VerbindungName, Verbindungen},
+        weiche::gerade::{VerbindungName, Verbindungen},
     },
     steuerung,
-    typen::*,
+    typen::{
+        canvas::{
+            pfad::{self, Pfad, Transformation},
+            Position,
+        },
+        mm::{Länge, Radius, Spurweite},
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
+        MitName, MitRichtung, Transparenz, Zeichnen,
+    },
 };
 
 /// Definition einer Weiche mit S-Kurve
@@ -21,9 +32,11 @@ use crate::{
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[alias_serialisiert_unit(steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche<Anschlüsse = Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct SKurvenWeiche<
+    Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>,
+> {
     pub länge: Skalar,
     pub radius: Skalar,
     pub winkel: Winkel,

@@ -14,7 +14,8 @@ use log::{debug, error};
 use crate::{
     anschluss::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-        Fließend, OutputAnschluss, OutputSerialisiert,
+        polarität::Fließend,
+        OutputAnschluss, OutputSerialisiert,
     },
     application::{
         bewegen::Bewegung,
@@ -35,8 +36,7 @@ use crate::{
     steuerung::{
         geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
-    typen::farbe::Farbe,
-    typen::*,
+    typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
 };
 
 impl<Leiter> Nachricht<Leiter>
@@ -635,7 +635,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
             &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<
-            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
+            Steuerung<'t, steuerung::weiche::Weiche<Richtung, Anschlüsse>>,
             GleisIdFehler,
         >,
         aktuelle_richtung: Richtung,
@@ -743,7 +743,7 @@ where
             &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<
-            Steuerung<'t, steuerung::Weiche<Richtung, Anschlüsse>>,
+            Steuerung<'t, steuerung::weiche::Weiche<Richtung, Anschlüsse>>,
             GleisIdFehler,
         >,
         nächste_richtung: NR,
@@ -752,7 +752,9 @@ where
         T: 'static,
         Richtung: Clone + Send + 'static,
         Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
-        NR: FnOnce(&mut steuerung::Weiche<Richtung, Anschlüsse>) -> Richtung + Send + 'static,
+        NR: FnOnce(&mut steuerung::weiche::Weiche<Richtung, Anschlüsse>) -> Richtung
+            + Send
+            + 'static,
         ZZ: FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter> + Send + 'static,
     {
         let mut error_message = None;
@@ -797,7 +799,7 @@ where
                 "Weiche",
                 id,
                 Gleise::steuerung_weiche,
-                |steuerung::Weiche { aktuelle_richtung, .. }| {
+                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve
@@ -811,7 +813,7 @@ where
                 "DreiwegeWeiche",
                 id,
                 Gleise::steuerung_dreiwege_weiche,
-                |steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
+                |steuerung::weiche::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
                     use gleis::weiche::dreiwege::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         match letzte_richtung {
@@ -833,7 +835,7 @@ where
                 "KurvenWeiche",
                 id,
                 Gleise::steuerung_kurven_weiche,
-                |steuerung::Weiche { aktuelle_richtung, .. }| {
+                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::kurve::Richtung;
                     if aktuelle_richtung == &Richtung::Außen {
                         Richtung::Innen
@@ -847,7 +849,7 @@ where
                 "SKurvenWeiche",
                 id,
                 Gleise::steuerung_s_kurven_weiche,
-                |steuerung::Weiche { aktuelle_richtung, .. }| {
+                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve
@@ -861,7 +863,7 @@ where
                 "Kreuzung",
                 id,
                 Gleise::steuerung_kreuzung,
-                |steuerung::Weiche { aktuelle_richtung, .. }| {
+                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
                     use gleis::weiche::gerade::Richtung;
                     if aktuelle_richtung == &Richtung::Gerade {
                         Richtung::Kurve

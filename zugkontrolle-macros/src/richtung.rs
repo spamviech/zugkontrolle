@@ -73,7 +73,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSerialisiert { #(#struct_fields: #struct_fields.serialisiere()),* }
                 }
-                fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pin::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
                     let mut pwm0 = Vec::new();
                     let mut output0 = Vec::new();
                     let mut input0 = Vec::new();
@@ -90,7 +90,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                 fn reserviere(
                     self,
                     lager: &mut #base_ident::anschluss::Lager,
-                    pwm_nicht_benötigt: Vec<#base_ident::anschluss::pwm::Pin>,
+                    pwm_nicht_benötigt: Vec<#base_ident::anschluss::pin::pwm::Pin>,
                     output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
                 ) -> #base_ident::anschluss::de_serialisieren::Result<RichtungAnschlüsse> {
@@ -109,7 +109,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             impl Default for RichtungAnschlüsseSerialisiert {
                 fn default() -> Self {
                     RichtungAnschlüsseSerialisiert {
-                        #(#struct_fields: #base_ident::anschluss::OutputSerialisiert::Pin {pin:0, polarität: #base_ident::anschluss::Polarität::Normal}),*
+                        #(#struct_fields: #base_ident::anschluss::OutputSerialisiert::Pin {pin:0, polarität: #base_ident::anschluss::polarität::Polarität::Normal}),*
                     }
                 }
             }

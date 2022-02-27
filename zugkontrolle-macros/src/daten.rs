@@ -192,8 +192,21 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
             PathSegment { ident: base_ident, arguments: PathArguments::None },
             PathSegment { ident: format_ident!("gleis"), arguments: PathArguments::None },
         ];
-        let erzeuge_typ_segments = |name: &str| {
+        let erzeuge_typ_segments = |alt_modules: Option<&[&str]>, name: &str| {
             let mut segments = start_segments.clone();
+            if let Some(modules) = alt_modules {
+                for module in modules {
+                    segments.push(PathSegment {
+                        ident: format_ident!("{}", module),
+                        arguments: PathArguments::None,
+                    });
+                }
+            } else {
+                segments.push(PathSegment {
+                    ident: format_ident!("{}", name.to_lowercase()),
+                    arguments: PathArguments::None,
+                });
+            }
             segments.push(PathSegment {
                 ident: format_ident!("{}", name),
                 arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
@@ -205,13 +218,13 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
             });
             segments
         };
-        let gerade = erzeuge_typ_segments("Gerade");
-        let kurve = erzeuge_typ_segments("Kurve");
-        let weiche = erzeuge_typ_segments("Weiche");
-        let dreiwege_weiche = erzeuge_typ_segments("DreiwegeWeiche");
-        let kurven_weiche = erzeuge_typ_segments("KurvenWeiche");
-        let s_kurven_weiche = erzeuge_typ_segments("SKurvenWeiche");
-        let kreuzung = erzeuge_typ_segments("Kreuzung");
+        let gerade = erzeuge_typ_segments(None, "Gerade");
+        let kurve = erzeuge_typ_segments(None, "Kurve");
+        let weiche = erzeuge_typ_segments(Some(&["weiche", "gerade"]), "Weiche");
+        let dreiwege_weiche = erzeuge_typ_segments(Some(&["weiche", "dreiwege"]), "DreiwegeWeiche");
+        let kurven_weiche = erzeuge_typ_segments(Some(&["weiche", "kurve"]), "KurvenWeiche");
+        let s_kurven_weiche = erzeuge_typ_segments(Some(&["weiche", "s_kurve"]), "SKurvenWeiche");
+        let kreuzung = erzeuge_typ_segments(None, "Kreuzung");
 
         let ImplItemMethod {
             sig: Signature { ident, generics, inputs, output, .. }, attrs, ..

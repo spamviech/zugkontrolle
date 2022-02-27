@@ -9,7 +9,18 @@ use crate::{
     gleis::verbindung::Verbindung,
     nachschlagen::impl_nachschlagen,
     steuerung::kontakt::{Kontakt, KontaktSerialisiert},
-    typen::*,
+    typen::{
+        canvas::{
+            pfad::{self, Bogen, Pfad, Transformation},
+            Position,
+        },
+        mm::{Länge, Spurweite},
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Winkel},
+        MitName, Transparenz, Zeichnen,
+    },
 };
 
 /// Definition einer Gerade

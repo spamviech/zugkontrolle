@@ -2,7 +2,20 @@
 
 use std::{f32::consts::PI, marker::PhantomData};
 
-use crate::{gleis::*, steuerung::geschwindigkeit::Zweileiter, typen::*, zugtyp::Zugtyp};
+use crate::{
+    gleis::{
+        gerade::{Gerade, GeradeUnit},
+        kreuzung::{self, Kreuzung, KreuzungUnit},
+        kurve::{Kurve, KurveUnit},
+        weiche::s_kurve::{Orientierung, SKurvenWeiche, SKurvenWeicheUnit},
+    },
+    steuerung::geschwindigkeit::Zweileiter,
+    typen::{
+        mm::{Länge, Radius, Spurweite},
+        winkel::Winkel,
+    },
+    zugtyp::Zugtyp,
+};
 
 impl Zugtyp<Zweileiter> {
     /// Lego
@@ -16,10 +29,7 @@ impl Zugtyp<Zweileiter> {
             weichen: vec![],
             dreiwege_weichen: vec![],
             kurven_weichen: vec![],
-            s_kurven_weichen: vec![
-                weiche(weiche::Orientierung::Links),
-                weiche(weiche::Orientierung::Rechts),
-            ],
+            s_kurven_weichen: vec![weiche(Orientierung::Links), weiche(Orientierung::Rechts)],
             kreuzungen: vec![kreuzung()],
         }
     }
@@ -84,7 +94,7 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub fn weiche(richtung: weiche::Orientierung) -> SKurvenWeicheUnit {
+pub fn weiche(richtung: Orientierung) -> SKurvenWeicheUnit {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
 

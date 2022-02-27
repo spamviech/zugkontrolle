@@ -1,7 +1,5 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
-use serde::{Deserialize, Serialize};
-
 use crate::{
     gleis::verbindung::{self, Verbindung},
     nachschlagen::Nachschlagen,
@@ -15,7 +13,7 @@ use crate::{
 pub use self::{
     canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
     farbe::Farbe,
-    mm::{Länge, Radius},
+    mm::{Länge, Radius,Spurweite},
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
@@ -29,34 +27,6 @@ pub mod rechteck;
 pub mod skalar;
 pub mod vektor;
 pub mod winkel;
-
-/// Spurweite \[mm\].
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct Spurweite(pub f32);
-
-// Abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/.
-impl Spurweite {
-    /// Abstand beider Schienen
-    pub fn spurweite(&self) -> Skalar {
-        Skalar(self.0)
-    }
-    /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-    pub fn abstand(&self) -> Skalar {
-        self.spurweite() / Skalar(3.)
-    }
-    /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-    pub fn beschränkung(&self) -> Skalar {
-        self.spurweite() + self.abstand().doppelt()
-    }
-    /// Innerster Radius (inklusive Beschränkung) einer Kurve
-    pub fn radius_begrenzung_innen(&self, radius: Skalar) -> Skalar {
-        radius - self.spurweite().halbiert() - self.abstand()
-    }
-    /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-    pub fn radius_begrenzung_außen(&self, radius: Skalar) -> Skalar {
-        radius + self.spurweite().halbiert() + self.abstand()
-    }
-}
 
 /// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -14,7 +14,7 @@ use crate::{
         },
     },
     steuerung,
-    typen::*,
+    typen::canvas::Cache,
 };
 
 /// Mutable Referenz auf die Steuerung eines Gleises.
@@ -88,7 +88,7 @@ macro_rules! steuerung_weiche {
 impl<Leiter> Gleise<Leiter> {
     steuerung_weiche! {
         steuerung_weiche,
-        gleis::Weiche,
+        gleis::weiche::gerade::Weiche,
         weichen,
         gleis::weiche::gerade::Richtung,
         gleis::weiche::gerade::RichtungAnschlüsse
@@ -96,7 +96,7 @@ impl<Leiter> Gleise<Leiter> {
 
     steuerung_weiche! {
         steuerung_dreiwege_weiche,
-        gleis::DreiwegeWeiche,
+        gleis::weiche::dreiwege::DreiwegeWeiche,
         dreiwege_weichen,
         gleis::weiche::dreiwege::Richtung,
         gleis::weiche::dreiwege::RichtungAnschlüsse
@@ -104,7 +104,7 @@ impl<Leiter> Gleise<Leiter> {
 
     steuerung_weiche! {
         steuerung_kurven_weiche,
-        gleis::KurvenWeiche,
+        gleis::weiche::kurve::KurvenWeiche,
         kurven_weichen,
         gleis::weiche::kurve::Richtung,
         gleis::weiche::kurve::RichtungAnschlüsse
@@ -112,7 +112,7 @@ impl<Leiter> Gleise<Leiter> {
 
     steuerung_weiche! {
         steuerung_s_kurven_weiche,
-        gleis::SKurvenWeiche,
+        gleis::weiche::s_kurve::SKurvenWeiche,
         s_kurven_weichen,
         gleis::weiche::s_kurve::Richtung,
         gleis::weiche::s_kurve::RichtungAnschlüsse
@@ -120,7 +120,7 @@ impl<Leiter> Gleise<Leiter> {
 
     steuerung_weiche! {
         steuerung_kreuzung,
-        gleis::Kreuzung,
+        gleis::kreuzung::Kreuzung,
         kreuzungen,
         gleis::kreuzung::Richtung,
         gleis::kreuzung::RichtungAnschlüsse

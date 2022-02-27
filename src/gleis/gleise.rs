@@ -18,9 +18,18 @@ use self::{
     id::StreckenabschnittIdRef,
 };
 use crate::{
-    anschluss::{self, Fließend},
-    steuerung::{geschwindigkeit, streckenabschnitt, Geschwindigkeit, Streckenabschnitt},
-    typen::*,
+    anschluss::{self, polarität::Fließend},
+    steuerung::{
+        geschwindigkeit::{self, Geschwindigkeit},
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
+    typen::{
+        canvas::{Cache, Position},
+        mm::Spurweite,
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::Winkel,
+    },
     zugtyp::Zugtyp,
 };
 
@@ -72,7 +81,7 @@ pub struct Gleise<Leiter> {
 impl<Leiter> Gleise<Leiter> {
     pub fn neu(zugtyp: Zugtyp<Leiter>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
-            canvas: canvas::Cache::neu(),
+            canvas: Cache::neu(),
             pivot,
             skalieren,
             zustand: Zustand::neu(zugtyp),

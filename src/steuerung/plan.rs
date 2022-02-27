@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        pwm, InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert, Trigger,
+        pin::pwm, trigger::Trigger, InputAnschluss, InputSerialisiert, OutputAnschluss,
+        OutputSerialisiert,
     },
     steuerung::{
         geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
