@@ -3,5 +3,5 @@
 [Desktop Entry]
 Type=Application
 Terminal=false
-Name[en_EN]=Zugkontrolle
-Exec=sh -c "/home/pi/Desktop/Zugkontrolle/bin/zugkontrolle %f"
+Name[en_EN]=zugkontrolle
+Exec=sh -c "/home/pi/bin/Zugkontrolle %f"
