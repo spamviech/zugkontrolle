@@ -76,7 +76,7 @@ impl KurvenWeicheUnit {
     }
 }
 #[erstelle_richtung]
-#[impl_nachschlagen(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, en, Debug, Clone)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
