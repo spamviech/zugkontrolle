@@ -8,7 +8,10 @@ use crate::{
     anschluss::{
         pwm, InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert, Trigger,
     },
-    steuerung::geschwindigkeit::{Mittelleiter, Zweileiter},
+    steuerung::{
+        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
+        streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
+    },
 };
 
 // FIXME Benötigt eigenen Serialisiert-Typ
@@ -21,6 +24,7 @@ pub struct Plan<Aktion = self::Aktion> {
 
 pub type PlanSerialisiert = Plan<AktionSerialisiert>;
 
+// TODO verwende Unter-Enums (z.B. Geschwindigkeit, Schalten, Warten, Strom)?
 /// Eine Aktionen in einem Fahrplan.
 ///
 /// Erstellen erster Aktionen führt nicht zwingend zu einem erhöhen der major version.
@@ -29,6 +33,7 @@ pub type PlanSerialisiert = Plan<AktionSerialisiert>;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(bound(serialize = "Pwm: Clone + Serialize, Output: Clone + Serialize, Input: Serialize"))]
 pub enum Aktion<Pwm = pwm::Pin, Output = OutputAnschluss, Input = InputAnschluss> {
+    // TODO verwende Geschwindigkeit/GeschwindigkeitSerialisiert
     GeschwindigkeitMittelleiter { leiter: Mittelleiter<Pwm, Output>, wert: u8 },
     GeschwindigkeitZweileiter { leiter: Zweileiter<Pwm, Output>, wert: u8 },
     WartenAuf { anschluss: Input, trigger: Trigger },
