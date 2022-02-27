@@ -12,7 +12,11 @@ use iced::{
 use log::error;
 
 use crate::{
-    gleis::gleise::{daten::*, id::*, Gehalten, Gleise, ModusDaten, Nachricht},
+    gleis::gleise::{
+        daten::{Gleis, GleiseDaten, RStern},
+        id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
+        Gehalten, Gleise, ModusDaten, Nachricht,
+    },
     typen::{
         canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,
     },
