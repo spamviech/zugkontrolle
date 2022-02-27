@@ -15,28 +15,24 @@ use crate::{
         polarität::Fließend,
     },
     gleis::{
-        gerade::{Gerade, GeradeSerialisiert},
+        gerade::Gerade,
         gleise::{
             id::{
                 AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
             },
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
-        kreuzung::{Kreuzung, KreuzungSerialisiert},
-        kurve::{Kurve, KurveSerialisiert},
+        kreuzung::Kreuzung,
+        kurve::Kurve,
         verbindung,
         verbindung::Verbindung,
         weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert},
-            gerade::{Weiche, WeicheSerialisiert},
-            kurve::{KurvenWeiche, KurvenWeicheSerialisiert},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert},
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit},
-        plan::Plan,
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::*,

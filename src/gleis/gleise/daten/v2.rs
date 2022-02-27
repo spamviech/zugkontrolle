@@ -23,7 +23,7 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit, plan::Plan, streckenabschnitt,
+        geschwindigkeit, plan::PlanSerialisiert, streckenabschnitt,
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
     typen::canvas::Position,
@@ -50,7 +50,7 @@ pub(crate) struct GleiseVecs<Leiter: Serialisiere> {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
     pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Leiter>,
-    pub(crate) pläne: Vec<Plan>,
+    pub(crate) pläne: Vec<PlanSerialisiert>,
 }
 
 // Explizite serde-Implementierung, damit Leiter kein automatisches Constraint bekommt

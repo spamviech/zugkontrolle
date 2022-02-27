@@ -39,7 +39,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
-        plan::Plan,
+        plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{vektor::Vektor, Spurweite, Zeichnen},
@@ -60,7 +60,7 @@ pub struct ZustandSerialisiert<Leiter: Serialisiere> {
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
-    pub(crate) pläne: Vec<Plan>,
+    pub(crate) pläne: Vec<PlanSerialisiert>,
 }
 
 // Explizite serde-Implementierung, damit Leiter kein automatisches Constraint bekommt

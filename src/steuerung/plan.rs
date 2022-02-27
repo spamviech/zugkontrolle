@@ -1,15 +1,25 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    anschluss::{
+        pwm, InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert, Trigger,
+    },
+    steuerung::geschwindigkeit::{Mittelleiter, Zweileiter},
+};
 
 // FIXME Benötigt eigenen Serialisiert-Typ
 /// Plan für einen automatischen Fahrplan.
 #[derive(Debug, Serialize, Deserialize)]
-#[allow(missing_copy_implementations)]
-pub struct Plan {
+pub struct Plan<Aktion = self::Aktion> {
     pub aktionen: Vec<Aktion>,
     pub endlosschleife: bool,
 }
+
+pub type PlanSerialisiert = Plan<AktionSerialisiert>;
 
 /// Eine Aktionen in einem Fahrplan.
 ///
@@ -17,5 +27,12 @@ pub struct Plan {
 /// Daher ist das enum als non_exhaustive markiert.
 #[non_exhaustive]
 #[derive(Debug, Serialize, Deserialize)]
-#[allow(missing_copy_implementations)]
-pub enum Aktion {}
+#[serde(bound(serialize = "Pwm: Clone + Serialize, Output: Clone + Serialize, Input: Serialize"))]
+pub enum Aktion<Pwm = pwm::Pin, Output = OutputAnschluss, Input = InputAnschluss> {
+    GeschwindigkeitMittelleiter { leiter: Mittelleiter<Pwm, Output>, wert: u8 },
+    GeschwindigkeitZweileiter { leiter: Zweileiter<Pwm, Output>, wert: u8 },
+    WartenAuf { anschluss: Input, trigger: Trigger },
+    WartenFür { zeit: Duration },
+}
+
+pub type AktionSerialisiert = Aktion<pwm::Serialisiert, OutputSerialisiert, InputSerialisiert>;
