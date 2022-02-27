@@ -45,9 +45,7 @@ use crate::{
         },
     },
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
-    typen::{
-        canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel, MitName,
-    },
+    typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
 };
 
