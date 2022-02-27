@@ -1,7 +1,11 @@
 //! speichern und laden Methode für Gleise
 
-use std::io::Read;
+use std::{collections::HashMap, fmt::Debug, io::Read, marker::PhantomData};
 
+use rstar::{
+    primitives::{GeomWithData, Rectangle},
+    RTree,
+};
 use serde::{
     de::{self, MapAccess, SeqAccess, Visitor},
     ser::SerializeStruct,
@@ -13,13 +17,32 @@ use crate::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
+        polarität::Fließend,
         InputAnschluss, OutputAnschluss,
     },
-    gleis::gleise::{daten::*, Fehler, Gleise},
+    gleis::{
+        gerade::{Gerade, GeradeSerialisiert},
+        gleise::{
+            daten::{
+                v2, DatenAuswahl, Gleis, GleiseDaten, SelectAll, StreckenabschnittMap, Zustand,
+            },
+            Fehler, Gleise,
+        },
+        kreuzung::{Kreuzung, KreuzungSerialisiert},
+        kurve::{Kurve, KurveSerialisiert},
+        weiche::{
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert},
+            gerade::{Weiche, WeicheSerialisiert},
+            kurve::{KurvenWeiche, KurvenWeicheSerialisiert},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert},
+        },
+    },
     steuerung::{
         geschwindigkeit::{self, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
-        streckenabschnitt::StreckenabschnittSerialisiert,
+        plan::Plan,
+        streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
+    typen::{vektor::Vektor, Spurweite, Zeichnen},
     zugtyp::Zugtyp,
 };
 
