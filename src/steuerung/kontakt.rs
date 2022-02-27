@@ -2,10 +2,11 @@
 
 use std::sync::{
     mpsc::{channel, Receiver, RecvError, SendError, Sender},
-    Arc, Mutex, PoisonError,
+    Arc, PoisonError,
 };
 
 use log::error;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
@@ -48,10 +49,7 @@ fn heile_poison<T>(poison_error: PoisonError<T>, mutex_name: &str, kontakt_name:
 
 impl Drop for Kontakt {
     fn drop(&mut self) {
-        let mut kontakt_anschluss = self
-            .anschluss
-            .lock()
-            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
+        let mut kontakt_anschluss = self.anschluss.lock();
         if let AnschlussOderSerialisiert::Anschluss(anschluss) = &mut *kontakt_anschluss {
             AnschlussOderSerialisiert::interrupt_zurücksetzen(anschluss, &self.name)
         }
@@ -69,9 +67,7 @@ impl Kontakt {
         let name_clone = name.clone();
         let senders_clone = senders.clone();
         let set_async_interrupt_result = anschluss.set_async_interrupt(trigger, move |level| {
-            let senders = &mut *senders_clone
-                .lock()
-                .unwrap_or_else(|poison_error| heile_poison(poison_error, "Sender", &name_clone));
+            let senders = &mut *senders_clone.lock();
             // iterate over all registered channels, sending them the level
             // start at the end to avoid shifting channels as much as possible
             let mut next = senders.len().checked_sub(1);
@@ -100,10 +96,7 @@ impl Kontakt {
     /// Rückgabewert ist der zugehörige `Receiver`.
     pub fn registriere_trigger_channel(&mut self) -> Receiver<Level> {
         let (sender, receiver) = channel();
-        let senders = &mut *self
-            .senders
-            .lock()
-            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Sender", &self.name));
+        let senders = &mut *self.senders.lock();
         senders.push(sender);
         receiver
     }
@@ -129,20 +122,13 @@ impl Serialisiere for Kontakt {
     fn serialisiere(&self) -> KontaktSerialisiert {
         KontaktSerialisiert {
             name: self.name.clone(),
-            anschluss: self
-                .anschluss
-                .lock()
-                .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name))
-                .serialisiere(),
+            anschluss: self.anschluss.lock().serialisiere(),
             trigger: self.trigger,
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let mut kontakt_anschluss = self
-            .anschluss
-            .lock()
-            .unwrap_or_else(|poison_error| heile_poison(poison_error, "Anschluss", &self.name));
+        let mut kontakt_anschluss = self.anschluss.lock();
         if let AnschlussOderSerialisiert::Anschluss(mut anschluss) =
             kontakt_anschluss.entferne_anschluss()
         {
