@@ -47,6 +47,6 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "arm-linux-gnueabihf-gcc"
 """
 
-bin_path = build(config.name, target=config.arm_target, strip_path=config.arm_strip_path)
+bin_path = build(config.name, target=config.arm_target)
 # automatically transfer to raspi using scp
 send_to_raspi(config.name, bin_path, config.raspberry_user, config.raspberry_address)

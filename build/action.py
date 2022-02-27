@@ -2,7 +2,7 @@
 
 from build.util import execute, copy
 
-def build(program_name, release=True, target=None, strip_path=None, binary_extension=""):
+def build(program_name, release=True, target=None, binary_extension=""):
     """Build the program for the specified profile, copy it to ./bin, strip it"""
     binary_name = program_name + binary_extension
     build_command = ["cargo", "build"]
@@ -21,9 +21,6 @@ def build(program_name, release=True, target=None, strip_path=None, binary_exten
     source_path = "./target/" + target_dir + profile + "/" + binary_name
     execute(build_command)
     copy(source_path, bin_path)
-    if strip_path is not None:
-        strip_command = [strip_path, "--strip-all", bin_path]
-        execute(strip_command)
     return bin_path
 
 def send_to_raspi(program_name, bin_path, raspberry_user, raspberry_address, binary_extension=""):

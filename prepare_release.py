@@ -38,7 +38,7 @@ linker = "arm-linux-gnueabihf-gcc"
 """
 
 # build for raspi in release mode
-bin_path = build(config.name, target=config.arm_target, strip_path=config.arm_strip_path)
+build(config.name, target=config.arm_target)
 
 # build for host platform
-build(config.name, strip_path=config.host_strip_path, binary_extension=config.host_extension)
+build(config.name, binary_extension=config.host_extension)
