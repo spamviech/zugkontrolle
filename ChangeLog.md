@@ -36,6 +36,11 @@
   - polarity.rs -> polarität.rs
   - maps.rs -> daten.rs
   - args.rs -> argumente.rs
+- Refactoring: Module neu sortiert
+  - zugkontrolle::application::gleis -> zugkontrolle::gleis
+  - zugkontrolle::application::typen -> zugkontrolle::typen
+  - zugkontrolle::farbe -> zugkontrolle::typen::farbe
+  - Untermodule entsprechend mit-verschoben
 - Refactoring: gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
