@@ -5,7 +5,7 @@ use iced::{
     mouse, Rectangle,
 };
 
-use crate::application::typen::*;
+use crate::typen::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Bewegung {

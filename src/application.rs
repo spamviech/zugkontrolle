@@ -20,19 +20,19 @@ use self::{
     drehen::Drehen,
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
-    gleis::{
-        gleise::{daten::de_serialisieren::BekannterLeiter, *},
-        *,
-    },
     icon::icon,
     style::*,
-    typen::*,
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
     argumente::{Argumente, ZugtypArgument},
-    farbe::Farbe,
+    gleis::{
+        self,
+        gleise::{daten::de_serialisieren::BekannterLeiter, *},
+        *,
+    },
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
+    typen::*,
     zugtyp::Zugtyp,
 };
 
@@ -44,7 +44,6 @@ pub mod empfänger;
 pub mod farbwahl;
 pub mod fonts;
 pub mod geschwindigkeit;
-pub mod gleis;
 pub mod icon;
 pub(crate) mod macros;
 pub mod modal;
@@ -52,7 +51,6 @@ pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
 pub mod touch_canvas;
-pub mod typen;
 pub mod update;
 pub mod view;
 pub mod weiche;

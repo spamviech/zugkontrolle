@@ -12,7 +12,7 @@ use crate::{
         pin::pwm,
         Fehler, Fließend, InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
-    farbe::Farbe,
+    typen::farbe::Farbe,
 };
 
 /// Steuerung der Stromzufuhr.

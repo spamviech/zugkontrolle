@@ -5,7 +5,7 @@ use iced::{
     mouse, Color, Rectangle,
 };
 
-use crate::application::typen::*;
+use crate::typen::*;
 
 #[derive(Debug)]
 pub struct Drehen {

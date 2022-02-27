@@ -2,11 +2,7 @@
 
 use std::marker::PhantomData;
 
-use crate::{
-    application::{gleis::*, typen::*},
-    steuerung::geschwindigkeit::Mittelleiter,
-    zugtyp::Zugtyp,
-};
+use crate::{gleis::*, steuerung::geschwindigkeit::Mittelleiter, typen::*, zugtyp::Zugtyp};
 
 impl Zugtyp<Mittelleiter> {
     /// Märklin

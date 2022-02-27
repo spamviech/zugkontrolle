@@ -4,11 +4,18 @@ use iced::{Align, Column, Container, Element, Length, Row, Rule, Scrollable, Sli
 use log::error;
 use num_traits::NumCast;
 
-use crate::application::{
-    bewegen::Bewegen,
-    button::Button,
-    drehen::Drehen,
-    geschwindigkeit::{self, LeiterAnzeige},
+use crate::{
+    application::{
+        bewegen::Bewegen,
+        button::Button,
+        drehen::Drehen,
+        geschwindigkeit::{self, LeiterAnzeige},
+        modal::Modal,
+        scrollable, speichern_laden, streckenabschnitt,
+        style::rule,
+        touch_canvas, weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht,
+        NachrichtClone, Zugkontrolle,
+    },
     gleis::{
         gerade::GeradeUnit,
         gleise::Gleise,
@@ -19,13 +26,7 @@ use crate::application::{
             s_kurve::SKurvenWeicheUnit,
         },
     },
-    modal::Modal,
-    scrollable, speichern_laden, streckenabschnitt,
-    style::rule,
-    touch_canvas,
     typen::*,
-    weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht, NachrichtClone,
-    Zugkontrolle,
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {

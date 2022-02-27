@@ -6,7 +6,7 @@ use iced::{
     Background, Color,
 };
 
-use crate::farbe::Farbe;
+use crate::typen::farbe::Farbe;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Beschreibung;

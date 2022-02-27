@@ -8,7 +8,7 @@ use std::{
 
 use kommandozeilen_argumente::{Beschreibung, EnumArgument, Parse, ParseArgument};
 
-use crate::application::{
+use crate::{
     gleis::gleise::Modus,
     typen::{skalar::Skalar, winkel::Winkel},
 };

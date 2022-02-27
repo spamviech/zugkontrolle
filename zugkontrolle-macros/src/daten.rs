@@ -26,32 +26,32 @@ fn ersetze_generic(
             type_array.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_array.elem));
             Type::Array(type_array)
-        }
+        },
         Type::Group(mut type_group) => {
             type_group.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_group.elem));
             Type::Group(type_group)
-        }
+        },
         Type::Paren(mut type_paren) => {
             type_paren.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_paren.elem));
             Type::Paren(type_paren)
-        }
+        },
         Type::Ptr(mut type_ptr) => {
             type_ptr.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_ptr.elem));
             Type::Ptr(type_ptr)
-        }
+        },
         Type::Slice(mut type_slice) => {
             type_slice.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_slice.elem));
             Type::Slice(type_slice)
-        }
+        },
         Type::Reference(mut type_reference) => {
             type_reference.elem =
                 Box::new(ersetze_generic(generic, insert, trait_segments, *type_reference.elem));
             Type::Reference(type_reference)
-        }
+        },
         Type::Tuple(mut type_tuple) => {
             type_tuple.elems = type_tuple
                 .elems
@@ -59,7 +59,7 @@ fn ersetze_generic(
                 .map(|elem| ersetze_generic(generic, insert.clone(), trait_segments.clone(), elem))
                 .collect();
             Type::Tuple(type_tuple)
-        }
+        },
         Type::BareFn(mut type_bar_fn) => {
             type_bar_fn.inputs = type_bar_fn
                 .inputs
@@ -82,7 +82,7 @@ fn ersetze_generic(
                 ),
             };
             Type::BareFn(type_bar_fn)
-        }
+        },
         Type::Path(mut type_path) => {
             let num_segments = type_path.path.segments.len();
             let (segments, segment, qself) = type_path.path.segments.into_iter().fold(
@@ -108,7 +108,7 @@ fn ersetze_generic(
                                 })
                                 .collect();
                             PathArguments::AngleBracketed(angle_bracketed)
-                        }
+                        },
                         PathArguments::Parenthesized(mut parenthesized) => {
                             parenthesized.inputs = parenthesized
                                 .inputs
@@ -135,7 +135,7 @@ fn ersetze_generic(
                                 ),
                             };
                             PathArguments::Parenthesized(parenthesized)
-                        }
+                        },
                     };
                     acc.1 += 1;
                     if &path_segment.ident == generic {
@@ -169,7 +169,7 @@ fn ersetze_generic(
             type_path.qself = qself;
             type_path.path.segments = segments;
             Type::Path(type_path)
-        }
+        },
         _ => unimplemented!("Unsupported Argument type: {:?}", ty),
     }
 }
@@ -185,13 +185,11 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
         };
         let zeichen_segments = vec![
             PathSegment { ident: base_ident.clone(), arguments: PathArguments::None },
-            PathSegment { ident: format_ident!("application"), arguments: PathArguments::None },
             PathSegment { ident: format_ident!("typen"), arguments: PathArguments::None },
             PathSegment { ident: format_ident!("Zeichnen"), arguments: PathArguments::None },
         ];
         let start_segments = vec![
             PathSegment { ident: base_ident, arguments: PathArguments::None },
-            PathSegment { ident: format_ident!("application"), arguments: PathArguments::None },
             PathSegment { ident: format_ident!("gleis"), arguments: PathArguments::None },
         ];
         let erzeuge_typ_segments = |name: &str| {
@@ -273,7 +271,7 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
                         return_type(&s_kurven_weiche),
                         return_type(&kreuzung),
                     )
-                }
+                },
                 ReturnType::Default => (
                     ReturnType::Default,
                     ReturnType::Default,
@@ -345,7 +343,7 @@ pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
                             zeichen_segments.clone(),
                             ty.as_ref().clone(),
                         ));
-                    }
+                    },
                     FnArg::Receiver(Receiver {
                         attrs,
                         reference: Some((And { spans: _ }, None)),

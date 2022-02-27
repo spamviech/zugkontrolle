@@ -8,13 +8,11 @@ use iced_native::{
     Length, Point, Rectangle, Renderer, Size, Widget,
 };
 
-use crate::{
-    application::typen::{
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie},
-    },
+use crate::typen::{
     farbe::Farbe,
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::{self, Trigonometrie},
 };
 
 /// Widget zur Farbwahl.

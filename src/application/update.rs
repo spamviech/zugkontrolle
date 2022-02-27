@@ -19,23 +19,24 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        gleis,
-        gleis::gleise::{
+        steuerung, streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlStatus,
+        MessageBox, Nachricht, Zugkontrolle, ZustandZurücksetzen,
+    },
+    gleis::{
+        self,
+        gleise::{
             daten::{de_serialisieren::BekannterLeiter, DatenAuswahl, StreckenabschnittMap},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
         },
-        steuerung, streckenabschnitt,
-        typen::*,
-        weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlStatus, MessageBox, Nachricht,
-        Zugkontrolle, ZustandZurücksetzen,
     },
-    farbe::Farbe,
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
+    typen::farbe::Farbe,
+    typen::*,
 };
 
 impl<Leiter> Nachricht<Leiter>

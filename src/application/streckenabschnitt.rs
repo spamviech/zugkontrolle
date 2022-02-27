@@ -13,14 +13,11 @@ pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
     anschluss::{OutputSerialisiert, Polarität},
     application::{
-        anschluss,
-        farbwahl::Farbwahl,
-        gleis::gleise::{id::StreckenabschnittId, Gleise},
-        macros::reexport_no_event_methods,
-        style::tab_bar::TabBar,
+        anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
     },
-    farbe::Farbe,
+    gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit,
+    typen::farbe::Farbe,
 };
 
 pub mod style;

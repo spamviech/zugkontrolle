@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::{gleis::*, typen::Spurweite};
+use crate::{gleis::*, typen::Spurweite};
 
 pub mod lego;
 // path attribute necessary due to non-ascii module name (at least for now)

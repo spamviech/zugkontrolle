@@ -37,16 +37,18 @@
 pub mod anschluss;
 pub mod application;
 pub mod argumente;
-pub mod farbe;
+pub mod gleis;
 pub mod kleiner_als;
 pub mod maybe_empty;
 pub mod nachschlagen;
 pub mod rppal;
 pub mod steuerung;
+pub mod typen;
 pub mod zugtyp;
 
 pub use crate::{
-    application::{ausführen, ausführen_aus_env, gleis::Gleise, Zugkontrolle},
+    application::{ausführen, ausführen_aus_env, Zugkontrolle},
     argumente::Argumente,
+    gleis::Gleise,
     zugtyp::Zugtyp,
 };

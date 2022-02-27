@@ -2,11 +2,7 @@
 
 use std::{f32::consts::PI, marker::PhantomData};
 
-use crate::{
-    application::{gleis::*, typen::*},
-    steuerung::geschwindigkeit::Zweileiter,
-    zugtyp::Zugtyp,
-};
+use crate::{gleis::*, steuerung::geschwindigkeit::Zweileiter, typen::*, zugtyp::Zugtyp};
 
 impl Zugtyp<Zweileiter> {
     /// Lego
