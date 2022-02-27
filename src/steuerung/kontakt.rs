@@ -2,7 +2,7 @@
 
 use std::sync::{
     mpsc::{channel, Receiver, RecvError, SendError, Sender},
-    Arc, PoisonError,
+    Arc,
 };
 
 use log::error;
@@ -42,11 +42,6 @@ impl AnschlussOderSerialisiert<InputAnschluss> {
     }
 }
 
-fn heile_poison<T>(poison_error: PoisonError<T>, mutex_name: &str, kontakt_name: &Name) -> T {
-    error!("{}-Mutex für Kontakt {} poisoned!", mutex_name, kontakt_name.0);
-    poison_error.into_inner()
-}
-
 impl Drop for Kontakt {
     fn drop(&mut self) {
         let mut kontakt_anschluss = self.anschluss.lock();
@@ -64,7 +59,6 @@ impl Kontakt {
         trigger: Trigger,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
         let senders: Arc<Mutex<Vec<Sender<Level>>>> = Arc::new(Mutex::new(Vec::new()));
-        let name_clone = name.clone();
         let senders_clone = senders.clone();
         let set_async_interrupt_result = anschluss.set_async_interrupt(trigger, move |level| {
             let senders = &mut *senders_clone.lock();
