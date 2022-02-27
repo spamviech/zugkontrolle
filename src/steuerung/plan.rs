@@ -28,10 +28,6 @@ pub struct Plan<Aktion = self::Aktion> {
 pub type PlanSerialisiert = Plan<AktionSerialisiert>;
 
 /// Eine Aktionen in einem Fahrplan.
-///
-/// Erstellen neuer Aktionen führt nicht zwingend zu einem erhöhen der major version.
-/// Daher ist das enum als non_exhaustive markiert.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum Aktion {
     Geschwindigkeit(AktionGeschwindigkeit),
@@ -41,10 +37,6 @@ pub enum Aktion {
 }
 
 /// Eine Aktionen in einem Fahrplan.
-///
-/// Erstellen neuer Aktionen führt nicht zwingend zu einem erhöhen der major version.
-/// Daher ist das enum als non_exhaustive markiert.
-#[non_exhaustive]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum AktionSerialisiert {
     Geschwindigkeit(AktionGeschwindigkeitSerialisiert),
@@ -54,7 +46,6 @@ pub enum AktionSerialisiert {
 }
 
 /// Eine Aktion mit einer Geschwindigkeit.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum AktionGeschwindigkeit {
     GeschwindigkeitMittelleiter { leiter: Geschwindigkeit<Mittelleiter>, wert: u8 },
@@ -64,7 +55,6 @@ pub enum AktionGeschwindigkeit {
 }
 
 /// Eine Aktion mit einer Geschwindigkeit.
-#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionGeschwindigkeitSerialisiert {
     GeschwindigkeitMittelleiter {
@@ -85,21 +75,18 @@ pub enum AktionGeschwindigkeitSerialisiert {
 }
 
 /// Eine Aktion mit einem Streckenabschnitt.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum AktionStreckenabschnitt {
     Streckenabschnitt { streckenabschnitt: Streckenabschnitt, fließend: Fließend },
 }
 
 /// Eine Aktion mit einem Streckenabschnitt.
-#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionStreckenabschnittSerialisiert {
     Streckenabschnitt { streckenabschnitt: StreckenabschnittSerialisiert, fließend: Fließend },
 }
 
 /// Eine Aktion mit einer Weiche.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum AktionSchalten {
     SchalteGerade {
@@ -117,7 +104,6 @@ pub enum AktionSchalten {
 }
 
 /// Eine Aktion mit einer Weiche.
-#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionSchaltenSerialisiert {
     SchalteGerade {
@@ -144,7 +130,6 @@ pub enum AktionSchaltenSerialisiert {
 }
 
 /// Eine Warte-Aktion.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum AktionWarten {
     WartenAuf { kontakt: Kontakt, trigger: Trigger },
@@ -152,7 +137,6 @@ pub enum AktionWarten {
 }
 
 /// Eine Warte-Aktion.
-#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionWartenSerialisiert {
     WartenAuf { kontakt: KontaktSerialisiert, trigger: Trigger },
