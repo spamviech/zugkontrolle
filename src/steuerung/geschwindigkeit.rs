@@ -60,14 +60,8 @@ impl<Leiter> Geschwindigkeit<Leiter> {
         self.leiter.lock()
     }
 }
+
 #[derive(Serialize, Deserialize)]
-// TODO verwende custom derive-Macros
-// `zugkontrolle_macros`-Macros erzeugen Fehler, wenn `Leiter::Serialisiert` verwendet wird
-// `serde`-Macros erzeugen zusätzliche Constraints mit `<Leiter as Serialisiert>::Serialisiert`
-//
-// #[derive(zugkontrolle_macros::Clone, zugkontrolle_macros::Debug, Serialize, Deserialize)]
-// #[zugkontrolle_clone(Leiter::Serialisiert: Clone)]
-// #[zugkontrolle_debug(Leiter::Serialisiert: Debug)]
 pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
     pub leiter: Leiter::Serialisiert,
 }
@@ -687,7 +681,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Fahrtrichtung {
     Vorwärts,
     Rückwärts,

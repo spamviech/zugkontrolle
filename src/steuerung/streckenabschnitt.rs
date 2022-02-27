@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// Steuerung der Stromzufuhr.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Streckenabschnitt {
     pub farbe: Farbe,
     anschluss: Arc<Mutex<OutputAnschluss>>,

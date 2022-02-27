@@ -28,7 +28,8 @@ use crate::{
 pub struct Name(pub String);
 
 // inklusive Kreuzung
-#[derive(Debug, Clone)]
+#[derive(Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_clone(Richtung: Clone)]
 pub struct Weiche<Richtung, Anschlüsse> {
     pub name: Name,
     pub aktuelle_richtung: Richtung,

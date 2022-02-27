@@ -23,7 +23,7 @@ use crate::anschluss::{
 pub struct Name(pub String);
 
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes `Trigger`-Ereignis.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Kontakt {
     pub name: Name,
     pub trigger: Trigger,
