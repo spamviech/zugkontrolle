@@ -209,6 +209,9 @@ macro_rules! erstelle_internes_lager {
     };
 }
 
+/// FIXME deutlich komplizierter als HashMap-Variante,
+/// und verursacht ebenfalls einen stack-overflow im test.
+/// Verwende dementsprechend weiterhin die HashMap-Variante.
 kombiniere_idents! {
     erstelle_internes_lager,
     [i2c0_1, i2c3, i2c4, i2c5, i2c6],
