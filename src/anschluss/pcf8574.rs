@@ -9,6 +9,7 @@ use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
+use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -87,6 +88,94 @@ fn alle_level() -> array::IntoIter<Level, 2> {
 
 fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
+}
+
+// macro_rules! port_feld {
+//     ($lager:expr, $a0: ident, $a1:ident, $a2: ident, $variante: ident, $port: expr) => {
+//         use I2cBus::*;
+//         use Level::*;
+//         use Variante::*;
+//         match $port {
+//             0 => paste! {$lager.[<$a0 $a1 $a2 $variante 0>]},
+//             1 => paste! {$lager.[<$a0 $a1 $a2 $variante 1>]},
+//             2 => paste! {$lager.[<$a0 $a1 $a2 $variante 2]},
+//             3 => paste! {$lager.[<$a0 $a1 $a2 $variante 3>]},
+//             4 => paste! {$lager.[<$a0 $a1 $a2 $variante 4>]},
+//             5 => paste! {$lager.[<$a0 $a1 $a2 $variante 5>]},
+//             6 => paste! {$lager.[<$a0 $a1 $a2 $variante 6>]},
+//             7 => paste! {$lager.[<$a0 $a1 $a2 $variante 7>]},
+//         }
+//     };
+// }
+
+// macro_rules! lager_feld {
+//     ($lager:expr, $beschreibung: expr, $port: expr) => {
+//         use I2cBus::*;
+//         use Level::*;
+//         use Variante::*;
+//         match $beschreibung {
+//             Beschreibung { i2c_bus, a0, a1, a2, variante } => {
+//                 port_feld! {$lager, , l, l, l, n, $port}
+//             },
+//         }
+//         // TODO
+//     };
+// }
+
+// I2c0_1,
+// // I2c2,
+// I2c3,
+// I2c4,
+// I2c5,
+// I2c6,
+
+macro_rules! kombiniere_idents {
+    ($macro:ident, ($($prefix:ident [$($last:tt),+]),+)) => {
+        paste! {
+            $macro! { $($( [< $prefix $last >] ),+),+ }
+        }
+    };
+    ($macro:ident, ($($prefix:ident [$($current:tt),+]),+), $next:tt $(, $($following:tt),+)?) => {
+        paste! {
+            kombiniere_idents! {$macro, ($($( [<$prefix $current>] $next),+),+) $(, $($following),+)?}
+        }
+    };
+    ($macro:ident, [$($first:ident),+], $next:tt $(, $($following:tt),+)?) => {
+        kombiniere_idents! {$macro, ($($first $next),+) $(, $($following),+)?}
+    }
+}
+
+macro_rules! erstelle_struct {
+    ($($field:ident),*) => {
+        #[derive(Debug)]
+        struct LagerInternal {
+            $($field: Option<Port>),*
+        }
+
+        impl LagerInternal {
+            fn reserviere_pcf8574_port(
+                &mut self,
+                beschreibung: Beschreibung,
+                port: kleiner_8
+            ) -> Result<Port, InVerwendung> {
+                debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
+                // TODO needs a match statement
+                todo!("reserviere pcf8574 {:?}-{}", beschreibung, port)
+            }
+
+            fn rückgabe_pcf8574_port(&mut self, port: Port) {
+                // TODO needs a match statement
+            }
+        }
+    };
+}
+kombiniere_idents! {
+    erstelle_struct,
+    [i2c0_1, i2c3, i2c4, i2c5, i2c6],
+    [l, h],
+    [l, h],
+    [l, h],
+    [0, 1, 2, 3, 4, 5, 6, 7]
 }
 
 #[derive(Debug)]
