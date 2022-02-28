@@ -27,7 +27,7 @@
   - Ermöglicht im Prinzip nachträgliches hinzufügen neuer Gleise zu einem Zugtyp
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
-- Refactoring: Verwende AnyId\<Z\> statt GleisId\<Z\>.
+- Refactoring: Verwende AnyId statt GleisId\<Z\>.
     Ids unterschiedlicher Gleise sind jetzt wirklich unabhängig
 - Refactoring: Alle Module sind public
 - Refactoring: Module umbenannt
@@ -41,7 +41,7 @@
   - zugkontrolle::application::typen -> zugkontrolle::typen
   - zugkontrolle::farbe -> zugkontrolle::typen::farbe
   - Untermodule entsprechend mit-verschoben
-- Refactoring: gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
+  - gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
 - Refactoring: diverse Nachrichten-Typen umbenannt Message->Nachricht
