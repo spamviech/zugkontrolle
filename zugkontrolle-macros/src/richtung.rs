@@ -1,6 +1,6 @@
 //! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit Lookup-Implementierung.
 
-use inflector::cases::snakecase::to_snake_case;
+use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
@@ -34,14 +34,9 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             .collect();
         let default_variant = enum_variants[0];
         let enum_variants_str = enum_variants.iter().map(ToString::to_string);
-        // TODO fix upstream?
-        // to_snakecase wrongly adds a '_' before 'ß', even though it it a small letter
-        // possibly because there is no real uppercase character of it
         let struct_fields: Vec<syn::Ident> = enum_variants
             .iter()
-            .map(|variant| {
-                format_ident!("{}", to_snake_case(&variant.to_string()).replace("_ß", "ß"))
-            })
+            .map(|variant| format_ident!("{}", &variant.to_string().to_snake_case()))
             .collect();
 
         enum_definition = Some(quote! {

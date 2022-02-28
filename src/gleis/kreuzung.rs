@@ -318,10 +318,10 @@ impl<AnschlÃ¼sse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<AnschlÃ
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
         Verbindungen {
-            anfang_0: Verbindung { position: anfang0, richtung: winkel::PI },
-            ende_0: Verbindung { position: ende0, richtung: winkel::ZERO },
-            anfang_1: Verbindung { position: anfang1, richtung: winkel::PI + winkel },
-            ende_1: Verbindung { position: ende1, richtung: winkel },
+            anfang0: Verbindung { position: anfang0, richtung: winkel::PI },
+            ende0: Verbindung { position: ende0, richtung: winkel::ZERO },
+            anfang1: Verbindung { position: anfang1, richtung: winkel::PI + winkel },
+            ende1: Verbindung { position: ende1, richtung: winkel },
         }
     }
 }
