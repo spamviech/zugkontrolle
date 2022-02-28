@@ -4,7 +4,7 @@
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
 //! so dass es zu keinen Deadlocks kommen sollte.
 
-use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
+use std::{array, fmt::Debug, hash::Hash, sync::Arc};
 
 use itertools::iproduct;
 use log::{debug, error};
@@ -90,45 +90,6 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
-// macro_rules! port_feld {
-//     ($lager:expr, $a0: ident, $a1:ident, $a2: ident, $variante: ident, $port: expr) => {
-//         use I2cBus::*;
-//         use Level::*;
-//         use Variante::*;
-//         match $port {
-//             0 => paste! {$lager.[<$a0 $a1 $a2 $variante 0>]},
-//             1 => paste! {$lager.[<$a0 $a1 $a2 $variante 1>]},
-//             2 => paste! {$lager.[<$a0 $a1 $a2 $variante 2]},
-//             3 => paste! {$lager.[<$a0 $a1 $a2 $variante 3>]},
-//             4 => paste! {$lager.[<$a0 $a1 $a2 $variante 4>]},
-//             5 => paste! {$lager.[<$a0 $a1 $a2 $variante 5>]},
-//             6 => paste! {$lager.[<$a0 $a1 $a2 $variante 6>]},
-//             7 => paste! {$lager.[<$a0 $a1 $a2 $variante 7>]},
-//         }
-//     };
-// }
-
-// macro_rules! lager_feld {
-//     ($lager:expr, $beschreibung: expr, $port: expr) => {
-//         use I2cBus::*;
-//         use Level::*;
-//         use Variante::*;
-//         match $beschreibung {
-//             Beschreibung { i2c_bus, a0, a1, a2, variante } => {
-//                 port_feld! {$lager, , l, l, l, n, $port}
-//             },
-//         }
-//         // TODO
-//     };
-// }
-
-// I2c0_1,
-// // I2c2,
-// I2c3,
-// I2c4,
-// I2c5,
-// I2c6,
-
 macro_rules! kombiniere_idents {
     ($macro:ident, ($($prefix:tt [$($last:tt),+]),+)) => {
         $macro! { $($( ($prefix $last) ),+),+ }
@@ -180,28 +141,25 @@ macro_rules! variante {
     };
 }
 
-macro_rules! erstelle_struct {
+macro_rules! erstelle_internes_lager {
     ($( ((((($i2c:ident $a0:ident) $a1:ident) $a2:ident) $variante:ident) $port:tt) ),*) => {
         paste! {
-            // TODO remove once used
-            #[allow(dead_code)]
             #[derive(Debug)]
-            struct LagerInternal {
+            struct InternesLager {
                 $([<$i2c $a0 $a1 $a2 $variante $port>]: Option<Port>),*
             }
         }
 
-        impl LagerInternal {
-            /// Erstelle ein neues LagerInternal, bei dem alle Felder [None] sind.
-            fn neu() -> LagerInternal {
+        impl InternesLager {
+            /// Erstelle ein neues InternesLager, bei dem alle Felder [None] sind.
+            fn neu() -> InternesLager {
                 paste! {
-                    LagerInternal {
+                    InternesLager {
                         $([<$i2c $a0 $a1 $a2 $variante $port>]: None),*
                     }
                 }
             }
 
-            #[allow(dead_code)]
             fn reserviere_pcf8574_port(
                 &mut self,
                 beschreibung: Beschreibung,
@@ -228,7 +186,6 @@ macro_rules! erstelle_struct {
                 }}
             }
 
-            #[allow(dead_code)]
             fn rückgabe_pcf8574_port(&mut self, port: Port) {
                 paste!{match (port.beschreibung, u8::from(port.port)) {
                     $((Beschreibung {
@@ -252,25 +209,8 @@ macro_rules! erstelle_struct {
     };
 }
 
-#[test]
-fn bla() {
-    let mut lager = LagerInternal::neu();
-    let _ = lager
-        .reserviere_pcf8574_port(
-            Beschreibung {
-                i2c_bus: I2cBus::I2c3,
-                a0: Level::Low,
-                a1: Level::Low,
-                a2: Level::Low,
-                variante: Variante::Normal,
-            },
-            kleiner_8::MIN,
-        )
-        .expect_err("all empty");
-}
-
 kombiniere_idents! {
-    erstelle_struct,
+    erstelle_internes_lager,
     [i2c0_1, i2c3, i2c4, i2c5, i2c6],
     [l, h],
     [l, h],
@@ -280,11 +220,11 @@ kombiniere_idents! {
 }
 
 #[derive(Debug)]
-pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
+pub struct Lager(Arc<RwLock<InternesLager>>);
 
 impl Lager {
     pub fn neu(pin_status: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
-        let arc = Arc::new(RwLock::new(HashMap::new()));
+        let arc = Arc::new(RwLock::new(InternesLager::neu()));
         {
             let mut map = arc.write();
             for i2c_bus in alle_i2c_bus() {
@@ -300,9 +240,7 @@ impl Lager {
                     for port_num in kleiner_8::alle_werte() {
                         let port_struct =
                             Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
-                        if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
-                            error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
-                        }
+                        map.rückgabe_pcf8574_port(port_struct)
                     }
                 }
             }
@@ -315,16 +253,13 @@ impl Lager {
         beschreibung: Beschreibung,
         port: kleiner_8,
     ) -> Result<Port, InVerwendung> {
-        debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-        self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
+        debug!("Reserviere Lager für reservieren");
+        self.0.write().reserviere_pcf8574_port(beschreibung, port)
     }
 
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
-        debug!("rückgabe {:?}", port);
-        let port_opt = self.0.write().insert((port.beschreibung().clone(), port.port()), port);
-        if let Some(bisher) = port_opt {
-            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
-        }
+        debug!("Reserviere Lager für rückgabe");
+        self.0.write().rückgabe_pcf8574_port(port)
     }
 }
 
