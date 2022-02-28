@@ -130,51 +130,133 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 // I2c6,
 
 macro_rules! kombiniere_idents {
-    ($macro:ident, ($($prefix:ident [$($last:tt),+]),+)) => {
-        paste! {
-            $macro! { $($( [< $prefix $last >] ),+),+ }
-        }
+    ($macro:ident, ($($prefix:tt [$($last:tt),+]),+)) => {
+        $macro! { $($( ($prefix $last) ),+),+ }
     };
-    ($macro:ident, ($($prefix:ident [$($current:tt),+]),+), $next:tt $(, $($following:tt),+)?) => {
-        paste! {
-            kombiniere_idents! {$macro, ($($( [<$prefix $current>] $next),+),+) $(, $($following),+)?}
-        }
+    ($macro:ident, ($($prefix:tt [$($current:tt),+]),+), $next:tt $(, $($following:tt),+)?) => {
+        kombiniere_idents! {$macro, ($($( ($prefix $current) $next),+),+) $(, $($following),+)?}
     };
     ($macro:ident, [$($first:ident),+], $next:tt $(, $($following:tt),+)?) => {
         kombiniere_idents! {$macro, ($($first $next),+) $(, $($following),+)?}
     }
 }
 
+macro_rules! i2c_bus {
+    (i2c0_1) => {
+        I2cBus::I2c0_1
+    };
+    (i2c2) => {
+        I2cBus::I2c2
+    };
+    (i2c3) => {
+        I2cBus::I2c3
+    };
+    (i2c4) => {
+        I2cBus::I2c4
+    };
+    (i2c5) => {
+        I2cBus::I2c5
+    };
+    (i2c6) => {
+        I2cBus::I2c6
+    };
+}
+
+macro_rules! level {
+    (l) => {
+        Level::Low
+    };
+    (h) => {
+        Level::High
+    };
+}
+
+macro_rules! variante {
+    (n) => {
+        Variante::Normal
+    };
+    (a) => {
+        Variante::A
+    };
+}
+
 macro_rules! erstelle_struct {
-    ($($field:ident),*) => {
-        #[derive(Debug)]
-        struct LagerInternal {
-            $($field: Option<Port>),*
+    ($( ((((($i2c:ident $a0:ident) $a1:ident) $a2:ident) $variante:ident) $port:tt) ),*) => {
+        paste! {
+            // TODO remove once used
+            #[allow(dead_code)]
+            #[derive(Debug)]
+            struct LagerInternal {
+                $([<$i2c $a0 $a1 $a2 $variante $port>]: Option<Port>),*
+            }
         }
 
         impl LagerInternal {
+            /// Erstelle ein neues LagerInternal, bei dem alle Felder [None] sind.
+            fn neu() -> LagerInternal {
+                paste! {
+                    LagerInternal {
+                        $([<$i2c $a0 $a1 $a2 $variante $port>]: None),*
+                    }
+                }
+            }
+
+            #[allow(dead_code)]
             fn reserviere_pcf8574_port(
                 &mut self,
                 beschreibung: Beschreibung,
                 port: kleiner_8
             ) -> Result<Port, InVerwendung> {
                 debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-                // TODO needs a match statement
-                todo!("reserviere pcf8574 {:?}-{}", beschreibung, port)
+                paste!{match (beschreibung, u8::from(port)) {
+                    $((
+                        Beschreibung {
+                            i2c_bus: i2c_bus!($i2c),
+                            a0: level!($a0),
+                            a1: level!($a1),
+                            a2: level!($a2),
+                            variante: variante!($variante)
+                        },
+                        $port
+                    ) => {
+                        self.[<$i2c $a0 $a1 $a2 $variante $port>].take().ok_or(InVerwendung { beschreibung, port })
+                    }),*,
+                    _ => {unreachable!("Port > 7: {}", port)}
+                }}
             }
 
+            #[allow(dead_code)]
             fn rückgabe_pcf8574_port(&mut self, port: Port) {
                 // TODO needs a match statement
             }
         }
     };
 }
+
+#[test]
+fn bla() {
+    let mut lager = LagerInternal::neu();
+    let _ = lager
+        .reserviere_pcf8574_port(
+            Beschreibung {
+                i2c_bus: I2cBus::I2c3,
+                a0: Level::Low,
+                a1: Level::Low,
+                a2: Level::Low,
+                variante: Variante::Normal,
+            },
+            kleiner_8::MIN,
+        )
+        .expect_err("all empty");
+}
+
 kombiniere_idents! {
     erstelle_struct,
     [i2c0_1, i2c3, i2c4, i2c5, i2c6],
     [l, h],
     [l, h],
     [l, h],
+    [n, a],
     [0, 1, 2, 3, 4, 5, 6, 7]
 }
 
