@@ -221,13 +221,32 @@ macro_rules! erstelle_struct {
                     ) => {
                         self.[<$i2c $a0 $a1 $a2 $variante $port>].take().ok_or(InVerwendung { beschreibung, port })
                     }),*,
-                    _ => {unreachable!("Port > 7: {}", port)}
+                    _ => {
+                        error!("Reserviere mit Port > 7: {}", port);
+                        Err(InVerwendung { beschreibung, port })
+                    }
                 }}
             }
 
             #[allow(dead_code)]
             fn rückgabe_pcf8574_port(&mut self, port: Port) {
-                // TODO needs a match statement
+                paste!{match (port.beschreibung, u8::from(port.port)) {
+                    $((Beschreibung {
+                            i2c_bus: i2c_bus!($i2c),
+                            a0: level!($a0),
+                            a1: level!($a1),
+                            a2: level!($a2),
+                            variante: variante!($variante)
+                        },
+                        $port
+                     ) => {
+                        let port_opt = self.[<$i2c $a0 $a1 $a2 $variante $port>].replace(port);
+                        if let Some(bisher) = port_opt {
+                            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
+                        }
+                    }),*
+                    _ => {error!("Rückgabe mit Port > 7: {}", port.port)}
+                }}
             }
         }
     };
