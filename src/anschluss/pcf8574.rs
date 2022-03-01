@@ -487,7 +487,8 @@ impl InputPort {
         self.0.port()
     }
 
-    pub fn read(&self) -> Result<Level, Fehler> {
+    /// Lese das aktuell am [Port] anliegende [Level].
+    pub fn lese(&self) -> Result<Level, Fehler> {
         let values = self.0.pcf8574.lock().read()?;
         if let Some(value) = values[usize::from(self.0.port)] {
             Ok(value)
@@ -499,7 +500,7 @@ impl InputPort {
                 Trigger::Disabled,
                 None,
             )?;
-            self.read()
+            self.lese()
         }
     }
 
@@ -508,10 +509,10 @@ impl InputPort {
         Ok(self.0.pcf8574.lock().interrupt.as_ref().map(input::Pin::pin))
     }
 
-    /// Assoziiere den angeschlossenen InterruptPin für den Pcf8574.
+    /// Assoziiere den angeschlossenen InterruptPin für den [Pcf8574].
     /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
-    pub fn set_interrupt_pin(
+    pub fn setze_interrupt_pin(
         &mut self,
         mut interrupt: input::Pin,
     ) -> Result<Option<input::Pin>, Fehler> {
@@ -520,64 +521,59 @@ impl InputPort {
             let pcf8574 = &mut *self.0.pcf8574.lock();
             let mut last = pcf8574.read()?;
             let arc_clone = self.0.pcf8574.clone();
-            interrupt.set_async_interrupt(Trigger::FallingEdge, move |_level| {
-                let mut pcf8574 =  arc_clone.lock();
+            let interrupt_callback = move |_level| {
+                let mut pcf8574 = arc_clone.lock();
                 let current = match pcf8574.read() {
                     Ok(current) => current,
                     Err(fehler) => {
-                        error!(
-                            "Fehler beim lesen des Pcf8574 bei der Reaktion auf einen interrupt: {:?}",
-                            fehler
-                        );
+                        error!("Lese-Fehler bei Pcf8574 als Interrupt-Reaktion: {:?}", fehler);
                         return;
-                    }
+                    },
                 };
                 for i in 0..8 {
                     match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
                         (
-                            Modus::Input {
-                                trigger: Trigger::Both | Trigger::FallingEdge,
-                                callback: Some(callback),
-                            },
-                            Some(current),
-                            Some(last),
-                        ) if last == &mut Level::High && current == Level::Low => {
-                            callback(current);
-                        }
-                        (
-                            Modus::Input {
-                                trigger: Trigger::Both | Trigger::RisingEdge,
-                                callback: Some(callback),
-                            },
-                            Some(current),
-                            Some(last),
-                        ) if last == &mut Level::High && current == Level::Low => {
-                            callback(current);
-                        }
-                        _ => {}
+                            Modus::Input { trigger, callback: Some(callback) },
+                            Some(aktueller_port_wert),
+                            Some(letzter_port_wert),
+                        ) if trigger.callback_aufrufen(aktueller_port_wert, *letzter_port_wert) => {
+                            callback(aktueller_port_wert);
+                        },
+                        _ => {},
                     }
                     last[i] = current[i];
                 }
-            }).map_err(|fehler| match fehler {
-                input::Fehler::Gpio {pin:_, fehler} => Fehler::Gpio {beschreibung: *pcf8574.beschreibung(), fehler},
-            })?;
+            };
+            interrupt.setze_async_interrupt(Trigger::FallingEdge, interrupt_callback).map_err(
+                |pin_fehler| {
+                    let input::Fehler::Gpio { pin: _, fehler } = pin_fehler;
+                    Fehler::Gpio { beschreibung: *pcf8574.beschreibung(), fehler }
+                },
+            )?;
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
         // clear interrupt on previous pin.
-        let _ = previous.as_mut().map(input::Pin::clear_async_interrupt);
+        let _ = previous.as_mut().map(input::Pin::lösche_async_interrupt);
         Ok(previous)
     }
 
-    /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
-    /// thread when the interrupt is triggered.
+    /// Konfiguriere einen asynchronen Interrupt Trigger.
+    /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
     ///
-    /// The callback closure or function pointer is called with a single Level argument.
+    /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]
+    /// oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.
     ///
-    /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared when
-    /// set_async_interrupt is called, or when InputPin goes out of scope.
-    #[cfg_attr(not(raspi), allow(unused_variables))]
+    /// ## Keine synchronen Interrupts
+    /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Siehe die Dokumentation der
+    /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// Methode.
+    /// > Calling poll_interrupts blocks any other calls to poll_interrupts or
+    /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
+    /// > on different threads, consider using asynchronous interrupts with
+    /// > InputPin::set_async_interrupt instead.
     #[inline(always)]
-    pub fn set_async_interrupt(
+    pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
         callback: impl Fn(Level) + Send + Sync + 'static,
@@ -586,9 +582,9 @@ impl InputPort {
         self.0.pcf8574.lock().port_as_input(port, trigger, Some(callback))
     }
 
-    /// Removes a previously configured asynchronous interrupt trigger.
+    /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
     #[inline(always)]
-    pub fn clear_async_interrupt(&mut self) -> Result<(), Fehler> {
+    pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let port = self.port();
         self.0.pcf8574.lock().port_as_input::<fn(Level)>(port, Trigger::Disabled, None)
     }

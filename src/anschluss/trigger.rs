@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
 
-use crate::rppal;
+use crate::{anschluss::level::Level, rppal};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Trigger {
@@ -36,6 +36,18 @@ impl From<Trigger> for rppal::gpio::Trigger {
             Trigger::RisingEdge => rppal::gpio::Trigger::RisingEdge,
             Trigger::FallingEdge => rppal::gpio::Trigger::FallingEdge,
             Trigger::Both => rppal::gpio::Trigger::Both,
+        }
+    }
+}
+
+impl Trigger {
+    /// Ist die konfigurierte Trigger-Bedingung aufgetreten?
+    pub(in crate::anschluss) fn callback_aufrufen(&self, aktuell: Level, bisher: Level) -> bool {
+        match self {
+            Trigger::Both => aktuell != bisher,
+            Trigger::FallingEdge => aktuell < bisher,
+            Trigger::RisingEdge => aktuell > bisher,
+            Trigger::Disabled => false,
         }
     }
 }

@@ -33,7 +33,7 @@ pub struct Kontakt {
 
 impl AnschlussOderSerialisiert<InputAnschluss> {
     fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
-        if let Err(fehler) = anschluss.clear_async_interrupt() {
+        if let Err(fehler) = anschluss.lösche_async_interrupt() {
             error!(
                 "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {:?}",
                 kontakt_name.0, fehler
@@ -60,7 +60,7 @@ impl Kontakt {
     ) -> Result<Self, (Fehler, InputAnschluss)> {
         let senders: Arc<Mutex<Vec<Sender<Level>>>> = Arc::new(Mutex::new(Vec::new()));
         let senders_clone = senders.clone();
-        let set_async_interrupt_result = anschluss.set_async_interrupt(trigger, move |level| {
+        let set_async_interrupt_result = anschluss.setze_async_interrupt(trigger, move |level| {
             let senders = &mut *senders_clone.lock();
             // iterate over all registered channels, sending them the level
             // start at the end to avoid shifting channels as much as possible

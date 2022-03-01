@@ -18,49 +18,48 @@ impl Pin {
         self.0.pin()
     }
 
-    /// Reads the pin’s logic level.
+    /// Lese das aktuell am [Pin] anliegende [Level].
     #[inline(always)]
-    pub fn read(&mut self) -> Result<Level, Fehler> {
+    pub fn lese(&mut self) -> Result<Level, Fehler> {
         Ok(self.0.read().into())
     }
 
-    // sync interrupt nicht implementiert, da global nur einer existieren kann
-    // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts
-    // "Calling poll_interrupts blocks any other calls to poll_interrupts or
-    // InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
-    // on different threads, consider using asynchronous interrupts with
-    // InputPin::set_async_interrupt instead."
-
-    /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
-    /// thread when the interrupt is triggered.
+    /// Konfiguriere einen asynchronen Interrupt Trigger.
+    /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
     ///
-    /// The callback closure or function pointer is called with a single Level argument.
+    /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]
+    /// oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.
     ///
-    /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared when
-    /// set_async_interrupt is called, or when InputPin goes out of scope.
-    #[cfg_attr(not(raspi), allow(unused_variables))]
+    /// ## Keine synchronen Interrupts
+    /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Siehe die Dokumentation der
+    /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// Methode.
+    /// > Calling poll_interrupts blocks any other calls to poll_interrupts or
+    /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
+    /// > on different threads, consider using asynchronous interrupts with
+    /// > InputPin::set_async_interrupt instead.
     #[inline(always)]
-    pub fn set_async_interrupt(
+    pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
-        #[cfg_attr(not(raspi), allow(unused_mut))] mut callback: impl FnMut(Level) + Send + 'static,
+        mut callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Fehler> {
         let pin = self.pin();
-        Ok(self
-            .0
+        self.0
             .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
-            .map_err(|fehler| Fehler::Gpio { pin, fehler })?)
+            .map_err(|fehler| Fehler::Gpio { pin, fehler })?;
+        Ok(())
     }
 
-    /// Removes a previously configured asynchronous interrupt trigger.
+    /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
     #[inline(always)]
-    pub fn clear_async_interrupt(&mut self) -> Result<(), Fehler> {
+    pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
         Ok(self.0.clear_async_interrupt().map_err(|fehler| Fehler::Gpio { pin, fehler })?)
     }
 }
 
-#[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Fehler {
     Gpio { pin: u8, fehler: gpio::Error },

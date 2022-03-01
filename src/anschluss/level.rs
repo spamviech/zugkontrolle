@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::rppal::gpio;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Level {
     Low,
     High,

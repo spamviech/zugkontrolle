@@ -359,11 +359,11 @@ macro_rules! match_method {
 }
 
 impl InputAnschluss {
-    match_method! {read -> Level}
+    match_method! {lese -> Level}
 
-    match_method! {set_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static)}
+    match_method! {setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static)}
 
-    match_method! {clear_async_interrupt}
+    match_method! {lösche_async_interrupt}
 }
 
 /// Serealisierbare Informationen eines InputAnschlusses.
@@ -451,11 +451,11 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         let interrupt_konfigurieren = |mut anschluss| -> Result<_, Fehler> {
             if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
                 if let Some(interrupt) = gesuchter_interrupt {
-                    let _ = port.set_interrupt_pin(interrupt)?;
+                    let _ = port.setze_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
                         let interrupt = lager.pin.reserviere_pin(pin)?.into_input();
-                        let _ = port.set_interrupt_pin(interrupt)?;
+                        let _ = port.setze_interrupt_pin(interrupt)?;
                     }
                 }
             } else if let Some(interrupt) = self_interrupt {
