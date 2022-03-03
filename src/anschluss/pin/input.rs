@@ -10,9 +10,9 @@ use crate::{
 pub struct Pin(pub(super) gpio::InputPin);
 
 impl Pin {
-    /// Returns the GPIO pin number.
+    /// Erhalte die GPIO pin number.
     ///
-    /// Pins are addressed by their BCM numbers, rather than their physical location.
+    /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
     #[inline(always)]
     pub fn pin(&self) -> u8 {
         self.0.pin()
