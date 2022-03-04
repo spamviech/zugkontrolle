@@ -6,9 +6,10 @@ use std::{collections::HashSet, io, ops::Not, time::Duration};
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
-use once_cell::sync::Lazy;
+use parking_lot::MappedRwLockWriteGuard;
+
 #[cfg(not(raspi))]
-use parking_lot::{RwLock, RwLockWriteGuard};
+use crate::rppal::LazyRwLock;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -22,13 +23,13 @@ const MIN_PIN: u8 = 0;
 const MAX_PIN: u8 = 27;
 
 #[cfg(not(raspi))]
-static GPIO: Lazy<RwLock<GpioStore>> =
-    Lazy::new(|| RwLock::new(GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() }));
+static GPIO: LazyRwLock<GpioStore> =
+    LazyRwLock::neu(|| GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() });
 
 #[cfg(not(raspi))]
 impl GpioStore {
     #[inline(always)]
-    fn write_static<'t>() -> RwLockWriteGuard<'t, GpioStore> {
+    fn write_static<'t>() -> MappedRwLockWriteGuard<'t, GpioStore> {
         GPIO.write()
     }
 }

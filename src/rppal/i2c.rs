@@ -6,9 +6,10 @@ use std::{collections::HashSet, fmt::Debug, io};
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
-use once_cell::sync::Lazy;
+use parking_lot::MappedRwLockWriteGuard;
+
 #[cfg(not(raspi))]
-use parking_lot::{RwLock, RwLockWriteGuard};
+use crate::rppal::LazyRwLock;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -22,13 +23,13 @@ const MIN_BUS: u8 = 0;
 const MAX_BUS: u8 = 6;
 
 #[cfg(not(raspi))]
-static I2C: Lazy<RwLock<I2cStore>> =
-    Lazy::new(|| RwLock::new(I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() }));
+static I2C: LazyRwLock<I2cStore> =
+    LazyRwLock::neu(|| I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() });
 
 #[cfg(not(raspi))]
 impl I2cStore {
     #[inline(always)]
-    fn write_static<'t>() -> RwLockWriteGuard<'t, I2cStore> {
+    fn write_static<'t>() -> MappedRwLockWriteGuard<'t, I2cStore> {
         I2C.write()
     }
 }
