@@ -39,7 +39,7 @@ impl Streckenabschnitt {
     }
 
     pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
-        self.lock_anschluss().umstellen()
+        self.lock_anschluss().umschalten()
     }
 
     #[inline(always)]

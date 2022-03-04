@@ -4,7 +4,14 @@
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
 //! so dass es zu keinen Deadlocks kommen sollte.
 
-use std::{array, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
+use std::{
+    array,
+    collections::HashMap,
+    fmt::Debug,
+    fmt::{self, Display, Formatter},
+    hash::Hash,
+    sync::Arc,
+};
 
 use itertools::iproduct;
 use log::{debug, error};
@@ -199,17 +206,17 @@ impl From<Level> for Modus {
         }
     }
 }
+
 impl Debug for Modus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Modus::Input { trigger, callback: Some(_) } => {
-                write!(f, "Input {{trigger: {:?}, callback: Some(_)}}", trigger)
-            },
-            Modus::Input { trigger, callback: None } => {
-                write!(f, "Input {{trigger: {:?}, callback: None}}", trigger)
-            },
-            Modus::High => write!(f, "High"),
-            Modus::Low => write!(f, "Low"),
+            Modus::Input { trigger, callback } => f
+                .debug_struct("Input")
+                .field("trigger", trigger)
+                .field("callback", &callback.as_ref().map(|_| "<function>"))
+                .finish(),
+            Modus::High => f.debug_struct("High").finish(),
+            Modus::Low => f.debug_struct("Low").finish(),
         }
     }
 }
@@ -291,7 +298,7 @@ impl Pcf8574 {
     /// Nur als Input konfigurierte Ports werden als Some-Wert zurückgegeben.
     ///
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
-    fn read(&self) -> Result<[Option<Level>; 8], Fehler> {
+    fn lese(&self) -> Result<[Option<Level>; 8], Fehler> {
         let beschreibung = self.beschreibung();
         let map_fehler = |fehler| Fehler::I2c { beschreibung: *beschreibung, fehler };
         let mut i2c_with_pins = self.i2c.lock();
@@ -314,13 +321,13 @@ impl Pcf8574 {
     }
 
     /// Konvertiere einen Port als Input.
-    fn port_as_input<C: Fn(Level) + Send + Sync + 'static>(
+    fn port_als_input<C: Fn(Level) + Send + Sync + 'static>(
         &mut self,
         port: kleiner_8,
         trigger: Trigger,
         callback: Option<C>,
     ) -> Result<(), Fehler> {
-        self.write_port(port, Level::High)?;
+        self.schreibe_port(port, Level::High)?;
         // type annotations need, so extra let binding required
         let callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> = match callback {
             Some(c) => Some(Arc::new(c)),
@@ -332,7 +339,7 @@ impl Pcf8574 {
 
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
-    fn write_port(&mut self, port: kleiner_8, level: Level) -> Result<(), Fehler> {
+    fn schreibe_port(&mut self, port: kleiner_8, level: Level) -> Result<(), Fehler> {
         self.ports[usize::from(port)] = level.into();
         let beschreibung = self.beschreibung();
         let mut i2c_with_pins = self.i2c.lock();
@@ -383,6 +390,46 @@ impl PartialEq for Port {
 }
 impl Eq for Port {}
 
+fn display_bus_str(i2c_bus: &I2cBus) -> &str {
+    match i2c_bus {
+        I2cBus::I2c0_1 => "01",
+        // I2cBus::I2c2 => " 2",
+        I2cBus::I2c3 => " 3",
+        I2cBus::I2c4 => " 4",
+        I2cBus::I2c5 => " 5",
+        I2cBus::I2c6 => " 6",
+    }
+}
+
+fn display_level_str(level: &Level) -> &str {
+    match level {
+        Level::Low => "L",
+        Level::High => "H",
+    }
+}
+
+fn display_variante_str(variante: &Variante) -> &str {
+    match variante {
+        Variante::Normal => " ",
+        Variante::A => "A",
+    }
+}
+
+impl Display for Port {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let Port { beschreibung: Beschreibung { i2c_bus, a0, a1, a2, variante }, port, .. } = self;
+        write!(
+            f,
+            "{}-{}{}{}{}-{port}",
+            display_bus_str(i2c_bus),
+            display_level_str(a0),
+            display_level_str(a1),
+            display_level_str(a2),
+            display_variante_str(variante)
+        )
+    }
+}
+
 impl Drop for Port {
     fn drop(&mut self) {
         debug!("drop {:?}", self);
@@ -417,14 +464,14 @@ impl Port {
     }
 
     /// Konfiguriere den Port für Output.
-    pub fn into_output(self, level: Level) -> Result<OutputPort, Fehler> {
-        self.pcf8574.lock().write_port(self.port, level)?;
+    pub fn als_output(self, level: Level) -> Result<OutputPort, Fehler> {
+        self.pcf8574.lock().schreibe_port(self.port, level)?;
         Ok(OutputPort(self))
     }
 
     /// Konfiguriere den Port für Input.
-    pub fn into_input(self) -> Result<InputPort, Fehler> {
-        self.pcf8574.lock().port_as_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
+    pub fn als_input(self) -> Result<InputPort, Fehler> {
+        self.pcf8574.lock().port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
         Ok(InputPort(self))
     }
 }
@@ -432,6 +479,12 @@ impl Port {
 // Ein Port eines Pcf8574, konfiguriert für Output.
 #[derive(Debug)]
 pub struct OutputPort(Port);
+
+impl Display for OutputPort {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
 
 impl OutputPort {
     #[inline(always)]
@@ -444,19 +497,19 @@ impl OutputPort {
         self.0.port()
     }
 
-    pub fn write(&mut self, level: Level) -> Result<(), Fehler> {
-        self.0.pcf8574.lock().write_port(self.0.port, level)
+    pub fn schreibe(&mut self, level: Level) -> Result<(), Fehler> {
+        self.0.pcf8574.lock().schreibe_port(self.0.port, level)
     }
 
-    pub fn is_set_high(&mut self) -> Result<bool, Fehler> {
+    pub fn ist_high(&mut self) -> Result<bool, Fehler> {
         Ok(self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High)
     }
 
-    pub fn is_set_low(&mut self) -> Result<bool, Fehler> {
+    pub fn ist_low(&mut self) -> Result<bool, Fehler> {
         Ok(self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low)
     }
 
-    pub fn toggle(&mut self) -> Result<(), Fehler> {
+    pub fn umschalten(&mut self) -> Result<(), Fehler> {
         let level = {
             let modus = &self.0.pcf8574.lock().ports[usize::from(self.port())];
             match modus {
@@ -468,13 +521,19 @@ impl OutputPort {
                 },
             }
         };
-        self.write(level)
+        self.schreibe(level)
     }
 }
 
 // Ein Port eines Pcf8574, konfiguriert für Input.
 #[derive(Debug)]
 pub struct InputPort(Port);
+
+impl Display for InputPort {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
 
 impl InputPort {
     #[inline(always)]
@@ -489,13 +548,13 @@ impl InputPort {
 
     /// Lese das aktuell am [Port] anliegende [Level].
     pub fn lese(&self) -> Result<Level, Fehler> {
-        let values = self.0.pcf8574.lock().read()?;
+        let values = self.0.pcf8574.lock().lese()?;
         if let Some(value) = values[usize::from(self.0.port)] {
             Ok(value)
         } else {
             error!("{:?} war nicht als input korrigiert!", self);
             // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
-            self.0.pcf8574.lock().port_as_input::<fn(Level)>(
+            self.0.pcf8574.lock().port_als_input::<fn(Level)>(
                 self.0.port,
                 Trigger::Disabled,
                 None,
@@ -519,11 +578,11 @@ impl InputPort {
         let mut previous = {
             // set up callback.
             let pcf8574 = &mut *self.0.pcf8574.lock();
-            let mut last = pcf8574.read()?;
+            let mut last = pcf8574.lese()?;
             let arc_clone = self.0.pcf8574.clone();
             let interrupt_callback = move |_level| {
                 let mut pcf8574 = arc_clone.lock();
-                let current = match pcf8574.read() {
+                let current = match pcf8574.lese() {
                     Ok(current) => current,
                     Err(fehler) => {
                         error!("Lese-Fehler bei Pcf8574 als Interrupt-Reaktion: {:?}", fehler);
@@ -579,14 +638,14 @@ impl InputPort {
         callback: impl Fn(Level) + Send + Sync + 'static,
     ) -> Result<(), Fehler> {
         let port = self.port();
-        self.0.pcf8574.lock().port_as_input(port, trigger, Some(callback))
+        self.0.pcf8574.lock().port_als_input(port, trigger, Some(callback))
     }
 
     /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
     #[inline(always)]
     pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let port = self.port();
-        self.0.pcf8574.lock().port_as_input::<fn(Level)>(port, Trigger::Disabled, None)
+        self.0.pcf8574.lock().port_als_input::<fn(Level)>(port, Trigger::Disabled, None)
     }
 }
 

@@ -500,7 +500,7 @@ impl Geschwindigkeit<Zweileiter> {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
             Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
         };
-        Ok(fahrtrichtung.umstellen()?)
+        Ok(fahrtrichtung.umschalten()?)
     }
 
     pub fn async_umdrehen<Nachricht: Send + 'static>(

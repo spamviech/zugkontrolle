@@ -15,28 +15,27 @@ impl Pin {
         self.0.pin()
     }
 
-    /// Sets the pin’s output state.
-    #[cfg_attr(not(raspi), allow(unused_variables))]
+    /// Setze den Output [Level] des [Pin].
     #[inline(always)]
-    pub fn write(&mut self, level: Level) {
+    pub fn schreibe(&mut self, level: Level) {
         self.0.write(level.into());
     }
 
-    /// Returns `true` if the pin's output state is set to `Level::Low`.
+    /// Gibt `true` zurück, falls der Output [Level] des [Pin] auf [Level::Low] gesetzt ist.
     #[inline(always)]
-    pub fn is_set_low(&self) -> bool {
+    pub fn ist_low(&self) -> bool {
         self.0.is_set_low()
     }
 
-    /// Returns `true` if the pin's output state is set to `Level::High`.
+    /// Gibt `true` zurück, falls der Output [Level] des [Pin] auf [Level::High] gesetzt ist.
     #[inline(always)]
-    pub fn is_set_high(&self) -> bool {
+    pub fn ist_high(&self) -> bool {
         self.0.is_set_high()
     }
 
-    /// Toggles the pin’s output state between Low and High.
+    /// Wechsle den Output [Level] des [Pin]s zwischen [Level::Low] und [Level::High].
     #[inline(always)]
-    pub fn toggle(&mut self) {
+    pub fn umschalten(&mut self) {
         self.0.toggle();
     }
 

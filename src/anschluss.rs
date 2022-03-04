@@ -1,6 +1,9 @@
 //! Mit Raspberry Pi schaltbarer Anschluss
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    ops::Not,
+};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -75,70 +78,34 @@ pub enum Anschluss {
     Pcf8574Port(pcf8574::Port),
 }
 
-fn write_bus(f: &mut Formatter<'_>, i2c_bus: &I2cBus) -> fmt::Result {
-    match i2c_bus {
-        I2cBus::I2c0_1 => write!(f, "01"),
-        // I2cBus::I2c2 => write!(f, " 2"),
-        I2cBus::I2c3 => write!(f, " 3"),
-        I2cBus::I2c4 => write!(f, " 4"),
-        I2cBus::I2c5 => write!(f, " 5"),
-        I2cBus::I2c6 => write!(f, " 6"),
-    }
-}
-fn write_level(f: &mut Formatter<'_>, level: &Level) -> fmt::Result {
-    match level {
-        Level::Low => write!(f, "L"),
-        Level::High => write!(f, "H"),
-    }
-}
-fn write_variante(f: &mut Formatter<'_>, variante: &pcf8574::Variante) -> fmt::Result {
-    match variante {
-        pcf8574::Variante::Normal => write!(f, " "),
-        pcf8574::Variante::A => write!(f, "A"),
-    }
-}
-fn write_adresse(
-    f: &mut Formatter<'_>,
-    pcf8574::Beschreibung { i2c_bus, a0, a1, a2, variante }: &pcf8574::Beschreibung,
-) -> fmt::Result {
-    write_bus(f, i2c_bus)?;
-    write!(f, ", ")?;
-    write_level(f, a0)?;
-    write_level(f, a1)?;
-    write_level(f, a2)?;
-    write_variante(f, variante)
-}
-
 impl Display for Anschluss {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Anschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
             Anschluss::Pcf8574Port(port) => {
-                write!(f, "Pcf8574Port(")?;
-                write_adresse(f, port.beschreibung())?;
-                write!(f, "-{})", port.port())
+                write!(f, "Pcf8574Port({port})")
             },
         }
     }
 }
 
 impl Anschluss {
-    pub fn into_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
+    pub fn als_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
         let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
         Ok(match self {
             Anschluss::Pin(pin) => {
                 OutputAnschluss::Pin { pin: pin.into_output(gesperrt_level), polarität }
             },
             Anschluss::Pcf8574Port(port) => {
-                OutputAnschluss::Pcf8574Port { port: port.into_output(gesperrt_level)?, polarität }
+                OutputAnschluss::Pcf8574Port { port: port.als_output(gesperrt_level)?, polarität }
             },
         })
     }
 
-    pub fn into_input(self) -> Result<InputAnschluss, Fehler> {
+    pub fn als_input(self) -> Result<InputAnschluss, Fehler> {
         Ok(match self {
             Anschluss::Pin(pin) => InputAnschluss::Pin(pin.into_input()),
-            Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.into_input()?),
+            Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.als_input()?),
         })
     }
 }
@@ -155,12 +122,10 @@ impl Display for OutputAnschluss {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                write!(f, "Pin({}, {})", pin.pin(), polarität)
+                write!(f, "Pin({}, {polarität})", pin.pin())
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                write!(f, "Pcf8574Port(")?;
-                write_adresse(f, port.adresse())?;
-                write!(f, "-{}, {})", port.port(), polarität)
+                write!(f, "Pcf8574Port({port}, {polarität}")
             },
         }
     }
@@ -170,10 +135,10 @@ impl OutputAnschluss {
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                pin.write(fließend.with_polarity(*polarität))
+                pin.schreibe(fließend.with_polarity(*polarität))
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                port.write(fließend.with_polarity(*polarität))?
+                port.schreibe(fließend.with_polarity(*polarität))?
             },
         })
     }
@@ -181,33 +146,24 @@ impl OutputAnschluss {
     pub fn ist_fließend(&mut self) -> Result<bool, Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarität::Normal => pin.is_set_high(),
-                Polarität::Invertiert => pin.is_set_low(),
+                Polarität::Normal => pin.ist_high(),
+                Polarität::Invertiert => pin.ist_low(),
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
-                Polarität::Normal => port.is_set_high()?,
-                Polarität::Invertiert => port.is_set_low()?,
+                Polarität::Normal => port.ist_high()?,
+                Polarität::Invertiert => port.ist_low()?,
             },
         })
     }
 
     pub fn ist_gesperrt(&mut self) -> Result<bool, Fehler> {
-        Ok(match self {
-            OutputAnschluss::Pin { pin, polarität } => match polarität {
-                Polarität::Normal => pin.is_set_low(),
-                Polarität::Invertiert => pin.is_set_high(),
-            },
-            OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
-                Polarität::Normal => port.is_set_low()?,
-                Polarität::Invertiert => port.is_set_high()?,
-            },
-        })
+        self.ist_fließend().map(bool::not)
     }
 
-    pub fn umstellen(&mut self) -> Result<(), Fehler> {
+    pub fn umschalten(&mut self) -> Result<(), Fehler> {
         Ok(match self {
-            OutputAnschluss::Pin { pin, .. } => pin.toggle(),
-            OutputAnschluss::Pcf8574Port { port, .. } => port.toggle()?,
+            OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
+            OutputAnschluss::Pcf8574Port { port, .. } => port.umschalten()?,
         })
     }
 }
@@ -312,7 +268,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 },
             };
             let anschluss = unwrap_return!(anschluss_res);
-            unwrap_return!(anschluss.into_output(polarität))
+            unwrap_return!(anschluss.als_output(polarität))
         };
         Ok(Reserviert {
             anschluss,
@@ -336,9 +292,7 @@ impl Display for InputAnschluss {
         match self {
             InputAnschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
             InputAnschluss::Pcf8574Port(port) => {
-                write!(f, "Pcf8574Port(")?;
-                write_adresse(f, port.adresse())?;
-                write!(f, "-{})", port.port())
+                write!(f, "Pcf8574Port({port})")
             },
         }
     }
@@ -359,10 +313,27 @@ macro_rules! match_method {
 }
 
 impl InputAnschluss {
+    // /// Lese das aktuell am [InputAnschluss] anliegende [Level].
     match_method! {lese -> Level}
 
+    // /// Konfiguriere einen asynchronen Interrupt Trigger.
+    // /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
+    // ///
+    // /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]
+    // /// oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.
+    // ///
+    // /// ## Keine synchronen Interrupts
+    // /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    // /// Siehe die Dokumentation der
+    // /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    // /// Methode.
+    // /// > Calling poll_interrupts blocks any other calls to poll_interrupts or
+    // /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
+    // /// > on different threads, consider using asynchronous interrupts with
+    // /// > InputPin::set_async_interrupt instead.
     match_method! {setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static)}
 
+    // /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
     match_method! {lösche_async_interrupt}
 }
 
@@ -491,7 +462,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     let port =
                         unwrap_return!(lager.pcf8574.reserviere_pcf8574_port(beschreibung, port));
-                    let input_port = unwrap_return!(port.into_input());
+                    let input_port = unwrap_return!(port.als_input());
                     unwrap_return!(interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)))
                 },
             }
