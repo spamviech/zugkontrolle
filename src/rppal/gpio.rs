@@ -6,10 +6,10 @@ use std::{collections::HashSet, io, ops::Not, time::Duration};
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
-use parking_lot::MappedRwLockWriteGuard;
+use parking_lot::MappedMutexGuard;
 
 #[cfg(not(raspi))]
-use crate::rppal::LazyRwLock;
+use crate::rppal::LazyMutex;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -23,14 +23,14 @@ const MIN_PIN: u8 = 0;
 const MAX_PIN: u8 = 27;
 
 #[cfg(not(raspi))]
-static GPIO: LazyRwLock<GpioStore> =
-    LazyRwLock::neu(|| GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() });
+static GPIO: LazyMutex<GpioStore> =
+    LazyMutex::neu(|| GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() });
 
 #[cfg(not(raspi))]
 impl GpioStore {
     #[inline(always)]
-    fn write_static<'t>() -> MappedRwLockWriteGuard<'t, GpioStore> {
-        GPIO.write()
+    fn lock_static<'t>() -> MappedMutexGuard<'t, GpioStore> {
+        GPIO.lock()
     }
 }
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
@@ -60,7 +60,7 @@ impl Gpio {
     /// [`OutputPin`]: struct.OutputPin.html
     /// [`Error::PinNotAvailable`]: enum.Error.html#variant.PinNotAvailable
     pub fn get(&self, pin: u8) -> Result<Pin> {
-        if GpioStore::write_static().pins.remove(&pin) {
+        if GpioStore::lock_static().pins.remove(&pin) {
             Ok(Pin(pin))
         } else {
             Err(Error::PinNotAvailable(pin))
@@ -77,7 +77,7 @@ pub struct Pin(u8);
 #[cfg(not(raspi))]
 impl Drop for Pin {
     fn drop(&mut self) {
-        if !GpioStore::write_static().pins.insert(self.0) {
+        if !GpioStore::lock_static().pins.insert(self.0) {
             error!("Dropped pin was still available: {}", self.0)
         }
     }

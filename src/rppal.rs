@@ -4,7 +4,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 #[cfg(not(raspi))]
-use parking_lot::{const_rwlock, MappedRwLockWriteGuard, RwLock, RwLockWriteGuard};
+use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
 pub mod gpio;
 pub mod i2c;
@@ -56,23 +56,23 @@ impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
-struct LazyRwLock<T, F = fn() -> T>(RwLock<ElementOderKonstruktor<T, F>>);
+struct LazyMutex<T, F = fn() -> T>(Mutex<ElementOderKonstruktor<T, F>>);
 
 #[cfg(not(raspi))]
-impl<T, F> LazyRwLock<T, F> {
+impl<T, F> LazyMutex<T, F> {
     #[inline(always)]
-    const fn neu(konstruktor: F) -> LazyRwLock<T, F> {
-        LazyRwLock(const_rwlock(ElementOderKonstruktor::Konstruktor(konstruktor)))
+    const fn neu(konstruktor: F) -> LazyMutex<T, F> {
+        LazyMutex(const_mutex(ElementOderKonstruktor::Konstruktor(konstruktor)))
     }
 }
 
 #[cfg(not(raspi))]
-impl<T, F: FnOnce() -> T> LazyRwLock<T, F> {
-    fn write(&self) -> MappedRwLockWriteGuard<'_, T> {
-        let mut write_guard = self.0.write();
+impl<T, F: FnOnce() -> T> LazyMutex<T, F> {
+    fn lock(&self) -> MappedMutexGuard<'_, T> {
+        let mut write_guard = self.0.lock();
         // Stelle sicher, dass das Element initialisiert ist (write-Berechtigung wird sowieso benötigt).
         write_guard.initialisiere_wenn_notwendig();
         // Gebe eine WriteGuard auf das Element zurück.
-        RwLockWriteGuard::map(write_guard, ElementOderKonstruktor::erhalte_element_mut_unchecked)
+        MutexGuard::map(write_guard, ElementOderKonstruktor::erhalte_element_mut_unchecked)
     }
 }

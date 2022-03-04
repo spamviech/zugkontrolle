@@ -6,10 +6,10 @@ use std::{collections::HashSet, fmt::Debug, io};
 #[cfg(not(raspi))]
 use log::{debug, error};
 #[cfg(not(raspi))]
-use parking_lot::MappedRwLockWriteGuard;
+use parking_lot::MappedMutexGuard;
 
 #[cfg(not(raspi))]
-use crate::rppal::LazyRwLock;
+use crate::rppal::LazyMutex;
 
 #[cfg(not(raspi))]
 #[derive(Debug)]
@@ -23,14 +23,14 @@ const MIN_BUS: u8 = 0;
 const MAX_BUS: u8 = 6;
 
 #[cfg(not(raspi))]
-static I2C: LazyRwLock<I2cStore> =
-    LazyRwLock::neu(|| I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() });
+static I2C: LazyMutex<I2cStore> =
+    LazyMutex::neu(|| I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() });
 
 #[cfg(not(raspi))]
 impl I2cStore {
     #[inline(always)]
-    fn write_static<'t>() -> MappedRwLockWriteGuard<'t, I2cStore> {
-        I2C.write()
+    fn lock_static<'t>() -> MappedMutexGuard<'t, I2cStore> {
+        I2C.lock()
     }
 }
 
@@ -48,7 +48,7 @@ pub struct I2c {
 #[cfg(not(raspi))]
 impl Drop for I2c {
     fn drop(&mut self) {
-        if !I2cStore::write_static().buses.insert(self.bus) {
+        if !I2cStore::lock_static().buses.insert(self.bus) {
             error!("Dropped i2c bus was still available: {:?}", self.bus)
         }
     }
@@ -63,7 +63,7 @@ impl I2c {
 
     /// Constructs a new `I2c` using the specified bus.
     pub fn with_bus(bus: u8) -> Result<I2c> {
-        if I2cStore::write_static().buses.remove(&bus) {
+        if I2cStore::lock_static().buses.remove(&bus) {
             Ok(I2c { bus, slave_address: 0 })
         } else {
             Err(Error::Io(io::Error::new(
