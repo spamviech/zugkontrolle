@@ -94,7 +94,7 @@ impl Anschluss {
         let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
         Ok(match self {
             Anschluss::Pin(pin) => {
-                OutputAnschluss::Pin { pin: pin.into_output(gesperrt_level), polarität }
+                OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }
             },
             Anschluss::Pcf8574Port(port) => {
                 OutputAnschluss::Pcf8574Port { port: port.als_output(gesperrt_level)?, polarität }
@@ -104,7 +104,7 @@ impl Anschluss {
 
     pub fn als_input(self) -> Result<InputAnschluss, Fehler> {
         Ok(match self {
-            Anschluss::Pin(pin) => InputAnschluss::Pin(pin.into_input()),
+            Anschluss::Pin(pin) => InputAnschluss::Pin(pin.als_input()),
             Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.als_input()?),
         })
     }
@@ -425,7 +425,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.setze_interrupt_pin(interrupt)?;
                 } else if let Some(pin) = self_interrupt {
                     if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = lager.pin.reserviere_pin(pin)?.into_input();
+                        let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
                         let _ = port.setze_interrupt_pin(interrupt)?;
                     }
                 }
@@ -457,7 +457,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         } else {
             match self {
                 InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(unwrap_return!(lager.pin.reserviere_pin(pin)).into_input())
+                    InputAnschluss::Pin(unwrap_return!(lager.pin.reserviere_pin(pin)).als_input())
                 },
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     let port =

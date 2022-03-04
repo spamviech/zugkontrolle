@@ -14,16 +14,9 @@ use crate::{
     rppal::{gpio, pwm},
 };
 
-/// Ein Gpio Pin konfiguriert für Pwm.
-#[derive(Debug, PartialEq)]
-pub struct Pin {
-    pub(super) pin: Pwm,
-    pub(super) config: Option<Config>,
-}
-
 #[allow(variant_size_differences)]
 #[derive(Debug)]
-pub(super) enum Pwm {
+pub(in crate::anschluss::pin) enum Pwm {
     Hardware(pwm::Pwm, gpio::Pin),
     Software(gpio::OutputPin),
 }
@@ -37,22 +30,23 @@ impl PartialEq for Pwm {
         }
     }
 }
+impl Eq for Pwm {}
 
 /// Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Config {
-    pub time: Time,
-    pub polarity: Polarität,
+pub struct Konfiguration {
+    pub zeit: Zeit,
+    pub polarität: Polarität,
 }
 
-impl Config {
+impl Konfiguration {
     /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
     ///
-    /// Time::valide muss `true` sein.
-    pub fn new(time: Time, polarity: Polarität) -> Option<Self> {
-        let config = Config { time, polarity };
-        if config.valide() {
-            Some(config)
+    /// [Zeit::valide] muss `true` sein.
+    pub fn new(zeit: Zeit, polarität: Polarität) -> Option<Konfiguration> {
+        let konfiguration = Konfiguration { zeit, polarität };
+        if konfiguration.valide() {
+            Some(konfiguration)
         } else {
             None
         }
@@ -61,39 +55,48 @@ impl Config {
     /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
     ///
     /// Es muss gelten:
-    /// - period >= pulse_width
-    /// - 0 <= duty_cycle <= 1
+    /// - `period >= pulse_width`
+    /// - `0 <= duty_cycle <= 1`
     #[inline(always)]
     pub fn valide(&self) -> bool {
-        self.time.valide()
+        self.zeit.valide()
     }
 }
 
 /// Zeit-Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Time {
+pub enum Zeit {
     /// Periodendauer und Pulsweite.
-    Period { period: Duration, pulse_width: Duration },
+    Periode { periode: Duration, puls_weite: Duration },
     /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Prozentwert.
-    Frequency { frequency: f64, duty_cycle: f64 },
+    Frequenz { frequenz: f64, betriebszyklus: f64 },
 }
 
-impl Time {
+impl Zeit {
     /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
     ///
     /// Es muss gelten:
-    /// - period >= pulse_width
-    /// - 0 <= duty_cycle <= 1
+    /// - `period >= pulse_width`
+    /// - `0 <= duty_cycle <= 1`
     pub fn valide(&self) -> bool {
         match self {
-            Time::Period { period, pulse_width } => pulse_width <= period,
-            Time::Frequency { frequency: _, duty_cycle } => &0. <= duty_cycle && duty_cycle <= &1.,
+            Zeit::Periode { periode, puls_weite } => puls_weite <= periode,
+            Zeit::Frequenz { frequenz: _, betriebszyklus } => {
+                0. <= *betriebszyklus && *betriebszyklus <= 1.
+            },
         }
     }
 }
 
+/// Ein Gpio Pin konfiguriert für Pwm.
+#[derive(Debug, PartialEq)]
+pub struct Pin {
+    pub(in crate::anschluss::pin) pin: Pwm,
+    pub(in crate::anschluss::pin) konfiguration: Option<Konfiguration>,
+}
+
 impl Pin {
-    /// Erhalte die GPIO pin number.
+    /// Erhalte die GPIO [Pin] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
     pub fn pin(&self) -> u8 {
@@ -112,66 +115,76 @@ impl Pin {
     }
 
     /// Ist der Pwm-Puls aktiv?
-    pub fn is_enabled(&self) -> Result<&Option<Config>, Fehler> {
+    pub fn ist_aktiv(&self) -> Result<&Option<Konfiguration>, Fehler> {
         match &self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 let enabled = pwm_channel
                     .is_enabled()
                     .map_err(|fehler| Fehler::Pwm { pin: self.pin(), fehler })?;
-                Ok(if enabled { &self.config } else { &None })
+                Ok(if enabled { &self.konfiguration } else { &None })
             },
-            Pwm::Software(_pin) => Ok(&self.config),
+            Pwm::Software(_pin) => Ok(&self.konfiguration),
         }
     }
 
     /// Aktiviere den Pwm-Puls.
-    pub fn enable_with_config(&mut self, config: Config) -> Result<(), Fehler> {
+    pub fn aktiviere_mit_konfiguration(
+        &mut self,
+        konfiguration: Konfiguration,
+    ) -> Result<(), Fehler> {
         let pin = self.pin();
         match &mut self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 let map_fehler = |fehler| Fehler::Pwm { pin, fehler };
                 // update nur, sofern sich Parameter geändert haben.
-                if self.config.as_ref().map(|Config { polarity, .. }| polarity)
-                    != Some(&config.polarity)
+                if self.konfiguration.as_ref().map(|Konfiguration { polarität, .. }| polarität)
+                    != Some(&konfiguration.polarität)
                 {
-                    pwm_channel.set_polarity(config.polarity.into()).map_err(map_fehler)?;
+                    pwm_channel.set_polarity(konfiguration.polarität.into()).map_err(map_fehler)?;
                 }
-                if self.config.as_ref().map(|Config { time, .. }| time) != Some(&config.time) {
-                    match config.time {
-                        Time::Period { period, pulse_width } => {
+                if self.konfiguration.as_ref().map(|Konfiguration { zeit, .. }| zeit)
+                    != Some(&konfiguration.zeit)
+                {
+                    match konfiguration.zeit {
+                        Zeit::Periode { periode, puls_weite } => {
                             pwm_channel.set_pulse_width(Duration::ZERO).map_err(map_fehler)?;
-                            pwm_channel.set_period(period).map_err(map_fehler)?;
-                            pwm_channel.set_pulse_width(pulse_width).map_err(map_fehler)?;
+                            pwm_channel.set_period(periode).map_err(map_fehler)?;
+                            pwm_channel.set_pulse_width(puls_weite).map_err(map_fehler)?;
                         },
-                        Time::Frequency { frequency, duty_cycle } => {
-                            pwm_channel.set_frequency(frequency, duty_cycle).map_err(map_fehler)?;
+                        Zeit::Frequenz { frequenz, betriebszyklus } => {
+                            pwm_channel
+                                .set_frequency(frequenz, betriebszyklus)
+                                .map_err(map_fehler)?;
                         },
                     }
                 }
-                Ok(pwm_channel.enable().map_err(map_fehler)?)
+                pwm_channel.enable().map_err(map_fehler)?;
             },
             Pwm::Software(pwm_pin) => {
                 let map_fehler = |fehler| Fehler::Gpio { pin, fehler };
-                match config.time {
-                    Time::Period { period, mut pulse_width } => {
-                        if config.polarity == Polarität::Invertiert {
-                            pulse_width = period - pulse_width;
+                // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
+                match konfiguration.zeit {
+                    Zeit::Periode { periode, mut puls_weite } => {
+                        if konfiguration.polarität == Polarität::Invertiert {
+                            puls_weite = periode - puls_weite;
                         }
-                        Ok(pwm_pin.set_pwm(period, pulse_width).map_err(map_fehler)?)
+                        pwm_pin.set_pwm(periode, puls_weite).map_err(map_fehler)?;
                     },
-                    Time::Frequency { frequency, mut duty_cycle } => {
-                        if config.polarity == Polarität::Invertiert {
-                            duty_cycle = 1. - duty_cycle;
+                    Zeit::Frequenz { frequenz, mut betriebszyklus } => {
+                        if konfiguration.polarität == Polarität::Invertiert {
+                            betriebszyklus = 1. - betriebszyklus;
                         }
-                        Ok(pwm_pin.set_pwm_frequency(frequency, duty_cycle).map_err(map_fehler)?)
+                        pwm_pin.set_pwm_frequency(frequenz, betriebszyklus).map_err(map_fehler)?;
                     },
                 }
             },
         }
+        self.konfiguration = Some(konfiguration);
+        Ok(())
     }
 
     /// Deaktiviere den Pwm-Puls
-    pub fn disable(&mut self) -> Result<(), Fehler> {
+    pub fn deaktiviere(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
         Ok(match &mut self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
@@ -186,20 +199,9 @@ impl Pin {
 
 #[derive(Debug)]
 pub enum Fehler {
-    Gpio {
-        pin: u8,
-        fehler: gpio::Error,
-    },
-    Pwm {
-        pin: u8,
-        fehler: pwm::Error,
-    },
-    #[cfg(not(raspi))]
-    KeinRaspberryPi(u8),
-    InvalideConfig {
-        pin: u8,
-        config: Config,
-    },
+    Gpio { pin: u8, fehler: gpio::Error },
+    Pwm { pin: u8, fehler: pwm::Error },
+    InvalideKonfiguration { pin: u8, konfiguration: Konfiguration },
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.
@@ -235,7 +237,7 @@ impl Reserviere<Pin> for Serialisiert {
                 input_nicht_benötigt,
             })
         } else {
-            match lager.pin.reserviere_pin(self.0).map(super::Pin::into_pwm) {
+            match lager.pin.reserviere_pin(self.0).map(super::Pin::als_pwm) {
                 Ok(anschluss) => Ok(Reserviert {
                     anschluss,
                     pwm_nicht_benötigt,

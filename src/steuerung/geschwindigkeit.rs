@@ -133,18 +133,18 @@ fn geschwindigkeit_pwm(
     pin: &mut pwm::Pin,
     wert: u8,
     faktor: f64,
-    polarity: Polarität,
+    polarität: Polarität,
 ) -> Result<(), pwm::Fehler> {
     debug_assert!(
         0. < faktor && faktor <= 1.,
         "Pwm-Faktor muss zwischen 0 und 1 liegen: {}",
         faktor
     );
-    pin.enable_with_config(pwm::Config {
-        polarity,
-        time: pwm::Time::Frequency {
-            frequency: PWM_FREQUENZ,
-            duty_cycle: faktor * f64::from(wert) / f64::from(u8::MAX),
+    pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
+        polarität,
+        zeit: pwm::Zeit::Frequenz {
+            frequenz: PWM_FREQUENZ,
+            betriebszyklus: faktor * f64::from(wert) / f64::from(u8::MAX),
         },
     })
 }
@@ -371,12 +371,12 @@ impl Geschwindigkeit<Mittelleiter> {
         sleep(STOPPZEIT);
         match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
-                pin.enable_with_config(pwm::Config {
-                    polarity: *polarität,
-                    time: pwm::Time::Frequency { frequency: PWM_FREQUENZ, duty_cycle: 1. },
+                pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
+                    polarität: *polarität,
+                    zeit: pwm::Zeit::Frequenz { frequenz: PWM_FREQUENZ, betriebszyklus: 1. },
                 })?;
                 sleep(UMDREHENZEIT);
-                pin.disable()?
+                pin.deaktiviere()?
             },
             Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
                 umdrehen.einstellen(Fließend::Fließend)?;

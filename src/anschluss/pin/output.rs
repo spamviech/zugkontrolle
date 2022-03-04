@@ -7,7 +7,7 @@ use crate::{anschluss::level::Level, rppal::gpio};
 pub struct Pin(pub(super) gpio::OutputPin);
 
 impl Pin {
-    /// Erhalte die GPIO pin number.
+    /// Erhalte die GPIO [Pin] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
     #[inline(always)]
