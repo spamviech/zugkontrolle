@@ -4,10 +4,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 #[cfg(not(raspi))]
-use parking_lot::{
-    const_rwlock, MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockReadGuard,
-    RwLockWriteGuard,
-};
+use parking_lot::{const_rwlock, MappedRwLockWriteGuard, RwLock, RwLockWriteGuard};
 
 pub mod gpio;
 pub mod i2c;
@@ -35,15 +32,6 @@ impl<T: Debug, F> Debug for ElementOderKonstruktor<T, F> {
 
 #[cfg(not(raspi))]
 impl<T, F> ElementOderKonstruktor<T, F> {
-    fn erhalte_element_unchecked(&self) -> &T {
-        match self {
-            ElementOderKonstruktor::Element(element) => element,
-            ElementOderKonstruktor::Konstruktor(_konstruktor) => {
-                panic!("erhalte_element_unchecked für eine Konstruktor-Variante aufgerufen!")
-            },
-        }
-    }
-
     fn erhalte_element_mut_unchecked(&mut self) -> &mut T {
         match self {
             ElementOderKonstruktor::Element(element) => element,
@@ -80,24 +68,6 @@ impl<T, F> LazyRwLock<T, F> {
 
 #[cfg(not(raspi))]
 impl<T, F: FnOnce() -> T> LazyRwLock<T, F> {
-    fn read(&self) -> MappedRwLockReadGuard<'_, T> {
-        // Teste, ob der Inhalt bereits initialisiert ist (möglich mit anderen read-Aufrufen).
-        let read_guard = self.0.read();
-        match &*read_guard {
-            ElementOderKonstruktor::Element(_element) => {
-                return RwLockReadGuard::map(
-                    read_guard,
-                    ElementOderKonstruktor::erhalte_element_unchecked,
-                )
-            },
-            ElementOderKonstruktor::Konstruktor(_konstruktor) => {},
-        }
-        // Initialisiere das Element (write-Berechtigung notwendig).
-        self.0.write().initialisiere_wenn_notwendig();
-        // Jetzt ist das Element garantiert initialisiert.
-        RwLockReadGuard::map(self.0.read(), ElementOderKonstruktor::erhalte_element_unchecked)
-    }
-
     fn write(&self) -> MappedRwLockWriteGuard<'_, T> {
         let mut write_guard = self.0.write();
         // Stelle sicher, dass das Element initialisiert ist (write-Berechtigung wird sowieso benötigt).
