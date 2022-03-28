@@ -7,7 +7,6 @@ pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> T
     // parse args
     let mut arg_vis: Option<syn::Visibility> = None;
     let mut arg_ident: Option<syn::Ident> = None;
-    let mut extra_derives = Vec::new();
     let mut errors = Vec::new();
     for arg in &args {
         match arg {
@@ -37,10 +36,13 @@ pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> T
                         } else if arg_ident.is_none() {
                             arg_ident = Some(ident.clone());
                         } else {
-                            extra_derives.push(quote!(#path));
+                            errors.push(format!("duplicate identifier {id}"));
                         }
                     } else {
-                        extra_derives.push(quote!(#path));
+                        errors.push(format!(
+                            "Only identifiers supported, but {} was given",
+                            quote!(#path)
+                        ))
                     }
                 },
             },
@@ -52,7 +54,10 @@ pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> T
             },
         }
     }
-    let derives = quote!(#[derive(Debug, Clone, Copy, PartialEq, Eq, #(#extra_derives),*)]);
+    let derives = quote!(
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, ::kommandozeilen_argumente::EnumArgument)]
+        #[kommandozeilen_argumente(case: insensitive)]
+    );
     if errors.len() > 0 {
         let error_message = errors.join("\n");
         return quote! {

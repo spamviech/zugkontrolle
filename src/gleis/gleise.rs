@@ -6,7 +6,6 @@ use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},
     mouse, Rectangle,
 };
-use kommandozeilen_argumente::EnumArgument;
 use log::error;
 
 pub use self::{
@@ -50,7 +49,7 @@ struct Gehalten {
 }
 
 // Aktueller Modus von `Gleise`
-#[zugkontrolle_macros::make_enum(pub, Modus, EnumArgument)]
+#[zugkontrolle_macros::make_enum(pub, Modus)]
 #[derive(Debug)]
 enum ModusDaten {
     Bauen { gehalten: Option<Gehalten>, last: Instant },

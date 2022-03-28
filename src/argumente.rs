@@ -6,7 +6,7 @@ use std::{
     num::NonZeroI32,
 };
 
-use kommandozeilen_argumente::{Beschreibung, EnumArgument, Parse, ParseArgument};
+use kommandozeilen_argumente::{Beschreibung, EnumArgument, Parse, ParseArgument, Vergleich};
 
 use crate::{
     gleis::gleise::Modus,
@@ -77,16 +77,20 @@ pub struct I2cSettings {
 }
 
 impl ParseArgument for Winkel {
-    fn argumente(
-        beschreibung: Beschreibung<Self>,
-        invertiere_prefix: &'static str,
-        meta_var: &str,
-    ) -> kommandozeilen_argumente::Argumente<Self, String> {
+    fn argumente<'t>(
+        beschreibung: Beschreibung<'t, Self>,
+        invertiere_präfix: impl Into<Vergleich<'t>>,
+        invertiere_infix: impl Into<Vergleich<'t>>,
+        wert_infix: impl Into<Vergleich<'t>>,
+        meta_var: &'t str,
+    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
         kommandozeilen_argumente::Argumente::konvertiere(
             Winkel,
             f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_prefix,
+                invertiere_präfix,
+                invertiere_infix,
+                wert_infix,
                 meta_var,
             ),
         )
@@ -98,16 +102,20 @@ impl ParseArgument for Winkel {
 }
 
 impl ParseArgument for Skalar {
-    fn argumente(
-        beschreibung: Beschreibung<Self>,
-        invertiere_prefix: &'static str,
-        meta_var: &str,
-    ) -> kommandozeilen_argumente::Argumente<Self, String> {
+    fn argumente<'t>(
+        beschreibung: Beschreibung<'t, Self>,
+        invertiere_präfix: impl Into<Vergleich<'t>>,
+        invertiere_infix: impl Into<Vergleich<'t>>,
+        wert_infix: impl Into<Vergleich<'t>>,
+        meta_var: &'t str,
+    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
         kommandozeilen_argumente::Argumente::konvertiere(
             Skalar,
             f32::argumente(
                 beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_prefix,
+                invertiere_präfix,
+                invertiere_infix,
+                wert_infix,
                 meta_var,
             ),
         )
@@ -139,6 +147,7 @@ impl Argumente {
 }
 
 #[derive(Debug, Clone, Copy, EnumArgument)]
+#[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
     Märklin,
     Lego,
