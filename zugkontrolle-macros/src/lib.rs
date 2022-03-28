@@ -45,7 +45,7 @@ mod debug;
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
-    let ast = syn::parse(input).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(input);
 
     // Build the trait implementation
     debug::impl_debug(&ast).into()
@@ -57,7 +57,7 @@ mod clone;
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
-    let ast = syn::parse(input).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(input);
 
     // Build the trait implementation
     clone::impl_clone(&ast).into()
@@ -68,7 +68,7 @@ mod nachschlagen;
 /// Erzeuge eine Struktur und zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     nachschlagen::impl_nachschlagen(args, ast).into()
 }
@@ -78,7 +78,7 @@ mod erstelle_enum;
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     erstelle_enum::erstelle_enum(args, ast).into()
 }
@@ -88,7 +88,7 @@ mod chain;
 /// Erzeuge eine identische Methode mit /_chain/-Suffix, die Method-chaining erlaubt.
 pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     chain::make_chain(args, ast).into()
 }
@@ -99,7 +99,7 @@ mod richtung;
 /// sowie eine zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Struktur.
 pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     richtung::erstelle_richtung(args, ast).into()
 }
@@ -115,7 +115,7 @@ mod alias;
 /// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
 /// (Argument) über eine `serialisiere`-Methode möglich ist!
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     alias::alias_serialisiert_unit(attr.into(), ast).into()
 }
@@ -131,7 +131,7 @@ mod daten;
 // das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
 // Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
 pub fn erstelle_daten_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse(item).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(item);
 
     daten::erstelle_methoden(ast).into()
 }
@@ -140,7 +140,7 @@ mod sum_type_from;
 #[proc_macro_derive(From)]
 /// Erzeuge [From]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
 pub fn derive_from(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).expect("Failed to parse input!");
+    let ast = syn::parse_macro_input!(input);
 
     sum_type_from::impl_from(ast).into()
 }
