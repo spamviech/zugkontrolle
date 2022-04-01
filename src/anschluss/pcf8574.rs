@@ -47,9 +47,19 @@ struct I2cMitPins {
 #[derive(Debug)]
 pub enum InitFehler {
     /// Fehler bei einem I2C-Channel.
-    I2c { i2c_bus: I2cBus, fehler: i2c::Error },
+    I2c {
+        /// Der betroffene [I2cBus].
+        i2c_bus: I2cBus,
+        /// Der aufgetretene Fehler.
+        fehler: i2c::Error,
+    },
     /// Nicht verfügbarer Pin für den konfigurierten I2C-Channel.
-    Pin { i2c_bus: I2cBus, fehler: pin::ReservierenFehler },
+    Pin {
+        /// Der betroffene [I2cBus].
+        i2c_bus: I2cBus,
+        /// Der aufgetretene Fehler.
+        fehler: pin::ReservierenFehler,
+    },
 }
 
 /// Ein I2C-Bus ist deaktiviert.
@@ -155,13 +165,25 @@ impl Lager {
     }
 }
 
+/// Ein I2cBus.
+///
+/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) unterstützt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum I2cBus {
+    /// I2C-Bus auf den GPIO-Pins 2 (SDA) und 3 (SCL), physisch 3 und 5.
+    ///
+    /// Auf dem Raspberry Pi B Rev 1 sind sie mit I2C0 verbunden,
+    /// bei allen anderen Raspberry Pi Versionen mit I2C1.
     I2c0_1,
+    // /// I2C-Bus bisher nicht verfügbar.
     // I2c2,
+    /// I2C-Bus auf den GPIO-Pins 4 (SDA) und 5 (SCL), physisch 7 und 29.
     I2c3,
+    /// I2C-Bus auf den GPIO-Pins 8 (SDA) und 9 (SCL), physisch 24 und 21.
     I2c4,
+    /// I2C-Bus auf den GPIO-Pins 12 (SDA) und 13 (SCL), physisch 32 und 33.
     I2c5,
+    /// I2C-Bus auf den GPIO-Pins 22 (SDA) und 23 (SCL), physisch 15 und 16.
     I2c6,
 }
 
@@ -189,9 +211,12 @@ impl I2cBus {
     }
 }
 
+/// Der [Port] wird bereits verwendet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InVerwendung {
+    /// [Beschreibung] des [Pcf8574]s.
     pub beschreibung: Beschreibung,
+    /// Port des [Pcf8574].
     pub port: kleiner_8,
 }
 
