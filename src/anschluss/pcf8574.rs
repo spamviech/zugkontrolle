@@ -220,13 +220,6 @@ pub struct InVerwendung {
     pub port: kleiner_8,
 }
 
-#[derive(Debug, Clone, Copy, zugkontrolle_macros::From)]
-#[allow(variant_size_differences)]
-pub enum ReservierenFehler {
-    Deaktiviert(Deaktiviert),
-    InVerwendung(InVerwendung),
-}
-
 pub(super) enum Modus {
     Input { trigger: Trigger, callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> },
     High,

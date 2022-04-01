@@ -480,13 +480,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     Pin(pin::ReservierenFehler),
-    Pcf8574(pcf8574::ReservierenFehler),
-}
-
-impl From<pcf8574::InVerwendung> for ReservierenFehler {
-    fn from(fehler: pcf8574::InVerwendung) -> Self {
-        ReservierenFehler::Pcf8574(fehler.into())
-    }
+    Pcf8574(pcf8574::InVerwendung),
 }
 
 #[derive(Debug, zugkontrolle_macros::From)]
@@ -498,11 +492,6 @@ pub enum Fehler {
 
 impl From<pin::ReservierenFehler> for Fehler {
     fn from(fehler: pin::ReservierenFehler) -> Self {
-        Fehler::Reservieren(fehler.into())
-    }
-}
-impl From<pcf8574::ReservierenFehler> for Fehler {
-    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
         Fehler::Reservieren(fehler.into())
     }
 }
