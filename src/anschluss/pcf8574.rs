@@ -570,7 +570,7 @@ impl OutputPort {
     }
 }
 
-// Ein Port eines Pcf8574, konfiguriert für Input.
+/// Ein Port eines Pcf8574, konfiguriert für Input.
 #[derive(Debug)]
 pub struct InputPort(Port);
 
@@ -581,11 +581,13 @@ impl Display for InputPort {
 }
 
 impl InputPort {
+    /// Die Beschreibung des [Pcf8574].
     #[inline(always)]
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
+    /// Der angesprochene Port des [Pcf8574].
     #[inline(always)]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
@@ -695,10 +697,24 @@ impl InputPort {
 }
 
 // TODO genauere Eingrenzung auf einzelne Methoden
+/// Ein bei Interaktion mit einem [Pcf8574] aufgetretener Fehler.
 #[derive(Debug)]
 pub enum Fehler {
-    I2c { beschreibung: Beschreibung, fehler: i2c::Error },
-    Gpio { beschreibung: Beschreibung, fehler: gpio::Error },
+    /// Fehler beim I2C-Channel.
+    I2c {
+        /// Beschreibung des [Pcf8574].
+        beschreibung: Beschreibung,
+        /// Der aufgetretene Fehler.
+        fehler: i2c::Error,
+    },
+    /// Ein Fehler bei den assoziierten [Pin]s.
+    Gpio {
+        /// Die Beschreibung des [Pcf8574].
+        beschreibung: Beschreibung,
+        /// Der aufgetretene Fehler.
+        fehler: gpio::Error,
+    },
+    /// Für den [Pcf8574] ist kein Interrupt-Pin konfiguriert.
     KeinInterruptPin(Beschreibung),
 }
 
