@@ -12,7 +12,7 @@
     missing_abi,
     missing_copy_implementations,
     missing_debug_implementations,
-    // missing_docs,
+    missing_docs,
     noop_method_call,
     pointer_structural_match,
     rust_2021_incompatible_closure_captures,
