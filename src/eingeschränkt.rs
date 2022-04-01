@@ -7,8 +7,12 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-macro_rules! definiere_typ {
-    ($ident: ident, $max:expr, $docstring: tt) => {
+/// Fehler beim konvertieren in einen eingeschränkten Datentyp.
+#[derive(Debug, Clone, Copy)]
+pub struct InvaliderWert<T>(pub T);
+
+macro_rules! definiere_u8_typ {
+    ($ident: ident, $max: expr, $docstring: tt) => {
         #[doc = $docstring]
         /// [Add]-Implementierung verwendet [saturating_add].
         #[derive(
@@ -76,7 +80,7 @@ macro_rules! definiere_typ {
             pub const MAX: Self = $ident($max);
 
             /// Versuche einen neuen
-            #[doc = stringify!($ident)]
+            #[doc = stringify!([$ident])]
             /// zu erstellen.
             /// Schlägt bei zu großen Werten fehl.
             pub const fn neu(wert: u8) -> Result<Self, InvaliderWert<u8>> {
@@ -95,84 +99,93 @@ macro_rules! definiere_typ {
     };
 }
 
-definiere_typ! {kleiner_8, 7, "Datentyp mit maximal 3 Bytes ohne Vorzeichen (0-7)."}
-definiere_typ! {kleiner_128, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen (0-127)."}
+definiere_u8_typ! {kleiner_8, 7, "Datentyp mit maximal 3 Bytes ohne Vorzeichen (0-7)."}
+definiere_u8_typ! {kleiner_128, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen (0-127)."}
 
-/// Fehler beim konvertieren in einen eingeschränkten Datentyp.
-#[derive(Debug, Clone, Copy)]
-pub struct InvaliderWert<T>(pub T);
+macro_rules! definiere_f64_typ {
+    ($ident: ident, $min: expr, $max: expr, $($docstring: tt),+) => {
+        $(#[doc = $docstring])+
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+        pub struct $ident(f64);
 
-/// Ein Wert mit der Eigenschaft `0 <= x <= 1`.
-///
-/// [Add]- und [Sub]-Implementierungen sind saturating, z.B. `0.7+0.5=1`.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct NullBisEins(f64);
+        impl $ident {
+            /// Kleinster erlaubter Wert.
+            pub const MIN: Self = Self($min);
 
-impl NullBisEins {
-    /// Kleinster erlaubter Wert `0`.
-    pub const MIN: Self = NullBisEins(0.);
+            /// Größter erlaubter Wert.
+            pub const MAX: Self = Self($max);
 
-    /// Größter erlaubter Wert `1`.
-    pub const MAX: Self = NullBisEins(1.);
-
-    /// Erstelle einen neuen [NullBisEins]-Wert zu erstellen, ohne die Grenzen zu überprüfen.
-    pub(crate) const fn neu_unchecked(wert: f64) -> NullBisEins {
-        NullBisEins(wert)
-    }
-}
-
-impl From<NullBisEins> for f64 {
-    fn from(input: NullBisEins) -> Self {
-        input.0
-    }
-}
-
-impl TryFrom<f64> for NullBisEins {
-    type Error = InvaliderWert<f64>;
-
-    fn try_from(wert: f64) -> Result<Self, Self::Error> {
-        if wert >= NullBisEins::MIN.0 && wert <= NullBisEins::MAX.0 {
-            Ok(NullBisEins(wert))
-        } else {
-            Err(InvaliderWert(wert))
+            /// Erstelle einen neuen
+            #[doc = stringify!([$ident])]
+            /// -Wert, ohne die Grenzen zu überprüfen.
+            pub(crate) const fn neu_unchecked(wert: f64) -> Self {
+                Self(wert)
+            }
         }
-    }
-}
 
-impl Display for NullBisEins {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl Add for NullBisEins {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        let unbeschränkt = self.0 + other.0;
-        if unbeschränkt > Self::MAX.0 {
-            Self::MAX
-        } else if unbeschränkt < Self::MIN.0 {
-            Self::MIN
-        } else {
-            Self(unbeschränkt)
+        impl From<$ident> for f64 {
+            fn from(input: $ident) -> Self {
+                input.0
+            }
         }
-    }
+
+        impl TryFrom<f64> for $ident {
+            type Error = InvaliderWert<f64>;
+
+            fn try_from(wert: f64) -> Result<Self, Self::Error> {
+                if wert >= $ident::MIN.0 && wert <= $ident::MAX.0 {
+                    Ok($ident(wert))
+                } else {
+                    Err(InvaliderWert(wert))
+                }
+            }
+        }
+
+        impl Display for $ident {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+
+        impl Add for $ident {
+            type Output = Self;
+
+            fn add(self, other: Self) -> Self::Output {
+                let unbeschränkt = self.0 + other.0;
+                if unbeschränkt > Self::MAX.0 {
+                    Self::MAX
+                } else if unbeschränkt < Self::MIN.0 {
+                    Self::MIN
+                } else {
+                    Self(unbeschränkt)
+                }
+            }
+        }
+
+        impl Sub for $ident {
+            type Output = Self;
+
+            fn sub(self, other: Self) -> Self::Output {
+                let unbeschränkt = self.0 - other.0;
+                if unbeschränkt > Self::MAX.0 {
+                    Self::MAX
+                } else if unbeschränkt < Self::MIN.0 {
+                    Self::MIN
+                } else {
+                    Self(unbeschränkt)
+                }
+            }
+        }
+    };
 }
 
-impl Sub for NullBisEins {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self::Output {
-        let unbeschränkt = self.0 - other.0;
-        if unbeschränkt > Self::MAX.0 {
-            Self::MAX
-        } else if unbeschränkt < Self::MIN.0 {
-            Self::MIN
-        } else {
-            Self(unbeschränkt)
-        }
-    }
+definiere_f64_typ! {
+    NullBisEins,
+    0.,
+    1.,
+    "Ein Wert mit der Eigenschaft `0 <= x <= 1`.",
+    "",
+    "[Add]- und [Sub]-Implementierungen sind saturating, z.B. `0.7+0.5=1`."
 }
 
 impl Mul for NullBisEins {
@@ -184,4 +197,13 @@ impl Mul for NullBisEins {
         // wird nur kleiner, minimal 0, oder bleibt gleich.
         NullBisEins(self.0 * other.0)
     }
+}
+
+definiere_f64_typ! {
+    NichtNegativ,
+    0.,
+    f64::MAX,
+    "Ein Wert mit der Eigenschaft 0 <= x",
+    "",
+    "[Add]- und [Sub]-Implementierungen sind saturating, z.B. `0.5-0.7=0`."
 }

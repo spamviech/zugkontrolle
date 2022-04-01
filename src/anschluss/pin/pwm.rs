@@ -9,7 +9,7 @@ use crate::{
         polarität::Polarität,
         InputAnschluss, OutputAnschluss,
     },
-    eingeschränkt::NullBisEins,
+    eingeschränkt::{NichtNegativ, NullBisEins},
     rppal::{gpio, pwm},
 };
 
@@ -40,12 +40,11 @@ pub struct Konfiguration {
     pub polarität: Polarität,
 }
 
-// TODO nicht-negativ für Frequenz
 /// Zeit-Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Zeit {
     /// Frequenz des [Pwm]-Pulses in Herz.
-    pub frequenz: f64,
+    pub frequenz: NichtNegativ,
     /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
     pub betriebszyklus: NullBisEins,
 }
@@ -109,7 +108,7 @@ impl Pin {
                 {
                     let Zeit { frequenz, betriebszyklus } = konfiguration.zeit;
                     pwm_channel
-                        .set_frequency(frequenz, betriebszyklus.into())
+                        .set_frequency(frequenz.into(), betriebszyklus.into())
                         .map_err(map_fehler)?;
                 }
                 pwm_channel.enable().map_err(map_fehler)?;
@@ -121,7 +120,9 @@ impl Pin {
                 if konfiguration.polarität == Polarität::Invertiert {
                     betriebszyklus = NullBisEins::MAX - betriebszyklus;
                 }
-                pwm_pin.set_pwm_frequency(frequenz, betriebszyklus.into()).map_err(map_fehler)?;
+                pwm_pin
+                    .set_pwm_frequency(frequenz.into(), betriebszyklus.into())
+                    .map_err(map_fehler)?;
             },
         }
         self.konfiguration = Some(konfiguration);

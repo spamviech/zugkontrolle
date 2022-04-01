@@ -3,7 +3,7 @@
 use self::pwm::Pwm;
 use crate::{
     anschluss::level::Level,
-    eingeschränkt::{InvaliderWert, NullBisEins},
+    eingeschränkt::{NichtNegativ, NullBisEins},
     rppal,
 };
 
@@ -101,18 +101,21 @@ impl Pin {
                 .polarity()
                 .and_then(|polarity| {
                     pwm.frequency().and_then(|frequency| {
-                        pwm.duty_cycle().map(|duty_cycle| {
-                            let frequenz = frequency;
-                            // Eingestellter Betriebszyklus ist valide.
-                            let betriebszyklus = NullBisEins::neu_unchecked(duty_cycle);
-                            pwm::Konfiguration {
-                                zeit: pwm::Zeit { frequenz, betriebszyklus },
-                                polarität: polarity.into(),
-                            }
-                        })
+                        pwm.duty_cycle().map(|duty_cycle| (polarity, frequency, duty_cycle))
                     })
                 })
-                .ok();
+                .ok()
+                .and_then(|(polarity, frequency, duty_cycle)| {
+                    // Vermutlich sind beide Werte in Ordnung,
+                    // die Funktion wird aber nicht häufig aufgerufen.
+                    // Die Performance-Kosten durch das zusätzliche Überprüfen spielen daher keine Rolle.
+                    let frequenz = NichtNegativ::try_from(frequency).ok()?;
+                    let betriebszyklus = NullBisEins::try_from(duty_cycle).ok()?;
+                    Some(pwm::Konfiguration {
+                        zeit: pwm::Zeit { frequenz, betriebszyklus },
+                        polarität: polarity.into(),
+                    })
+                });
             pwm::Pin { pin: Pwm::Hardware(pwm, self.0), konfiguration }
         } else {
             // fallback software pwm

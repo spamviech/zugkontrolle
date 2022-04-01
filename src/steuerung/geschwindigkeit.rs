@@ -22,7 +22,7 @@ use crate::{
         polarität::{Fließend, Polarität},
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
-    eingeschränkt::NullBisEins,
+    eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
 };
 
@@ -341,7 +341,8 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
 
 // TODO als Zugtyp-Eigenschaft?
 const STOPPZEIT: Duration = Duration::from_millis(500);
-const PWM_FREQUENZ: f64 = 50.;
+// 50 >= 0
+const PWM_FREQUENZ: NichtNegativ = NichtNegativ::neu_unchecked(50.);
 // TODO Zugtyp-Eigenschaft, wenn Mittelleiter gewählt
 // oder allgemein (max_duty_cycle)?
 // 0 <= 16/25 <= 1
