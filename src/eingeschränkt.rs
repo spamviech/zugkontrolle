@@ -1,5 +1,4 @@
-//! Ganzzahlen ohne Vorzeichen, die weniger als ein Byte benötigen.
-//! [Add]-Implementierung verwendet [saturating_add].
+//! Zahlen, die auf einen bestimmten Bereich eingeschränkt sind.
 
 use std::{
     fmt::{self, Display, Formatter},
@@ -11,6 +10,7 @@ use serde::{Deserialize, Serialize};
 macro_rules! definiere_typ {
     ($ident: ident, $max:expr, $docstring: tt) => {
         #[doc = $docstring]
+        /// [Add]-Implementierung verwendet [saturating_add].
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
         )]
@@ -103,6 +103,8 @@ definiere_typ! {kleiner_128, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen 
 pub struct InvaliderWert<T>(pub T);
 
 /// Ein Wert mit der Eigenschaft `0 <= x <= 1`.
+///
+/// [Add]- und [Sub]-Implementierungen sind saturating, z.B. `0.7+0.5=1`.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct NullBisEins(f64);
 
