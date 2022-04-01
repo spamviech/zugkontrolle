@@ -45,7 +45,7 @@ impl Konfiguration {
     /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
     ///
     /// [Zeit::valide] muss `true` sein.
-    pub fn new(zeit: Zeit, polarität: Polarität) -> Option<Konfiguration> {
+    pub fn neu(zeit: Zeit, polarität: Polarität) -> Option<Konfiguration> {
         let konfiguration = Konfiguration { zeit, polarität };
         if konfiguration.valide() {
             Some(konfiguration)
