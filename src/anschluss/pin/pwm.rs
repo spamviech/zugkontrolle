@@ -11,6 +11,7 @@ use crate::{
         polarität::Polarität,
         InputAnschluss, OutputAnschluss,
     },
+    kleiner_als::NullBisEins,
     rppal::{gpio, pwm},
 };
 
@@ -80,7 +81,7 @@ pub enum Zeit {
         /// Frequenz des [Pwm]-Pulses in Herz.
         frequenz: f64,
         /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
-        betriebszyklus: f64,
+        betriebszyklus: NullBisEins,
     },
 }
 
@@ -88,14 +89,12 @@ impl Zeit {
     /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
     ///
     /// Es muss gelten:
-    /// - `period >= pulse_width`
-    /// - `0 <= duty_cycle <= 1`
+    /// - `periode >= puls_weite`
+    /// - `0 <= betriebszyklus <= 1`
     pub fn valide(&self) -> bool {
         match self {
             Zeit::Periode { periode, puls_weite } => puls_weite <= periode,
-            Zeit::Frequenz { frequenz: _, betriebszyklus } => {
-                0. <= *betriebszyklus && *betriebszyklus <= 1.
-            },
+            Zeit::Frequenz { .. } => true,
         }
     }
 }
@@ -165,7 +164,7 @@ impl Pin {
                         },
                         Zeit::Frequenz { frequenz, betriebszyklus } => {
                             pwm_channel
-                                .set_frequency(frequenz, betriebszyklus)
+                                .set_frequency(frequenz, betriebszyklus.into())
                                 .map_err(map_fehler)?;
                         },
                     }
@@ -184,9 +183,11 @@ impl Pin {
                     },
                     Zeit::Frequenz { frequenz, mut betriebszyklus } => {
                         if konfiguration.polarität == Polarität::Invertiert {
-                            betriebszyklus = 1. - betriebszyklus;
+                            betriebszyklus = NullBisEins::MAX - betriebszyklus;
                         }
-                        pwm_pin.set_pwm_frequency(frequenz, betriebszyklus).map_err(map_fehler)?;
+                        pwm_pin
+                            .set_pwm_frequency(frequenz, betriebszyklus.into())
+                            .map_err(map_fehler)?;
                     },
                 }
             },

@@ -22,6 +22,7 @@ use crate::{
         polarität::{Fließend, Polarität},
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
+    kleiner_als::NullBisEins,
     maybe_empty::MaybeEmpty,
 };
 
@@ -132,20 +133,14 @@ impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialis
 fn geschwindigkeit_pwm(
     pin: &mut pwm::Pin,
     wert: u8,
-    faktor: f64,
+    faktor: NullBisEins,
     polarität: Polarität,
 ) -> Result<(), pwm::Fehler> {
-    debug_assert!(
-        0. < faktor && faktor <= 1.,
-        "Pwm-Faktor muss zwischen 0 und 1 liegen: {}",
-        faktor
-    );
+    // 0 <= u8 / u8::MAX <= 1
+    let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
-        zeit: pwm::Zeit::Frequenz {
-            frequenz: PWM_FREQUENZ,
-            betriebszyklus: faktor * f64::from(wert) / f64::from(u8::MAX),
-        },
+        zeit: pwm::Zeit::Frequenz { frequenz: PWM_FREQUENZ, betriebszyklus: faktor * verhältnis },
     })
 }
 fn geschwindigkeit_ks(
@@ -349,7 +344,8 @@ const STOPPZEIT: Duration = Duration::from_millis(500);
 const PWM_FREQUENZ: f64 = 50.;
 // TODO Zugtyp-Eigenschaft, wenn Mittelleiter gewählt
 // oder allgemein (max_duty_cycle)?
-const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: f64 = 16. / 25.;
+// 0 <= 16/25 <= 1
+const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: NullBisEins = NullBisEins::neu_unchecked(16. / 25.);
 const UMDREHENZEIT: Duration = Duration::from_millis(500);
 
 impl Leiter for Mittelleiter {
@@ -373,7 +369,10 @@ impl Geschwindigkeit<Mittelleiter> {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
                     polarität: *polarität,
-                    zeit: pwm::Zeit::Frequenz { frequenz: PWM_FREQUENZ, betriebszyklus: 1. },
+                    zeit: pwm::Zeit::Frequenz {
+                        frequenz: PWM_FREQUENZ,
+                        betriebszyklus: NullBisEins::MAX,
+                    },
                 })?;
                 sleep(UMDREHENZEIT);
                 pin.deaktiviere()?
@@ -454,7 +453,7 @@ impl Leiter for Zweileiter {
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
         match self {
             Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
-                Ok(geschwindigkeit_pwm(geschwindigkeit, wert, 1., *polarität)?)
+                Ok(geschwindigkeit_pwm(geschwindigkeit, wert, NullBisEins::MAX, *polarität)?)
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)

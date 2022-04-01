@@ -18,7 +18,7 @@ use crate::{
         InputSerialisiert, OutputSerialisiert,
     },
     application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    kleiner_als::{kleiner_8, ZuGroß},
+    kleiner_als::{kleiner_8, InvaliderWert},
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.
@@ -476,7 +476,7 @@ where
                     // daher `kleiner_8::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
                     *self.port = match kleiner_8::try_from(port) {
                         Ok(port) => port,
-                        Err(ZuGroß(port)) => {
+                        Err(InvaliderWert(port)) => {
                             error!("Port {} > kleiner_8::MAX {}", port, kleiner_8::MAX);
                             kleiner_8::MAX
                         },
