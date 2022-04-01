@@ -1,9 +1,6 @@
 //! Mit Raspberry Pi schaltbarer Anschluss
 
-use std::{
-    fmt::{self, Display, Formatter},
-    ops::Not,
-};
+use std::fmt::{self, Display, Formatter};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -143,21 +140,22 @@ impl OutputAnschluss {
         })
     }
 
-    pub fn ist_fließend(&mut self) -> Result<bool, Fehler> {
-        Ok(match self {
+    pub fn ist_fließend(&mut self) -> bool {
+        match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
                 Polarität::Normal => pin.ist_high(),
                 Polarität::Invertiert => pin.ist_low(),
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
-                Polarität::Normal => port.ist_high()?,
-                Polarität::Invertiert => port.ist_low()?,
+                Polarität::Normal => port.ist_high(),
+                Polarität::Invertiert => port.ist_low(),
             },
-        })
+        }
     }
 
-    pub fn ist_gesperrt(&mut self) -> Result<bool, Fehler> {
-        self.ist_fließend().map(bool::not)
+    #[inline(always)]
+    pub fn ist_gesperrt(&mut self) -> bool {
+        !self.ist_fließend()
     }
 
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
@@ -205,7 +203,7 @@ impl Serialisiere for OutputAnschluss {
                 OutputSerialisiert::Pin { pin: pin.pin(), polarität: *polarität }
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                let beschreibung = port.adresse();
+                let beschreibung = port.beschreibung();
                 let port = port.port();
                 OutputSerialisiert::Pcf8574Port {
                     beschreibung: *beschreibung,
@@ -378,7 +376,7 @@ impl Serialisiere for InputAnschluss {
         match self {
             InputAnschluss::Pin(pin) => InputSerialisiert::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
-                let beschreibung = *port.adresse();
+                let beschreibung = *port.beschreibung();
                 let interrupt = port.interrupt_pin().unwrap_or(None);
                 let port = port.port();
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }

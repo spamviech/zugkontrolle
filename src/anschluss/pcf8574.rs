@@ -271,12 +271,18 @@ pub struct Pcf8574 {
     i2c: Arc<Mutex<I2cMitPins>>,
 }
 
+/// Beschreibung eines [Pcf8574].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
+    /// I2CBus, über den das [Pcf8574] angeschlossen ist.
     pub i2c_bus: I2cBus,
+    /// Anliegendes [Level] an das `A0` Adress-Bit.
     pub a0: Level,
+    /// Anliegendes [Level] an das `A1` Adress-Bit.
     pub a1: Level,
+    /// Anliegendes [Level] an das `A2` Adress-Bit.
     pub a2: Level,
+    /// Variante des [Pcf8574], beeinflusst die I2C-Adresse.
     pub variante: Variante,
 }
 
@@ -398,7 +404,9 @@ impl Eq for Pcf8574 {}
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Variante {
+    /// Variante ohne Zusätze auf dem Chip-Aufdruck.
     Normal,
+    /// Variante mit extra A auf dem Chip-Aufdruck.
     A,
 }
 
@@ -481,11 +489,13 @@ impl Port {
         Port { pcf8574, lager, beschreibung, port }
     }
 
+    /// Die Beschreibung des [Pcf8574].
     #[inline(always)]
     pub fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
     }
 
+    /// Der angesprochene Port des [Pcf8574].
     #[inline(always)]
     pub fn port(&self) -> kleiner_8 {
         self.port
@@ -504,7 +514,7 @@ impl Port {
     }
 }
 
-// Ein Port eines Pcf8574, konfiguriert für Output.
+/// Ein Port eines [Pcf8574], konfiguriert für Output.
 #[derive(Debug)]
 pub struct OutputPort(Port);
 
@@ -515,28 +525,35 @@ impl Display for OutputPort {
 }
 
 impl OutputPort {
+    /// Die Beschreibung des [Pcf8574].
     #[inline(always)]
-    pub fn adresse(&self) -> &Beschreibung {
+    pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
+    /// Der angesprochene Port des [Pcf8574].
     #[inline(always)]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
+    /// Setze den [Port] auf das übergebene [Level].
     pub fn schreibe(&mut self, level: Level) -> Result<(), Fehler> {
         self.0.pcf8574.lock().schreibe_port(self.0.port, level)
     }
 
-    pub fn ist_high(&mut self) -> Result<bool, Fehler> {
-        Ok(self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High)
+    /// Ist der aktuelle Level [High](Level::High)?
+    pub fn ist_high(&mut self) -> bool {
+        self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High
     }
 
-    pub fn ist_low(&mut self) -> Result<bool, Fehler> {
-        Ok(self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low)
+    /// Ist der aktuelle Level [Low](Level::Low)?
+    pub fn ist_low(&mut self) -> bool {
+        self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low
     }
 
+    /// Wechsle den aktuellen anliegenden [Level] von [High](Level::High) auf [Low](Level::Low)
+    /// und umgekehrt.
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         let level = {
             let modus = &self.0.pcf8574.lock().ports[usize::from(self.port())];
@@ -565,7 +582,7 @@ impl Display for InputPort {
 
 impl InputPort {
     #[inline(always)]
-    pub fn adresse(&self) -> &Beschreibung {
+    pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
