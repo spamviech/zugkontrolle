@@ -37,8 +37,9 @@
 pub mod anschluss;
 pub mod application;
 pub mod argumente;
+#[path = "eingeschränkt.rs"]
+pub mod eingeschränkt;
 pub mod gleis;
-pub mod kleiner_als;
 pub mod maybe_empty;
 pub mod nachschlagen;
 pub mod rppal;

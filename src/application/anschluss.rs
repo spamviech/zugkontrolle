@@ -18,7 +18,7 @@ use crate::{
         InputSerialisiert, OutputSerialisiert,
     },
     application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    kleiner_als::{kleiner_8, InvaliderWert},
+    eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
 /// Status eines Widgets zur Auswahl eines Anschlusses.

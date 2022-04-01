@@ -8,7 +8,7 @@ use crate::{
         pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
         pin,
     },
-    kleiner_als::kleiner_8,
+    eingeschränkt::kleiner_8,
 };
 
 #[test]

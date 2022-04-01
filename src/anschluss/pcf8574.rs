@@ -23,7 +23,7 @@ use crate::{
         pin::{self, input, Pin},
         {level::Level, trigger::Trigger},
     },
-    kleiner_als::{kleiner_128, kleiner_8},
+    eingeschränkt::{kleiner_128, kleiner_8},
     rppal::{
         gpio,
         i2c::{self, I2c},

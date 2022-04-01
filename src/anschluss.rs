@@ -12,7 +12,7 @@ pub use self::{
     de_serialisieren::{Reserviere, Reserviert, Serialisiere},
     pcf8574::I2cBus,
 };
-use crate::{kleiner_als::kleiner_8, rppal};
+use crate::{eingeschränkt::kleiner_8, rppal};
 
 pub mod level;
 pub use level::Level;

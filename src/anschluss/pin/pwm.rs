@@ -11,7 +11,7 @@ use crate::{
         polarität::Polarität,
         InputAnschluss, OutputAnschluss,
     },
-    kleiner_als::NullBisEins,
+    eingeschränkt::NullBisEins,
     rppal::{gpio, pwm},
 };
 

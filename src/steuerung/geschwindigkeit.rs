@@ -22,7 +22,7 @@ use crate::{
         polarität::{Fließend, Polarität},
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
-    kleiner_als::NullBisEins,
+    eingeschränkt::NullBisEins,
     maybe_empty::MaybeEmpty,
 };
 
