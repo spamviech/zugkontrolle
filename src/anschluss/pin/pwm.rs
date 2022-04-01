@@ -1,7 +1,5 @@
 //! Gpio Pins für Pwm konfiguriert.
 
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -42,61 +40,14 @@ pub struct Konfiguration {
     pub polarität: Polarität,
 }
 
-impl Konfiguration {
-    /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
-    ///
-    /// [Zeit::valide] muss `true` sein.
-    pub fn neu(zeit: Zeit, polarität: Polarität) -> Option<Konfiguration> {
-        let konfiguration = Konfiguration { zeit, polarität };
-        if konfiguration.valide() {
-            Some(konfiguration)
-        } else {
-            None
-        }
-    }
-
-    /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
-    ///
-    /// Es muss gelten:
-    /// - `period >= pulse_width`
-    /// - `0 <= duty_cycle <= 1`
-    #[inline(always)]
-    pub fn valide(&self) -> bool {
-        self.zeit.valide()
-    }
-}
-
+// TODO nicht-negativ für Frequenz
 /// Zeit-Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Zeit {
-    /// Periodendauer und Pulsweite.
-    Periode {
-        /// Periodendauer eines [Pwm]-Pulses.
-        periode: Duration,
-        /// Zeit, die der [Pwm]-Puls [Fließend](crate::polarität::Fließend::Fließend) ist.
-        puls_weite: Duration,
-    },
-    /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Verhältnis einer Periodendauer.
-    Frequenz {
-        /// Frequenz des [Pwm]-Pulses in Herz.
-        frequenz: f64,
-        /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
-        betriebszyklus: NullBisEins,
-    },
-}
-
-impl Zeit {
-    /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
-    ///
-    /// Es muss gelten:
-    /// - `periode >= puls_weite`
-    /// - `0 <= betriebszyklus <= 1`
-    pub fn valide(&self) -> bool {
-        match self {
-            Zeit::Periode { periode, puls_weite } => puls_weite <= periode,
-            Zeit::Frequenz { .. } => true,
-        }
-    }
+pub struct Zeit {
+    /// Frequenz des [Pwm]-Pulses in Herz.
+    pub frequenz: f64,
+    /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
+    pub betriebszyklus: NullBisEins,
 }
 
 /// Ein Gpio Pin konfiguriert für Pwm.
@@ -156,40 +107,21 @@ impl Pin {
                 if self.konfiguration.as_ref().map(|Konfiguration { zeit, .. }| zeit)
                     != Some(&konfiguration.zeit)
                 {
-                    match konfiguration.zeit {
-                        Zeit::Periode { periode, puls_weite } => {
-                            pwm_channel.set_pulse_width(Duration::ZERO).map_err(map_fehler)?;
-                            pwm_channel.set_period(periode).map_err(map_fehler)?;
-                            pwm_channel.set_pulse_width(puls_weite).map_err(map_fehler)?;
-                        },
-                        Zeit::Frequenz { frequenz, betriebszyklus } => {
-                            pwm_channel
-                                .set_frequency(frequenz, betriebszyklus.into())
-                                .map_err(map_fehler)?;
-                        },
-                    }
+                    let Zeit { frequenz, betriebszyklus } = konfiguration.zeit;
+                    pwm_channel
+                        .set_frequency(frequenz, betriebszyklus.into())
+                        .map_err(map_fehler)?;
                 }
                 pwm_channel.enable().map_err(map_fehler)?;
             },
             Pwm::Software(pwm_pin) => {
                 let map_fehler = |fehler| Fehler::Gpio { pin, fehler };
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
-                match konfiguration.zeit {
-                    Zeit::Periode { periode, mut puls_weite } => {
-                        if konfiguration.polarität == Polarität::Invertiert {
-                            puls_weite = periode - puls_weite;
-                        }
-                        pwm_pin.set_pwm(periode, puls_weite).map_err(map_fehler)?;
-                    },
-                    Zeit::Frequenz { frequenz, mut betriebszyklus } => {
-                        if konfiguration.polarität == Polarität::Invertiert {
-                            betriebszyklus = NullBisEins::MAX - betriebszyklus;
-                        }
-                        pwm_pin
-                            .set_pwm_frequency(frequenz, betriebszyklus.into())
-                            .map_err(map_fehler)?;
-                    },
+                let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
+                if konfiguration.polarität == Polarität::Invertiert {
+                    betriebszyklus = NullBisEins::MAX - betriebszyklus;
                 }
+                pwm_pin.set_pwm_frequency(frequenz, betriebszyklus.into()).map_err(map_fehler)?;
             },
         }
         self.konfiguration = Some(konfiguration);

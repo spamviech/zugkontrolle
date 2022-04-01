@@ -140,7 +140,7 @@ fn geschwindigkeit_pwm(
     let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
-        zeit: pwm::Zeit::Frequenz { frequenz: PWM_FREQUENZ, betriebszyklus: faktor * verhältnis },
+        zeit: pwm::Zeit { frequenz: PWM_FREQUENZ, betriebszyklus: faktor * verhältnis },
     })
 }
 fn geschwindigkeit_ks(
@@ -369,10 +369,7 @@ impl Geschwindigkeit<Mittelleiter> {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
                     polarität: *polarität,
-                    zeit: pwm::Zeit::Frequenz {
-                        frequenz: PWM_FREQUENZ,
-                        betriebszyklus: NullBisEins::MAX,
-                    },
+                    zeit: pwm::Zeit { frequenz: PWM_FREQUENZ, betriebszyklus: NullBisEins::MAX },
                 })?;
                 sleep(UMDREHENZEIT);
                 pin.deaktiviere()?

@@ -1,7 +1,11 @@
 //! Gpio Pin in verschiedenen Konfigurationen.
 
 use self::pwm::Pwm;
-use crate::{anschluss::level::Level, rppal};
+use crate::{
+    anschluss::level::Level,
+    eingeschränkt::{InvaliderWert, NullBisEins},
+    rppal,
+};
 
 pub mod input;
 pub mod output;
@@ -93,17 +97,19 @@ impl Pin {
     pub fn als_pwm(self) -> pwm::Pin {
         if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok())
         {
-            let konfiguration = pwm
-                .polarity()
-                .and_then(|polarity| {
-                    pwm.period().and_then(|periode| {
-                        pwm.pulse_width().map(|puls_weite| pwm::Konfiguration {
-                            zeit: pwm::Zeit::Periode { periode, puls_weite },
-                            polarität: polarity.into(),
-                        })
-                    })
+            let pwm_konfiguration = || {
+                let polarity = pwm.polarity().ok()?;
+                let periode = pwm.period().ok()?;
+                let frequenz = 1. / periode.as_secs_f64();
+                let puls_weite = pwm.pulse_width().ok()?;
+                let betriebszyklus =
+                    NullBisEins::try_from(puls_weite.as_secs_f64() * frequenz).ok()?;
+                Some(pwm::Konfiguration {
+                    zeit: pwm::Zeit { frequenz, betriebszyklus },
+                    polarität: polarity.into(),
                 })
-                .ok();
+            };
+            let konfiguration = pwm_konfiguration();
             pwm::Pin { pin: Pwm::Hardware(pwm, self.0), konfiguration }
         } else {
             // fallback software pwm
