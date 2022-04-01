@@ -32,10 +32,12 @@ impl PartialEq for Pwm {
 }
 impl Eq for Pwm {}
 
-/// Einstellung eines Pwm-Pulses.
+/// Einstellung eines [Pwm]-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Konfiguration {
+    /// Die [Zeit]-Einstellungen eines [Pwm]-Pulses.
     pub zeit: Zeit,
+    /// Die [Polarität] eines [Pwm]-Pulses.
     pub polarität: Polarität,
 }
 
@@ -67,9 +69,19 @@ impl Konfiguration {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Zeit {
     /// Periodendauer und Pulsweite.
-    Periode { periode: Duration, puls_weite: Duration },
-    /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Prozentwert.
-    Frequenz { frequenz: f64, betriebszyklus: f64 },
+    Periode {
+        /// Periodendauer eines [Pwm]-Pulses.
+        periode: Duration,
+        /// Zeit, die der [Pwm]-Puls [Fließend](crate::polarität::Fließend::Fließend) ist.
+        puls_weite: Duration,
+    },
+    /// Frequenz (in Herz) und Duty-cycle (\[0,1\]) als Verhältnis einer Periodendauer.
+    Frequenz {
+        /// Frequenz des [Pwm]-Pulses in Herz.
+        frequenz: f64,
+        /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
+        betriebszyklus: f64,
+    },
 }
 
 impl Zeit {
@@ -197,11 +209,30 @@ impl Pin {
     }
 }
 
+/// Fehler bei Interaktion mit einem [Pwm]-Puls.
 #[derive(Debug)]
 pub enum Fehler {
-    Gpio { pin: u8, fehler: gpio::Error },
-    Pwm { pin: u8, fehler: pwm::Error },
-    InvalideKonfiguration { pin: u8, konfiguration: Konfiguration },
+    /// Fehler eines GPIO-[Pin]s.
+    Gpio {
+        /// Der betroffene [Pin].
+        pin: u8,
+        /// Der aufgetretene Fehler.
+        fehler: gpio::Error,
+    },
+    /// Fehler beim erzeugen des [Pwm]-Pulses.
+    Pwm {
+        /// Der betroffene [Pin].
+        pin: u8,
+        /// Der aufgetretene Fehler.
+        fehler: pwm::Error,
+    },
+    /// [Invalide Konfiguration](Konfiguration::valide).
+    InvalideKonfiguration {
+        /// Der betroffene [Pin].
+        pin: u8,
+        /// Die invalide Konfiguration.
+        konfiguration: Konfiguration,
+    },
 }
 
 /// Serealisierbare Informationen einen Pwm-Pins.

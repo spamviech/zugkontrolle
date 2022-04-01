@@ -43,12 +43,16 @@ struct I2cMitPins {
     scl: Pin,
 }
 
+/// Fehler beim Initialisieren eines [Lager].
 #[derive(Debug)]
 pub enum InitFehler {
+    /// Fehler bei einem I2C-Channel.
     I2c { i2c_bus: I2cBus, fehler: i2c::Error },
+    /// Nicht verfügbarer Pin für den konfigurierten I2C-Channel.
     Pin { i2c_bus: I2cBus, fehler: pin::ReservierenFehler },
 }
 
+/// Ein I2C-Bus ist deaktiviert.
 #[derive(Debug, Clone, Copy)]
 pub struct Deaktiviert(pub I2cBus);
 
@@ -96,10 +100,12 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
+/// Noch verfügbare Pcf8574-[Port]s.
 #[derive(Debug)]
 pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
 
 impl Lager {
+    /// Erstelle ein neues [Lager].
     pub fn neu(pin_status: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
@@ -127,6 +133,7 @@ impl Lager {
         Ok(Lager(arc))
     }
 
+    /// Reserviere einen Pcf8574-[Port].
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: Beschreibung,
@@ -136,6 +143,9 @@ impl Lager {
         self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
     }
 
+    /// Gebe einen Pcf8574-[Port] zurück, damit er wieder verwendet werden kann.
+    ///
+    /// Wird vom [Drop]-Handler des [Port]s aufgerufen.
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
         debug!("rückgabe {:?}", port);
         let port_opt = self.0.write().insert((port.beschreibung().clone(), port.port()), port);
@@ -605,7 +615,7 @@ impl InputPort {
             };
             interrupt.setze_async_interrupt(Trigger::FallingEdge, interrupt_callback).map_err(
                 |pin_fehler| {
-                    let input::Fehler::Gpio { pin: _, fehler } = pin_fehler;
+                    let input::Fehler { pin: _, fehler } = pin_fehler;
                     Fehler::Gpio { beschreibung: *pcf8574.beschreibung(), fehler }
                 },
             )?;

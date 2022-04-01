@@ -48,7 +48,7 @@ impl Pin {
         let pin = self.pin();
         self.0
             .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
-            .map_err(|fehler| Fehler::Gpio { pin, fehler })?;
+            .map_err(|fehler| Fehler { pin, fehler })?;
         Ok(())
     }
 
@@ -56,11 +56,15 @@ impl Pin {
     #[inline(always)]
     pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
-        Ok(self.0.clear_async_interrupt().map_err(|fehler| Fehler::Gpio { pin, fehler })?)
+        Ok(self.0.clear_async_interrupt().map_err(|fehler| Fehler { pin, fehler })?)
     }
 }
 
+/// Ein Fehler bei Interaktion mit einem Input-[Pin].
 #[derive(Debug)]
-pub enum Fehler {
-    Gpio { pin: u8, fehler: gpio::Error },
+pub struct Fehler {
+    /// Der betroffene Pin.
+    pub pin: u8,
+    /// Der aufgetretene Fehler.
+    pub fehler: gpio::Error,
 }
