@@ -33,13 +33,15 @@ impl GpioStore {
         GPIO.lock()
     }
 }
-/// Provides access to the Raspberry Pi’s GPIO peripheral.
+
 #[cfg(raspi)]
 pub type Gpio = rppal::gpio::Gpio;
 #[cfg(not(raspi))]
+/// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
 #[allow(missing_copy_implementations)]
 pub struct Gpio;
+
 #[cfg(not(raspi))]
 impl Gpio {
     /// Constructs a new `Gpio`.
@@ -71,6 +73,7 @@ impl Gpio {
 #[cfg(raspi)]
 pub type Pin = rppal::gpio::Pin;
 #[cfg(not(raspi))]
+/// Unconfigured GPIO pin.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Pin(u8);
 
@@ -150,6 +153,7 @@ impl Pin {
 pub type InputPin = rppal::gpio::InputPin;
 #[cfg(not(raspi))]
 #[derive(Debug)]
+/// GPIO pin configured as input.
 pub struct InputPin(Pin, PullUpDown);
 
 #[cfg(not(raspi))]
@@ -223,6 +227,7 @@ impl InputPin {
 pub type OutputPin = rppal::gpio::OutputPin;
 #[cfg(not(raspi))]
 #[derive(Debug, PartialEq, Eq)]
+/// GPIO pin configured as output.
 pub struct OutputPin(Pin, Level);
 
 #[cfg(not(raspi))]
@@ -283,11 +288,12 @@ impl OutputPin {
     }
 }
 
-/// Pin logic levels.
 #[cfg(raspi)]
 pub type Level = rppal::gpio::Level;
 #[cfg(not(raspi))]
+/// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Level {
     Low,
     High,
@@ -305,22 +311,24 @@ impl Not for Level {
     }
 }
 
-/// Built-in pull-up/pull-down resistor states.
 #[cfg(raspi)]
 pub type PullUpDown = rppal::gpio::PullUpDown;
 #[cfg(not(raspi))]
+/// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub enum PullUpDown {
     Off,
     PullDown,
     PullUp,
 }
 
-/// Interrupt trigger conditions.
 #[cfg(raspi)]
 pub type Trigger = rppal::gpio::Trigger;
 #[cfg(not(raspi))]
+/// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Trigger {
     Disabled,
     RisingEdge,
@@ -331,11 +339,12 @@ pub enum Trigger {
 /// Result with `gpio::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Errors that can occur when accessing the GPIO peripheral.
 #[cfg(raspi)]
 pub type Error = rppal::gpio::Error;
 #[cfg(not(raspi))]
+/// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     UnknownModel,
     PinNotAvailable(u8),
