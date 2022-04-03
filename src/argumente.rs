@@ -146,6 +146,7 @@ impl Argumente {
     }
 }
 
+// TODO erlaube Laden/Deserialisieren aus einer Datei.
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
