@@ -133,8 +133,8 @@ macro_rules! definiere_f64_typ {
             type Error = InvaliderWert<f64>;
 
             fn try_from(wert: f64) -> Result<Self, Self::Error> {
-                if wert >= $ident::MIN.0 && wert <= $ident::MAX.0 {
-                    Ok($ident(wert))
+                if wert >= Self::MIN.0 && wert <= Self::MAX.0 {
+                    Ok(Self(wert))
                 } else {
                     Err(InvaliderWert(wert))
                 }
@@ -152,12 +152,25 @@ macro_rules! definiere_f64_typ {
 
             fn add(self, other: Self) -> Self::Output {
                 let unbeschränkt = self.0 + other.0;
-                if unbeschränkt > Self::MAX.0 {
+                if unbeschränkt >= Self::MIN.0 && unbeschränkt <= Self::MAX.0 {
+                    Self(unbeschränkt)
+                } else if unbeschränkt > Self::MAX.0 {
                     Self::MAX
                 } else if unbeschränkt < Self::MIN.0 {
                     Self::MIN
                 } else {
-                    Self(unbeschränkt)
+                    // NaN
+                    let self_pos = self.0 > 0.;
+                    let self_greater_abs = self.0.abs() > other.0.abs();
+                    let other_pos = other.0 > 0.;
+                    if (self_pos && other_pos)
+                        || (self_pos && self_greater_abs)
+                        || (other_pos && !self_greater_abs)
+                    {
+                        Self::MAX
+                    } else {
+                        Self::MIN
+                    }
                 }
             }
         }
@@ -167,12 +180,25 @@ macro_rules! definiere_f64_typ {
 
             fn sub(self, other: Self) -> Self::Output {
                 let unbeschränkt = self.0 - other.0;
-                if unbeschränkt > Self::MAX.0 {
+                if unbeschränkt >= Self::MIN.0 && unbeschränkt <= Self::MAX.0 {
+                    Self(unbeschränkt)
+                } else if unbeschränkt > Self::MAX.0 {
                     Self::MAX
                 } else if unbeschränkt < Self::MIN.0 {
                     Self::MIN
                 } else {
-                    Self(unbeschränkt)
+                    // NaN
+                    let self_pos = self.0 > 0.;
+                    let self_greater_abs = self.0.abs() > other.0.abs();
+                    let other_neg = other.0 < 0.;
+                    if (self_pos && other_neg)
+                        || (self_pos && self_greater_abs)
+                        || (other_neg && !self_greater_abs)
+                    {
+                        Self::MAX
+                    } else {
+                        Self::MIN
+                    }
                 }
             }
         }
