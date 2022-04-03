@@ -56,7 +56,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten,
-            modal_status,
+            auswahl,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             geschwindigkeit_button_state,
@@ -118,14 +118,14 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             )
             .into();
 
-        let modal = Modal::neu(modal_status, column, &|modal| match modal {
+        let modal = Modal::neu(auswahl, column, &|modal| match modal {
             AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
             .map(|message| {
                 use streckenabschnitt::AuswahlNachricht::*;
                 match message {
-                    Schließe => Nachricht::SchließeModal,
+                    Schließe => Nachricht::SchließeAuswahl,
                     Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
                     Hinzufügen(geschwindigkeit, name, farbe, output) => {
                         Nachricht::HinzufügenStreckenabschnitt(
@@ -144,7 +144,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             .map(|message| {
                 use geschwindigkeit::AuswahlNachricht::*;
                 match message {
-                    Schließen => Nachricht::SchließeModal,
+                    Schließen => Nachricht::SchließeAuswahl,
                     Hinzufügen(name, geschwindigkeit) => {
                         Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
                     },
@@ -157,7 +157,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => Nachricht::SchließeAuswahl,
                     }
                 })
             },
@@ -167,7 +167,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => Nachricht::SchließeAuswahl,
                     }
                 })
             },
@@ -177,12 +177,12 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeModal,
+                        Schließen => Nachricht::SchließeAuswahl,
                     }
                 })
             },
         })
-        .on_esc(&|| Nachricht::SchließeModal);
+        .on_esc(&|| Nachricht::SchließeAuswahl);
 
         Modal::neu(message_box, modal, &|MessageBox { titel, nachricht, button_state }| {
             Element::from(

@@ -67,14 +67,22 @@ pub mod update;
 pub mod view;
 pub mod weiche;
 
+/// Ein beliebiges Gleis ohne Anschlüsse.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AnyGleisUnit {
+    /// Eine [Gerade](gleis::Gerade).
     GeradeUnit(GeradeUnit),
+    /// Eine [Kurve](gleis::Kurve).
     KurveUnit(KurveUnit),
+    /// Eine [Weiche].
     WeicheUnit(WeicheUnit),
+    /// Eine [DreiwegeWeiche].
     DreiwegeWeicheUnit(DreiwegeWeicheUnit),
+    /// Eine [KurvenWeiche].
     KurvenWeicheUnit(KurvenWeicheUnit),
+    /// Eine [SKurvenWeiche].
     SKurvenWeicheUnit(SKurvenWeicheUnit),
+    /// Eine [Kreuzung].
     KreuzungUnit(KreuzungUnit),
 }
 
@@ -84,34 +92,47 @@ impl Modus {
     }
 }
 
+/// Anschlüsse für ein Gleis anpassen.
 #[derive(Debug)]
 pub enum AnschlüsseAnpassen {
+    /// Anschlüsse einer [Weiche] anpassen.
     Weiche(GleisId<Weiche>, Option<WeicheSerialisiert>),
+    /// Anschlüsse einer [DreiwegeWeiche] anpassen.
     DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
+    /// Anschlüsse einer [KurvenWeiche] anpassen.
     KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
+    /// Anschlüsse einer [SKurvenWeiche] anpassen.
     SKurvenWeiche(GleisId<SKurvenWeiche>, Option<WeicheSerialisiert>),
+    /// Anschlüsse einer [Kreuzung] anpassen.
     Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
+/// Zustand auf Stand vor einer Aktion zurücksetzen.
 #[derive(zugkontrolle_macros::Debug)]
 pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
+    /// Richtung einer [Weiche] zurücksetzen.
     Weiche(GleisId<Weiche>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
+    /// Richtung einer [DreiwegeWeiche] zurücksetzen.
     DreiwegeWeiche(
         GleisId<DreiwegeWeiche>,
         gleis::weiche::dreiwege::Richtung,
         gleis::weiche::dreiwege::Richtung,
     ),
+    /// Richtung einer [KurvenWeiche] zurücksetzen.
     KurvenWeiche(
         GleisId<KurvenWeiche>,
         gleis::weiche::kurve::Richtung,
         gleis::weiche::kurve::Richtung,
     ),
+    /// Richtung einer [SKurvenWeiche] zurücksetzen.
     SKurvenWeiche(
         GleisId<SKurvenWeiche>,
         gleis::weiche::s_kurve::Richtung,
         gleis::weiche::s_kurve::Richtung,
     ),
+    /// Richtung einer [Kreuzung] zurücksetzen.
     Kreuzung(GleisId<Kreuzung>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
+    /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
     GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
 
@@ -120,7 +141,7 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
 enum NachrichtClone<Leiter: LeiterAnzeige> {
     Gleis {
         gleis: AnyGleisUnit,
-        grab_height: Skalar,
+        klick_höhe: Skalar,
     },
     Skalieren(Skalar),
     SchließeMessageBox,
@@ -134,7 +155,7 @@ enum NachrichtClone<Leiter: LeiterAnzeige> {
 impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
     fn from(nachricht_clone: NachrichtClone<Leiter>) -> Self {
         match nachricht_clone {
-            NachrichtClone::Gleis { gleis, grab_height } => Nachricht::Gleis { gleis, grab_height },
+            NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
             NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
@@ -145,48 +166,92 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
     }
 }
 
+/// Eine Nachricht, die beim [Ausführen](ausführen) der Anwendung auftreten kann.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
 pub enum Nachricht<Leiter: LeiterAnzeige> {
+    /// Ein neues Gleis hinzufügen.
     Gleis {
+        /// Das neue Gleis.
         gleis: AnyGleisUnit,
-        grab_height: Skalar,
+        /// Auf welcher Höhe wurde es ins Bild gezogen.
+        klick_höhe: Skalar,
     },
+    /// Wechsle den aktuellen Modus.
     Modus(Modus),
+    /// Eine Nachricht des Widget zum Bewegen des angezeigten Bereichs.
     Bewegen(bewegen::Nachricht),
+    /// Tick für Bewegen des angezeigten Bereichs.
     BewegungAusführen,
+    /// Ändere die linke obere Ecke des angezeigten Bereichs.
     Position(Vektor),
+    /// Ändere den Winkel des angezeigten Bereichs.
     Winkel(Winkel),
+    /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    SchließeModal,
+    /// Schließe das [Auswahl](AuswahlStatus)-Fenster.
+    SchließeAuswahl,
+    /// Schließe die [MessageBox].
     SchließeMessageBox,
+    /// Zeige die Auswahl für [Streckenabschnitte](steuerung::Streckenabschnitt).
     ZeigeAuswahlStreckenabschnitt,
+    /// Wähle den aktuellen [Streckenabschnitt](steuerung::Streckenabschnitt).
     WähleStreckenabschnitt(Option<(StreckenabschnittId, Farbe)>),
+    /// Hinzufügen eines neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
+        /// Der Name der assoziierten [Geschwindigkeit](steuerung::Geschwindigkeit).
         Option<geschwindigkeit::Name>,
+        /// Der Name des neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
         streckenabschnitt::Name,
+        /// Die Farbe, mit der Gleise eingefärbt werden sollen.
         Farbe,
+        /// Der verwendete [OutputAnschluss](crate::anschluss::OutputAnschluss).
         OutputSerialisiert,
     ),
+    /// Lösche einen [Streckenabschnitt](steuerung::Streckenabschnitt).
     LöscheStreckenabschnitt(StreckenabschnittId),
+    /// Setze den [Streckenabschnitt](steuerung::Streckenabschnitt) des spezifizierten Gleises,
+    /// sofern es über [StreckenabschnittFestlegen](Nachricht::StreckenabschnittFestlegen)
+    /// aktiviert wurde.
     SetzeStreckenabschnitt(AnyId),
+    /// Einstellen, ob bei Klick auf ein Gleis der [Streckenabschnitt](steuerung::Streckenabschnitt)
+    /// auf den aktuellen gesetzt werden soll
+    /// (beeinflusst Reaktion auf [SetzeStreckenabschnitt](Nachricht::SetzeStreckenabschnitt)).
     StreckenabschnittFestlegen(bool),
+    /// Speichern im übergebenen Pfad.
     Speichern(String),
+    /// Setze die Farbe des Speichern-Knopfes zurück,
+    /// sofern die Zeit mit der letzten Speichern-Zeit übereinstimmt.
     EntferneSpeichernFarbe(Instant),
+    /// Laden aus dem übergebenen Pfad.
     Laden(String),
+    /// Eine Nachricht der [Geschwindigkeit-Anzeige](geschwindigkeit::AnzeigeStatus).
     GeschwindigkeitAnzeige {
+        /// Der Name der Geschwindigkeit.
         name: geschwindigkeit::Name,
+        /// Die zugehörige Nachricht.
         nachricht: <Leiter as LeiterAnzeige>::Nachricht,
     },
+    /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
     ZeigeAuswahlGeschwindigkeit,
+    /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>),
+    /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
+    /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
     ZeigeAnschlüsseAnpassen(AnyId),
+    /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
+    /// Führe die Aktion für das Gleis im Fahren-Modus durch
+    /// (Streckenabschnitt umstellen, Weiche stellen).
     FahrenAktion(AnyId),
+    /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
+        /// Der Titel der Fehlermeldung.
         titel: String,
+        /// Die Nachricht der Fehlermeldung.
         nachricht: String,
+        /// Zustand auf Stand vor der Aktion zurücksetzen.
         zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
     },
 }
@@ -210,7 +275,7 @@ where
     T: Clone + Into<AnyGleisUnit>,
 {
     fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Leiter> {
-        NachrichtClone::Gleis { gleis: self.clone().into(), grab_height: klick_position.y }
+        NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
     }
 }
 
@@ -257,14 +322,20 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 >;
 type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
 
+/// Zustand des Auswahl-Fensters.
 pub enum AuswahlStatus<Leiter: LeiterAnzeige> {
+    /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt(streckenabschnitt::AuswahlStatus),
+    /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     Geschwindigkeit(geschwindigkeit::AuswahlStatus),
+    /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
     Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
+    /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
     DreiwegeWeiche(
         DreiwegeWeicheStatus,
         ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Leiter>,
     ),
+    /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
     KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
 }
 
@@ -297,19 +368,25 @@ struct MessageBox {
     button_state: iced::button::State,
 }
 
+/// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
+    /// Ein Fehler beim anzeigen des GUIs.
     Iced(iced::Error),
+    /// Ein Fehler beim starten des Loggers.
     FlexiLogger(FlexiLoggerError),
+    /// Ein Fehler beim Initialisieren der Pins und I2C-Busse.
     Anschluss(crate::anschluss::InitFehler),
 }
 
+/// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 #[inline(always)]
 pub fn ausführen_aus_env() -> Result<(), Fehler> {
     let args = Argumente::parse_aus_env();
     ausführen(args)
 }
 
+/// Parse die übergebenen Kommandozeilen-Argumente und führe die Anwendung aus.
 pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
     let lager = crate::anschluss::Lager::neu(i2c_settings)?;
@@ -361,6 +438,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     Ok(())
 }
 
+/// Die Anwendung inklusive des GUI.
 #[derive(Debug)]
 pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     gleise: Gleise<Leiter>,
@@ -374,7 +452,7 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     s_kurven_weichen: Vec<Button<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Button<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<Leiter>,
-    modal_status: modal::Status<AuswahlStatus<Leiter>>,
+    auswahl: modal::Status<AuswahlStatus<Leiter>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,
@@ -445,7 +523,7 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten: geschwindigkeit::Map::new(),
-            modal_status: modal::Status::neu(),
+            auswahl: modal::Status::neu(),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
             streckenabschnitt_aktuell_festlegen: false,
             geschwindigkeit_button_state: iced::button::State::new(),
@@ -475,7 +553,7 @@ where
         let mut command = Command::none();
 
         match message {
-            Nachricht::Gleis { gleis, grab_height } => self.gleis_hinzufügen(gleis, grab_height),
+            Nachricht::Gleis { gleis, klick_höhe } => self.gleis_hinzufügen(gleis, klick_höhe),
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
                 command = self.bewegung_starten(bewegung)
@@ -490,7 +568,7 @@ where
             Nachricht::Position(position) => self.gleise.setze_pivot(position),
             Nachricht::Winkel(winkel) => self.gleise.winkel(winkel),
             Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
-            Nachricht::SchließeModal => self.schließe_modal(),
+            Nachricht::SchließeAuswahl => self.schließe_auswahl(),
             Nachricht::ZeigeAuswahlStreckenabschnitt => self.zeige_auswahl_streckenabschnitt(),
             Nachricht::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
             Nachricht::HinzufügenStreckenabschnitt(

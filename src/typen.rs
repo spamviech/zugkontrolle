@@ -28,15 +28,20 @@ pub mod skalar;
 pub mod vektor;
 pub mod winkel;
 
-/// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt
+/// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Transparenz {
+    /// Der Pfad wird mit voller Stärke gezeichnet.
     Voll,
+    /// Der Pfad wird leicht transparent gezeichnet.
     Reduziert,
+    /// Der Pfad mit stark transparent gezeichnet.
     Minimal,
 }
 
 impl Transparenz {
+    /// [Reduzierte](Transparenz::Reduziert), wenn das Argument [true] ist,
+    /// ansonsten [Volle](Transparenz::Voll) Transparenz.
     pub fn true_reduziert(input: bool) -> Transparenz {
         if input {
             Transparenz::Reduziert
@@ -45,6 +50,7 @@ impl Transparenz {
         }
     }
 
+    /// Kombiniere zwei Transparenz-Werte.
     pub fn kombiniere(self, other: Transparenz) -> Transparenz {
         use Transparenz::*;
         match (self, other) {
@@ -55,6 +61,7 @@ impl Transparenz {
         }
     }
 
+    /// Erhalte den assoziierten Wert für den Alpha-Kanal.
     pub fn alpha(self) -> f32 {
         match self {
             Transparenz::Minimal => 0.3,
@@ -64,6 +71,8 @@ impl Transparenz {
     }
 }
 
+/// Trait für Typen, die auf einem [Canvas](crate::application::touch_canvas::Canvas)
+/// gezeichnet werden können.
 pub trait Zeichnen {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck;
@@ -123,43 +132,54 @@ pub trait Zeichnen {
     }
 }
 
+/// Trait für (potentiell) benannte Typen.
 pub trait MitName {
+    /// Der Name des Wertes.
     fn name(&self) -> Option<&String>;
 }
+
 impl MitName for () {
     fn name(&self) -> Option<&String> {
         None
     }
 }
+
 impl<R, A> MitName for Option<Weiche<R, A>> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|weiche| &weiche.name.0)
     }
 }
+
 impl MitName for Option<Kontakt> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|kontakt| &kontakt.name.0)
     }
 }
+
 impl MitName for Option<KontaktSerialisiert> {
     fn name(&self) -> Option<&String> {
         self.as_ref().map(|kontakt| &kontakt.name.0)
     }
 }
 
+/// Trait für Typen mit einer aktuellen Richtung.
 pub trait MitRichtung<Richtung> {
+    /// Erhalte die aktuelle Richtung.
     fn aktuelle_richtung(&self) -> Option<Richtung>;
 }
+
 impl<R> MitRichtung<R> for () {
     fn aktuelle_richtung(&self) -> Option<R> {
         None
     }
 }
+
 impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
     fn aktuelle_richtung(&self) -> Option<R> {
         self.as_ref().and_then(|t| t.aktuelle_richtung())
     }
 }
+
 impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
     fn aktuelle_richtung(&self) -> Option<R> {
         Some(self.aktuelle_richtung.clone())

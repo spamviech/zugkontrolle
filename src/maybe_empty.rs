@@ -6,9 +6,13 @@ use nonempty::NonEmpty;
 
 /// Newtype über Option, wegen alternativer FromIterator-Implementierung.
 #[derive(Debug)]
-pub struct MaybeEmpty<T>(Option<NonEmpty<T>>);
+pub struct MaybeEmpty<T>(pub Option<NonEmpty<T>>);
 
 impl<T> MaybeEmpty<T> {
+    /// Rufe [unwrap](Option::unwrap) auf der enthaltenen [Option] auf.
+    ///
+    /// Führt zu einem [panic], wenn der enthaltene Wert [None] ist.
+    #[inline(always)]
     pub fn unwrap(self) -> NonEmpty<T> {
         self.0.unwrap()
     }
