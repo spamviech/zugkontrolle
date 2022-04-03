@@ -30,25 +30,33 @@ pub use pcf8574::Pcf8574;
 
 pub mod de_serialisieren;
 
+/// Verwalten nicht verwendeter [Pin]s und [Pcf8574-Ports](pcf8574::Port).
 #[derive(Debug)]
 pub struct Lager {
+    /// [Lager](pin::Lager) zum verwalten nicht verwendeter [Pin]s.
     pub pin: pin::Lager,
+    /// [Lager](pcf8574::Lager) zum verwalten nicht verwendeter [Pcf8574-Ports](pcf8574::Port).
     pub pcf8574: pcf8574::Lager,
 }
 
+/// Fehler beim [Initialisieren](Lager::neu) eines [Lager]s.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum InitFehler {
+    /// Fehler beim Initialisieren des [Pin-Lagers](pin::Lager).
     Pin(rppal::gpio::Error),
+    /// Fehler beim Initialisieren des [Pcf8574-Lagers](pcf8574::Lager).
     Pcf8574(pcf8574::InitFehler),
 }
 
 impl Lager {
+    /// Initialisiere ein [Lager], das nicht verwendete [Anschlüsse](Anschluss) verwaltet.
     pub fn neu(settings: pcf8574::I2cSettings) -> Result<Lager, InitFehler> {
         let mut pin = pin::Lager::neu()?;
         let pcf8574 = pcf8574::Lager::neu(&mut pin, settings)?;
         Ok(Lager { pin, pcf8574 })
     }
 
+    /// Reserviere einen [Pin].
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Anschluss, ReservierenFehler> {
         match self.pin.reserviere_pin(pin) {
             Ok(pin) => Ok(Anschluss::Pin(pin)),
@@ -56,6 +64,7 @@ impl Lager {
         }
     }
 
+    /// Reserviere einen [Pcf8574-Port](pcf8574::Port).
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: pcf8574::Beschreibung,
@@ -68,11 +77,13 @@ impl Lager {
     }
 }
 
-/// Ein Anschluss
+/// Ein Anschluss.
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Anschluss {
+    /// Ein [Pin].
     Pin(Pin),
+    /// Ein [Pcf8574-Port](pcf8574::Port).
     Pcf8574Port(pcf8574::Port),
 }
 
@@ -88,6 +99,7 @@ impl Display for Anschluss {
 }
 
 impl Anschluss {
+    /// Konfiguriere den [Anschluss] als [Output](OutputAnschluss).
     pub fn als_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
         let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
         Ok(match self {
@@ -100,6 +112,7 @@ impl Anschluss {
         })
     }
 
+    /// Konfiguriere den [Anschluss] als [Input](InputAnschluss).
     pub fn als_input(self) -> Result<InputAnschluss, Fehler> {
         Ok(match self {
             Anschluss::Pin(pin) => InputAnschluss::Pin(pin.als_input()),
@@ -112,8 +125,20 @@ impl Anschluss {
 #[derive(Debug)]
 #[allow(variant_size_differences)]
 pub enum OutputAnschluss {
-    Pin { pin: output::Pin, polarität: Polarität },
-    Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarität },
+    /// Ein [Pin](output::Pin).
+    Pin {
+        /// Die GPIO-Zahl.
+        pin: output::Pin,
+        /// Die [Polarität] des Anschlusses.
+        polarität: Polarität,
+    },
+    /// Ein [Pcf8574-Port](pcf8574::OutputPort).
+    Pcf8574Port {
+        /// Die [Pcf8574-Port](pcf8574::OutputPort).
+        port: pcf8574::OutputPort,
+        /// Die [Polarität] des Anschlusses.
+        polarität: Polarität,
+    },
 }
 
 impl Display for OutputAnschluss {
@@ -130,6 +155,7 @@ impl Display for OutputAnschluss {
 }
 
 impl OutputAnschluss {
+    /// Einstellen des [OutputAnschluss]es.
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
@@ -141,6 +167,7 @@ impl OutputAnschluss {
         })
     }
 
+    /// Ist der [OutputAnschluss] aktuell [fließend](Fließend::Fließend).
     pub fn ist_fließend(&mut self) -> bool {
         match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
@@ -154,11 +181,14 @@ impl OutputAnschluss {
         }
     }
 
+    /// Ist der [OutputAnschluss] aktuell [gesperrt](Fließend::Gesperrt).
     #[inline(always)]
     pub fn ist_gesperrt(&mut self) -> bool {
         !self.ist_fließend()
     }
 
+    /// Schalte den Strom von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt)
+    /// und umgekehrt.
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
@@ -167,16 +197,30 @@ impl OutputAnschluss {
     }
 }
 
-/// Serealisierbare Informationen eines OutputAnschlusses.
+/// Serealisierbare Informationen eines [OutputAnschluss]es.
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
-    Pin { pin: u8, polarität: Polarität },
-    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: kleiner_8, polarität: Polarität },
+    /// Ein [Pin](output::Pin).
+    Pin {
+        /// Die GPIO-Zahl.
+        pin: u8,
+        /// Die [Polarität] des Anschlusses.
+        polarität: Polarität,
+    },
+    /// Ein [Pcf8574-Port](pcf8574::OutputPort).
+    Pcf8574Port {
+        /// Die Beschreibung des Pcf8574.
+        beschreibung: pcf8574::Beschreibung,
+        /// Der verwendete Port.
+        port: kleiner_8,
+        /// Die [Polarität] des Anschlusses.
+        polarität: Polarität,
+    },
 }
 
 impl OutputSerialisiert {
-    // Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
+    /// Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
     pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {
         match (self, other) {
             (OutputSerialisiert::Pin { pin: p0, .. }, OutputSerialisiert::Pin { pin: p1, .. }) => {
@@ -282,7 +326,9 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
 #[derive(Debug)]
 #[allow(variant_size_differences)]
 pub enum InputAnschluss {
+    /// Ein [Pin](input::Pin).
     Pin(input::Pin),
+    /// Ein [Pcf8574-Port](pcf8574::InputPort).
     Pcf8574Port(pcf8574::InputPort),
 }
 
@@ -298,10 +344,17 @@ impl Display for InputAnschluss {
 }
 
 macro_rules! match_method {
-    ( $method:ident$(($($arg:ident : $arg_ty: ty),+))?) => {
-        match_method! {$method$(($($arg : $arg_ty),+))? -> ()}
+    (
+        $method:ident$(($($arg:ident : $arg_ty: ty),+))?
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
+        match_method! {$method$(($($arg : $arg_ty),+))? -> () $(, $($docstring),+)?}
     };
-    ($method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty) => {
+    (
+        $method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
+        $($(#[doc = $docstring])+)?
         pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Fehler> {
             Ok(match self {
                 InputAnschluss::Pin(pin) => pin.$method($($($arg),+)?)?,
@@ -312,40 +365,57 @@ macro_rules! match_method {
 }
 
 impl InputAnschluss {
-    // /// Lese das aktuell am [InputAnschluss] anliegende [Level].
-    match_method! {lese -> Level}
+    match_method! {
+        lese -> Level,
+        "Lese das aktuell am [InputAnschluss] anliegende [Level].",
+    }
 
-    // /// Konfiguriere einen asynchronen Interrupt Trigger.
-    // /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
-    // ///
-    // /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]
-    // /// oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.
-    // ///
-    // /// ## Keine synchronen Interrupts
-    // /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
-    // /// Siehe die Dokumentation der
-    // /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
-    // /// Methode.
-    // /// > Calling poll_interrupts blocks any other calls to poll_interrupts or
-    // /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
-    // /// > on different threads, consider using asynchronous interrupts with
-    // /// > InputPin::set_async_interrupt instead.
-    match_method! {setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static)}
+    match_method! {
+        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static),"Konfiguriere einen asynchronen Interrupt Trigger.",
+        "Bei auftreten wird der callback in einem separaten Thread ausgeführt.",
+        "",
+        "Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]",
+        "oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.",
+        "",
+        "## Keine synchronen Interrupts",
+        "Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
+        "Siehe die Dokumentation der",
+        "[poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)",
+        "Methode.",
+        "> Calling poll_interrupts blocks any other calls to poll_interrupts or",
+        "> InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously",
+        "> on different threads, consider using asynchronous interrupts with",
+        "> InputPin::set_async_interrupt instead.",
+    }
 
-    // /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
-    match_method! {lösche_async_interrupt}
+    match_method! {
+        lösche_async_interrupt,
+        "Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.",
+    }
 }
 
-/// Serealisierbare Informationen eines InputAnschlusses.
+/// Serealisierbare Informationen eines [InputAnschluss]es.
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
-    Pin { pin: u8 },
-    Pcf8574Port { beschreibung: pcf8574::Beschreibung, port: kleiner_8, interrupt: Option<u8> },
+    /// Ein [Pin](input::Pin).
+    Pin {
+        /// Die GPIO-Zahl.
+        pin: u8,
+    },
+    /// Ein [Pcf8574-Port](pcf8574::InputPort).
+    Pcf8574Port {
+        /// Die Beschreibung des Pcf8574.
+        beschreibung: pcf8574::Beschreibung,
+        /// Der verwendete Port.
+        port: kleiner_8,
+        /// Der konfigurierte Interrupt-Pin des Pcf8574.
+        interrupt: Option<u8>,
+    },
 }
 
 impl InputSerialisiert {
-    // Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
+    /// Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
     pub fn selber_anschluss(&self, other: &InputSerialisiert) -> bool {
         match (self, other) {
             (InputSerialisiert::Pin { pin: p0 }, InputSerialisiert::Pin { pin: p1 }) => p0 == p1,
@@ -361,6 +431,8 @@ impl InputSerialisiert {
         }
     }
 
+    /// Der Interrupt-Pin eines [Pcf8574-Port](pcf8574::Port),
+    /// sofern es sich um einen handelt und einer konfiguriert ist.
     pub fn interrupt(&self) -> Option<u8> {
         if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
             interrupt.clone()
@@ -475,18 +547,26 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
     }
 }
 
+/// Fehler, die beim reservieren eines [Anschluss]es auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
+    /// Ein Fehler beim reservieren eines [Pin]s.
     Pin(pin::ReservierenFehler),
+    /// Ein [Pcf8574-Port](pcf8574::Port) wird bereits verwendet.
     Pcf8574(pcf8574::InVerwendung),
 }
 
+/// Fehler, die bei Interaktion mit einem [Anschluss] auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
+    /// Ein Fehler mit einem [Input-Pin](input::Pin).
     Input(input::Fehler),
+    /// Ein Fehler mit einem [Pcf8574-Port](pcf8574::Port).
     Pcf8574(pcf8574::Fehler),
+    /// Ein Fehler beim Reservieren eines [Anschluss]es.
     Reservieren(ReservierenFehler),
+    /// Der Name des Leiters stimmt nicht überein.
     FalscherLeiter(FalscherLeiter),
 }
 
