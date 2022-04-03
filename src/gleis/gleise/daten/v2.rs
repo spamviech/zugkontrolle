@@ -1,4 +1,8 @@
-//! Serialisierte Strukturen von Version 2.X, die mit Version 3.0.0 geändert wurden
+//! Serialisierte Strukturen von Version 2.X, die mit Version 3.0.0 geändert wurden.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 
 use std::{collections::HashMap, marker::PhantomData};
 

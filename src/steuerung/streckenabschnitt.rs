@@ -1,5 +1,9 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use std::sync::Arc;
 
 use parking_lot::{Mutex, MutexGuard};

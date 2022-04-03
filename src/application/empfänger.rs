@@ -1,4 +1,7 @@
-//! Auf channel-Nachricht wartende Subscription
+//! Auf channel-Nachricht wartende Subscription.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::{
     hash::{Hash, Hasher},

@@ -1,5 +1,9 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [iced::Container] oder [iced::Button].
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use iced::{button, container, Color};
 
 pub const WHITE: Background = Background::Grey(1.);

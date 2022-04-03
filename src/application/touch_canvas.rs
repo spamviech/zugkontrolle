@@ -1,4 +1,7 @@
-//! iced::Canvas-Wrapper mit Touch-Event debug messages
+//! iced::Canvas-Wrapper mit Touch-Event debug messages.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::fmt::Debug;
 

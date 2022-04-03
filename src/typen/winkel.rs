@@ -1,4 +1,4 @@
-//! Winkel in Bogen- und Gradmaß
+//! Winkel in Bogen- und Gradmaß.
 
 use std::cmp::Ordering;
 use std::convert::From;

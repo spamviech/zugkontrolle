@@ -1,4 +1,7 @@
-//! Level eines Anschluss
+//! Level eines [Anschlusses](crate::anschluss::Anschluss).
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::fmt::{Display, Formatter, Result};
 use std::ops::Not;

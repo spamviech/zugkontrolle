@@ -1,5 +1,8 @@
 //! Widget zur Farbwahl ohne Overlay.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::{fmt::Debug, hash::Hash};
 
 use iced_graphics::Primitive;

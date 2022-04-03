@@ -1,5 +1,8 @@
 //! Einstellen der Steuerung einer Weiche.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::fmt::{Debug, Display};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};

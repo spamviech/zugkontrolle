@@ -1,4 +1,4 @@
-//! Verbindung zwischen zwei Gleisen
+//! Verbindung zwischen zwei Gleisen.
 
 use crate::{
     nachschlagen,

@@ -1,5 +1,9 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};

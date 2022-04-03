@@ -1,5 +1,8 @@
 //! Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use rstar::primitives::Rectangle;
 
 use crate::typen::{vektor::Vektor, winkel::Winkel};

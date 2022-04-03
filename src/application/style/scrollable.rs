@@ -1,5 +1,8 @@
 //! Style-Strukturen für ein [iced::Scrollable].
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use iced::{
     scrollable::{Scrollbar, Scroller, StyleSheet},
     Color,

@@ -1,4 +1,7 @@
-//! Anzeige der GleisDefinition auf einem Canvas
+//! Anzeige der GleisDefinition auf einem Canvas.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, iter, time::Instant};
 

@@ -1,5 +1,9 @@
 //! Style Strukturen für eine [iced::Rule].
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use iced::{
     rule::{FillMode, Style, StyleSheet},
     Color,

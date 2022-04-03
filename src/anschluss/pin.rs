@@ -1,5 +1,8 @@
 //! Gpio Pin in verschiedenen Konfigurationen.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use self::pwm::Pwm;
 use crate::{
     anschluss::level::Level,

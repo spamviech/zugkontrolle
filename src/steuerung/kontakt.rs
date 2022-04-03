@@ -1,5 +1,9 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use std::sync::{
     mpsc::{channel, Receiver, RecvError, SendError, Sender},
     Arc,

@@ -1,4 +1,8 @@
-//! Struktur zum Speichern aller Gleise
+//! Struktur zum Speichern aller Gleise.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 

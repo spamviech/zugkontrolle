@@ -1,5 +1,8 @@
 //! This modules defines all Märklin rails I have access to.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::marker::PhantomData;
 
 use crate::{

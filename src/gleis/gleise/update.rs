@@ -1,4 +1,8 @@
-//! update-Methode für Gleise
+//! [update](iced::Application::update)-Methode für Gleise.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 
 use std::{
     marker::PhantomData,

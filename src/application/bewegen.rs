@@ -1,4 +1,7 @@
-//! Widget zur Anpassung des Pivot Punktes
+//! Widget zur Anpassung des Pivot Punktes.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},

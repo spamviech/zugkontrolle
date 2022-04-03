@@ -1,4 +1,7 @@
-//! Knopf mit dem jeweiligen Gleis
+//! Knopf mit dem jeweiligen Gleis.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},

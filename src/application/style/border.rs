@@ -1,5 +1,9 @@
 //! Style Strukturen für den Rand eines [iced::Container].
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 use iced::{container, Color};
 
 #[derive(Debug, Clone, Copy)]

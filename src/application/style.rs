@@ -1,4 +1,4 @@
-//! Style Definitionen
+//! Style Definitionen.
 
 pub mod background;
 pub mod border;

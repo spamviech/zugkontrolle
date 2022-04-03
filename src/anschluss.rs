@@ -1,4 +1,7 @@
-//! Mit Raspberry Pi schaltbarer Anschluss
+//! Mit Raspberry Pi schaltbarer Anschluss.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::fmt::{self, Display, Formatter};
 

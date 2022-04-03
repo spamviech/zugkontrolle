@@ -1,4 +1,7 @@
-//! Skalar-Werte für Größen auf dem Canvas
+//! Skalar-Werte für Größen auf dem Canvas.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 

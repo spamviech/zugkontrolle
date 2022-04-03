@@ -1,4 +1,7 @@
-//! Vektoren über /f32/ mit allen Funktionen für einen 2-dimensionen Vektorraum
+//! Vektoren über [f32] mit allen Funktionen für einen 2-dimensionen Vektorraum.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 

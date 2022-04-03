@@ -1,5 +1,8 @@
 //! Farbe im RGB-Schema (inklusive Serialize/Deserialize-Implementierungen).
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use iced::Color;
 use serde::{Deserialize, Serialize};
 

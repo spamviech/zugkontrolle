@@ -1,5 +1,8 @@
 //! Auswahl eines Anschlusses.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::{collections::HashMap, fmt::Debug};
 
 use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};

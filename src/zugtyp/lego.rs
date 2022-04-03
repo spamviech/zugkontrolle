@@ -1,5 +1,8 @@
 //! This modules defines all Lego (9V) rails I have access to.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::{f32::consts::PI, marker::PhantomData};
 
 use crate::{

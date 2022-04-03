@@ -1,5 +1,8 @@
 //! Style-Strukturen zur Auswahl eines Anschlusses.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use iced::{Background, Color};
 
 #[derive(Debug, Clone, Copy)]

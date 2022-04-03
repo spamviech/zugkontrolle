@@ -1,5 +1,8 @@
 //! Newtypes für [iced::canvas::Frame] und [iced::canvas::Cache].
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use iced::{canvas::Geometry, Size};
 use serde::{Deserialize, Serialize};
 

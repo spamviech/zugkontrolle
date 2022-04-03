@@ -1,4 +1,4 @@
-//! Methoden zum hinzufügen, verschieben und entfernen von Gleisen
+//! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
 use std::fmt::Debug;
 

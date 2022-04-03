@@ -1,4 +1,8 @@
-//! speichern und laden Methode für Gleise
+//! speichern und laden Methode für Gleise.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 
 use std::{collections::HashMap, fmt::Debug, io::Read, marker::PhantomData};
 

@@ -1,4 +1,7 @@
-//! Definition und zeichnen einer Weiche
+//! Definition und zeichnen einer Weiche.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;

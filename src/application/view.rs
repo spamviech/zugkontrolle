@@ -1,4 +1,7 @@
-//! Methoden für die view-Methode des [iced::Application]-Traits
+//! Methoden für die view-Methode des [iced::Application]-Traits.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use iced::{Align, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text};
 use log::error;

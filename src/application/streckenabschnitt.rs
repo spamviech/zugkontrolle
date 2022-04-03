@@ -1,5 +1,8 @@
 //! Anzeige & Erstellen eines Streckenabschnittes.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use std::{collections::BTreeMap, fmt::Debug};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};

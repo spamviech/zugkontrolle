@@ -1,4 +1,8 @@
-//! Definition und zeichnen einer Weiche
+//! Definition und zeichnen einer Weiche.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 
 use std::fmt::Debug;
 

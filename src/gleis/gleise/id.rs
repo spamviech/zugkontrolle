@@ -1,5 +1,9 @@
 //! Ids zur Identifikation der Gleise.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
+
 // Explicit allow-annotations don't work, so has to be done on a module-basis instead
 #![allow(single_use_lifetimes)]
 

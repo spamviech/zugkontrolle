@@ -1,4 +1,7 @@
-//! Methoden für die update-Methode des [iced::Application]-Traits
+//! Methoden für die update-Methode des [iced::Application]-Traits.
+
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
 
 use std::{
     convert::identity,

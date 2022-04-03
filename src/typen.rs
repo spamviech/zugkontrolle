@@ -1,5 +1,8 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
+// HACK cargo check takes very long, this should reduce it until the lint is addressed
+#![allow(missing_docs)]
+
 use crate::{
     gleis::verbindung::{self, Verbindung},
     nachschlagen::Nachschlagen,
@@ -13,7 +16,7 @@ use crate::{
 pub use self::{
     canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
     farbe::Farbe,
-    mm::{Länge, Radius,Spurweite},
+    mm::{Länge, Radius, Spurweite},
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
