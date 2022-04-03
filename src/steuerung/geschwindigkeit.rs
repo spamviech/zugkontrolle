@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter},
@@ -28,6 +27,7 @@ use crate::{
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
+    zugtyp::{BekannterLeiter, Zugtyp},
 };
 
 pub trait Leiter {
@@ -252,6 +252,7 @@ impl Serialisiere for Mittelleiter {
         }
     }
 }
+
 impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
     fn reserviere(
         self,
@@ -340,6 +341,18 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                 }
             },
         })
+    }
+}
+
+impl BekannterLeiter for Mittelleiter {
+    const NAME: &'static str = "Mittelleiter";
+
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+        if name == "Märklin" {
+            Some(Zugtyp::märklin())
+        } else {
+            None
+        }
     }
 }
 
@@ -447,6 +460,18 @@ impl Display for Zweileiter {
                 }
                 write!(f, "-{})", fahrtrichtung)
             },
+        }
+    }
+}
+
+impl BekannterLeiter for Zweileiter {
+    const NAME: &'static str = "Zweileiter";
+
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+        if name == "Lego" {
+            Some(Zugtyp::lego())
+        } else {
+            None
         }
     }
 }

@@ -29,7 +29,7 @@ use crate::{
     gleis::{
         self,
         gleise::{
-            daten::{de_serialisieren::BekannterLeiter, DatenAuswahl, StreckenabschnittMap},
+            daten::{DatenAuswahl, StreckenabschnittMap},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
@@ -40,6 +40,7 @@ use crate::{
         geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
+    zugtyp::BekannterLeiter,
 };
 
 impl<Leiter> Nachricht<Leiter>

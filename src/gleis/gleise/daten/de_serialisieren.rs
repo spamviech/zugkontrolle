@@ -3,18 +3,13 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
-use std::{collections::HashMap, fmt::Debug, io::Read, marker::PhantomData};
+use std::{collections::HashMap, fmt::Debug, io::Read};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree,
 };
-use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
-    ser::SerializeStruct,
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
@@ -42,12 +37,12 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert},
         plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::Zugtyp,
+    zugtyp::{BekannterLeiter, Zugtyp, ZugtypSerialisiert},
 };
 
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
@@ -56,151 +51,15 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> 
     geschwindigkeit::Name,
     (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
 >;
-#[derive(zugkontrolle_macros::Debug)]
+#[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
 #[zugkontrolle_debug(<Leiter as Serialisiere>::Serialisiert: Debug)]
+#[serde(bound = "Leiter: Serialisiere")]
 pub struct ZustandSerialisiert<Leiter: Serialisiere> {
-    pub(crate) zugtyp: Zugtyp<Leiter>,
-    pub(crate) leiter: String,
+    pub(crate) zugtyp: ZugtypSerialisiert,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
     pub(crate) pläne: Vec<PlanSerialisiert>,
-}
-
-// Explizite serde-Implementierung, damit Leiter kein automatisches Constraint bekommt
-// https://serde.rs/deserialize-struct.html
-impl<Leiter: Serialisiere> Serialize for ZustandSerialisiert<Leiter> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut zustand = serializer.serialize_struct("Zustand", 6)?;
-        zustand.serialize_field("zugtyp", &self.zugtyp)?;
-        zustand.serialize_field("leiter", &self.leiter)?;
-        zustand.serialize_field("ohne_streckenabschnitt", &self.ohne_streckenabschnitt)?;
-        zustand.serialize_field("ohne_geschwindigkeit", &self.ohne_geschwindigkeit)?;
-        zustand.serialize_field("geschwindigkeiten", &self.geschwindigkeiten)?;
-        zustand.serialize_field("pläne", &self.pläne)?;
-        zustand.end()
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(field_identifier, rename_all = "lowercase")]
-#[allow(non_camel_case_types)]
-enum ZustandField {
-    Zugtyp,
-    Leiter,
-    Ohne_Streckenabschnitt,
-    Ohne_Geschwindigkeit,
-    Geschwindigkeiten,
-    Pläne,
-}
-
-struct ZustandVisitor<Leiter>(PhantomData<fn() -> Leiter>);
-
-impl<'de, Leiter: Serialisiere> Visitor<'de> for ZustandVisitor<Leiter> {
-    type Value = ZustandSerialisiert<Leiter>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("struct Zustand")
-    }
-
-    fn visit_seq<V: SeqAccess<'de>>(
-        self,
-        mut seq: V,
-    ) -> Result<ZustandSerialisiert<Leiter>, V::Error> {
-        let invalid_length_fehler = |n: usize| de::Error::invalid_length(n, &self);
-        let zugtyp = seq.next_element()?.ok_or_else(|| invalid_length_fehler(0))?;
-        let leiter = seq.next_element()?.ok_or_else(|| invalid_length_fehler(1))?;
-        let ohne_streckenabschnitt =
-            seq.next_element()?.unwrap_or_else(GleiseDatenSerialisiert::neu);
-        let ohne_geschwindigkeit = seq.next_element()?.unwrap_or_else(HashMap::new);
-        let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
-        let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
-        Ok(ZustandSerialisiert {
-            zugtyp,
-            leiter,
-            ohne_streckenabschnitt,
-            ohne_geschwindigkeit,
-            geschwindigkeiten,
-            pläne,
-        })
-    }
-
-    fn visit_map<V: MapAccess<'de>>(
-        self,
-        mut map: V,
-    ) -> Result<ZustandSerialisiert<Leiter>, V::Error> {
-        let mut zugtyp = None;
-        let mut leiter = None;
-        let mut ohne_streckenabschnitt = None;
-        let mut ohne_geschwindigkeit = None;
-        let mut geschwindigkeiten = None;
-        let mut pläne = None;
-        while let Some(key) = map.next_key()? {
-            match key {
-                ZustandField::Zugtyp => {
-                    if zugtyp.is_some() {
-                        return Err(de::Error::duplicate_field("zugtyp"));
-                    }
-                    zugtyp = Some(map.next_value()?)
-                },
-                ZustandField::Leiter => {
-                    if leiter.is_some() {
-                        return Err(de::Error::duplicate_field("leiter"));
-                    }
-                    leiter = Some(map.next_value()?)
-                },
-                ZustandField::Ohne_Streckenabschnitt => {
-                    if ohne_streckenabschnitt.is_some() {
-                        return Err(de::Error::duplicate_field("ohne_streckenabschnitt"));
-                    }
-                    ohne_streckenabschnitt = Some(map.next_value()?)
-                },
-                ZustandField::Ohne_Geschwindigkeit => {
-                    if ohne_geschwindigkeit.is_some() {
-                        return Err(de::Error::duplicate_field("ohne_geschwindigkeit"));
-                    }
-                    ohne_geschwindigkeit = Some(map.next_value()?)
-                },
-                ZustandField::Geschwindigkeiten => {
-                    if geschwindigkeiten.is_some() {
-                        return Err(de::Error::duplicate_field("geschwindigkeiten"));
-                    }
-                    geschwindigkeiten = Some(map.next_value()?)
-                },
-                ZustandField::Pläne => {
-                    if pläne.is_some() {
-                        return Err(de::Error::duplicate_field("pläne"));
-                    }
-                    pläne = Some(map.next_value()?)
-                },
-            }
-        }
-        let zugtyp = zugtyp.ok_or_else(|| de::Error::missing_field("zugtyp"))?;
-        let leiter = leiter.ok_or_else(|| de::Error::missing_field("leiter"))?;
-        let ohne_streckenabschnitt = ohne_streckenabschnitt
-            .ok_or_else(|| de::Error::missing_field("ohne_streckenabschnitt"))?;
-        let ohne_geschwindigkeit = ohne_geschwindigkeit.unwrap_or_else(HashMap::new);
-        let geschwindigkeiten = geschwindigkeiten.unwrap_or_else(HashMap::new);
-        let pläne = pläne.unwrap_or_else(Vec::new);
-        Ok(ZustandSerialisiert {
-            zugtyp,
-            leiter,
-            ohne_streckenabschnitt,
-            ohne_geschwindigkeit,
-            geschwindigkeiten,
-            pläne,
-        })
-    }
-}
-
-impl<'de, Leiter: Serialisiere> Deserialize<'de> for ZustandSerialisiert<Leiter> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_struct(
-            "zustand",
-            &["zugtyp", "leiter", "ohne_streckenabschnitt", "geschwindigkeiten", "pläne"],
-            ZustandVisitor::<Leiter>(PhantomData),
-        )
-    }
 }
 
 impl<Leiter: Serialisiere + BekannterLeiter> Zustand<Leiter> {
@@ -215,8 +74,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> Zustand<Leiter> {
         };
 
         ZustandSerialisiert {
-            zugtyp: self.zugtyp.clone(),
-            leiter: Leiter::NAME.to_string(),
+            zugtyp: self.zugtyp.clone().into(),
             ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
             ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
             geschwindigkeiten: self
@@ -367,13 +225,15 @@ impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
     ) -> Result<Zustand<Leiter>, anschluss::Fehler> {
         let ZustandSerialisiert {
             zugtyp,
-            leiter: _,
             ohne_streckenabschnitt,
             ohne_geschwindigkeit,
             geschwindigkeiten,
             // TODO wirkliche Konvertierung, sobald Plan implementiert ist
             pläne: _,
         } = self;
+
+        let zugtyp = Zugtyp::try_from(zugtyp)?;
+
         let Reserviert {
             anschluss: ohne_streckenabschnitt,
             pwm_nicht_benötigt,
@@ -386,6 +246,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
             output_anschlüsse,
             input_anschlüsse,
         )?;
+
         fn reserviere_streckenabschnitt_map(
             spurweite: Spurweite,
             lager: &mut anschluss::Lager,
@@ -456,6 +317,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
             output_nicht_benötigt,
             input_nicht_benötigt,
         )?;
+
         let Reserviert {
             anschluss: geschwindigkeiten,
             pwm_nicht_benötigt: _,
@@ -511,6 +373,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
                 })
             },
         )?;
+
         Ok(Zustand { zugtyp, ohne_streckenabschnitt, ohne_geschwindigkeit, geschwindigkeiten })
     }
 }
@@ -651,36 +514,6 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-pub trait BekannterLeiter: Sized {
-    const NAME: &'static str;
-
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
-}
-
-impl BekannterLeiter for Mittelleiter {
-    const NAME: &'static str = "Mittelleiter";
-
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
-        if name == "Märklin" {
-            Some(Zugtyp::märklin())
-        } else {
-            None
-        }
-    }
-}
-
-impl BekannterLeiter for Zweileiter {
-    const NAME: &'static str = "Zweileiter";
-
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
-        if name == "Lego" {
-            Some(Zugtyp::lego())
-        } else {
-            None
-        }
-    }
-}
-
 impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
     pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
         let serialisiert = self.zustand.serialisiere();
@@ -709,13 +542,8 @@ impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
             .or_else(|aktuell| {
                 bincode::deserialize(slice)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
-                    .and_then(v2::GleiseVecs::<Leiter>::try_into)
+                    .and_then(|v2: v2::GleiseVecs<Leiter>| v2.try_into().map_err(Fehler::from))
             })?;
-
-        let leiter = Leiter::NAME.to_string();
-        if zustand_serialisiert.leiter != leiter {
-            return Err(Fehler::FalscherLeiter(zustand_serialisiert.leiter));
-        }
 
         // reserviere Anschlüsse
         self.zustand = zustand_serialisiert.reserviere(

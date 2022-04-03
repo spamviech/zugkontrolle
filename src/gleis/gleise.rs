@@ -592,17 +592,18 @@ pub enum Fehler {
     IO(std::io::Error),
     BincodeSerialisieren(bincode::Error),
     BincodeDeserialisieren { aktuell: bincode::Error, v2: bincode::Error },
-    FalscherLeiter(String),
     Anschluss(anschluss::Fehler),
     GleisEntfernt,
     StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
+
 impl From<std::io::Error> for Fehler {
     fn from(error: std::io::Error) -> Self {
         Fehler::IO(error)
     }
 }
+
 impl From<anschluss::Fehler> for Fehler {
     fn from(error: anschluss::Fehler) -> Self {
         Fehler::Anschluss(error)
@@ -615,6 +616,7 @@ pub enum GleisIdFehler {
     StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
+
 impl From<GleisIdFehler> for Fehler {
     fn from(fehler: GleisIdFehler) -> Self {
         match fehler {
@@ -629,11 +631,13 @@ impl From<GleisIdFehler> for Fehler {
 
 #[derive(Debug, Clone, Copy)]
 pub struct GleisEntferntFehler;
+
 impl From<GleisEntferntFehler> for Fehler {
     fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
         Fehler::GleisEntfernt
     }
 }
+
 impl From<GleisEntferntFehler> for GleisIdFehler {
     fn from(GleisEntferntFehler: GleisEntferntFehler) -> Self {
         GleisIdFehler::GleisEntfernt
@@ -645,6 +649,7 @@ pub enum StreckenabschnittIdFehler {
     StreckenabschnittEntfernt(StreckenabschnittId),
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
+
 impl From<StreckenabschnittIdFehler> for Fehler {
     fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
@@ -657,6 +662,7 @@ impl From<StreckenabschnittIdFehler> for Fehler {
         }
     }
 }
+
 impl From<StreckenabschnittIdFehler> for GleisIdFehler {
     fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
@@ -672,16 +678,19 @@ impl From<StreckenabschnittIdFehler> for GleisIdFehler {
 
 #[derive(Debug)]
 pub struct GeschwindigkeitEntferntFehler(pub geschwindigkeit::Name);
+
 impl From<GeschwindigkeitEntferntFehler> for Fehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
         Fehler::GeschwindigkeitEntfernt(fehler.0)
     }
 }
+
 impl From<GeschwindigkeitEntferntFehler> for GleisIdFehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
         GleisIdFehler::GeschwindigkeitEntfernt(fehler.0)
     }
 }
+
 impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittIdFehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
         StreckenabschnittIdFehler::GeschwindigkeitEntfernt(fehler.0)
@@ -700,6 +709,7 @@ pub enum StreckenabschnittBearbeitenFehler {
     GleiseNichtEntfernt(StreckenabschnittId),
     IdentischeGeschwindigkeit(Option<geschwindigkeit::Name>),
 }
+
 impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittBearbeitenFehler {
     fn from(fehler: GeschwindigkeitEntferntFehler) -> Self {
         StreckenabschnittBearbeitenFehler::GeschwindigkeitEntfernt(fehler.0)

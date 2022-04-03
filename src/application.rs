@@ -31,7 +31,6 @@ use crate::{
         gerade::GeradeUnit,
         gleise::{
             self,
-            daten::de_serialisieren::BekannterLeiter,
             id::{AnyId, GleisId, StreckenabschnittId},
             Gleise, Modus,
         },
@@ -46,7 +45,7 @@ use crate::{
     },
     steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
-    zugtyp::Zugtyp,
+    zugtyp::{BekannterLeiter, Zugtyp},
 };
 
 pub mod anschluss;

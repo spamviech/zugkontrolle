@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::{collections::HashMap, marker::PhantomData};
 
 use serde::{
@@ -12,13 +11,10 @@ use serde::{
 };
 
 use crate::{
-    anschluss::de_serialisieren::Serialisiere,
+    anschluss::{self, de_serialisieren::Serialisiere},
     gleis::{
         gerade::GeradeSerialisiert,
-        gleise::{
-            self,
-            daten::{self as aktuell, de_serialisieren::BekannterLeiter},
-        },
+        gleise::daten as aktuell,
         kreuzung::KreuzungSerialisiert,
         kurve::KurveSerialisiert,
         weiche::{
@@ -31,6 +27,7 @@ use crate::{
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
     typen::canvas::Position,
+    zugtyp::{BekannterLeiter, FalscherLeiter},
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -246,14 +243,14 @@ impl<'de, Leiter: Serialisiere> Deserialize<'de> for GleiseVecs<Leiter> {
 impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
     for aktuell::de_serialisieren::ZustandSerialisiert<Leiter>
 {
-    type Error = gleise::Fehler;
+    type Error = anschluss::Fehler;
 
-    fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, gleise::Fehler> {
+    fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, Self::Error> {
         let leiter = Leiter::NAME;
         let zugtyp = Leiter::bekannter_zugtyp(leiter)
-            .ok_or_else(|| gleise::Fehler::FalscherLeiter(leiter.to_string()))?;
+            .ok_or_else(|| anschluss::Fehler::FalscherLeiter(FalscherLeiter(leiter.to_owned())))?;
         if zugtyp.name != v2.name {
-            return Err(gleise::Fehler::FalscherLeiter(leiter.to_string()));
+            return Err(anschluss::Fehler::FalscherLeiter(FalscherLeiter(leiter.to_owned())));
         }
 
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
@@ -304,8 +301,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
             })
             .collect();
         Ok(aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp,
-            leiter: leiter.to_string(),
+            zugtyp: zugtyp.into(),
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,

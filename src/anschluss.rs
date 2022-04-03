@@ -5,11 +5,12 @@ use std::fmt::{self, Display, Formatter};
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::{eingeschränkt::kleiner_8, rppal, zugtyp::FalscherLeiter};
+
 pub use self::{
     de_serialisieren::{Reserviere, Reserviert, Serialisiere},
     pcf8574::I2cBus,
 };
-use crate::{eingeschränkt::kleiner_8, rppal};
 
 pub mod level;
 pub use level::Level;
@@ -486,6 +487,7 @@ pub enum Fehler {
     Input(input::Fehler),
     Pcf8574(pcf8574::Fehler),
     Reservieren(ReservierenFehler),
+    FalscherLeiter(FalscherLeiter),
 }
 
 impl From<pin::ReservierenFehler> for Fehler {
