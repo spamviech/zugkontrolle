@@ -1,8 +1,5 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [Zugtyp].
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
