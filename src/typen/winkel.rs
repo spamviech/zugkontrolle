@@ -11,9 +11,9 @@ use crate::typen::skalar::Skalar;
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
-    /// Absoluter Wert
+    /// Absoluter Wert.
     fn abs(&self) -> Self;
-    /// Normalisiert in den äquivalenten Bereich zu [-π,π)
+    /// Normalisiert in den äquivalenten Bereich zu [-π,π).
     fn normalisiert(self) -> Self;
     /// Kosinus
     fn cos(&self) -> Skalar;
@@ -29,12 +29,15 @@ pub trait Trigonometrie {
     fn atan(input: Skalar) -> Self;
 }
 
-/// τ = 2. * π, i.e. a full circle
+/// τ = 2. * π, eine ganze Umdrehung.
 pub const TAU: Winkel = Winkel(consts::TAU);
-/// π, i.e. a half circle
+
+/// π, eine halbe Umdrehung.
 pub const PI: Winkel = Winkel(consts::PI);
-/// π / 2., i.e. a quarter circle
+
+/// π / 2., eine viertel Umdrehung.
 pub const FRAC_PI_2: Winkel = Winkel(consts::FRAC_PI_2);
+
 /// 0
 pub const ZERO: Winkel = Winkel(0.);
 
@@ -42,43 +45,49 @@ pub const ZERO: Winkel = Winkel(0.);
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub f32);
 
-// automatically implements Trait Into
 impl From<WinkelGradmaß> for Winkel {
     fn from(WinkelGradmaß(f): WinkelGradmaß) -> Winkel {
         Winkel(f.to_radians())
     }
 }
+
 impl PartialEq<WinkelGradmaß> for Winkel {
     fn eq(&self, other: &WinkelGradmaß) -> bool {
         self.eq(&Winkel::from(*other))
     }
 }
+
 impl PartialOrd<WinkelGradmaß> for Winkel {
     fn partial_cmp(&self, other: &WinkelGradmaß) -> Option<Ordering> {
         self.partial_cmp(&Winkel::from(*other))
     }
 }
+
 impl AddAssign<&Winkel> for Winkel {
     fn add_assign(&mut self, Winkel(other): &Winkel) {
         self.0 += other
     }
 }
+
 impl AddAssign<&WinkelGradmaß> for Winkel {
     fn add_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
         self.0 += other.to_radians()
     }
 }
+
 impl AddAssign<Winkel> for Winkel {
     fn add_assign(&mut self, rhs: Winkel) {
         *self += &rhs
     }
 }
+
 impl AddAssign<WinkelGradmaß> for Winkel {
     fn add_assign(&mut self, rhs: WinkelGradmaß) {
         *self += &rhs
     }
 }
 #[allow(single_use_lifetimes)]
+
 impl<T> AddAssign<&mut T> for Winkel
 where
     Winkel: for<'s> AddAssign<&'s T>,
@@ -87,6 +96,7 @@ where
         *self += &*rhs
     }
 }
+
 impl<T> Add<T> for Winkel
 where
     Winkel: AddAssign<T>,
@@ -98,27 +108,32 @@ where
         self
     }
 }
+
 impl SubAssign<&Winkel> for Winkel {
     fn sub_assign(&mut self, Winkel(other): &Winkel) {
         self.0 -= other
     }
 }
+
 impl SubAssign<&WinkelGradmaß> for Winkel {
     fn sub_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
         self.0 -= other.to_radians()
     }
 }
+
 impl SubAssign<Winkel> for Winkel {
     fn sub_assign(&mut self, rhs: Winkel) {
         *self -= &rhs
     }
 }
+
 impl SubAssign<WinkelGradmaß> for Winkel {
     fn sub_assign(&mut self, rhs: WinkelGradmaß) {
         *self -= &rhs
     }
 }
 #[allow(single_use_lifetimes)]
+
 impl<T> SubAssign<&mut T> for Winkel
 where
     Winkel: for<'s> SubAssign<&'s T>,
@@ -127,6 +142,7 @@ where
         *self -= &*rhs
     }
 }
+
 impl<T> Sub<T> for Winkel
 where
     Winkel: SubAssign<T>,
@@ -138,6 +154,7 @@ where
         self
     }
 }
+
 impl Neg for Winkel {
     type Output = Self;
 
@@ -145,11 +162,13 @@ impl Neg for Winkel {
         Winkel(-self.0)
     }
 }
+
 impl MulAssign<f32> for Winkel {
     fn mul_assign(&mut self, rhs: f32) {
         self.0 *= rhs
     }
 }
+
 impl Mul<f32> for Winkel {
     type Output = Self;
 
@@ -158,6 +177,7 @@ impl Mul<f32> for Winkel {
         self
     }
 }
+
 impl Mul<Winkel> for f32 {
     type Output = Winkel;
 
@@ -165,11 +185,13 @@ impl Mul<Winkel> for f32 {
         other * self
     }
 }
+
 impl DivAssign<f32> for Winkel {
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs;
     }
 }
+
 impl Div<f32> for Winkel {
     type Output = Self;
 
@@ -178,6 +200,7 @@ impl Div<f32> for Winkel {
         self
     }
 }
+
 impl Div<Winkel> for f32 {
     type Output = Winkel;
 
@@ -185,6 +208,7 @@ impl Div<Winkel> for f32 {
         other / self
     }
 }
+
 impl Trigonometrie for Winkel {
     fn abs(&self) -> Winkel {
         Winkel(self.0.abs())
@@ -225,9 +249,10 @@ impl Trigonometrie for Winkel {
     }
 }
 
-/// Winkel \[Gradmaß\]
+/// Winkel \[Gradmaß\].
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct WinkelGradmaß(f32);
+
 impl WinkelGradmaß {
     /// Konstruktor
     pub const fn neu(grad: f32) -> Self {
@@ -240,21 +265,25 @@ impl From<Winkel> for WinkelGradmaß {
         WinkelGradmaß(f.to_degrees())
     }
 }
+
 impl PartialEq<Winkel> for WinkelGradmaß {
     fn eq(&self, other: &Winkel) -> bool {
         Winkel::from(*self).eq(other)
     }
 }
+
 impl PartialOrd<Winkel> for WinkelGradmaß {
     fn partial_cmp(&self, other: &Winkel) -> Option<Ordering> {
         Winkel::from(*self).partial_cmp(other)
     }
 }
+
 impl AddAssign<WinkelGradmaß> for WinkelGradmaß {
     fn add_assign(&mut self, rhs: WinkelGradmaß) {
         self.0 += rhs.0
     }
 }
+
 impl Add<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
@@ -263,6 +292,7 @@ impl Add<WinkelGradmaß> for WinkelGradmaß {
         self
     }
 }
+
 impl Add<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
@@ -270,11 +300,13 @@ impl Add<Winkel> for WinkelGradmaß {
         other + self
     }
 }
+
 impl SubAssign<WinkelGradmaß> for WinkelGradmaß {
     fn sub_assign(&mut self, rhs: WinkelGradmaß) {
         self.0 -= rhs.0
     }
 }
+
 impl Sub<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
@@ -283,6 +315,7 @@ impl Sub<WinkelGradmaß> for WinkelGradmaß {
         self
     }
 }
+
 impl Sub<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
@@ -290,6 +323,7 @@ impl Sub<Winkel> for WinkelGradmaß {
         other - self
     }
 }
+
 impl Neg for WinkelGradmaß {
     type Output = Self;
 
@@ -297,6 +331,7 @@ impl Neg for WinkelGradmaß {
         WinkelGradmaß(-self.0)
     }
 }
+
 impl Mul<f32> for WinkelGradmaß {
     type Output = Self;
 
@@ -304,6 +339,7 @@ impl Mul<f32> for WinkelGradmaß {
         WinkelGradmaß(other * self.0)
     }
 }
+
 impl Mul<WinkelGradmaß> for f32 {
     type Output = WinkelGradmaß;
 
@@ -311,6 +347,7 @@ impl Mul<WinkelGradmaß> for f32 {
         WinkelGradmaß(self * other)
     }
 }
+
 impl Trigonometrie for WinkelGradmaß {
     fn abs(&self) -> WinkelGradmaß {
         WinkelGradmaß(self.0.abs())
