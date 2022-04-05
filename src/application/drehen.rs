@@ -14,7 +14,7 @@ use crate::typen::{
         Cache,
     },
     skalar::Skalar,
-    vektor::{self, Vektor},
+    vektor::Vektor,
     winkel::{self, Trigonometrie, Winkel},
 };
 
@@ -127,7 +127,7 @@ impl Program<Winkel> for Drehen {
                         Vektor { x: half_min_width_height, y: half_min_width_height };
                     let position_von_zentrum = relative_position - kreis_zentrum;
                     let acos = Winkel::acos(
-                        position_von_zentrum.einheitsvektor().skalarprodukt(&vektor::EX),
+                        position_von_zentrum.einheitsvektor().skalarprodukt(&Vektor::EX),
                     );
                     self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
                     winkel = Some(self.winkel);

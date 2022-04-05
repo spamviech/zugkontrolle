@@ -1,8 +1,5 @@
 //! Vektoren über [f32] mit allen Funktionen für einen 2-dimensionen Vektorraum.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
@@ -12,19 +9,18 @@ use crate::typen::{
     winkel::{Trigonometrie, Winkel},
 };
 
-pub const EX: Vektor = Vektor { x: Skalar(1.), y: Skalar(0.) };
-pub const EY: Vektor = Vektor { x: Skalar(0.), y: Skalar(1.) };
-
-/// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
+/// Vektoren über [Skalar] ([f32]) mit allen Funktionen für einen 2-dimensionen Vektorraum.
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe
-/// mit dem `Vektor::null_vektor` als neutrales Element.
+/// mit dem [null_vektor](Vektor::null_vektor) als neutrales Element.
 ///
-/// Multiplikation mit einem `f32` befolgt Distributivgesetzte mit der Addition von Vektoren.
-/// Multiplikation ist assoziativ mit Multiplikation zwischen zwei `f32`.
+/// Multiplikation mit einem [Skalar] befolgt Distributivgesetzte mit der Addition von Vektoren.
+/// Multiplikation ist assoziativ mit Multiplikation zwischen zwei [Skalar].
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Vektor {
+    /// x-Koordinate des Vektors.
     pub x: Skalar,
+    /// y-Koordinate des Vektors.
     pub y: Skalar,
 }
 
@@ -32,10 +28,16 @@ impl Vektor {
     /// Nullvektor.
     ///
     /// - additiv neutrales Element.
-    /// - Resultat einer Multiplikation mit 0.
+    /// - Resultat einer Multiplikation mit `Skalar(0)`.
     pub fn null_vektor() -> Self {
         Vektor { x: Skalar(0.), y: Skalar(0.) }
     }
+
+    /// Einheitsvektor in x-Richtung.
+    pub const EX: Vektor = Vektor { x: Skalar(1.), y: Skalar(0.) };
+
+    /// Einheitsvektor in y-Richtung.
+    pub const EY: Vektor = Vektor { x: Skalar(0.), y: Skalar(1.) };
 
     /// Erzeuge einen Vektor aus seinen Polarkoordinaten.
     ///
@@ -58,9 +60,8 @@ impl Vektor {
 
     /// Skalarprodukt zweier Vektoren.
     ///
-    /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() *
-    /// self.winkel(other).cos()`. Insbesondere gilt ´self.länge() ==
-    /// self.skalarprodukt(self).sqrt()`
+    /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() * self.winkel(other).cos()`.
+    /// Insbesondere gilt ´self.länge() == self.skalarprodukt(self).sqrt()`
     pub fn skalarprodukt(&self, other: &Self) -> Skalar {
         self.x * other.x + self.y * other.y
     }
@@ -103,16 +104,19 @@ impl AddAssign<&Self> for Vektor {
         self.y += rhs.y;
     }
 }
+
 impl AddAssign<&mut Self> for Vektor {
     fn add_assign(&mut self, rhs: &mut Self) {
         *self += &*rhs;
     }
 }
+
 impl AddAssign<Self> for Vektor {
     fn add_assign(&mut self, rhs: Self) {
         *self += &rhs;
     }
 }
+
 impl<T> Add<T> for Vektor
 where
     Vektor: AddAssign<T>,
@@ -124,6 +128,7 @@ where
         self
     }
 }
+
 impl<T> Add<T> for &Vektor
 where
     Vektor: AddAssign<T>,
@@ -134,6 +139,7 @@ where
         *self + rhs
     }
 }
+
 impl<T> Add<T> for &mut Vektor
 where
     Vektor: AddAssign<T>,
@@ -144,12 +150,14 @@ where
         &*self + rhs
     }
 }
+
 // Monoid
 impl Default for Vektor {
     fn default() -> Self {
         Self::null_vektor()
     }
 }
+
 // inverses Element
 impl Neg for Vektor {
     type Output = Self;
@@ -160,21 +168,25 @@ impl Neg for Vektor {
         self
     }
 }
+
 impl SubAssign<Self> for Vektor {
     fn sub_assign(&mut self, rhs: Self) {
         *self += rhs.neg();
     }
 }
+
 impl SubAssign<&Self> for Vektor {
     fn sub_assign(&mut self, rhs: &Self) {
         *self -= rhs.clone();
     }
 }
+
 impl SubAssign<&mut Self> for Vektor {
     fn sub_assign(&mut self, rhs: &mut Self) {
         *self -= &*rhs;
     }
 }
+
 impl<T> Sub<T> for Vektor
 where
     Vektor: SubAssign<T>,
@@ -186,6 +198,7 @@ where
         self
     }
 }
+
 impl<T> Sub<T> for &Vektor
 where
     Vektor: SubAssign<T>,
@@ -196,6 +209,7 @@ where
         *self - rhs
     }
 }
+
 impl<T> Sub<T> for &mut Vektor
 where
     Vektor: SubAssign<T>,
@@ -214,16 +228,19 @@ impl MulAssign<&Skalar> for Vektor {
         self.y *= rhs;
     }
 }
+
 impl MulAssign<Skalar> for Vektor {
     fn mul_assign(&mut self, rhs: Skalar) {
         *self *= &rhs;
     }
 }
+
 impl MulAssign<&mut Skalar> for Vektor {
     fn mul_assign(&mut self, rhs: &mut Skalar) {
         *self *= &*rhs;
     }
 }
+
 impl<T> Mul<T> for Vektor
 where
     Vektor: MulAssign<T>,
@@ -235,6 +252,7 @@ where
         self
     }
 }
+
 impl Mul<Vektor> for &Skalar {
     type Output = Vektor;
 
@@ -242,6 +260,7 @@ impl Mul<Vektor> for &Skalar {
         rhs * self
     }
 }
+
 impl Mul<Vektor> for Skalar {
     type Output = Vektor;
 
@@ -249,6 +268,7 @@ impl Mul<Vektor> for Skalar {
         rhs * self
     }
 }
+
 impl Mul<Vektor> for &mut Skalar {
     type Output = Vektor;
 
@@ -256,22 +276,26 @@ impl Mul<Vektor> for &mut Skalar {
         rhs * self
     }
 }
+
 impl DivAssign<&Skalar> for Vektor {
     fn div_assign(&mut self, rhs: &Skalar) {
         self.x /= rhs;
         self.y /= rhs;
     }
 }
+
 impl DivAssign<Skalar> for Vektor {
     fn div_assign(&mut self, rhs: Skalar) {
         *self /= &rhs;
     }
 }
+
 impl DivAssign<&mut Skalar> for Vektor {
     fn div_assign(&mut self, rhs: &mut Skalar) {
         *self /= &*rhs;
     }
 }
+
 impl<T> Div<T> for Vektor
 where
     Vektor: DivAssign<T>,

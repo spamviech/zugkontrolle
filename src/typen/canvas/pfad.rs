@@ -13,7 +13,7 @@ use zugkontrolle_macros::chain;
 
 use crate::typen::{
     skalar::Skalar,
-    vektor::{self, Vektor},
+    vektor::Vektor,
     winkel::{self, Winkel},
 };
 
@@ -31,9 +31,9 @@ impl Pfad {
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
         Erbauer::neu()
             .move_to_chain(Vektor::null_vektor())
-            .line_to_chain(größe.x * vektor::EX)
+            .line_to_chain(größe.x * Vektor::EX)
             .line_to_chain(größe)
-            .line_to_chain(größe.y * vektor::EY)
+            .line_to_chain(größe.y * Vektor::EY)
             .close_chain()
             .baue_unter_transformationen(transformationen)
     }
