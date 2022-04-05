@@ -56,16 +56,16 @@ impl SKurvenWeicheUnit {
         radius: Radius,
         winkel: Winkel,
         radius_reverse: Radius,
-        angle_reverse: Winkel,
-        direction: Orientierung,
+        winkel_reverse: Winkel,
+        orientierung: Orientierung,
     ) -> Self {
         SKurvenWeicheUnit {
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
             radius_reverse: radius_reverse.als_skalar(),
-            winkel_reverse: angle_reverse,
-            orientierung: direction,
+            winkel_reverse,
+            orientierung,
             beschreibung: None,
             steuerung: (),
         }
@@ -76,8 +76,8 @@ impl SKurvenWeicheUnit {
         radius: Radius,
         winkel: Winkel,
         radius_reverse: Radius,
-        angle_reverse: Winkel,
-        direction: Orientierung,
+        winkel_reverse: Winkel,
+        orientierung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
         SKurvenWeicheUnit {
@@ -85,8 +85,8 @@ impl SKurvenWeicheUnit {
             radius: radius.als_skalar(),
             winkel,
             radius_reverse: radius_reverse.als_skalar(),
-            winkel_reverse: angle_reverse,
-            orientierung: direction,
+            winkel_reverse,
+            orientierung,
             beschreibung: Some(beschreibung.into()),
             steuerung: (),
         }

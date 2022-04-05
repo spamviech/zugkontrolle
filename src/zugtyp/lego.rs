@@ -1,7 +1,4 @@
-//! This modules defines all Lego (9V) rails I have access to.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Dieses Modul definiert alle Lego (9V) Gleise, die ich zur Verfügung habe.
 
 use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
@@ -73,11 +70,14 @@ const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
+/// Eine Lego-Gerade mit `13.6cm` Länge.
 pub fn gerade() -> GeradeUnit {
     Gerade::neu(LENGTH)
 }
 
 const ANGLE: Winkel = Winkel(ANGLE_VALUE);
+
+/// Eine Lego-Kurve mit `32cm` Kurvenradius und `22.5°` Winkel.
 pub fn kurve() -> KurveUnit {
     Kurve::neu(RADIUS, ANGLE)
 }
@@ -103,11 +103,15 @@ const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
-pub fn weiche(richtung: Orientierung) -> SKurvenWeicheUnit {
-    SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
+
+/// Eine Lego-Weiche, nach einer zusätzlichen Gerade/Kurve sind beide Gleise auf der selben Höhe.
+pub fn weiche(orientierung: Orientierung) -> SKurvenWeicheUnit {
+    SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, orientierung)
 }
 
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
+
+/// Eine Lego-Kreuzung: `90°`-Winkel ohne Schaltmöglichkeit, Länge `13.6cm`.
 pub fn kreuzung() -> KreuzungUnit {
     Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve)
 }
