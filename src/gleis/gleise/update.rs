@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::{
     marker::PhantomData,
     time::{Duration, Instant},
@@ -21,6 +20,7 @@ use crate::{
         id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
         Gehalten, Gleise, ModusDaten, Nachricht,
     },
+    steuerung::geschwindigkeit::Leiter,
     typen::{
         canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,
     },
@@ -160,7 +160,7 @@ fn aktion_gleis_an_position<'t>(
     (status, message)
 }
 
-impl<Leiter> Gleise<Leiter> {
+impl<L: Leiter> Gleise<L> {
     pub fn update(
         &mut self,
         event: Event,

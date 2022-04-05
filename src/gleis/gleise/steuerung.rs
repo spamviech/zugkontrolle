@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::fmt::Debug;
 
 use rstar::RTreeObject;
@@ -17,7 +16,7 @@ use crate::{
             GleisIdFehler, Gleise,
         },
     },
-    steuerung,
+    steuerung::{self, geschwindigkeit::Leiter},
     typen::canvas::Cache,
 };
 
@@ -89,7 +88,7 @@ macro_rules! steuerung_weiche {
     };
 }
 
-impl<Leiter> Gleise<Leiter> {
+impl<L: Leiter> Gleise<L> {
     steuerung_weiche! {
         steuerung_weiche,
         gleis::weiche::gerade::Weiche,

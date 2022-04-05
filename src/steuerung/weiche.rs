@@ -70,20 +70,22 @@ where
     Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send,
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
-    pub fn schalten(&mut self, richtung: &Richtung) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.anschlüsse, richtung)?;
+    pub fn schalten(&mut self, richtung: &Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
+        Self::schalten_aux(&mut self.anschlüsse, richtung, schalten_zeit)?;
         self.letzte_richtung = self.aktuelle_richtung.clone();
         self.aktuelle_richtung = richtung.clone();
         Ok(())
     }
 
     fn schalten_aux(
-        mutex: &mut Arc<Mutex<Anschlüsse>>, richtung: &Richtung
+        mutex: &mut Arc<Mutex<Anschlüsse>>,
+        richtung: &Richtung,
+        schalten_zeit: Duration,
     ) -> Result<(), Fehler> {
         let mut anschlüsse = mutex.lock();
         let anschluss = anschlüsse.erhalte_mut(richtung);
         anschluss.einstellen(Fließend::Fließend)?;
-        sleep(SCHALTZEIT);
+        sleep(schalten_zeit);
         anschluss.einstellen(Fließend::Gesperrt)?;
         Ok(())
     }
@@ -98,6 +100,7 @@ where
     pub fn async_schalten<Nachricht: Send + 'static>(
         &mut self,
         richtung: Richtung,
+        schalten_zeit: Duration,
         sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
@@ -105,7 +108,9 @@ where
         let mut mutex_clone = self.anschlüsse.clone();
         let richtung_clone = richtung.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = Self::schalten_aux(&mut mutex_clone, &richtung_clone) {
+            if let Err(fehler) =
+                Self::schalten_aux(&mut mutex_clone, &richtung_clone, schalten_zeit)
+            {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
                     debug!("Message-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
@@ -180,6 +185,3 @@ where
         })
     }
 }
-
-// TODO als Teil des Zugtyp-Traits?
-const SCHALTZEIT: Duration = Duration::from_millis(400);

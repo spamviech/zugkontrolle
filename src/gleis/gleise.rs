@@ -22,7 +22,7 @@ use self::{
 use crate::{
     anschluss::{self, polarität::Fließend},
     steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit},
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -69,19 +69,22 @@ impl ModusDaten {
 }
 
 /// Anzeige aller Gleise.
-#[derive(Debug)]
-pub struct Gleise<Leiter> {
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+pub struct Gleise<L: Leiter> {
     canvas: Cache,
     pivot: Position,
     skalieren: Skalar,
-    zustand: Zustand<Leiter>,
+    zustand: Zustand<L>,
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten,
 }
 
-impl<Leiter> Gleise<Leiter> {
-    pub fn neu(zugtyp: Zugtyp<Leiter>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
+impl<L: Leiter> Gleise<L> {
+    pub fn neu(zugtyp: Zugtyp<L>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
             canvas: Cache::neu(),
             pivot,
@@ -285,8 +288,8 @@ impl<Leiter> Gleise<Leiter> {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<Leiter>,
-    ) -> Option<Geschwindigkeit<Leiter>> {
+        geschwindigkeit: Geschwindigkeit<L>,
+    ) -> Option<Geschwindigkeit<L>> {
         match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher = std::mem::replace(&mut occupied.get_mut().0, geschwindigkeit);
@@ -303,7 +306,7 @@ impl<Leiter> Gleise<Leiter> {
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
-    ) -> Option<&'s Geschwindigkeit<Leiter>> {
+    ) -> Option<&'s Geschwindigkeit<L>> {
         self.zustand
             .geschwindigkeiten
             .get(name)
@@ -314,7 +317,7 @@ impl<Leiter> Gleise<Leiter> {
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
-    ) -> Option<&'s mut Geschwindigkeit<Leiter>> {
+    ) -> Option<&'s mut Geschwindigkeit<L>> {
         self.zustand
             .geschwindigkeiten
             .get_mut(name)
@@ -327,7 +330,7 @@ impl<Leiter> Gleise<Leiter> {
     pub fn geschwindigkeit_entfernen(
         &mut self,
         name: geschwindigkeit::Name,
-    ) -> Result<Option<Geschwindigkeit<Leiter>>, GeschwindigkeitEntfernenFehler> {
+    ) -> Result<Option<Geschwindigkeit<L>>, GeschwindigkeitEntfernenFehler> {
         if let Some((name_entry, (geschwindigkeit, streckenabschnitt_map))) =
             self.zustand.geschwindigkeiten.remove_entry(&name)
         {
@@ -351,9 +354,9 @@ impl<Leiter> Gleise<Leiter> {
     pub(crate) fn geschwindigkeit_mit_streckenabschnitten_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<Leiter>,
+        geschwindigkeit: Geschwindigkeit<L>,
         streckenabschnitt_map: StreckenabschnittMap,
-    ) -> Option<(Geschwindigkeit<Leiter>, StreckenabschnittMap)> {
+    ) -> Option<(Geschwindigkeit<L>, StreckenabschnittMap)> {
         match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher =
@@ -374,14 +377,14 @@ impl<Leiter> Gleise<Leiter> {
     pub(crate) fn geschwindigkeit_mit_streckenabschnitten_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Option<(Geschwindigkeit<Leiter>, StreckenabschnittMap)> {
+    ) -> Option<(Geschwindigkeit<L>, StreckenabschnittMap)> {
         self.zustand.geschwindigkeiten.remove(name)
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn geschwindigkeiten(
         &self,
-    ) -> impl Iterator<Item = (&geschwindigkeit::Name, &Geschwindigkeit<Leiter>)> {
+    ) -> impl Iterator<Item = (&geschwindigkeit::Name, &Geschwindigkeit<L>)> {
         self.zustand
             .geschwindigkeiten
             .iter()
@@ -389,7 +392,7 @@ impl<Leiter> Gleise<Leiter> {
     }
 
     /// Verwendeter Zugtyp.
-    pub fn zugtyp(&self) -> &Zugtyp<Leiter> {
+    pub fn zugtyp(&self) -> &Zugtyp<L> {
         &self.zustand.zugtyp
     }
 
@@ -399,7 +402,7 @@ impl<Leiter> Gleise<Leiter> {
     }
 }
 
-impl<Leiter: Debug> Gleise<Leiter> {
+impl<L: Debug + Leiter> Gleise<L> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Existiert bei der neuen Geschwindigkeit ein Streckenabschnitt mit identischem Namen
     /// wird dieser überschrieben und zurückgegeben.
@@ -561,7 +564,7 @@ pub enum Nachricht {
     FahrenAktion(AnyId),
 }
 
-impl<Leiter> Program<Nachricht> for Gleise<Leiter> {
+impl<L: Leiter> Program<Nachricht> for Gleise<L> {
     #[inline(always)]
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         self.draw(bounds, cursor)

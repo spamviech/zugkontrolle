@@ -15,11 +15,11 @@ use crate::{
         },
         verbindung::{self, Verbindung},
     },
-    steuerung::streckenabschnitt::Streckenabschnitt,
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Streckenabschnitt},
     typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
 };
 
-impl<Leiter> Gleise<Leiter> {
+impl<L: Leiter> Gleise<L> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T>(

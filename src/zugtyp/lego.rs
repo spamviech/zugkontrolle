@@ -3,9 +3,10 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-use std::{f32::consts::PI, marker::PhantomData};
+use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
 use crate::{
+    eingeschränkt::NichtNegativ,
     gleis::{
         gerade::{Gerade, GeradeUnit},
         kreuzung::{self, Kreuzung, KreuzungUnit},
@@ -34,6 +35,11 @@ impl Zugtyp<Zweileiter> {
             kurven_weichen: vec![],
             s_kurven_weichen: vec![weiche(Orientierung::Links), weiche(Orientierung::Rechts)],
             kreuzungen: vec![kreuzung()],
+            pwm_frequenz: NichtNegativ::neu_unchecked(50.),
+            verhältnis_fahrspannung_überspannung: PhantomData,
+            stopp_zeit: Duration::from_millis(500),
+            umdrehen_zeit: PhantomData,
+            schalten_zeit: Duration::from_millis(400),
         }
     }
 }

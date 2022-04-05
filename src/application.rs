@@ -14,6 +14,7 @@ use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger
 use iced::{Application, Clipboard, Command, Element, Radio, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
+use serde::{Deserialize, Serialize};
 
 use self::{
     bewegen::{Bewegen, Bewegung},
@@ -45,7 +46,7 @@ use crate::{
     },
     steuerung::{
         self,
-        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert},
+        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -411,11 +412,11 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     }
     let logger_handle = start_logger(verbose, log_datei)?;
 
-    fn erstelle_settings<Leiter>(
+    fn erstelle_settings<L: Leiter>(
         argumente: Argumente,
         lager: Lager,
-        zugtyp: Zugtyp<Leiter>,
-    ) -> Settings<(Argumente, Lager, Zugtyp<Leiter>)> {
+        zugtyp: Zugtyp<L>,
+    ) -> Settings<(Argumente, Lager, Zugtyp<L>)> {
         Settings {
             window: iced::window::Settings {
                 size: (1024, 768),
@@ -442,9 +443,12 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 }
 
 /// Die Anwendung inklusive des GUI.
-#[derive(Debug)]
-pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
-    gleise: Gleise<Leiter>,
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+pub struct Zugkontrolle<L: LeiterAnzeige> {
+    gleise: Gleise<L>,
     lager: Lager,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<GeradeUnit>>,
@@ -454,8 +458,8 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     kurven_weichen: Vec<Button<KurvenWeicheUnit>>,
     s_kurven_weichen: Vec<Button<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Button<KreuzungUnit>>,
-    geschwindigkeiten: geschwindigkeit::Map<Leiter>,
-    auswahl: modal::Status<AuswahlStatus<Leiter>>,
+    geschwindigkeiten: geschwindigkeit::Map<L>,
+    auswahl: modal::Status<AuswahlStatus<L>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_state: iced::button::State,
@@ -466,20 +470,22 @@ pub struct Zugkontrolle<Leiter: LeiterAnzeige> {
     speichern_laden: speichern_laden::Status,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
-    sender: Sender<Nachricht<Leiter>>,
-    empfänger: Empfänger<Nachricht<Leiter>>,
+    sender: Sender<Nachricht<L>>,
+    empfänger: Empfänger<Nachricht<L>>,
     // TODO Plan
 }
 
 #[allow(single_use_lifetimes)]
-impl<Leiter> Application for Zugkontrolle<Leiter>
+impl<L> Application for Zugkontrolle<L>
 where
-    Leiter: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + Display,
-    Leiter::Serialisiert: Debug + Clone + Unpin + Send,
+    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + Display,
+    L::Serialisiert: Debug + Clone + Unpin + Send,
+    for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + Deserialize<'de>,
+    for<'de> <L as Leiter>::UmdrehenZeit: Serialize + Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Argumente, Lager, Zugtyp<Leiter>);
-    type Message = Nachricht<Leiter>;
+    type Flags = (Argumente, Lager, Zugtyp<L>);
+    type Message = Nachricht<L>;
 
     fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;

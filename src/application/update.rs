@@ -13,6 +13,7 @@ use std::{
 
 use iced::Command;
 use log::{debug, error};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
@@ -37,10 +38,11 @@ use crate::{
     },
     nachschlagen::Nachschlagen,
     steuerung::{
-        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert},
+        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
+    zugtyp::Zugtyp,
 };
 
 impl<Leiter> Nachricht<Leiter>
@@ -556,9 +558,22 @@ where
                         ))
                     },
                 }
+                let Zugtyp {
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    ..
+                } = self.gleise.zugtyp();
                 let _ = geschwindigkeiten.insert(
                     name.clone(),
-                    <Leiter as LeiterAnzeige>::anzeige_status_neu(name.clone()),
+                    <Leiter as LeiterAnzeige>::anzeige_status_neu(
+                        name.clone(),
+                        *pwm_frequenz,
+                        verhältnis_fahrspannung_überspannung.clone(),
+                        *stopp_zeit,
+                        umdrehen_zeit.clone(),
+                    ),
                 );
                 let streckenabschnitt_map =
                     if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
@@ -762,12 +777,13 @@ where
         ZZ: FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter> + Send + 'static,
     {
         let mut error_message = None;
+        let schalten_zeit = self.gleise.zugtyp().schalten_zeit;
         if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
             if let Some(mut weiche) = steuerung.as_mut() {
                 let richtung = nächste_richtung(&mut weiche);
                 let aktuelle_richtung = weiche.aktuelle_richtung.clone();
                 let letzte_richtung = weiche.letzte_richtung.clone();
-                weiche.async_schalten(richtung, self.sender.clone(), move |fehler| {
+                weiche.async_schalten(richtung, schalten_zeit, self.sender.clone(), move |fehler| {
                     Nachricht::AsyncFehler {
                         titel: format!("{} schalten", gleis_art),
                         nachricht: format!("{:?}", fehler),
@@ -1012,12 +1028,14 @@ where
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter>
+impl<L> Zugkontrolle<L>
 where
-    Leiter: 'static + LeiterAnzeige + BekannterLeiter,
-    <Leiter as Serialisiere>::Serialisiert: Send,
+    L: 'static + LeiterAnzeige + BekannterLeiter,
+    <L as Serialisiere>::Serialisiert: Send,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
+    <L as Leiter>::UmdrehenZeit: Serialize,
 {
-    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<Leiter>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
@@ -1039,15 +1057,36 @@ where
     }
 }
 
-impl<Leiter: LeiterAnzeige + BekannterLeiter> Zugkontrolle<Leiter> {
+#[allow(single_use_lifetimes)]
+impl<L: LeiterAnzeige + BekannterLeiter> Zugkontrolle<L>
+where
+    for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
+    for<'de> <L as Leiter>::UmdrehenZeit: Deserialize<'de>,
+{
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {
             Ok(()) => {
+                let Zugtyp {
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    ..
+                } = self.gleise.zugtyp();
                 self.geschwindigkeiten = self
                     .gleise
                     .geschwindigkeiten()
                     .map(|(name, _geschwindigkeit)| {
-                        (name.clone(), Leiter::anzeige_status_neu(name.clone()))
+                        (
+                            name.clone(),
+                            L::anzeige_status_neu(
+                                name.clone(),
+                                *pwm_frequenz,
+                                verhältnis_fahrspannung_überspannung.clone(),
+                                *stopp_zeit,
+                                umdrehen_zeit.clone(),
+                            ),
+                        )
                     })
                     .collect();
                 self.streckenabschnitt_aktuell.aktuell = None;

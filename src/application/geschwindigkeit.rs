@@ -8,6 +8,7 @@ use std::{
     fmt::{Debug, Display},
     num::NonZeroUsize,
     sync::mpsc::Sender,
+    time::Duration,
 };
 
 use iced::Command;
@@ -26,9 +27,10 @@ use crate::{
         de_serialisieren::Serialisiere, pin::pwm, polarität::Polarität, OutputSerialisiert,
     },
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
     steuerung::geschwindigkeit::{
-        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter,
+        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Leiter, Mittelleiter, Zweileiter,
     },
 };
 
@@ -44,20 +46,32 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
 
 pub type Map<Leiter> = BTreeMap<Name, AnzeigeStatus<Leiter>>;
 
-#[derive(Debug)]
-pub struct AnzeigeStatus<Leiter: LeiterAnzeige> {
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+pub struct AnzeigeStatus<L: LeiterAnzeige> {
     name: Name,
     aktuelle_geschwindigkeit: u8,
     pwm_slider_state: slider::State,
-    fahrtrichtung_state: Leiter::Fahrtrichtung,
+    fahrtrichtung_state: <L as LeiterAnzeige>::Fahrtrichtung,
+    pwm_frequenz: NichtNegativ,
+    verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    stopp_zeit: Duration,
+    umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
 }
 
-pub trait LeiterAnzeige: Serialisiere + Sized {
+pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     type Fahrtrichtung: Debug;
     type Nachricht: Debug + Clone + Unpin + Send;
     type ZustandZurücksetzen: Debug + Clone + Unpin + Send;
 
-    fn anzeige_status_neu(name: Name) -> AnzeigeStatus<Self>;
+    fn anzeige_status_neu(
+        name: Name,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+    ) -> AnzeigeStatus<Self>;
 
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Self>,
@@ -121,12 +135,22 @@ impl LeiterAnzeige for Mittelleiter {
     type Nachricht = NachrichtMittelleiter;
     type ZustandZurücksetzen = ZustandZurücksetzenMittelleiter;
 
-    fn anzeige_status_neu(name: Name) -> AnzeigeStatus<Self> {
+    fn anzeige_status_neu(
+        name: Name,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+    ) -> AnzeigeStatus<Self> {
         AnzeigeStatus {
             name,
             aktuelle_geschwindigkeit: 0,
             pwm_slider_state: slider::State::new(),
             fahrtrichtung_state: button::State::new(),
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
         }
     }
 
@@ -168,19 +192,30 @@ impl LeiterAnzeige for Mittelleiter {
     ) -> Result<Command<Self::Nachricht>, Fehler> {
         match message {
             NachrichtMittelleiter::Geschwindigkeit(wert) => {
-                geschwindigkeit.geschwindigkeit(wert)?;
+                geschwindigkeit.geschwindigkeit(
+                    wert,
+                    anzeige_status.pwm_frequenz,
+                    anzeige_status.verhältnis_fahrspannung_überspannung,
+                )?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
             },
             NachrichtMittelleiter::Umdrehen => {
                 let bisherige_geschwindigkeit = anzeige_status.aktuelle_geschwindigkeit;
                 let titel = format!("Umdrehen von Geschwindigkeit {}", anzeige_status.name.0);
-                geschwindigkeit.async_umdrehen(sender, move |fehler| {
-                    konvertiere_async_fehler(
-                        titel,
-                        fehler,
-                        ZustandZurücksetzenMittelleiter { bisherige_geschwindigkeit },
-                    )
-                });
+                geschwindigkeit.async_umdrehen(
+                    anzeige_status.pwm_frequenz,
+                    anzeige_status.verhältnis_fahrspannung_überspannung,
+                    anzeige_status.stopp_zeit,
+                    anzeige_status.umdrehen_zeit,
+                    sender,
+                    move |fehler| {
+                        konvertiere_async_fehler(
+                            titel,
+                            fehler,
+                            ZustandZurücksetzenMittelleiter { bisherige_geschwindigkeit },
+                        )
+                    },
+                );
                 anzeige_status.aktuelle_geschwindigkeit = 0;
             },
         }
@@ -243,12 +278,22 @@ impl LeiterAnzeige for Zweileiter {
     type Nachricht = NachrichtZweileiter;
     type ZustandZurücksetzen = ZustandZurücksetzenZweileiter;
 
-    fn anzeige_status_neu(name: Name) -> AnzeigeStatus<Self> {
+    fn anzeige_status_neu(
+        name: Name,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+    ) -> AnzeigeStatus<Self> {
         AnzeigeStatus {
             name,
             aktuelle_geschwindigkeit: 0,
             pwm_slider_state: slider::State::new(),
             fahrtrichtung_state: Fahrtrichtung::Vorwärts,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
         }
     }
 
@@ -299,7 +344,11 @@ impl LeiterAnzeige for Zweileiter {
     ) -> Result<Command<Self::Nachricht>, Fehler> {
         match message {
             NachrichtZweileiter::Geschwindigkeit(wert) => {
-                geschwindigkeit.geschwindigkeit(wert)?;
+                geschwindigkeit.geschwindigkeit(
+                    wert,
+                    anzeige_status.pwm_frequenz,
+                    anzeige_status.verhältnis_fahrspannung_überspannung,
+                )?;
                 anzeige_status.aktuelle_geschwindigkeit = wert;
             },
             NachrichtZweileiter::Fahrtrichtung(fahrtrichtung) => {
@@ -309,16 +358,22 @@ impl LeiterAnzeige for Zweileiter {
                     "Fahrtrichtung einstellen von Geschwindigkeit {} auf {}",
                     anzeige_status.name.0, fahrtrichtung
                 );
-                geschwindigkeit.async_fahrtrichtung(fahrtrichtung, sender, move |fehler| {
-                    konvertiere_async_fehler(
-                        titel,
-                        fehler,
-                        ZustandZurücksetzenZweileiter {
-                            bisherige_fahrtrichtung,
-                            bisherige_geschwindigkeit,
-                        },
-                    )
-                });
+                geschwindigkeit.async_fahrtrichtung(
+                    fahrtrichtung,
+                    anzeige_status.pwm_frequenz,
+                    anzeige_status.stopp_zeit,
+                    sender,
+                    move |fehler| {
+                        konvertiere_async_fehler(
+                            titel,
+                            fehler,
+                            ZustandZurücksetzenZweileiter {
+                                bisherige_fahrtrichtung,
+                                bisherige_geschwindigkeit,
+                            },
+                        )
+                    },
+                );
                 anzeige_status.aktuelle_geschwindigkeit = 0;
                 anzeige_status.fahrtrichtung_state = fahrtrichtung;
             },
@@ -396,8 +451,16 @@ where
     where
         Leiter: LeiterAnzeige,
     {
-        let AnzeigeStatus { name, aktuelle_geschwindigkeit, pwm_slider_state, fahrtrichtung_state } =
-            status;
+        let AnzeigeStatus {
+            name,
+            aktuelle_geschwindigkeit,
+            pwm_slider_state,
+            fahrtrichtung_state,
+            pwm_frequenz: _,
+            verhältnis_fahrspannung_überspannung: _,
+            stopp_zeit: _,
+            umdrehen_zeit: _,
+        } = status;
         // TODO Anschluss-Anzeige (Expander über Overlay?)
         let mut column = Column::new().spacing(1).push(Text::new(&name.0));
         column = if let Some(länge) = ks_länge(geschwindigkeit) {

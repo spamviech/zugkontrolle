@@ -2,6 +2,9 @@
 
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
+// Muss für gesamtes Modul erlaubt werden,
+// damit es für die derive-Implementierung von serde::Deserialize berücksichtigt wird.
+#![allow(single_use_lifetimes)]
 
 use std::{collections::HashMap, fmt::Debug, io::Read};
 
@@ -37,7 +40,7 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert},
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
@@ -51,20 +54,30 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> 
     geschwindigkeit::Name,
     (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
 >;
+
 #[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
-#[zugkontrolle_debug(<Leiter as Serialisiere>::Serialisiert: Debug)]
-#[serde(bound = "Leiter: Serialisiere")]
-pub struct ZustandSerialisiert<Leiter: Serialisiere> {
-    pub(crate) zugtyp: ZugtypSerialisiert,
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[serde(bound(
+    serialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize",
+    deserialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>",
+))]
+pub struct ZustandSerialisiert<L>
+where
+    L: Leiter + Serialisiere,
+{
+    pub(crate) zugtyp: ZugtypSerialisiert<L>,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
     pub(crate) pläne: Vec<PlanSerialisiert>,
 }
 
-impl<Leiter: Serialisiere + BekannterLeiter> Zustand<Leiter> {
+impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
     /// Erzeuge eine serealisierbare Repräsentation.
-    pub fn serialisiere(&self) -> ZustandSerialisiert<Leiter> {
+    pub fn serialisiere(&self) -> ZustandSerialisiert<L> {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
                 .map(|(name, (streckenabschnitt, _fließend, daten))| {
@@ -214,7 +227,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> Zustand<Leiter> {
     }
 }
 
-impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
+impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -222,7 +235,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> ZustandSerialisiert<Leiter> {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> Result<Zustand<Leiter>, anschluss::Fehler> {
+    ) -> Result<Zustand<L>, anschluss::Fehler> {
         let ZustandSerialisiert {
             zugtyp,
             ohne_streckenabschnitt,
@@ -514,8 +527,12 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler> {
+impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
+    where
+        L::VerhältnisFahrspannungÜberspannung: Serialize,
+        L::UmdrehenZeit: Serialize,
+    {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
@@ -525,7 +542,11 @@ impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
-    ) -> Result<(), Fehler> {
+    ) -> Result<(), Fehler>
+    where
+        for<'de> L::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
+        for<'de> L::UmdrehenZeit: Deserialize<'de>,
+    {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.leeren();
         let (pwm_pins, output_anschlüsse, input_anschlüsse) = self.zustand.anschlüsse_ausgeben();
@@ -538,11 +559,11 @@ impl<Leiter: Serialisiere + BekannterLeiter> Gleise<Leiter> {
         let mut content = Vec::new();
         let _ = file.read_to_end(&mut content)?;
         let slice = content.as_slice();
-        let zustand_serialisiert: ZustandSerialisiert<Leiter> = bincode::deserialize(slice)
-            .or_else(|aktuell| {
+        let zustand_serialisiert: ZustandSerialisiert<L> =
+            bincode::deserialize(slice).or_else(|aktuell| {
                 bincode::deserialize(slice)
                     .map_err(|v2| Fehler::BincodeDeserialisieren { aktuell, v2 })
-                    .and_then(|v2: v2::GleiseVecs<Leiter>| v2.try_into().map_err(Fehler::from))
+                    .and_then(|v2: v2::GleiseVecs<L>| v2.try_into().map_err(Fehler::from))
             })?;
 
         // reserviere Anschlüsse

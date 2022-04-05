@@ -19,7 +19,7 @@ use crate::{
         anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
     },
     gleis::gleise::{id::StreckenabschnittId, Gleise},
-    steuerung::geschwindigkeit,
+    steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
 };
 
@@ -133,7 +133,7 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
-    pub fn neu<Leiter>(gleise: &Gleise<Leiter>) -> AuswahlStatus {
+    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlStatus {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),

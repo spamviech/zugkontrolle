@@ -25,6 +25,10 @@
   - Leiter als Parameter, sofern notwendig (z.B. Geschwindigkeit)
   - Teil des Speicherformats
   - Ermöglicht im Prinzip nachträgliches hinzufügen neuer Gleise zu einem Zugtyp
+- Bibliothek:
+  Ehemalige Konstanten bei Funktionen in `steuerung::geschwindigkeit` und `steuerung::weiche`
+  sind jetzt Argumente.
+  Sie werden für das GUI im Zugtyp gespeichert.
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId statt GleisId\<Z\>.

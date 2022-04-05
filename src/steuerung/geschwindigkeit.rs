@@ -6,6 +6,7 @@
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
     sync::{mpsc::Sender, Arc},
     thread::{self, sleep},
     time::Duration,
@@ -31,17 +32,24 @@ use crate::{
 };
 
 pub trait Leiter {
+    type UmdrehenZeit: Clone;
+    type VerhältnisFahrspannungÜberspannung: Clone;
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
+    fn geschwindigkeit(
+        &mut self,
+        wert: u8,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler>;
 }
 
 /// Ein unterstützter Leiter, aktuell:
 /// - [Mittelleiter](crate::steuerung::geschwindigkeit::Mittelleiter)
 /// - [Zweileiter](crate::steuerung::geschwindigkeit::Zweileiter).
-pub trait BekannterLeiter: Sized {
+pub trait BekannterLeiter: Leiter + Sized {
     /// Der Name des Leiters.
     const NAME: &'static str;
 
@@ -55,8 +63,13 @@ pub struct Geschwindigkeit<Leiter> {
 }
 
 impl<L: Leiter> Geschwindigkeit<L> {
-    pub fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
-        self.lock_leiter().geschwindigkeit(wert)
+    pub fn geschwindigkeit(
+        &mut self,
+        wert: u8,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: L::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler> {
+        self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
     }
 }
 
@@ -148,6 +161,7 @@ impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialis
 fn geschwindigkeit_pwm(
     pin: &mut pwm::Pin,
     wert: u8,
+    frequenz: NichtNegativ,
     faktor: NullBisEins,
     polarität: Polarität,
 ) -> Result<(), pwm::Fehler> {
@@ -155,7 +169,7 @@ fn geschwindigkeit_pwm(
     let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
-        zeit: pwm::Zeit { frequenz: PWM_FREQUENZ, betriebszyklus: faktor * verhältnis },
+        zeit: pwm::Zeit { frequenz, betriebszyklus: faktor * verhältnis },
     })
 }
 fn geschwindigkeit_ks(
@@ -367,22 +381,24 @@ impl BekannterLeiter for Mittelleiter {
     }
 }
 
-// TODO als Zugtyp-Eigenschaft?
-const STOPPZEIT: Duration = Duration::from_millis(500);
-// 50 >= 0
-const PWM_FREQUENZ: NichtNegativ = NichtNegativ::neu_unchecked(50.);
-// TODO Zugtyp-Eigenschaft, wenn Mittelleiter gewählt
-// oder allgemein (max_duty_cycle)?
-// 0 <= 16/25 <= 1
-const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: NullBisEins = NullBisEins::neu_unchecked(16. / 25.);
-const UMDREHENZEIT: Duration = Duration::from_millis(500);
-
 impl Leiter for Mittelleiter {
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
+    type UmdrehenZeit = Duration;
+    type VerhältnisFahrspannungÜberspannung = NullBisEins;
+
+    fn geschwindigkeit(
+        &mut self,
+        wert: u8,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler> {
         match self {
-            Mittelleiter::Pwm { pin, polarität } => {
-                Ok(geschwindigkeit_pwm(pin, wert, FRAC_FAHRSPANNUNG_ÜBERSPANNUNG, *polarität)?)
-            },
+            Mittelleiter::Pwm { pin, polarität } => Ok(geschwindigkeit_pwm(
+                pin,
+                wert,
+                pwm_frequenz,
+                verhältnis_fahrspannung_überspannung,
+                *polarität,
+            )?),
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
@@ -391,21 +407,27 @@ impl Leiter for Mittelleiter {
 }
 
 impl Geschwindigkeit<Mittelleiter> {
-    pub fn umdrehen(&mut self) -> Result<(), Fehler> {
-        self.geschwindigkeit(0)?;
-        sleep(STOPPZEIT);
+    pub fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.geschwindigkeit(0, pwm_frequenz, verhältnis_fahrspannung_überspannung)?;
+        sleep(stopp_zeit);
         match &mut *self.lock_leiter() {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
                     polarität: *polarität,
-                    zeit: pwm::Zeit { frequenz: PWM_FREQUENZ, betriebszyklus: NullBisEins::MAX },
+                    zeit: pwm::Zeit { frequenz: pwm_frequenz, betriebszyklus: NullBisEins::MAX },
                 })?;
-                sleep(UMDREHENZEIT);
+                sleep(umdrehen_zeit);
                 pin.deaktiviere()?
             },
             Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
                 umdrehen.einstellen(Fließend::Fließend)?;
-                sleep(UMDREHENZEIT);
+                sleep(umdrehen_zeit);
                 umdrehen.einstellen(Fließend::Gesperrt)?
             },
         }
@@ -414,15 +436,24 @@ impl Geschwindigkeit<Mittelleiter> {
 
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen() {
+            if let Err(fehler) = clone.umdrehen(
+                pwm_frequenz,
+                verhältnis_fahrspannung_überspannung,
+                stopp_zeit,
+                umdrehen_zeit,
+            ) {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
-                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                    debug!("Nachricht-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
                 }
             }
         });
@@ -488,11 +519,23 @@ impl BekannterLeiter for Zweileiter {
 }
 
 impl Leiter for Zweileiter {
-    fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler> {
+    type UmdrehenZeit = PhantomData<Duration>;
+    type VerhältnisFahrspannungÜberspannung = PhantomData<NullBisEins>;
+
+    fn geschwindigkeit(
+        &mut self,
+        wert: u8,
+        pwm_frequenz: NichtNegativ,
+        PhantomData: Self::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler> {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, .. } => {
-                Ok(geschwindigkeit_pwm(geschwindigkeit, wert, NullBisEins::MAX, *polarität)?)
-            },
+            Zweileiter::Pwm { geschwindigkeit, polarität, .. } => Ok(geschwindigkeit_pwm(
+                geschwindigkeit,
+                wert,
+                pwm_frequenz,
+                NullBisEins::MAX,
+                *polarität,
+            )?),
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
@@ -501,9 +544,14 @@ impl Leiter for Zweileiter {
 }
 
 impl Geschwindigkeit<Zweileiter> {
-    pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Fehler> {
-        self.geschwindigkeit(0)?;
-        sleep(STOPPZEIT);
+    pub fn fahrtrichtung(
+        &mut self,
+        neue_fahrtrichtung: Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
+        sleep(stopp_zeit);
         let mut guard = self.lock_leiter();
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
@@ -515,12 +563,14 @@ impl Geschwindigkeit<Zweileiter> {
     pub fn async_fahrtrichtung<Nachricht: Send + 'static>(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
         sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung) {
+            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
                     debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
@@ -529,9 +579,13 @@ impl Geschwindigkeit<Zweileiter> {
         });
     }
 
-    pub fn umdrehen(&mut self) -> Result<(), Fehler> {
-        self.geschwindigkeit(0)?;
-        sleep(STOPPZEIT);
+    pub fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
+        sleep(stopp_zeit);
         let mut guard = self.lock_leiter();
         let fahrtrichtung = match &mut *guard {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
@@ -542,12 +596,14 @@ impl Geschwindigkeit<Zweileiter> {
 
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
         sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen() {
+            if let Err(fehler) = clone.umdrehen(pwm_frequenz, stopp_zeit) {
                 let send_result = sender.send(erzeuge_nachricht(fehler));
                 if let Err(fehler) = send_result {
                     debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)

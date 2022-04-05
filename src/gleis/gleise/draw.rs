@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::marker::PhantomData;
 
 use iced::{
@@ -29,7 +28,7 @@ use crate::{
         },
     },
     nachschlagen::Nachschlagen,
-    steuerung::streckenabschnitt::Streckenabschnitt,
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Streckenabschnitt},
     typen::{
         canvas::{
             pfad::{self, Transformation},
@@ -201,7 +200,7 @@ struct GehaltenVerbindung {
     andere_gehalten: bool,
 }
 
-impl<Leiter> Gleise<Leiter> {
+impl<L: Leiter> Gleise<L> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,

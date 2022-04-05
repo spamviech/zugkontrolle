@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
 use rstar::{
@@ -36,7 +35,7 @@ use crate::{
     },
     nachschlagen::Nachschlagen,
     steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit},
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -105,16 +104,19 @@ pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten)>;
 type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
-#[derive(Debug)]
-pub struct Zustand<Leiter> {
-    pub(crate) zugtyp: Zugtyp<Leiter>,
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+pub struct Zustand<L: Leiter> {
+    pub(crate) zugtyp: Zugtyp<L>,
     pub(crate) ohne_streckenabschnitt: GleiseDaten,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMap<Leiter>,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMap<L>,
 }
 
-impl<Leiter> Zustand<Leiter> {
-    pub fn neu(zugtyp: Zugtyp<Leiter>) -> Self {
+impl<L: Leiter> Zustand<L> {
+    pub fn neu(zugtyp: Zugtyp<L>) -> Self {
         Zustand {
             zugtyp,
             ohne_streckenabschnitt: GleiseDaten::neu(),
@@ -357,7 +359,7 @@ impl<Leiter> Zustand<Leiter> {
     fn bewegen_aux<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        berechne_position: impl FnOnce(&Zustand<Leiter>, &Gleis<T>) -> Position,
+        berechne_position: impl FnOnce(&Zustand<L>, &Gleis<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let spurweite = self.zugtyp.spurweite;
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
