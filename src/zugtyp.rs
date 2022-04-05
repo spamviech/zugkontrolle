@@ -14,6 +14,7 @@ use crate::{
             s_kurve::SKurvenWeicheUnit,
         },
     },
+    steuerung::geschwindigkeit::BekannterLeiter,
     typen::mm::Spurweite,
 };
 
@@ -70,17 +71,6 @@ pub struct ZugtypSerialisiert {
     pub s_kurven_weichen: Vec<SKurvenWeicheUnit>,
     /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
     pub kreuzungen: Vec<KreuzungUnit>,
-}
-
-/// Ein unterstützter Leiter, aktuell:
-/// - [Mittelleiter](crate::steuerung::geschwindigkeit::Mittelleiter)
-/// - [Zweileiter](crate::steuerung::geschwindigkeit::Zweileiter).
-pub trait BekannterLeiter: Sized {
-    /// Der Name des Leiters.
-    const NAME: &'static str;
-
-    /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
 
 /// Der Leiter stimmt nicht mit dem Namen überein.

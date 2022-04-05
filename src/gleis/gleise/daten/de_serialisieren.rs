@@ -37,12 +37,12 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert},
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert},
         plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::{BekannterLeiter, Zugtyp, ZugtypSerialisiert},
+    zugtyp::{Zugtyp, ZugtypSerialisiert},
 };
 
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =

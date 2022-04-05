@@ -43,9 +43,12 @@ use crate::{
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
-    steuerung::{self, geschwindigkeit::GeschwindigkeitSerialisiert},
+    steuerung::{
+        self,
+        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert},
+    },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
-    zugtyp::{BekannterLeiter, Zugtyp},
+    zugtyp::Zugtyp,
 };
 
 pub mod anschluss;

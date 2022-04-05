@@ -23,11 +23,13 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit, plan::PlanSerialisiert, streckenabschnitt,
+        geschwindigkeit::{self, BekannterLeiter},
+        plan::PlanSerialisiert,
+        streckenabschnitt,
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
     typen::canvas::Position,
-    zugtyp::{BekannterLeiter, FalscherLeiter},
+    zugtyp::FalscherLeiter,
 };
 
 #[derive(Debug, Clone, Deserialize)]

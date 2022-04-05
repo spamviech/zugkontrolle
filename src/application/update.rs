@@ -37,10 +37,10 @@ use crate::{
     },
     nachschlagen::Nachschlagen,
     steuerung::{
-        geschwindigkeit::GeschwindigkeitSerialisiert, streckenabschnitt::Streckenabschnitt,
+        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert},
+        streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
-    zugtyp::BekannterLeiter,
 };
 
 impl<Leiter> Nachricht<Leiter>

@@ -27,7 +27,7 @@ use crate::{
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
-    zugtyp::{BekannterLeiter, Zugtyp},
+    zugtyp::Zugtyp,
 };
 
 pub trait Leiter {
@@ -36,6 +36,17 @@ pub trait Leiter {
     /// Pwm: 0-u8::MAX
     /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
     fn geschwindigkeit(&mut self, wert: u8) -> Result<(), Fehler>;
+}
+
+/// Ein unterstützter Leiter, aktuell:
+/// - [Mittelleiter](crate::steuerung::geschwindigkeit::Mittelleiter)
+/// - [Zweileiter](crate::steuerung::geschwindigkeit::Zweileiter).
+pub trait BekannterLeiter: Sized {
+    /// Der Name des Leiters.
+    const NAME: &'static str;
+
+    /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
 
 #[derive(Debug, zugkontrolle_macros::Clone)]
