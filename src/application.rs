@@ -170,6 +170,7 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
     }
 }
 
+// TODO verwende Aktion<Leiter>
 /// Eine Nachricht, die beim [Ausführen](ausführen) der Anwendung auftreten kann.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
