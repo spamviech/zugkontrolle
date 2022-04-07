@@ -137,7 +137,7 @@ impl AuswahlStatus {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {
             neu_name: String::new(),
-            neu_farbe: Farbe { r: 1., g: 1., b: 1. },
+            neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             neu_name_state: text_input::State::new(),
             neu_anschluss_state: anschluss::Status::neu_output(),

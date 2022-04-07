@@ -68,9 +68,9 @@ impl<'a, M> Farbwahl<'a, M> {
             let skaliert = vr / halber_radius;
             let c = if länge <= halber_radius {
                 Farbe {
-                    r: skaliert.skalarprodukt(&e_r).0.max(0.),
-                    g: skaliert.skalarprodukt(&e_g).0.max(0.),
-                    b: skaliert.skalarprodukt(&e_b).0.max(0.),
+                    rot: skaliert.skalarprodukt(&e_r).0.max(0.),
+                    grün: skaliert.skalarprodukt(&e_g).0.max(0.),
+                    blau: skaliert.skalarprodukt(&e_b).0.max(0.),
                 }
             } else {
                 let e = vr.einheitsvektor();
@@ -81,10 +81,10 @@ impl<'a, M> Farbwahl<'a, M> {
                     let s_max = v.einheitsvektor().skalarprodukt(&e).0;
                     (s_max - x).abs()
                 };
-                let r = anpassen(reduziert, e_r);
-                let g = anpassen(reduziert, e_g);
-                let b = anpassen(reduziert, e_b);
-                Farbe { r, g, b }
+                let rot = anpassen(reduziert, e_r);
+                let grün = anpassen(reduziert, e_g);
+                let blau = anpassen(reduziert, e_b);
+                Farbe { rot, grün, blau }
             };
             Some(c)
         } else {
