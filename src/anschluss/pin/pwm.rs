@@ -169,7 +169,7 @@ pub enum Fehler {
     },
 }
 
-/// Serealisierbare Informationen einen Pwm-Pins.
+/// Serialisierbare Informationen einen Pwm-Pins.
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);

@@ -197,7 +197,7 @@ impl OutputAnschluss {
     }
 }
 
-/// Serealisierbare Informationen eines [OutputAnschluss]es.
+/// Serialisierbare Informationen eines [OutputAnschluss]es.
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
@@ -394,7 +394,7 @@ impl InputAnschluss {
     }
 }
 
-/// Serealisierbare Informationen eines [InputAnschluss]es.
+/// Serialisierbare Informationen eines [InputAnschluss]es.
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {

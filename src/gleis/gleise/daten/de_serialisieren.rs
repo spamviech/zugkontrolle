@@ -76,7 +76,7 @@ where
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
-    /// Erzeuge eine serealisierbare Repräsentation.
+    /// Erzeuge eine Serialisierbare Repräsentation.
     pub fn serialisiere(&self) -> ZustandSerialisiert<L> {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
@@ -417,7 +417,7 @@ impl GleiseDatenSerialisiert {
 }
 
 impl GleiseDaten {
-    /// Erzeuge eine serealisierbare Repräsentation
+    /// Erzeuge eine Serialisierbare Repräsentation
     fn serialisiere(&self) -> GleiseDatenSerialisiert {
         macro_rules! rstern_to_vecs {
             ($($rstern:ident),* $(,)?) => {

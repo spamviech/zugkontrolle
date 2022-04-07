@@ -29,7 +29,7 @@ pub struct Streckenabschnitt {
     anschluss: Arc<Mutex<OutputAnschluss>>,
 }
 
-/// Serealisierbare Repräsentation der Steuerung der Stromzufuhr.
+/// Serialisierbare Repräsentation der Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StreckenabschnittSerialisiert {
     /// Die Farbe des Streckenabschnittes.

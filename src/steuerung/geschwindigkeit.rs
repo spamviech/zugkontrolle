@@ -27,6 +27,10 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
+/// Name einer Geschwindigkeit.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+
 /// Ein [Leiter] ermöglicht ein Einstellen der Geschwindigkeit und Umdrehen der Fahrtrichtung.
 pub trait Leiter {
     /// Wie lange ist die Überspannung beim Umdrehen [Fließend](Fließend::Fließend).
@@ -35,6 +39,8 @@ pub trait Leiter {
     /// Was ist das Verhältnis von Fahrspannung zur Überspannung zum Umdrehen.
     type VerhältnisFahrspannungÜberspannung: Clone;
 
+    /// Anpassen der Fahrgeschwindigkeit.
+    ///
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
@@ -56,9 +62,9 @@ pub trait Leiter {
     ) -> Result<(), Fehler>;
 }
 
-/// Ein unterstützter Leiter, aktuell:
-/// - [Mittelleiter](crate::steuerung::geschwindigkeit::Mittelleiter)
-/// - [Zweileiter](crate::steuerung::geschwindigkeit::Zweileiter).
+/// Ein unterstützter Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
+/// - [Mittelleiter] mit "Märklin".
+/// - [Zweileiter] mit "Lego".
 pub trait BekannterLeiter: Leiter + Sized {
     /// Der Name des Leiters.
     const NAME: &'static str;
@@ -67,20 +73,10 @@ pub trait BekannterLeiter: Leiter + Sized {
     fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
 
+/// Einstellen der Fahrgeschwindigkeit und Fahrtrichtung.
 #[derive(Debug, zugkontrolle_macros::Clone)]
 pub struct Geschwindigkeit<Leiter> {
     leiter: Arc<Mutex<Leiter>>,
-}
-
-impl<L: Leiter> Geschwindigkeit<L> {
-    pub fn geschwindigkeit(
-        &mut self,
-        wert: u8,
-        pwm_frequenz: NichtNegativ,
-        verhältnis_fahrspannung_überspannung: L::VerhältnisFahrspannungÜberspannung,
-    ) -> Result<(), Fehler> {
-        self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
-    }
 }
 
 impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
@@ -90,6 +86,7 @@ impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
 }
 
 impl<Leiter> Geschwindigkeit<Leiter> {
+    /// Erstelle eine neue [Geschwindigkeit].
     pub fn neu(leiter: Leiter) -> Self {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
@@ -100,29 +97,31 @@ impl<Leiter> Geschwindigkeit<Leiter> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+impl<L: Leiter> Geschwindigkeit<L> {
+    /// Anpassen der Fahrgeschwindigkeit.
+    ///
+    /// 0 deaktiviert die Stromzufuhr.
+    /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
+    /// Pwm: 0-u8::MAX
+    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+    pub fn geschwindigkeit(
+        &mut self,
+        wert: u8,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: L::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler> {
+        self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
+    }
+}
+
+/// Serialisierbare Repräsentation einer [Geschwindigkeit].
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
+#[zugkontrolle_debug(Leiter: Serialisiere, Leiter::Serialisiert: Debug)]
+#[zugkontrolle_clone(Leiter: Serialisiere, Leiter::Serialisiert: Clone)]
+#[serde(bound = "")]
 pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
-    pub leiter: Leiter::Serialisiert,
-}
-
-impl<Leiter> Clone for GeschwindigkeitSerialisiert<Leiter>
-where
-    Leiter: Serialisiere,
-    Leiter::Serialisiert: Clone,
-{
-    fn clone(&self) -> Self {
-        Self { leiter: self.leiter.clone() }
-    }
-}
-
-impl<Leiter> Debug for GeschwindigkeitSerialisiert<Leiter>
-where
-    Leiter: Serialisiere,
-    Leiter::Serialisiert: Debug,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("GeschwindigkeitSerialisiert").field("leiter", &self.leiter).finish()
-    }
+    /// Der Leiter der Geschwindigkeit.
+    pub leiter: <Leiter as Serialisiere>::Serialisiert,
 }
 
 impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
@@ -187,10 +186,10 @@ fn geschwindigkeit_ks(
     letzter_wert: &mut usize,
     wert: u8,
 ) -> Result<(), Fehler> {
-    let wert_usize = wert as usize;
+    let wert_usize = usize::from(wert);
     let length = geschwindigkeit.len();
     if wert_usize > length {
-        return Err(Fehler::ZuWenigAnschlüsse { benötigt: wert, vorhanden: length });
+        return Err(Fehler::ZuWenigAnschlüsse { geschwindigkeit: wert, vorhanden: length });
     }
     // aktuellen Anschluss ausstellen
     if *letzter_wert == 0 {
@@ -198,30 +197,45 @@ fn geschwindigkeit_ks(
     } else if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert - 1) {
         anschluss.einstellen(Fließend::Gesperrt)?;
     } else {
-        error!(
-            "Letzter Wert ist {}, Geschwindigkeit hat aber nur {} Anschlüsse!",
-            letzter_wert, length
-        )
+        error!("Letzter Wert ist {letzter_wert}, Geschwindigkeit hat aber nur {length} Anschlüsse!")
     }
     // neuen anstellen
     if wert_usize > 0 {
-        geschwindigkeit.get_mut(wert_usize - 1).unwrap().einstellen(Fließend::Fließend)?;
+        let anschluss_index = wert_usize - 1;
+        if let Some(anschluss) = geschwindigkeit.get_mut(anschluss_index) {
+            anschluss.einstellen(Fließend::Fließend)?;
+        } else {
+            error!(
+                "{wert_usize} <= {length}, aber geschwindigkeit.get_mut({anschluss_index}) == None"
+            );
+            return Err(Fehler::ZuWenigAnschlüsse { geschwindigkeit: wert, vorhanden: length });
+        }
     }
     *letzter_wert = wert_usize;
     Ok(())
 }
 
+/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
 pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
+
+/// Antrieb über einen Mittelleiter.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
+    /// Steuerung über ein Pwm-Signal.
     Pwm {
+        /// Der [Pwm-Pin](pwm::Pin).
         pin: Pwm,
+        /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
     },
+    /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
     KonstanteSpannung {
+        /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<Anschluss>,
+        /// Der letzte eingestellte Wert.
         letzter_wert: usize,
+        /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: Anschluss,
     },
 }
@@ -233,17 +247,17 @@ impl Display for Mittelleiter {
                 write!(f, "Pwm({}, {})", pin.pin(), polarität)
             },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
-                write!(f, "KonstanteSpannung(")?;
+                f.write_str("KonstanteSpannung(")?;
                 let mut first = true;
                 for anschluss in geschwindigkeit.iter() {
                     if first {
                         first = false;
                     } else {
-                        write!(f, ", ")?;
+                        f.write_str(", ")?;
                     }
-                    write!(f, "{}", anschluss)?;
+                    write!(f, "{anschluss}")?;
                 }
-                write!(f, "-{})", umdrehen)
+                write!(f, "-{umdrehen})")
             },
         }
     }
@@ -444,6 +458,7 @@ impl Leiter for Mittelleiter {
 }
 
 impl Geschwindigkeit<Mittelleiter> {
+    /// Umdrehen der aktuellen Fahrtrichtung.
     pub fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -459,6 +474,7 @@ impl Geschwindigkeit<Mittelleiter> {
         )
     }
 
+    /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -492,18 +508,29 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 }
 
+/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
 pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisiert>;
+
+/// Antrieb über Spannungsunterschied zwischen linker und rechter Schiene.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
+    /// Steuerung über ein Pwm-Signal.
     Pwm {
+        /// Der [Pwm-Pin](pwm::Pin).
         geschwindigkeit: Pwm,
+        /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
+        /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: Anschluss,
     },
+    /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
     KonstanteSpannung {
+        /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<Anschluss>,
+        /// Der letzte eingestellte Wert.
         letzter_wert: usize,
+        /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: Anschluss,
     },
 }
@@ -515,17 +542,17 @@ impl Display for Zweileiter {
                 write!(f, "Pwm({}, {}-{})", geschwindigkeit.pin(), polarität, fahrtrichtung)
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
-                write!(f, "KonstanteSpannung(")?;
+                f.write_str("KonstanteSpannung(")?;
                 let mut first = true;
                 for anschluss in geschwindigkeit.iter() {
                     if first {
                         first = false;
                     } else {
-                        write!(f, ", ")?;
+                        f.write_str(", ")?;
                     }
-                    write!(f, "{}", anschluss)?;
+                    write!(f, "{anschluss}")?;
                 }
-                write!(f, "-{})", fahrtrichtung)
+                write!(f, "-{fahrtrichtung})")
             },
         }
     }
@@ -567,6 +594,7 @@ impl Leiter for Zweileiter {
         }
     }
 
+    #[inline(always)]
     fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -579,6 +607,7 @@ impl Leiter for Zweileiter {
 }
 
 impl Zweileiter {
+    /// Einstellen der aktuellen Fahrtrichtung.
     pub fn fahrtrichtung(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
@@ -594,6 +623,7 @@ impl Zweileiter {
         Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
     }
 
+    /// Umdrehen der aktuellen Fahrtrichtung.
     pub fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -610,6 +640,7 @@ impl Zweileiter {
 }
 
 impl Geschwindigkeit<Zweileiter> {
+    /// Einstellen der aktuellen Fahrtrichtung.
     pub fn fahrtrichtung(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
@@ -619,6 +650,7 @@ impl Geschwindigkeit<Zweileiter> {
         self.lock_leiter().fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
+    /// Erstelle einen neuen Thread zum einstellen der aktuellen Fahrtrichtung.
     pub fn async_fahrtrichtung<Nachricht: Send + 'static>(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
@@ -638,6 +670,7 @@ impl Geschwindigkeit<Zweileiter> {
         });
     }
 
+    /// Umdrehen der aktuellen Fahrtrichtung.
     pub fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -646,6 +679,7 @@ impl Geschwindigkeit<Zweileiter> {
         self.lock_leiter().umdrehen(pwm_frequenz, stopp_zeit)
     }
 
+    /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -826,9 +860,12 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     }
 }
 
+/// Die Fahrtrichtung für Züge auf den zugehörigen Gleisen.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Fahrtrichtung {
+    /// Fahren mit Triebwagen vorne.
     Vorwärts,
+    /// Fahren mit Triebwagen hinten.
     Rückwärts,
 }
 impl From<Fahrtrichtung> for Fließend {
@@ -852,14 +889,19 @@ impl Display for Fahrtrichtung {
     }
 }
 
+/// Mögliche Fehler beim einstellen der Geschwindigkeit oder Fahrtrichtung.
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Fehler {
+    /// Fehler bei Interaktion mit einem [Anschluss](OutputAnschluss).
     Anschluss(anschluss::Fehler),
+    /// Fehler bei Interaktion mit einem [Pwm-Pin](pwm::Pin).
     Pwm(pwm::Fehler),
-    ZuWenigAnschlüsse { benötigt: u8, vorhanden: usize },
+    /// Zu wenige Anschlüsse für die gewünschte Geschwindigkeit.
+    ZuWenigAnschlüsse {
+        /// Die gewünschte Geschwindigkeit.
+        geschwindigkeit: u8,
+        /// Die Anzahl konfigurierter Anschlüsse.
+        vorhanden: usize,
+    },
 }
-
-/// Name einer Geschwindigkeit.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Name(pub String);
