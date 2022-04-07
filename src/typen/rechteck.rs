@@ -1,8 +1,5 @@
 //! Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use rstar::primitives::Rectangle;
 
 use crate::typen::{vektor::Vektor, winkel::Winkel};
@@ -11,7 +8,9 @@ use crate::typen::{vektor::Vektor, winkel::Winkel};
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone)]
 pub struct Rechteck {
+    /// Eine Ecke des Rechtecks.
     pub ecke_a: Vektor,
+    /// Die gegenüberliegende Ecke des Rechtecks.
     pub ecke_b: Vektor,
 }
 
@@ -29,7 +28,7 @@ impl Rechteck {
         Some(Rechteck { ecke_a: min, ecke_b: max })
     }
 
-    /// Verschiebe das Rechteck um Vektor.
+    /// Verschiebe das Rechteck um [Vektor].
     #[zugkontrolle_macros::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
         self.ecke_a += bewegung;

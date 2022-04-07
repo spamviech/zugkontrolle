@@ -13,6 +13,7 @@ pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenS
     }
 
     let syn::ItemFn {
+        attrs,
         vis,
         sig:
             syn::Signature {
@@ -29,6 +30,8 @@ pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenS
             },
         ..
     } = &ast;
+    let docstrings: Vec<_> =
+        attrs.iter().filter(|syn::Attribute { path, .. }| path.is_ident("doc")).collect();
     if let syn::ReturnType::Type(_arrow, ty) = output {
         errors.push(format!("only default return type supported, but {:?} was given.", ty));
     }
@@ -82,6 +85,7 @@ pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenS
     quote! {
         #ast
 
+        #(#docstrings)*
         #vis #constness #asyncness #unsafety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
             self.#ident(#(#other_input_names),*);
             self
