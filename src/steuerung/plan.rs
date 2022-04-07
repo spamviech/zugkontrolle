@@ -3,17 +3,15 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{polarität::Fließend, trigger::Trigger},
+    anschluss::{de_serialisieren::Serialisiere, polarität::Fließend, trigger::Trigger},
     gleis::weiche,
     steuerung::{
-        geschwindigkeit::{
-            Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Mittelleiter, Zweileiter,
-        },
+        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert},
@@ -22,72 +20,78 @@ use crate::{
 
 /// Plan für einen automatischen Fahrplan.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Plan<Aktion = self::Aktion> {
+pub struct Plan<Aktion> {
     pub aktionen: Vec<Aktion>,
     pub endlosschleife: bool,
 }
 
-/// Plan für einen automatischen Fahrplan.
-pub type PlanSerialisiert = Plan<AktionSerialisiert>;
-
 /// Eine Aktionen in einem Fahrplan.
-#[derive(Debug, Clone)]
-pub enum Aktion {
-    Geschwindigkeit(AktionGeschwindigkeit),
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
+#[zugkontrolle_clone(<L as Leiter>::Fahrtrichtung: Clone)]
+pub enum Aktion<L: Leiter> {
+    Geschwindigkeit(AktionGeschwindigkeit<L>),
     Streckenabschnitt(AktionStreckenabschnitt),
     Schalten(AktionSchalten),
     Warten(AktionWarten),
 }
 
 /// Eine Aktionen in einem Fahrplan.
-#[derive(Debug, Serialize, Deserialize)]
-pub enum AktionSerialisiert {
-    Geschwindigkeit(AktionGeschwindigkeitSerialisiert),
-    Streckenabschnitt(AktionStreckenabschnittSerialisiert),
+#[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
+#[zugkontrolle_debug(L: Serialisiere + Leiter, L::Serialisiert: Debug, L::Fahrtrichtung: Debug)]
+#[serde(bound(
+    serialize = "L::Fahrtrichtung: Serialize",
+    deserialize = "L::Fahrtrichtung: Deserialize<'de>",
+))]
+pub enum AktionSerialisiert<L>
+where
+    L: Serialisiere + Leiter,
+{
+    Geschwindigkeit(AktionGeschwindigkeitSerialisiert<L>),
+    Streckenabschnitt(AktionStreckenabschnitt<StreckenabschnittSerialisiert>),
     Schalten(AktionSchaltenSerialisiert),
-    Warten(AktionWartenSerialisiert),
+    Warten(AktionWarten<KontaktSerialisiert>),
 }
 
-// TODO Leiter-Parameter, eigener Trait, weiterer assoziierter Typ im Leiter-Trait?
-/// Eine Aktion mit einer Geschwindigkeit.
-#[derive(Debug, Clone)]
-pub enum AktionGeschwindigkeit {
-    GeschwindigkeitMittelleiter { leiter: Geschwindigkeit<Mittelleiter>, wert: u8 },
-    GeschwindigkeitZweileiter { leiter: Geschwindigkeit<Zweileiter>, wert: u8 },
-    UmdrehenMittelleiter { leiter: Geschwindigkeit<Mittelleiter> },
-    FahrtrichtungZweileiter { leiter: Geschwindigkeit<Zweileiter>, fahrtrichtung: Fahrtrichtung },
+/// Eine Aktion mit einer [Geschwindigkeit].
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
+#[zugkontrolle_clone(<L as Leiter>::Fahrtrichtung: Clone)]
+pub enum AktionGeschwindigkeit<L: Leiter> {
+    Geschwindigkeit { leiter: Geschwindigkeit<L>, wert: u8 },
+    Umdrehen { leiter: Geschwindigkeit<L> },
+    Fahrtrichtung { leiter: Geschwindigkeit<L>, fahrtrichtung: <L as Leiter>::Fahrtrichtung },
 }
 
 /// Eine Aktion mit einer Geschwindigkeit.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionGeschwindigkeitSerialisiert {
-    GeschwindigkeitMittelleiter {
-        leiter: GeschwindigkeitSerialisiert<Mittelleiter>,
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
+#[zugkontrolle_debug(L: Serialisiere + Leiter, L::Serialisiert: Debug, L::Fahrtrichtung: Debug)]
+#[zugkontrolle_clone(L: Serialisiere + Leiter, L::Serialisiert: Clone, L::Fahrtrichtung: Clone)]
+#[serde(bound(
+    serialize = "L::Fahrtrichtung: Serialize",
+    deserialize = "L::Fahrtrichtung: Deserialize<'de>",
+))]
+pub enum AktionGeschwindigkeitSerialisiert<L>
+where
+    L: Serialisiere + Leiter,
+{
+    Geschwindigkeit {
+        leiter: GeschwindigkeitSerialisiert<L>,
         wert: u8,
     },
-    GeschwindigkeitZweileiter {
-        leiter: GeschwindigkeitSerialisiert<Zweileiter>,
-        wert: u8,
+    Umdrehen {
+        leiter: GeschwindigkeitSerialisiert<L>,
     },
-    UmdrehenMittelleiter {
-        leiter: GeschwindigkeitSerialisiert<Mittelleiter>,
-    },
-    FahrtrichtungZweileiter {
-        leiter: GeschwindigkeitSerialisiert<Zweileiter>,
-        fahrtrichtung: Fahrtrichtung,
+    Fahrtrichtung {
+        leiter: GeschwindigkeitSerialisiert<L>,
+        fahrtrichtung: <L as Leiter>::Fahrtrichtung,
     },
 }
 
 /// Eine Aktion mit einem Streckenabschnitt.
-#[derive(Debug, Clone)]
-pub enum AktionStreckenabschnitt {
-    Streckenabschnitt { streckenabschnitt: Streckenabschnitt, fließend: Fließend },
-}
-
-/// Eine Aktion mit einem Streckenabschnitt.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionStreckenabschnittSerialisiert {
-    Streckenabschnitt { streckenabschnitt: StreckenabschnittSerialisiert, fließend: Fließend },
+pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
+    Streckenabschnitt { streckenabschnitt: S, fließend: Fließend },
 }
 
 /// Eine Aktion mit einer Weiche.
@@ -134,15 +138,8 @@ pub enum AktionSchaltenSerialisiert {
 }
 
 /// Eine Warte-Aktion.
-#[derive(Debug, Clone)]
-pub enum AktionWarten {
-    WartenAuf { kontakt: Kontakt, trigger: Trigger },
-    WartenFür { zeit: Duration },
-}
-
-/// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionWartenSerialisiert {
-    WartenAuf { kontakt: KontaktSerialisiert, trigger: Trigger },
+pub enum AktionWarten<K = Kontakt> {
+    WartenAuf { kontakt: K, trigger: Trigger },
     WartenFür { zeit: Duration },
 }

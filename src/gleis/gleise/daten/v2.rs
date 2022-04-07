@@ -6,12 +6,12 @@
 use std::{collections::HashMap, marker::PhantomData};
 
 use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
+    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 
 use crate::{
-    anschluss::{self, de_serialisieren::Serialisiere},
+    anschluss::{self, de_serialisieren::Serialisiere, level::Level, pcf8574},
     gleis::{
         gerade::GeradeSerialisiert,
         gleise::daten as aktuell,
@@ -24,11 +24,11 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert},
-        plan::PlanSerialisiert,
         streckenabschnitt,
         streckenabschnitt::StreckenabschnittSerialisiert,
     },
     typen::canvas::Position,
+    void::Void,
     zugtyp::FalscherLeiter,
 };
 
@@ -45,37 +45,51 @@ pub(crate) type StreckenabschnittMapSerialisiert =
 type GeschwindigkeitMapSerialisiert<Leiter> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>>;
 
+/// Beschreibung eines [anschluss::pcf85747::Pcf8574].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+struct Beschreibung {
+    /// Anliegendes [Level] an das `A0` Adress-Bit.
+    a0: Level,
+    /// Anliegendes [Level] an das `A1` Adress-Bit.
+    a1: Level,
+    /// Anliegendes [Level] an das `A2` Adress-Bit.
+    a2: Level,
+    /// Variante des [anschluss::pcf85747::Pcf8574], beeinflusst die I2C-Adresse.
+    variante: pcf8574::Variante,
+}
+
+// #[derive(Deserialize)]
+// #[serde(bound = "Leiter: Serialisiere")]
 pub(crate) struct GleiseVecs<Leiter: Serialisiere> {
-    pub(crate) name: String,
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
-    pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
-    pub(crate) pläne: Vec<PlanSerialisiert>,
+    name: String,
+    geraden: Vec<Gleis<GeradeSerialisiert>>,
+    kurven: Vec<Gleis<KurveSerialisiert>>,
+    weichen: Vec<Gleis<WeicheSerialisiert>>,
+    dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
+    streckenabschnitte: StreckenabschnittMapSerialisiert,
+    geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
+    pläne: Vec<Void>,
 }
 
 // Explizite serde-Implementierung, damit Leiter kein automatisches Constraint bekommt
 // https://serde.rs/deserialize-struct.html
 #[derive(Deserialize)]
-#[serde(field_identifier, rename_all = "lowercase")]
 #[allow(non_camel_case_types)]
 enum GleiseVecsField {
-    Name,
-    Geraden,
-    Kurven,
-    Weichen,
-    Dreiwege_Weichen,
-    Kurven_Weichen,
-    S_Kurven_Weichen,
-    Kreuzungen,
-    Streckenabschnitte,
-    Geschwindigkeiten,
-    Pläne,
+    name,
+    geraden,
+    kurven,
+    weichen,
+    dreiwege_weichen,
+    kurven_weichen,
+    s_kurven_weichen,
+    kreuzungen,
+    streckenabschnitte,
+    geschwindigkeiten,
+    pläne,
 }
 
 struct GleiseVecsVisitor<Leiter>(PhantomData<fn() -> Leiter>);
@@ -87,126 +101,29 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for GleiseVecsVisitor<Leiter> {
         formatter.write_str("struct Zustand")
     }
 
-    fn visit_seq<V: SeqAccess<'de>>(self, mut seq: V) -> Result<GleiseVecs<Leiter>, V::Error> {
+    fn visit_seq<V: SeqAccess<'de>>(self, mut seq: V) -> Result<Self::Value, V::Error> {
+        println!("name");
         let name = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
+        println!("geraden");
         let geraden = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("kurven");
         let kurven = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("weichen");
         let weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("dreiwege");
         let dreiwege_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("kurven_weichen");
         let kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("s_kurven");
         let s_kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("kreuzung");
         let kreuzungen = seq.next_element()?.unwrap_or_else(Vec::new);
+        println!("streckenabschnitte");
         let streckenabschnitte = seq.next_element()?.unwrap_or_else(HashMap::new);
+        println!("geschwindigkeiten");
         let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
+        println!("pläne");
         let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
-        Ok(GleiseVecs {
-            name,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            streckenabschnitte,
-            geschwindigkeiten,
-            pläne,
-        })
-    }
-
-    fn visit_map<V: MapAccess<'de>>(self, mut map: V) -> Result<GleiseVecs<Leiter>, V::Error> {
-        let mut name = None;
-        let mut geraden = None;
-        let mut kurven = None;
-        let mut weichen = None;
-        let mut dreiwege_weichen = None;
-        let mut kurven_weichen = None;
-        let mut s_kurven_weichen = None;
-        let mut kreuzungen = None;
-        let mut streckenabschnitte = None;
-        let mut geschwindigkeiten = None;
-        let mut pläne = None;
-        while let Some(key) = map.next_key()? {
-            match key {
-                GleiseVecsField::Name => {
-                    if name.is_some() {
-                        return Err(de::Error::duplicate_field("name"));
-                    }
-                    name = Some(map.next_value()?)
-                },
-                GleiseVecsField::Geraden => {
-                    if geraden.is_some() {
-                        return Err(de::Error::duplicate_field("geraden"));
-                    }
-                    geraden = Some(map.next_value()?)
-                },
-                GleiseVecsField::Kurven => {
-                    if kurven.is_some() {
-                        return Err(de::Error::duplicate_field("kurven"));
-                    }
-                    kurven = Some(map.next_value()?)
-                },
-                GleiseVecsField::Weichen => {
-                    if weichen.is_some() {
-                        return Err(de::Error::duplicate_field("weichen"));
-                    }
-                    weichen = Some(map.next_value()?)
-                },
-                GleiseVecsField::Dreiwege_Weichen => {
-                    if dreiwege_weichen.is_some() {
-                        return Err(de::Error::duplicate_field("dreiwege_weichen"));
-                    }
-                    dreiwege_weichen = Some(map.next_value()?)
-                },
-                GleiseVecsField::Kurven_Weichen => {
-                    if kurven_weichen.is_some() {
-                        return Err(de::Error::duplicate_field("kurven_weichen"));
-                    }
-                    kurven_weichen = Some(map.next_value()?)
-                },
-                GleiseVecsField::S_Kurven_Weichen => {
-                    if s_kurven_weichen.is_some() {
-                        return Err(de::Error::duplicate_field("s_kurven_weichen"));
-                    }
-                    s_kurven_weichen = Some(map.next_value()?)
-                },
-                GleiseVecsField::Kreuzungen => {
-                    if kreuzungen.is_some() {
-                        return Err(de::Error::duplicate_field("kreuzungen"));
-                    }
-                    kreuzungen = Some(map.next_value()?)
-                },
-                GleiseVecsField::Streckenabschnitte => {
-                    if streckenabschnitte.is_some() {
-                        return Err(de::Error::duplicate_field("streckenabschnitte"));
-                    }
-                    streckenabschnitte = Some(map.next_value()?)
-                },
-                GleiseVecsField::Geschwindigkeiten => {
-                    if geschwindigkeiten.is_some() {
-                        return Err(de::Error::duplicate_field("geschwindigkeiten"));
-                    }
-                    geschwindigkeiten = Some(map.next_value()?)
-                },
-                GleiseVecsField::Pläne => {
-                    if pläne.is_some() {
-                        return Err(de::Error::duplicate_field("pläne"));
-                    }
-                    pläne = Some(map.next_value()?)
-                },
-            }
-        }
-        let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-        let geraden = geraden.unwrap_or_else(Vec::new);
-        let kurven = kurven.unwrap_or_else(Vec::new);
-        let weichen = weichen.unwrap_or_else(Vec::new);
-        let dreiwege_weichen = dreiwege_weichen.unwrap_or_else(Vec::new);
-        let kurven_weichen = kurven_weichen.unwrap_or_else(Vec::new);
-        let s_kurven_weichen = s_kurven_weichen.unwrap_or_else(Vec::new);
-        let kreuzungen = kreuzungen.unwrap_or_else(Vec::new);
-        let streckenabschnitte = streckenabschnitte.unwrap_or_else(HashMap::new);
-        let geschwindigkeiten = geschwindigkeiten.unwrap_or_else(HashMap::new);
-        let pläne = pläne.unwrap_or_else(Vec::new);
         Ok(GleiseVecs {
             name,
             geraden,
@@ -224,7 +141,7 @@ impl<'de, Leiter: Serialisiere> Visitor<'de> for GleiseVecsVisitor<Leiter> {
 }
 
 impl<'de, Leiter: Serialisiere> Deserialize<'de> for GleiseVecs<Leiter> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         deserializer.deserialize_struct(
             "zustand",
             &[
@@ -310,7 +227,7 @@ impl<Leiter: Serialisiere + BekannterLeiter> TryFrom<GleiseVecs<Leiter>>
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,
-            pläne: v2.pläne,
+            pläne: v2.pläne.into_iter().map(|void| void.unreachable()).collect(),
         })
     }
 }

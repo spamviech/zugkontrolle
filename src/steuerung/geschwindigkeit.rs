@@ -13,7 +13,6 @@ use log::{debug, error};
 use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
-use void::Void;
 
 use crate::{
     anschluss::{
@@ -25,6 +24,7 @@ use crate::{
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
+    void::Void,
     zugtyp::Zugtyp,
 };
 
@@ -479,7 +479,7 @@ impl Leiter for Mittelleiter {
         _stopp_zeit: Duration,
         _umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
-        void::unreachable(neue_fahrtrichtung)
+        neue_fahrtrichtung.unreachable()
     }
 }
 

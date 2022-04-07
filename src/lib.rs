@@ -45,6 +45,7 @@ pub mod nachschlagen;
 pub mod rppal;
 pub mod steuerung;
 pub mod typen;
+pub mod void;
 pub mod zugtyp;
 
 pub use crate::{

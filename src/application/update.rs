@@ -1034,6 +1034,7 @@ where
     <L as Serialisiere>::Serialisiert: Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
+    <L as Leiter>::Fahrtrichtung: Serialize,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L>>> {
         let ergebnis = self.gleise.speichern(&pfad);
@@ -1062,6 +1063,7 @@ impl<L: LeiterAnzeige + BekannterLeiter> Zugkontrolle<L>
 where
     for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
     for<'de> <L as Leiter>::UmdrehenZeit: Deserialize<'de>,
+    for<'de> <L as Leiter>::Fahrtrichtung: Deserialize<'de>,
 {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {

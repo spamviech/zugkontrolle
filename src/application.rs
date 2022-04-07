@@ -483,6 +483,7 @@ where
     L::Serialisiert: Debug + Clone + Unpin + Send,
     for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + Deserialize<'de>,
     for<'de> <L as Leiter>::UmdrehenZeit: Serialize + Deserialize<'de>,
+    for<'de> <L as Leiter>::Fahrtrichtung: Serialize + Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

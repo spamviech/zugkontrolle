@@ -41,7 +41,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::PlanSerialisiert,
+        plan::{AktionSerialisiert, Plan},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
@@ -60,9 +60,10 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> 
 #[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[serde(bound(
-    serialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize",
-    deserialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>",
+    serialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize",
+    deserialize = "L: Serialisiere + Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>",
 ))]
 pub struct ZustandSerialisiert<L>
 where
@@ -72,7 +73,7 @@ where
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
-    pub(crate) pläne: Vec<PlanSerialisiert>,
+    pub(crate) pläne: Vec<Plan<AktionSerialisiert<L>>>,
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
@@ -532,6 +533,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
     where
         L::VerhältnisFahrspannungÜberspannung: Serialize,
         L::UmdrehenZeit: Serialize,
+        L::Fahrtrichtung: Serialize,
     {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
@@ -546,6 +548,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
     where
         for<'de> L::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
         for<'de> L::UmdrehenZeit: Deserialize<'de>,
+        for<'de> L::Fahrtrichtung: Deserialize<'de>,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.leeren();

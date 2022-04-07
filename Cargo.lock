@@ -2773,7 +2773,6 @@ dependencies = [
  "rstar",
  "serde",
  "take_mut",
- "void",
  "zugkontrolle-macros",
 ]
 
