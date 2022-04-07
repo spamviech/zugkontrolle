@@ -234,7 +234,7 @@ pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerial
 
 /// Antrieb über einen Mittelleiter.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
+#[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -539,7 +539,7 @@ pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisie
 
 /// Antrieb über Spannungsunterschied zwischen linker und rechter Schiene.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(bound(serialize = "Pwm: Clone + Serialize, Anschluss: Clone + Serialize"))]
+#[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
