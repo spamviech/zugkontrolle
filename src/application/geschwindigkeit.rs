@@ -445,7 +445,9 @@ where
         status: &'t mut AnzeigeStatus<Leiter>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<Leiter>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
-        zeige_fahrtrichtung: impl FnOnce(&'t mut Leiter::Fahrtrichtung) -> Element<'t, M, R>,
+        zeige_fahrtrichtung: impl FnOnce(
+            &'t mut <Leiter as LeiterAnzeige>::Fahrtrichtung,
+        ) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
     ) -> Self
     where

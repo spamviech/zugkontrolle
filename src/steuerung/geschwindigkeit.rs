@@ -13,6 +13,7 @@ use log::{debug, error};
 use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
+use void::Void;
 
 use crate::{
     anschluss::{
@@ -39,6 +40,9 @@ pub trait Leiter {
     /// Was ist das Verhältnis von Fahrspannung zur Überspannung zum Umdrehen.
     type VerhältnisFahrspannungÜberspannung: Clone;
 
+    /// Einstellmöglichkeiten der aktuellen Fahrtrichtung.
+    type Fahrtrichtung;
+
     /// Anpassen der Fahrgeschwindigkeit.
     ///
     /// 0 deaktiviert die Stromzufuhr.
@@ -55,6 +59,16 @@ pub trait Leiter {
     /// Umdrehen der aktuellen Fahrtrichtung.
     fn umdrehen(
         &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: Self::UmdrehenZeit,
+    ) -> Result<(), Fehler>;
+
+    /// Einstellen der aktuellen Fahrtrichtung.
+    fn fahrtrichtung(
+        &mut self,
+        neue_fahrtrichtung: Self::Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
@@ -408,6 +422,7 @@ impl BekannterLeiter for Mittelleiter {
 impl Leiter for Mittelleiter {
     type UmdrehenZeit = Duration;
     type VerhältnisFahrspannungÜberspannung = NullBisEins;
+    type Fahrtrichtung = Void;
 
     fn geschwindigkeit(
         &mut self,
@@ -454,6 +469,17 @@ impl Leiter for Mittelleiter {
             },
         }
         Ok(())
+    }
+
+    fn fahrtrichtung(
+        &mut self,
+        neue_fahrtrichtung: Self::Fahrtrichtung,
+        _pwm_frequenz: NichtNegativ,
+        _verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+        _stopp_zeit: Duration,
+        _umdrehen_zeit: Self::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        void::unreachable(neue_fahrtrichtung)
     }
 }
 
@@ -573,6 +599,7 @@ impl BekannterLeiter for Zweileiter {
 impl Leiter for Zweileiter {
     type UmdrehenZeit = PhantomData<Duration>;
     type VerhältnisFahrspannungÜberspannung = PhantomData<NullBisEins>;
+    type Fahrtrichtung = Fahrtrichtung;
 
     fn geschwindigkeit(
         &mut self,
@@ -603,6 +630,18 @@ impl Leiter for Zweileiter {
         PhantomData: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
         self.umdrehen(pwm_frequenz, stopp_zeit)
+    }
+
+    #[inline(always)]
+    fn fahrtrichtung(
+        &mut self,
+        neue_fahrtrichtung: Self::Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        PhantomData: Self::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        PhantomData: Self::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 }
 
