@@ -4,8 +4,6 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::typen::mm;
-
 /// Skalar-Werte für Größen auf dem Canvas.
 ///
 /// Methoden bilden den bekannten arithmetischen Körper.
@@ -46,21 +44,6 @@ impl Skalar {
         }
     }
 }
-
-macro_rules! impl_from_mm {
-    (mm:: $type:ident) => {
-        impl mm::$type {
-            /// Konvertiere in ein [Skalar].
-            pub const fn als_skalar(self) -> Skalar {
-                Skalar(self.0)
-            }
-        }
-    };
-}
-
-impl_from_mm! {mm::Länge}
-impl_from_mm! {mm::Radius}
-impl_from_mm! {mm::Spurweite}
 
 // Ein Körper ist eine (additive) abelsche Gruppe
 // Halbgruppe

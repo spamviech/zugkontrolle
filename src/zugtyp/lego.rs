@@ -24,7 +24,7 @@ impl Zugtyp<Zweileiter> {
         Zugtyp {
             name: "Lego".to_string(),
             leiter: PhantomData,
-            spurweite: Spurweite(38.),
+            spurweite: Spurweite::neu(38.),
             geraden: vec![gerade()],
             kurven: vec![kurve()],
             weichen: vec![],

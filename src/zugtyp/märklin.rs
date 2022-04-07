@@ -28,7 +28,7 @@ impl Zugtyp<Mittelleiter> {
         Zugtyp {
             name: "Märklin".to_string(),
             leiter: PhantomData,
-            spurweite: Spurweite(16.5),
+            spurweite: Spurweite::neu(16.5),
             geraden: vec![
                 gerade_5106(),
                 gerade_5107(),

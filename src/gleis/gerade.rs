@@ -159,7 +159,7 @@ fn zeichne_internal<P, A>(
     let beschränkung_oben = Skalar(0.);
     let beschränkung_unten = beschränkung_oben + spurweite.beschränkung();
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    let gleis_unten = gleis_oben + spurweite.spurweite();
+    let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Beschränkungen
     if beschränkungen {
         path_builder.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into());
@@ -208,7 +208,7 @@ fn fülle_internal<P, A>(
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    let gleis_unten = gleis_oben + spurweite.spurweite();
+    let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Zeichne Umriss
     path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into());
@@ -226,5 +226,5 @@ pub(crate) fn innerhalb(
     relative_position.x + ungenauigkeit >= Skalar(0.)
         && relative_position.x - ungenauigkeit <= länge
         && relative_position.y + ungenauigkeit >= spurweite.abstand()
-        && relative_position.y - ungenauigkeit <= spurweite.abstand() + spurweite.spurweite()
+        && relative_position.y - ungenauigkeit <= spurweite.abstand() + spurweite.als_skalar()
 }

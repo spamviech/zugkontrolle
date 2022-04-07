@@ -234,7 +234,7 @@ fn zeichne_internal<P, A>(
     A: From<Bogen> + Into<Bogen>,
 {
     // Utility Größen
-    let spurweite_skalar: Skalar = spurweite.spurweite();
+    let spurweite_skalar: Skalar = spurweite.als_skalar();
     let beschränkung: Skalar = spurweite.beschränkung();
     let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
@@ -309,7 +309,7 @@ fn fülle_internal<P, A>(
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let spurweite_skalar = spurweite.spurweite();
+    let spurweite_skalar = spurweite.als_skalar();
     let abstand = spurweite.abstand();
     let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
@@ -366,7 +366,7 @@ pub(crate) fn innerhalb(
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> bool {
-    let spurweite_skalar = spurweite.spurweite();
+    let spurweite_skalar = spurweite.als_skalar();
     let abstand = spurweite.abstand();
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
     let radius_außen = radius_begrenzung_außen - abstand;
