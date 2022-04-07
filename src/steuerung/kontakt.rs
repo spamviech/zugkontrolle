@@ -1,9 +1,5 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
-
 use std::sync::{
     mpsc::{channel, Receiver, RecvError, SendError, Sender},
     Arc,
@@ -22,16 +18,20 @@ use crate::anschluss::{
     Fehler, InputAnschluss, InputSerialisiert, OutputAnschluss,
 };
 
-/// Name eines Kontaktes.
+/// Name eines [Kontaktes](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-/// Ein `Kontakt` erlaubt warten auf ein bestimmtes `Trigger`-Ereignis.
+/// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
 #[derive(Debug, Clone)]
 pub struct Kontakt {
+    /// Der Name des Kontaktes.
     pub name: Name,
+    /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
+    /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<AnschlussOderSerialisiert<InputAnschluss>>>,
+    /// Wer interessiert sich für das [Trigger]-Event.
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
 }
 
@@ -56,7 +56,7 @@ impl Drop for Kontakt {
 }
 
 impl Kontakt {
-    /// Erzeuge einen neuen Kontakt
+    /// Erzeuge einen neuen Kontakt.
     pub fn neu(
         name: Name,
         mut anschluss: InputAnschluss,
@@ -106,11 +106,14 @@ impl Kontakt {
     }
 }
 
-/// Serialisierte Variante eines `Kontakt`es.
+/// Serialisierte Variante eines [Kontaktes](Kontakt).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
+    /// Der Name des Kontaktes.
     pub name: Name,
+    /// Der Anschluss des Kontaktes.
     pub anschluss: InputSerialisiert,
+    /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
 }
 

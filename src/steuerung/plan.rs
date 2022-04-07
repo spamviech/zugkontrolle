@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -49,6 +48,7 @@ pub enum AktionSerialisiert {
     Warten(AktionWartenSerialisiert),
 }
 
+// TODO Leiter-Parameter, eigener Trait, weiterer assoziierter Typ im Leiter-Trait?
 /// Eine Aktion mit einer Geschwindigkeit.
 #[derive(Debug, Clone)]
 pub enum AktionGeschwindigkeit {

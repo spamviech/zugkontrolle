@@ -1,10 +1,6 @@
 //! Einstellen der Geschwindigkeit.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{
-    collections::HashMap,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
     sync::{mpsc::Sender, Arc},
@@ -31,9 +27,14 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
+/// Ein [Leiter] ermöglicht ein Einstellen der Geschwindigkeit und Umdrehen der Fahrtrichtung.
 pub trait Leiter {
+    /// Wie lange ist die Überspannung beim Umdrehen [Fließend](Fließend::Fließend).
     type UmdrehenZeit: Clone;
+
+    /// Was ist das Verhältnis von Fahrspannung zur Überspannung zum Umdrehen.
     type VerhältnisFahrspannungÜberspannung: Clone;
+
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-u8::MAX
@@ -43,6 +44,15 @@ pub trait Leiter {
         wert: u8,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+    ) -> Result<(), Fehler>;
+
+    /// Umdrehen der aktuellen Fahrtrichtung.
+    fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 }
 
@@ -404,19 +414,17 @@ impl Leiter for Mittelleiter {
             },
         }
     }
-}
 
-impl Geschwindigkeit<Mittelleiter> {
-    pub fn umdrehen(
+    fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
-        verhältnis_fahrspannung_überspannung: NullBisEins,
+        verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
-        umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
+        umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
         self.geschwindigkeit(0, pwm_frequenz, verhältnis_fahrspannung_überspannung)?;
         sleep(stopp_zeit);
-        match &mut *self.lock_leiter() {
+        match self {
             Mittelleiter::Pwm { pin, polarität } => {
                 pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
                     polarität: *polarität,
@@ -432,6 +440,23 @@ impl Geschwindigkeit<Mittelleiter> {
             },
         }
         Ok(())
+    }
+}
+
+impl Geschwindigkeit<Mittelleiter> {
+    pub fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.lock_leiter().umdrehen(
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+        )
     }
 
     pub fn async_umdrehen<Nachricht: Send + 'static>(
@@ -541,6 +566,47 @@ impl Leiter for Zweileiter {
             },
         }
     }
+
+    fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        PhantomData: Self::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        PhantomData: Self::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.umdrehen(pwm_frequenz, stopp_zeit)
+    }
+}
+
+impl Zweileiter {
+    pub fn fahrtrichtung(
+        &mut self,
+        neue_fahrtrichtung: Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
+        sleep(stopp_zeit);
+        let fahrtrichtung = match self {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        };
+        Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
+    }
+
+    pub fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
+        sleep(stopp_zeit);
+        let fahrtrichtung = match self {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        };
+        Ok(fahrtrichtung.umschalten()?)
+    }
 }
 
 impl Geschwindigkeit<Zweileiter> {
@@ -550,14 +616,7 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
-        sleep(stopp_zeit);
-        let mut guard = self.lock_leiter();
-        let fahrtrichtung = match &mut *guard {
-            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
-        };
-        Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
+        self.lock_leiter().fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
     pub fn async_fahrtrichtung<Nachricht: Send + 'static>(
@@ -584,14 +643,7 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
-        sleep(stopp_zeit);
-        let mut guard = self.lock_leiter();
-        let fahrtrichtung = match &mut *guard {
-            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
-        };
-        Ok(fahrtrichtung.umschalten()?)
+        self.lock_leiter().umdrehen(pwm_frequenz, stopp_zeit)
     }
 
     pub fn async_umdrehen<Nachricht: Send + 'static>(
@@ -811,6 +863,3 @@ pub enum Fehler {
 /// Name einer Geschwindigkeit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
-
-pub type Map<Leiter> = HashMap<Name, Geschwindigkeit<Leiter>>;
-pub type MapSerialisiert<Leiter> = HashMap<Name, GeschwindigkeitSerialisiert<Leiter>>;

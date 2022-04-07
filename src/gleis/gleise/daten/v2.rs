@@ -23,7 +23,7 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit::{self, BekannterLeiter},
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert},
         plan::PlanSerialisiert,
         streckenabschnitt,
         streckenabschnitt::StreckenabschnittSerialisiert,
@@ -42,6 +42,9 @@ pub struct Gleis<T> {
 pub(crate) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
+type GeschwindigkeitMapSerialisiert<Leiter> =
+    HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>>;
+
 pub(crate) struct GleiseVecs<Leiter: Serialisiere> {
     pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
@@ -52,7 +55,7 @@ pub(crate) struct GleiseVecs<Leiter: Serialisiere> {
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
     pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
-    pub(crate) geschwindigkeiten: geschwindigkeit::MapSerialisiert<Leiter>,
+    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
     pub(crate) pläne: Vec<PlanSerialisiert>,
 }
 
