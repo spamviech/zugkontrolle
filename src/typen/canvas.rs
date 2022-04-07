@@ -1,8 +1,5 @@
 //! Newtypes für [iced::canvas::Frame] und [iced::canvas::Cache].
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use iced::{canvas::Geometry, Size};
 use serde::{Deserialize, Serialize};
 
@@ -26,11 +23,12 @@ pub use pfad::{Bogen, Pfad, Transformation};
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
 
 impl<'t> Frame<'t> {
+    /// Erzeuge einen neuen [Frame].
     pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
         Frame(frame)
     }
 
-    /// Draws the stroke of the given Path on the Frame with the provided style.
+    /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Stroke).
     pub fn stroke(&mut self, Pfad { pfad, transformationen }: &Pfad, stroke: impl Into<Stroke>) {
         self.with_save(|frame| {
             for transformation in transformationen {
@@ -40,7 +38,7 @@ impl<'t> Frame<'t> {
         })
     }
 
-    /// Draws the given Path on the Frame by filling it with the provided style.
+    /// Fülle den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Fill).
     pub fn fill(&mut self, Pfad { pfad, transformationen }: &Pfad, fill: impl Into<Fill>) {
         self.with_save(|frame| {
             for transformation in transformationen {
@@ -50,20 +48,21 @@ impl<'t> Frame<'t> {
         })
     }
 
-    /// Draws the characters of the given Text on the Frame, filling them with the given color.
+    /// Zeichne die Buchstaben des [Textes](Text) auf den [Frame]
+    /// und fülle sie mit der gewünschten Farbe.
     ///
-    /// **Warning:** problems regarding transformation/rotation/scaling from [iced::canvas::Frame]
-    /// apply here as well!
+    /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [iced::canvas::Frame]
+    /// treten hier ebenfalls auf!
     #[inline(always)]
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text)
     }
 
-    /// Stores the current transform of the Frame and executes the given drawing operations,
-    /// restoring the transform afterwards.
+    /// Speichere die aktuelle Transformations-Matrix des [Frame] und führe die gegebenen Operation aus.
+    /// Anschließend wird die Transformations-Matrix wiederhergestellt.
     ///
-    /// This method is useful to compose transforms and perform drawing operations in different
-    /// coordinate systems.
+    /// Diese Methode ist nützlich um mehrere Transformationen zusammenzufassen und Zeichen-Operationen
+    /// in verschiedenen Koordinaten-Systemen durchzuführen.
     #[inline(always)]
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
         self.0.with_save(|frame| action(&mut Frame(frame)))
@@ -71,7 +70,7 @@ impl<'t> Frame<'t> {
 
     /// Wende die übergebene Transformation auf den Frame an.
     ///
-    /// **ACHTUNG**: Durch die Art wie es in `iced` implementiert ist wird die `transformation`
+    /// **ACHTUNG**: Durch die Art wie es in `iced` implementiert ist wird die [Transformation]
     /// **vor** allen bisherigen ausgeführt.
     ///
     /// Links zum Implementierung verfolgen:
@@ -89,9 +88,14 @@ impl<'t> Frame<'t> {
     }
 }
 
+/// Ein einfacher Cache, der die erzeugte [Geometry] speichert um Neu-Berechnungen zu vermeiden.
+///
+/// Ein Cache wird die [Geometry] nicht neu berechnen, sofern
+/// sich seine Dimensionen nicht verändert haben oder er explizit [geleert](Cache::leeren) wurde.
 #[derive(Debug)]
 pub struct Cache(iced::canvas::Cache);
 impl Cache {
+    /// Erstelle einen neuen [Cache].
     pub fn neu() -> Self {
         Cache(iced::canvas::Cache::new())
     }
@@ -137,7 +141,9 @@ impl Cache {
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
+    /// Die linke Obere Ecke auf dem Canvas.
     pub punkt: Vektor,
+    /// Der Winkel in dem das Gleis/der Text gezeichnet wird.
     pub winkel: Winkel,
 }
 

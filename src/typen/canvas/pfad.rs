@@ -1,15 +1,11 @@
 //! Pfad auf einem Canvas und assoziierte Typen.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{fmt::Debug, marker::PhantomData};
 
 use iced::{
     canvas::{path, Path},
     Point,
 };
-use zugkontrolle_macros::chain;
 
 use crate::typen::{
     skalar::Skalar,
@@ -56,26 +52,34 @@ pub enum Transformation {
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Bogen {
+    /// Der Zentrum des Bogens.
     pub zentrum: Vektor,
+    /// Der Radius des Bogens.
     pub radius: Skalar,
+    /// Der Winkel bei dem der Bogen anfängt.
     pub anfang: Winkel,
+    /// Der Winkel bei dem der Bogen aufhört.
     pub ende: Winkel,
 }
 
 /// Marker-Typ für [Invertiert], X-Achse (Horizontal).
 #[derive(Debug, Clone, Copy)]
 pub struct X;
+
 /// Marker-Typ für [Invertiert], Y-Achse (Vertikal).
 #[derive(Debug, Clone, Copy)]
 pub struct Y;
+
 /// Hilf-Struktur um mich vor dummen Fehlern (z.B. doppeltes invertieren) zu bewahren.
 #[derive(Debug)]
 pub struct Invertiert<T, Achse>(T, PhantomData<*const Achse>);
+
 impl<T, Achse> From<T> for Invertiert<T, Achse> {
     fn from(t: T) -> Self {
         Invertiert(t, PhantomData)
     }
 }
+
 impl<P: Into<Vektor>> From<Invertiert<P, X>> for Vektor {
     fn from(invertiert: Invertiert<P, X>) -> Self {
         let mut v = invertiert.0.into();
@@ -83,6 +87,7 @@ impl<P: Into<Vektor>> From<Invertiert<P, X>> for Vektor {
         v
     }
 }
+
 impl<P: Into<Vektor>> From<Invertiert<P, Y>> for Vektor {
     fn from(invertiert: Invertiert<P, Y>) -> Self {
         let mut v = invertiert.0.into();
@@ -90,18 +95,21 @@ impl<P: Into<Vektor>> From<Invertiert<P, Y>> for Vektor {
         v
     }
 }
+
 impl<A: Into<Winkel>> From<Invertiert<A, X>> for Winkel {
     fn from(invertiert: Invertiert<A, X>) -> Self {
         let w = invertiert.0.into();
         winkel::PI - w
     }
 }
+
 impl<A: Into<Winkel>> From<Invertiert<A, Y>> for Winkel {
     fn from(invertiert: Invertiert<A, Y>) -> Self {
         let w = invertiert.0.into();
         -w
     }
 }
+
 impl<B, Achse> From<Invertiert<B, Achse>> for Bogen
 where
     B: Into<Bogen>,
@@ -122,7 +130,7 @@ where
     }
 }
 
-/// Newtype auf einem [iced::canvas::path::Builder]
+/// Newtype auf einem [iced::canvas::path::Builder].
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
@@ -142,17 +150,17 @@ impl<V, B> Debug for Erbauer<V, B> {
 }
 
 impl Erbauer<Vektor, Bogen> {
-    /// Erstelle einen neuen Erbauer.
+    /// Erstelle einen neuen [Erbauer].
     pub fn neu() -> Self {
         Erbauer { builder: path::Builder::new(), phantom_data: PhantomData }
     }
 
-    /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad.
+    /// Finalisiere und erzeuge den unveränderlichen Pfad.
     pub fn baue(self) -> Pfad {
         self.baue_unter_transformationen(Vec::new())
     }
 
-    /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad
+    /// Finalisiere und erzeuge den unveränderlichen Pfad
     /// nach Anwendung der übergebenen Transformationen.
     pub fn baue_unter_transformationen(self, transformationen: Vec<Transformation>) -> Pfad {
         Pfad { pfad: self.builder.build(), transformationen }
@@ -160,15 +168,15 @@ impl Erbauer<Vektor, Bogen> {
 }
 
 impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
-    // Beginne einen neuen Unterpfad bei `punkt`.
-    #[chain]
+    /// Beginne einen neuen Unterpfad bei `punkt`.
+    #[zugkontrolle_macros::chain]
     pub fn move_to(&mut self, punkt: V) {
         let Vektor { x, y } = punkt.into();
         self.builder.move_to(Point { x: x.0, y: y.0 })
     }
 
     /// Zeichne einen Linie vom aktuellen Punkt zu `ziel`.
-    #[chain]
+    #[zugkontrolle_macros::chain]
     pub fn line_to(&mut self, ziel: V) {
         let Vektor { x, y } = ziel.into();
         self.builder.line_to(Point { x: x.0, y: y.0 })
@@ -176,8 +184,8 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
 
     /// Zeichne den beschriebenen Bogen.
     ///
-    /// Beginnt einen neuen Unterpfad
-    #[chain]
+    /// Beginnt einen neuen Unterpfad.
+    #[zugkontrolle_macros::chain]
     pub fn arc(&mut self, bogen: B) {
         let Bogen { zentrum: Vektor { x, y }, radius, anfang, ende } = bogen.into();
         self.builder.arc(path::Arc {
@@ -208,7 +216,7 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     */
 
     /// Zeichne eine Linie vom aktuellen Punkt zum start des aktuellen Unterpfades.
-    #[chain]
+    #[zugkontrolle_macros::chain]
     pub fn close(&mut self) {
         self.builder.close()
     }
@@ -216,13 +224,13 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     /// Alle Methoden der closure verwenden unveränderte Achsen (x',y') = (x,y).
     ///
     /// Convenience-Funktion um nicht permanent no-op closures erstellen zu müssen.
-    #[chain]
+    #[zugkontrolle_macros::chain]
     pub fn with_normal_axis(&mut self, action: impl FnOnce(&mut Erbauer<V, B>)) {
         action(self)
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y).
-    #[chain]
+    #[zugkontrolle_macros::chain]
     pub fn with_invert_x(
         &mut self,
         action: impl FnOnce(&mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>),
@@ -236,7 +244,7 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y).
-    #[chain]
+    #[zugkontrolle_macros::chain]
     pub fn with_invert_y(
         &mut self,
         action: impl FnOnce(&mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>),
