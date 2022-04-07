@@ -1,8 +1,5 @@
 //! Schaltbare Gleise.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{
     fmt::Debug,
     hash::Hash,
@@ -31,16 +28,22 @@ use crate::{
 pub struct Name(pub String);
 
 // inklusive Kreuzung
+/// Die Steuerung einer Weiche.
 #[derive(Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_clone(Richtung: Clone)]
 pub struct Weiche<Richtung, Anschlüsse> {
+    /// Der Name der Weiche.
     pub name: Name,
+    /// Die aktuelle Richtung der Weiche.
     pub aktuelle_richtung: Richtung,
+    /// Die Richtung vor der aktuellen Richtung.
     pub letzte_richtung: Richtung,
+    /// Die Anschlüsse der Weiche.
     anschlüsse: Arc<Mutex<Anschlüsse>>,
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+    /// Erstelle eine neue [Weichen-Steuerung](Weiche).
     pub fn neu(
         name: Name,
         aktuelle_richtung: Richtung,
@@ -56,11 +59,16 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
+/// Serealisierbare Repräsentation der Steuerung einer Weiche.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
+    /// Der Name der Weiche.
     pub name: Name,
+    /// Die aktuelle Richtung der Weiche.
     pub aktuelle_richtung: Richtung,
+    /// Die Richtung vor der aktuellen Richtung.
     pub letzte_richtung: Richtung,
+    /// Die Anschlüsse der Weiche.
     pub anschlüsse: Anschlüsse,
 }
 
@@ -96,7 +104,7 @@ where
     Richtung: Clone + Send + 'static,
     Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
 {
-    /// Schalte eine `Weiche` auf die übergebene `Richtung`.
+    /// Schalte eine [Weiche] auf die übergebene `Richtung`.
     pub fn async_schalten<Nachricht: Send + 'static>(
         &mut self,
         richtung: Richtung,

@@ -1,9 +1,5 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
-
 use std::sync::Arc;
 
 use parking_lot::{Mutex, MutexGuard};
@@ -20,28 +16,41 @@ use crate::{
     typen::farbe::Farbe,
 };
 
+/// Name eines Streckenabschnittes.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Name(pub String);
+
 /// Steuerung der Stromzufuhr.
 #[derive(Debug, Clone)]
 pub struct Streckenabschnitt {
+    /// Die Farbe des Streckenabschnittes.
     pub farbe: Farbe,
+    /// Die Anschlüsse des Streckenabschnittes.
     anschluss: Arc<Mutex<OutputAnschluss>>,
 }
-/// Steuerung der Stromzufuhr.
+
+/// Serealisierbare Repräsentation der Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StreckenabschnittSerialisiert {
+    /// Die Farbe des Streckenabschnittes.
     pub farbe: Farbe,
+    /// Die Anschlüsse des Streckenabschnittes.
     pub anschluss: OutputSerialisiert,
 }
 
 impl Streckenabschnitt {
+    /// Erstelle einen neuen [Streckenabschnitt].
     pub fn neu(farbe: Farbe, anschluss: OutputAnschluss) -> Self {
         Streckenabschnitt { farbe, anschluss: Arc::new(Mutex::new(anschluss)) }
     }
 
+    /// Schalte den Strom für einen [Streckenabschnitt].
     pub fn strom(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         self.lock_anschluss().einstellen(fließend)
     }
 
+    /// Schalte den Strom eines [Streckenabschnittes](Streckenabschnitt)
+    /// von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt) und umgekehrt.
     pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
         self.lock_anschluss().umschalten()
     }
@@ -97,7 +106,3 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
         })
     }
 }
-
-/// Name eines Streckenabschnittes.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Name(pub String);
