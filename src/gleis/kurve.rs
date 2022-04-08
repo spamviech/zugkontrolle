@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer Kurve.
+//! Definition und zeichnen einer [Kurve].
 
 use std::{f32::consts::PI, fmt::Debug};
 
@@ -23,24 +23,29 @@ use crate::{
     },
 };
 
-/// Definition einer Kurve
+/// Definition einer Kurve.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-/// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Kurve<Anschluss = Option<Kontakt>> {
+    /// Der Radius auf dem Canvas.
     pub radius: Skalar,
+    /// Der Winkel der Kurve.
     pub winkel: Winkel,
+    /// Eine allgemeine Beschreibung der Kurve, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Der Anschluss für einen [Kontakt] an der Schiene.
     pub kontakt: Anschluss,
 }
 
 impl KurveUnit {
+    /// Erstelle eine neue [Kurve].
     pub const fn neu(radius: Radius, winkel: Winkel) -> Self {
         KurveUnit { radius: radius.als_skalar(), winkel, beschreibung: None, kontakt: () }
     }
 
+    /// Erstelle eine neue [Kurve] mit einer allgemeinen Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         radius: Radius,
         winkel: Winkel,
@@ -56,9 +61,12 @@ impl KurveUnit {
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
+/// [Verbindungen](Verbindung) einer [Kurve].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
+    /// Das eine Ende der Kurve.
     Anfang,
+    /// Das andere Ende der Kurve.
     Ende,
 }
 

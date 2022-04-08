@@ -44,9 +44,13 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputAnschluss, RichtungAnschlüsse, Debug)]
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputSerialisiert, RichtungAnschlüsseSerialisiert, Debug, Clone, Serialize, Deserialize)]
             #[zugkontrolle_macros::impl_nachschlagen(OutputAuswahl, RichtungAnschlüsseAuswahlStatus, Debug)]
+            /// Mögliche Richtungen zum Schalten.
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
-                #(#enum_variants),*
+                #(
+                    #[allow(missing_docs)]
+                    #enum_variants
+                ),*
             }
             impl Default for Richtung {
                 fn default() -> Self {

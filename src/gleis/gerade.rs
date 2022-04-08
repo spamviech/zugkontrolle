@@ -1,8 +1,5 @@
 //! Definition und zeichnen einer Gerade.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{fmt::Debug, hash::Hash};
 
 use serde::{Deserialize, Serialize};
@@ -26,20 +23,25 @@ use crate::{
     },
 };
 
-/// Definition einer Gerade
+/// Definition einer Gerade.
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Gerade<Anschluss = Option<Kontakt>> {
+    /// Die Länge der Gerade auf dem [Canvas](crate::application::touch_canvas::Canvas).
     pub länge: Skalar,
+    /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Der Anschluss für einen [Kontakt] an der Schiene.
     pub kontakt: Anschluss,
 }
 
 impl GeradeUnit {
+    /// Erstelle eine neue [Gerade].
     pub const fn neu(länge: Länge) -> Self {
         GeradeUnit { länge: länge.als_skalar(), beschreibung: None, kontakt: () }
     }
 
+    /// Erstelle eine neue [Gerade] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(länge: Länge, beschreibung: impl Into<String>) -> Self {
         GeradeUnit {
             länge: länge.als_skalar(),
@@ -50,9 +52,12 @@ impl GeradeUnit {
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
+/// [Verbindungen](Verbindung) einer [Geraden](Gerade).
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
+    /// Das eine Ende der Gerade.
     Anfang,
+    /// Das andere Ende der Gerade.
     Ende,
 }
 

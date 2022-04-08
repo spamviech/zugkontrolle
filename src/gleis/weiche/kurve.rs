@@ -1,7 +1,4 @@
-//! Definition und zeichnen einer Weiche.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Definition und zeichnen einer [KurvenWeiche].
 
 use std::fmt::Debug;
 
@@ -27,24 +24,32 @@ use crate::{
     },
 };
 
-/// Definition einer Kurven-Weiche
+type AnschlüsseSerialisiert =
+    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+
+/// Definition einer Kurven-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-/// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurvenWeiche<
-    Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>,
-> {
+pub struct KurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+    /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
+    /// Der Radius der Kurven.
     pub radius: Skalar,
+    /// Der Winkel der Kurven.
     pub winkel: Winkel,
+    /// Die Orientierung der KurvenWeiche.
     pub orientierung: Orientierung,
+    /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Die Anschlüsse zum Schalten der KurvenWeiche.
     pub steuerung: Anschlüsse,
 }
 
 impl KurvenWeicheUnit {
+    /// Erstelle eine neue [KurvenWeiche].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -61,6 +66,7 @@ impl KurvenWeicheUnit {
         }
     }
 
+    /// Erstelle eine neue [KurvenWeiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -81,9 +87,13 @@ impl KurvenWeicheUnit {
 #[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+/// [Verbindungen](Verbindung) einer [KurvenWeiche].
 pub enum VerbindungName {
+    /// Das Ende, an dem sich beide Kurven treffen.
     Anfang,
+    /// Das andere Ende der inneren Kurve.
     Innen,
+    /// Das andere Ende der äußeren Kurve.
     Außen,
 }
 

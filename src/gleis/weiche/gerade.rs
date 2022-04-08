@@ -1,8 +1,4 @@
-//! Definition und zeichnen einer Weiche.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
+//! Definition und zeichnen einer [Weiche].
 
 use std::fmt::Debug;
 
@@ -27,22 +23,32 @@ use crate::{
     },
 };
 
+type AnschlüsseSerialisiert =
+    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+
 /// Definition einer Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-/// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Weiche<Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct Weiche<Anschlüsse = Option<self::Anschlüsse>> {
+    /// Die Länge der Geraden.
     pub länge: Skalar,
+    /// Der Radius der Kurve.
     pub radius: Skalar,
+    /// Der Winkel der Kurve.
     pub winkel: Winkel,
+    /// Die Orientierung der Weiche.
     pub orientierung: Orientierung,
+    /// Eine allgemeine Beschreibung der Weiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Die Anschlüsse zum Schalten der Weiche.
     pub steuerung: Anschlüsse,
 }
 
 impl WeicheUnit {
+    /// Erstelle eine neue [Weiche].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -59,6 +65,7 @@ impl WeicheUnit {
         }
     }
 
+    /// Erstelle eine neue [Weiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -77,18 +84,25 @@ impl WeicheUnit {
     }
 }
 
+/// Die Orientierung einer [Weiche], in welche Richtung geht die Kurve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Orientierung {
+    /// Die Kurve geht nach links.
     Links,
+    /// Die Kurve geht nach rechts.
     Rechts,
 }
 
 #[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
+/// [Verbindungen](Verbindung) einer [Weiche].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
+    /// Das Ende an dem sich Gerade und Kurve treffen.
     Anfang,
+    /// Das andere Ende der Gerade.
     Gerade,
+    /// Das andere Ende der Kurve.
     Kurve,
 }
 

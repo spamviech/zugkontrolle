@@ -1,7 +1,4 @@
-//! Definition und zeichnen einer Kreuzung.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Definition und zeichnen einer [Kreuzung].
 
 use std::fmt::Debug;
 
@@ -29,25 +26,37 @@ use crate::{
     },
 };
 
-/// Definition einer Kreuzung
-#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+type AnschlüsseSerialisiert =
+    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+
+/// Definition einer [Kreuzung].
+#[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Kreuzung
-<Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>> {
+pub struct Kreuzung<Anschlüsse = Option<self::Anschlüsse>> {
+    /// Die Länge der Geraden.
     pub länge: Skalar,
+    /// Der Kurvenradius; legt automatisch den Winkel fest.
     pub radius: Skalar,
+    /// Werden die Kurven gezeichnet, oder nur die Geraden.
     pub variante: Variante,
+    /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Die Anschlüsse zum Schalten der Kreuzung.
     pub steuerung: Anschlüsse,
 }
 
+/// Werden die Kurven gezeichnet, oder nur die Geraden.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
+    /// Zeichne die Kurven und die Geraden.
     MitKurve,
+    /// Zeichne nur die Geraden.
     OhneKurve,
 }
 
 impl KreuzungUnit {
+    /// Erstelle eine neue [Kreuzung].
     pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         KreuzungUnit {
             länge: länge.als_skalar(),
@@ -58,6 +67,7 @@ impl KreuzungUnit {
         }
     }
 
+    /// Erstelle eine neue [Kreuzung] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -75,24 +85,31 @@ impl KreuzungUnit {
 }
 
 impl<Anschlüsse> Kreuzung<Anschlüsse> {
-    fn winkel(&self) -> Winkel {
-        // winkel solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
-        // https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
-        // länge=0 gives winkel=0, but is not properly defined,
-        // since it violates the formula above (pi/2 required)
-        // pi/2 doesn't work either, since it violates the formula
-        // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
-        // only for radius=0 as well both formulas are satisfied by any winkel
+    /// Berechne den Winkel der [Kreuzung], ausgehend von der Gleichung
+    /// `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`.
+    ///
+    /// https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
+    /// `länge=0` gibt `winkel=0` zurück, ist aber nicht wohldefiniert,
+    /// da es die obige Gleichung verletzt (benötigt winkel=pi/2).
+    /// `winkel=pi/2` funktioniert ebenfalls nicht, da es die Gleichung
+    /// `y = L/2 * sin(alpha) = R * (1 - cos(alpha))` verletzt.
+    /// Nur wenn gleichzeitig `radius=0` gilt sind beide Gleichungen bei allen Winkeln erfüllt.
+    pub fn winkel(&self) -> Winkel {
         Winkel(2. * (0.5 * (self.länge / self.radius).0).atan())
     }
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
+/// [Verbindungen](Verbindung) einer [Kreuzung].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
+    /// Ein Ende der ersten Geraden.
     Anfang0,
+    /// Das andere Ende der ersten Geraden.
     Ende0,
+    /// Ein Ende der zweiten Geraden.
     Anfang1,
+    /// Das andere Ende der zweiten Geraden.
     Ende1,
 }
 

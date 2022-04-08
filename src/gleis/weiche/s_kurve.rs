@@ -1,7 +1,4 @@
-//! Definition und zeichnen einer Weiche.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Definition und zeichnen einer [Weiche mit S-Kurve](SKurvenWeiche).
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
@@ -30,27 +27,36 @@ use crate::{
     },
 };
 
-/// Definition einer Weiche mit S-Kurve
+type AnschlüsseSerialisiert =
+    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+
+/// Definition einer Weiche mit S-Kurve.
 ///
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
-/// Zeichnen::width berücksichtigt nur positive x-Werte.
-/// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[alias_serialisiert_unit(steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>)]
+#[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche<
-    Anschlüsse = Option<steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>>,
-> {
+pub struct SKurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+    /// Die Länge der Geraden.
     pub länge: Skalar,
+    /// Der Radius der Kurve nach außen.
     pub radius: Skalar,
+    /// Der Winkel der Kurve nach außen.
     pub winkel: Winkel,
+    /// Der Radius der Kurve nach innen.
     pub radius_reverse: Skalar,
+    /// Der Winkel der Kurve nach innen.
     pub winkel_reverse: Winkel,
+    /// Die Orientierung der SKurvenWeiche.
     pub orientierung: Orientierung,
+    /// Eine allgemeine Beschreibung der SKurvenWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
+    /// Die Anschlüsse zum Schalten der SKurvenWeiche.
     pub steuerung: Anschlüsse,
 }
 
 impl SKurvenWeicheUnit {
+    /// Erstelle eine neue [SKurvenWeiche].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -71,6 +77,7 @@ impl SKurvenWeicheUnit {
         }
     }
 
+    /// Erstelle eine neue [SKurvenWeiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,

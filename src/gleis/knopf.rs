@@ -1,11 +1,8 @@
 //! Knopf mit dem jeweiligen Gleis.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},
-    mouse, Canvas, Container, Length, Point, Rectangle,
+    mouse, Canvas, Container, Element, Length, Point, Rectangle,
 };
 use num_traits::NumCast;
 
@@ -35,7 +32,7 @@ const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
 const GREY_OUT_OF_BOUNDS: Color =
     Color::from_rgb(GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE);
 
-/// Ein Knopf, der ein Gleis anzeigt
+/// Ein Knopf, der ein Gleis anzeigt.
 #[derive(Debug)]
 pub struct Knopf<T> {
     gleis: T,
@@ -45,22 +42,25 @@ pub struct Knopf<T> {
 }
 
 impl<T> Knopf<T> {
+    /// Erstelle einen neuen [Knopf].
     pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
         Knopf { gleis, spurweite, canvas: Cache::neu(), in_bounds: false }
     }
 }
 
 impl<T: Zeichnen> Knopf<T> {
+    /// Die Dimensionen des [Knopfes](Knopf).
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
             .rechteck(self.spurweite)
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
+    /// Erstelle ein [Widget](iced_native::Element), dass den [Button] anzeigt.
     pub fn als_iced_widget<'t, Nachricht>(
         &'t mut self,
         breite: Option<u16>,
-    ) -> Container<'t, Nachricht>
+    ) -> impl Into<Element<'t, Nachricht>>
     where
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
@@ -164,6 +164,8 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
     }
 }
 
+/// Alle Funktionen eines [Knopfes](Knopf) werden unterstützt.
 pub trait KnopfNachricht<Nachricht> {
+    /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [Knopf] gedrückt wurde.
     fn nachricht(&self, klick_position: Vektor) -> Nachricht;
 }

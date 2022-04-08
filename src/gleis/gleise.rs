@@ -1,7 +1,5 @@
-//! Anzeige der GleisDefinition auf einem Canvas.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Verwalten und Anzeige der Gleis-Definitionen auf einem
+//! [Canvas](crate::application::touch_canvas::Canvas).
 
 use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, iter, time::Instant};
 
@@ -51,11 +49,13 @@ struct Gehalten {
     bewegt: bool,
 }
 
-// Aktueller Modus von `Gleise`
 #[zugkontrolle_macros::make_enum(pub, Modus)]
+/// Aktueller Modus von [Gleise].
 #[derive(Debug)]
 enum ModusDaten {
+    /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
     Bauen { gehalten: Option<Gehalten>, last: Instant },
+    /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
 
@@ -68,7 +68,7 @@ impl ModusDaten {
     }
 }
 
-/// Anzeige aller Gleise.
+/// Verwalten und Anzeige aller Gleise.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
@@ -84,6 +84,7 @@ pub struct Gleise<L: Leiter> {
 }
 
 impl<L: Leiter> Gleise<L> {
+    /// Erstelle ein neues, leeres [Gleise]-struct.
     pub fn neu(zugtyp: Zugtyp<L>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
             canvas: Cache::neu(),
@@ -557,10 +558,16 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
+// TODO verwende Aktion<Leiter>.
+/// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
+/// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
 pub enum Nachricht {
+    /// Setze den Streckenabschnitt für ein Gleis.
     SetzeStreckenabschnitt(AnyId),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse für ein Gleis.
     AnschlüsseAnpassen(AnyId),
+    /// Ein Gleis wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     FahrenAktion(AnyId),
 }
 
@@ -590,14 +597,27 @@ impl<L: Leiter> Program<Nachricht> for Gleise<L> {
     }
 }
 
+/// Fehler, die bei Interaktion mit den [Gleisen](Gleise) auftreten können.
 #[derive(Debug)]
 pub enum Fehler {
+    /// Ein IO-Fehler.
     IO(std::io::Error),
+    /// Fehler beim Serialisieren (speichern) der Gleise.
     BincodeSerialisieren(bincode::Error),
-    BincodeDeserialisieren { aktuell: bincode::Error, v2: bincode::Error },
+    /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
+    BincodeDeserialisieren {
+        /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
+        aktuell: bincode::Error,
+        /// Fehler beim Deserialisieren nach Speicherformat der Version 2.
+        v2: bincode::Error,
+    },
+    /// Ein Fehler bei Interaktion mit einem [Anschluss](anschluss::Anschluss).
     Anschluss(anschluss::Fehler),
+    /// Das betroffene Gleis wurde entfernt.
     GleisEntfernt,
+    /// Der betroffene [Streckenabschnitt] wurde entfernt.
     StreckenabschnittEntfernt(StreckenabschnittId),
+    /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 
@@ -613,10 +633,14 @@ impl From<anschluss::Fehler> for Fehler {
     }
 }
 
+/// Fehler bei Interaktion mit einem [bestimmten Gleis](AnyId).
 #[derive(Debug)]
 pub enum GleisIdFehler {
+    /// Das betroffene Gleis wurde entfernt.
     GleisEntfernt,
+    /// Der betroffene [Streckenabschnitt] wurde entfernt.
     StreckenabschnittEntfernt(StreckenabschnittId),
+    /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 
@@ -632,6 +656,7 @@ impl From<GleisIdFehler> for Fehler {
     }
 }
 
+/// Das betroffene Gleis wurde entfernt.
 #[derive(Debug, Clone, Copy)]
 pub struct GleisEntferntFehler;
 
@@ -647,9 +672,12 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
     }
 }
 
+/// Fehler bei Interaktion mit einem [Streckenabschnitt]
 #[derive(Debug)]
 pub enum StreckenabschnittIdFehler {
+    /// Der betroffene Streckenabschnitt wurde entfernt.
     StreckenabschnittEntfernt(StreckenabschnittId),
+    /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 
@@ -679,6 +707,7 @@ impl From<StreckenabschnittIdFehler> for GleisIdFehler {
     }
 }
 
+/// Die betroffene [Geschwindigkeit] wurde entfernt.
 #[derive(Debug)]
 pub struct GeschwindigkeitEntferntFehler(pub geschwindigkeit::Name);
 
@@ -700,16 +729,23 @@ impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittIdFehler {
     }
 }
 
+/// Fehler beim Hinzufügen eines [Streckenabschnittes](Streckenabschnitt).
 #[derive(Debug)]
 pub enum StreckenabschnittHinzufügenFehler {
+    /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name, Streckenabschnitt),
 }
 
+/// Fehler beim Bearbeiten eines [Streckenabschnittes](Streckenabschnitt).
 #[derive(Debug)]
 pub enum StreckenabschnittBearbeitenFehler {
+    /// Der betroffene [Streckenabschnitt] wurde entfernt.
     StreckenabschnittEntfernt(StreckenabschnittId),
+    /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
+    /// Es gibt noch mit dem [Streckenabschnitt] assoziierte Gleise.
     GleiseNichtEntfernt(StreckenabschnittId),
+    /// Es wurde die selbe [Geschwindigkeit] gewählt.
     IdentischeGeschwindigkeit(Option<geschwindigkeit::Name>),
 }
 
@@ -719,7 +755,9 @@ impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittBearbeitenFehler {
     }
 }
 
+/// Ein Fehler beim Entfernen einer [Geschwindigkeit].
 #[derive(Debug)]
 pub enum GeschwindigkeitEntfernenFehler {
+    /// Es gibt noch mit der [Geschwindigkeit] assoziierte [Streckenabschnitte](Streckenabschnitt).
     StreckenabschnitteNichtEntfernt(geschwindigkeit::Name),
 }

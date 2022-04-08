@@ -66,17 +66,34 @@ pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> T
         };
     }
 
-    let syn::ItemEnum { vis, ident, variants, .. } = &ast;
+    let syn::ItemEnum { vis, ident, variants, attrs, .. } = &ast;
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
-    let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
+    let (enum_variants, enum_variants_docstrings): (Vec<syn::Ident>, Vec<TokenStream>) = variants
+        .iter()
+        .map(|syn::Variant { ident, attrs, .. }| {
+            let docstrings = attrs.iter().filter_map(|attr @ syn::Attribute { path, .. }| {
+                if path.is_ident("doc") {
+                    Some(attr.clone())
+                } else {
+                    None
+                }
+            });
+            (ident.clone(), quote!(#(#docstrings)*))
+        })
+        .unzip();
     let enum_variants_str: Vec<String> = enum_variants.iter().map(syn::Ident::to_string).collect();
+    let docstrings = attrs.iter().filter(|syn::Attribute { path, .. }| path.is_ident("doc"));
     quote!(
         #ast
 
+        #(#docstrings)*
         #derives
         #enum_vis enum #enum_ident {
-            #(#enum_variants),*
+            #(
+                #enum_variants_docstrings
+                #enum_variants
+            ),*
         }
 
         impl std::fmt::Display for #enum_ident {
