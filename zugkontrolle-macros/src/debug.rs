@@ -1,4 +1,4 @@
-//! Implementation of the Debug-Trait without requirement for generic parameters
+//! Implementation of the Debug-Trait without requirement for generic parameters.
 
 use std::collections::HashMap;
 use std::iter;
@@ -27,8 +27,8 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
             syn::GenericParam::Type(ty) => {
                 generic_type_names.push(&ty.ident);
                 let _ = generic_types.insert(&ty.ident, (&ty.bounds, false));
-            }
-            syn::GenericParam::Const(_c) => {}
+            },
+            syn::GenericParam::Const(_c) => {},
         }
     }
 
@@ -48,7 +48,7 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                         #(.field(#fs_str, &self.#fs_iter))*
                         .finish()
                 }
-            }
+            },
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 mark_fields_generic(unnamed.iter(), &mut generic_types);
                 let range = (0..unnamed.len()).map(syn::Index::from);
@@ -57,7 +57,7 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                         #(.field(&self.#range))*
                         .finish()
                 }
-            }
+            },
             syn::Fields::Unit => quote! {
                 write!(f, "{}", #ident_str)?;
             },
@@ -83,7 +83,7 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                                         .finish()
                                 }
                             }
-                        }
+                        },
                         syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                             mark_fields_generic(unnamed.iter(), &mut generic_types);
                             let fs_iter = unnamed.iter().map(|field| &field.ident);
@@ -101,7 +101,7 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                                         .finish()
                                 }
                             }
-                        }
+                        },
                         syn::Fields::Unit => quote! {
                             #ident::#variant_ident  => write!(f, "{}", #variant_ident_str)
                         },
@@ -114,13 +114,13 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
                     #(#token_streams),*
                 }
             }
-        }
+        },
         _ => {
             let error = format!("Unsupported data! Given ast: {:?}", ast);
             return quote! {
                 compile_error!(#error)
             };
-        }
+        },
     };
 
     // map from generic_type_names to preserve order!
@@ -148,6 +148,7 @@ pub(crate) fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
         generic_names = quote! {#(#generic_lifetimes),*, #(#generic_type_names),*};
     };
     quote! {
+        #[allow(single_use_lifetimes)]
         impl<#generic_constraints> std::fmt::Debug for #ident<#generic_names> #where_clause {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 #fmt

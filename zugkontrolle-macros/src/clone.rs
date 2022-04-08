@@ -1,4 +1,4 @@
-//! Implementation of the Clone-Trait without requirement for generic parameters
+//! Implementation of the Clone-Trait without requirement for generic parameters.
 
 use std::collections::HashMap;
 use std::iter;
@@ -27,8 +27,8 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
             syn::GenericParam::Type(ty) => {
                 generic_type_names.push(&ty.ident);
                 let _ = generic_types.insert(&ty.ident, (&ty.bounds, false));
-            }
-            syn::GenericParam::Const(_c) => {}
+            },
+            syn::GenericParam::Const(_c) => {},
         }
     }
 
@@ -45,7 +45,7 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                         #(#fs_vec: #fs_vec.clone()),*
                     }
                 }
-            }
+            },
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 mark_fields_generic(unnamed.iter(), &mut generic_types);
                 let fs_iter = unnamed.iter().map(|field| &field.ident);
@@ -60,7 +60,7 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     let #ident (#(#fs_str),*) = self;
                     #ident (#(#fs_str.clone()),*)
                 }
-            }
+            },
             syn::Fields::Unit => quote! {#ident},
         },
         syn::Data::Enum(syn::DataEnum { variants, .. }) => {
@@ -78,7 +78,7 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                                 }
                             }
                         }
-                    }
+                    },
                     syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                         mark_fields_generic(unnamed.iter(), &mut generic_types);
                         let fs_iter = unnamed.iter().map(|field| &field.ident);
@@ -94,7 +94,7 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                                 #ident::#variant_ident (#(#fs_str.clone()),*)
                             }
                         }
-                    }
+                    },
                     syn::Fields::Unit => quote! {#ident::#variant_ident => #ident::#variant_ident},
                 })
                 .collect();
@@ -103,13 +103,13 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     #(#token_streams),*
                 }
             }
-        }
+        },
         _ => {
             let error = format!("Unsupported data! Given ast: {:?}", ast);
             return quote! {
                 compile_error!(#error)
             };
-        }
+        },
     };
 
     // map from generic_type_names to preserve order!
@@ -137,6 +137,7 @@ pub(crate) fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
         generic_names = quote! {#(#generic_lifetimes),*, #(#generic_type_names),*};
     };
     quote! {
+        #[allow(single_use_lifetimes)]
         impl<#generic_constraints> Clone for #ident<#generic_names> #where_clause  {
             fn clone(&self) -> Self {
                 #clone
