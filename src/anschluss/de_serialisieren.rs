@@ -24,6 +24,24 @@ pub struct Reserviert<R> {
     pub input_nicht_benötigt: Vec<InputAnschluss>,
 }
 
+impl<R> Reserviert<R> {
+    /// Konvertiere den `anschluss` anhand der übergebenen Funktion.
+    pub fn konvertiere<T>(self, f: impl FnOnce(R) -> T) -> Reserviert<T> {
+        let Reserviert {
+            anschluss,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = self;
+        Reserviert {
+            anschluss: f(anschluss),
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Fehler {
     pub fehler: anschluss::Fehler,

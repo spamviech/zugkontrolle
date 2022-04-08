@@ -35,7 +35,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSerialisiert, Plan},
+        plan::PlanSerialisiert,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
@@ -67,7 +67,7 @@ where
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
-    pub(crate) pläne: Vec<Plan<AktionSerialisiert<L>>>,
+    pub(crate) pläne: Vec<PlanSerialisiert<L>>,
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
