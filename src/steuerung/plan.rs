@@ -1,8 +1,5 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
@@ -27,7 +24,9 @@ use crate::{
 /// Ein Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
+    /// Alle [Aktionen](Aktion) des Plans.
     pub aktionen: Vec<Aktion>,
+    /// Werden die Aktionen nach ausführen der letzten wiederholt?
     pub endlosschleife: bool,
 }
 
@@ -104,10 +103,15 @@ impl<L: Leiter + Serialisiere> Reserviere<Plan<L>> for PlanSerialisiert<L> {
 /// Eine Aktionen in einem Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
+    /// Eine [AktionGeschwindigkeit].
     Geschwindigkeit(Geschwindigkeit),
+    /// Eine [AktionStreckenabschnitt].
     Streckenabschnitt(Streckenabschnitt),
+    /// Eine [AktionSchalten].
     Schalten(Schalten),
+    /// Eine [AktionWarten].
     Warten(Warten),
+    /// Ausführen eines [Plans](Plan).
     Ausführen(PlanEnum<AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten>>),
 }
 
@@ -188,9 +192,25 @@ impl<L: Leiter + Serialisiere> Reserviere<Aktion<L>> for AktionSerialisiert<L> {
 /// Eine Aktion mit einer [Geschwindigkeit].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
-    Geschwindigkeit { leiter: Geschwindigkeit, wert: u8 },
-    Umdrehen { leiter: Geschwindigkeit },
-    Fahrtrichtung { leiter: Geschwindigkeit, fahrtrichtung: Fahrtrichtung },
+    /// Einstellen der Fahrgeschwindigkeit.
+    Geschwindigkeit {
+        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+        leiter: Geschwindigkeit,
+        /// Die neue Geschwindigkeit.
+        wert: u8,
+    },
+    /// Umdrehen der Fahrtrichtung.
+    Umdrehen {
+        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+        leiter: Geschwindigkeit,
+    },
+    /// Einstellen der Fahrtrichtung.
+    Fahrtrichtung {
+        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+        leiter: Geschwindigkeit,
+        /// Die neue Fahrtrichtung.
+        fahrtrichtung: Fahrtrichtung,
+    },
 }
 
 /// Eine Aktion mit einer [Geschwindigkeit].
@@ -270,7 +290,13 @@ impl<L: Leiter + Serialisiere> Reserviere<AktionGeschwindigkeit<L>>
 /// Eine Aktion mit einem [Streckenabschnitt].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
-    Streckenabschnitt { streckenabschnitt: S, fließend: Fließend },
+    /// Strom auf einem Streckenabschnitt einstellen.
+    Strom {
+        /// Die Anschlüsse zur Steuerung des Streckenabschnittes.
+        streckenabschnitt: S,
+        /// Wird der Strom an- oder abgestellt.
+        fließend: Fließend,
+    },
 }
 
 /// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
@@ -282,8 +308,8 @@ impl Serialisiere for AktionStreckenabschnitt {
 
     fn serialisiere(&self) -> Self::Serialisiert {
         match self {
-            AktionStreckenabschnitt::Streckenabschnitt { streckenabschnitt, fließend } => {
-                AktionStreckenabschnittSerialisiert::Streckenabschnitt {
+            AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } => {
+                AktionStreckenabschnittSerialisiert::Strom {
                     streckenabschnitt: streckenabschnitt.serialisiere(),
                     fließend: *fließend,
                 }
@@ -293,7 +319,7 @@ impl Serialisiere for AktionStreckenabschnitt {
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match self {
-            AktionStreckenabschnitt::Streckenabschnitt { streckenabschnitt, fließend: _ } => {
+            AktionStreckenabschnitt::Strom { streckenabschnitt, fließend: _ } => {
                 streckenabschnitt.anschlüsse()
             },
         }
@@ -309,14 +335,12 @@ impl Reserviere<AktionStreckenabschnitt> for AktionStreckenabschnittSerialisiert
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<AktionStreckenabschnitt> {
         let reserviert = match self {
-            AktionStreckenabschnitt::Streckenabschnitt { streckenabschnitt, fließend } => {
-                streckenabschnitt
-                    .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                    .konvertiere(|streckenabschnitt| AktionStreckenabschnitt::Streckenabschnitt {
-                        streckenabschnitt,
-                        fließend,
-                    })
-            },
+            AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } => streckenabschnitt
+                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                .konvertiere(|streckenabschnitt| AktionStreckenabschnitt::Strom {
+                    streckenabschnitt,
+                    fließend,
+                }),
         };
         Ok(reserviert)
     }
@@ -337,9 +361,28 @@ type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = DreiwegeWeiche> {
-    SchalteGerade { weiche: Gerade, richtung: weiche::gerade::Richtung },
-    SchalteKurve { weiche: Kurve, richtung: weiche::gerade::Richtung },
-    SchalteDreiwege { weiche: Dreiwege, richtung: weiche::gerade::Richtung },
+    /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
+    /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+    SchalteGerade {
+        /// Die Anschlüsse zum Schalten der Weiche.
+        weiche: Gerade,
+        /// Die neue Richtung.
+        richtung: weiche::gerade::Richtung,
+    },
+    /// Schalten einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
+    SchalteKurve {
+        /// Die Anschlüsse zum Schalten der Weiche.
+        weiche: Kurve,
+        /// Die neue Richtung.
+        richtung: weiche::gerade::Richtung,
+    },
+    /// Schalten einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
+    SchalteDreiwege {
+        /// Die Anschlüsse zum Schalten der Weiche.
+        weiche: Dreiwege,
+        /// Die neue Richtung.
+        richtung: weiche::gerade::Richtung,
+    },
 }
 
 /// Serialisierbare Repräsentation für eine Aktion mit einer [Weiche].
@@ -406,8 +449,19 @@ impl Reserviere<AktionSchalten> for AktionSchaltenSerialisiert {
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionWarten<K = Kontakt> {
-    WartenAuf { kontakt: K, trigger: Trigger },
-    WartenFür { zeit: Duration },
+    /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
+    WartenAuf {
+        /// Die Anschlüsse des Kontaktes.
+        kontakt: K,
+        /// Die Bedingung zum Auslösen des Kontaktes.
+        trigger: Trigger,
+    },
+    /// Warte für eine festgelegte Zeit.
+    /// Es kann vorkommen, dass etwas länger gewartet wird, siehe [std::thread::sleep].
+    WartenFür {
+        /// Die Wartezeit.
+        zeit: Duration,
+    },
 }
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
