@@ -568,6 +568,13 @@ pub enum Fehler {
     Reservieren(ReservierenFehler),
     /// Der Name des Leiters stimmt nicht überein.
     FalscherLeiter(FalscherLeiter),
+    /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
+    UnbekannterZugtyp {
+        /// Der gespeicherte Zugtyp.
+        zugtyp: String,
+        /// Der Name des aktuellen Leiters.
+        leiter: &'static str,
+    },
 }
 
 impl From<pin::ReservierenFehler> for Fehler {

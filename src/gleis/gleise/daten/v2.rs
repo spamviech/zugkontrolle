@@ -1,15 +1,8 @@
 //! Serialisierte Strukturen von Version 2.X, die mit Version 3.0.0 geändert wurden.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+use std::collections::HashMap;
 
-use std::{collections::HashMap, marker::PhantomData};
-
-use nonempty::NonEmpty;
-use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
-    Deserialize,
-};
+use serde::Deserialize;
 
 use crate::{
     anschluss::{
@@ -34,7 +27,6 @@ use crate::{
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     void::Void,
-    zugtyp::FalscherLeiter,
 };
 
 /// Beschreibung eines [anschluss::pcf85747::Pcf8574].
@@ -421,17 +413,16 @@ pub trait Kompatibel: Serialisiere {
     type Kompatibel: Into<Self::Serialisiert> + for<'de> Deserialize<'de>;
 }
 
+#[derive(Deserialize)]
+struct NonEmpty<T> {
+    head: T,
+    tail: Vec<T>,
+}
+
 /// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
-// #[derive(Deserialize)]
+#[derive(Deserialize)]
 #[allow(missing_debug_implementations)]
 pub struct MittelleiterSerialisiert(MittelleiterSerialisiertEnum);
-
-impl<'de> Deserialize<'de> for MittelleiterSerialisiert {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        println!("MittelleiterSerialisiert");
-        Ok(MittelleiterSerialisiert(MittelleiterSerialisiertEnum::deserialize(deserializer)?))
-    }
-}
 
 /// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
 #[derive(Deserialize)]
@@ -466,7 +457,7 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
                 letzter_wert,
                 umdrehen,
             } => geschwindigkeit::MittelleiterSerialisiert::KonstanteSpannung {
-                geschwindigkeit: NonEmpty {
+                geschwindigkeit: nonempty::NonEmpty {
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
@@ -525,7 +516,7 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
                 letzter_wert,
                 fahrtrichtung,
             } => geschwindigkeit::ZweileiterSerialisiert::KonstanteSpannung {
-                geschwindigkeit: NonEmpty {
+                geschwindigkeit: nonempty::NonEmpty {
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
@@ -567,9 +558,10 @@ struct Gleis<T> {
     streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
-// #[derive(Deserialize)]
-// #[serde(bound = "Leiter: Kompatibel")]
+#[derive(Deserialize)]
+#[serde(bound = "Leiter: Kompatibel")]
 pub(crate) struct GleiseVecs<Leiter: Kompatibel> {
+    /// Der Name des gespeicherten Zugtyps.
     name: String,
     geraden: Vec<Gleis<GeradeSerialisiert>>,
     kurven: Vec<Gleis<KurveSerialisiert>>,
@@ -583,94 +575,6 @@ pub(crate) struct GleiseVecs<Leiter: Kompatibel> {
     pläne: Vec<Void>,
 }
 
-// Explizite serde-Implementierung, damit Leiter kein automatisches Constraint bekommt
-// https://serde.rs/deserialize-struct.html
-#[derive(Deserialize)]
-#[allow(non_camel_case_types)]
-enum GleiseVecsField {
-    name,
-    geraden,
-    kurven,
-    weichen,
-    dreiwege_weichen,
-    kurven_weichen,
-    s_kurven_weichen,
-    kreuzungen,
-    streckenabschnitte,
-    geschwindigkeiten,
-    pläne,
-}
-
-struct GleiseVecsVisitor<Leiter>(PhantomData<fn() -> Leiter>);
-
-impl<'de, Leiter: Kompatibel> Visitor<'de> for GleiseVecsVisitor<Leiter> {
-    type Value = GleiseVecs<Leiter>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("struct Zustand")
-    }
-
-    fn visit_seq<V: SeqAccess<'de>>(self, mut seq: V) -> Result<Self::Value, V::Error> {
-        println!("name");
-        let name = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
-        println!("geraden");
-        let geraden = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("kurven");
-        let kurven = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("weichen");
-        let weichen = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("dreiwege");
-        let dreiwege_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("kurven_weichen");
-        let kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("s_kurven");
-        let s_kurven_weichen = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("kreuzung");
-        let kreuzungen = seq.next_element()?.unwrap_or_else(Vec::new);
-        println!("streckenabschnitte");
-        let streckenabschnitte = seq.next_element()?.unwrap_or_else(HashMap::new);
-        println!("geschwindigkeiten");
-        let geschwindigkeiten = seq.next_element()?.unwrap_or_else(HashMap::new);
-        println!("pläne");
-        let pläne = seq.next_element()?.unwrap_or_else(Vec::new);
-        Ok(GleiseVecs {
-            name,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            streckenabschnitte,
-            geschwindigkeiten,
-            pläne,
-        })
-    }
-}
-
-impl<'de, Leiter: Kompatibel> Deserialize<'de> for GleiseVecs<Leiter> {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_struct(
-            "zustand",
-            &[
-                "name",
-                "geraden",
-                "kurven",
-                "weichen",
-                "dreiwege_weichen",
-                "kurven_weichen",
-                "s_kurven_weichen",
-                "kreuzungen",
-                "streckenabschnitte",
-                "geschwindigkeiten",
-                "pläne",
-            ],
-            GleiseVecsVisitor::<Leiter>(PhantomData),
-        )
-    }
-}
-
 impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Leiter>>
     for aktuell::de_serialisieren::ZustandSerialisiert<Leiter>
 {
@@ -678,11 +582,10 @@ impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Lei
 
     fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, Self::Error> {
         let leiter = Leiter::NAME;
-        let zugtyp = Leiter::bekannter_zugtyp(leiter)
-            .ok_or_else(|| anschluss::Fehler::FalscherLeiter(FalscherLeiter(leiter.to_owned())))?;
-        if zugtyp.name != v2.name {
-            return Err(anschluss::Fehler::FalscherLeiter(FalscherLeiter(leiter.to_owned())));
-        }
+        let zugtyp = match Leiter::bekannter_zugtyp(&v2.name) {
+            Some(zugtyp) => zugtyp,
+            None => return Err(anschluss::Fehler::UnbekannterZugtyp { zugtyp: v2.name, leiter }),
+        };
 
         let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
