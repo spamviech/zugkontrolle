@@ -450,6 +450,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Zugkontrolle<L: LeiterAnzeige> {
     gleise: Gleise<L>,
     lager: Lager,
@@ -483,9 +484,9 @@ impl<L> Application for Zugkontrolle<L>
 where
     L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + v2::Kompatibel + Display,
     <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
-    for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + Deserialize<'de>,
-    for<'de> <L as Leiter>::UmdrehenZeit: Serialize + Deserialize<'de>,
-    for<'de> <L as Leiter>::Fahrtrichtung: Serialize + Deserialize<'de>,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de>,
+    <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

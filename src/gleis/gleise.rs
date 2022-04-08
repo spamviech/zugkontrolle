@@ -73,6 +73,7 @@ impl ModusDaten {
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Gleise<L: Leiter> {
     canvas: Cache,
     pivot: Position,

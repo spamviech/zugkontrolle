@@ -1028,13 +1028,14 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<L> Zugkontrolle<L>
 where
     L: 'static + LeiterAnzeige + BekannterLeiter,
     <L as Serialisiere>::Serialisiert: Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
-    <L as Leiter>::Fahrtrichtung: Serialize,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
 {
     pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L>>> {
         let ergebnis = self.gleise.speichern(&pfad);

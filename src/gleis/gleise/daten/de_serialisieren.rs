@@ -35,7 +35,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::PlanSerialisiert,
+        plan::{Plan, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
@@ -72,7 +72,11 @@ where
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
-    pub(in crate::gleis::gleise) fn serialisiere(&self) -> ZustandSerialisiert<L> {
+    #[allow(single_use_lifetimes)]
+    pub(in crate::gleis::gleise) fn serialisiere(&self) -> ZustandSerialisiert<L>
+    where
+        <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
                 .map(|(name, (streckenabschnitt, _fließend, daten))| {
@@ -98,8 +102,7 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
                     )
                 })
                 .collect(),
-            // TODO wirkliche Konvertierung, sobald Plan implementiert ist
-            pläne: Vec::new(),
+            pläne: self.pläne.iter().map(Plan::serialisiere).collect(),
         }
     }
 
@@ -230,8 +233,7 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
             ohne_streckenabschnitt,
             ohne_geschwindigkeit,
             geschwindigkeiten,
-            // TODO wirkliche Konvertierung, sobald Plan implementiert ist
-            pläne: _,
+            pläne,
         } = self;
 
         let zugtyp = Zugtyp::try_from(zugtyp)?;
@@ -322,9 +324,9 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
 
         let Reserviert {
             anschluss: geschwindigkeiten,
-            pwm_nicht_benötigt: _,
-            output_nicht_benötigt: _,
-            input_nicht_benötigt: _,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
         } = geschwindigkeiten.into_iter().fold(
             Ok(Reserviert {
                 anschluss: HashMap::new(),
@@ -376,7 +378,55 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
             },
         )?;
 
-        Ok(Zustand { zugtyp, ohne_streckenabschnitt, ohne_geschwindigkeit, geschwindigkeiten })
+        let Reserviert {
+            anschluss: pläne,
+            pwm_nicht_benötigt: _,
+            output_nicht_benötigt: _,
+            input_nicht_benötigt: _,
+        } = pläne.into_iter().fold(
+            Ok(Reserviert {
+                anschluss: Vec::new(),
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
+            |acc: Result<_, anschluss::Fehler>, plan_serialisiert| {
+                let Reserviert {
+                    anschluss: mut pläne,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = acc?;
+                let Reserviert {
+                    anschluss: plan,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                } = plan_serialisiert
+                    .reserviere(
+                        lager,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    )
+                    .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                pläne.push(plan);
+                Ok(Reserviert {
+                    anschluss: pläne,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                })
+            },
+        )?;
+
+        Ok(Zustand {
+            zugtyp,
+            ohne_streckenabschnitt,
+            ohne_geschwindigkeit,
+            geschwindigkeiten,
+            pläne,
+        })
     }
 }
 
@@ -520,11 +570,12 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
     /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// in einer Datei.
+    #[allow(single_use_lifetimes)]
     pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
     where
         L::VerhältnisFahrspannungÜberspannung: Serialize,
         L::UmdrehenZeit: Serialize,
-        L::Fahrtrichtung: Serialize,
+        L::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
     {
         let serialisiert = self.zustand.serialisiere();
         let file = std::fs::File::create(pfad)?;
@@ -542,9 +593,9 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
     ) -> Result<(), Fehler>
     where
         L: v2::Kompatibel,
-        for<'de> L::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
-        for<'de> L::UmdrehenZeit: Deserialize<'de>,
-        for<'de> L::Fahrtrichtung: Deserialize<'de>,
+        L::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
+        L::UmdrehenZeit: for<'de> Deserialize<'de>,
+        L::Fahrtrichtung: for<'de> Deserialize<'de>,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.leeren();

@@ -33,6 +33,7 @@ use crate::{
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        plan::Plan,
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -110,11 +111,13 @@ type GeschwindigkeitMap<Leiter> =
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub(crate) struct Zustand<L: Leiter> {
     pub(crate) zugtyp: Zugtyp<L>,
     pub(crate) ohne_streckenabschnitt: GleiseDaten,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
     pub(crate) geschwindigkeiten: GeschwindigkeitMap<L>,
+    pub(crate) pläne: Vec<Plan<L>>,
 }
 
 impl<L: Leiter> Zustand<L> {
@@ -125,6 +128,7 @@ impl<L: Leiter> Zustand<L> {
             ohne_streckenabschnitt: GleiseDaten::neu(),
             ohne_geschwindigkeit: StreckenabschnittMap::new(),
             geschwindigkeiten: GeschwindigkeitMap::new(),
+            pläne: Vec::new(),
         }
     }
 
