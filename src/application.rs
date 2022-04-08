@@ -28,7 +28,6 @@ use crate::{
     argumente::{Argumente, ZugtypArgument},
     gleis::{
         self,
-        button::{Button, ButtonNachricht},
         gerade::GeradeUnit,
         gleise::{
             self,
@@ -36,6 +35,7 @@ use crate::{
             id::{AnyId, GleisId, StreckenabschnittId},
             Gleise, Modus,
         },
+        knopf::{Knopf, KnopfNachricht},
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::KurveUnit,
         weiche::{
@@ -141,7 +141,7 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
     GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
 
-/// Klonbare Nachricht, für Verwendung z.B. mit Button.
+/// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 enum NachrichtClone<Leiter: LeiterAnzeige> {
     Gleis {
@@ -276,9 +276,10 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<T, Leiter: LeiterAnzeige> ButtonNachricht<NachrichtClone<Leiter>> for T
+impl<T, Leiter> KnopfNachricht<NachrichtClone<Leiter>> for T
 where
     T: Clone + Into<AnyGleisUnit>,
+    Leiter: LeiterAnzeige,
 {
     fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Leiter> {
         NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
@@ -453,13 +454,13 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     gleise: Gleise<L>,
     lager: Lager,
     scrollable_state: iced::scrollable::State,
-    geraden: Vec<Button<GeradeUnit>>,
-    kurven: Vec<Button<KurveUnit>>,
-    weichen: Vec<Button<WeicheUnit>>,
-    dreiwege_weichen: Vec<Button<DreiwegeWeicheUnit>>,
-    kurven_weichen: Vec<Button<KurvenWeicheUnit>>,
-    s_kurven_weichen: Vec<Button<SKurvenWeicheUnit>>,
-    kreuzungen: Vec<Button<KreuzungUnit>>,
+    geraden: Vec<Knopf<GeradeUnit>>,
+    kurven: Vec<Knopf<KurveUnit>>,
+    weichen: Vec<Knopf<WeicheUnit>>,
+    dreiwege_weichen: Vec<Knopf<DreiwegeWeicheUnit>>,
+    kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
+    s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
+    kreuzungen: Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<L>,
     auswahl: modal::Status<AuswahlStatus<L>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
@@ -507,18 +508,18 @@ where
             };
         };
 
-        macro_rules! erstelle_button {
+        macro_rules! erstelle_knopf {
             () => {
-                |gleis| Button::neu(gleis.clone(), zugtyp.spurweite)
+                |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
             };
         }
-        let geraden = zugtyp.geraden.iter().map(erstelle_button!()).collect();
-        let kurven = zugtyp.kurven.iter().map(erstelle_button!()).collect();
-        let weichen = zugtyp.weichen.iter().map(erstelle_button!()).collect();
-        let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_button!()).collect();
-        let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_button!()).collect();
-        let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_button!()).collect();
-        let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_button!()).collect();
+        let geraden = zugtyp.geraden.iter().map(erstelle_knopf!()).collect();
+        let kurven = zugtyp.kurven.iter().map(erstelle_knopf!()).collect();
+        let weichen = zugtyp.weichen.iter().map(erstelle_knopf!()).collect();
+        let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_knopf!()).collect();
+        let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
+        let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
+        let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
 
         let gleise = Gleise::neu(zugtyp, modus, Position { punkt: Vektor { x, y }, winkel }, zoom);
 

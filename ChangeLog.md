@@ -41,6 +41,7 @@
   - polarity.rs -> polarität.rs
   - maps.rs -> daten.rs
   - args.rs -> argumente.rs
+  - button.rs -> knopf.rs
 - Refactoring: Module neu sortiert
   - zugkontrolle::application::gleis -> zugkontrolle::gleis
   - zugkontrolle::application::typen -> zugkontrolle::typen
@@ -59,6 +60,7 @@
   - Grabbed -> Gehalten
   - Args -> Argumente
   - args::Zugtyp -> ZugtypArgument
+  - Button -> Knopf
 - Refactoring: GleisId neu gedacht
 - Refactoring: Anpassung diverser Traits an neue Anforderungen
 - Refactoring: GleiseMap-Trait (jetzt DatenAuswahl) ist nicht mehr public.

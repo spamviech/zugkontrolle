@@ -37,20 +37,20 @@ const GREY_OUT_OF_BOUNDS: Color =
 
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
-pub struct Button<T> {
+pub struct Knopf<T> {
     gleis: T,
     spurweite: Spurweite,
     canvas: Cache,
     in_bounds: bool,
 }
 
-impl<T> Button<T> {
+impl<T> Knopf<T> {
     pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
-        Button { gleis, spurweite, canvas: Cache::neu(), in_bounds: false }
+        Knopf { gleis, spurweite, canvas: Cache::neu(), in_bounds: false }
     }
 }
 
-impl<T: Zeichnen> Button<T> {
+impl<T: Zeichnen> Knopf<T> {
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
             .rechteck(self.spurweite)
@@ -63,7 +63,7 @@ impl<T: Zeichnen> Button<T> {
     ) -> Container<'t, Nachricht>
     where
         Nachricht: 'static,
-        T: ButtonNachricht<Nachricht>,
+        T: KnopfNachricht<Nachricht>,
     {
         let größe = self.gleis.rechteck(self.spurweite).größe();
         let standard_breite = NumCast::from((STROKE_WIDTH + größe.x).0.ceil()).unwrap_or(u16::MAX);
@@ -80,7 +80,7 @@ impl<T: Zeichnen> Button<T> {
     }
 }
 
-impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for Button<T> {
+impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         vec![self.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
@@ -164,6 +164,6 @@ impl<T: Zeichnen + ButtonNachricht<Nachricht>, Nachricht> Program<Nachricht> for
     }
 }
 
-pub trait ButtonNachricht<Nachricht> {
+pub trait KnopfNachricht<Nachricht> {
     fn nachricht(&self, klick_position: Vektor) -> Nachricht;
 }

@@ -19,9 +19,9 @@ use crate::{
         NachrichtClone, Zugkontrolle,
     },
     gleis::{
-        button::Button,
         gerade::GeradeUnit,
         gleise::Gleise,
+        knopf::Knopf,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
@@ -277,13 +277,13 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
 fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_state: &'t mut iced::scrollable::State,
-    geraden: &'t mut Vec<Button<GeradeUnit>>,
-    kurven: &'t mut Vec<Button<KurveUnit>>,
-    weichen: &'t mut Vec<Button<WeicheUnit>>,
-    dreiwege_weichen: &'t mut Vec<Button<DreiwegeWeicheUnit>>,
-    kurven_weichen: &'t mut Vec<Button<KurvenWeicheUnit>>,
-    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeicheUnit>>,
-    kreuzungen: &'t mut Vec<Button<KreuzungUnit>>,
+    geraden: &'t mut Vec<Knopf<GeradeUnit>>,
+    kurven: &'t mut Vec<Knopf<KurveUnit>>,
+    weichen: &'t mut Vec<Knopf<WeicheUnit>>,
+    dreiwege_weichen: &'t mut Vec<Knopf<DreiwegeWeicheUnit>>,
+    kurven_weichen: &'t mut Vec<Knopf<KurvenWeicheUnit>>,
+    s_kurven_weichen: &'t mut Vec<Knopf<SKurvenWeicheUnit>>,
+    kreuzungen: &'t mut Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
     gleise: &Gleise<Leiter>,
 ) -> Row<'t, Nachricht<Leiter>> {
@@ -294,10 +294,10 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_width = None;
-            fn buttons_hinzufügen<'t, Leiter, T>(
+            fn knöpfe_hinzufügen<'t, Leiter, T>(
                 max_width: &mut Option<u16>,
                 scrollable: &mut Scrollable<'t, NachrichtClone<Leiter>>,
-                buttons: &'t mut Vec<Button<T>>,
+                buttons: &'t mut Vec<Knopf<T>>,
             ) where
                 Leiter: 'static + LeiterAnzeige,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
@@ -312,12 +312,12 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                     scrollable
                 })
             }
-            macro_rules! buttons_hinzufügen {
+            macro_rules! knöpfe_hinzufügen {
                 ($($vec: expr),* $(,)?) => {
-                    $(buttons_hinzufügen(&mut max_width, &mut scrollable, $vec);)*
+                    $(knöpfe_hinzufügen(&mut max_width, &mut scrollable, $vec);)*
                 }
             }
-            buttons_hinzufügen!(
+            knöpfe_hinzufügen!(
                 geraden,
                 kurven,
                 weichen,
