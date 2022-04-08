@@ -35,7 +35,9 @@
 )]
 
 use proc_macro::TokenStream;
-use syn;
+use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
+use syn::parse_macro_input;
 
 pub(crate) mod utils;
 
@@ -45,7 +47,7 @@ mod debug;
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
-    let ast = syn::parse_macro_input!(input);
+    let ast = parse_macro_input!(input);
 
     // Build the trait implementation
     debug::impl_debug(&ast).into()
@@ -57,7 +59,7 @@ mod clone;
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
-    let ast = syn::parse_macro_input!(input);
+    let ast = parse_macro_input!(input);
 
     // Build the trait implementation
     clone::impl_clone(&ast).into()
@@ -67,8 +69,8 @@ mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let args = parse_macro_input!(attr);
+    let ast = parse_macro_input!(item);
 
     nachschlagen::impl_nachschlagen(args, ast).into()
 }
@@ -77,8 +79,8 @@ mod erstelle_enum;
 #[proc_macro_attribute]
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let args = parse_macro_input!(attr);
+    let ast = parse_macro_input!(item);
 
     erstelle_enum::erstelle_enum(args, ast).into()
 }
@@ -87,8 +89,8 @@ mod chain;
 #[proc_macro_attribute]
 /// Erzeuge eine identische Methode mit /_chain/-Suffix, die Method-chaining erlaubt.
 pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let args = parse_macro_input!(attr);
+    let ast = parse_macro_input!(item);
 
     chain::make_chain(args, ast).into()
 }
@@ -98,8 +100,8 @@ mod richtung;
 /// Erzeuge ein Richtung-Enum mit identischen Varianten bis auf /Anfang/,
 /// sowie eine zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Struktur.
 pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(attr);
-    let ast = syn::parse_macro_input!(item);
+    let args = parse_macro_input!(attr);
+    let ast = parse_macro_input!(item);
 
     richtung::erstelle_richtung(args, ast).into()
 }
@@ -115,7 +117,7 @@ mod alias;
 /// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
 /// (Argument) über eine `serialisiere`-Methode möglich ist!
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(item);
+    let ast = parse_macro_input!(item);
 
     alias::alias_serialisiert_unit(attr.into(), ast).into()
 }
@@ -130,17 +132,17 @@ mod daten;
 /// Es wird erwartet, dass die Funktion genau einen generic Typ hat,
 // das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
 // Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
-pub fn erstelle_daten_methoden(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(item);
+pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(item);
 
-    daten::erstelle_methoden(ast).into()
+    daten::erstelle_methoden(attr.into(), ast).into()
 }
 
 mod sum_type_from;
 #[proc_macro_derive(From)]
 /// Erzeuge [From]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
 pub fn derive_from(input: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(input);
+    let ast = parse_macro_input!(input);
 
     sum_type_from::impl_from(ast).into()
 }

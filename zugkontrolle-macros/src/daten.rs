@@ -174,8 +174,12 @@ fn ersetze_generic(
     }
 }
 
-pub(crate) fn erstelle_methoden(item: ImplItemMethod) -> TokenStream {
+pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> TokenStream {
     let mut errors = Vec::new();
+
+    if !attr.is_empty() {
+        errors.push(format!("Keine Argumente unterstützt, bekommen: {attr}"))
+    }
 
     let mut methoden_definitionen: Option<TokenStream> = None;
     if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
