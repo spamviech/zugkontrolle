@@ -16,7 +16,7 @@ use crate::{
     typen::farbe::Farbe,
 };
 
-/// Name eines Streckenabschnittes.
+/// Name eines [Streckenabschnittes](Streckenabschnitt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 

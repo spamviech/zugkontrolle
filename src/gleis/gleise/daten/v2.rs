@@ -23,7 +23,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
-        kontakt, streckenabschnitt, weiche,
+        kontakt, plan, streckenabschnitt, weiche,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     void::Void,
@@ -572,7 +572,7 @@ pub(crate) struct GleiseVecs<Leiter: Kompatibel> {
     kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
     streckenabschnitte: StreckenabschnittMapSerialisiert,
     geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
-    pläne: Vec<Void>,
+    pläne: HashMap<plan::Name, Void>,
 }
 
 impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Leiter>>
@@ -642,7 +642,7 @@ impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Lei
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,
-            pläne: v2.pläne.into_iter().map(|void| void.unreachable()).collect(),
+            pläne: v2.pläne.into_iter().map(|(_name, void)| void.unreachable()).collect(),
         })
     }
 }

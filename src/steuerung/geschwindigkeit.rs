@@ -28,7 +28,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-/// Name einer Geschwindigkeit.
+/// Name einer [Geschwindigkeit].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 

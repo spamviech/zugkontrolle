@@ -33,7 +33,7 @@ use crate::{
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        plan::Plan,
+        plan::{self, Plan},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -117,7 +117,7 @@ pub(crate) struct Zustand<L: Leiter> {
     pub(crate) ohne_streckenabschnitt: GleiseDaten,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
     pub(crate) geschwindigkeiten: GeschwindigkeitMap<L>,
-    pub(crate) pläne: Vec<Plan<L>>,
+    pub(crate) pläne: HashMap<plan::Name, Plan<L>>,
 }
 
 impl<L: Leiter> Zustand<L> {
@@ -128,7 +128,7 @@ impl<L: Leiter> Zustand<L> {
             ohne_streckenabschnitt: GleiseDaten::neu(),
             ohne_geschwindigkeit: StreckenabschnittMap::new(),
             geschwindigkeiten: GeschwindigkeitMap::new(),
-            pläne: Vec::new(),
+            pläne: HashMap::new(),
         }
     }
 

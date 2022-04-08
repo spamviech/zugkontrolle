@@ -23,7 +23,7 @@ use crate::{
     nachschlagen::Nachschlagen,
 };
 
-/// Name einer Weiche.
+/// Name einer [Weiche].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 

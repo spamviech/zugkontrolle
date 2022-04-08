@@ -35,7 +35,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{Plan, PlanSerialisiert},
+        plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
@@ -67,7 +67,7 @@ where
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
-    pub(crate) pläne: Vec<PlanSerialisiert<L>>,
+    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L>>,
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
@@ -102,7 +102,11 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
                     )
                 })
                 .collect(),
-            pläne: self.pläne.iter().map(Plan::serialisiere).collect(),
+            pläne: self
+                .pläne
+                .iter()
+                .map(|(name, plan)| (name.clone(), plan.serialisiere()))
+                .collect(),
         }
     }
 
@@ -385,12 +389,12 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
             input_nicht_benötigt: _,
         } = pläne.into_iter().fold(
             Ok(Reserviert {
-                anschluss: Vec::new(),
+                anschluss: HashMap::new(),
                 pwm_nicht_benötigt,
                 output_nicht_benötigt,
                 input_nicht_benötigt,
             }),
-            |acc: Result<_, anschluss::Fehler>, plan_serialisiert| {
+            |acc: Result<_, anschluss::Fehler>, (name, plan_serialisiert)| {
                 let Reserviert {
                     anschluss: mut pläne,
                     pwm_nicht_benötigt,
@@ -410,7 +414,7 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
                         input_nicht_benötigt,
                     )
                     .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                pläne.push(plan);
+                let _ = pläne.insert(name, plan);
                 Ok(Reserviert {
                     anschluss: pläne,
                     pwm_nicht_benötigt,
