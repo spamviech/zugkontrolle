@@ -3,7 +3,6 @@
 // HACK cargo check takes very long, this should reduce it until the lint is addressed
 #![allow(missing_docs)]
 
-
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
@@ -71,7 +70,7 @@ impl DreiwegeWeicheUnit {
 }
 
 #[erstelle_richtung]
-#[impl_nachschlagen(Verbindung, en, Debug, Clone)]
+#[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,

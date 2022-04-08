@@ -12,21 +12,16 @@ pub(crate) fn impl_nachschlagen(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
     let dummy = Vec::new();
     let (element, struct_name, derives) = if args.len() < 2 {
         errors.push(if args.is_empty() {
-            "Lookup Element and Name suffix missing!".to_string()
+            "Lookup Element and Collection missing!".to_string()
         } else {
-            "Name suffix missing!".to_string()
+            "Collection missing!".to_string()
         });
         (None, None, dummy.iter().skip(0))
     } else {
         let fst = &args[0];
         let snd = &args[1];
         let derives = args.iter().skip(2);
-        let suffix = quote!(#snd).to_string();
-        (
-            Some(fst),
-            Some(format_ident!("{}{}", ident.to_string().trim_end_matches("Name"), suffix)),
-            derives,
-        )
+        (Some(fst), Some(snd), derives)
     };
 
     let mut struct_definition = None;
@@ -43,10 +38,16 @@ pub(crate) fn impl_nachschlagen(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             .iter()
             .map(|variant| format_ident!("{}", &variant.to_string().to_snake_case()))
             .collect();
+        let docstring = format!("Eine Struktur mit von [{ident}]-Varianten abgeleiteten Felder.");
+        let field_docstrings = enum_variants.iter().map(|variant| format!("[{ident}::{variant}]"));
         struct_definition = Some(quote! {
+            #[doc = #docstring]
             #[derive(#(#derives),*)]
             #vis struct #struct_name {
-                #(pub #struct_fields : #element),*
+                #(
+                    #[doc = #field_docstrings]
+                    pub #struct_fields : #element
+                ),*
             }
         });
         impl_lookup = Some(quote! {

@@ -45,7 +45,9 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                 let unit_ident = format_ident!("{}Unit", ident);
                 let params_start = if params.is_empty() { quote!() } else { quote!(#(#params),*,) };
                 type_definitionen = Some(quote! {
+                    /// Eine Variante ohne Anschlüsse.
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
+                    /// Eine serialisierbare Repräsentation.
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere for #ident<#(#params),*> {
                         type Serialisiert = #save_ident<#(#params),*>;
@@ -111,7 +113,8 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         }
                     }
                     impl<#(#params),*> #ident<#(#params),*> {
-                        pub fn to_unit(&self) -> #unit_ident<#(#params),*> {
+                        /// Clone in eine äquivalente Darstellung ohne Anschlüsse.
+                        pub fn mit_unit(&self) -> #unit_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, .. } = self;
                             #unit_ident {
                                 #(#other_fields: #other_fields.clone()),*,
@@ -120,7 +123,8 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         }
                     }
                     impl<#(#params),*> #unit_ident<#(#params),*> {
-                        pub fn to_option<T>(&self) -> #ident<#params_start Option<T>> {
+                        /// Clone in eine äquivalente Darstellung mit [None] als Anschlüsse.
+                        pub fn mit_none<T>(&self) -> #ident<#params_start Option<T>> {
                             let #ident { #(#other_fields),*, .. } = self;
                             #ident {
                                 #(#other_fields: #other_fields.clone()),*,

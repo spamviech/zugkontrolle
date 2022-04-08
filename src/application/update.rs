@@ -230,7 +230,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         macro_rules! hinzufügen_gehalten_bei_maus {
             ($gleis: expr) => {
                 if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
-                    $gleis.to_option(),
+                    $gleis.mit_none(),
                     Vektor { x: Skalar(0.), y: klick_höhe },
                     streckenabschnitt,
                     false,
@@ -238,7 +238,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
                     self.streckenabschnitt_aktuell.aktuell = None;
                     let _ = self.gleise.hinzufügen_gehalten_bei_maus(
-                        $gleis.to_option(),
+                        $gleis.mit_none(),
                         Vektor { x: Skalar(0.), y: klick_höhe },
                         None,
                         false,

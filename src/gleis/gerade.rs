@@ -49,7 +49,7 @@ impl GeradeUnit {
     }
 }
 
-#[impl_nachschlagen(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,

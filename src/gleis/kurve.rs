@@ -1,8 +1,5 @@
 //! Definition und zeichnen einer Kurve.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{f32::consts::PI, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
@@ -58,7 +55,7 @@ impl KurveUnit {
     }
 }
 
-#[impl_nachschlagen(Verbindung, en, Debug)]
+#[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     Anfang,
