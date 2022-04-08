@@ -32,6 +32,7 @@ use crate::{
         gerade::GeradeUnit,
         gleise::{
             self,
+            daten::v2,
             id::{AnyId, GleisId, StreckenabschnittId},
             Gleise, Modus,
         },
@@ -479,8 +480,8 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
 #[allow(single_use_lifetimes)]
 impl<L> Application for Zugkontrolle<L>
 where
-    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + Display,
-    L::Serialisiert: Debug + Clone + Unpin + Send,
+    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + v2::Kompatibel + Display,
+    <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
     for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + Deserialize<'de>,
     for<'de> <L as Leiter>::UmdrehenZeit: Serialize + Deserialize<'de>,
     for<'de> <L as Leiter>::Fahrtrichtung: Serialize + Deserialize<'de>,

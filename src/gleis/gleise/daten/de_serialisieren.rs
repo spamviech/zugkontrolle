@@ -546,6 +546,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
         pfad: impl AsRef<std::path::Path>,
     ) -> Result<(), Fehler>
     where
+        L: v2::Kompatibel,
         for<'de> L::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
         for<'de> L::UmdrehenZeit: Deserialize<'de>,
         for<'de> L::Fahrtrichtung: Deserialize<'de>,

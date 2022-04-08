@@ -30,7 +30,7 @@ use crate::{
     gleis::{
         self,
         gleise::{
-            daten::{DatenAuswahl, StreckenabschnittMap},
+            daten::{v2, DatenAuswahl, StreckenabschnittMap},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             steuerung::Steuerung,
             GleisIdFehler, Gleise,
@@ -1059,7 +1059,7 @@ where
 }
 
 #[allow(single_use_lifetimes)]
-impl<L: LeiterAnzeige + BekannterLeiter> Zugkontrolle<L>
+impl<L: LeiterAnzeige + BekannterLeiter + v2::Kompatibel> Zugkontrolle<L>
 where
     for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
     for<'de> <L as Leiter>::UmdrehenZeit: Deserialize<'de>,
