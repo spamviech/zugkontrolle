@@ -98,13 +98,17 @@ impl<L: Leiter + Serialisiere> Reserviere<Plan<L>> for PlanSerialisiert<L> {
     }
 }
 
+// TODO reservieren schlägt fehl, da die Anschlüsse bereits für die Anschlüsse selbst reserviert sind.
+// Clone möglich, da als Arc<Mutex<_>> zu runtime verwendet
+// Lager umschreiben, damit es immer einer Kopie des Arc<Mutex<_>> behält?
 /// Eine Aktionen in einem Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionEnum<AktionGeschwindigkeit, AktionStreckenabschnitt, AktionSchalten, AktionWarten> {
-    Geschwindigkeit(AktionGeschwindigkeit),
-    Streckenabschnitt(AktionStreckenabschnitt),
-    Schalten(AktionSchalten),
-    Warten(AktionWarten),
+pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
+    Geschwindigkeit(Geschwindigkeit),
+    Streckenabschnitt(Streckenabschnitt),
+    Schalten(Schalten),
+    Warten(Warten),
+    Ausführen(PlanEnum<AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten>>),
 }
 
 /// Eine Aktionen in einem Fahrplan.
@@ -137,6 +141,7 @@ where
             },
             Aktion::Schalten(aktion) => AktionSerialisiert::Schalten(aktion.serialisiere()),
             Aktion::Warten(aktion) => AktionSerialisiert::Warten(aktion.serialisiere()),
+            Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.serialisiere()),
         }
     }
 
@@ -146,6 +151,7 @@ where
             Aktion::Streckenabschnitt(aktion) => aktion.anschlüsse(),
             Aktion::Schalten(aktion) => aktion.anschlüsse(),
             Aktion::Warten(aktion) => aktion.anschlüsse(),
+            Aktion::Ausführen(plan) => plan.anschlüsse(),
         }
     }
 }
@@ -171,6 +177,9 @@ impl<L: Leiter + Serialisiere> Reserviere<Aktion<L>> for AktionSerialisiert<L> {
             AktionSerialisiert::Warten(aktion) => aktion
                 .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
                 .konvertiere(Aktion::Warten),
+            AktionSerialisiert::Ausführen(plan) => plan
+                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                .konvertiere(Aktion::Ausführen),
         };
         Ok(reserviert)
     }
