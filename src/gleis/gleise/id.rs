@@ -1,12 +1,5 @@
 //! Ids zur Identifikation der Gleise.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
-
-// Explicit allow-annotations don't work, so has to be done on a module-basis instead
-#![allow(single_use_lifetimes)]
-
 use std::marker::PhantomData;
 
 use rstar::primitives::Rectangle;
@@ -70,12 +63,19 @@ impl<T> PartialEq for GleisId<T> {
 /// Id für ein beliebiges Gleis.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum AnyId {
+    /// Eine [Gerade].
     Gerade(GleisId<Gerade>),
+    /// Eine [Kurve].
     Kurve(GleisId<Kurve>),
+    /// Eine [Weiche].
     Weiche(GleisId<Weiche>),
+    /// Eine [DreiwegeWeiche].
     DreiwegeWeiche(GleisId<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
     KurvenWeiche(GleisId<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
     SKurvenWeiche(GleisId<SKurvenWeiche>),
+    /// Eine [Kreuzung].
     Kreuzung(GleisId<Kreuzung>),
 }
 
@@ -150,7 +150,7 @@ impl PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'_> {
     }
 }
 
-impl<'t> StreckenabschnittIdRef<'t> {
+impl StreckenabschnittIdRef<'_> {
     /// Klone die Referenzen um eine neue Id zu erzeugen.
     pub(in crate::gleis::gleise) fn als_id(self) -> StreckenabschnittId {
         StreckenabschnittId {
@@ -161,7 +161,6 @@ impl<'t> StreckenabschnittIdRef<'t> {
 }
 
 // completely remove any notion of ID?
-#[allow(single_use_lifetimes)]
 #[derive(zugkontrolle_macros::Debug)]
 pub(crate) struct GleisIdRef<'t, T> {
     pub(in crate::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
@@ -182,7 +181,6 @@ impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
     }
 }
 
-#[allow(single_use_lifetimes)]
 #[derive(zugkontrolle_macros::Debug)]
 pub(in crate::gleis::gleise) enum AnyIdRef<'t> {
     Gerade(GleisIdRef<'t, Gerade>),

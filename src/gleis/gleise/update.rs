@@ -1,7 +1,4 @@
-//! [update](iced::Application::update)-Methode für Gleise.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! [update](iced::Application::update)-Methode für [Gleise].
 
 use std::{
     marker::PhantomData,
@@ -161,6 +158,7 @@ fn aktion_gleis_an_position<'t>(
 }
 
 impl<L: Leiter> Gleise<L> {
+    /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &mut self,
         event: Event,

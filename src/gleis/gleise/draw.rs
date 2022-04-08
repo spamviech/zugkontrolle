@@ -1,7 +1,4 @@
-//! [draw](iced::Application::draw)-Methode für Gleise.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! [draw](iced::Application::draw)-Methode für [Gleise].
 
 use std::marker::PhantomData;
 
@@ -44,7 +41,7 @@ use crate::{
     },
 };
 
-pub(crate) fn move_to_position(frame: &mut Frame<'_>, position: &Position) {
+pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     // bewege Kontext zur Position
     frame.transformation(&Transformation::Translation(position.punkt));
     // drehe Kontext um (0,0)
@@ -63,7 +60,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
-            move_to_position(frame, position);
+            bewege_an_position(frame, position);
             // einfärben
             for (path, transparenz) in definition.fülle(spurweite) {
                 let alpha = transparent(rectangle, *streckenabschnitt_fließend)
@@ -89,7 +86,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
-            move_to_position(frame, position);
+            bewege_an_position(frame, position);
             // zeichne Kontur
             for path in definition.zeichne(spurweite) {
                 frame.with_save(|frame| {
@@ -122,7 +119,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
-            move_to_position(frame, position);
+            bewege_an_position(frame, position);
             // zeichne anchor points
             definition.verbindungen(spurweite).für_alle(|_name, &verbindung| {
                 let verbindung_an_position = Verbindung {
@@ -175,7 +172,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = Position { punkt, winkel };
             frame.with_save(|frame| {
-                move_to_position(frame, &absolute_position);
+                bewege_an_position(frame, &absolute_position);
                 let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                 frame.fill_text(Text {
                     content,
@@ -233,6 +230,7 @@ impl<L: Leiter> Gleise<L> {
         }
     }
 
+    /// [draw](iced::Application::draw)-Methode für [Gleise].
     pub fn draw(&self, bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;

@@ -1,7 +1,5 @@
-//! Steuerungs-Struktur eines Gleises.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
+//! [Canvas](crate::application::touch_canvas::Canvas) erzwingt.
 
 use std::fmt::Debug;
 
@@ -38,6 +36,7 @@ impl<T> Drop for Steuerung<'_, T> {
 }
 
 impl<'t, T> Steuerung<'t, T> {
+    /// Erstelle eine neue [Steuerung].
     pub fn neu(steuerung: &'t mut Option<T>, canvas: &'t mut Cache) -> Self {
         Steuerung { steuerung, canvas, verändert: false }
     }
@@ -68,6 +67,7 @@ impl<'t, T> Steuerung<'t, T> {
 
 macro_rules! steuerung_weiche {
     ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
+        /// Erhalte die [Steuerung] für das spezifizierte Gleis.
         pub fn $name<'t>(
             &'t mut self,
             gleis_id: &GleisId<$type>,

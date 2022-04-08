@@ -1,8 +1,5 @@
 //! Struktur zum Speichern aller Gleise.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
 use rstar::{
@@ -53,9 +50,12 @@ use crate::{
 pub mod de_serialisieren;
 pub mod v2;
 
+/// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
+    /// Wie sieht da Gleis aus, welche [Anschlüsse](anschluss::Anschluss) hat es.
     pub definition: T,
+    /// Wo auf dem [Canvas](crate::application::touch_canvas::Canvas) wird das Gleis gezeichnet.
     pub position: Position,
 }
 
@@ -104,11 +104,13 @@ pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten)>;
 type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
+/// Alle Gleise, [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
+/// sowie der verwendete [Zugtyp].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-pub struct Zustand<L: Leiter> {
+pub(crate) struct Zustand<L: Leiter> {
     pub(crate) zugtyp: Zugtyp<L>,
     pub(crate) ohne_streckenabschnitt: GleiseDaten,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
@@ -116,7 +118,8 @@ pub struct Zustand<L: Leiter> {
 }
 
 impl<L: Leiter> Zustand<L> {
-    pub fn neu(zugtyp: Zugtyp<L>) -> Self {
+    /// Erstelle einen neuen [Zustand].
+    pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp<L>) -> Self {
         Zustand {
             zugtyp,
             ohne_streckenabschnitt: GleiseDaten::neu(),

@@ -10,11 +10,11 @@ use iced::{
 use log::error;
 
 pub use self::{
-    daten::{Gleis, Zustand},
+    daten::Gleis,
     id::{AnyId, GleisId, StreckenabschnittId},
 };
 use self::{
-    daten::{GleiseDaten, StreckenabschnittMap},
+    daten::{GleiseDaten, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
 };
 use crate::{

@@ -7,7 +7,7 @@ use iced::{
 use num_traits::NumCast;
 
 use crate::{
-    gleis::gleise::draw::move_to_position,
+    gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
             pfad::{Pfad, Transformation},
@@ -126,7 +126,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
                 self.gleis.beschreibung_und_name(spurweite)
             {
                 frame.with_save(|frame| {
-                    move_to_position(frame, &relative_position);
+                    bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {
                         content: content.clone(),
                         position: Point::ORIGIN,
