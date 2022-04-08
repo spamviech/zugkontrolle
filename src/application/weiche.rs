@@ -1,7 +1,4 @@
-//! Einstellen der Steuerung einer Weiche.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Einstellen der Steuerung einer [Weiche](crate::steuerung::Weiche).
 
 use std::fmt::{Debug, Display};
 
@@ -18,6 +15,7 @@ use crate::{
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
+/// Status eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 #[derive(Debug, Clone)]
 pub struct Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus> {
     name: String,
@@ -34,6 +32,7 @@ impl<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
 where
     AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlStatus>,
 {
+    /// Erstelle einen neuen [Status], potentiell mit voreingestellten Anschlüssen.
     pub fn neu<Richtung>(
         option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
@@ -65,6 +64,7 @@ enum InterneNachricht<Richtung> {
     Schließen,
 }
 
+/// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R: card::Renderer> {
     card: Card<'t, InterneNachricht<Richtung>, R>,
     name: &'t mut String,
@@ -103,6 +103,7 @@ where
         + number_input::Renderer,
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
+    /// Erstelle eine neue [Auswahl].
     pub fn neu<
         AnschlüsseAuswahlStatus: Nachschlagen<Richtung, anschluss::Status<anschluss::Output>>,
     >(
@@ -152,9 +153,12 @@ where
     }
 }
 
+/// Nachricht einer [Auswahl].
 #[derive(Debug, Clone)]
 pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
+    /// Steuerung einer Weiche anpassen.
     Festlegen(Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>),
+    /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
 }
 

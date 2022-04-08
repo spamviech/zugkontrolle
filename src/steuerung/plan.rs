@@ -101,7 +101,7 @@ impl<L: Leiter + Serialisiere> Reserviere<Plan<L>> for PlanSerialisiert<L> {
     }
 }
 
-// TODO reservieren schlägt fehl, da die Anschlüsse bereits für die Anschlüsse selbst reserviert sind.
+// FIXME reservieren schlägt fehl, da die Anschlüsse bereits für die Anschlüsse selbst reserviert sind.
 // Clone möglich, da als Arc<Mutex<_>> zu runtime verwendet
 // Lager umschreiben, damit es immer einer Kopie des Arc<Mutex<_>> behält?
 /// Eine Aktionen in einem Fahrplan.
