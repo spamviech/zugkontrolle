@@ -30,7 +30,7 @@ use crate::{
         vektor::Vektor,
         winkel::Winkel,
     },
-    zugtyp::Zugtyp,
+    zugtyp::{FalscherLeiter, Zugtyp},
 };
 
 pub mod daten;
@@ -605,13 +605,6 @@ pub enum Fehler {
     IO(std::io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
     BincodeSerialisieren(bincode::Error),
-    /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
-    BincodeDeserialisieren {
-        /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
-        aktuell: bincode::Error,
-        /// Fehler beim Deserialisieren nach Speicherformat der Version 2.
-        v2: bincode::Error,
-    },
     /// Ein Fehler bei Interaktion mit einem [Anschluss](anschluss::Anschluss).
     Anschluss(anschluss::Fehler),
     /// Das betroffene Gleis wurde entfernt.
@@ -620,6 +613,12 @@ pub enum Fehler {
     StreckenabschnittEntfernt(StreckenabschnittId),
     /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
+}
+
+impl From<FalscherLeiter> for Fehler {
+    fn from(fehler: FalscherLeiter) -> Self {
+        Fehler::Anschluss(fehler.into())
+    }
 }
 
 impl From<std::io::Error> for Fehler {

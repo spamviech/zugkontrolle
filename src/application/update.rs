@@ -1066,7 +1066,7 @@ where
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
     <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-    <L as Serialisiere>::Serialisiert: Eq + Hash,
+    <L as Serialisiere>::Serialisiert: Debug + Clone + Eq + Hash,
 {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {

@@ -28,6 +28,7 @@ pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
     /// Die Anschlüsse des Streckenabschnittes.
     anschluss: Anschluss,
 }
+
 impl Streckenabschnitt {
     /// Erstelle einen neuen [Streckenabschnitt].
     pub fn neu(farbe: Farbe, anschluss: OutputAnschluss) -> Self {
@@ -55,6 +56,11 @@ impl Streckenabschnitt {
 pub type StreckenabschnittSerialisiert = Streckenabschnitt<OutputSerialisiert>;
 
 impl StreckenabschnittSerialisiert {
+    /// Erstelle einen neuen [StreckenabschnittSerialisiert].
+    pub fn neu_serialisiert(farbe: Farbe, anschluss: OutputSerialisiert) -> Self {
+        Streckenabschnitt { farbe, anschluss }
+    }
+
     /// Der Anschluss des Streckenabschnittes.
     pub fn anschluss(self) -> OutputSerialisiert {
         self.anschluss

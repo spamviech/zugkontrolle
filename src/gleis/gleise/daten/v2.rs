@@ -399,7 +399,7 @@ struct StreckenabschnittSerialisiert {
 impl From<StreckenabschnittSerialisiert> for streckenabschnitt::StreckenabschnittSerialisiert {
     fn from(input: StreckenabschnittSerialisiert) -> Self {
         let StreckenabschnittSerialisiert { farbe, anschluss } = input;
-        streckenabschnitt::StreckenabschnittSerialisiert { farbe, anschluss: anschluss.into() }
+        streckenabschnitt::StreckenabschnittSerialisiert::neu_serialisiert(farbe, anschluss.into())
     }
 }
 
