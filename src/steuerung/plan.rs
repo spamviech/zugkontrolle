@@ -6,7 +6,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{de_serialisieren::Serialisiere, polarität::Fließend, trigger::Trigger},
+    anschluss::{
+        de_serialisieren::Serialisiere, polarität::Fließend, trigger::Trigger, OutputSerialisiert,
+    },
     gleis::weiche,
     steuerung::{
         geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
@@ -70,7 +72,7 @@ impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
     pub fn deserialisiere(
         self,
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
-        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+        streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
@@ -150,7 +152,7 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
     pub fn deserialisiere(
         self,
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
-        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+        streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
@@ -299,12 +301,14 @@ impl AktionStreckenabschnittSerialisiert {
     /// Deserialisiere eine Aktion mit einem [Streckenabschnitt] mithilfe bekannter Anschlüsse.
     pub fn deserialisiere(
         self,
-        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+        streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
     ) -> Result<AktionStreckenabschnitt, StreckenabschnittSerialisiert> {
         let aktion = match self {
             AktionStreckenabschnittSerialisiert::Strom { streckenabschnitt, fließend } => {
-                let streckenabschnitt =
-                    streckenabschnitte.get(&streckenabschnitt).ok_or(streckenabschnitt)?.clone();
+                let streckenabschnitt = streckenabschnitte
+                    .get(streckenabschnitt.anschluss_ref())
+                    .ok_or(streckenabschnitt)?
+                    .clone();
                 AktionStreckenabschnitt::Strom { streckenabschnitt, fließend }
             },
         };
