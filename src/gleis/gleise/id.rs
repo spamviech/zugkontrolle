@@ -42,6 +42,7 @@ pub struct GleisId<T> {
     pub(in crate::gleis::gleise) streckenabschnitt: Option<StreckenabschnittId>,
     pub(in crate::gleis::gleise) phantom: PhantomData<fn() -> T>,
 }
+
 impl<T> GleisId<T> {
     // Als Methode definiert, damit es privat bleibt.
     pub(crate) fn klonen(&self) -> Self {
@@ -173,6 +174,7 @@ impl<'s, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'_, T> {
         (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
     }
 }
+
 impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
     fn eq(&self, other: &GleisId<T>) -> bool {
         (self.rectangle == &other.rectangle)
@@ -206,6 +208,7 @@ impl<'t> PartialEq<AnyIdRef<'t>> for AnyIdRef<'_> {
         }
     }
 }
+
 impl PartialEq<AnyId> for AnyIdRef<'_> {
     fn eq(&self, other: &AnyId) -> bool {
         match (self, other) {
@@ -220,6 +223,7 @@ impl PartialEq<AnyId> for AnyIdRef<'_> {
         }
     }
 }
+
 impl<'t> PartialEq<AnyIdRef<'t>> for AnyId {
     fn eq(&self, other: &AnyIdRef<'t>) -> bool {
         other.eq(self)

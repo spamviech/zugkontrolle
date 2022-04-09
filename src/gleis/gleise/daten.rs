@@ -105,6 +105,7 @@ pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten)>;
 type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
+
 /// Alle Gleise, [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
 /// sowie der verwendete [Zugtyp].
 #[derive(zugkontrolle_macros::Debug)]

@@ -1,17 +1,12 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
-use std::{fmt::Debug, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
-        pin::pwm,
-        polarität::Fließend,
-        trigger::Trigger,
-        InputAnschluss, Lager, OutputAnschluss,
-    },
+    anschluss::{de_serialisieren::Serialisiere, polarität::Fließend, trigger::Trigger},
     gleis::weiche,
     steuerung::{
         geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
@@ -41,63 +36,53 @@ pub type Plan<L> = PlanEnum<Aktion<L>>;
 pub type PlanSerialisiert<L> = PlanEnum<AktionSerialisiert<L>>;
 
 #[allow(single_use_lifetimes)]
-impl<L> Serialisiere for Plan<L>
+impl<L> Plan<L>
 where
     L: Leiter + Serialisiere,
     for<'de> <L as Leiter>::Fahrtrichtung: Clone + Serialize + Deserialize<'de>,
 {
-    type Serialisiert = PlanSerialisiert<L>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    fn serialisiere(&self) -> PlanSerialisiert<L> {
         let Plan { aktionen, endlosschleife } = self;
         PlanSerialisiert {
             aktionen: aktionen.into_iter().map(Aktion::serialisiere).collect(),
             endlosschleife: *endlosschleife,
         }
     }
-
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        for aktion in self.aktionen {
-            let (pwm, output, input) = aktion.anschlüsse();
-            pwm_pins.extend(pwm);
-            output_anschlüsse.extend(output);
-            input_anschlüsse.extend(input);
-        }
-        (pwm_pins, output_anschlüsse, input_anschlüsse)
-    }
 }
 
-impl<L: Leiter + Serialisiere> Reserviere<Plan<L>> for PlanSerialisiert<L> {
-    fn reserviere(
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::From)]
+#[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
+pub enum AnschlüsseSerialisiert<L: Serialisiere> {
+    Geschwindigkeit(GeschwindigkeitSerialisiert<L>),
+    Streckenabschnitte(StreckenabschnittSerialisiert),
+    Weiche(AnyWeicheSerialisiert),
+    Kontakt(KontaktSerialisiert),
+}
+
+impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
+    fn deserialisiere(
         self,
-        lager: &mut Lager,
-        mut pwm_pins: Vec<pwm::Pin>,
-        mut output_anschlüsse: Vec<OutputAnschluss>,
-        mut input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<Plan<L>> {
+        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+        gerade_weichen: &HashMap<GeradeWeiche, GeradeWeicheSerialisiert>,
+        kurven_weichen: &HashMap<KurvenWeiche, KurvenWeicheSerialisiert>,
+        dreiwege_weichen: &HashMap<DreiwegeWeiche, DreiwegeWeicheSerialisiert>,
+        kontakte: &HashMap<KontaktSerialisiert, Arc<Mutex<Kontakt>>>,
+    ) -> Result<Plan<L>, AnschlüsseSerialisiert<L>> {
         let PlanSerialisiert { aktionen: aktionen_serialisiert, endlosschleife } = self;
         let mut aktionen = Vec::new();
         for aktion in aktionen_serialisiert {
-            let Reserviert {
-                anschluss,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            } = aktion.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
-            aktionen.push(anschluss);
-            pwm_pins = pwm_nicht_benötigt;
-            output_anschlüsse = output_nicht_benötigt;
-            input_anschlüsse = input_nicht_benötigt;
+            let aktion = aktion.deserialisiere(
+                geschwindigkeiten,
+                streckenabschnitte,
+                gerade_weichen,
+                kurven_weichen,
+                dreiwege_weichen,
+                kontakte,
+            )?;
+            aktionen.push(aktion);
         }
-        Ok(Reserviert {
-            anschluss: Plan { aktionen, endlosschleife },
-            pwm_nicht_benötigt: pwm_pins,
-            output_nicht_benötigt: output_anschlüsse,
-            input_nicht_benötigt: input_anschlüsse,
-        })
+        Ok(Plan { aktionen, endlosschleife })
     }
 }
 
@@ -132,14 +117,12 @@ pub type AktionSerialisiert<L> = AktionEnum<
 >;
 
 #[allow(single_use_lifetimes)]
-impl<L> Serialisiere for Aktion<L>
+impl<L> Aktion<L>
 where
     L: Leiter + Serialisiere,
-    for<'de> <L as Leiter>::Fahrtrichtung: Clone + Serialize + Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
 {
-    type Serialisiert = AktionSerialisiert<L>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    pub fn serialisiere(&self) -> AktionSerialisiert<L> {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
                 AktionSerialisiert::Geschwindigkeit(aktion.serialisiere())
@@ -152,42 +135,39 @@ where
             Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.serialisiere()),
         }
     }
-
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match self {
-            Aktion::Geschwindigkeit(aktion) => aktion.anschlüsse(),
-            Aktion::Streckenabschnitt(aktion) => aktion.anschlüsse(),
-            Aktion::Schalten(aktion) => aktion.anschlüsse(),
-            Aktion::Warten(aktion) => aktion.anschlüsse(),
-            Aktion::Ausführen(plan) => plan.anschlüsse(),
-        }
-    }
 }
 
-impl<L: Leiter + Serialisiere> Reserviere<Aktion<L>> for AktionSerialisiert<L> {
-    fn reserviere(
+impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
+    pub fn deserialisiere(
         self,
-        lager: &mut Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<Aktion<L>> {
+        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+        gerade_weichen: &HashMap<GeradeWeiche, GeradeWeicheSerialisiert>,
+        kurven_weichen: &HashMap<KurvenWeiche, KurvenWeicheSerialisiert>,
+        dreiwege_weichen: &HashMap<DreiwegeWeiche, DreiwegeWeicheSerialisiert>,
+        kontakte: &HashMap<KontaktSerialisiert, Arc<Mutex<Kontakt>>>,
+    ) -> Result<Aktion<L>, AnschlüsseSerialisiert<L>> {
         let reserviert = match self {
-            AktionSerialisiert::Geschwindigkeit(aktion) => aktion
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(Aktion::Geschwindigkeit),
-            AktionSerialisiert::Streckenabschnitt(aktion) => aktion
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(Aktion::Streckenabschnitt),
-            AktionSerialisiert::Schalten(aktion) => aktion
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(Aktion::Schalten),
-            AktionSerialisiert::Warten(aktion) => aktion
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(Aktion::Warten),
-            AktionSerialisiert::Ausführen(plan) => plan
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(Aktion::Ausführen),
+            AktionSerialisiert::Geschwindigkeit(aktion) => {
+                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
+            },
+            AktionSerialisiert::Streckenabschnitt(aktion) => {
+                Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte)?)
+            },
+            AktionSerialisiert::Schalten(aktion) => Aktion::Schalten(aktion.deserialisiere(
+                gerade_weichen,
+                kurven_weichen,
+                dreiwege_weichen,
+            )?),
+            AktionSerialisiert::Warten(aktion) => Aktion::Warten(aktion.deserialisiere(kontakte)?),
+            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
+                geschwindigkeiten,
+                streckenabschnitte,
+                gerade_weichen,
+                kurven_weichen,
+                dreiwege_weichen,
+                kontakte,
+            )?),
         };
         Ok(reserviert)
     }
@@ -226,14 +206,12 @@ pub type AktionGeschwindigkeitSerialisiert<L> =
     AktionGeschwindigkeitEnum<GeschwindigkeitSerialisiert<L>, <L as Leiter>::Fahrtrichtung>;
 
 #[allow(single_use_lifetimes)]
-impl<L> Serialisiere for AktionGeschwindigkeit<L>
+impl<L> AktionGeschwindigkeit<L>
 where
     L: Leiter + Serialisiere,
-    for<'de> <L as Leiter>::Fahrtrichtung: Clone + Serialize + Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
 {
-    type Serialisiert = AktionGeschwindigkeitSerialisiert<L>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    fn serialisiere(&self) -> AktionGeschwindigkeitSerialisiert<L> {
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { leiter, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
@@ -252,45 +230,17 @@ where
             },
         }
     }
-
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match self {
-            AktionGeschwindigkeit::Geschwindigkeit { leiter, wert: _ } => leiter.anschlüsse(),
-            AktionGeschwindigkeit::Umdrehen { leiter } => leiter.anschlüsse(),
-            AktionGeschwindigkeit::Fahrtrichtung { leiter, fahrtrichtung: _ } => {
-                leiter.anschlüsse()
-            },
-        }
-    }
 }
 
-impl<L: Leiter + Serialisiere> Reserviere<AktionGeschwindigkeit<L>>
-    for AktionGeschwindigkeitSerialisiert<L>
-{
-    fn reserviere(
+impl<L: Leiter + Serialisiere> AktionGeschwindigkeitSerialisiert<L> {
+    pub fn deserialisiere(
         self,
-        lager: &mut Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<AktionGeschwindigkeit<L>> {
-        let reserviert = match self {
-            AktionGeschwindigkeitSerialisiert::Geschwindigkeit { leiter, wert } => leiter
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|leiter| AktionGeschwindigkeit::Geschwindigkeit { leiter, wert }),
-            AktionGeschwindigkeitSerialisiert::Umdrehen { leiter } => leiter
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|leiter| AktionGeschwindigkeit::Umdrehen { leiter }),
-            AktionGeschwindigkeitSerialisiert::Fahrtrichtung { leiter, fahrtrichtung } => leiter
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|leiter| AktionGeschwindigkeit::Fahrtrichtung {
-                    leiter,
-                    fahrtrichtung,
-                }),
-        };
-        Ok(reserviert)
+        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+    ) -> Result<AktionGeschwindigkeit<L>, GeschwindigkeitSerialisiert<L>> {
+        todo!()
     }
 }
+
 /// Eine Aktion mit einem [Streckenabschnitt].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
@@ -307,10 +257,8 @@ pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
 pub type AktionStreckenabschnittSerialisiert =
     AktionStreckenabschnitt<StreckenabschnittSerialisiert>;
 
-impl Serialisiere for AktionStreckenabschnitt {
-    type Serialisiert = AktionStreckenabschnittSerialisiert;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+impl AktionStreckenabschnitt {
+    pub fn serialisiere(&self) -> AktionStreckenabschnittSerialisiert {
         match self {
             AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } => {
                 AktionStreckenabschnittSerialisiert::Strom {
@@ -320,33 +268,14 @@ impl Serialisiere for AktionStreckenabschnitt {
             },
         }
     }
-
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match self {
-            AktionStreckenabschnitt::Strom { streckenabschnitt, fließend: _ } => {
-                streckenabschnitt.anschlüsse()
-            },
-        }
-    }
 }
 
-impl Reserviere<AktionStreckenabschnitt> for AktionStreckenabschnittSerialisiert {
-    fn reserviere(
+impl AktionStreckenabschnittSerialisiert {
+    pub fn deserialisiere(
         self,
-        lager: &mut Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<AktionStreckenabschnitt> {
-        let reserviert = match self {
-            AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } => streckenabschnitt
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|streckenabschnitt| AktionStreckenabschnitt::Strom {
-                    streckenabschnitt,
-                    fließend,
-                }),
-        };
-        Ok(reserviert)
+        streckenabschnitte: &HashMap<StreckenabschnittSerialisiert, Streckenabschnitt>,
+    ) -> Result<AktionStreckenabschnitt, StreckenabschnittSerialisiert> {
+        todo!()
     }
 }
 
@@ -393,10 +322,8 @@ pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = 
 pub type AktionSchaltenSerialisiert =
     AktionSchalten<GeradeWeicheSerialisiert, KurvenWeicheSerialisiert, DreiwegeWeicheSerialisiert>;
 
-impl Serialisiere for AktionSchalten {
-    type Serialisiert = AktionSchaltenSerialisiert;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+impl AktionSchalten {
+    pub fn serialisiere(&self) -> AktionSchaltenSerialisiert {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => {
                 AktionSchaltenSerialisiert::SchalteGerade {
@@ -418,41 +345,33 @@ impl Serialisiere for AktionSchalten {
             },
         }
     }
+}
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum AnyWeicheSerialisiert {
+    Gerade(GeradeWeicheSerialisiert),
+    Kurve(KurvenWeicheSerialisiert),
+    Dreiwege(DreiwegeWeicheSerialisiert),
+}
+
+impl AktionSchaltenSerialisiert {
+    pub fn deserialisiere(
+        self,
+        gerade_weichen: &HashMap<GeradeWeiche, GeradeWeicheSerialisiert>,
+        kurven_weichen: &HashMap<KurvenWeiche, KurvenWeicheSerialisiert>,
+        dreiwege_weichen: &HashMap<DreiwegeWeiche, DreiwegeWeicheSerialisiert>,
+    ) -> Result<AktionSchalten, AnyWeicheSerialisiert> {
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung: _ } => weiche.anschlüsse(),
-            AktionSchalten::SchalteKurve { weiche, richtung: _ } => weiche.anschlüsse(),
-            AktionSchalten::SchalteDreiwege { weiche, richtung: _ } => weiche.anschlüsse(),
+            AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteKurve { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => todo!(),
         }
     }
 }
 
-impl Reserviere<AktionSchalten> for AktionSchaltenSerialisiert {
-    fn reserviere(
-        self,
-        lager: &mut Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<AktionSchalten> {
-        let reserviert = match self {
-            AktionSchaltenSerialisiert::SchalteGerade { weiche, richtung } => weiche
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|weiche| AktionSchalten::SchalteGerade { weiche, richtung }),
-            AktionSchaltenSerialisiert::SchalteKurve { weiche, richtung } => weiche
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|weiche| AktionSchalten::SchalteKurve { weiche, richtung }),
-            AktionSchaltenSerialisiert::SchalteDreiwege { weiche, richtung } => weiche
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|weiche| AktionSchalten::SchalteDreiwege { weiche, richtung }),
-        };
-        Ok(reserviert)
-    }
-}
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionWarten<K = Kontakt> {
+pub enum AktionWarten<K = Arc<Mutex<Kontakt>>> {
     /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.
@@ -471,13 +390,11 @@ pub enum AktionWarten<K = Kontakt> {
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
 
-impl Serialisiere for AktionWarten {
-    type Serialisiert = AktionWartenSerialisiert;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+impl AktionWarten {
+    pub fn serialisiere(&self) -> AktionWartenSerialisiert {
         match self {
             AktionWarten::WartenAuf { kontakt, trigger } => AktionWartenSerialisiert::WartenAuf {
-                kontakt: kontakt.serialisiere(),
+                kontakt: kontakt.lock().serialisiere(),
                 trigger: *trigger,
             },
             AktionWarten::WartenFür { zeit } => {
@@ -485,34 +402,20 @@ impl Serialisiere for AktionWarten {
             },
         }
     }
-
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match self {
-            AktionWarten::WartenAuf { kontakt, trigger: _ } => kontakt.anschlüsse(),
-            AktionWarten::WartenFür { zeit: _ } => (Vec::new(), Vec::new(), Vec::new()),
-        }
-    }
 }
 
-impl Reserviere<AktionWarten> for AktionWartenSerialisiert {
-    fn reserviere(
+impl AktionWartenSerialisiert {
+    pub fn deserialisiere(
         self,
-        lager: &mut Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
-    ) -> de_serialisieren::Result<AktionWarten> {
-        let reserviert = match self {
-            AktionWarten::WartenAuf { kontakt, trigger } => kontakt
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
-                .konvertiere(|kontakt| AktionWarten::WartenAuf { kontakt, trigger }),
-            AktionWarten::WartenFür { zeit } => Reserviert {
-                anschluss: AktionWarten::WartenFür { zeit },
-                pwm_nicht_benötigt: pwm_pins,
-                output_nicht_benötigt: output_anschlüsse,
-                input_nicht_benötigt: input_anschlüsse,
+        kontakte: &HashMap<KontaktSerialisiert, Arc<Mutex<Kontakt>>>,
+    ) -> Result<AktionWarten, KontaktSerialisiert> {
+        let aktion = match self {
+            AktionWartenSerialisiert::WartenAuf { kontakt, trigger } => {
+                let kontakt = kontakte.get(&kontakt).ok_or(kontakt)?.clone();
+                AktionWarten::WartenAuf { kontakt, trigger }
             },
+            AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };
-        Ok(reserviert)
+        Ok(aktion)
     }
 }

@@ -106,8 +106,8 @@ impl Kontakt {
     }
 }
 
-/// Serialisierte Variante eines [Kontaktes](Kontakt).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Serialisierbare Variante eines [Kontaktes](Kontakt).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
     /// Der Name des Kontaktes.
     pub name: Name,
