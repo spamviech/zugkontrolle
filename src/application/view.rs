@@ -1,7 +1,4 @@
-//! Methoden für die view-Methode des [iced::Application]-Traits.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Methoden für die [view](iced::Application::view)-Methode des [iced::Application]-Traits.
 
 use iced::{Align, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text};
 use log::error;
@@ -44,6 +41,7 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
 impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
 impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
+    /// [view](iced::Application::view)-Methode für [Zugkontrolle].
     pub fn view(&mut self) -> Element<'_, Nachricht<Leiter>> {
         let Zugkontrolle {
             gleise,
