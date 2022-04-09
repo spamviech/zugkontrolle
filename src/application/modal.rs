@@ -1,8 +1,5 @@
 //! Überdecke ein Widget einem anderen Widget.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{fmt::Debug, hash::Hash};
 
 use iced::{Rectangle, Size};
@@ -15,33 +12,44 @@ use iced_native::{
 
 use crate::application::style::background::Background;
 
+/// Status des [Modal]-Widgets.
 #[derive(Debug)]
 pub struct Status<Overlay> {
-    pub overlay: Option<Overlay>,
+    overlay: Option<Overlay>,
 }
 
 impl<Overlay> Status<Overlay> {
+    /// Erstelle einen neuen Status für das [Modal]-Widget.
     pub fn neu() -> Self {
         Status { overlay: None }
     }
 
+    /// Zeige ein Overlay über dem Widget.
+    #[inline(always)]
     pub fn zeige_modal(&mut self, overlay: Overlay) {
         self.overlay = Some(overlay);
     }
 
+    /// Lösche das Overlay, so dass nur das originale Widget sichtbar ist.
+    #[inline(always)]
     pub fn verstecke_modal(&mut self) {
         self.overlay = None;
     }
 
+    /// Das aktuell gezeigte Overlay.
+    #[inline(always)]
     pub fn overlay(&self) -> Option<&Overlay> {
         self.overlay.as_ref()
     }
 
+    /// Eine veränderliche Referenz auf das aktuelle Overlay.
+    #[inline(always)]
     pub fn overlay_mut(&mut self) -> Option<&mut Overlay> {
         self.overlay.as_mut()
     }
 }
 
+/// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Overlay, Nachricht, R> {
     status: &'a mut Status<Overlay>,
     underlay: Element<'a, Nachricht, R>,
@@ -61,6 +69,7 @@ impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
 }
 
 impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
+    /// Erstelle ein neues [Modal].
     pub fn neu(
         status: &'a mut Status<Overlay>,
         underlay: impl Into<Element<'a, Nachricht, R>>,
@@ -69,6 +78,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
         Modal { status, underlay: underlay.into(), zeige_overlay, esc_nachricht: None }
     }
 
+    /// Erzeuge die gegebene Nachricht, wenn die Esc-Taste gedrückt wird.
     pub fn on_esc(mut self, esc_nachricht: &'a impl Fn() -> Nachricht) -> Self {
         self.esc_nachricht = Some(esc_nachricht);
         self

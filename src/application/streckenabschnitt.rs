@@ -228,14 +228,20 @@ enum InterneAuswahlNachricht {
     Anschluss(OutputSerialisiert),
 }
 
+/// Nachricht des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
 #[derive(Debug)]
 pub enum AuswahlNachricht {
+    /// Schließe das Auswahl-Fenster.
     Schließe,
+    /// Wähle den aktuellen Streckenabschnitt.
     Wähle(Option<(StreckenabschnittId, Farbe)>),
+    /// Füge einen neuen Streckenabschnitt hinzu.
     Hinzufügen(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
+    /// Lösche einen Streckenabschnitt.
     Lösche(StreckenabschnittId),
 }
 
+/// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
 pub struct Auswahl<'a, R: Renderer + card::Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
@@ -273,8 +279,9 @@ where
     <R as iced_native::container::Renderer>::Style: From<style::Auswahl>,
     <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
 {
-    pub fn neu(
-        AuswahlStatus {
+    /// Erstelle eine neue [Auswahl].
+    pub fn neu(auswahl_status: &'a mut AuswahlStatus) -> Self {
+        let AuswahlStatus {
             neu_name,
             neu_farbe,
             neu_anschluss,
@@ -284,8 +291,7 @@ where
             none_button_state,
             streckenabschnitte,
             scrollable_state,
-        }: &'a mut AuswahlStatus,
-    ) -> Self {
+        } = auswahl_status;
         let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
             let mut scrollable = Scrollable::new(scrollable_state)
                 .push(

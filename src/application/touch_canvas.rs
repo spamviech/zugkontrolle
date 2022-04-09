@@ -1,7 +1,4 @@
-//! iced::Canvas-Wrapper mit Touch-Event debug messages.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! [iced::Canvas]-Wrapper mit Touch-Event.
 
 use std::fmt::Debug;
 
@@ -13,19 +10,23 @@ use iced_native::{
 };
 use log::trace;
 
+/// [iced::Canvas]-Wrapper mit Touch-Event.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Message: Debug, P: Debug + Program<Message>)]
 pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
 
 impl<Message, P: Program<Message>> Canvas<Message, P> {
+    /// Erstelle einen neuen [Canvas].
     pub fn new(program: P) -> Self {
         Canvas(iced::Canvas::new(program))
     }
 
+    /// Lege die Breite des [Canvas] fest.
     pub fn width(self, width: Length) -> Self {
         Canvas(self.0.width(width))
     }
 
+    /// Lege die Höhe des [Canvas] fest.
     pub fn height(self, height: Length) -> Self {
         Canvas(self.0.height(height))
     }

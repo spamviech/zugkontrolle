@@ -1,8 +1,5 @@
 //! Pfadauswahl mit Speichern und Laden Knopf.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::fmt::Debug;
 
 use iced_native::{
@@ -12,6 +9,7 @@ use iced_native::{
 
 use crate::application::{macros::reexport_no_event_methods, style::background};
 
+/// Status von [SpeichernLaden].
 #[derive(Debug)]
 pub struct Status {
     speichern: button::State,
@@ -22,6 +20,7 @@ pub struct Status {
 }
 
 impl Status {
+    /// Erstelle einen neuen Status von [SpeichernLaden].
     pub fn neu(aktueller_pfad: String) -> Self {
         Status {
             speichern: button::State::new(),
@@ -32,6 +31,7 @@ impl Status {
         }
     }
 
+    /// Bestimme, ob der Speichern-Knopf gefärbt wird.
     pub fn färbe_speichern(&mut self, färben: bool) {
         self.speichern_gefärbt = färben;
     }
@@ -44,12 +44,16 @@ enum InterneNachricht {
     Pfad(String),
 }
 
+/// Nachricht des [SpeichernLaden]-Widgets.
 #[derive(Debug, Clone)]
 pub enum Nachricht {
+    /// Speichern im gegebenen Pfad gewünscht.
     Speichern(String),
+    /// Laden aus dem gegebenen Pfad gewünscht.
     Laden(String),
 }
 
+/// Widget mit Pfadauswahl und Knöpfen zum Speichern und Laden.
 pub struct SpeichernLaden<'a, R> {
     row: Row<'a, InterneNachricht, R>,
     aktueller_pfad: &'a mut String,
@@ -69,6 +73,7 @@ where
     R: 'a + column::Renderer + text::Renderer + button::Renderer + text_input::Renderer,
     <R as button::Renderer>::Style: From<background::Background>,
 {
+    /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(status: &'a mut Status) -> Self {
         let Status { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = status;
 
