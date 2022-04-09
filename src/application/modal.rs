@@ -38,14 +38,14 @@ impl<Overlay> Status<Overlay> {
 
     /// Das aktuell gezeigte Overlay.
     #[inline(always)]
-    pub fn overlay(&self) -> Option<&Overlay> {
-        self.overlay.as_ref()
+    pub fn overlay(&self) -> &Option<Overlay> {
+        &self.overlay
     }
 
     /// Eine veränderliche Referenz auf das aktuelle Overlay.
     #[inline(always)]
-    pub fn overlay_mut(&mut self) -> Option<&mut Overlay> {
-        self.overlay.as_mut()
+    pub fn overlay_mut(&mut self) -> &mut Option<Overlay> {
+        &mut self.overlay
     }
 }
 
