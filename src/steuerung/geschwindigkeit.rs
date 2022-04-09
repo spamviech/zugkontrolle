@@ -2,6 +2,7 @@
 
 use std::{
     fmt::{self, Debug, Display, Formatter},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     sync::{mpsc::Sender, Arc},
     thread::{self, sleep},
@@ -136,6 +137,29 @@ impl<L: Leiter> Geschwindigkeit<L> {
 pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
     /// Der Leiter der Geschwindigkeit.
     pub leiter: <Leiter as Serialisiere>::Serialisiert,
+}
+
+impl<Leiter: Serialisiere> PartialEq for GeschwindigkeitSerialisiert<Leiter>
+where
+    <Leiter as Serialisiere>::Serialisiert: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.leiter == other.leiter
+    }
+}
+
+impl<Leiter: Serialisiere> Eq for GeschwindigkeitSerialisiert<Leiter> where
+    <Leiter as Serialisiere>::Serialisiert: Eq
+{
+}
+
+impl<Leiter: Serialisiere> Hash for GeschwindigkeitSerialisiert<Leiter>
+where
+    <Leiter as Serialisiere>::Serialisiert: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.leiter.hash(state);
+    }
 }
 
 impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {

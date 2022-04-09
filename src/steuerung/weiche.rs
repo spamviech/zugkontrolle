@@ -60,7 +60,7 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
 }
 
 /// Serialisierbare Repräsentation der Steuerung einer Weiche.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,

@@ -1,6 +1,9 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
-use std::sync::Arc;
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -36,6 +39,20 @@ pub struct StreckenabschnittSerialisiert {
     pub farbe: Farbe,
     /// Die Anschlüsse des Streckenabschnittes.
     pub anschluss: OutputSerialisiert,
+}
+
+impl PartialEq for StreckenabschnittSerialisiert {
+    fn eq(&self, other: &Self) -> bool {
+        self.anschluss == other.anschluss
+    }
+}
+
+impl Eq for StreckenabschnittSerialisiert {}
+
+impl Hash for StreckenabschnittSerialisiert {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.anschluss.hash(state);
+    }
 }
 
 impl Streckenabschnitt {
