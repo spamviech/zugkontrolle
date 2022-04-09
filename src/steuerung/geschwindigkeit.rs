@@ -257,7 +257,7 @@ fn geschwindigkeit_ks(
 pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
 
 /// Antrieb über einen Mittelleiter.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
 pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     /// Steuerung über ein Pwm-Signal.
@@ -562,7 +562,7 @@ impl Geschwindigkeit<Mittelleiter> {
 pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisiert>;
 
 /// Antrieb über Spannungsunterschied zwischen linker und rechter Schiene.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
 pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     /// Steuerung über ein Pwm-Signal.

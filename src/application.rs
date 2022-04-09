@@ -3,6 +3,7 @@
 use std::{
     convert::identity,
     fmt::{Debug, Display},
+    hash::Hash,
     sync::{
         mpsc::{channel, Sender},
         Arc,
@@ -487,6 +488,7 @@ where
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de>,
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    <L as Serialisiere>::Serialisiert: Eq + Hash,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

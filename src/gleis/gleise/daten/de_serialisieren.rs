@@ -579,9 +579,10 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
     ) -> Result<(), Fehler>
     where
         L: v2::Kompatibel,
-        L::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
-        L::UmdrehenZeit: for<'de> Deserialize<'de>,
-        L::Fahrtrichtung: for<'de> Deserialize<'de>,
+        <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
+        <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
+        <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
+        <L as Serialisiere>::Serialisiert: Eq + Hash,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.leeren();

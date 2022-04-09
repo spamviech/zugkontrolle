@@ -6,6 +6,7 @@
 use std::{
     convert::identity,
     fmt::{Debug, Display},
+    hash::Hash,
     sync::Arc,
     thread::sleep,
     time::{Duration, Instant},
@@ -1062,9 +1063,10 @@ where
 #[allow(single_use_lifetimes)]
 impl<L: LeiterAnzeige + BekannterLeiter + v2::Kompatibel> Zugkontrolle<L>
 where
-    for<'de> <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>,
-    for<'de> <L as Leiter>::UmdrehenZeit: Deserialize<'de>,
-    for<'de> <L as Leiter>::Fahrtrichtung: Deserialize<'de>,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
+    <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
+    <L as Serialisiere>::Serialisiert: Eq + Hash,
 {
     pub fn laden(&mut self, pfad: String) {
         match self.gleise.laden(&mut self.lager, &pfad) {
