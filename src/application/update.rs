@@ -241,7 +241,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     false,
                 ) {
                     error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    *self.streckenabschnitt_aktuell.aktuell_mut() = None;
+                    self.streckenabschnitt_aktuell.entferne_aktuell();
                     let _ = self.gleise.hinzufügen_gehalten_bei_maus(
                         $gleis.mit_none(),
                         Vektor { x: Skalar(0.), y: klick_höhe },
@@ -332,13 +332,13 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     Vec::new(),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
-                        *self.streckenabschnitt_aktuell.aktuell_mut() = Some((
+                        self.streckenabschnitt_aktuell.setze_aktuell(
                             StreckenabschnittId {
                                 geschwindigkeit: geschwindigkeit.cloned(),
                                 name: name.clone(),
                             },
                             farbe,
-                        ));
+                        );
                         let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
                         match self.auswahl.overlay_mut() {
                             Some(AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl)) => {
@@ -382,7 +382,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
             .as_ref()
             .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
         {
-            *self.streckenabschnitt_aktuell.aktuell_mut() = None;
+            self.streckenabschnitt_aktuell.entferne_aktuell()
         }
 
         let nicht_gefunden_nachricht = format!(
@@ -1127,7 +1127,7 @@ where
                         )
                     })
                     .collect();
-                *self.streckenabschnitt_aktuell.aktuell_mut() = None;
+                self.streckenabschnitt_aktuell.entferne_aktuell();
             },
             Err(fehler) => self.zeige_message_box(
                 format!("Fehler beim Laden von {}", pfad),

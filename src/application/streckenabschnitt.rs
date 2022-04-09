@@ -49,6 +49,18 @@ impl AnzeigeStatus {
     pub fn aktuell_mut(&mut self) -> &mut Option<(StreckenabschnittId, Farbe)> {
         &mut self.aktuell
     }
+
+    /// Setze den aktuellen [Streckenabschnitt].
+    #[inline(always)]
+    pub fn setze_aktuell(&mut self, streckenabschnitt: StreckenabschnittId, farbe: Farbe) {
+        self.aktuell = Some((streckenabschnitt, farbe))
+    }
+
+    /// Entferne den aktuellen [Streckenabschnitt].
+    #[inline(always)]
+    pub fn entferne_aktuell(&mut self) {
+        self.aktuell = None
+    }
 }
 
 /// Eine Nachricht des [Anzeige]-Widgets.
