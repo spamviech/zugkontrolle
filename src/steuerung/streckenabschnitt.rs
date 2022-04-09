@@ -1,9 +1,6 @@
-//! Ein Streckenabschnitt regelt die Stromzufuhr.
+//! Ein [Streckenabschnitt] regelt die Stromzufuhr.
 
-use std::{
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -24,37 +21,13 @@ use crate::{
 pub struct Name(pub String);
 
 /// Steuerung der Stromzufuhr.
-#[derive(Debug, Clone)]
-pub struct Streckenabschnitt {
-    /// Die Farbe des Streckenabschnittes.
-    pub farbe: Farbe,
-    /// Die Anschlüsse des Streckenabschnittes.
-    anschluss: Arc<Mutex<OutputAnschluss>>,
-}
-
-/// Serialisierbare Repräsentation der Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StreckenabschnittSerialisiert {
+pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
     /// Die Farbe des Streckenabschnittes.
     pub farbe: Farbe,
     /// Die Anschlüsse des Streckenabschnittes.
-    pub anschluss: OutputSerialisiert,
+    anschluss: Anschluss,
 }
-
-impl PartialEq for StreckenabschnittSerialisiert {
-    fn eq(&self, other: &Self) -> bool {
-        self.anschluss == other.anschluss
-    }
-}
-
-impl Eq for StreckenabschnittSerialisiert {}
-
-impl Hash for StreckenabschnittSerialisiert {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.anschluss.hash(state);
-    }
-}
-
 impl Streckenabschnitt {
     /// Erstelle einen neuen [Streckenabschnitt].
     pub fn neu(farbe: Farbe, anschluss: OutputAnschluss) -> Self {
@@ -75,6 +48,26 @@ impl Streckenabschnitt {
     #[inline(always)]
     pub(crate) fn lock_anschluss<'t>(&'t self) -> MutexGuard<'t, OutputAnschluss> {
         self.anschluss.lock()
+    }
+}
+
+/// Serialisierbare Repräsentation der Steuerung der Stromzufuhr.
+pub type StreckenabschnittSerialisiert = Streckenabschnitt<OutputSerialisiert>;
+
+impl StreckenabschnittSerialisiert {
+    /// Der Anschluss des Streckenabschnittes.
+    pub fn anschluss(self) -> OutputSerialisiert {
+        self.anschluss
+    }
+
+    /// Eine Referenz des Anschlusses des Streckenabschnittes.
+    pub fn anschluss_ref(&self) -> &OutputSerialisiert {
+        &self.anschluss
+    }
+
+    /// Eine veränderliche Referenz des Anschlusses des Streckenabschnittes.
+    pub fn anschluss_mut(&mut self) -> &mut OutputSerialisiert {
+        &mut self.anschluss
     }
 }
 
