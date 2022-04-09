@@ -42,7 +42,7 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
 {
     /// Serialisiere einen [Plan]
-    fn serialisiere(&self) -> PlanSerialisiert<L> {
+    pub fn serialisiere(&self) -> PlanSerialisiert<L> {
         let Plan { aktionen, endlosschleife } = self;
         PlanSerialisiert {
             aktionen: aktionen.into_iter().map(Aktion::serialisiere).collect(),
@@ -108,7 +108,7 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
     /// Eine [AktionWarten].
     Warten(Warten),
     /// Ausführen eines [Plans](Plan).
-    Ausführen(PlanEnum<AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten>>),
+    Ausführen(Name),
 }
 
 /// Eine Aktionen in einem Fahrplan.
@@ -140,7 +140,7 @@ where
             },
             Aktion::Schalten(aktion) => AktionSerialisiert::Schalten(aktion.serialisiere()),
             Aktion::Warten(aktion) => AktionSerialisiert::Warten(aktion.serialisiere()),
-            Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.serialisiere()),
+            Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.clone()),
         }
     }
 }
@@ -172,14 +172,7 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
                 dreiwege_weichen,
             )?),
             AktionSerialisiert::Warten(aktion) => Aktion::Warten(aktion.deserialisiere(kontakte)?),
-            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
-                geschwindigkeiten,
-                streckenabschnitte,
-                gerade_weichen,
-                kurven_weichen,
-                dreiwege_weichen,
-                kontakte,
-            )?),
+            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan),
         };
         Ok(reserviert)
     }

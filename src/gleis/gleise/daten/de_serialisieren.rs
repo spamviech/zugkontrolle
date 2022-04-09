@@ -1,6 +1,6 @@
 //! speichern und laden Methode für [Gleise].
 
-use std::{collections::HashMap, fmt::Debug, io::Read};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, io::Read};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
@@ -35,11 +35,10 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan,
+        plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    void::Void,
     zugtyp::{Zugtyp, ZugtypSerialisiert},
 };
 
@@ -68,7 +67,7 @@ where
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
-    pub(crate) pläne: HashMap<plan::Name, Void>,
+    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L>>,
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
@@ -103,14 +102,11 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
                     )
                 })
                 .collect(),
-            // TODO wirkliche Konvertierung, sobald eine serialisierbare Repräsentation existiert,
-            // die keine Probleme beim laden hat.
-            pläne: HashMap::new(),
-            // pläne: self
-            //     .pläne
-            //     .iter()
-            //     .map(|(name, plan)| (name.clone(), plan.serialisiere()))
-            //     .collect(),
+            pläne: self
+                .pläne
+                .iter()
+                .map(|(name, plan)| (name.clone(), plan.serialisiere()))
+                .collect(),
         }
     }
 
@@ -227,7 +223,10 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
     }
 }
 
-impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
+impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L>
+where
+    <L as Serialisiere>::Serialisiert: Eq + Hash,
+{
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere(
         self,
@@ -241,7 +240,7 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
             ohne_streckenabschnitt,
             ohne_geschwindigkeit,
             geschwindigkeiten,
-            pläne,
+            pläne: pläne_serialisiert,
         } = self;
 
         let zugtyp = Zugtyp::try_from(zugtyp)?;
@@ -386,51 +385,26 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
             },
         )?;
 
-        let Reserviert {
-            anschluss: pläne,
-            pwm_nicht_benötigt: _,
-            output_nicht_benötigt: _,
-            input_nicht_benötigt: _,
-        } = pläne.into_iter().fold(
-            Ok(Reserviert {
-                anschluss: HashMap::new(),
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            }),
-            |acc: Result<_, anschluss::Fehler>, (name, plan_serialisiert)| {
-                // TODO wirkliche Konvertierung, sobald eine serialisierbare Repräsentation existiert,
-                // die keine Probleme beim laden hat.
-                let _ = (acc, name);
-                plan_serialisiert.unreachable();
-                // let Reserviert {
-                //     anschluss: mut pläne,
-                //     pwm_nicht_benötigt,
-                //     output_nicht_benötigt,
-                //     input_nicht_benötigt,
-                // } = acc?;
-                // let Reserviert {
-                //     anschluss: plan,
-                //     pwm_nicht_benötigt,
-                //     output_nicht_benötigt,
-                //     input_nicht_benötigt,
-                // } = plan_serialisiert
-                //     .reserviere(
-                //         lager,
-                //         pwm_nicht_benötigt,
-                //         output_nicht_benötigt,
-                //         input_nicht_benötigt,
-                //     )
-                //     .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                // let _ = pläne.insert(name, plan);
-                // Ok(Reserviert {
-                //     anschluss: pläne,
-                //     pwm_nicht_benötigt,
-                //     output_nicht_benötigt,
-                //     input_nicht_benötigt,
-                // })
-            },
-        )?;
+        // TODO füllen
+        let bekannte_geschwindigkeiten = HashMap::new();
+        let bekannte_streckenabschnitte = HashMap::new();
+        let bekannte_gerade_weichen = HashMap::new();
+        let bekannte_kurven_weichen = HashMap::new();
+        let bekannte_dreiwege_weichen = HashMap::new();
+        let bekannte_kontakte = HashMap::new();
+
+        let mut pläne = HashMap::new();
+        for (name, plan_serialisiert) in pläne_serialisiert {
+            let plan = plan_serialisiert.deserialisiere(
+                &bekannte_geschwindigkeiten,
+                &bekannte_streckenabschnitte,
+                &bekannte_gerade_weichen,
+                &bekannte_kurven_weichen,
+                &bekannte_dreiwege_weichen,
+                &bekannte_kontakte,
+            )?;
+            pläne.insert(name, plan);
+        }
 
         Ok(Zustand {
             zugtyp,
