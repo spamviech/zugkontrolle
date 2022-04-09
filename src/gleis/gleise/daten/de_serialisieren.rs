@@ -35,10 +35,11 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{self, PlanSerialisiert},
+        plan,
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
+    void::Void,
     zugtyp::{Zugtyp, ZugtypSerialisiert},
 };
 
@@ -67,7 +68,7 @@ where
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<L>,
-    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L>>,
+    pub(crate) pläne: HashMap<plan::Name, Void>,
 }
 
 impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
@@ -102,11 +103,14 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
                     )
                 })
                 .collect(),
-            pläne: self
-                .pläne
-                .iter()
-                .map(|(name, plan)| (name.clone(), plan.serialisiere()))
-                .collect(),
+            // TODO wirkliche Konvertierung, sobald eine serialisierbare Repräsentation existiert,
+            // die keine Probleme beim laden hat.
+            pläne: HashMap::new(),
+            // pläne: self
+            //     .pläne
+            //     .iter()
+            //     .map(|(name, plan)| (name.clone(), plan.serialisiere()))
+            //     .collect(),
         }
     }
 
@@ -395,32 +399,36 @@ impl<L: Serialisiere + BekannterLeiter> ZustandSerialisiert<L> {
                 input_nicht_benötigt,
             }),
             |acc: Result<_, anschluss::Fehler>, (name, plan_serialisiert)| {
-                let Reserviert {
-                    anschluss: mut pläne,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                } = acc?;
-                let Reserviert {
-                    anschluss: plan,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                } = plan_serialisiert
-                    .reserviere(
-                        lager,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    )
-                    .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                let _ = pläne.insert(name, plan);
-                Ok(Reserviert {
-                    anschluss: pläne,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                })
+                // TODO wirkliche Konvertierung, sobald eine serialisierbare Repräsentation existiert,
+                // die keine Probleme beim laden hat.
+                let _ = (acc, name);
+                plan_serialisiert.unreachable();
+                // let Reserviert {
+                //     anschluss: mut pläne,
+                //     pwm_nicht_benötigt,
+                //     output_nicht_benötigt,
+                //     input_nicht_benötigt,
+                // } = acc?;
+                // let Reserviert {
+                //     anschluss: plan,
+                //     pwm_nicht_benötigt,
+                //     output_nicht_benötigt,
+                //     input_nicht_benötigt,
+                // } = plan_serialisiert
+                //     .reserviere(
+                //         lager,
+                //         pwm_nicht_benötigt,
+                //         output_nicht_benötigt,
+                //         input_nicht_benötigt,
+                //     )
+                //     .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                // let _ = pläne.insert(name, plan);
+                // Ok(Reserviert {
+                //     anschluss: pläne,
+                //     pwm_nicht_benötigt,
+                //     output_nicht_benötigt,
+                //     input_nicht_benötigt,
+                // })
             },
         )?;
 
