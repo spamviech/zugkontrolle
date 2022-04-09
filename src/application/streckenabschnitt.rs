@@ -1,7 +1,4 @@
-//! Anzeige & Erstellen eines Streckenabschnittes.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Anzeige & Erstellen eines [Streckenabschnittes](Streckenabschnitt).
 
 use std::{collections::BTreeMap, fmt::Debug};
 
@@ -25,24 +22,47 @@ use crate::{
 
 pub mod style;
 
+/// Status des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
+/// sowie [Buttons](iced::Button) zum Öffnen des Auswahl-Fensters.
 #[derive(Debug)]
 pub struct AnzeigeStatus {
-    pub aktuell: Option<(StreckenabschnittId, Farbe)>,
-    pub auswählen: button::State,
+    /// Der aktuelle Streckenabschnitt.
+    aktuell: Option<(StreckenabschnittId, Farbe)>,
+    /// Zustand des Buttons zum Öffnen des Auswahl-Fensters.
+    auswählen: button::State,
 }
 
 impl AnzeigeStatus {
+    /// Erstelle einen neuen [AnzeigeStatus].
     pub fn neu() -> Self {
         AnzeigeStatus { aktuell: None, auswählen: button::State::new() }
     }
+
+    /// Der aktuelle [Streckenabschnitt].
+    #[inline(always)]
+    pub fn aktuell(&self) -> &Option<(StreckenabschnittId, Farbe)> {
+        &self.aktuell
+    }
+
+    /// Eine veränderliche Referenz auf den aktuellen [Streckenabschnitt].
+    #[inline(always)]
+    pub fn aktuell_mut(&mut self) -> &mut Option<(StreckenabschnittId, Farbe)> {
+        &mut self.aktuell
+    }
 }
 
+/// Eine Nachricht des [Anzeige]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
+    /// Öffne das Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
     Auswählen,
+    /// Einstellen ob ein Klick auf ein Gleis den [Streckenabschnitt]
+    /// zum aktuellen Streckenabschnitt ändert.
     Festlegen(bool),
 }
 
+/// Widget zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
+/// sowie Buttons zum Öffnen des Auswahl-Fensters.
 pub struct Anzeige<'a, R: Renderer + container::Renderer> {
     container: Container<'a, AnzeigeNachricht, R>,
 }
@@ -66,6 +86,7 @@ where
     <R as container::Renderer>::Style: From<style::Anzeige>,
     <R as iced_native::container::Renderer>::Style: From<style::Beschreibung>,
 {
+    /// Erstelle eine neue [Anzeige].
     pub fn neu(status: &'a mut AnzeigeStatus, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let column = Column::new()
@@ -119,6 +140,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
     }
 }
 
+/// Status des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
 #[derive(Debug)]
 pub struct AuswahlStatus {
     neu_name: String,
@@ -133,6 +155,7 @@ pub struct AuswahlStatus {
 }
 
 impl AuswahlStatus {
+    /// Erstelle einen neuen [AuswahlStatus].
     pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlStatus {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlStatus {

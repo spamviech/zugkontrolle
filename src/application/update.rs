@@ -229,7 +229,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
-            .aktuell
+            .aktuell()
             .as_ref()
             .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
         macro_rules! hinzufügen_gehalten_bei_maus {
@@ -241,7 +241,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     false,
                 ) {
                     error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    self.streckenabschnitt_aktuell.aktuell = None;
+                    *self.streckenabschnitt_aktuell.aktuell_mut() = None;
                     let _ = self.gleise.hinzufügen_gehalten_bei_maus(
                         $gleis.mit_none(),
                         Vektor { x: Skalar(0.), y: klick_höhe },
@@ -287,7 +287,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         &mut self,
         streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
     ) {
-        self.streckenabschnitt_aktuell.aktuell = streckenabschnitt
+        *self.streckenabschnitt_aktuell.aktuell_mut() = streckenabschnitt
     }
 
     /// Füge einen neuen [Streckenabschnitt] hinzu.
@@ -332,7 +332,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                     Vec::new(),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
-                        self.streckenabschnitt_aktuell.aktuell = Some((
+                        *self.streckenabschnitt_aktuell.aktuell_mut() = Some((
                             StreckenabschnittId {
                                 geschwindigkeit: geschwindigkeit.cloned(),
                                 name: name.clone(),
@@ -378,11 +378,11 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
         if self
             .streckenabschnitt_aktuell
-            .aktuell
+            .aktuell()
             .as_ref()
             .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
         {
-            self.streckenabschnitt_aktuell.aktuell = None;
+            *self.streckenabschnitt_aktuell.aktuell_mut() = None;
         }
 
         let nicht_gefunden_nachricht = format!(
@@ -422,7 +422,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
                 Gleise::setze_streckenabschnitt,
                 &mut self.gleise,
                 self.streckenabschnitt_aktuell
-                    .aktuell
+                    .aktuell()
                     .as_ref()
                     .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen())
             ) {
@@ -1127,7 +1127,7 @@ where
                         )
                     })
                     .collect();
-                self.streckenabschnitt_aktuell.aktuell = None;
+                *self.streckenabschnitt_aktuell.aktuell_mut() = None;
             },
             Err(fehler) => self.zeige_message_box(
                 format!("Fehler beim Laden von {}", pfad),
