@@ -129,16 +129,16 @@ impl GleiseDaten {
     }
 }
 
-fn reserviere_anschlüsse<T: Zeichnen + Serialisiere, S: Clone + Serialisiere, L: Serialisiere>(
+fn reserviere_anschlüsse<T, S, L>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
-    source: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
+    serialisiert: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
     output_anschlüsse: Vec<OutputAnschluss>,
     input_anschlüsse: Vec<InputAnschluss>,
     steuerung: impl Fn(&T) -> &Option<S>,
     map: &mut HashMap<S::Serialisiert, S>,
-    fehler: &mut Vec<LadenFehler<L>>,
+    laden_fehler: &mut Vec<LadenFehler<L>>,
 ) -> (
     Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>,
     Vec<pwm::Pin>,
@@ -146,11 +146,15 @@ fn reserviere_anschlüsse<T: Zeichnen + Serialisiere, S: Clone + Serialisiere, L
     Vec<InputAnschluss>,
 )
 where
+    T: Zeichnen + Serialisiere,
+    S: Clone + Serialisiere,
     <S as Serialisiere>::Serialisiert: Eq + Hash,
+    L: Serialisiere,
 {
-    source.into_iter().fold(
+    serialisiert.into_iter().fold(
         (Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse),
         |acc, gleis_serialisiert| {
+            let mut gleise = acc.0;
             let Reserviert {
                 anschluss: gleis,
                 pwm_nicht_benötigt,
@@ -158,8 +162,15 @@ where
                 input_nicht_benötigt,
             } = match gleis_serialisiert.reserviere(lager, acc.1, acc.2, acc.3) {
                 Ok(reserviert) => reserviert,
-                // .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                Err(fehler) => todo!(),
+                Err(de_serialisieren::Fehler {
+                    fehler,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                }) => {
+                    laden_fehler.push(fehler.into());
+                    return (gleise, pwm_pins, output_anschlüsse, input_anschlüsse);
+                },
             };
             // Bekannte Steuerung sichern
             if let Some(steuerung) = steuerung(&gleis.definition) {
@@ -169,7 +180,6 @@ where
             // Gleis mit BoundingBox speichern
             let rectangle =
                 Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
-            let mut gleise = acc.0;
             gleise.push(GeomWithData::new(rectangle, gleis));
             (gleise, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
         },
