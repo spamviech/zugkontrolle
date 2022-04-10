@@ -1,8 +1,5 @@
 //! Level eines [Anschlusses](crate::anschluss::Anschluss).
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::fmt::{Display, Formatter, Result};
 use std::ops::Not;
 
@@ -10,11 +7,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::{anschluss::level::Level, rppal};
 
+/// Bei welchem [Level] fließt der Strom an einem Anschluss.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {
+    /// [High](Level::High) ist [Fließend](Fließend::Fließend),
+    /// [Low](Level::Low) ist [Gesperrt](Fließend::Gesperrt).
     Normal,
+    /// [Low](Level::Low) ist [Fließend](Fließend::Fließend),
+    /// [High](Level::High) ist [Gesperrt](Fließend::Gesperrt).
     Invertiert,
 }
+
 impl Display for Polarität {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
@@ -46,11 +49,15 @@ impl From<rppal::pwm::Polarity> for Polarität {
     }
 }
 
+/// Zustand des Stroms, der von einem [Anschluss](crate::anschluss::Anschluss) gesteuert wird.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Fließend {
+    /// Der Strom fließt.
     Fließend,
+    /// Der Strom fließt nicht.
     Gesperrt,
 }
+
 impl Not for Fließend {
     type Output = Fließend;
 
@@ -61,9 +68,11 @@ impl Not for Fließend {
         }
     }
 }
+
 impl Fließend {
-    pub fn with_polarity(self, polarity: Polarität) -> Level {
-        match (self, polarity) {
+    /// Erhalte den zur [Polarität] passenden [Level].
+    pub fn mit_polarität(self, polarität: Polarität) -> Level {
+        match (self, polarität) {
             (Fließend::Fließend, Polarität::Normal)
             | (Fließend::Gesperrt, Polarität::Invertiert) => Level::High,
             (Fließend::Fließend, Polarität::Invertiert)

@@ -101,7 +101,7 @@ impl Display for Anschluss {
 impl Anschluss {
     /// Konfiguriere den [Anschluss] als [Output](OutputAnschluss).
     pub fn als_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
-        let gesperrt_level = Fließend::Gesperrt.with_polarity(polarität);
+        let gesperrt_level = Fließend::Gesperrt.mit_polarität(polarität);
         Ok(match self {
             Anschluss::Pin(pin) => {
                 OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }
@@ -159,10 +159,10 @@ impl OutputAnschluss {
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         Ok(match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                pin.schreibe(fließend.with_polarity(*polarität))
+                pin.schreibe(fließend.mit_polarität(*polarität))
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                port.schreibe(fließend.with_polarity(*polarität))?
+                port.schreibe(fließend.mit_polarität(*polarität))?
             },
         })
     }

@@ -1,7 +1,4 @@
-//! Gpio Pin in verschiedenen Konfigurationen.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Gpio [Pin] in verschiedenen Konfigurationen.
 
 use self::pwm::Pwm;
 use crate::{
@@ -14,16 +11,18 @@ pub mod input;
 pub mod output;
 pub mod pwm;
 
+/// Verwalten aller nicht verwendeten [Pins](Pin).
 #[derive(Debug)]
 pub struct Lager(rppal::gpio::Gpio);
 
 impl Lager {
+    /// Erstelle ein neues [Lager].
     #[inline(always)]
     pub fn neu() -> Result<Lager, rppal::gpio::Error> {
         rppal::gpio::Gpio::new().map(Lager)
     }
 
-    /// Reserviere den gewählten Gpio pin.
+    /// Reserviere den gewählten Gpio [Pin].
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, ReservierenFehler> {
         match self.0.get(pin) {
             Ok(pin) => Ok(Pin(pin)),
@@ -32,9 +31,12 @@ impl Lager {
     }
 }
 
+/// Fehler beim reservieren eines [Pins](Pin).
 #[derive(Debug)]
 pub struct ReservierenFehler {
+    /// Der gewünschte [Pin].
     pub pin: u8,
+    /// Der aufgetretene Fehler.
     pub fehler: rppal::gpio::Error,
 }
 

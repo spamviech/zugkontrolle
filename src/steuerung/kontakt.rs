@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     self,
-    de_serialisieren::{self, AnschlussOderSerialisiert, Reserviere, Reserviert, Serialisiere},
+    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
     level::Level,
     pin::pwm,
     trigger::Trigger,
@@ -35,14 +35,36 @@ pub struct Kontakt {
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
 }
 
-impl AnschlussOderSerialisiert<InputAnschluss> {
-    fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
-        if let Err(fehler) = anschluss.lösche_async_interrupt() {
-            error!(
-                "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {:?}",
-                kontakt_name.0, fehler
-            )
+#[derive(Debug)]
+enum AnschlussOderSerialisiert<T: Serialisiere> {
+    Anschluss(T),
+    Serialisiert(T::Serialisiert),
+}
+
+impl<T> AnschlussOderSerialisiert<T>
+where
+    T: Serialisiere,
+    <T as Serialisiere>::Serialisiert: Clone,
+{
+    fn entferne_anschluss(&mut self) -> AnschlussOderSerialisiert<T> {
+        let serialisiert = self.serialisiere();
+        std::mem::replace(self, AnschlussOderSerialisiert::Serialisiert(serialisiert))
+    }
+
+    fn serialisiere(&self) -> T::Serialisiert {
+        match self {
+            AnschlussOderSerialisiert::Anschluss(anschluss) => anschluss.serialisiere(),
+            AnschlussOderSerialisiert::Serialisiert(serialisiert) => serialisiert.clone(),
         }
+    }
+}
+
+fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
+    if let Err(fehler) = anschluss.lösche_async_interrupt() {
+        error!(
+            "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {:?}",
+            kontakt_name.0, fehler
+        )
     }
 }
 
@@ -50,7 +72,7 @@ impl Drop for Kontakt {
     fn drop(&mut self) {
         let mut kontakt_anschluss = self.anschluss.lock();
         if let AnschlussOderSerialisiert::Anschluss(anschluss) = &mut *kontakt_anschluss {
-            AnschlussOderSerialisiert::interrupt_zurücksetzen(anschluss, &self.name)
+            interrupt_zurücksetzen(anschluss, &self.name)
         }
     }
 }
@@ -133,7 +155,7 @@ impl Serialisiere for Kontakt {
         if let AnschlussOderSerialisiert::Anschluss(mut anschluss) =
             kontakt_anschluss.entferne_anschluss()
         {
-            AnschlussOderSerialisiert::interrupt_zurücksetzen(&mut anschluss, &self.name);
+            interrupt_zurücksetzen(&mut anschluss, &self.name);
             anschluss.anschlüsse()
         } else {
             (Vec::new(), Vec::new(), Vec::new())

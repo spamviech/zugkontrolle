@@ -1,4 +1,4 @@
-//! Pcf8574, gesteuert über I2C.
+//! [Pcf8574], gesteuert über I2C.
 //!
 //! Alle Methoden in diesem Modul können an einem Mutex blocken (exklusiver I2C-Zugriff).
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,

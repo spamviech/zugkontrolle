@@ -1,4 +1,4 @@
-//! Level eines Anschlusses.
+//! Level eines [Anschlusses](crate::anschluss::Anschluss).
 
 use serde::{Deserialize, Serialize};
 
