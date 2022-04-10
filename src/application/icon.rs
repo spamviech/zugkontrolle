@@ -1,7 +1,4 @@
-//! Icon for the Application.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Icon für die Anwendung.
 
 use std::include_bytes;
 
@@ -12,6 +9,7 @@ static DATA: &[u8] = include_bytes!("../../icon/zugkontrolle.data");
 static WIDTH: u32 = 32;
 static HEIGHT: u32 = 32;
 
+/// Das Icon der Anwendung.
 pub fn icon() -> Option<Icon> {
     match Icon::from_rgba(Vec::from(DATA), WIDTH, HEIGHT) {
         Ok(icon) => Some(icon),
