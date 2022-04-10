@@ -1,4 +1,4 @@
-//! Gpio Pins für Pwm konfiguriert.
+//! Gpio [Pins](Pin) für Pwm konfiguriert.
 
 use serde::{Deserialize, Serialize};
 
@@ -184,6 +184,7 @@ impl Serialisiere for Pin {
         (vec![self], Vec::new(), Vec::new())
     }
 }
+
 impl Reserviere<Pin> for Serialisiert {
     fn reserviere(
         self,

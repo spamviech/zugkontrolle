@@ -1,4 +1,4 @@
-//! Gpio Pins konfiguriert für Input.
+//! Gpio [Pins](Pin) konfiguriert für Input.
 
 use crate::{
     anschluss::{level::Level, trigger::Trigger},

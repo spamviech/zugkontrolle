@@ -1,4 +1,4 @@
-//! Gpio Pins konfiguriert für Output.
+//! Gpio [Pins](Pin) konfiguriert für Output.
 
 use crate::{anschluss::level::Level, rppal::gpio};
 
