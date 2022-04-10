@@ -591,7 +591,7 @@ pub struct AuswahlZustand {
     umdrehen_zustand: anschluss::Zustand<anschluss::Output>,
     pwm_pin: pwm::Serialisiert,
     pwm_polarität: Polarität,
-    pwm_zustand: anschluss::PwmState,
+    pwm_zustand: anschluss::PwmZustand,
     ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse:
         NonEmpty<(OutputSerialisiert, anschluss::Zustand<anschluss::Output>, button::State)>,
@@ -614,7 +614,7 @@ impl AuswahlZustand {
             umdrehen_zustand: anschluss::Zustand::neu_output(),
             pwm_pin: pwm::Serialisiert(0),
             pwm_polarität: Polarität::Normal,
-            pwm_zustand: anschluss::PwmState::neu(),
+            pwm_zustand: anschluss::PwmZustand::neu(),
             ks_anschlüsse_anpassen: None,
             ks_anschlüsse: NonEmpty::singleton((
                 OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },

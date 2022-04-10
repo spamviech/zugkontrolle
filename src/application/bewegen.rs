@@ -1,7 +1,4 @@
-//! Widget zur Anpassung des Pivot Punktes.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Widget zum Anpassen des Pivot Punktes.
 
 use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},
@@ -18,21 +15,32 @@ use crate::typen::{
     winkel,
 };
 
+/// Mögliche Bewegungen.
 #[derive(Debug, Clone, Copy)]
 pub enum Bewegung {
+    /// Vertikale Bewegung nach oben.
     Oben,
+    /// Vertikale Bewegung nach unten.
     Unten,
+    /// Horizontale Bewegung nach links.
     Links,
+    /// Horizontale Bewegung nach rechts.
     Rechts,
+    /// Diagonale Bewegung nach oben und links.
     ObenLinks,
+    /// Diagonale Bewegung nach oben und rechts.
     ObenRechts,
+    /// Diagonale Bewegung nach unten und links.
     UntenLinks,
+    /// Diagonale Bewegung nach unten und rechts.
     UntenRechts,
 }
+
 impl Bewegung {
-    pub fn vektor(self, radius: Skalar) -> Vektor {
+    /// Bewegung als Vektor der gegebenen Länge.
+    pub fn vektor(self, länge: Skalar) -> Vektor {
         Vektor::polar_koordinaten(
-            radius,
+            länge,
             match self {
                 Bewegung::Rechts => 0.,
                 Bewegung::UntenRechts => 0.25,
@@ -47,13 +55,18 @@ impl Bewegung {
     }
 }
 
+/// Nachricht des [Bewegen]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum Nachricht {
+    /// Beginne eine kontinuierliche Bewegung.
     StarteBewegung(Bewegung),
+    /// Beende die kontinuierliche Bewegung.
     BeendeBewegung,
+    /// Setze den Pivot-Punkt auf `(0,0)` zurück.
     Zurücksetzen,
 }
 
+/// Widget zum Anpassen des Pivot-Punktes.
 #[derive(Debug)]
 pub struct Bewegen {
     canvas: Cache,
@@ -61,6 +74,7 @@ pub struct Bewegen {
 }
 
 impl Bewegen {
+    /// Erstelle ein neues [Bewegen]-Widget.
     pub fn neu() -> Self {
         Bewegen { canvas: Cache::neu(), bewegung: false }
     }

@@ -115,7 +115,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             impl From<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsseAuswahlZustand {
                 fn from(anschlüsse_save: RichtungAnschlüsseSerialisiert) -> Self {
                     RichtungAnschlüsseAuswahlZustand {
-                        #(#struct_fields: #base_ident::application::anschluss::Zustand::von_output_save(anschlüsse_save.#struct_fields)),*
+                        #(#struct_fields: #base_ident::application::anschluss::Zustand::von_output_serialisiert(anschlüsse_save.#struct_fields)),*
                     }
                 }
             }

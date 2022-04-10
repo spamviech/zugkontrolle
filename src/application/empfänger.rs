@@ -1,7 +1,4 @@
-//! Auf channel-Nachricht wartende Subscription.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Auf channel-Nachricht wartende [Subscription](iced::Subscription).
 
 use std::{
     hash::{Hash, Hasher},
@@ -17,13 +14,15 @@ use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::debug;
 use parking_lot::Mutex;
 
-/// Warte auf eine Nachricht
+/// Warte auf eine Nachricht, kann als Ergebnis von [subscription](iced::Application::subscription)
+/// über [from_recipe](iced::Subscription::from_recipe) verwendet werden.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct Empfänger<Nachricht> {
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }
 
 impl<Nachricht> Empfänger<Nachricht> {
+    /// Erstelle einen neuen [Empfänger].
     pub fn neu(receiver: Receiver<Nachricht>) -> Self {
         Empfänger { receiver: Arc::new(Mutex::new(receiver)) }
     }

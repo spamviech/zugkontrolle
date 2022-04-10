@@ -1,25 +1,27 @@
 //! Style-Strukturen für ein [iced::Scrollable].
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use iced::{
     scrollable::{Scrollbar, Scroller, StyleSheet},
     Color,
 };
 
+/// Style-Struktur für ein [iced::Scrollable] mit fester Breite.
 #[derive(Debug, Clone, Copy)]
-pub struct Collection {
-    width: u16,
+pub struct Sammlung {
+    /// Die Breite des [iced::Scrollable].
+    pub breite: u16,
 }
 
-impl Collection {
-    pub fn new(width: u16) -> Self {
-        Collection { width }
+impl Sammlung {
+    /// Erstelle eine neue [Sammlung] Style-Struktur.
+    pub fn neu(breite: u16) -> Self {
+        Sammlung { breite }
     }
 
-    pub fn width(&self) -> u16 {
-        self.width
+    /// Die Breite des [iced::Scrollable].
+    #[inline(always)]
+    pub fn breite(&self) -> u16 {
+        self.breite
     }
 
     fn scrollbar(&self, grey_value: f32) -> Scrollbar {
@@ -31,7 +33,7 @@ impl Collection {
             border_color: Color::BLACK,
             scroller: Scroller {
                 color: scroller_color,
-                border_radius: 0.25 * (self.width as f32),
+                border_radius: 0.25 * (self.breite as f32),
                 border_width: 0.,
                 border_color: scroller_color,
             },
@@ -39,7 +41,7 @@ impl Collection {
     }
 }
 
-impl StyleSheet for Collection {
+impl StyleSheet for Sammlung {
     fn active(&self) -> Scrollbar {
         self.scrollbar(0.7)
     }

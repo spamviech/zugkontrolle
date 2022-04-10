@@ -46,6 +46,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
         let Zugkontrolle {
             gleise,
             scrollable_zustand,
+            scrollable_style,
             geraden,
             kurven,
             weichen,
@@ -86,6 +87,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
             scrollable_zustand,
+            *scrollable_style,
             geraden,
             kurven,
             weichen,
@@ -278,6 +280,7 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
 fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_zustand: &'t mut iced::scrollable::State,
+    scrollable_style: scrollable::Sammlung,
     geraden: &'t mut Vec<Knopf<GeradeUnit>>,
     kurven: &'t mut Vec<Knopf<KurveUnit>>,
     weichen: &'t mut Vec<Knopf<WeicheUnit>>,
@@ -289,8 +292,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     gleise: &Gleise<Leiter>,
 ) -> Row<'t, Nachricht<Leiter>> {
     let mut scrollable = Scrollable::new(scrollable_zustand);
-    let scrollable_style = scrollable::Collection::new(10);
-    let scroller_width = scrollable_style.width();
+    let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
     match aktueller_modus {
         Modus::Bauen => {

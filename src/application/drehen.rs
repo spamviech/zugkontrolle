@@ -1,8 +1,5 @@
 //! Widget zum Einstellen des Anzeigewinkels.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use iced::{
     canvas::{event, Cursor, Event, Fill, FillRule, Geometry, Program, Stroke},
     mouse, Color, Rectangle,
@@ -18,6 +15,8 @@ use crate::typen::{
     winkel::{self, Trigonometrie, Winkel},
 };
 
+/// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
+/// [Canvas](crate::touch_canvas::Canvas).
 #[derive(Debug)]
 pub struct Drehen {
     canvas: Cache,
@@ -26,6 +25,7 @@ pub struct Drehen {
 }
 
 impl Drehen {
+    /// Erstelle ein neues [Drehen]-Widget.
     pub fn neu() -> Self {
         Drehen { canvas: Cache::neu(), winkel: winkel::ZERO, grabbed: false }
     }

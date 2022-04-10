@@ -1,8 +1,5 @@
 //! Widget zur Farbwahl ohne Overlay.
 
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
-
 use std::{fmt::Debug, hash::Hash};
 
 use iced_graphics::Primitive;
@@ -19,8 +16,9 @@ use crate::typen::{
 };
 
 /// Widget zur Farbwahl.
+///
 /// Im Gegensatz zum `iced_aw::ColorPicker` wird kein `overlay` verwendet, so dass es innerhalb
-/// eines `Modal` verwendet werden kann.
+/// eines [Modal](crate::application::modal::Modal) verwendet werden kann.
 pub struct Farbwahl<'a, M> {
     durchmesser: u16,
     nachricht: &'a dyn Fn(Farbe) -> M,
@@ -36,21 +34,24 @@ impl<M> Debug for Farbwahl<'_, M> {
 }
 
 impl<'a, M> Farbwahl<'a, M> {
+    /// Erstelle eine neue [Farbwahl].
     pub fn neu(nachricht: &'a impl Fn(Farbe) -> M) -> Self {
         Farbwahl { durchmesser: 50, nachricht }
     }
 
+    /// Ändere den Radius der [Farbwahl].
     pub fn radius(mut self, radius: u16) -> Self {
         self.durchmesser = 2 * radius;
         self
     }
 
+    /// Ändere den Durchmesser der [Farbwahl].
     pub fn durchmesser(mut self, durchmesser: u16) -> Self {
         self.durchmesser = durchmesser;
         self
     }
 
-    // Farbe eines Pixel oder None wenn außerhalb vom Radius.
+    /// Farbe eines Pixel oder None wenn außerhalb vom Radius.
     fn farbe(&self, vr: Vektor) -> Option<Farbe> {
         let länge = vr.länge();
         let radius = Skalar(0.5 * self.durchmesser as f32);

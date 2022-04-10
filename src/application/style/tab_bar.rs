@@ -1,10 +1,10 @@
-//! Style-Strukturen zur Auswahl eines Anschlusses.
-
-// HACK cargo check takes very long, this should reduce it until the lint is addressed
-#![allow(missing_docs)]
+//! Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
+//! bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
 use iced::{Background, Color};
 
+/// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
+/// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 #[derive(Debug, Clone, Copy)]
 pub struct TabBar;
 
