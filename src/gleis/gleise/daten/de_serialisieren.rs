@@ -246,7 +246,12 @@ pub enum LadenFehler<L: Serialisiere> {
         v2: bincode::Error,
     },
     /// Unbekannte Anschlüsse sollen in einem [Plan](plan::Plan) verwendet werden.
-    UnbekannteAnschlüsse(UnbekannteAnschlüsse<L>),
+    UnbekannteAnschlüsse {
+        /// Der Name des Plans.
+        plan: plan::Name,
+        /// Die unbekannten Anschlüsse.
+        anschlüsse: UnbekannteAnschlüsse<L>,
+    },
 }
 
 impl<L: Serialisiere> From<FalscherLeiter> for LadenFehler<L> {
@@ -455,14 +460,19 @@ where
 
         let mut pläne = HashMap::new();
         for (name, plan_serialisiert) in pläne_serialisiert {
-            let plan = plan_serialisiert.deserialisiere(
+            let plan = match plan_serialisiert.deserialisiere(
                 &bekannte_geschwindigkeiten,
                 &bekannte_streckenabschnitte,
                 &bekannte_gerade_weichen,
                 &bekannte_kurven_weichen,
                 &bekannte_dreiwege_weichen,
                 &bekannte_kontakte,
-            )?;
+            ) {
+                Ok(plan) => plan,
+                Err(anschlüsse) => {
+                    return Err(LadenFehler::UnbekannteAnschlüsse { plan: name, anschlüsse })
+                },
+            };
             let _ = pläne.insert(name, plan);
         }
 
