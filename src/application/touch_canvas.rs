@@ -45,8 +45,8 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
         Widget::layout(&self.0, renderer, limits)
     }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::hash_layout(&self.0, state)
+    fn hash_layout(&self, zustand: &mut Hasher) {
+        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::hash_layout(&self.0, zustand)
     }
 
     fn draw(
@@ -228,10 +228,10 @@ pub mod wrapper {
             Widget::layout(&self.canvas, renderer, limits)
         }
 
-        fn hash_layout(&self, state: &mut Hasher) {
+        fn hash_layout(&self, zustand: &mut Hasher) {
             <iced::Canvas<Message, Wrapper<P>> as Widget<Message, Renderer<B>>>::hash_layout(
                 &self.canvas,
-                state,
+                zustand,
             )
         }
 

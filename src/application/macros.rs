@@ -36,8 +36,8 @@ macro_rules! reexport_no_event_methods {
             )
         }
 
-        fn hash_layout(&self, state: &mut iced_native::Hasher) {
-            <$type as Widget<$message, $renderer>>::hash_layout(&self.$record, state)
+        fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
+            <$type as Widget<$message, $renderer>>::hash_layout(&self.$record, zustand)
         }
     };
 }

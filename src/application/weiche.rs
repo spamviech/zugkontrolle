@@ -15,24 +15,24 @@ use crate::{
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
-/// Status eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
+/// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 #[derive(Debug, Clone)]
-pub struct Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus> {
+pub struct Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand> {
     name: String,
-    name_state: text_input::State,
+    name_zustand: text_input::State,
     anschlüsse_save: AnschlüsseSerialisiert,
-    anschlüsse_state: AnschlüsseAuswahlStatus,
-    festlegen_state: button::State,
-    entfernen_state: button::State,
+    anschlüsse_zustand: AnschlüsseAuswahlZustand,
+    festlegen_zustand: button::State,
+    entfernen_zustand: button::State,
     hat_steuerung: bool,
 }
 
-impl<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
-    Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>
+impl<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>
+    Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>
 where
-    AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlStatus>,
+    AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlZustand>,
 {
-    /// Erstelle einen neuen [Status], potentiell mit voreingestellten Anschlüssen.
+    /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
     pub fn neu<Richtung>(
         option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
@@ -42,14 +42,14 @@ where
             } else {
                 (String::new(), Default::default(), false)
             };
-        let anschlüsse_state = anschlüsse_save.clone().into();
-        Status {
+        let anschlüsse_zustand = anschlüsse_save.clone().into();
+        Zustand {
             name,
-            name_state: text_input::State::new(),
+            name_zustand: text_input::State::new(),
             anschlüsse_save,
-            anschlüsse_state,
-            festlegen_state: button::State::new(),
-            entfernen_state: button::State::new(),
+            anschlüsse_zustand,
+            festlegen_zustand: button::State::new(),
+            entfernen_zustand: button::State::new(),
             hat_steuerung,
         }
     }
@@ -105,26 +105,26 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<
-        AnschlüsseAuswahlStatus: Nachschlagen<Richtung, anschluss::Status<anschluss::Output>>,
+        AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
     >(
-        status: &'t mut Status<AnschlüsseSerialisiert, AnschlüsseAuswahlStatus>,
+        zustand: &'t mut Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>,
     ) -> Self {
-        let Status {
+        let Zustand {
             name,
-            name_state,
+            name_zustand,
             anschlüsse_save,
-            anschlüsse_state,
-            festlegen_state,
-            entfernen_state,
+            anschlüsse_zustand,
+            festlegen_zustand,
+            entfernen_zustand,
             hat_steuerung,
-        } = status;
+        } = zustand;
         let mut column = Column::new().push(
-            TextInput::new(name_state, "<Name>", name, InterneNachricht::Name)
+            TextInput::new(name_zustand, "<Name>", name, InterneNachricht::Name)
                 .width(Length::Units(200)),
         );
-        for (richtung, anschluss_status) in anschlüsse_state.referenzen_mut().into_iter() {
+        for (richtung, anschluss_zustand) in anschlüsse_zustand.referenzen_mut().into_iter() {
             column = column.push(Row::new().push(Text::new(format!("{}", richtung))).push(
-                Element::from(anschluss::Auswahl::neu_output(anschluss_status)).map(
+                Element::from(anschluss::Auswahl::neu_output(anschluss_zustand)).map(
                     move |anschluss_save| {
                         InterneNachricht::Anschluss(richtung.clone(), anschluss_save)
                     },
@@ -134,12 +134,12 @@ where
         column = column.push(
             Row::new()
                 .push(
-                    Button::new(festlegen_state, Text::new("Festlegen"))
+                    Button::new(festlegen_zustand, Text::new("Festlegen"))
                         .on_press(InterneNachricht::Festlegen),
                 )
                 .push(
                     Button::new(
-                        entfernen_state,
+                        entfernen_zustand,
                         Text::new(if *hat_steuerung { "Entfernen" } else { "Keine Anschlüsse" }),
                     )
                     .on_press(InterneNachricht::Entfernen),

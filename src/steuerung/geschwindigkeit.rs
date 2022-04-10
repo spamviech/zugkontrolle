@@ -157,8 +157,8 @@ impl<Leiter: Serialisiere> Hash for GeschwindigkeitSerialisiert<Leiter>
 where
     <Leiter as Serialisiere>::Serialisiert: Hash,
 {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.leiter.hash(state);
+    fn hash<H: Hasher>(&self, zustand: &mut H) {
+        self.leiter.hash(zustand);
     }
 }
 

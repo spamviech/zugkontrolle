@@ -24,30 +24,30 @@ use crate::{
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
-/// Status eines Widgets zur Auswahl eines Anschlusses.
+/// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 #[derive(Debug)]
-pub struct Status<T> {
+pub struct Zustand<T> {
     active_tab: usize,
-    pin_state: number_input::State,
+    pin_zustand: number_input::State,
     pin: u8,
     beschreibung: Beschreibung,
-    port_state: number_input::State,
+    port_zustand: number_input::State,
     port: kleiner_8,
     modus: T,
 }
 
 #[derive(Debug, Clone)]
 pub struct Input<'t> {
-    number_input_state: number_input::State,
+    number_input_zustand: number_input::State,
     pin: u8,
     interrupt_pins: &'t HashMap<Beschreibung, u8>,
 }
 
-impl<'t> Status<Input<'t>> {
+impl<'t> Zustand<Input<'t>> {
     #[inline(always)]
     pub fn neu_input(interrupt_pins: &'t HashMap<Beschreibung, u8>) -> Self {
         Self::neu_mit_interrupt(Input {
-            number_input_state: number_input::State::new(),
+            number_input_zustand: number_input::State::new(),
             pin: 0,
             interrupt_pins,
         })
@@ -58,12 +58,19 @@ impl<'t> Status<Input<'t>> {
         initial: InputSerialisiert,
         interrupt_pins: &'t HashMap<Beschreibung, u8>,
     ) -> Self {
-        let make_modus =
-            |pin: u8| Input { number_input_state: number_input::State::new(), pin, interrupt_pins };
+        let make_modus = |pin: u8| Input {
+            number_input_zustand: number_input::State::new(),
+            pin,
+            interrupt_pins,
+        };
         match initial {
             InputSerialisiert::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
             InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt } => {
-                Status::neu_mit_initial_port(beschreibung, port, make_modus(interrupt.unwrap_or(0)))
+                Zustand::neu_mit_initial_port(
+                    beschreibung,
+                    port,
+                    make_modus(interrupt.unwrap_or(0)),
+                )
             },
         }
     }
@@ -91,7 +98,7 @@ impl<'t> Status<Input<'t>> {
 pub struct Output {
     polarität: Polarität,
 }
-impl Status<Output> {
+impl Zustand<Output> {
     #[inline(always)]
     pub fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output { polarität: Polarität::Normal })
@@ -122,7 +129,7 @@ impl Status<Output> {
     }
 }
 
-impl<T> Status<T> {
+impl<T> Zustand<T> {
     fn anschluss<M>(
         &self,
         make_pin: impl Fn(u8, &T) -> M,
@@ -152,12 +159,12 @@ impl<T> Status<T> {
             },
             kleiner_8::MIN,
         ));
-        Status {
+        Zustand {
             active_tab,
-            pin_state: number_input::State::new(),
+            pin_zustand: number_input::State::new(),
             pin,
             beschreibung,
-            port_state: number_input::State::new(),
+            port_zustand: number_input::State::new(),
             port,
             modus,
         }
@@ -165,17 +172,17 @@ impl<T> Status<T> {
 
     #[inline(always)]
     fn neu_mit_interrupt(modus: T) -> Self {
-        Status::neu(None, None, modus)
+        Zustand::neu(None, None, modus)
     }
 
     #[inline(always)]
     fn neu_mit_initial_pin(pin: u8, modus: T) -> Self {
-        Status::neu(Some(pin), None, modus)
+        Zustand::neu(Some(pin), None, modus)
     }
 
     #[inline(always)]
     fn neu_mit_initial_port(beschreibung: Beschreibung, port: kleiner_8, modus: T) -> Self {
-        Status::neu(None, Some((beschreibung, port)), modus)
+        Zustand::neu(None, Some((beschreibung, port)), modus)
     }
 }
 
@@ -241,15 +248,15 @@ where
         + tabs::Renderer,
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
-    pub fn neu_input(status: &'a mut Status<Input<'a>>) -> Self {
-        let interrupt_pins = status.modus.interrupt_pins.clone();
+    pub fn neu_input(zustand: &'a mut Zustand<Input<'a>>) -> Self {
+        let interrupt_pins = zustand.modus.interrupt_pins.clone();
         Auswahl::neu_mit_interrupt_view(
-            status,
+            zustand,
             ZeigeModus::Pcf8574,
-            |Input { number_input_state, pin, interrupt_pins }, beschreibung| {
+            |Input { number_input_zustand, pin, interrupt_pins }, beschreibung| {
                 (
                     interrupt_pins.get(&beschreibung).map_or(
-                        NumberInput::new(number_input_state, *pin, 32, InputMessage::Interrupt)
+                        NumberInput::new(number_input_zustand, *pin, 32, InputMessage::Interrupt)
                             .into(),
                         |pin| Text::new(pin.to_string()).into(),
                     ),
@@ -285,9 +292,9 @@ where
         + tabs::Renderer,
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
-    pub fn neu_output(status: &'a mut Status<Output>) -> Self {
+    pub fn neu_output(zustand: &'a mut Zustand<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(
-            status,
+            zustand,
             ZeigeModus::Beide,
             |Output { polarität }, _beschreibung| {
                 (
@@ -357,14 +364,15 @@ where
     <R as tab_bar::Renderer>::Style: From<TabBar>,
 {
     fn neu_mit_interrupt_view<IO>(
-        status: &'a mut Status<IO>,
+        zustand: &'a mut Zustand<IO>,
         zeige_modus: ZeigeModus,
         view_modus: impl FnOnce(&'a mut IO, Beschreibung) -> (Element<'a, I, R>, &'a mut T),
         update_modus: &'a impl Fn(&mut T, I),
         make_pin: &'a impl Fn(u8, &T) -> M,
         make_port: impl 'static + Fn(Beschreibung, kleiner_8, &T) -> M,
     ) -> Self {
-        let Status { active_tab, pin_state, pin, beschreibung, port_state, port, modus } = status;
+        let Zustand { active_tab, pin_zustand, pin, beschreibung, port_zustand, port, modus } =
+            zustand;
         let (view_modus, modus) = view_modus(modus, *beschreibung);
         // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
@@ -385,7 +393,7 @@ where
                 InternalMessage::Variante,
             ))
             .push(NumberInput::new(
-                port_state,
+                port_zustand,
                 u8::from(*port),
                 u8::from(kleiner_8::MAX),
                 InternalMessage::Port,
@@ -397,7 +405,7 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin_state, *pin, 32, InternalMessage::Pin).into(),
+                        NumberInput::new(pin_zustand, *pin, 32, InternalMessage::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), {
                         pcf8574_row.push(view_modus_mapped).into()
@@ -413,7 +421,7 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin_state, *pin, 32, InternalMessage::Pin).into(),
+                        NumberInput::new(pin_zustand, *pin, 32, InternalMessage::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
                 ];
@@ -513,11 +521,11 @@ where
 #[derive(Debug)]
 pub struct PwmState {
     pin: u8,
-    number_input_state: number_input::State,
+    number_input_zustand: number_input::State,
 }
 impl PwmState {
     pub fn neu() -> Self {
-        PwmState { pin: 0, number_input_state: number_input::State::new() }
+        PwmState { pin: 0, number_input_zustand: number_input::State::new() }
     }
 }
 
@@ -546,8 +554,11 @@ where
         + container::Renderer
         + number_input::Renderer,
 {
-    pub fn neu(PwmState { pin, number_input_state }: &'a mut PwmState) -> Self {
-        Pwm { number_input: NumberInput::new(number_input_state, *pin, 32, pwm::Serialisiert), pin }
+    pub fn neu(PwmState { pin, number_input_zustand }: &'a mut PwmState) -> Self {
+        Pwm {
+            number_input: NumberInput::new(number_input_zustand, *pin, 32, pwm::Serialisiert),
+            pin,
+        }
     }
 }
 

@@ -40,10 +40,10 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             .collect();
 
         enum_definition = Some(quote! {
-            type OutputAuswahl = #base_ident::application::anschluss::Status<#base_ident::application::anschluss::Output>;
+            type OutputAuswahl = #base_ident::application::anschluss::Zustand<#base_ident::application::anschluss::Output>;
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputAnschluss, RichtungAnschlüsse, Debug)]
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputSerialisiert, RichtungAnschlüsseSerialisiert, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-            #[zugkontrolle_macros::impl_nachschlagen(OutputAuswahl, RichtungAnschlüsseAuswahlStatus, Debug)]
+            #[zugkontrolle_macros::impl_nachschlagen(OutputAuswahl, RichtungAnschlüsseAuswahlZustand, Debug)]
             /// Mögliche Richtungen zum Schalten.
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
@@ -112,10 +112,10 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     }
                 }
             }
-            impl From<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsseAuswahlStatus {
+            impl From<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsseAuswahlZustand {
                 fn from(anschlüsse_save: RichtungAnschlüsseSerialisiert) -> Self {
-                    RichtungAnschlüsseAuswahlStatus {
-                        #(#struct_fields: #base_ident::application::anschluss::Status::von_output_save(anschlüsse_save.#struct_fields)),*
+                    RichtungAnschlüsseAuswahlZustand {
+                        #(#struct_fields: #base_ident::application::anschluss::Zustand::von_output_save(anschlüsse_save.#struct_fields)),*
                     }
                 }
             }

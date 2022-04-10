@@ -146,8 +146,8 @@ where
         (Primitive::Group { primitives }, mouse::Interaction::default()).into()
     }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.durchmesser.hash(state)
+    fn hash_layout(&self, zustand: &mut Hasher) {
+        self.durchmesser.hash(zustand)
     }
 
     fn on_event(

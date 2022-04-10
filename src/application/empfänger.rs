@@ -36,9 +36,9 @@ where
 {
     type Output = Nachricht;
 
-    fn hash(&self, state: &mut H) {
+    fn hash(&self, zustand: &mut H) {
         // Add some string to differentiate from other possible subscriptions without hashable state.
-        "Empfänger".hash(state);
+        "Empfänger".hash(zustand);
     }
 
     fn stream(self: Box<Self>, _input: BoxStream<Event>) -> BoxStream<Self::Output> {

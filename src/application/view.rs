@@ -12,7 +12,7 @@ use crate::{
         modal::Modal,
         speichern_laden, streckenabschnitt,
         style::{rule, scrollable},
-        touch_canvas, weiche, AnyGleisUnit, AuswahlStatus, MessageBox, Modus, Nachricht,
+        touch_canvas, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht,
         NachrichtClone, Zugkontrolle,
     },
     gleis::{
@@ -45,7 +45,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn view(&mut self) -> Element<'_, Nachricht<Leiter>> {
         let Zugkontrolle {
             gleise,
-            scrollable_state,
+            scrollable_zustand,
             geraden,
             kurven,
             weichen,
@@ -57,7 +57,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             auswahl,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
-            geschwindigkeit_button_state,
+            geschwindigkeit_button_zustand,
             message_box,
             bewegen,
             drehen,
@@ -76,7 +76,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             aktueller_modus,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
-            geschwindigkeit_button_state,
+            geschwindigkeit_button_zustand,
             bewegen,
             drehen,
             zoom,
@@ -85,7 +85,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
         );
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
-            scrollable_state,
+            scrollable_zustand,
             geraden,
             kurven,
             weichen,
@@ -117,7 +117,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             .into();
 
         let modal = Modal::neu(auswahl, column, &|modal| match modal {
-            AuswahlStatus::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
+            AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
             .map(|message| {
@@ -136,7 +136,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
-            AuswahlStatus::Geschwindigkeit(geschwindigkeit_auswahl) => Element::from(
+            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::from(
                 <Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
             )
             .map(|message| {
@@ -149,9 +149,9 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
                 }
             }),
-            AuswahlStatus::Weiche(status, als_message) => {
+            AuswahlZustand::Weiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -159,9 +159,9 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     }
                 })
             },
-            AuswahlStatus::DreiwegeWeiche(status, als_message) => {
+            AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -169,9 +169,9 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                     }
                 })
             },
-            AuswahlStatus::KurvenWeiche(status, als_message) => {
+            AuswahlZustand::KurvenWeiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(status)).map(move |message| {
+                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -182,12 +182,12 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
-        Modal::neu(message_box, modal, &|MessageBox { titel, nachricht, button_state }| {
+        Modal::neu(message_box, modal, &|MessageBox { titel, nachricht, button_zustand }| {
             Element::from(
                 iced_aw::Card::new(
                     Text::new(&*titel),
                     Column::new().push(Text::new(&*nachricht)).push(
-                        iced::Button::new(button_state, Text::new("Ok"))
+                        iced::Button::new(button_zustand, Text::new("Ok"))
                             .on_press(NachrichtClone::SchließeMessageBox),
                     ),
                 )
@@ -202,14 +202,14 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
 
 fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
-    streckenabschnitt: &'t mut streckenabschnitt::AnzeigeStatus,
+    streckenabschnitt: &'t mut streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_festlegen: &'t mut bool,
-    geschwindigkeit_button_state: &'t mut iced::button::State,
+    geschwindigkeit_button_zustand: &'t mut iced::button::State,
     bewegen: &'t mut Bewegen,
     drehen: &'t mut Drehen,
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
-    speichern_laden: &'t mut speichern_laden::Status,
+    speichern_laden: &'t mut speichern_laden::Zustand,
 ) -> Row<'t, Nachricht<Leiter>> {
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
@@ -254,8 +254,11 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
             )
             .push(
                 Element::new(
-                    iced::Button::new(geschwindigkeit_button_state, Text::new("Geschwindigkeiten"))
-                        .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
+                    iced::Button::new(
+                        geschwindigkeit_button_zustand,
+                        Text::new("Geschwindigkeiten"),
+                    )
+                    .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
                 )
                 .map(Nachricht::from),
             );
@@ -271,10 +274,10 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
         .width(Length::Fill)
         .height(Length::Shrink)
 }
-
+zustand
 fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
-    scrollable_state: &'t mut iced::scrollable::State,
+    scrollable_zustand: &'t mut iced::scrollable::State,
     geraden: &'t mut Vec<Knopf<GeradeUnit>>,
     kurven: &'t mut Vec<Knopf<KurveUnit>>,
     weichen: &'t mut Vec<Knopf<WeicheUnit>>,
@@ -285,7 +288,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
     gleise: &Gleise<Leiter>,
 ) -> Row<'t, Nachricht<Leiter>> {
-    let mut scrollable = Scrollable::new(scrollable_state);
+    let mut scrollable = Scrollable::new(scrollable_zustand);
     let scrollable_style = scrollable::Collection::new(10);
     let scroller_width = scrollable_style.width();
     let mut width = Length::Shrink;
@@ -330,7 +333,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
         },
         Modus::Fahren => {
             scrollable = scrollable.push(Text::new("Geschwindigkeiten")).spacing(1);
-            for (name, anzeige_status) in geschwindigkeiten {
+            for (name, anzeige_zustand) in geschwindigkeiten {
                 let geschwindigkeit = if let Some(geschwindigkeit) = gleise.geschwindigkeit(name) {
                     geschwindigkeit
                 } else {
@@ -339,7 +342,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                 };
                 let name_clone = name.clone();
                 scrollable = scrollable.push(
-                    Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_status)).map(
+                    Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_zustand)).map(
                         move |nachricht| NachrichtClone::GeschwindigkeitAnzeige {
                             name: name_clone.clone(),
                             nachricht,

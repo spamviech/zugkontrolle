@@ -196,7 +196,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     Winkel(Winkel),
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    /// Schließe das [Auswahl](AuswahlStatus)-Fenster.
+    /// Schließe das [Auswahl](AuswahlZustand)-Fenster.
     SchließeAuswahl,
     /// Schließe die [MessageBox].
     SchließeMessageBox,
@@ -232,7 +232,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     EntferneSpeichernFarbe(Instant),
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
-    /// Eine Nachricht der [Geschwindigkeit-Anzeige](geschwindigkeit::AnzeigeStatus).
+    /// Eine Nachricht der [Geschwindigkeit-Anzeige](geschwindigkeit::AnzeigeZustand).
     GeschwindigkeitAnzeige {
         /// Der Name der Geschwindigkeit.
         name: geschwindigkeit::Name,
@@ -302,27 +302,27 @@ where
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-type WeicheStatus = weiche::Status<
+type WeicheZustand = weiche::Zustand<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::gerade::RichtungAnschlüsseAuswahlStatus,
+    gleis::weiche::gerade::RichtungAnschlüsseAuswahlZustand,
 >;
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-type DreiwegeWeicheStatus = weiche::Status<
+type DreiwegeWeicheZustand = weiche::Zustand<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlStatus,
+    gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlZustand,
 >;
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-type KurvenWeicheStatus = weiche::Status<
+type KurvenWeicheZustand = weiche::Zustand<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::kurve::RichtungAnschlüsseAuswahlStatus,
+    gleis::weiche::kurve::RichtungAnschlüsseAuswahlZustand,
 >;
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
@@ -331,23 +331,23 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
 
 /// Zustand des Auswahl-Fensters.
-pub enum AuswahlStatus<Leiter: LeiterAnzeige> {
+pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
-    Streckenabschnitt(streckenabschnitt::AuswahlStatus),
+    Streckenabschnitt(streckenabschnitt::AuswahlZustand),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
-    Geschwindigkeit(geschwindigkeit::AuswahlStatus),
+    Geschwindigkeit(geschwindigkeit::AuswahlZustand),
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(WeicheStatus, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
+    Weiche(WeicheZustand, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
     DreiwegeWeiche(
-        DreiwegeWeicheStatus,
+        DreiwegeWeicheZustand,
         ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Leiter>,
     ),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(KurvenWeicheStatus, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
+    KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
 }
 
-impl<Leiter: LeiterAnzeige> Debug for AuswahlStatus<Leiter> {
+impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Streckenabschnitt(arg0) => {
@@ -373,7 +373,7 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlStatus<Leiter> {
 struct MessageBox {
     titel: String,
     nachricht: String,
-    button_state: iced::button::State,
+    button_zustand: iced::button::State,
 }
 
 /// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
@@ -455,7 +455,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 pub struct Zugkontrolle<L: LeiterAnzeige> {
     gleise: Gleise<L>,
     lager: Lager,
-    scrollable_state: iced::scrollable::State,
+    scrollable_zustand: iced::scrollable::State,
     geraden: Vec<Knopf<GeradeUnit>>,
     kurven: Vec<Knopf<KurveUnit>>,
     weichen: Vec<Knopf<WeicheUnit>>,
@@ -464,15 +464,15 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<L>,
-    auswahl: modal::Status<AuswahlStatus<L>>,
-    streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus,
+    auswahl: modal::Zustand<AuswahlZustand<L>>,
+    streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_aktuell_festlegen: bool,
-    geschwindigkeit_button_state: iced::button::State,
-    message_box: modal::Status<MessageBox>,
+    geschwindigkeit_button_zustand: iced::button::State,
+    message_box: modal::Zustand<MessageBox>,
     bewegen: Bewegen,
     drehen: Drehen,
     zoom: iced::slider::State,
-    speichern_laden: speichern_laden::Status,
+    speichern_laden: speichern_laden::Zustand,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
     sender: Sender<Nachricht<L>>,
@@ -530,7 +530,7 @@ where
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,
-            scrollable_state: iced::scrollable::State::new(),
+            scrollable_zustand: iced::scrollable::State::new(),
             geraden,
             kurven,
             weichen,
@@ -539,15 +539,15 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten: geschwindigkeit::Map::new(),
-            auswahl: modal::Status::neu(),
-            streckenabschnitt_aktuell: streckenabschnitt::AnzeigeStatus::neu(),
+            auswahl: modal::Zustand::neu(),
+            streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand::neu(),
             streckenabschnitt_aktuell_festlegen: false,
-            geschwindigkeit_button_state: iced::button::State::new(),
-            message_box: modal::Status::neu(),
+            geschwindigkeit_button_zustand: iced::button::State::new(),
+            message_box: modal::Zustand::neu(),
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
             zoom: iced::slider::State::new(),
-            speichern_laden: speichern_laden::Status::neu(aktueller_pfad),
+            speichern_laden: speichern_laden::Zustand::neu(aktueller_pfad),
             speichern_gefärbt: None,
             bewegung: None,
             sender,

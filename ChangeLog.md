@@ -50,6 +50,7 @@
   - gleise::de_serialisieren ist jetzt ein Untermodul von gleise::daten
 - Refactoring: diverse Methoden-namen übersetzt
 - Refactoring: diverse Fehler-Typen umbenannt Error->Fehler
+- Refactoring: diverse Typen umbenannt Status->Zustand (`state` ist `Zustand`, nicht `Status`)
 - Refactoring: diverse Nachrichten-Typen umbenannt Message->Nachricht
 - Refactoring: diverse Verbindungs-Typen umbenannt
   - AnchorName->VerbindungName

@@ -22,20 +22,20 @@ use crate::{
 
 pub mod style;
 
-/// Status des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
+/// Zustand des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie [Buttons](iced::Button) zum Öffnen des Auswahl-Fensters.
 #[derive(Debug)]
-pub struct AnzeigeStatus {
+pub struct AnzeigeZustand {
     /// Der aktuelle Streckenabschnitt.
     aktuell: Option<(StreckenabschnittId, Farbe)>,
     /// Zustand des Buttons zum Öffnen des Auswahl-Fensters.
     auswählen: button::State,
 }
 
-impl AnzeigeStatus {
-    /// Erstelle einen neuen [AnzeigeStatus].
+impl AnzeigeZustand {
+    /// Erstelle einen neuen [AnzeigeZustand].
     pub fn neu() -> Self {
-        AnzeigeStatus { aktuell: None, auswählen: button::State::new() }
+        AnzeigeZustand { aktuell: None, auswählen: button::State::new() }
     }
 
     /// Der aktuelle [Streckenabschnitt].
@@ -99,12 +99,12 @@ where
     <R as iced_native::container::Renderer>::Style: From<style::Beschreibung>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(status: &'a mut AnzeigeStatus, festlegen: bool) -> Self {
+    pub fn neu(zustand: &'a mut AnzeigeZustand, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let column = Column::new()
             .push(Container::new(Text::new("Streckenabschnitt")).style(style::Beschreibung));
         // TODO Assoziierte Geschwindigkeit berücksichtigen
-        let style = if let Some((streckenabschnitt_id, farbe)) = &status.aktuell {
+        let style = if let Some((streckenabschnitt_id, farbe)) = &zustand.aktuell {
             children.push(column.push(Text::new(&streckenabschnitt_id.name.0)).into());
             style::Anzeige::Farbe(*farbe)
         } else {
@@ -114,7 +114,7 @@ where
         children.push(
             Column::new()
                 .push(
-                    Button::new(&mut status.auswählen, Text::new("Auswählen"))
+                    Button::new(&mut zustand.auswählen, Text::new("Auswählen"))
                         .on_press(AnzeigeNachricht::Auswählen),
                 )
                 .push(Checkbox::new(festlegen, "Festlegen", AnzeigeNachricht::Festlegen).spacing(0))
@@ -152,39 +152,39 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
     }
 }
 
-/// Status des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
+/// Zustand des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
 #[derive(Debug)]
-pub struct AuswahlStatus {
+pub struct AuswahlZustand {
     neu_name: String,
     neu_farbe: Farbe,
     neu_anschluss: OutputSerialisiert,
-    neu_name_state: text_input::State,
-    neu_anschluss_state: anschluss::Status<anschluss::Output>,
-    neu_button_state: button::State,
-    none_button_state: button::State,
+    neu_name_zustand: text_input::State,
+    neu_anschluss_zustand: anschluss::Zustand<anschluss::Output>,
+    neu_button_zustand: button::State,
+    none_button_zustand: button::State,
     streckenabschnitte: BTreeMap<Name, (String, Farbe, button::State, button::State)>,
-    scrollable_state: scrollable::State,
+    scrollable_zustand: scrollable::State,
 }
 
-impl AuswahlStatus {
-    /// Erstelle einen neuen [AuswahlStatus].
-    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlStatus {
+impl AuswahlZustand {
+    /// Erstelle einen neuen [AuswahlZustand].
+    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
-        AuswahlStatus {
+        AuswahlZustand {
             neu_name: String::new(),
             neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            neu_name_state: text_input::State::new(),
-            neu_anschluss_state: anschluss::Status::neu_output(),
-            neu_button_state: button::State::new(),
-            none_button_state: button::State::new(),
+            neu_name_zustand: text_input::State::new(),
+            neu_anschluss_zustand: anschluss::Zustand::neu_output(),
+            neu_button_zustand: button::State::new(),
+            none_button_zustand: button::State::new(),
             streckenabschnitte: gleise
                 .streckenabschnitte()
                 .map(|(streckenabschnitt_id, (streckenabschnitt, _fließend))| {
                     Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
                 })
                 .collect(),
-            scrollable_state: scrollable::State::new(),
+            scrollable_zustand: scrollable::State::new(),
         }
     }
 
@@ -225,7 +225,7 @@ impl AuswahlStatus {
 
     /// Erhalte den aktuell konfigurierten Streckenabschnitt.
     pub fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
-        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_state.output_anschluss())
+        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_zustand.output_anschluss())
     }
 }
 
@@ -292,20 +292,20 @@ where
     <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu(auswahl_status: &'a mut AuswahlStatus) -> Self {
-        let AuswahlStatus {
+    pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
+        let AuswahlZustand {
             neu_name,
             neu_farbe,
             neu_anschluss,
-            neu_name_state,
-            neu_anschluss_state,
-            neu_button_state,
-            none_button_state,
+            neu_name_zustand,
+            neu_anschluss_zustand,
+            neu_button_zustand,
+            none_button_zustand,
             streckenabschnitte,
-            scrollable_state,
-        } = auswahl_status;
+            scrollable_zustand,
+        } = auswahl_zustand;
         let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-            let mut scrollable = Scrollable::new(scrollable_state)
+            let mut scrollable = Scrollable::new(scrollable_zustand)
                 .push(
                     Container::new(
                         Column::new()
@@ -313,7 +313,7 @@ where
                                 Row::new()
                                     .push(
                                         TextInput::new(
-                                            neu_name_state,
+                                            neu_name_zustand,
                                             "<Name>",
                                             neu_name,
                                             InterneAuswahlNachricht::Name,
@@ -326,36 +326,36 @@ where
                                     )
                                     .push(
                                         Element::from(anschluss::Auswahl::neu_output(
-                                            neu_anschluss_state,
+                                            neu_anschluss_zustand,
                                         ))
                                         .map(InterneAuswahlNachricht::Anschluss),
                                     ),
                             )
                             .push(
-                                Button::new(neu_button_state, Text::new("Hinzufügen"))
+                                Button::new(neu_button_zustand, Text::new("Hinzufügen"))
                                     .on_press(InterneAuswahlNachricht::Hinzufügen),
                             ),
                     )
                     .style(style::Auswahl(*neu_farbe)),
                 )
                 .push(
-                    Button::new(none_button_state, Text::new("Keinen"))
+                    Button::new(none_button_zustand, Text::new("Keinen"))
                         .on_press(InterneAuswahlNachricht::Wähle(None)),
                 )
                 .width(Length::Shrink);
-            for (name, (anschluss, farbe, button_state, delete_state)) in streckenabschnitte {
+            for (name, (anschluss, farbe, button_zustand, delete_zustand)) in streckenabschnitte {
                 scrollable = scrollable.push(
                     Row::new()
                         .push(
                             Button::new(
-                                button_state,
+                                button_zustand,
                                 Text::new(&format!("{}: {:?}", name.0, anschluss)),
                             )
                             .on_press(InterneAuswahlNachricht::Wähle(Some((name.clone(), *farbe))))
                             .style(style::Auswahl(*farbe)),
                         )
                         .push(
-                            Button::new(delete_state, Text::new("X"))
+                            Button::new(delete_zustand, Text::new("X"))
                                 .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
                         ),
                 );

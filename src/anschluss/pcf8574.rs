@@ -67,12 +67,12 @@ pub enum InitFehler {
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
-    fn neu(pin_status: &mut pin::Lager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
+    fn neu(lager: &mut pin::Lager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
-        let sda = pin_status.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
-        let scl = pin_status.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
+        let sda = lager.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
+        let scl = lager.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
         Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
 }
@@ -116,7 +116,7 @@ pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
 
 impl Lager {
     /// Erstelle ein neues [Lager].
-    pub fn neu(pin_status: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
+    pub fn neu(lager: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
@@ -124,7 +124,7 @@ impl Lager {
                 if !settings.aktiviert(i2c_bus) {
                     continue;
                 }
-                let i2c = Arc::new(Mutex::new(I2cMitPins::neu(pin_status, i2c_bus)?));
+                let i2c = Arc::new(Mutex::new(I2cMitPins::neu(lager, i2c_bus)?));
                 let beschreibungen =
                     iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
                 for (a0, a1, a2, variante) in beschreibungen {

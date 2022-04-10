@@ -9,9 +9,9 @@ use iced_native::{
 
 use crate::application::{macros::reexport_no_event_methods, style::background};
 
-/// Status von [SpeichernLaden].
+/// Zustand von [SpeichernLaden].
 #[derive(Debug)]
-pub struct Status {
+pub struct Zustand {
     speichern: button::State,
     speichern_gefärbt: bool,
     laden: button::State,
@@ -19,10 +19,10 @@ pub struct Status {
     aktueller_pfad: String,
 }
 
-impl Status {
-    /// Erstelle einen neuen Status von [SpeichernLaden].
+impl Zustand {
+    /// Erstelle einen neuen Zustand von [SpeichernLaden].
     pub fn neu(aktueller_pfad: String) -> Self {
-        Status {
+        Zustand {
             speichern: button::State::new(),
             speichern_gefärbt: false,
             laden: button::State::new(),
@@ -74,8 +74,8 @@ where
     <R as button::Renderer>::Style: From<background::Background>,
 {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
-    pub fn neu(status: &'a mut Status) -> Self {
-        let Status { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = status;
+    pub fn neu(zustand: &'a mut Zustand) -> Self {
+        let Zustand { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
             Button::new(speichern, Text::new("speichern")).on_press(InterneNachricht::Speichern);

@@ -12,16 +12,16 @@ use iced_native::{
 
 use crate::application::style::background::Background;
 
-/// Status des [Modal]-Widgets.
+/// Zustand des [Modal]-Widgets.
 #[derive(Debug)]
-pub struct Status<Overlay> {
+pub struct Zustand<Overlay> {
     overlay: Option<Overlay>,
 }
 
-impl<Overlay> Status<Overlay> {
-    /// Erstelle einen neuen Status für das [Modal]-Widget.
+impl<Overlay> Zustand<Overlay> {
+    /// Erstelle einen neuen Zustand für das [Modal]-Widget.
     pub fn neu() -> Self {
-        Status { overlay: None }
+        Zustand { overlay: None }
     }
 
     /// Zeige ein Overlay über dem Widget.
@@ -51,7 +51,7 @@ impl<Overlay> Status<Overlay> {
 
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Overlay, Nachricht, R> {
-    status: &'a mut Status<Overlay>,
+    zustand: &'a mut Zustand<Overlay>,
     underlay: Element<'a, Nachricht, R>,
     zeige_overlay: &'a dyn for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
     esc_nachricht: Option<&'a dyn Fn() -> Nachricht>,
@@ -60,7 +60,7 @@ pub struct Modal<'a, Overlay, Nachricht, R> {
 impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Modal")
-            .field("status", &self.status)
+            .field("zustand", &self.zustand)
             .field("underlay", &"<Element>")
             .field("zeige_overlay", &"<closure>")
             .field("esc_nachricht", &self.esc_nachricht.map(|_| "<closure>"))
@@ -71,11 +71,11 @@ impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
 impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     /// Erstelle ein neues [Modal].
     pub fn neu(
-        status: &'a mut Status<Overlay>,
+        zustand: &'a mut Zustand<Overlay>,
         underlay: impl Into<Element<'a, Nachricht, R>>,
         zeige_overlay: &'a impl for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
     ) -> Self {
-        Modal { status, underlay: underlay.into(), zeige_overlay, esc_nachricht: None }
+        Modal { zustand, underlay: underlay.into(), zeige_overlay, esc_nachricht: None }
     }
 
     /// Erzeuge die gegebene Nachricht, wenn die Esc-Taste gedrückt wird.
@@ -113,13 +113,13 @@ where
         self.underlay.draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
-    fn hash_layout(&self, state: &mut iced_native::Hasher) {
-        self.status.overlay.is_some().hash(state);
-        self.underlay.hash_layout(state)
+    fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
+        self.zustand.overlay.is_some().hash(zustand);
+        self.underlay.hash_layout(zustand)
     }
 
     fn overlay<'s>(&'s mut self, layout: Layout<'_>) -> Option<overlay::Element<'s, Nachricht, R>> {
-        if let Some(overlay) = self.status.overlay_mut() {
+        if let Some(overlay) = self.zustand.overlay_mut() {
             let bounds = layout.bounds();
             let position = Point::new(bounds.x, bounds.y);
             Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
@@ -137,7 +137,7 @@ where
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Nachricht>,
     ) -> event::Status {
-        if self.status.overlay.is_none() {
+        if self.zustand.overlay.is_none() {
             self.underlay.on_event(event, layout, cursor_position, renderer, clipboard, messages)
         } else {
             match (self.esc_nachricht, event) {
@@ -210,9 +210,9 @@ impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachrich
         self.0.draw(renderer, defaults, layout, cursor_position, &layout.bounds())
     }
 
-    fn hash_layout(&self, state: &mut iced_native::Hasher, position: Point) {
-        format!("{:?}", position).hash(state);
-        self.0.hash_layout(state);
+    fn hash_layout(&self, zustand: &mut iced_native::Hasher, position: Point) {
+        format!("{:?}", position).hash(zustand);
+        self.0.hash_layout(zustand);
     }
 
     fn on_event(
