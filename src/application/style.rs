@@ -1,7 +1,7 @@
 //! Style Definitionen.
 
-pub mod background;
-pub mod border;
-pub mod rule;
-pub mod scrollable;
+pub mod hintergrund;
+pub mod linie;
+pub mod rand;
+pub mod sammlung;
 pub mod tab_bar;

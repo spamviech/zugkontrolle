@@ -10,7 +10,7 @@ use iced_native::{
     Renderer, Widget,
 };
 
-use crate::application::style::background::Background;
+use crate::application::style::hintergrund::Hintergrund;
 
 /// Zustand des [Modal]-Widgets.
 #[derive(Debug)]
@@ -88,7 +88,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
 impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R>
 where
     R: Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Background>,
+    <R as container::Renderer>::Style: From<Hintergrund>,
 {
     fn width(&self) -> Length {
         self.underlay.width()
@@ -160,7 +160,7 @@ where
 impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
 where
     R: Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Background>,
+    <R as container::Renderer>::Style: From<Hintergrund>,
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -172,7 +172,7 @@ struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
 impl<'a, Nachricht: 'a, R> ModalOverlay<'a, Nachricht, R>
 where
     R: Renderer + container::Renderer + 'a,
-    <R as container::Renderer>::Style: From<Background>,
+    <R as container::Renderer>::Style: From<Hintergrund>,
 {
     fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
         ModalOverlay(
@@ -181,7 +181,7 @@ where
                 .height(Length::Fill)
                 .center_x()
                 .center_y()
-                .style(Background::GreyTransparent { grey: 0.7, alpha: 0.5 })
+                .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
                 .into(),
         )
     }

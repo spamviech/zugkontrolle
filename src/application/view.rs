@@ -11,7 +11,7 @@ use crate::{
         geschwindigkeit::{self, LeiterAnzeige},
         modal::Modal,
         speichern_laden, streckenabschnitt,
-        style::{rule, scrollable},
+        style::{linie::TRENNLINIE, sammlung::Sammlung},
         touch_canvas, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht,
         NachrichtClone, Zugkontrolle,
     },
@@ -101,7 +101,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
 
         let column: Element<'_, Nachricht<Leiter>> = Column::new()
             .push(top_row)
-            .push(Rule::horizontal(1).style(rule::SEPARATOR))
+            .push(Rule::horizontal(1).style(TRENNLINIE))
             .push(
                 row_with_scrollable.push(
                     Container::new(
@@ -280,7 +280,7 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
 fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_zustand: &'t mut iced::scrollable::State,
-    scrollable_style: scrollable::Sammlung,
+    scrollable_style: Sammlung,
     geraden: &'t mut Vec<Knopf<GeradeUnit>>,
     kurven: &'t mut Vec<Knopf<KurveUnit>>,
     weichen: &'t mut Vec<Knopf<WeicheUnit>>,
@@ -370,5 +370,5 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
             .width(width)
             .height(Length::Fill),
         )
-        .push(Rule::vertical(1).style(rule::SEPARATOR))
+        .push(Rule::vertical(1).style(TRENNLINIE))
 }

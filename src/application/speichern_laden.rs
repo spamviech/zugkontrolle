@@ -7,7 +7,10 @@ use iced_native::{
     Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
 };
 
-use crate::application::{macros::reexport_no_event_methods, style::background};
+use crate::application::{
+    macros::reexport_no_event_methods,
+    style::hintergrund::{self, Hintergrund},
+};
 
 /// Zustand von [SpeichernLaden].
 #[derive(Debug)]
@@ -71,7 +74,7 @@ impl<R> Debug for SpeichernLaden<'_, R> {
 impl<'a, R> SpeichernLaden<'a, R>
 where
     R: 'a + column::Renderer + text::Renderer + button::Renderer + text_input::Renderer,
-    <R as button::Renderer>::Style: From<background::Background>,
+    <R as button::Renderer>::Style: From<Hintergrund>,
 {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(zustand: &'a mut Zustand) -> Self {
@@ -80,12 +83,16 @@ where
         let speichern_ungefärbt =
             Button::new(speichern, Text::new("speichern")).on_press(InterneNachricht::Speichern);
         let speichern_style =
-            if *speichern_gefärbt { background::GREEN } else { background::DEFAULT };
+            if *speichern_gefärbt { hintergrund::GRÜN } else { hintergrund::STANDARD };
         let row = Row::new()
             .push(
                 Column::new()
                     .push(speichern_ungefärbt.style(speichern_style))
-                    .push(Button::new(laden, Text::new("laden")).on_press(InterneNachricht::Laden))
+                    .push(
+                        Button::new(laden, Text::new("laden"))
+                            .style(hintergrund::STANDARD)
+                            .on_press(InterneNachricht::Laden),
+                    )
                     .align_items(Align::End),
             )
             .push(
