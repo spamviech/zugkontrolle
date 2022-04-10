@@ -479,6 +479,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                 }) => {
                     let _ =
                         streckenabschnitte.insert(leiter_serialisiert, streckenabschnitt.clone());
+
                     let Reserviert {
                         anschluss: daten,
                         pwm_nicht_benötigt,
@@ -496,7 +497,9 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                         kontakte,
                         laden_fehler,
                     );
+
                     let _ = map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
+
                     (
                         Reserviert {
                             anschluss: map,
@@ -514,6 +517,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                     input_anschlüsse,
                 }) => {
                     laden_fehler.push(fehler.into());
+
                     let Reserviert {
                         anschluss: daten,
                         pwm_nicht_benötigt,
@@ -531,6 +535,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                         kontakte,
                         laden_fehler,
                     );
+
                     let fehler_daten = match fehler_daten {
                         Some(mut fehler_daten) => {
                             fehler_daten.verschmelze(daten);
@@ -538,7 +543,8 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                         },
                         None => daten,
                     };
-                    return (
+
+                    (
                         Reserviert {
                             anschluss: map,
                             pwm_nicht_benötigt,
@@ -546,7 +552,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                             input_nicht_benötigt,
                         },
                         Some(fehler_daten),
-                    );
+                    )
                 },
             }
         },
@@ -594,66 +600,113 @@ where
                 fehler_streckenabschnitte,
             ) = acc;
             let geschwindigkeit_serialisiert = geschwindigkeit.clone();
-            let Reserviert {
-                anschluss: geschwindigkeit,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            } = match geschwindigkeit.reserviere(
+            match geschwindigkeit.reserviere(
                 lager,
                 pwm_nicht_benötigt,
                 output_nicht_benötigt,
                 input_nicht_benötigt,
             ) {
-                Ok(reserviert) => reserviert,
+                Ok(Reserviert {
+                    anschluss: geschwindigkeit,
+                    pwm_nicht_benötigt,
+                    output_nicht_benötigt,
+                    input_nicht_benötigt,
+                }) => {
+                    let _ = geschwindigkeiten
+                        .insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
+
+                    let (
+                        Reserviert {
+                            anschluss: streckenabschnitt_map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        fehler_daten,
+                    ) = reserviere_streckenabschnitt_map(
+                        spurweite,
+                        lager,
+                        streckenabschnitt_map,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                        streckenabschnitte,
+                        gerade_weichen,
+                        kurven_weichen,
+                        dreiwege_weichen,
+                        kontakte,
+                        laden_fehler,
+                    );
+
+                    if let Some(fehler_daten) = fehler_daten {
+                        ohne_streckenabschnitt.verschmelze(fehler_daten);
+                    }
+
+                    let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
+
+                    (
+                        Reserviert {
+                            anschluss: map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        fehler_streckenabschnitte,
+                    )
+                },
                 Err(de_serialisieren::Fehler {
                     fehler,
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
-                }) => todo!(),
-            };
+                }) => {
+                    laden_fehler.push(fehler.into());
+                    let (
+                        Reserviert {
+                            anschluss: streckenabschnitt_map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        fehler_daten,
+                    ) = reserviere_streckenabschnitt_map(
+                        spurweite,
+                        lager,
+                        streckenabschnitt_map,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                        streckenabschnitte,
+                        gerade_weichen,
+                        kurven_weichen,
+                        dreiwege_weichen,
+                        kontakte,
+                        laden_fehler,
+                    );
 
-            let _ = geschwindigkeiten.insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
+                    if let Some(fehler_daten) = fehler_daten {
+                        ohne_streckenabschnitt.verschmelze(fehler_daten);
+                    }
 
-            let (
-                Reserviert {
-                    anschluss: streckenabschnitt_map,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
+                    let fehler_streckenabschnitte = match fehler_streckenabschnitte {
+                        Some(mut fehler_streckenabschnitte) => {
+                            fehler_streckenabschnitte.extend(streckenabschnitt_map);
+                            fehler_streckenabschnitte
+                        },
+                        None => streckenabschnitt_map,
+                    };
+
+                    (
+                        Reserviert {
+                            anschluss: map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        Some(fehler_streckenabschnitte),
+                    )
                 },
-                fehler_daten,
-            ) = reserviere_streckenabschnitt_map(
-                spurweite,
-                lager,
-                streckenabschnitt_map,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-                streckenabschnitte,
-                gerade_weichen,
-                kurven_weichen,
-                dreiwege_weichen,
-                kontakte,
-                laden_fehler,
-            );
-
-            if let Some(fehler_daten) = fehler_daten {
-                ohne_streckenabschnitt.verschmelze(fehler_daten);
             }
-
-            let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
-
-            (
-                Reserviert {
-                    anschluss: map,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                },
-                fehler_streckenabschnitte,
-            )
         },
     )
 }
