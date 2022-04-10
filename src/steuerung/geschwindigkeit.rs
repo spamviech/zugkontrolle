@@ -531,21 +531,30 @@ impl Geschwindigkeit<Mittelleiter> {
         verhältnis_fahrspannung_überspannung: NullBisEins,
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
-        sender: Sender<Nachricht>,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen(
+            match clone.umdrehen(
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
             ) {
-                let send_result = sender.send(erzeuge_nachricht(fehler));
-                if let Err(fehler) = send_result {
-                    debug!("Nachricht-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
+                Ok(unit) => {
+                    if let Some(erfolg) = erfolg {
+                        if let Err(fehler) = erfolg.send(unit) {
+                            debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                        }
+                    }
+                },
+                Err(fehlermeldung) => {
+                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                        debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                    }
+                },
             }
         });
     }
@@ -719,16 +728,25 @@ impl Geschwindigkeit<Zweileiter> {
         neue_fahrtrichtung: Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
-        sender: Sender<Nachricht>,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
-                let send_result = sender.send(erzeuge_nachricht(fehler));
-                if let Err(fehler) = send_result {
-                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
+            match clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
+                Ok(unit) => {
+                    if let Some(erfolg) = erfolg {
+                        if let Err(fehler) = erfolg.send(unit) {
+                            debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                        }
+                    }
+                },
+                Err(fehlermeldung) => {
+                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                        debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                    }
+                },
             }
         });
     }
@@ -747,17 +765,24 @@ impl Geschwindigkeit<Zweileiter> {
         &mut self,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
-        sender: Sender<Nachricht>,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
-        let _ = thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen(pwm_frequenz, stopp_zeit) {
-                let send_result = sender.send(erzeuge_nachricht(fehler));
-                if let Err(fehler) = send_result {
-                    debug!("Message-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+        let _ = thread::spawn(move || match clone.umdrehen(pwm_frequenz, stopp_zeit) {
+            Ok(unit) => {
+                if let Some(erfolg) = erfolg {
+                    if let Err(fehler) = erfolg.send(unit) {
+                        debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                    }
                 }
-            }
+            },
+            Err(fehlermeldung) => {
+                if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            },
         });
     }
 

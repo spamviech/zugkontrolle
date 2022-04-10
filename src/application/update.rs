@@ -17,7 +17,7 @@ use crate::{
     anschluss::{
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         polarität::Fließend,
-        OutputAnschluss, OutputSerialisiert,
+        OutputSerialisiert,
     },
     application::{
         bewegen::Bewegung,
@@ -25,18 +25,15 @@ use crate::{
         steuerung, streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand,
         MessageBox, Nachricht, Zugkontrolle, ZustandZurücksetzen,
     },
-    gleis::{
-        self,
-        gleise::{
-            daten::{v2, DatenAuswahl, StreckenabschnittMap},
-            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
-            steuerung::Steuerung,
-            GleisIdFehler, Gleise,
-        },
+    gleis::gleise::{
+        daten::{v2, StreckenabschnittMap},
+        id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
+        steuerung::Steuerung,
+        GleisIdFehler, Gleise,
     },
-    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        plan::Ausführen,
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
@@ -58,7 +55,7 @@ where
     }
 }
 
-impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
+impl<L: LeiterAnzeige> Zugkontrolle<L> {
     /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -76,19 +73,33 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         self.message_box.verstecke_modal()
     }
 
+    /// Führe eine Aktion aus.
+    pub fn aktion_ausführen<Aktion: Ausführen + Debug + Send>(&mut self, mut aktion: Aktion)
+    where
+        L: 'static,
+        <L as Serialisiere>::Serialisiert: Send,
+    {
+        let titel = format!("{aktion:?}");
+        aktion.async_ausführen(None, self.sender.clone(), move |fehler| Nachricht::AsyncFehler {
+            titel,
+            nachricht: format!("{fehler:?}"),
+            zustand_zurücksetzen: todo!(),
+        })
+    }
+
     fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Zustand>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Leiter>,
+            &'t mut Gleise<L>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
         erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
         erzeuge_modal: impl Fn(
             Zustand,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<Leiter>>,
-        ) -> AuswahlZustand<Leiter>,
+            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
+        ) -> AuswahlZustand<L>,
         als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen
             + 'static,
     ) {
@@ -116,10 +127,10 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         id: GleisId<T>,
         anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
         gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Leiter>,
+            &'t mut Gleise<L>,
             &GleisId<T>,
         ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
-    ) -> Option<Nachricht<Leiter>>
+    ) -> Option<Nachricht<L>>
     where
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
@@ -190,39 +201,6 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         }
 
         message
-    }
-
-    /// Ändere den Strom des zugehörigen [Streckenabschnittes](Streckenabschnitt) von
-    /// [Fließend](Fließend::Fließend) zu [Gesperrt](Fließend::Gesperrt) und umgekehrt.
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    pub(crate) fn streckenabschnitt_umschalten<T: DatenAuswahl>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-    ) {
-        if let Ok(steuerung) = self.gleise.streckenabschnitt_für_id(id) {
-            if let Some((streckenabschnitt, fließend)) = steuerung {
-                let fließend_neu = !*fließend;
-                if let Err(fehler) = streckenabschnitt.strom(fließend_neu) {
-                    self.zeige_message_box(
-                        "Streckenabschnitt umschalten".to_string(),
-                        format!("{:?}", fehler),
-                    )
-                } else {
-                    *fließend = fließend_neu
-                }
-            } else {
-                self.zeige_message_box(
-                    "Kein Streckenabschnitt!".to_string(),
-                    format!("{} hat keinen Streckenabschnitt!", gleis_art),
-                )
-            }
-        } else {
-            self.zeige_message_box(
-                "Gleis entfernt!".to_string(),
-                format!("FahrenAktion für entfernte {}!", gleis_art),
-            )
-        }
     }
 
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
@@ -458,7 +436,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     pub fn anschlüsse_anpassen(
         &mut self,
         anschlüsse_anpassen: AnschlüsseAnpassen,
-    ) -> Option<Nachricht<Leiter>> {
+    ) -> Option<Nachricht<L>> {
         match anschlüsse_anpassen {
             AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => self
                 .gleis_anschlüsse_anpassen(
@@ -780,149 +758,6 @@ where
     <Leiter as Serialisiere>::Serialisiert: Send,
     <Leiter as LeiterAnzeige>::Nachricht: 'static,
 {
-    fn weiche_stellen<T, Richtung, Anschlüsse, NR, ZZ>(
-        &mut self,
-        gleis_art: &'static str,
-        id: GleisId<T>,
-        gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Leiter>,
-            &GleisId<T>,
-        ) -> Result<
-            Steuerung<'t, steuerung::weiche::Weiche<Richtung, Anschlüsse>>,
-            GleisIdFehler,
-        >,
-        nächste_richtung: NR,
-        zustand_zurücksetzen: ZZ,
-    ) where
-        T: 'static,
-        Richtung: Clone + Send + 'static,
-        Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
-        NR: FnOnce(&mut steuerung::weiche::Weiche<Richtung, Anschlüsse>) -> Richtung
-            + Send
-            + 'static,
-        ZZ: FnOnce(GleisId<T>, Richtung, Richtung) -> ZustandZurücksetzen<Leiter> + Send + 'static,
-    {
-        let mut error_message = None;
-        let schalten_zeit = self.gleise.zugtyp().schalten_zeit;
-        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
-            if let Some(mut weiche) = steuerung.as_mut() {
-                let richtung = nächste_richtung(&mut weiche);
-                let aktuelle_richtung = weiche.aktuelle_richtung.clone();
-                let letzte_richtung = weiche.letzte_richtung.clone();
-                weiche.async_schalten(richtung, schalten_zeit, self.sender.clone(), move |fehler| {
-                    Nachricht::AsyncFehler {
-                        titel: format!("{} schalten", gleis_art),
-                        nachricht: format!("{:?}", fehler),
-                        zustand_zurücksetzen: zustand_zurücksetzen(
-                            id,
-                            aktuelle_richtung,
-                            letzte_richtung,
-                        ),
-                    }
-                })
-            } else {
-                let _ = error_message.insert((
-                    "Keine Richtungs-Anschlüsse!".to_string(),
-                    format!("{} hat keine Anschlüsse!", gleis_art),
-                ));
-            }
-        } else {
-            let _ = error_message.insert((
-                "Gleis entfernt!".to_string(),
-                format!("FahrenAktion für entfernte {}!", gleis_art),
-            ));
-        }
-        if let Some((titel, nachricht)) = error_message {
-            self.zeige_message_box(titel, nachricht)
-        }
-    }
-
-    /// Führe eine Aktion als Reaktion auf anklicken eines Gleises im Fahren-Modus aus.
-    pub fn fahren_aktion(&mut self, any_id: AnyId) {
-        match any_id {
-            AnyId::Gerade(id) => self.streckenabschnitt_umschalten("Gerade", id),
-            AnyId::Kurve(id) => self.streckenabschnitt_umschalten("Kurve", id),
-            AnyId::Weiche(id) => self.weiche_stellen(
-                "Weiche",
-                id,
-                Gleise::steuerung_weiche,
-                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
-                    use gleis::weiche::gerade::Richtung;
-                    if aktuelle_richtung == &Richtung::Gerade {
-                        Richtung::Kurve
-                    } else {
-                        Richtung::Gerade
-                    }
-                },
-                ZustandZurücksetzen::Weiche,
-            ),
-            AnyId::DreiwegeWeiche(id) => self.weiche_stellen(
-                "DreiwegeWeiche",
-                id,
-                Gleise::steuerung_dreiwege_weiche,
-                |steuerung::weiche::Weiche { aktuelle_richtung, letzte_richtung, .. }| {
-                    use gleis::weiche::dreiwege::Richtung;
-                    if aktuelle_richtung == &Richtung::Gerade {
-                        match letzte_richtung {
-                            Richtung::Links => Richtung::Rechts,
-                            Richtung::Rechts => Richtung::Links,
-                            Richtung::Gerade => {
-                                error!("Invalider Zustand bei DreiwegeWeiche! Schalte auf Gerade.");
-                                *aktuelle_richtung = Richtung::Links;
-                                Richtung::Gerade
-                            },
-                        }
-                    } else {
-                        Richtung::Gerade
-                    }
-                },
-                ZustandZurücksetzen::DreiwegeWeiche,
-            ),
-            AnyId::KurvenWeiche(id) => self.weiche_stellen(
-                "KurvenWeiche",
-                id,
-                Gleise::steuerung_kurven_weiche,
-                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
-                    use gleis::weiche::kurve::Richtung;
-                    if aktuelle_richtung == &Richtung::Außen {
-                        Richtung::Innen
-                    } else {
-                        Richtung::Außen
-                    }
-                },
-                ZustandZurücksetzen::KurvenWeiche,
-            ),
-            AnyId::SKurvenWeiche(id) => self.weiche_stellen(
-                "SKurvenWeiche",
-                id,
-                Gleise::steuerung_s_kurven_weiche,
-                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
-                    use gleis::weiche::gerade::Richtung;
-                    if aktuelle_richtung == &Richtung::Gerade {
-                        Richtung::Kurve
-                    } else {
-                        Richtung::Gerade
-                    }
-                },
-                ZustandZurücksetzen::SKurvenWeiche,
-            ),
-            AnyId::Kreuzung(id) => self.weiche_stellen(
-                "Kreuzung",
-                id,
-                Gleise::steuerung_kreuzung,
-                |steuerung::weiche::Weiche { aktuelle_richtung, .. }| {
-                    use gleis::weiche::gerade::Richtung;
-                    if aktuelle_richtung == &Richtung::Gerade {
-                        Richtung::Kurve
-                    } else {
-                        Richtung::Gerade
-                    }
-                },
-                ZustandZurücksetzen::Kreuzung,
-            ),
-        }
-    }
-
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     #[inline(always)]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<Leiter>> {

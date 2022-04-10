@@ -73,6 +73,29 @@ where
     None
 }
 
+/// Erhalte die Id des Gleises an der gesuchten Position.
+fn gleis_steuerung_an_position<'t, T>(
+    spurweite: Spurweite,
+    streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
+    rstern: &'t RStern<T>,
+    canvas_pos: Vektor,
+) -> Option<crate::void::Void>
+where
+    T: Zeichnen,
+    AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
+{
+    for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
+        let rectangle = geom_with_data.geom();
+        let Gleis { definition, position } = &geom_with_data.data;
+        let relative_pos = canvas_pos - position.punkt;
+        let rotated_pos = relative_pos.rotiert(-position.winkel);
+        if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+            return Some(todo!());
+        }
+    }
+    None
+}
+
 fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
@@ -147,7 +170,8 @@ fn aktion_gleis_an_position<'t>(
                 ModusDaten::Fahren => {
                     if let Some((any_id_ref, _halte_position, _winkel)) = gleis_an_position {
                         let gleis_id = any_id_ref.als_id();
-                        message = Some(Nachricht::FahrenAktion(gleis_id));
+                        // message = Some(Nachricht::FahrenAktion(gleis_id));
+                        message = Some(todo!());
                         status = event::Status::Captured
                     }
                 },

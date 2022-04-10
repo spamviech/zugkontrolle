@@ -49,6 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        plan::{AktionSchalten, AktionStreckenabschnitt},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -249,9 +250,11 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     ZeigeAnschlüsseAnpassen(AnyId),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
-    /// Führe die Aktion für das Gleis im Fahren-Modus durch
-    /// (Streckenabschnitt umstellen, Weiche stellen).
-    FahrenAktion(AnyId),
+    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    WeicheSchalten(AktionSchalten),
+    /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
+    /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.
@@ -272,7 +275,10 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
             gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
                 Nachricht::ZeigeAnschlüsseAnpassen(any_id)
             },
-            gleise::Nachricht::FahrenAktion(any_id) => Nachricht::FahrenAktion(any_id),
+            gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
+            gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
+                Nachricht::StreckenabschnittUmschalten(aktion)
+            },
         }
     }
 }
@@ -635,7 +641,8 @@ where
                     command = message.als_command()
                 }
             },
-            Nachricht::FahrenAktion(any_id) => self.fahren_aktion(any_id),
+            Nachricht::WeicheSchalten(aktion) => self.aktion_ausführen(aktion),
+            Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
                 if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
                     command = cmd

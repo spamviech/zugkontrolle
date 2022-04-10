@@ -1,6 +1,9 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    sync::mpsc::RecvError,
+};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -564,6 +567,8 @@ pub enum Fehler {
     Input(input::Fehler),
     /// Ein Fehler mit einem [Pcf8574-Port](pcf8574::Port).
     Pcf8574(pcf8574::Fehler),
+    /// Ein Fehler beim Warten auf einen [Kontakt](crate::steuerung::kontakt::Kontakt).
+    Kontakt(RecvError),
     /// Ein Fehler beim Reservieren eines [Anschluss]es.
     Reservieren(ReservierenFehler),
     /// Der Name des Leiters stimmt nicht überein.

@@ -90,7 +90,8 @@ Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 
 ## Installation
 
-Für jede Release-Version wird eine vorkompilierte binary als Asset auf [github](https://github.com/spamviech/Zugkontrolle/releases) angeboten.
+Für jede Release-Version wird eine vorkompilierte binary als Asset auf
+[github](https://github.com/spamviech/Zugkontrolle/releases) angeboten.
 Damit es ausgeführt werden kann ist vermutlich ein Anpassen der Berechtigungen notwendig:
 `chmod +x /pfad/zu/binary/zugkontrolle-version`
 
@@ -154,7 +155,7 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
     (De)aktiviere den I2C channel auf pins 22 und 23 (bus 6)
 - `--verbose`
     Zeige zusätzliche (Debug) Informationen in der Kommandozeile an.
-- `-l` | `--log_datei`
+- `-l` | `--[keine-]log_datei`
     Speichere Log-Informationen zusätzlich in einer Datei.
 
 ### Starten durch ziehen einer Datei auf die binary

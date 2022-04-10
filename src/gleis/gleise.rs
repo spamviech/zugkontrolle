@@ -21,6 +21,7 @@ use crate::{
     anschluss::{self, polarität::Fließend},
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        plan::{AktionSchalten, AktionStreckenabschnitt},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -559,7 +560,8 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-// TODO verwende Aktion<Leiter>.
+// TODO verwende Aktion<Leiter>
+// AktionSchalten, AktionStreckenabschnitt (Streckenabschnitt ist bekannt, steht in Id!)
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
 /// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
@@ -568,8 +570,11 @@ pub enum Nachricht {
     SetzeStreckenabschnitt(AnyId),
     /// Öffne das Fenster zum Anpassen der Anschlüsse für ein Gleis.
     AnschlüsseAnpassen(AnyId),
-    /// Ein Gleis wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    FahrenAktion(AnyId),
+    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    WeicheSchalten(AktionSchalten),
+    /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
+    /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    StreckenabschnittUmschalten(AktionStreckenabschnitt),
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {

@@ -243,6 +243,7 @@ impl LeiterAnzeige for Mittelleiter {
                     anzeige_zustand.verhältnis_fahrspannung_überspannung,
                     anzeige_zustand.stopp_zeit,
                     anzeige_zustand.umdrehen_zeit,
+                    None,
                     sender,
                     move |fehler| {
                         konvertiere_async_fehler(
@@ -404,6 +405,7 @@ impl LeiterAnzeige for Zweileiter {
                     fahrtrichtung,
                     anzeige_zustand.pwm_frequenz,
                     anzeige_zustand.stopp_zeit,
+                    None,
                     sender,
                     move |fehler| {
                         konvertiere_async_fehler(

@@ -1,12 +1,15 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
-use std::{collections::HashMap, fmt::Debug, hash::Hash, time::Duration};
+use std::{
+    collections::HashMap, fmt::Debug, hash::Hash, sync::mpsc::Sender, thread, time::Duration,
+};
 
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        de_serialisieren::Serialisiere, polarität::Fließend, trigger::Trigger, OutputSerialisiert,
+        de_serialisieren::Serialisiere, polarität::Fließend, Fehler, OutputSerialisiert
     },
     gleis::weiche,
     steuerung::{
@@ -21,6 +24,21 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
+/// Etwas ausführbares.
+pub trait Ausführen {
+    /// Ausführen im aktuellen Thread. Kann den aktuellen Thread blockieren.
+    fn ausführen(&mut self) -> Result<(), Fehler>;
+
+    /// Erstelle einen neuen Thread aus und führe es dort aus.
+    /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    );
+}
+
 /// Ein Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
@@ -32,6 +50,27 @@ pub struct PlanEnum<Aktion> {
 
 /// Ein Fahrplan.
 pub type Plan<L> = PlanEnum<Aktion<L>>;
+
+impl<L: Leiter> Ausführen for Plan<L> {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        let Plan { aktionen, endlosschleife } = self;
+        while *endlosschleife {
+            for aktion in aktionen.iter_mut() {
+                aktion.ausführen()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        todo!()
+    }
+}
 
 /// Serialisierbare Repräsentation eines Fahrplans.
 pub type PlanSerialisiert<L> = PlanEnum<AktionSerialisiert<L>>;
@@ -116,6 +155,33 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
 /// Eine Aktionen in einem Fahrplan.
 pub type Aktion<L> =
     AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AktionSchalten, AktionWarten>;
+
+impl<L: Leiter> Ausführen for Aktion<L> {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        match self {
+            AktionEnum::Geschwindigkeit(aktion) => todo!(),
+            AktionEnum::Streckenabschnitt(aktion) => todo!(),
+            AktionEnum::Schalten(aktion) => todo!(),
+            AktionEnum::Warten(aktion) => todo!(),
+            AktionEnum::Ausführen(aktion) => todo!(),
+        }
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        match self {
+            AktionEnum::Geschwindigkeit(aktion) => todo!(),
+            AktionEnum::Streckenabschnitt(aktion) => todo!(),
+            AktionEnum::Schalten(aktion) => todo!(),
+            AktionEnum::Warten(aktion) => todo!(),
+            AktionEnum::Ausführen(aktion) => todo!(),
+        }
+    }
+}
 
 /// Serialisierbare Repräsentation einer Aktion in einem Fahrplan.
 pub type AktionSerialisiert<L> = AktionEnum<
@@ -208,6 +274,29 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
+impl<L: Leiter> Ausführen for AktionGeschwindigkeit<L> {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        match self {
+            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
+            AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
+            AktionGeschwindigkeitEnum::Fahrtrichtung { leiter, fahrtrichtung } => todo!(),
+        }
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        match self {
+            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
+            AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
+            AktionGeschwindigkeitEnum::Fahrtrichtung { leiter, fahrtrichtung } => todo!(),
+        }
+    }
+}
+
 /// Serialisierbare Repräsentation für eine Aktion mit einer [Geschwindigkeit].
 pub type AktionGeschwindigkeitSerialisiert<L> =
     AktionGeschwindigkeitEnum<GeschwindigkeitSerialisiert<L>, <L as Leiter>::Fahrtrichtung>;
@@ -294,6 +383,23 @@ pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
     },
 }
 
+impl Ausführen for AktionStreckenabschnitt {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
+        streckenabschnitt.strom(*fließend)
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
+        todo!()
+    }
+}
+
 /// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
 pub type AktionStreckenabschnittSerialisiert =
     AktionStreckenabschnitt<StreckenabschnittSerialisiert>;
@@ -375,6 +481,29 @@ pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = 
     },
 }
 
+impl Ausführen for AktionSchalten {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        match self {
+            AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteKurve { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => todo!(),
+        }
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        match self {
+            AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteKurve { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => todo!(),
+        }
+    }
+}
+
 /// Serialisierbare Repräsentation für eine Aktion mit einer [Weiche].
 pub type AktionSchaltenSerialisiert =
     AktionSchalten<GeradeWeicheSerialisiert, KurvenWeicheSerialisiert, DreiwegeWeicheSerialisiert>;
@@ -451,8 +580,6 @@ pub enum AktionWarten<K = Kontakt> {
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.
         kontakt: K,
-        /// Die Bedingung zum Auslösen des Kontaktes.
-        trigger: Trigger,
     },
     /// Warte für eine festgelegte Zeit.
     /// Es kann vorkommen, dass etwas länger gewartet wird, siehe [std::thread::sleep].
@@ -462,6 +589,47 @@ pub enum AktionWarten<K = Kontakt> {
     },
 }
 
+impl Ausführen for AktionWarten {
+    fn ausführen(&mut self) -> Result<(), Fehler> {
+        match self {
+            AktionWarten::WartenAuf { kontakt } => {
+                let _ = kontakt.warte_auf_trigger()?;
+            },
+            AktionWarten::WartenFür { zeit } => thread::sleep(*zeit),
+        }
+        Ok(())
+    }
+
+    fn async_ausführen<Nachricht: Send + 'static>(
+        &mut self,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) {
+        let mut clone = self.clone();
+        let _ = thread::spawn(move || match clone.ausführen() {
+            Ok(unit) => {
+                if let Some(erfolg) = erfolg {
+                    if let Err(fehler) = erfolg.send(unit) {
+                        error!(
+                            "Kein Empfänger wartet auf die Erfolgsmeldung einer Warte-Aktion: {fehler}"
+                        )
+                    }
+                } else {
+                    error!("Kein Empfänger für die Erfolgsmeldung einer Warte-Aktion.")
+                }
+            },
+            Err(fehlermeldung) => {
+                if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                    error!(
+                        "Kein Empfänger wartet auf die Fehlermeldung einer Warte-Aktion: {fehler}"
+                    )
+                }
+            },
+        });
+    }
+}
+
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
 
@@ -469,9 +637,8 @@ impl AktionWarten {
     /// Serialisiere eine Warte-Aktion.
     pub fn serialisiere(&self) -> AktionWartenSerialisiert {
         match self {
-            AktionWarten::WartenAuf { kontakt, trigger } => AktionWartenSerialisiert::WartenAuf {
-                kontakt: kontakt.serialisiere(),
-                trigger: *trigger,
+            AktionWarten::WartenAuf { kontakt } => {
+                AktionWartenSerialisiert::WartenAuf { kontakt: kontakt.serialisiere() }
             },
             AktionWarten::WartenFür { zeit } => {
                 AktionWartenSerialisiert::WartenFür { zeit: *zeit }
@@ -491,9 +658,9 @@ impl AktionWartenSerialisiert {
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
     ) -> Result<AktionWarten, UnbekannterKontakt> {
         let aktion = match self {
-            AktionWartenSerialisiert::WartenAuf { kontakt, trigger } => {
+            AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf { kontakt, trigger }
+                AktionWarten::WartenAuf { kontakt }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };
