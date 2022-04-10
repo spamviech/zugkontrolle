@@ -9,7 +9,6 @@ use iced_native::{
     Renderer, Row, Scrollable, Text, TextInput, Widget,
 };
 
-pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{
@@ -19,8 +18,10 @@ use crate::{
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
 };
-
-pub mod style;
+pub use crate::{
+    application::style::streckenabschnitt as style,
+    steuerung::streckenabschnitt::{Name, Streckenabschnitt},
+};
 
 /// Zustand des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie [Buttons](iced::Button) zum Öffnen des Auswahl-Fensters.
