@@ -79,12 +79,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        let titel = format!("{aktion:?}");
-        aktion.async_ausführen(None, self.sender.clone(), move |fehler| Nachricht::AsyncFehler {
-            titel,
-            nachricht: format!("{fehler:?}"),
-            zustand_zurücksetzen: todo!(),
-        })
+        aktion.async_ausführen(None, self.sender.clone())
     }
 
     fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Zustand>(
@@ -699,11 +694,8 @@ where
         }))
     }
 
-    /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    pub fn async_fehler(
+    fn zustand_zurücksetzen(
         &mut self,
-        titel: String,
-        nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
     ) -> Option<Command<Nachricht<Leiter>>> {
         let mut command = None;
@@ -747,6 +739,21 @@ where
                 command = self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
             },
         }
+        command
+    }
+
+    /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
+    pub fn async_fehler(
+        &mut self,
+        titel: String,
+        nachricht: String,
+        zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
+    ) -> Option<Command<Nachricht<Leiter>>> {
+        let command = if let Some(zustand_zurücksetzen) = zustand_zurücksetzen {
+            self.zustand_zurücksetzen(zustand_zurücksetzen)
+        } else {
+            None
+        };
         self.zeige_message_box(titel, nachricht);
         command
     }
@@ -818,10 +825,10 @@ where
             move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
                 titel,
                 nachricht: format!("{:?}", fehler),
-                zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
+                zustand_zurücksetzen: Some(ZustandZurücksetzen::GeschwindigkeitAnzeige(
                     name_clone,
                     zustand_zurücksetzen,
-                ),
+                )),
             },
         );
         match update_result {

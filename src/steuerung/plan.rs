@@ -11,6 +11,7 @@ use crate::{
     anschluss::{
         de_serialisieren::Serialisiere, polarität::Fließend, Fehler, OutputSerialisiert
     },
+    application::{geschwindigkeit::LeiterAnzeige, ZustandZurücksetzen},
     gleis::weiche,
     steuerung::{
         geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
@@ -24,6 +25,17 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
+#[derive(Debug)]
+/// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
+pub struct AsyncFehler<Leiter: LeiterAnzeige> {
+    /// Der Titel der Fehlermeldung.
+    pub titel: String,
+    /// Die Nachricht der Fehlermeldung.
+    pub nachricht: String,
+    /// Zustand auf Stand vor der Aktion zurücksetzen.
+    pub zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
+}
+
 /// Etwas ausführbares.
 pub trait Ausführen {
     /// Ausführen im aktuellen Thread. Kann den aktuellen Thread blockieren.
@@ -31,11 +43,13 @@ pub trait Ausführen {
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     );
 }
 
@@ -62,11 +76,13 @@ impl<L: Leiter> Ausführen for Plan<L> {
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         todo!()
     }
@@ -167,11 +183,13 @@ impl<L: Leiter> Ausführen for Aktion<L> {
         }
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         match self {
             AktionEnum::Geschwindigkeit(aktion) => todo!(),
@@ -283,11 +301,13 @@ impl<L: Leiter> Ausführen for AktionGeschwindigkeit<L> {
         }
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
@@ -389,11 +409,13 @@ impl Ausführen for AktionStreckenabschnitt {
         streckenabschnitt.strom(*fließend)
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
         todo!()
@@ -490,11 +512,13 @@ impl Ausführen for AktionSchalten {
         }
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
@@ -600,11 +624,13 @@ impl Ausführen for AktionWarten {
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: Send + 'static>(
+    fn async_ausführen<
+        Leiter: LeiterAnzeige,
+        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
+    >(
         &mut self,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let mut clone = self.clone();
         let _ = thread::spawn(move || match clone.ausführen() {
@@ -620,7 +646,14 @@ impl Ausführen for AktionWarten {
                 }
             },
             Err(fehlermeldung) => {
-                if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                if let Err(fehler) = fehler.send(
+                    AsyncFehler {
+                        titel: format!("{clone:?}"),
+                        nachricht: format!("{fehlermeldung:?}"),
+                        zustand_zurücksetzen: None,
+                    }
+                    .into(),
+                ) {
                     error!(
                         "Kein Empfänger wartet auf die Fehlermeldung einer Warte-Aktion: {fehler}"
                     )

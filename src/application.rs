@@ -49,7 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt},
+        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -262,13 +262,13 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
         /// Die Nachricht der Fehlermeldung.
         nachricht: String,
         /// Zustand auf Stand vor der Aktion zurücksetzen.
-        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
+        zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
     },
 }
 
 impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
-    fn from(message: gleise::Nachricht) -> Self {
-        match message {
+    fn from(nachricht: gleise::Nachricht) -> Self {
+        match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
                 Nachricht::SetzeStreckenabschnitt(any_id)
             },
@@ -280,6 +280,13 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
                 Nachricht::StreckenabschnittUmschalten(aktion)
             },
         }
+    }
+}
+
+impl<Leiter: LeiterAnzeige> From<AsyncFehler<Leiter>> for Nachricht<Leiter> {
+    fn from(fehler: AsyncFehler<Leiter>) -> Self {
+        let AsyncFehler { titel, nachricht, zustand_zurücksetzen } = fehler;
+        Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen }
     }
 }
 
