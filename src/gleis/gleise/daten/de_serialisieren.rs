@@ -8,6 +8,7 @@ use std::{
     io::{self, Read},
 };
 
+use nonempty::NonEmpty;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree,
@@ -271,7 +272,7 @@ where
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-    ) -> Result<Zustand<L>, LadenFehler<L>> {
+    ) -> Result<(Zustand<L>, Vec<LadenFehler<L>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
         let mut bekannte_gerade_weichen = HashMap::new();
@@ -289,12 +290,14 @@ where
 
         let zugtyp = Zugtyp::try_from(zugtyp)?;
 
+        let mut fehler = Vec::new();
+
         let Reserviert {
-            anschluss: ohne_streckenabschnitt,
+            anschluss: mut ohne_streckenabschnitt,
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = ohne_streckenabschnitt.reserviere(
+        } = match ohne_streckenabschnitt.reserviere(
             zugtyp.spurweite,
             lager,
             pwm_pins,
@@ -304,9 +307,12 @@ where
             &mut bekannte_kurven_weichen,
             &mut bekannte_dreiwege_weichen,
             &mut bekannte_kontakte,
-        )?;
+        ) {
+            Ok(reserviert) => reserviert,
+            Err(fehler) => todo!(),
+        };
 
-        fn reserviere_streckenabschnitt_map(
+        fn reserviere_streckenabschnitt_map<L: Serialisiere>(
             spurweite: Spurweite,
             lager: &mut anschluss::Lager,
             streckenabschnitt_map: StreckenabschnittMapSerialisiert,
@@ -318,35 +324,44 @@ where
             kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
             dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
             kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-        ) -> Result<Reserviert<StreckenabschnittMap>, anschluss::Fehler> {
+            fehler: &mut Vec<LadenFehler<L>>,
+        ) -> (Reserviert<StreckenabschnittMap>, Option<GleiseDaten>) {
             streckenabschnitt_map.into_iter().fold(
-                Ok(Reserviert {
-                    anschluss: HashMap::new(),
-                    pwm_nicht_benötigt: pwm_pins,
-                    output_nicht_benötigt: output_anschlüsse,
-                    input_nicht_benötigt: input_anschlüsse,
-                }),
-                |acc: Result<_, anschluss::Fehler>, (name, (streckenabschnitt, daten))| {
-                    let Reserviert {
-                        anschluss: mut map,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    } = acc?;
+                (
+                    Reserviert {
+                        anschluss: HashMap::new(),
+                        pwm_nicht_benötigt: pwm_pins,
+                        output_nicht_benötigt: output_anschlüsse,
+                        input_nicht_benötigt: input_anschlüsse,
+                    },
+                    None,
+                ),
+                |acc, (name, (streckenabschnitt, daten))| {
+                    let (
+                        Reserviert {
+                            anschluss: mut map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        mut fehler_daten,
+                    ) = acc;
                     let leiter_serialisiert = streckenabschnitt.anschluss_ref().clone();
                     let Reserviert {
                         anschluss: streckenabschnitt,
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
                         input_nicht_benötigt,
-                    } = streckenabschnitt
-                        .reserviere(
-                            lager,
-                            pwm_nicht_benötigt,
-                            output_nicht_benötigt,
-                            input_nicht_benötigt,
-                        )
-                        .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                    } = match streckenabschnitt.reserviere(
+                        lager,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    ) {
+                        Ok(reserviert) => reserviert,
+                        // .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                        Err(de_serialisieren::Fehler { fehler, .. }) => todo!(),
+                    };
                     let _ =
                         streckenabschnitte.insert(leiter_serialisiert, streckenabschnitt.clone());
                     let Reserviert {
@@ -354,7 +369,7 @@ where
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
                         input_nicht_benötigt,
-                    } = daten.reserviere(
+                    } = match daten.reserviere(
                         spurweite,
                         lager,
                         pwm_nicht_benötigt,
@@ -364,23 +379,32 @@ where
                         kurven_weichen,
                         dreiwege_weichen,
                         kontakte,
-                    )?;
+                    ) {
+                        Ok(reserviert) => reserviert,
+                        Err(fehler) => todo!(),
+                    };
                     let _ = map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
-                    Ok(Reserviert {
-                        anschluss: map,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    })
+                    (
+                        Reserviert {
+                            anschluss: map,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt,
+                        },
+                        fehler_daten,
+                    )
                 },
             )
         }
-        let Reserviert {
-            anschluss: ohne_geschwindigkeit,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        } = reserviere_streckenabschnitt_map(
+        let (
+            Reserviert {
+                anschluss: mut ohne_geschwindigkeit,
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            },
+            fehler_daten,
+        ) = reserviere_streckenabschnitt_map(
             zugtyp.spurweite,
             lager,
             ohne_geschwindigkeit,
@@ -392,50 +416,66 @@ where
             &mut bekannte_kurven_weichen,
             &mut bekannte_dreiwege_weichen,
             &mut bekannte_kontakte,
-        )?;
+            &mut fehler,
+        );
+        // TODO
+        // ohne_streckenabschnitt.extend(fehler_daten);
 
-        let Reserviert {
-            anschluss: geschwindigkeiten,
-            pwm_nicht_benötigt: _,
-            output_nicht_benötigt: _,
-            input_nicht_benötigt: _,
-        } = geschwindigkeiten.into_iter().fold(
-            Ok(Reserviert {
-                anschluss: HashMap::new(),
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            }),
-            |acc: Result<_, anschluss::Fehler>,
-             (name, (geschwindigkeit, streckenabschnitt_map))| {
-                let Reserviert {
-                    anschluss: mut map,
+        let (
+            Reserviert {
+                anschluss: geschwindigkeiten,
+                pwm_nicht_benötigt: _,
+                output_nicht_benötigt: _,
+                input_nicht_benötigt: _,
+            },
+            fehler_streckenabschnitte,
+        ) = geschwindigkeiten.into_iter().fold(
+            (
+                Reserviert {
+                    anschluss: HashMap::new(),
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                } = acc?;
+                },
+                None,
+            ),
+            |acc, (name, (geschwindigkeit, streckenabschnitt_map))| {
+                let (
+                    Reserviert {
+                        anschluss: mut map,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    },
+                    mut fehler_streckenabschnitte,
+                ) = acc;
                 let geschwindigkeit_serialisiert = geschwindigkeit.clone();
                 let Reserviert {
                     anschluss: geschwindigkeit,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                } = geschwindigkeit
-                    .reserviere(
-                        lager,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    )
-                    .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                let _ = bekannte_geschwindigkeiten
-                    .insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
-                let Reserviert {
-                    anschluss: streckenabschnitt_map,
+                } = match geschwindigkeit.reserviere(
+                    lager,
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
-                } = reserviere_streckenabschnitt_map(
+                ) {
+                    Ok(reserviert) => reserviert,
+                    // .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
+                    Err(fehler) => todo!(),
+                };
+                let _ = bekannte_geschwindigkeiten
+                    .insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
+                let (
+                    Reserviert {
+                        anschluss: streckenabschnitt_map,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    },
+                    fehler_daten,
+                ) = reserviere_streckenabschnitt_map(
                     zugtyp.spurweite,
                     lager,
                     streckenabschnitt_map,
@@ -447,16 +487,21 @@ where
                     &mut bekannte_kurven_weichen,
                     &mut bekannte_dreiwege_weichen,
                     &mut bekannte_kontakte,
-                )?;
+                    &mut fehler,
+                );
                 let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
-                Ok(Reserviert {
-                    anschluss: map,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                })
+                (
+                    Reserviert {
+                        anschluss: map,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    },
+                    fehler_streckenabschnitte,
+                )
             },
-        )?;
+        );
+        ohne_geschwindigkeit.extend(fehler_streckenabschnitte);
 
         let mut pläne = HashMap::new();
         for (name, plan_serialisiert) in pläne_serialisiert {
@@ -470,19 +515,23 @@ where
             ) {
                 Ok(plan) => plan,
                 Err(anschlüsse) => {
-                    return Err(LadenFehler::UnbekannteAnschlüsse { plan: name, anschlüsse })
+                    fehler.push(LadenFehler::UnbekannteAnschlüsse { plan: name, anschlüsse });
+                    continue;
                 },
             };
             let _ = pläne.insert(name, plan);
         }
 
-        Ok(Zustand {
-            zugtyp,
-            ohne_streckenabschnitt,
-            ohne_geschwindigkeit,
-            geschwindigkeiten,
-            pläne,
-        })
+        Ok((
+            Zustand {
+                zugtyp,
+                ohne_streckenabschnitt,
+                ohne_geschwindigkeit,
+                geschwindigkeiten,
+                pläne,
+            },
+            fehler,
+        ))
     }
 }
 
@@ -663,7 +712,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
-    ) -> Result<(), LadenFehler<L>>
+    ) -> Result<(), NonEmpty<LadenFehler<L>>>
     where
         L: v2::Kompatibel,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
@@ -679,24 +728,28 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
         // last_mouse, last_size nicht anpassen
 
         // lese & parse Datei
-        let mut file = fs::File::open(pfad)?;
+        let mut file = fs::File::open(pfad).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let mut content = Vec::new();
-        let _ = file.read_to_end(&mut content)?;
+        let _ =
+            file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
-        let zustand_serialisiert: ZustandSerialisiert<L> =
-            bincode::deserialize(slice).or_else(|aktuell| {
+        let zustand_serialisiert: ZustandSerialisiert<L> = bincode::deserialize(slice)
+            .or_else(|aktuell| {
                 bincode::deserialize(slice)
                     .map_err(|v2| LadenFehler::BincodeDeserialisieren { aktuell, v2 })
                     .and_then(|v2: v2::GleiseVecs<L>| v2.try_into().map_err(LadenFehler::from))
-            })?;
+            })
+            .map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
 
         // reserviere Anschlüsse
-        self.zustand = zustand_serialisiert.reserviere(
-            lager,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        )?;
-        Ok(())
+        let (zustand, fehler) = zustand_serialisiert
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)
+            .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
+        self.zustand = zustand;
+        if let Some(non_empty) = NonEmpty::from_vec(fehler) {
+            Err(non_empty)
+        } else {
+            Ok(())
+        }
     }
 }
