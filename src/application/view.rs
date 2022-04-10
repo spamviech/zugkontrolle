@@ -274,7 +274,7 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
         .width(Length::Fill)
         .height(Length::Shrink)
 }
-zustand
+
 fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     aktueller_modus: Modus,
     scrollable_zustand: &'t mut iced::scrollable::State,
