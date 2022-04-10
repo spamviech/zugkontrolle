@@ -566,13 +566,34 @@ impl GleiseDaten {
         .iter()
         .all(|size| *size == 0)
     }
+
+    /// Füge alle Gleise von `neu` zu `self` hinzu.
+    fn verschmelze(&mut self, mut neu: GleiseDaten) {
+        macro_rules! kombinierte_rstern {
+            ($($rstern:ident),* $(,)?) => {$(
+                for geom_with_data in neu.$rstern.drain_with_selection_function(SelectAll) {
+                    self.$rstern.insert(geom_with_data);
+                }
+            )*};
+        }
+        kombinierte_rstern! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
+    }
 }
 
 const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// SelectionFunction, die jedes Element akzeptiert.
-/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe `GleiseDaten::verschmelze`).
-pub(crate) struct SelectAll;
+/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe [GleiseDaten::verschmelze]).
+struct SelectAll;
+
 impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
     fn should_unpack_parent(&self, _envelope: &T::Envelope) -> bool {
         true
@@ -581,6 +602,7 @@ impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
 
 /// SelectionFunction, die einen bestimmten Envelope sucht.
 pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
+
 impl<T> SelectionFunction<T> for SelectEnvelope
 where
     T: RTreeObject<Envelope = AABB<Vektor>>,

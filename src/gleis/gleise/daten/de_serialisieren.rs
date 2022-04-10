@@ -487,7 +487,7 @@ where
             kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
             dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
             kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-            fehler: &mut Vec<LadenFehler<L>>,
+            laden_fehler: &mut Vec<LadenFehler<L>>,
         ) -> (Reserviert<StreckenabschnittMap>, Option<GleiseDaten>) {
             streckenabschnitt_map.into_iter().fold(
                 (
@@ -507,23 +507,63 @@ where
                             output_nicht_benötigt,
                             input_nicht_benötigt,
                         },
-                        mut fehler_daten,
+                        fehler_daten,
                     ) = acc;
                     let leiter_serialisiert = streckenabschnitt.anschluss_ref().clone();
+                    let streckenabschnitt_result = streckenabschnitt.reserviere(
+                        lager,
+                        pwm_nicht_benötigt,
+                        output_nicht_benötigt,
+                        input_nicht_benötigt,
+                    );
                     let Reserviert {
                         anschluss: streckenabschnitt,
                         pwm_nicht_benötigt,
                         output_nicht_benötigt,
                         input_nicht_benötigt,
-                    } = match streckenabschnitt.reserviere(
-                        lager,
-                        pwm_nicht_benötigt,
-                        output_nicht_benötigt,
-                        input_nicht_benötigt,
-                    ) {
+                    } = match streckenabschnitt_result {
                         Ok(reserviert) => reserviert,
-                        // .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                        Err(de_serialisieren::Fehler { fehler, .. }) => todo!(),
+                        Err(de_serialisieren::Fehler {
+                            fehler,
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse,
+                        }) => {
+                            laden_fehler.push(fehler.into());
+                            let Reserviert {
+                                anschluss: daten,
+                                pwm_nicht_benötigt,
+                                output_nicht_benötigt,
+                                input_nicht_benötigt,
+                            } = daten.reserviere(
+                                spurweite,
+                                lager,
+                                pwm_pins,
+                                output_anschlüsse,
+                                input_anschlüsse,
+                                gerade_weichen,
+                                kurven_weichen,
+                                dreiwege_weichen,
+                                kontakte,
+                                laden_fehler,
+                            );
+                            let fehler_daten = match fehler_daten {
+                                Some(fehler_daten) => {
+                                    fehler_daten.verschmelze(daten);
+                                    fehler_daten
+                                },
+                                None => daten,
+                            };
+                            return (
+                                Reserviert {
+                                    anschluss: map,
+                                    pwm_nicht_benötigt,
+                                    output_nicht_benötigt,
+                                    input_nicht_benötigt,
+                                },
+                                Some(fehler_daten),
+                            );
+                        },
                     };
                     let _ =
                         streckenabschnitte.insert(leiter_serialisiert, streckenabschnitt.clone());
@@ -542,7 +582,7 @@ where
                         kurven_weichen,
                         dreiwege_weichen,
                         kontakte,
-                        fehler,
+                        laden_fehler,
                     );
                     let _ = map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
                     (
@@ -557,6 +597,7 @@ where
                 },
             )
         }
+
         let (
             Reserviert {
                 anschluss: mut ohne_geschwindigkeit,
@@ -579,8 +620,10 @@ where
             &mut bekannte_kontakte,
             &mut fehler,
         );
-        // TODO
-        // ohne_streckenabschnitt.extend(fehler_daten);
+
+        if let Some(fehler_daten) = fehler_daten {
+            ohne_streckenabschnitt.verschmelze(fehler_daten);
+        }
 
         let (
             Reserviert {
@@ -608,7 +651,7 @@ where
                         output_nicht_benötigt,
                         input_nicht_benötigt,
                     },
-                    mut fehler_streckenabschnitte,
+                    fehler_streckenabschnitte,
                 ) = acc;
                 let geschwindigkeit_serialisiert = geschwindigkeit.clone();
                 let Reserviert {
@@ -623,11 +666,17 @@ where
                     input_nicht_benötigt,
                 ) {
                     Ok(reserviert) => reserviert,
-                    // .map_err(|de_serialisieren::Fehler { fehler, .. }| fehler)?;
-                    Err(fehler) => todo!(),
+                    Err(de_serialisieren::Fehler {
+                        fehler,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                    }) => todo!(),
                 };
+
                 let _ = bekannte_geschwindigkeiten
                     .insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
+
                 let (
                     Reserviert {
                         anschluss: streckenabschnitt_map,
@@ -650,7 +699,13 @@ where
                     &mut bekannte_kontakte,
                     &mut fehler,
                 );
+
+                if let Some(fehler_daten) = fehler_daten {
+                    ohne_streckenabschnitt.verschmelze(fehler_daten);
+                }
+
                 let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
+
                 (
                     Reserviert {
                         anschluss: map,
