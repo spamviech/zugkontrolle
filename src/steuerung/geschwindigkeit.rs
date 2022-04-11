@@ -554,13 +554,14 @@ impl Leiter for Mittelleiter {
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         match self {
-            Mittelleiter::Pwm { pin, polarität } => Ok(geschwindigkeit_pwm(
+            Mittelleiter::Pwm { pin, polarität } => geschwindigkeit_pwm(
                 pin,
                 wert,
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 *polarität,
-            )?),
+            )
+            .map_err(Fehler::from),
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
@@ -730,13 +731,14 @@ impl Leiter for Zweileiter {
         PhantomData: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, .. } => Ok(geschwindigkeit_pwm(
+            Zweileiter::Pwm { geschwindigkeit, polarität, .. } => geschwindigkeit_pwm(
                 geschwindigkeit,
                 wert,
                 pwm_frequenz,
                 NullBisEins::MAX,
                 *polarität,
-            )?),
+            )
+            .map_err(Fehler::from),
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
