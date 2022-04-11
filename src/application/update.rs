@@ -81,7 +81,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         <L as Serialisiere>::Serialisiert: Send,
     {
         let _join_handle = aktion.async_ausführen(
-            self.gleise.zugtyp(),
+            self.gleise.zugtyp().into(),
             self.sender.clone(),
             todo!("ZustandZurücksetzen"),
         );

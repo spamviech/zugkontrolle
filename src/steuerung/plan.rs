@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{self, de_serialisieren::Serialisiere, polarität::Fließend, OutputSerialisiert},
+    eingeschränkt::NichtNegativ,
     gleis::weiche,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
@@ -27,8 +28,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-#[derive(Debug)]
 /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
+#[derive(Debug)]
 pub struct AsyncFehler<ZustandZurücksetzen> {
     /// Der Titel der Fehlermeldung.
     pub titel: String,
@@ -38,19 +39,78 @@ pub struct AsyncFehler<ZustandZurücksetzen> {
     pub zustand_zurücksetzen: ZustandZurücksetzen,
 }
 
+/// Einstellungen, die das [Ausführen] von Aktionen beeinflussen.
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_clone(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Clone)]
+#[zugkontrolle_clone(<L as Leiter>::UmdrehenZeit: Clone)]
+pub struct Einstellungen<L: Leiter> {
+    /// Frequenz in Herz für den Pwm-Antrieb.
+    pub pwm_frequenz: NichtNegativ,
+    /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.
+    pub verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    /// Zeit zum Anhalten vor dem Umdrehen.
+    pub stopp_zeit: Duration,
+    /// Zeit die zum Umdrehen verwendete Überspannung anliegt.
+    pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
+    pub schalten_zeit: Duration,
+}
+
+impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
+    fn from(zugtyp: Zugtyp<L>) -> Self {
+        let Zugtyp {
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+            ..
+        } = zugtyp;
+        Einstellungen {
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        }
+    }
+}
+
+impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
+    fn from(zugtyp: &Zugtyp<L>) -> Self {
+        let Zugtyp {
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+            ..
+        } = zugtyp;
+        Einstellungen {
+            pwm_frequenz: *pwm_frequenz,
+            verhältnis_fahrspannung_überspannung: verhältnis_fahrspannung_überspannung.clone(),
+            stopp_zeit: *stopp_zeit,
+            umdrehen_zeit: umdrehen_zeit.clone(),
+            schalten_zeit: *schalten_zeit,
+        }
+    }
+}
+
 /// Etwas ausführbares.
 pub trait Ausführen<L: Leiter> {
     /// Mögliche Fehler, die beim ausführen auftreten können.
     type Fehler;
 
     /// Ausführen im aktuellen Thread. Kann den aktuellen Thread blockieren.
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler>;
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler>;
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        einstellungen: Einstellungen<L>,
         fehler: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()>;
@@ -83,7 +143,7 @@ macro_rules! impl_ausführen_simple {
         impl<L: Leiter> Ausführen<L> for $type {
             type Fehler = $fehler;
 
-            fn ausführen(&mut self, _zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
+            fn ausführen(&mut self, _einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
                 self.ausführen()
             }
 
@@ -92,7 +152,7 @@ macro_rules! impl_ausführen_simple {
                 ZZ: 'static + Send,
             >(
                 &mut self,
-                _zugtyp: &Zugtyp<L>,
+                _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
                 zustand_zurücksetzen: ZZ,
             ) -> JoinHandle<()> {
@@ -141,14 +201,18 @@ where
 {
     type Fehler = PlanFehler;
 
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler>
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler>
     where
         L: Leiter,
     {
         let Plan { aktionen, endlosschleife } = self;
-        while *endlosschleife {
+        let mut erstes = true;
+        while erstes || *endlosschleife {
+            erstes = false;
             for (i, aktion) in aktionen.iter_mut().enumerate() {
-                aktion.ausführen(zugtyp).map_err(|fehler| PlanFehler { fehler, aktion: i })?;
+                aktion
+                    .ausführen(einstellungen.clone())
+                    .map_err(|fehler| PlanFehler { fehler, aktion: i })?;
             }
         }
         Ok(())
@@ -156,7 +220,7 @@ where
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
@@ -169,9 +233,7 @@ where
             .into()
         };
         let ausführen = Self::ausführen;
-        // TODO kleinere Struktur AktionEinstellungen erstellen
-        let zugtyp_clone = zugtyp.clone();
-        async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, &zugtyp_clone))
+        async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, einstellungen))
     }
 }
 
@@ -283,40 +345,46 @@ where
 {
     type Fehler = AktionFehler;
 
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
-                aktion.ausführen(zugtyp).map_err(AktionFehler::Geschwindigkeit)
+                aktion.ausführen(einstellungen).map_err(AktionFehler::Geschwindigkeit)
             },
             Aktion::Streckenabschnitt(aktion) => {
                 aktion.ausführen().map_err(AktionFehler::Streckenabschnitt)
             },
-            Aktion::Schalten(aktion) => aktion.ausführen(zugtyp).map_err(AktionFehler::Schalten),
-            Aktion::Warten(aktion) => aktion.ausführen().map_err(AktionFehler::Warten),
-            Aktion::Ausführen(plan) => {
-                plan.ausführen(zugtyp).map_err(|fehler| AktionFehler::Ausführen(Box::new(fehler)))
+            Aktion::Schalten(aktion) => {
+                aktion.ausführen(einstellungen).map_err(AktionFehler::Schalten)
             },
+            Aktion::Warten(aktion) => aktion.ausführen().map_err(AktionFehler::Warten),
+            Aktion::Ausführen(plan) => plan
+                .ausführen(einstellungen)
+                .map_err(|fehler| AktionFehler::Ausführen(Box::new(fehler))),
         }
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
-                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
             Aktion::Streckenabschnitt(aktion) => {
-                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
             Aktion::Schalten(aktion) => {
-                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
-            Aktion::Warten(aktion) => aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen),
-            Aktion::Ausführen(plan) => plan.async_ausführen(zugtyp, sender, zustand_zurücksetzen),
+            Aktion::Warten(aktion) => {
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
+            },
+            Aktion::Ausführen(plan) => {
+                plan.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
+            },
         }
     }
 }
@@ -428,28 +496,28 @@ where
 {
     type Fehler = geschwindigkeit::Fehler;
 
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
                 .geschwindigkeit(
                     *wert,
-                    zugtyp.pwm_frequenz,
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
+                    einstellungen.pwm_frequenz,
+                    einstellungen.verhältnis_fahrspannung_überspannung,
                 ),
             AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
                 .umdrehen_allgemein(
-                    zugtyp.pwm_frequenz,
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
-                    zugtyp.stopp_zeit,
-                    zugtyp.umdrehen_zeit.clone(),
+                    einstellungen.pwm_frequenz,
+                    einstellungen.verhältnis_fahrspannung_überspannung,
+                    einstellungen.stopp_zeit,
+                    einstellungen.umdrehen_zeit,
                 ),
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
-                    zugtyp.pwm_frequenz,
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
-                    zugtyp.stopp_zeit,
-                    zugtyp.umdrehen_zeit.clone(),
+                    einstellungen.pwm_frequenz,
+                    einstellungen.verhältnis_fahrspannung_überspannung,
+                    einstellungen.stopp_zeit,
+                    einstellungen.umdrehen_zeit,
                 )
             },
         }
@@ -457,7 +525,7 @@ where
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
@@ -468,9 +536,9 @@ where
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
                 let wert = *wert;
-                let pwm_frequenz = zugtyp.pwm_frequenz;
+                let pwm_frequenz = einstellungen.pwm_frequenz;
                 let verhältnis_fahrspannung_überspannung =
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone();
+                    einstellungen.verhältnis_fahrspannung_überspannung.clone();
                 let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
@@ -486,20 +554,20 @@ where
             },
             AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
                 .async_umdrehen_allgemein(
-                    zugtyp.pwm_frequenz,
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
-                    zugtyp.stopp_zeit,
-                    zugtyp.umdrehen_zeit.clone(),
+                    einstellungen.pwm_frequenz,
+                    einstellungen.verhältnis_fahrspannung_überspannung,
+                    einstellungen.stopp_zeit,
+                    einstellungen.umdrehen_zeit,
                     sender,
                     erzeuge_nachricht,
                 ),
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.async_fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
-                    zugtyp.pwm_frequenz,
-                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
-                    zugtyp.stopp_zeit,
-                    zugtyp.umdrehen_zeit.clone(),
+                    einstellungen.pwm_frequenz,
+                    einstellungen.verhältnis_fahrspannung_überspannung,
+                    einstellungen.stopp_zeit,
+                    einstellungen.umdrehen_zeit,
                     sender,
                     erzeuge_nachricht,
                 )
@@ -694,23 +762,23 @@ pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = 
 impl<L: Leiter> Ausführen<L> for AktionSchalten {
     type Fehler = anschluss::Fehler;
 
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => {
-                weiche.schalten(richtung, zugtyp.schalten_zeit)
+                weiche.schalten(richtung, einstellungen.schalten_zeit)
             },
             AktionSchalten::SchalteKurve { weiche, richtung } => {
-                weiche.schalten(richtung, zugtyp.schalten_zeit)
+                weiche.schalten(richtung, einstellungen.schalten_zeit)
             },
             AktionSchalten::SchalteDreiwege { weiche, richtung } => {
-                weiche.schalten(richtung, zugtyp.schalten_zeit)
+                weiche.schalten(richtung, einstellungen.schalten_zeit)
             },
         }
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
@@ -719,15 +787,24 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
         };
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => {
-                weiche.async_schalten(*richtung, zugtyp.schalten_zeit, sender, erzeuge_nachricht)
-            },
-            AktionSchalten::SchalteKurve { weiche, richtung } => {
-                weiche.async_schalten(*richtung, zugtyp.schalten_zeit, sender, erzeuge_nachricht)
-            },
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => {
-                weiche.async_schalten(*richtung, zugtyp.schalten_zeit, sender, erzeuge_nachricht)
-            },
+            AktionSchalten::SchalteGerade { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                einstellungen.schalten_zeit,
+                sender,
+                erzeuge_nachricht,
+            ),
+            AktionSchalten::SchalteKurve { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                einstellungen.schalten_zeit,
+                sender,
+                erzeuge_nachricht,
+            ),
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                einstellungen.schalten_zeit,
+                sender,
+                erzeuge_nachricht,
+            ),
         }
     }
 }
