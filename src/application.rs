@@ -283,8 +283,10 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncFehler<Leiter>> for Nachricht<Leiter> {
-    fn from(fehler: AsyncFehler<Leiter>) -> Self {
+impl<Leiter: LeiterAnzeige> From<AsyncFehler<Option<ZustandZurücksetzen<Leiter>>>>
+    for Nachricht<Leiter>
+{
+    fn from(fehler: AsyncFehler<Option<ZustandZurücksetzen<Leiter>>>) -> Self {
         let AsyncFehler { titel, nachricht, zustand_zurücksetzen } = fehler;
         Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen }
     }

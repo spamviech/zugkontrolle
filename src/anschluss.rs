@@ -170,8 +170,17 @@ impl OutputAnschluss {
         })
     }
 
+    /// Aktuelle Einstellung des [OutputAnschlusses](OutputAnschluss).
+    pub fn fließend(&self) -> Fließend {
+        if self.ist_fließend() {
+            Fließend::Fließend
+        } else {
+            Fließend::Gesperrt
+        }
+    }
+
     /// Ist der [OutputAnschluss] aktuell [fließend](Fließend::Fließend).
-    pub fn ist_fließend(&mut self) -> bool {
+    pub fn ist_fließend(&self) -> bool {
         match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
                 Polarität::Normal => pin.ist_high(),
@@ -186,7 +195,7 @@ impl OutputAnschluss {
 
     /// Ist der [OutputAnschluss] aktuell [gesperrt](Fließend::Gesperrt).
     #[inline(always)]
-    pub fn ist_gesperrt(&mut self) -> bool {
+    pub fn ist_gesperrt(&self) -> bool {
         !self.ist_fließend()
     }
 

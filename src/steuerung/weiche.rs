@@ -109,20 +109,33 @@ where
         &mut self,
         richtung: Richtung,
         schalten_zeit: Duration,
-        sender: Sender<Nachricht>,
+        erfolg: Option<Sender<()>>,
+        fehler: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) {
         let name_clone = self.name.clone();
         let mut mutex_clone = self.anschlüsse.clone();
         let richtung_clone = richtung.clone();
         let _ = thread::spawn(move || {
-            if let Err(fehler) =
-                Self::schalten_aux(&mut mutex_clone, &richtung_clone, schalten_zeit)
-            {
-                let send_result = sender.send(erzeuge_nachricht(fehler));
-                if let Err(fehler) = send_result {
-                    debug!("Message-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
-                }
+            match Self::schalten_aux(&mut mutex_clone, &richtung_clone, schalten_zeit) {
+                Ok(unit) => {
+                    if let Some(erfolg) = erfolg {
+                        if let Err(fehler) = erfolg.send(unit) {
+                            debug!(
+                                "Erfolg-Channel für Weiche {} geschlossen: {:?}",
+                                name_clone.0, fehler
+                            )
+                        }
+                    }
+                },
+                Err(fehlermeldung) => {
+                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+                        debug!(
+                            "Fehler-Channel für Weiche {} geschlossen: {:?}",
+                            name_clone.0, fehler
+                        )
+                    }
+                },
             }
         });
         self.letzte_richtung = self.aktuelle_richtung.clone();

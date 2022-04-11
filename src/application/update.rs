@@ -73,13 +73,19 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         self.message_box.verstecke_modal()
     }
 
-    /// Führe eine Aktion aus.
-    pub fn aktion_ausführen<Aktion: Ausführen + Debug + Send>(&mut self, mut aktion: Aktion)
+    /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
+    #[inline(always)]
+    pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(&mut self, mut aktion: Aktion)
     where
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        aktion.async_ausführen(None, self.sender.clone())
+        aktion.async_ausführen(
+            self.gleise.zugtyp(),
+            None,
+            self.sender.clone(),
+            todo!("ZustandZurücksetzen"),
+        )
     }
 
     fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Zustand>(

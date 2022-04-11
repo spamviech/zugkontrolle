@@ -543,12 +543,12 @@ impl OutputPort {
     }
 
     /// Ist der aktuelle Level [High](Level::High)?
-    pub fn ist_high(&mut self) -> bool {
+    pub fn ist_high(&self) -> bool {
         self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High
     }
 
     /// Ist der aktuelle Level [Low](Level::Low)?
-    pub fn ist_low(&mut self) -> bool {
+    pub fn ist_low(&self) -> bool {
         self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low
     }
 

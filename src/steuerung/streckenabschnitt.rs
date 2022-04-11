@@ -40,10 +40,15 @@ impl Streckenabschnitt {
         self.lock_anschluss().einstellen(fließend)
     }
 
-    /// Schalte den Strom eines [Streckenabschnittes](Streckenabschnitt)
+    /// Schalte den Strom eines [Streckenabschnittes](Streckenabschnitt).
     /// von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt) und umgekehrt.
     pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
         self.lock_anschluss().umschalten()
+    }
+
+    /// Aktuelle Einstellung eines [Streckenabschnittes](Streckenabschnitt).
+    pub fn fließend(&self) -> Fließend {
+        self.lock_anschluss().fließend()
     }
 
     #[inline(always)]

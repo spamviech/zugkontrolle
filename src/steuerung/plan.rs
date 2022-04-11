@@ -19,6 +19,7 @@ use crate::{
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert},
     },
+    zugtyp::Zugtyp,
 };
 
 /// Name eines [Plans](Plan).
@@ -27,30 +28,82 @@ pub struct Name(pub String);
 
 #[derive(Debug)]
 /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
-pub struct AsyncFehler<Leiter: LeiterAnzeige> {
+pub struct AsyncFehler<ZustandZurücksetzen> {
     /// Der Titel der Fehlermeldung.
     pub titel: String,
     /// Die Nachricht der Fehlermeldung.
     pub nachricht: String,
     /// Zustand auf Stand vor der Aktion zurücksetzen.
-    pub zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
+    pub zustand_zurücksetzen: ZustandZurücksetzen,
 }
 
 /// Etwas ausführbares.
-pub trait Ausführen {
+pub trait Ausführen<L: Leiter> {
     /// Ausführen im aktuellen Thread. Kann den aktuellen Thread blockieren.
-    fn ausführen(&mut self) -> Result<(), Fehler>;
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler>;
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
+        zugtyp: &Zugtyp<L>,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
     );
+}
+
+macro_rules! impl_ausführen_simple {
+    ($type: ty, $log_erfolg: ident, $log_fehler: ident, $aktion_beschreibung: expr) => {
+        impl<L: Leiter> Ausführen<L> for $type {
+            fn ausführen(&mut self, _zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
+                self.ausführen()
+            }
+
+            fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+                &mut self,
+                _zugtyp: &Zugtyp<L>,
+                erfolg: Option<Sender<()>>,
+                fehler: Sender<Nachricht>,
+                zustand_zurücksetzen: ZZ,
+            ) {
+                let mut clone = self.clone();
+                let _ = thread::spawn(move || match clone.ausführen() {
+                    Ok(unit) => {
+                        if let Some(erfolg) = erfolg {
+                            if let Err(fehler) = erfolg.send(unit) {
+                                $log_erfolg!(
+                                    "Kein Empfänger wartet auf die Erfolgsmeldung einer {}: {fehler}",
+                                    $aktion_beschreibung,
+                                )
+                            }
+                        } else {
+                            $log_erfolg!(
+                                "Kein Empfänger für die Erfolgsmeldung einer {}.",
+                                $aktion_beschreibung,
+                            )
+                        }
+                    },
+                    Err(fehlermeldung) => {
+                        if let Err(fehler) = fehler.send(
+                            AsyncFehler {
+                                titel: format!("{clone:?}"),
+                                nachricht: format!("{fehlermeldung:?}"),
+                                zustand_zurücksetzen,
+                            }
+                            .into(),
+                        ) {
+                            $log_fehler!(
+                                "Kein Empfänger wartet auf die Fehlermeldung einer {}: {fehler}",
+                                $aktion_beschreibung,
+                            )
+                        }
+                    },
+                });
+            }
+        }
+
+    };
 }
 
 /// Ein Fahrplan.
@@ -65,24 +118,26 @@ pub struct PlanEnum<Aktion> {
 /// Ein Fahrplan.
 pub type Plan<L> = PlanEnum<Aktion<L>>;
 
-impl<L: Leiter> Ausführen for Plan<L> {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+impl<L: Leiter> Ausführen<L> for Plan<L> {
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler>
+    where
+        L: Leiter,
+    {
         let Plan { aktionen, endlosschleife } = self;
         while *endlosschleife {
             for aktion in aktionen.iter_mut() {
-                aktion.ausführen()?;
+                aktion.ausführen(zugtyp)?;
             }
         }
         Ok(())
     }
 
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
         &mut self,
+        zugtyp: &Zugtyp<L>,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
     ) {
         todo!()
     }
@@ -172,8 +227,8 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
 pub type Aktion<L> =
     AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AktionSchalten, AktionWarten>;
 
-impl<L: Leiter> Ausführen for Aktion<L> {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+impl<L: Leiter> Ausführen<L> for Aktion<L> {
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
         match self {
             AktionEnum::Geschwindigkeit(aktion) => todo!(),
             AktionEnum::Streckenabschnitt(aktion) => todo!(),
@@ -183,13 +238,12 @@ impl<L: Leiter> Ausführen for Aktion<L> {
         }
     }
 
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
         &mut self,
+        zugtyp: &Zugtyp<L>,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
     ) {
         match self {
             AktionEnum::Geschwindigkeit(aktion) => todo!(),
@@ -292,8 +346,8 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
-impl<L: Leiter> Ausführen for AktionGeschwindigkeit<L> {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+impl<L: Leiter> Ausführen<L> for AktionGeschwindigkeit<L> {
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
             AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
@@ -301,13 +355,12 @@ impl<L: Leiter> Ausführen for AktionGeschwindigkeit<L> {
         }
     }
 
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
         &mut self,
+        zugtyp: &Zugtyp<L>,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
     ) {
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
@@ -403,24 +456,14 @@ pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
     },
 }
 
-impl Ausführen for AktionStreckenabschnitt {
+impl AktionStreckenabschnitt {
     fn ausführen(&mut self) -> Result<(), Fehler> {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
         streckenabschnitt.strom(*fließend)
     }
-
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
-        &mut self,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
-    ) {
-        let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
-        todo!()
-    }
 }
+
+impl_ausführen_simple! {AktionStreckenabschnitt, debug, error, "Streckenabschnitt-Aktion"}
 
 /// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
 pub type AktionStreckenabschnittSerialisiert =
@@ -492,38 +535,65 @@ pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = 
         /// Die Anschlüsse zum Schalten der Weiche.
         weiche: Kurve,
         /// Die neue Richtung.
-        richtung: weiche::gerade::Richtung,
+        richtung: weiche::kurve::Richtung,
     },
     /// Schalten einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
     SchalteDreiwege {
         /// Die Anschlüsse zum Schalten der Weiche.
         weiche: Dreiwege,
         /// Die neue Richtung.
-        richtung: weiche::gerade::Richtung,
+        richtung: weiche::dreiwege::Richtung,
     },
 }
 
-impl Ausführen for AktionSchalten {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+impl<L: Leiter> Ausführen<L> for AktionSchalten {
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
-            AktionSchalten::SchalteKurve { weiche, richtung } => todo!(),
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteGerade { weiche, richtung } => {
+                weiche.schalten(richtung, zugtyp.schalten_zeit)
+            },
+            AktionSchalten::SchalteKurve { weiche, richtung } => {
+                weiche.schalten(richtung, zugtyp.schalten_zeit)
+            },
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => {
+                weiche.schalten(richtung, zugtyp.schalten_zeit)
+            },
         }
     }
 
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
+        zugtyp: &Zugtyp<L>,
         erfolg: Option<Sender<()>>,
         fehler: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
     ) {
+        let titel = format!("{self:?}");
+        let erzeuge_nachricht = |fehler| {
+            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
+        };
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => todo!(),
-            AktionSchalten::SchalteKurve { weiche, richtung } => todo!(),
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => todo!(),
+            AktionSchalten::SchalteGerade { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                zugtyp.schalten_zeit,
+                erfolg,
+                fehler,
+                erzeuge_nachricht,
+            ),
+            AktionSchalten::SchalteKurve { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                zugtyp.schalten_zeit,
+                erfolg,
+                fehler,
+                erzeuge_nachricht,
+            ),
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => weiche.async_schalten(
+                *richtung,
+                zugtyp.schalten_zeit,
+                erfolg,
+                fehler,
+                erzeuge_nachricht,
+            ),
         }
     }
 }
@@ -613,7 +683,7 @@ pub enum AktionWarten<K = Kontakt> {
     },
 }
 
-impl Ausführen for AktionWarten {
+impl AktionWarten {
     fn ausführen(&mut self) -> Result<(), Fehler> {
         match self {
             AktionWarten::WartenAuf { kontakt } => {
@@ -623,45 +693,9 @@ impl Ausführen for AktionWarten {
         }
         Ok(())
     }
-
-    fn async_ausführen<
-        Leiter: LeiterAnzeige,
-        Nachricht: 'static + From<AsyncFehler<Leiter>> + Send,
-    >(
-        &mut self,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
-    ) {
-        let mut clone = self.clone();
-        let _ = thread::spawn(move || match clone.ausführen() {
-            Ok(unit) => {
-                if let Some(erfolg) = erfolg {
-                    if let Err(fehler) = erfolg.send(unit) {
-                        error!(
-                            "Kein Empfänger wartet auf die Erfolgsmeldung einer Warte-Aktion: {fehler}"
-                        )
-                    }
-                } else {
-                    error!("Kein Empfänger für die Erfolgsmeldung einer Warte-Aktion.")
-                }
-            },
-            Err(fehlermeldung) => {
-                if let Err(fehler) = fehler.send(
-                    AsyncFehler {
-                        titel: format!("{clone:?}"),
-                        nachricht: format!("{fehlermeldung:?}"),
-                        zustand_zurücksetzen: None,
-                    }
-                    .into(),
-                ) {
-                    error!(
-                        "Kein Empfänger wartet auf die Fehlermeldung einer Warte-Aktion: {fehler}"
-                    )
-                }
-            },
-        });
-    }
 }
+
+impl_ausführen_simple! {AktionWarten, error, error, "Warte-Aktion"}
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
