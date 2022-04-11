@@ -335,19 +335,19 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
     /// Einstellen der Fahrgeschwindigkeit.
     Geschwindigkeit {
         /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        leiter: Geschwindigkeit,
+        geschwindigkeit: Geschwindigkeit,
         /// Die neue Geschwindigkeit.
         wert: u8,
     },
     /// Umdrehen der Fahrtrichtung.
     Umdrehen {
         /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        leiter: Geschwindigkeit,
+        geschwindigkeit: Geschwindigkeit,
     },
     /// Einstellen der Fahrtrichtung.
     Fahrtrichtung {
         /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        leiter: Geschwindigkeit,
+        geschwindigkeit: Geschwindigkeit,
         /// Die neue Fahrtrichtung.
         fahrtrichtung: Fahrtrichtung,
     },
@@ -362,13 +362,14 @@ impl<L: Leiter> Ausführen<L> for AktionGeschwindigkeit<L> {
 
     fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => leiter.geschwindigkeit(
-                *wert,
-                zugtyp.pwm_frequenz,
-                zugtyp.verhältnis_fahrspannung_überspannung.clone(),
-            )?,
-            AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
-            AktionGeschwindigkeitEnum::Fahrtrichtung { leiter, fahrtrichtung } => todo!(),
+            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
+                .geschwindigkeit(
+                    *wert,
+                    zugtyp.pwm_frequenz,
+                    zugtyp.verhältnis_fahrspannung_überspannung.clone(),
+                )?,
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => todo!(),
+            AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => todo!(),
         }
         Ok(())
     }
@@ -381,9 +382,9 @@ impl<L: Leiter> Ausführen<L> for AktionGeschwindigkeit<L> {
         zustand_zurücksetzen: ZZ,
     ) {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
-            AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
-            AktionGeschwindigkeitEnum::Fahrtrichtung { leiter, fahrtrichtung } => todo!(),
+            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => todo!(),
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => todo!(),
+            AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => todo!(),
         }
     }
 }
@@ -401,18 +402,20 @@ where
     /// Serialisiere eine Aktion mit einer [Geschwindigkeit].
     fn serialisiere(&self) -> AktionGeschwindigkeitSerialisiert<L> {
         match self {
-            AktionGeschwindigkeit::Geschwindigkeit { leiter, wert } => {
+            AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
-                    leiter: leiter.serialisiere(),
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
                     wert: *wert,
                 }
             },
-            AktionGeschwindigkeit::Umdrehen { leiter } => {
-                AktionGeschwindigkeitSerialisiert::Umdrehen { leiter: leiter.serialisiere() }
+            AktionGeschwindigkeit::Umdrehen { geschwindigkeit } => {
+                AktionGeschwindigkeitSerialisiert::Umdrehen {
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
+                }
             },
-            AktionGeschwindigkeit::Fahrtrichtung { leiter, fahrtrichtung } => {
+            AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 AktionGeschwindigkeitSerialisiert::Fahrtrichtung {
-                    leiter: leiter.serialisiere(),
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
                     fahrtrichtung: fahrtrichtung.clone(),
                 }
             },
@@ -436,26 +439,26 @@ where
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
     ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<L>> {
         let aktion = match self {
-            AktionGeschwindigkeitSerialisiert::Geschwindigkeit { leiter, wert } => {
-                let leiter = geschwindigkeiten
-                    .get(&leiter)
-                    .ok_or(UnbekannteGeschwindigkeit(leiter))?
+            AktionGeschwindigkeitSerialisiert::Geschwindigkeit { geschwindigkeit, wert } => {
+                let geschwindigkeit = geschwindigkeiten
+                    .get(&geschwindigkeit)
+                    .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Geschwindigkeit { leiter, wert }
+                AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert }
             },
-            AktionGeschwindigkeitSerialisiert::Umdrehen { leiter } => {
-                let leiter = geschwindigkeiten
-                    .get(&leiter)
-                    .ok_or(UnbekannteGeschwindigkeit(leiter))?
+            AktionGeschwindigkeitSerialisiert::Umdrehen { geschwindigkeit } => {
+                let geschwindigkeit = geschwindigkeiten
+                    .get(&geschwindigkeit)
+                    .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Umdrehen { leiter }
+                AktionGeschwindigkeit::Umdrehen { geschwindigkeit }
             },
-            AktionGeschwindigkeitSerialisiert::Fahrtrichtung { leiter, fahrtrichtung } => {
-                let leiter = geschwindigkeiten
-                    .get(&leiter)
-                    .ok_or(UnbekannteGeschwindigkeit(leiter))?
+            AktionGeschwindigkeitSerialisiert::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
+                let geschwindigkeit = geschwindigkeiten
+                    .get(&geschwindigkeit)
+                    .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Fahrtrichtung { leiter, fahrtrichtung }
+                AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung }
             },
         };
         Ok(aktion)
