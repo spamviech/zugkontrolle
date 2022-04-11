@@ -73,13 +73,28 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         self.message_box.verstecke_modal()
     }
 
+    /// Führe eine Aktion aus.
+    #[inline(always)]
+    pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug>(&mut self, mut aktion: Aktion)
+    where
+        <Aktion as Ausführen<L>>::Fehler: Debug,
+    {
+        if let Err(fehler) = aktion.ausführen(self.gleise.zugtyp().into()) {
+            self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
+        }
+        // TODO GUI anpassen
+    }
+
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
     #[inline(always)]
-    pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(&mut self, mut aktion: Aktion)
-    where
+    pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
+        &mut self,
+        mut aktion: Aktion,
+    ) where
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
+        // TODO GUI anpassen
         let _join_handle = aktion.async_ausführen(
             self.gleise.zugtyp().into(),
             self.sender.clone(),

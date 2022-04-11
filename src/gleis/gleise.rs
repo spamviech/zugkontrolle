@@ -569,11 +569,11 @@ pub enum Nachricht {
     SetzeStreckenabschnitt(AnyId),
     /// Öffne das Fenster zum Anpassen der Anschlüsse für ein Gleis.
     AnschlüsseAnpassen(AnyId),
-    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    WeicheSchalten(AktionSchalten),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
+    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    WeicheSchalten(AktionSchalten),
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {

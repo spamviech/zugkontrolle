@@ -250,11 +250,11 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     ZeigeAnschlüsseAnpassen(AnyId),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
-    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    WeicheSchalten(AktionSchalten),
-    /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
+    /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
+    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    WeicheSchalten(AktionSchalten),
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.
@@ -275,10 +275,10 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
             gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
                 Nachricht::ZeigeAnschlüsseAnpassen(any_id)
             },
-            gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
                 Nachricht::StreckenabschnittUmschalten(aktion)
             },
+            gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
         }
     }
 }
@@ -650,8 +650,8 @@ where
                     command = message.als_command()
                 }
             },
-            Nachricht::WeicheSchalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
+            Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
                 if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
                     command = cmd
