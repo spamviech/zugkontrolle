@@ -207,50 +207,31 @@ impl<L: Leiter> Zustand<L> {
             ))
     }
 
-    pub(crate) fn alle_streckenabschnitt_und_daten<'t>(
+    pub(crate) fn alle_streckenabschnitte_und_daten<'t>(
         &'t self,
     ) -> impl Iterator<
-        Item = (StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend, &'t GleiseDaten),
+        Item = (
+            Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend)>,
+            &'t GleiseDaten,
+        ),
     > {
         let iter_map = |geschwindigkeit: Option<&'t _>| {
             move |(name, (streckenabschnitt, fließend, daten)): (&'t _, &'t (_, _, _))| {
                 (
-                    StreckenabschnittIdRef { geschwindigkeit, name },
-                    streckenabschnitt,
-                    fließend,
+                    Some((
+                        StreckenabschnittIdRef { geschwindigkeit, name },
+                        streckenabschnitt,
+                        fließend,
+                    )),
                     daten,
                 )
             }
         };
-        self.ohne_geschwindigkeit.iter().map(iter_map(None)).chain(
-            self.geschwindigkeiten.iter().flat_map(
+        iter::once((None, &self.ohne_streckenabschnitt))
+            .chain(self.ohne_geschwindigkeit.iter().map(iter_map(None)))
+            .chain(self.geschwindigkeiten.iter().flat_map(
                 move |(geschwindigkeit_name, (_geschwindigkeit, map))| {
                     map.iter().map(iter_map(Some(geschwindigkeit_name)))
-                },
-            ),
-        )
-    }
-
-    pub(crate) fn alle_geschwindigkeit_streckenabschnitt_daten<'t>(
-        &'t self,
-    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
-        iter::once((None, &self.ohne_streckenabschnitt))
-            .chain(self.ohne_geschwindigkeit.iter().map(
-                |(name, (_streckenabschnitt, _fließend, daten))| {
-                    (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
-                },
-            ))
-            .chain(self.geschwindigkeiten.iter().flat_map(
-                |(geschwindigkeit, (_geschwindigkeit, map))| {
-                    map.iter().map(move |(name, (_streckenabschnitt, _fließend, daten))| {
-                        (
-                            Some(StreckenabschnittIdRef {
-                                geschwindigkeit: Some(geschwindigkeit),
-                                name,
-                            }),
-                            daten,
-                        )
-                    })
                 },
             ))
     }
@@ -265,8 +246,8 @@ impl<L: Leiter> Zustand<L> {
         gehalten_id: Option<&'t AnyId>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
-        let überlappend = self.alle_geschwindigkeit_streckenabschnitt_daten().flat_map(
-            move |(streckenabschnitt, daten)| {
+        let überlappend =
+            self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
                 macro_rules! überlappende_verbindungen {
                     ($gleis: ident) => {{
                         let (überlappend_daten, gehalten_daten) = daten
@@ -295,8 +276,7 @@ impl<L: Leiter> Zustand<L> {
                     .chain(überlappend_kurven_weiche)
                     .chain(überlappend_s_kurven_weiche)
                     .chain(überlappend_kreuzung)
-            },
-        );
+            });
         (überlappend, gehalten)
     }
 

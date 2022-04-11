@@ -277,9 +277,16 @@ impl<L: Leiter> Gleise<L> {
                     };
                 }
                 // Hintergrund
-                for (streckenabschnitt_id, Streckenabschnitt { farbe, .. }, fließend, daten) in
-                    zustand.alle_streckenabschnitt_und_daten()
+                for (streckenabschnitt_opt, daten) in
+                    zustand.alle_streckenabschnitte_und_daten()
                 {
+                    let (streckenabschnitt_id, Streckenabschnitt { farbe, .. }, fließend)
+                        = if let Some(tuple) = streckenabschnitt_opt
+                    {
+                        tuple
+                    } else {
+                        continue
+                    };
                     macro_rules! transparenz {
                         ($gleis: ident) => {
                             |rectangle, fließend| {
