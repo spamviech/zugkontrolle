@@ -1,20 +1,22 @@
 //! Eine Sammlung an Aktionen, die in vorgegebener Reihenfolge ausgeführt werden können.
 
 use std::{
-    collections::HashMap, fmt::Debug, hash::Hash, sync::mpsc::Sender, thread, time::Duration,
+    collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
+    sync::mpsc::{RecvError, Sender},
+    thread,
+    time::Duration,
 };
 
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{
-        de_serialisieren::Serialisiere, polarität::Fließend, Fehler, OutputSerialisiert
-    },
-    application::{geschwindigkeit::LeiterAnzeige, ZustandZurücksetzen},
+    anschluss::{self, de_serialisieren::Serialisiere, polarität::Fließend, OutputSerialisiert},
     gleis::weiche,
     steuerung::{
-        geschwindigkeit::{Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert},
@@ -39,8 +41,11 @@ pub struct AsyncFehler<ZustandZurücksetzen> {
 
 /// Etwas ausführbares.
 pub trait Ausführen<L: Leiter> {
+    /// Mögliche Fehler, die beim ausführen auftreten können.
+    type Fehler;
+
     /// Ausführen im aktuellen Thread. Kann den aktuellen Thread blockieren.
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler>;
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler>;
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
@@ -54,9 +59,11 @@ pub trait Ausführen<L: Leiter> {
 }
 
 macro_rules! impl_ausführen_simple {
-    ($type: ty, $log_erfolg: ident, $log_fehler: ident, $aktion_beschreibung: expr) => {
+    ($type: ty, $fehler: ty, $log_erfolg: ident, $log_fehler: ident, $aktion_beschreibung: expr) => {
         impl<L: Leiter> Ausführen<L> for $type {
-            fn ausführen(&mut self, _zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
+            type Fehler = $fehler;
+
+            fn ausführen(&mut self, _zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
                 self.ausführen()
             }
 
@@ -119,7 +126,9 @@ pub struct PlanEnum<Aktion> {
 pub type Plan<L> = PlanEnum<Aktion<L>>;
 
 impl<L: Leiter> Ausführen<L> for Plan<L> {
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler>
+    type Fehler = anschluss::Fehler;
+
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler>
     where
         L: Leiter,
     {
@@ -228,7 +237,9 @@ pub type Aktion<L> =
     AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AktionSchalten, AktionWarten>;
 
 impl<L: Leiter> Ausführen<L> for Aktion<L> {
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
+    type Fehler = anschluss::Fehler;
+
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
         match self {
             AktionEnum::Geschwindigkeit(aktion) => todo!(),
             AktionEnum::Streckenabschnitt(aktion) => todo!(),
@@ -347,12 +358,19 @@ pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
 impl<L: Leiter> Ausführen<L> for AktionGeschwindigkeit<L> {
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
+    type Fehler = geschwindigkeit::Fehler;
+
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => todo!(),
+            AktionGeschwindigkeitEnum::Geschwindigkeit { leiter, wert } => leiter.geschwindigkeit(
+                *wert,
+                zugtyp.pwm_frequenz,
+                zugtyp.verhältnis_fahrspannung_überspannung.clone(),
+            )?,
             AktionGeschwindigkeitEnum::Umdrehen { leiter } => todo!(),
             AktionGeschwindigkeitEnum::Fahrtrichtung { leiter, fahrtrichtung } => todo!(),
         }
+        Ok(())
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
@@ -457,13 +475,19 @@ pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
 }
 
 impl AktionStreckenabschnitt {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+    fn ausführen(&mut self) -> Result<(), anschluss::Fehler> {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
         streckenabschnitt.strom(*fließend)
     }
 }
 
-impl_ausführen_simple! {AktionStreckenabschnitt, debug, error, "Streckenabschnitt-Aktion"}
+impl_ausführen_simple! {
+    AktionStreckenabschnitt,
+    anschluss::Fehler,
+    debug,
+    error,
+    "Streckenabschnitt-Aktion"
+}
 
 /// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
 pub type AktionStreckenabschnittSerialisiert =
@@ -547,7 +571,9 @@ pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = 
 }
 
 impl<L: Leiter> Ausführen<L> for AktionSchalten {
-    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Fehler> {
+    type Fehler = anschluss::Fehler;
+
+    fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => {
                 weiche.schalten(richtung, zugtyp.schalten_zeit)
@@ -684,7 +710,7 @@ pub enum AktionWarten<K = Kontakt> {
 }
 
 impl AktionWarten {
-    fn ausführen(&mut self) -> Result<(), Fehler> {
+    fn ausführen(&mut self) -> Result<(), RecvError> {
         match self {
             AktionWarten::WartenAuf { kontakt } => {
                 let _ = kontakt.warte_auf_trigger()?;
@@ -695,7 +721,7 @@ impl AktionWarten {
     }
 }
 
-impl_ausführen_simple! {AktionWarten, error, error, "Warte-Aktion"}
+impl_ausführen_simple! {AktionWarten, RecvError, error, error, "Warte-Aktion"}
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;

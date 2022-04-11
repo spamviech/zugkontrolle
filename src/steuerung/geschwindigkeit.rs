@@ -219,6 +219,7 @@ fn geschwindigkeit_pwm(
         zeit: pwm::Zeit { frequenz, betriebszyklus: faktor * verhältnis },
     })
 }
+
 fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
     letzter_wert: &mut usize,
