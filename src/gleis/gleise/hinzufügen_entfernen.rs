@@ -6,7 +6,6 @@ use log::error;
 use rstar::RTreeObject;
 
 use crate::{
-    anschluss::polarität::Fließend,
     gleis::{
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
@@ -15,7 +14,7 @@ use crate::{
         },
         verbindung::{self, Verbindung},
     },
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Streckenabschnitt},
+    steuerung::geschwindigkeit::Leiter,
     typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
 };
 
@@ -174,35 +173,6 @@ impl<L: Leiter> Gleise<L> {
     {
         let _ = self.entfernen(gleis_id)?;
         Ok(())
-    }
-
-    /// `Streckenabschnitt` und aktueller `Fließend`-Zustand
-    /// für das Gleis mit der übergebenen `AnyId`.
-    pub(crate) fn streckenabschnitt_für_id<T: DatenAuswahl>(
-        &mut self,
-        gleis_id: GleisId<T>,
-    ) -> Result<Option<(&mut Streckenabschnitt, &mut Fließend)>, GleisIdFehler> {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        if let Some(streckenabschnitt_id) = streckenabschnitt {
-            let StreckenabschnittId { geschwindigkeit, name } = &streckenabschnitt_id;
-            let (streckenabschnitt, fließend, daten) = self
-                .zustand
-                .streckenabschnitt_map_mut(geschwindigkeit.as_ref())?
-                .get_mut(name)
-                .ok_or(GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt_id))?;
-            if daten
-                .rstern_mut::<T>()
-                .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
-                .next()
-                .is_some()
-            {
-                Ok(Some((streckenabschnitt, fließend)))
-            } else {
-                Err(GleisIdFehler::GleisEntfernt)
-            }
-        } else {
-            Ok(None)
-        }
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.

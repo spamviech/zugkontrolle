@@ -560,7 +560,6 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-// TODO verwende Aktion<Leiter>
 // AktionSchalten, AktionStreckenabschnitt (Streckenabschnitt ist bekannt, steht in Id!)
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
 /// [Canvas](crate::application::touch_canvas::Canvas).

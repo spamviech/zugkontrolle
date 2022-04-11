@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
     marker::PhantomData,
     sync::{mpsc::Sender, Arc},
-    thread::{self, sleep, JoinHandle},
+    thread::{sleep, JoinHandle},
     time::Duration,
     usize,
 };
