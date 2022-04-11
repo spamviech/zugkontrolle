@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
     marker::PhantomData,
     sync::{mpsc::Sender, Arc},
-    thread::{self, sleep},
+    thread::{self, sleep, JoinHandle},
     time::Duration,
     usize,
 };
@@ -126,6 +126,103 @@ impl<L: Leiter> Geschwindigkeit<L> {
         verhältnis_fahrspannung_überspannung: L::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
+    }
+
+    /// Umdrehen der aktuellen Fahrtrichtung.
+    pub fn umdrehen_allgemein(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.lock_leiter().umdrehen(
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung.clone(),
+            stopp_zeit,
+            umdrehen_zeit.clone(),
+        )
+    }
+
+    /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
+    pub fn async_umdrehen_allgemein<Nachricht: Send + 'static>(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) -> JoinHandle<()>
+    where
+        L: 'static + Send,
+        <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
+        <L as Leiter>::UmdrehenZeit: Send,
+    {
+        let mut clone = self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.umdrehen_allgemein(
+                pwm_frequenz,
+                verhältnis_fahrspannung_überspannung,
+                stopp_zeit,
+                umdrehen_zeit,
+            ) {
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
+                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            }
+        })
+    }
+
+    /// Einstellen der aktuellen Fahrtrichtung.
+    pub fn fahrtrichtung_allgemein(
+        &mut self,
+        neue_fahrtrichtung: <L as Leiter>::Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    ) -> Result<(), Fehler> {
+        self.lock_leiter().fahrtrichtung(
+            neue_fahrtrichtung,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung.clone(),
+            stopp_zeit,
+            umdrehen_zeit.clone(),
+        )
+    }
+
+    /// Erstelle einen neuen Thread zum einstellen der aktuellen Fahrtrichtung.
+    pub fn async_fahrtrichtung_allgemein<Nachricht: Send + 'static>(
+        &mut self,
+        neue_fahrtrichtung: <L as Leiter>::Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+        stopp_zeit: Duration,
+        umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+    ) -> JoinHandle<()>
+    where
+        L: 'static + Send,
+        <L as Leiter>::Fahrtrichtung: Send,
+        <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
+        <L as Leiter>::UmdrehenZeit: Send,
+    {
+        let mut clone = self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.fahrtrichtung_allgemein(
+                neue_fahrtrichtung,
+                pwm_frequenz,
+                verhältnis_fahrspannung_überspannung,
+                stopp_zeit,
+                umdrehen_zeit,
+            ) {
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
+                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
+            }
+        })
     }
 }
 
@@ -532,32 +629,22 @@ impl Geschwindigkeit<Mittelleiter> {
         verhältnis_fahrspannung_überspannung: NullBisEins,
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
+        sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
-    ) {
+    ) -> JoinHandle<()> {
         let mut clone = self.clone();
-        let _ = thread::spawn(move || {
-            match clone.umdrehen(
+        thread::spawn(move || {
+            if let Err(fehler) = clone.umdrehen(
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
             ) {
-                Ok(unit) => {
-                    if let Some(erfolg) = erfolg {
-                        if let Err(fehler) = erfolg.send(unit) {
-                            debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                        }
-                    }
-                },
-                Err(fehlermeldung) => {
-                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
-                        debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                    }
-                },
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
+                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
             }
-        });
+        })
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {
@@ -729,27 +816,17 @@ impl Geschwindigkeit<Zweileiter> {
         neue_fahrtrichtung: Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
+        sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
-    ) {
+    ) -> JoinHandle<()> {
         let mut clone = self.clone();
-        let _ = thread::spawn(move || {
-            match clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
-                Ok(unit) => {
-                    if let Some(erfolg) = erfolg {
-                        if let Err(fehler) = erfolg.send(unit) {
-                            debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                        }
-                    }
-                },
-                Err(fehlermeldung) => {
-                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
-                        debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                    }
-                },
+        thread::spawn(move || {
+            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
+                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
+                }
             }
-        });
+        })
     }
 
     /// Umdrehen der aktuellen Fahrtrichtung.
@@ -766,25 +843,17 @@ impl Geschwindigkeit<Zweileiter> {
         &mut self,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
+        sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
-    ) {
+    ) -> JoinHandle<()> {
         let mut clone = self.clone();
-        let _ = thread::spawn(move || match clone.umdrehen(pwm_frequenz, stopp_zeit) {
-            Ok(unit) => {
-                if let Some(erfolg) = erfolg {
-                    if let Err(fehler) = erfolg.send(unit) {
-                        debug!("Erfolg-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                    }
-                }
-            },
-            Err(fehlermeldung) => {
-                if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
+        thread::spawn(move || {
+            if let Err(fehler) = clone.umdrehen(pwm_frequenz, stopp_zeit) {
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
                     debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
                 }
-            },
-        });
+            }
+        })
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {

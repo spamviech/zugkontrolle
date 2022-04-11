@@ -80,12 +80,11 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        aktion.async_ausführen(
+        let _join_handle = aktion.async_ausführen(
             self.gleise.zugtyp(),
-            None,
             self.sender.clone(),
             todo!("ZustandZurücksetzen"),
-        )
+        );
     }
 
     fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Zustand>(

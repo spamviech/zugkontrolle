@@ -4,7 +4,7 @@ use std::{
     fmt::Debug,
     hash::Hash,
     sync::{mpsc::Sender, Arc},
-    thread::{self, sleep},
+    thread::{self, sleep, JoinHandle},
     time::Duration,
 };
 
@@ -109,37 +109,24 @@ where
         &mut self,
         richtung: Richtung,
         schalten_zeit: Duration,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
+        sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
-    ) {
+    ) -> JoinHandle<()> {
         let name_clone = self.name.clone();
         let mut mutex_clone = self.anschlüsse.clone();
         let richtung_clone = richtung.clone();
-        let _ = thread::spawn(move || {
-            match Self::schalten_aux(&mut mutex_clone, &richtung_clone, schalten_zeit) {
-                Ok(unit) => {
-                    if let Some(erfolg) = erfolg {
-                        if let Err(fehler) = erfolg.send(unit) {
-                            debug!(
-                                "Erfolg-Channel für Weiche {} geschlossen: {:?}",
-                                name_clone.0, fehler
-                            )
-                        }
-                    }
-                },
-                Err(fehlermeldung) => {
-                    if let Err(fehler) = fehler.send(erzeuge_nachricht(fehlermeldung)) {
-                        debug!(
-                            "Fehler-Channel für Weiche {} geschlossen: {:?}",
-                            name_clone.0, fehler
-                        )
-                    }
-                },
+        let join_handle = thread::spawn(move || {
+            if let Err(fehler) =
+                Self::schalten_aux(&mut mutex_clone, &richtung_clone, schalten_zeit)
+            {
+                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
+                    debug!("Fehler-Channel für Weiche {} geschlossen: {:?}", name_clone.0, fehler)
+                }
             }
         });
         self.letzte_richtung = self.aktuelle_richtung.clone();
         self.aktuelle_richtung = richtung;
+        join_handle
     }
 }
 
