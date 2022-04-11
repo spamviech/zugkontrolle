@@ -13,12 +13,19 @@ use log::error;
 
 use crate::{
     anschluss::polarität::Fließend,
-    gleis::gleise::{
-        daten::{Gleis, GleiseDaten, RStern},
-        id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
-        Gehalten, Gleise, ModusDaten, Nachricht,
+    gleis::{
+        gleise::{
+            daten::{Gleis, GleiseDaten, RStern},
+            id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
+            Gehalten, Gleise, ModusDaten, Nachricht,
+        },
+        weiche::{self, dreiwege::DreiwegeWeiche, kurve::KurvenWeiche},
     },
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Streckenabschnitt},
+    steuerung::{
+        geschwindigkeit::Leiter,
+        plan::{self, AktionSchalten, AktionStreckenabschnitt},
+        streckenabschnitt::Streckenabschnitt,
+    },
     typen::{
         canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,
     },
@@ -46,14 +53,21 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
+enum GleisSteuerung<'t> {
+    Streckenabschnitt(Option<&'t Streckenabschnitt>),
+    GeradeWeiche(&'t Option<plan::GeradeWeiche>),
+    KurvenWeiche(&'t Option<plan::KurvenWeiche>),
+    DreiwegeWeiche(&'t Option<plan::DreiwegeWeiche>),
+}
+
 /// Erhalte die Id des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T, S>(
+fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
     streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
-    erhalte_steuerung: impl FnOnce(&T, Option<&Streckenabschnitt>) -> S,
-) -> Option<(AnyIdRef<'t>, Vektor, Winkel, S)>
+    erhalte_steuerung: impl FnOnce(&'t T, Option<&'t Streckenabschnitt>) -> GleisSteuerung<'t>,
+) -> Option<(AnyIdRef<'t>, Vektor, Winkel, GleisSteuerung<'t>)>
 where
     T: Zeichnen,
     AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
@@ -101,6 +115,23 @@ fn aktion_gleis_an_position<'t>(
     let mut status = event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
+            macro_rules! streckenabschnitt_steuerung {
+                () => {
+                    |_gleis, streckenabschnitt| GleisSteuerung::Streckenabschnitt(streckenabschnitt)
+                };
+            }
+            macro_rules! gerade_weiche_steuerung {
+                () => {
+                    |weiche, _streckenabschnitt| GleisSteuerung::GeradeWeiche(&weiche.steuerung)
+                };
+            }
+            let dreiwege_weiche_steuerung =
+                |dreiwege_weiche: &'t DreiwegeWeiche, _streckenabschnitt| {
+                    GleisSteuerung::DreiwegeWeiche(&dreiwege_weiche.steuerung)
+                };
+            let kurven_weiche_steuerung = |kurven_weiche: &'t KurvenWeiche, _streckenabschnitt| {
+                GleisSteuerung::KurvenWeiche(&kurven_weiche.steuerung)
+            };
             let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
                 let GleiseDaten {
                     geraden,
@@ -112,10 +143,22 @@ fn aktion_gleis_an_position<'t>(
                     kreuzungen,
                 } = maps;
                 acc.or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, geraden, canvas_pos, |_, _| ())
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        geraden,
+                        canvas_pos,
+                        streckenabschnitt_steuerung!(),
+                    )
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos, |_, _| ())
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        kurven,
+                        canvas_pos,
+                        streckenabschnitt_steuerung!(),
+                    )
                 })
                 .or_else(|| {
                     gleis_an_position(
@@ -123,7 +166,7 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                         weichen,
                         canvas_pos,
-                        |weiche, _streckenabschnitt| todo!(),
+                        gerade_weiche_steuerung!(),
                     )
                 })
                 .or_else(|| {
@@ -132,7 +175,7 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                         dreiwege_weichen,
                         canvas_pos,
-                        |dreiwege_weiche, _streckenabschnitt| todo!(),
+                        dreiwege_weiche_steuerung,
                     )
                 })
                 .or_else(|| {
@@ -141,7 +184,7 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                         kurven_weichen,
                         canvas_pos,
-                        |kurven_weiche, _streckenabschnitt| todo!(),
+                        kurven_weiche_steuerung,
                     )
                 })
                 .or_else(|| {
@@ -150,7 +193,7 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                         s_kurven_weichen,
                         canvas_pos,
-                        |s_kurven_weiche, _streckenabschnitt| todo!(),
+                        gerade_weiche_steuerung!(),
                     )
                 })
                 .or_else(|| {
@@ -159,7 +202,7 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                         kreuzungen,
                         canvas_pos,
-                        |kreuzung, _streckenabschnitt| todo!(),
+                        gerade_weiche_steuerung!(),
                     )
                 })
             });
@@ -169,7 +212,7 @@ fn aktion_gleis_an_position<'t>(
                     let diff = now.checked_duration_since(*last).unwrap_or(Duration::MAX);
                     *last = now;
                     if gehalten.is_none() {
-                        if let Some((any_id_ref, halte_position, winkel, steuerung)) =
+                        if let Some((any_id_ref, halte_position, winkel, _steuerung)) =
                             gleis_an_position
                         {
                             let gleis_id = any_id_ref.als_id();
@@ -186,22 +229,67 @@ fn aktion_gleis_an_position<'t>(
                     }
                 },
                 ModusDaten::Fahren => {
-                    if let Some((any_id_ref, _halte_position, _winkel, steuerung)) =
+                    if let Some((_any_id_ref, _halte_position, _winkel, steuerung)) =
                         gleis_an_position
                     {
-                        match any_id_ref {
-                            AnyIdRef::Gerade(_) => todo!(),
-                            AnyIdRef::Kurve(_) => todo!(),
-                            AnyIdRef::Weiche(_) => todo!(),
-                            AnyIdRef::DreiwegeWeiche(_) => todo!(),
-                            AnyIdRef::KurvenWeiche(_) => todo!(),
-                            AnyIdRef::SKurvenWeiche(_) => todo!(),
-                            AnyIdRef::Kreuzung(_) => todo!(),
+                        use GleisSteuerung::*;
+                        message = match steuerung {
+                            Streckenabschnitt(Some(streckenabschnitt)) => {
+                                let fließend = !streckenabschnitt.fließend();
+                                Some(Nachricht::StreckenabschnittUmschalten(
+                                    AktionStreckenabschnitt::Strom {
+                                        streckenabschnitt: streckenabschnitt.clone(),
+                                        fließend,
+                                    },
+                                ))
+                            },
+                            GeradeWeiche(Some(weiche)) => {
+                                use weiche::gerade::Richtung::*;
+                                let richtung = match weiche.aktuelle_richtung {
+                                    Gerade => Kurve,
+                                    Kurve => Gerade,
+                                };
+                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
+                                    weiche: weiche.clone(),
+                                    richtung,
+                                }))
+                            },
+                            KurvenWeiche(Some(weiche)) => {
+                                use weiche::kurve::Richtung::*;
+                                let richtung = match weiche.aktuelle_richtung {
+                                    Innen => Außen,
+                                    Außen => Innen,
+                                };
+                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
+                                    weiche: weiche.clone(),
+                                    richtung,
+                                }))
+                            },
+                            DreiwegeWeiche(Some(weiche)) => {
+                                use weiche::dreiwege::Richtung::*;
+                                let richtung = match (
+                                    weiche.aktuelle_richtung,
+                                    weiche.letzte_richtung,
+                                ) {
+                                    (Gerade, Links) => Rechts,
+                                    (Gerade, Rechts) => Links,
+                                    (Gerade, Gerade) => {
+                                        error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                                        Links
+                                    },
+                                    (Links, _letzte) => Gerade,
+                                    (Rechts, _letzte) => Gerade,
+                                };
+                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
+                                    weiche: weiche.clone(),
+                                    richtung,
+                                }))
+                            },
+                            _ => None,
+                        };
+                        if message.is_some() {
+                            status = event::Status::Captured
                         }
-                        let gleis_id = any_id_ref.als_id();
-                        // message = Some(Nachricht::FahrenAktion(gleis_id));
-                        message = Some(todo!());
-                        status = event::Status::Captured
                     }
                 },
             }
