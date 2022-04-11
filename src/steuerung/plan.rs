@@ -147,15 +147,16 @@ macro_rules! impl_ausführen_simple {
                 self.ausführen()
             }
 
-            fn async_ausführen<
-                Nachricht: 'static + From<AsyncFehler<ZZ>> + Send,
-                ZZ: 'static + Send,
-            >(
+            fn async_ausführen<Nachricht, ZZ>(
                 &mut self,
                 _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
                 zustand_zurücksetzen: ZZ,
-            ) -> JoinHandle<()> {
+            ) -> JoinHandle<()>
+            where
+                Nachricht: 'static + From<AsyncFehler<ZZ>> + Send,
+                ZZ: 'static + Send,
+            {
                 let erzeuge_nachricht = |clone, fehler| {
                     AsyncFehler {
                         titel: format!("{clone:?}"),
