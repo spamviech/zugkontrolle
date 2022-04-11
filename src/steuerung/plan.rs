@@ -68,7 +68,7 @@ macro_rules! async_ausführen {
             if let Err(fehler) = $funktion(&mut clone $(, $($args)*)?) {
                 if let Err(fehler) = $sender.send($erzeuge_nachricht(clone, fehler)) {
                     log::error!(
-                        "Kein Empfänger wartet auf die Fehlermeldung einer {}: {fehler}",
+                        "Kein Empfänger wartet auf die Fehlermeldung {}: {fehler}",
                         $aktion_beschreibung,
                     )
                 }
@@ -123,8 +123,23 @@ pub struct PlanEnum<Aktion> {
 /// Ein Fahrplan.
 pub type Plan<L> = PlanEnum<Aktion<L>>;
 
-impl<L: Leiter> Ausführen<L> for Plan<L> {
-    type Fehler = anschluss::Fehler;
+/// Fehler beim Ausführen eines Plans.
+#[derive(Debug)]
+pub struct PlanFehler {
+    /// Der aufgetretene Fehler.
+    pub fehler: AktionFehler,
+    /// Der Index des aufgetretenen Fehlers.
+    pub aktion: usize,
+}
+
+impl<L: Leiter> Ausführen<L> for Plan<L>
+where
+    L: 'static + Leiter + Send + Debug,
+    <L as Leiter>::Fahrtrichtung: Debug + Clone + Send,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
+    <L as Leiter>::UmdrehenZeit: Send,
+{
+    type Fehler = PlanFehler;
 
     fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler>
     where
@@ -132,20 +147,31 @@ impl<L: Leiter> Ausführen<L> for Plan<L> {
     {
         let Plan { aktionen, endlosschleife } = self;
         while *endlosschleife {
-            for aktion in aktionen.iter_mut() {
-                aktion.ausführen(zugtyp)?;
+            for (i, aktion) in aktionen.iter_mut().enumerate() {
+                aktion.ausführen(zugtyp).map_err(|fehler| PlanFehler { fehler, aktion: i })?;
             }
         }
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
         zugtyp: &Zugtyp<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
-        todo!()
+        let erzeuge_nachricht = |clone, fehler| {
+            AsyncFehler {
+                titel: format!("{clone:?}"),
+                nachricht: format!("{fehler:?}"),
+                zustand_zurücksetzen,
+            }
+            .into()
+        };
+        let ausführen = Self::ausführen;
+        // TODO kleinere Struktur AktionEinstellungen erstellen
+        let zugtyp_clone = zugtyp.clone();
+        async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, &zugtyp_clone))
     }
 }
 
@@ -226,38 +252,71 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
     /// Eine [AktionWarten].
     Warten(Warten),
     /// Ausführen eines [Plans](Plan).
-    Ausführen(Name),
+    Ausführen(PlanEnum<Self>),
 }
 
 /// Eine Aktionen in einem Fahrplan.
 pub type Aktion<L> =
     AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AktionSchalten, AktionWarten>;
 
-impl<L: Leiter> Ausführen<L> for Aktion<L> {
-    type Fehler = anschluss::Fehler;
+/// Ein Fehler der beim Ausführen einer [Aktion] auftreten kann.
+#[derive(Debug)]
+pub enum AktionFehler {
+    /// Fehler beim Ausführen einer [AktionGeschwindigkeit].
+    Geschwindigkeit(geschwindigkeit::Fehler),
+    /// Fehler beim Ausführen einer [AktionStreckenabschnitt].
+    Streckenabschnitt(anschluss::Fehler),
+    /// Fehler beim Ausführen einer [AktionSchalten].
+    Schalten(anschluss::Fehler),
+    /// Fehler beim Ausführen einer [AktionWarten].
+    Warten(RecvError),
+    /// Fehler beim Ausführen eines [Plans](Plan).
+    Ausführen(Box<PlanFehler>),
+}
+
+impl<L: Leiter> Ausführen<L> for Aktion<L>
+where
+    L: 'static + Leiter + Send + Debug,
+    <L as Leiter>::Fahrtrichtung: Debug + Clone + Send,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
+    <L as Leiter>::UmdrehenZeit: Send,
+{
+    type Fehler = AktionFehler;
 
     fn ausführen(&mut self, zugtyp: &Zugtyp<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionEnum::Geschwindigkeit(aktion) => todo!(),
-            AktionEnum::Streckenabschnitt(aktion) => todo!(),
-            AktionEnum::Schalten(aktion) => todo!(),
-            AktionEnum::Warten(aktion) => todo!(),
-            AktionEnum::Ausführen(aktion) => todo!(),
+            Aktion::Geschwindigkeit(aktion) => {
+                aktion.ausführen(zugtyp).map_err(AktionFehler::Geschwindigkeit)
+            },
+            Aktion::Streckenabschnitt(aktion) => {
+                aktion.ausführen().map_err(AktionFehler::Streckenabschnitt)
+            },
+            Aktion::Schalten(aktion) => aktion.ausführen(zugtyp).map_err(AktionFehler::Schalten),
+            Aktion::Warten(aktion) => aktion.ausführen().map_err(AktionFehler::Warten),
+            Aktion::Ausführen(plan) => {
+                plan.ausführen(zugtyp).map_err(|fehler| AktionFehler::Ausführen(Box::new(fehler)))
+            },
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
         &mut self,
         zugtyp: &Zugtyp<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         match self {
-            AktionEnum::Geschwindigkeit(aktion) => todo!(),
-            AktionEnum::Streckenabschnitt(aktion) => todo!(),
-            AktionEnum::Schalten(aktion) => todo!(),
-            AktionEnum::Warten(aktion) => todo!(),
-            AktionEnum::Ausführen(aktion) => todo!(),
+            Aktion::Geschwindigkeit(aktion) => {
+                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+            },
+            Aktion::Streckenabschnitt(aktion) => {
+                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+            },
+            Aktion::Schalten(aktion) => {
+                aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen)
+            },
+            Aktion::Warten(aktion) => aktion.async_ausführen(zugtyp, sender, zustand_zurücksetzen),
+            Aktion::Ausführen(plan) => plan.async_ausführen(zugtyp, sender, zustand_zurücksetzen),
         }
     }
 }
@@ -287,7 +346,7 @@ where
             },
             Aktion::Schalten(aktion) => AktionSerialisiert::Schalten(aktion.serialisiere()),
             Aktion::Warten(aktion) => AktionSerialisiert::Warten(aktion.serialisiere()),
-            Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.clone()),
+            Aktion::Ausführen(plan) => AktionSerialisiert::Ausführen(plan.serialisiere()),
         }
     }
 }
@@ -319,7 +378,14 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
                 dreiwege_weichen,
             )?),
             AktionSerialisiert::Warten(aktion) => Aktion::Warten(aktion.deserialisiere(kontakte)?),
-            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan),
+            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
+                geschwindigkeiten,
+                streckenabschnitte,
+                gerade_weichen,
+                kurven_weichen,
+                dreiwege_weichen,
+                kontakte,
+            )?),
         };
         Ok(reserviert)
     }
@@ -409,7 +475,7 @@ where
                 async_ausführen!(
                     sender,
                     erzeuge_nachricht,
-                    "Geschwindigkeit-Aktion",
+                    "einer Geschwindigkeit-Aktion",
                     ausführen(
                         geschwindigkeit,
                         wert,
@@ -541,7 +607,7 @@ impl_ausführen_simple! {
     AktionStreckenabschnitt,
     anschluss::Fehler,
     error,
-    "Streckenabschnitt-Aktion"
+    "einer Streckenabschnitt-Aktion"
 }
 
 /// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
@@ -763,7 +829,7 @@ impl AktionWarten {
     }
 }
 
-impl_ausführen_simple! {AktionWarten, RecvError, error, "Warte-Aktion"}
+impl_ausführen_simple! {AktionWarten, RecvError, error, "einer Warte-Aktion"}
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;

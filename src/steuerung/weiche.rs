@@ -121,7 +121,7 @@ where
         async_ausführen!(
             sender,
             |_mutex_clone, fehler| erzeuge_nachricht(fehler),
-            format!("Weiche {}", name_clone.0),
+            format!("für Schalten der Weiche {}", name_clone.0),
             schalten(self.anschlüsse, &richtung_clone, schalten_zeit)
         )
     }

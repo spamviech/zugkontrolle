@@ -214,7 +214,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
         async_ausführen!(
             sender,
             erzeuge_nachricht,
-            "Geschwindigkeit",
+            "einer Geschwindigkeit",
             fahrtrichtung_allgemein(
                 self,
                 neue_fahrtrichtung,
@@ -637,7 +637,7 @@ impl Geschwindigkeit<Mittelleiter> {
         async_ausführen!(
             sender,
             erzeuge_nachricht,
-            "Geschwindigkeit",
+            "einer Geschwindigkeit",
             umdrehen(
                 self,
                 pwm_frequenz,
@@ -824,7 +824,7 @@ impl Geschwindigkeit<Zweileiter> {
         async_ausführen!(
             sender,
             erzeuge_nachricht,
-            "Geschwindigkeit",
+            "einer Geschwindigkeit",
             fahrtrichtung(self, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
         )
     }
@@ -850,7 +850,7 @@ impl Geschwindigkeit<Zweileiter> {
         async_ausführen!(
             sender,
             erzeuge_nachricht,
-            "Geschwindigkeit",
+            "einer Geschwindigkeit",
             umdrehen(self, pwm_frequenz, stopp_zeit)
         )
     }
