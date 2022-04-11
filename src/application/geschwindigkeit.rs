@@ -238,6 +238,7 @@ impl LeiterAnzeige for Mittelleiter {
             NachrichtMittelleiter::Umdrehen => {
                 let bisherige_geschwindigkeit = anzeige_zustand.aktuelle_geschwindigkeit;
                 let titel = format!("Umdrehen von Geschwindigkeit {}", anzeige_zustand.name.0);
+                anzeige_zustand.aktuelle_geschwindigkeit = 0;
                 let _join_handle = geschwindigkeit.async_umdrehen(
                     anzeige_zustand.pwm_frequenz,
                     anzeige_zustand.verhältnis_fahrspannung_überspannung,
@@ -252,7 +253,6 @@ impl LeiterAnzeige for Mittelleiter {
                         )
                     },
                 );
-                anzeige_zustand.aktuelle_geschwindigkeit = 0;
             },
         }
         Ok(Command::none())
@@ -400,6 +400,8 @@ impl LeiterAnzeige for Zweileiter {
                     "Fahrtrichtung einstellen von Geschwindigkeit {} auf {}",
                     anzeige_zustand.name.0, fahrtrichtung
                 );
+                anzeige_zustand.aktuelle_geschwindigkeit = 0;
+                anzeige_zustand.fahrtrichtung = fahrtrichtung;
                 let _join_handle = geschwindigkeit.async_fahrtrichtung(
                     fahrtrichtung,
                     anzeige_zustand.pwm_frequenz,
@@ -416,8 +418,6 @@ impl LeiterAnzeige for Zweileiter {
                         )
                     },
                 );
-                anzeige_zustand.aktuelle_geschwindigkeit = 0;
-                anzeige_zustand.fahrtrichtung = fahrtrichtung;
             },
         }
         Ok(Command::none())
