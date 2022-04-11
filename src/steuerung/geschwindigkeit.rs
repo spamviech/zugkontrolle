@@ -10,7 +10,7 @@ use std::{
     usize,
 };
 
-use log::{debug, error};
+use log::error;
 use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -25,6 +25,7 @@ use crate::{
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     maybe_empty::MaybeEmpty,
+    steuerung::plan::async_ausführen,
     void::Void,
     zugtyp::Zugtyp,
 };
@@ -152,26 +153,26 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
-        let mut clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen_allgemein(
+        let umdrehen_allgemein = Self::umdrehen_allgemein;
+        async_ausführen!(
+            sender,
+            erzeuge_nachricht,
+            "Geschwindigkeit",
+            umdrehen_allgemein(
+                self,
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
-            ) {
-                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
-                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
-            }
-        })
+            )
+        )
     }
 
     /// Einstellen der aktuellen Fahrtrichtung.
@@ -201,7 +202,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
@@ -209,20 +210,20 @@ impl<L: Leiter> Geschwindigkeit<L> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
-        let mut clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.fahrtrichtung_allgemein(
+        let fahrtrichtung_allgemein = Self::fahrtrichtung_allgemein;
+        async_ausführen!(
+            sender,
+            erzeuge_nachricht,
+            "Geschwindigkeit",
+            fahrtrichtung_allgemein(
+                self,
                 neue_fahrtrichtung,
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
-            ) {
-                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
-                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
-            }
-        })
+            )
+        )
     }
 }
 
@@ -630,21 +631,21 @@ impl Geschwindigkeit<Mittelleiter> {
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
-        let mut clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen(
+        let umdrehen = Self::umdrehen;
+        async_ausführen!(
+            sender,
+            erzeuge_nachricht,
+            "Geschwindigkeit",
+            umdrehen(
+                self,
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
-            ) {
-                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
-                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
-            }
-        })
+            )
+        )
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {
@@ -817,16 +818,15 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
-        let mut clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit) {
-                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
-                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
-            }
-        })
+        let fahrtrichtung = Self::fahrtrichtung;
+        async_ausführen!(
+            sender,
+            erzeuge_nachricht,
+            "Geschwindigkeit",
+            fahrtrichtung(self, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
+        )
     }
 
     /// Umdrehen der aktuellen Fahrtrichtung.
@@ -844,16 +844,15 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
-        let mut clone = self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.umdrehen(pwm_frequenz, stopp_zeit) {
-                if let Err(fehler) = sender.send(erzeuge_nachricht(fehler)) {
-                    debug!("Fehler-Channel für Geschwindigkeit geschlossen: {:?}", fehler)
-                }
-            }
-        })
+        let umdrehen = Self::umdrehen;
+        async_ausführen!(
+            sender,
+            erzeuge_nachricht,
+            "Geschwindigkeit",
+            umdrehen(self, pwm_frequenz, stopp_zeit)
+        )
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {

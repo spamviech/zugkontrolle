@@ -238,13 +238,13 @@ impl LeiterAnzeige for Mittelleiter {
             NachrichtMittelleiter::Umdrehen => {
                 let bisherige_geschwindigkeit = anzeige_zustand.aktuelle_geschwindigkeit;
                 let titel = format!("Umdrehen von Geschwindigkeit {}", anzeige_zustand.name.0);
-                geschwindigkeit.async_umdrehen(
+                let _join_handle = geschwindigkeit.async_umdrehen(
                     anzeige_zustand.pwm_frequenz,
                     anzeige_zustand.verhältnis_fahrspannung_überspannung,
                     anzeige_zustand.stopp_zeit,
                     anzeige_zustand.umdrehen_zeit,
                     sender,
-                    move |fehler| {
+                    move |_clone, fehler| {
                         konvertiere_async_fehler(
                             titel,
                             fehler,
@@ -400,12 +400,12 @@ impl LeiterAnzeige for Zweileiter {
                     "Fahrtrichtung einstellen von Geschwindigkeit {} auf {}",
                     anzeige_zustand.name.0, fahrtrichtung
                 );
-                geschwindigkeit.async_fahrtrichtung(
+                let _join_handle = geschwindigkeit.async_fahrtrichtung(
                     fahrtrichtung,
                     anzeige_zustand.pwm_frequenz,
                     anzeige_zustand.stopp_zeit,
                     sender,
-                    move |fehler| {
+                    move |_clone, fehler| {
                         konvertiere_async_fehler(
                             titel,
                             fehler,

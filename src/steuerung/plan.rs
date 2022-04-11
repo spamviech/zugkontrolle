@@ -9,7 +9,6 @@ use std::{
     time::Duration,
 };
 
-use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -61,15 +60,14 @@ macro_rules! async_ausführen {
     (
         $sender: expr,
         $erzeuge_nachricht: expr,
-        $log: ident,
         $aktion_beschreibung: expr,
-        $self: ident . $methode: ident ($($args: tt)*)
+        $funktion: ident ($self:expr $(, $($args: tt)*)?)
     ) => {{
         let mut clone = $self.clone();
-        thread::spawn(move || {
-            if let Err(fehler) = clone.$methode($($args)*) {
+        std::thread::spawn(move || {
+            if let Err(fehler) = $funktion(&mut clone $(, $($args)*)?) {
                 if let Err(fehler) = $sender.send($erzeuge_nachricht(clone, fehler)) {
-                    $log!(
+                    log::error!(
                         "Kein Empfänger wartet auf die Fehlermeldung einer {}: {fehler}",
                         $aktion_beschreibung,
                     )
@@ -78,6 +76,7 @@ macro_rules! async_ausführen {
         })
     }}
 }
+pub(crate) use async_ausführen;
 
 macro_rules! impl_ausführen_simple {
     ($type: ty, $fehler: ty, $log: ident, $aktion_beschreibung: expr) => {
@@ -105,13 +104,8 @@ macro_rules! impl_ausführen_simple {
                     }
                     .into()
                 };
-                async_ausführen!(
-                    sender,
-                    erzeuge_nachricht,
-                    $log,
-                    $aktion_beschreibung,
-                    self.ausführen()
-                )
+                let ausführen = Self::ausführen;
+                async_ausführen!(sender, erzeuge_nachricht, $aktion_beschreibung, ausführen(self))
             }
         }
     };
@@ -402,7 +396,7 @@ where
         zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
-        let erzeuge_nachricht = |fehler| {
+        let erzeuge_nachricht = |_clone, fehler| {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
         };
         match self {
@@ -411,12 +405,13 @@ where
                 let pwm_frequenz = zugtyp.pwm_frequenz;
                 let verhältnis_fahrspannung_überspannung =
                     zugtyp.verhältnis_fahrspannung_überspannung.clone();
+                let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
-                    |_clone, fehler| erzeuge_nachricht(fehler),
-                    error,
+                    erzeuge_nachricht,
                     "Geschwindigkeit-Aktion",
-                    geschwindigkeit.geschwindigkeit(
+                    ausführen(
+                        geschwindigkeit,
                         wert,
                         pwm_frequenz,
                         verhältnis_fahrspannung_überspannung,

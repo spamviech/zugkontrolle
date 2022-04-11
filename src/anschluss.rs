@@ -1,9 +1,6 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
-use std::{
-    fmt::{self, Display, Formatter},
-    sync::mpsc::RecvError,
-};
+use std::fmt::{self, Display, Formatter};
 
 use log::error;
 use serde::{Deserialize, Serialize};
