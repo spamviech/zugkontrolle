@@ -57,8 +57,30 @@ pub trait Ausführen<L: Leiter> {
     ) -> JoinHandle<()>;
 }
 
+macro_rules! async_ausführen {
+    (
+        $sender: expr,
+        $erzeuge_nachricht: expr,
+        $log: ident,
+        $aktion_beschreibung: expr,
+        $self: ident . $methode: ident ($($args: tt)*)
+    ) => {{
+        let mut clone = $self.clone();
+        thread::spawn(move || {
+            if let Err(fehler) = clone.$methode($($args)*) {
+                if let Err(fehler) = $sender.send($erzeuge_nachricht(clone, fehler)) {
+                    $log!(
+                        "Kein Empfänger wartet auf die Fehlermeldung einer {}: {fehler}",
+                        $aktion_beschreibung,
+                    )
+                }
+            }
+        })
+    }}
+}
+
 macro_rules! impl_ausführen_simple {
-    ($type: ty, $fehler: ty, $log_erfolg: ident, $log_fehler: ident, $aktion_beschreibung: expr) => {
+    ($type: ty, $fehler: ty, $log: ident, $aktion_beschreibung: expr) => {
         impl<L: Leiter> Ausführen<L> for $type {
             type Fehler = $fehler;
 
@@ -75,24 +97,21 @@ macro_rules! impl_ausführen_simple {
                 sender: Sender<Nachricht>,
                 zustand_zurücksetzen: ZZ,
             ) -> JoinHandle<()> {
-                let mut clone = self.clone();
-                thread::spawn(move || {
-                    if let Err(fehler) = clone.ausführen() {
-                        if let Err(fehler) = sender.send(
-                            AsyncFehler {
-                                titel: format!("{clone:?}"),
-                                nachricht: format!("{fehler:?}"),
-                                zustand_zurücksetzen,
-                            }
-                            .into(),
-                        ) {
-                            $log_fehler!(
-                                "Kein Empfänger wartet auf die Fehlermeldung einer {}: {fehler}",
-                                $aktion_beschreibung,
-                            )
-                        }
+                let erzeuge_nachricht = |clone, fehler| {
+                    AsyncFehler {
+                        titel: format!("{clone:?}"),
+                        nachricht: format!("{fehler:?}"),
+                        zustand_zurücksetzen,
                     }
-                })
+                    .into()
+                };
+                async_ausführen!(
+                    sender,
+                    erzeuge_nachricht,
+                    $log,
+                    $aktion_beschreibung,
+                    self.ausführen()
+                )
             }
         }
     };
@@ -236,10 +255,9 @@ impl<L: Leiter> Ausführen<L> for Aktion<L> {
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ>(
         &mut self,
         zugtyp: &Zugtyp<L>,
-        erfolg: Option<Sender<()>>,
-        fehler: Sender<Nachricht>,
+        sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
-    ) {
+    ) -> JoinHandle<()> {
         match self {
             AktionEnum::Geschwindigkeit(aktion) => todo!(),
             AktionEnum::Streckenabschnitt(aktion) => todo!(),
@@ -382,13 +400,29 @@ where
         zugtyp: &Zugtyp<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
-    ) {
+    ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
         let erzeuge_nachricht = |fehler| {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
         };
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => todo!(),
+            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
+                let wert = *wert;
+                let pwm_frequenz = zugtyp.pwm_frequenz;
+                let verhältnis_fahrspannung_überspannung =
+                    zugtyp.verhältnis_fahrspannung_überspannung.clone();
+                async_ausführen!(
+                    sender,
+                    |_clone, fehler| erzeuge_nachricht(fehler),
+                    error,
+                    "Geschwindigkeit-Aktion",
+                    geschwindigkeit.geschwindigkeit(
+                        wert,
+                        pwm_frequenz,
+                        verhältnis_fahrspannung_überspannung,
+                    )
+                )
+            },
             AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
                 .async_umdrehen_allgemein(
                     zugtyp.pwm_frequenz,
@@ -511,7 +545,6 @@ impl AktionStreckenabschnitt {
 impl_ausführen_simple! {
     AktionStreckenabschnitt,
     anschluss::Fehler,
-    debug,
     error,
     "Streckenabschnitt-Aktion"
 }
@@ -619,7 +652,7 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
         zugtyp: &Zugtyp<L>,
         sender: Sender<Nachricht>,
         zustand_zurücksetzen: ZZ,
-    ) {
+    ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
         let erzeuge_nachricht = |fehler| {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
@@ -735,7 +768,7 @@ impl AktionWarten {
     }
 }
 
-impl_ausführen_simple! {AktionWarten, RecvError, error, error, "Warte-Aktion"}
+impl_ausführen_simple! {AktionWarten, RecvError, error, "Warte-Aktion"}
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
