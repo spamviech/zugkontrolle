@@ -114,31 +114,25 @@ pub enum AnschlüsseAnpassen {
     Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
+type GeradeRichtung = gleis::weiche::gerade::Richtung;
+type KurvenRichtung = gleis::weiche::kurve::Richtung;
+type DreiwegeRichtung = gleis::weiche::dreiwege::Richtung;
+type SKurvenRichtung = gleis::weiche::s_kurve::Richtung;
+type KreuzungRichtung = gleis::kreuzung::Richtung;
+
 /// Zustand auf Stand vor einer Aktion zurücksetzen.
 #[derive(zugkontrolle_macros::Debug)]
 pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
     /// Richtung einer [Weiche] zurücksetzen.
-    Weiche(GleisId<Weiche>, gleis::weiche::gerade::Richtung, gleis::weiche::gerade::Richtung),
+    Weiche(GleisId<Weiche>, GeradeRichtung, GeradeRichtung),
     /// Richtung einer [DreiwegeWeiche] zurücksetzen.
-    DreiwegeWeiche(
-        GleisId<DreiwegeWeiche>,
-        gleis::weiche::dreiwege::Richtung,
-        gleis::weiche::dreiwege::Richtung,
-    ),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, DreiwegeRichtung, DreiwegeRichtung),
     /// Richtung einer [KurvenWeiche] zurücksetzen.
-    KurvenWeiche(
-        GleisId<KurvenWeiche>,
-        gleis::weiche::kurve::Richtung,
-        gleis::weiche::kurve::Richtung,
-    ),
+    KurvenWeiche(GleisId<KurvenWeiche>, KurvenRichtung, KurvenRichtung),
     /// Richtung einer [SKurvenWeiche] zurücksetzen.
-    SKurvenWeiche(
-        GleisId<SKurvenWeiche>,
-        gleis::weiche::s_kurve::Richtung,
-        gleis::weiche::s_kurve::Richtung,
-    ),
+    SKurvenWeiche(GleisId<SKurvenWeiche>, SKurvenRichtung, SKurvenRichtung),
     /// Richtung einer [Kreuzung] zurücksetzen.
-    Kreuzung(GleisId<Kreuzung>, gleis::kreuzung::Richtung, gleis::kreuzung::Richtung),
+    Kreuzung(GleisId<Kreuzung>, KreuzungRichtung, KreuzungRichtung),
     /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
     GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
