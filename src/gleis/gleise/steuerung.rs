@@ -71,7 +71,6 @@ macro_rules! steuerung_weiche {
         pub fn $name<'t>(
             &'t mut self,
             gleis_id: &GleisId<$type>,
-            // streckenabschnitt: &Option<steuerung::streckenabschnitt::Name>,
         ) -> Result<Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>, GleisIdFehler>
         {
             let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
