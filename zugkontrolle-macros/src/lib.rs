@@ -132,6 +132,7 @@ mod daten;
 /// Das erste Argument muss `&mut self`, oder `&'t mut self` und
 /// alle anderen Argumente reine Namen-Pattern sein.
 /// Die `where`-Klausel wird nicht inspiziert oder kopiert.
+/// Für assoziierte Typen wird eine vollständig qualifizierte Form <T as Trait>::Typ empfohlen.
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
