@@ -54,6 +54,12 @@ impl<T> Steuerung<T> {
     pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>) -> Self {
         Steuerung { steuerung, canvas, verändert: false }
     }
+
+    /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
+    pub fn konvertiere<'t, S>(&'t self, f: impl FnOnce(&'t T) -> S) -> Steuerung<S> {
+        let Steuerung { steuerung, canvas, verändert: _ } = self;
+        Steuerung { steuerung: f(steuerung), canvas: canvas.clone(), verändert: false }
+    }
 }
 
 impl<T> Steuerung<&'_ mut Option<T>> {
@@ -76,6 +82,16 @@ impl<T> Steuerung<&'_ mut Option<T>> {
     /// Erhalte eine mutable Referenz, falls ein Wert vorhanden ist.
     pub fn opt_as_mut(&mut self) -> Option<&mut T> {
         self.as_mut().as_mut()
+    }
+
+    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
+    pub fn nur_some(&self) -> Option<Steuerung<&T>> {
+        let Steuerung { steuerung, canvas, verändert: _ } = self;
+        if let Some(steuerung) = steuerung {
+            Some(Steuerung { steuerung, canvas: canvas.clone(), verändert: false })
+        } else {
+            None
+        }
     }
 }
 
