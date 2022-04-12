@@ -5,10 +5,10 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated,
-    token::{And, As, Gt, Lt, Mut, SelfValue},
+    token::{Gt, Lt},
     AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, GenericParam, Generics,
-    Ident, ImplItemMethod, Pat, PatIdent, PatType, Path, PathArguments, PathSegment, QSelf,
-    Receiver, ReturnType, Signature, Type, TypeParam, TypeParamBound, TypePath,
+    Ident, ImplItemMethod, Pat, PatIdent, PatType, PathArguments, PathSegment, ReturnType,
+    Signature, Type, TypeParam, TypeParamBound,
 };
 
 fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type {
