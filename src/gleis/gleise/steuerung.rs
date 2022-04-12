@@ -85,7 +85,7 @@ impl<T> Steuerung<&'_ mut Option<T>> {
     }
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
-    pub fn nur_some(&self) -> Option<Steuerung<&T>> {
+    pub fn nur_some(&mut self) -> Option<Steuerung<&mut T>> {
         let Steuerung { steuerung, canvas, verändert: _ } = self;
         if let Some(steuerung) = steuerung {
             Some(Steuerung { steuerung, canvas: canvas.clone(), verändert: false })

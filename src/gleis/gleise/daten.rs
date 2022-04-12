@@ -163,6 +163,26 @@ impl<L: Leiter> Zustand<L> {
         })
     }
 
+    pub(in crate::gleis::gleise) fn daten(
+        &self,
+        streckenabschnitt: &Option<StreckenabschnittId>,
+    ) -> Result<&GleiseDaten, StreckenabschnittIdFehler> {
+        Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
+            let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
+            let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit.as_ref())?;
+            &streckenabschnitt_map
+                .get(name)
+                .ok_or_else(|| {
+                    StreckenabschnittIdFehler::StreckenabschnittEntfernt(
+                        streckenabschnitt_id.klonen(),
+                    )
+                })?
+                .2
+        } else {
+            &self.ohne_streckenabschnitt
+        })
+    }
+
     pub(in crate::gleis::gleise) fn daten_mut(
         &mut self,
         streckenabschnitt: &Option<StreckenabschnittId>,

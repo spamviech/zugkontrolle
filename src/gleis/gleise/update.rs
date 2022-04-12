@@ -22,7 +22,11 @@ use crate::{
             steuerung::{MitSteuerung, Steuerung},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
-        weiche::{self, dreiwege::DreiwegeWeiche, kurve::KurvenWeiche},
+        kreuzung::Kreuzung,
+        weiche::{
+            self, dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche,
+            s_kurve::SKurvenWeiche,
+        },
     },
     steuerung::{
         geschwindigkeit::Leiter,
@@ -61,11 +65,14 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
+// TODO ID, damit ZustandZurücksetzen erzeugt werden kann?
 enum GleisSteuerung<'t> {
     Streckenabschnitt(Option<&'t Streckenabschnitt>),
     GeradeWeiche(&'t Option<plan::GeradeWeiche>),
     KurvenWeiche(&'t Option<plan::KurvenWeiche>),
     DreiwegeWeiche(&'t Option<plan::DreiwegeWeiche>),
+    SKurvenWeiche(&'t Option<plan::GeradeWeiche>),
+    Kreuzung(&'t Option<plan::GeradeWeiche>),
 }
 
 /// Erhalte die Id des Gleises an der gesuchten Position.
@@ -145,37 +152,42 @@ fn aktion_gleis_an_position<'t>(
                     gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos, canvas)
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos, canvas)
+                    todo!()
+                    // gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos, canvas)
                 })
                 .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        dreiwege_weichen,
-                        canvas_pos,
-                        canvas,
-                    )
+                    todo!()
+                    // gleis_an_position(
+                    //     spurweite,
+                    //     streckenabschnitt,
+                    //     dreiwege_weichen,
+                    //     canvas_pos,
+                    //     canvas,
+                    // )
                 })
                 .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        kurven_weichen,
-                        canvas_pos,
-                        canvas,
-                    )
+                    todo!()
+                    // gleis_an_position(
+                    //     spurweite,
+                    //     streckenabschnitt,
+                    //     kurven_weichen,
+                    //     canvas_pos,
+                    //     canvas,
+                    // )
                 })
                 .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        s_kurven_weichen,
-                        canvas_pos,
-                        canvas,
-                    )
+                    todo!()
+                    // gleis_an_position(
+                    //     spurweite,
+                    //     streckenabschnitt,
+                    //     s_kurven_weichen,
+                    //     canvas_pos,
+                    //     canvas,
+                    // )
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos, canvas)
+                    todo!()
+                    // gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos, canvas)
                 })
             });
             match modus {
@@ -206,64 +218,71 @@ fn aktion_gleis_an_position<'t>(
                     }
                 },
                 ModusDaten::Fahren => {
-                    if let Some((_any_id_ref, _halte_position, _winkel, steuerung)) =
-                        gleis_an_position
+                    if let Some((
+                        _any_id_ref,
+                        _halte_position,
+                        _winkel,
+                        steuerung,
+                        streckenabschnitt,
+                    )) = gleis_an_position
                     {
-                        use GleisSteuerung::*;
-                        message = match steuerung {
-                            Streckenabschnitt(Some(streckenabschnitt)) => {
-                                let fließend = !streckenabschnitt.fließend();
-                                Some(Nachricht::StreckenabschnittUmschalten(
-                                    AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: streckenabschnitt.clone(),
-                                        fließend,
-                                    },
-                                ))
-                            },
-                            GeradeWeiche(Some(weiche)) => {
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                            },
-                            KurvenWeiche(Some(weiche)) => {
-                                use weiche::kurve::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Innen => Außen,
-                                    Außen => Innen,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                            },
-                            DreiwegeWeiche(Some(weiche)) => {
-                                use weiche::dreiwege::Richtung::*;
-                                let richtung = match (
-                                    weiche.aktuelle_richtung,
-                                    weiche.letzte_richtung,
-                                ) {
-                                    (Gerade, Links) => Rechts,
-                                    (Gerade, Rechts) => Links,
-                                    (Gerade, Gerade) => {
-                                        error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                        Links
-                                    },
-                                    (Links, _letzte) => Gerade,
-                                    (Rechts, _letzte) => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                            },
-                            _ => None,
-                        };
+                        /*
+                            use GleisSteuerung::*;
+                            message = match steuerung {
+                                Streckenabschnitt(Some(streckenabschnitt)) => {
+                                    let fließend = !streckenabschnitt.fließend();
+                                    Some(Nachricht::StreckenabschnittUmschalten(
+                                        AktionStreckenabschnitt::Strom {
+                                            streckenabschnitt: streckenabschnitt.clone(),
+                                            fließend,
+                                        },
+                                    ))
+                                },
+                                GeradeWeiche(Some(weiche)) => {
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                },
+                                KurvenWeiche(Some(weiche)) => {
+                                    use weiche::kurve::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Innen => Außen,
+                                        Außen => Innen,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                },
+                                DreiwegeWeiche(Some(weiche)) => {
+                                    use weiche::dreiwege::Richtung::*;
+                                    let richtung = match (
+                                        weiche.aktuelle_richtung,
+                                        weiche.letzte_richtung,
+                                    ) {
+                                        (Gerade, Links) => Rechts,
+                                        (Gerade, Rechts) => Links,
+                                        (Gerade, Gerade) => {
+                                            error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                                            Links
+                                        },
+                                        (Links, _letzte) => Gerade,
+                                        (Rechts, _letzte) => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                },
+                                _ => None,
+                            };
+                        */
                         if message.is_some() {
                             status = event::Status::Captured
                         }
