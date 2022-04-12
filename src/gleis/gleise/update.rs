@@ -86,7 +86,7 @@ fn gleis_an_position<'t, T>(
     AnyIdRef<'t>,
     Vektor,
     Winkel,
-    Steuerung<<T as MitSteuerung<'t>>::Steuerung>,
+    Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>,
     Option<&'t Streckenabschnitt>,
 )>
 where

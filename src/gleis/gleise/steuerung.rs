@@ -62,7 +62,24 @@ impl<T> Steuerung<T> {
     }
 }
 
-impl<T> Steuerung<&'_ mut Option<T>> {
+impl<T> Steuerung<&Option<T>> {
+    /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
+    pub fn opt_as_ref(&self) -> Option<&T> {
+        self.as_ref().as_ref()
+    }
+
+    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
+    pub fn nur_some(&self) -> Option<Steuerung<&T>> {
+        let Steuerung { steuerung, canvas, verändert: _ } = self;
+        if let Some(steuerung) = steuerung {
+            Some(Steuerung { steuerung, canvas: canvas.clone(), verändert: false })
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> Steuerung<&mut Option<T>> {
     /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse [None].
     pub fn take(&mut self) -> Option<T> {
         self.as_mut().take()
@@ -99,18 +116,39 @@ impl<T> Steuerung<&'_ mut Option<T>> {
 pub trait MitSteuerung<'t> {
     /// Die Steuerung für das Gleis.
     type Steuerung: 't;
+    /// Erzeuge eine [Steuerung]-Struktur, ohne die Möglichkeit sie zu verändern.
+    fn steuerung(&'t self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t Self::Steuerung>;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
     /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
-    fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<Self::Steuerung>;
+    fn steuerung_mut(&'t mut self, canvas: Arc<Mutex<Cache>>)
+        -> Steuerung<&'t mut Self::Steuerung>;
 }
 
 impl<L: Leiter> Gleise<L> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
     pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
+        &'t self,
+        gleis_id: &GleisId<T>,
+    ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let Gleise { zustand, canvas, .. } = self;
+        let Gleis { definition, position: _ }: &Gleis<T> = &zustand
+            .daten(streckenabschnitt)?
+            .rstern()
+            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        Ok(definition.steuerung(canvas.clone()))
+    }
+
+    #[zugkontrolle_macros::erstelle_daten_methoden]
+    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
+    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
         &'t mut self,
         gleis_id: &GleisId<T>,
-    ) -> Result<Steuerung<<T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
+    ) -> Result<Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
@@ -120,7 +158,7 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung(canvas.clone()))
+        Ok(definition.steuerung_mut(canvas.clone()))
     }
 }
 
@@ -129,9 +167,16 @@ type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Rich
 macro_rules! impl_mit_steuerung {
     ($type: ty, $steuerung: ty, $ident: ident) => {
         impl<'t> MitSteuerung<'t> for $type {
-            type Steuerung = &'t mut $steuerung;
+            type Steuerung = $steuerung;
             #[inline(always)]
-            fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t mut $steuerung> {
+            fn steuerung(&'t self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t Self::Steuerung> {
+                Steuerung::neu(&self.$ident, canvas)
+            }
+            #[inline(always)]
+            fn steuerung_mut(
+                &'t mut self,
+                canvas: Arc<Mutex<Cache>>,
+            ) -> Steuerung<&'t mut Self::Steuerung> {
                 Steuerung::neu(&mut self.$ident, canvas)
             }
         }

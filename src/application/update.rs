@@ -29,7 +29,7 @@ use crate::{
         daten::{v2, DatenAuswahl, StreckenabschnittMap},
         id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
         steuerung::{MitSteuerung, Steuerung},
-        GleisIdFehler, Gleise,
+        Gleise,
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -114,7 +114,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         als_nachricht: impl 'static
             + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
     ) where
-        T: 'static + for<'t> MitSteuerung<'t, Steuerung = &'t mut Option<W>> + DatenAuswahl,
+        T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere,
     {
         let steuerung_res = self.gleise.erhalte_steuerung(&id);
@@ -142,14 +142,14 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
     ) -> Option<Nachricht<L>>
     where
-        T: for<'t> MitSteuerung<'t, Steuerung = &'t mut Option<W>> + DatenAuswahl,
+        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
     {
         let mut message = None;
 
         let mut error_message = None;
-        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung(&id) {
+        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
             if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
                 let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
                     if let Some(s) = steuerung.take() {
@@ -649,14 +649,12 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         aktuelle_richtung: Richtung,
         letzte_richtung: Richtung,
     ) where
-        T: 't
-            + MitSteuerung<'t, Steuerung = &'t mut OptionWeiche<Richtung, Anschlüsse>>
-            + DatenAuswahl,
+        T: 't + MitSteuerung<'t, Steuerung = OptionWeiche<Richtung, Anschlüsse>> + DatenAuswahl,
         Richtung: 't,
         Anschlüsse: 't,
     {
         // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
-        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung(&id) {
+        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
             if let Some(weiche) = steuerung.as_mut() {
                 weiche.aktuelle_richtung = aktuelle_richtung;
                 weiche.letzte_richtung = letzte_richtung;
