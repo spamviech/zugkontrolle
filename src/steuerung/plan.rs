@@ -16,9 +16,13 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{self, de_serialisieren::Serialisiere, polarität::Fließend, OutputSerialisiert},
+    anschluss::{
+        self, de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss,
+        OutputSerialisiert,
+    },
     eingeschränkt::NichtNegativ,
     gleis::{gleise::steuerung::Steuerung, weiche},
+    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
@@ -103,7 +107,6 @@ impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
     }
 }
 
-// TODO Steuerung<T> verwenden um GUI-updates automatisch zu erhalten
 /// Etwas ausführbares.
 pub trait Ausführen<L: Leiter> {
     /// Mögliche Fehler, die beim ausführen auftreten können.
@@ -273,7 +276,7 @@ pub enum UnbekannteAnschlüsse<L: Serialisiere> {
     /// Anschlüsse eines [Streckenabschnittes](Streckenabschnitt).
     Streckenabschnitte(UnbekannterStreckenabschnitt),
     /// Anschlüsse einer [Weiche].
-    Weiche(UnbekannteWeiche),
+    Weiche(AnyUnbekannteWeiche),
     /// Anschlüsse eines [Kontaktes](Kontakt).
     Kontakt(UnbekannterKontakt),
 }
@@ -318,7 +321,7 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
     Geschwindigkeit(Geschwindigkeit),
     /// Eine [AktionStreckenabschnitt].
     Streckenabschnitt(Streckenabschnitt),
-    /// Eine [AktionSchalten].
+    /// Eine [AnyAktionSchalten].
     Schalten(Schalten),
     /// Eine [AktionWarten].
     Warten(Warten),
@@ -328,7 +331,7 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
 
 /// Eine Aktionen in einem Fahrplan.
 pub type Aktion<L> =
-    AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AktionSchalten, AktionWarten>;
+    AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AnyAktionSchalten, AktionWarten>;
 
 /// Ein Fehler der beim Ausführen einer [Aktion] auftreten kann.
 #[derive(Debug)]
@@ -402,7 +405,7 @@ where
 pub type AktionSerialisiert<L> = AktionEnum<
     AktionGeschwindigkeitSerialisiert<L>,
     AktionStreckenabschnittSerialisiert,
-    AktionSchaltenSerialisiert,
+    AnyAktionSchaltenSerialisiert,
     AktionWartenSerialisiert,
 >;
 
@@ -763,50 +766,134 @@ pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionSchalten<
+pub enum AnyAktionSchalten<
     Gerade = Steuerung<GeradeWeiche>,
     Kurve = Steuerung<KurvenWeiche>,
     Dreiwege = Steuerung<DreiwegeWeiche>,
 > {
     /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
     /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
-    SchalteGerade {
-        /// Die Anschlüsse zum Schalten der Weiche.
-        weiche: Gerade,
-        /// Die neue Richtung.
-        richtung: weiche::gerade::Richtung,
-    },
+    SchalteGerade(AktionSchalten<Gerade, weiche::gerade::Richtung>),
     /// Schalten einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
-    SchalteKurve {
-        /// Die Anschlüsse zum Schalten der Weiche.
-        weiche: Kurve,
-        /// Die neue Richtung.
-        richtung: weiche::kurve::Richtung,
-    },
+    SchalteKurve(AktionSchalten<Kurve, weiche::kurve::Richtung>),
     /// Schalten einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
-    SchalteDreiwege {
-        /// Die Anschlüsse zum Schalten der Weiche.
-        weiche: Dreiwege,
-        /// Die neue Richtung.
-        richtung: weiche::dreiwege::Richtung,
-    },
+    SchalteDreiwege(AktionSchalten<Dreiwege, weiche::dreiwege::Richtung>),
 }
 
-impl<L: Leiter> Ausführen<L> for AktionSchalten {
+impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
     type Fehler = anschluss::Fehler;
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => {
-                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
+            AnyAktionSchalten::SchalteGerade(aktion) => aktion.ausführen(einstellungen)?,
+            AnyAktionSchalten::SchalteKurve(aktion) => aktion.ausführen(einstellungen)?,
+            AnyAktionSchalten::SchalteDreiwege(aktion) => aktion.ausführen(einstellungen)?,
+        }
+        Ok(())
+    }
+
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+        &mut self,
+        einstellungen: Einstellungen<L>,
+        sender: Sender<Nachricht>,
+        zustand_zurücksetzen: ZZ,
+    ) -> JoinHandle<()> {
+        match self {
+            AnyAktionSchalten::SchalteGerade(aktion) => {
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
-            AktionSchalten::SchalteKurve { weiche, richtung } => {
-                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
+            AnyAktionSchalten::SchalteKurve(aktion) => {
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => {
-                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
+            AnyAktionSchalten::SchalteDreiwege(aktion) => {
+                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
             },
         }
+    }
+}
+
+/// Serialisierbare Repräsentation für eine Aktion mit einer [Weiche].
+pub type AnyAktionSchaltenSerialisiert = AnyAktionSchalten<
+    GeradeWeicheSerialisiert,
+    KurvenWeicheSerialisiert,
+    DreiwegeWeicheSerialisiert,
+>;
+
+impl AnyAktionSchalten {
+    /// Serialisiere eine Aktion mit einer [Weiche].
+    pub fn serialisiere(&self) -> AnyAktionSchaltenSerialisiert {
+        match self {
+            AnyAktionSchalten::SchalteGerade(aktion) => {
+                AnyAktionSchaltenSerialisiert::SchalteGerade(aktion.serialisiere())
+            },
+            AnyAktionSchalten::SchalteKurve(aktion) => {
+                AnyAktionSchaltenSerialisiert::SchalteKurve(aktion.serialisiere())
+            },
+            AnyAktionSchalten::SchalteDreiwege(aktion) => {
+                AnyAktionSchaltenSerialisiert::SchalteDreiwege(aktion.serialisiere())
+            },
+        }
+    }
+}
+
+/// Eine nicht bekannten [Weiche] soll verwendet werden.
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub enum AnyUnbekannteWeiche {
+    /// Anschlüsse einer [Weiche](weiche::gerade::Weiche),
+    /// [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
+    /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+    Gerade(UnbekannteWeiche<GeradeWeicheSerialisiert>),
+    /// Anschlüsse einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
+    Kurve(UnbekannteWeiche<KurvenWeicheSerialisiert>),
+    /// Anschlüsse einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
+    Dreiwege(UnbekannteWeiche<DreiwegeWeicheSerialisiert>),
+}
+
+impl AnyAktionSchaltenSerialisiert {
+    /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
+    pub fn deserialisiere(
+        self,
+        gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
+        kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
+        dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
+        canvas: Arc<Mutex<Cache>>,
+    ) -> Result<AnyAktionSchalten, AnyUnbekannteWeiche> {
+        let aktion = match self {
+            AnyAktionSchaltenSerialisiert::SchalteGerade(aktion) => {
+                AnyAktionSchalten::SchalteGerade(aktion.deserialisiere(gerade_weichen, canvas)?)
+            },
+            AnyAktionSchaltenSerialisiert::SchalteKurve(aktion) => {
+                AnyAktionSchalten::SchalteKurve(aktion.deserialisiere(kurven_weichen, canvas)?)
+            },
+            AnyAktionSchaltenSerialisiert::SchalteDreiwege(aktion) => {
+                AnyAktionSchalten::SchalteDreiwege(aktion.deserialisiere(dreiwege_weichen, canvas)?)
+            },
+        };
+        Ok(aktion)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Schalten einer [Weiche].
+pub struct AktionSchalten<Weiche, Richtung> {
+    /// Die Anschlüsse zum Schalten der Weiche.
+    pub weiche: Weiche,
+    /// Die neue Richtung.
+    pub richtung: Richtung,
+}
+
+impl<L, Anschlüsse, Richtung> Ausführen<L>
+    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>>, Richtung>
+where
+    L: Leiter,
+    Richtung: 'static + Debug + Clone + Send,
+    Anschlüsse: 'static + Debug + Nachschlagen<Richtung, OutputAnschluss> + Send,
+{
+    type Fehler = anschluss::Fehler;
+
+    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+        let AktionSchalten { weiche, richtung } = self;
+        weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
@@ -819,96 +906,38 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
         let erzeuge_nachricht = |fehler| {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
         };
-        match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => weiche.as_mut().async_schalten(
-                *richtung,
-                einstellungen.schalten_zeit,
-                sender,
-                erzeuge_nachricht,
-            ),
-            AktionSchalten::SchalteKurve { weiche, richtung } => weiche.as_mut().async_schalten(
-                *richtung,
-                einstellungen.schalten_zeit,
-                sender,
-                erzeuge_nachricht,
-            ),
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => weiche.as_mut().async_schalten(
-                *richtung,
-                einstellungen.schalten_zeit,
-                sender,
-                erzeuge_nachricht,
-            ),
-        }
+        let AktionSchalten { weiche, richtung } = self;
+        weiche.as_mut().async_schalten(
+            richtung.clone(),
+            einstellungen.schalten_zeit,
+            sender,
+            erzeuge_nachricht,
+        )
     }
 }
 
-/// Serialisierbare Repräsentation für eine Aktion mit einer [Weiche].
-pub type AktionSchaltenSerialisiert =
-    AktionSchalten<GeradeWeicheSerialisiert, KurvenWeicheSerialisiert, DreiwegeWeicheSerialisiert>;
-
-impl AktionSchalten {
+impl<Weiche: Serialisiere, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
     /// Serialisiere eine Aktion mit einer [Weiche].
-    pub fn serialisiere(&self) -> AktionSchaltenSerialisiert {
-        match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => {
-                AktionSchaltenSerialisiert::SchalteGerade {
-                    weiche: weiche.as_ref().serialisiere(),
-                    richtung: *richtung,
-                }
-            },
-            AktionSchalten::SchalteKurve { weiche, richtung } => {
-                AktionSchaltenSerialisiert::SchalteKurve {
-                    weiche: weiche.as_ref().serialisiere(),
-                    richtung: *richtung,
-                }
-            },
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => {
-                AktionSchaltenSerialisiert::SchalteDreiwege {
-                    weiche: weiche.as_ref().serialisiere(),
-                    richtung: *richtung,
-                }
-            },
-        }
+    pub fn serialisiere(&self) -> AktionSchalten<<Weiche as Serialisiere>::Serialisiert, Richtung> {
+        let AktionSchalten { weiche, richtung } = self;
+        AktionSchalten { weiche: weiche.as_ref().serialisiere(), richtung: richtung.clone() }
     }
 }
 
 /// Eine nicht bekannten [Weiche] soll verwendet werden.
-#[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub enum UnbekannteWeiche {
-    /// Anschlüsse einer [Weiche](weiche::gerade::Weiche),
-    /// [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
-    /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
-    Gerade(GeradeWeicheSerialisiert),
-    /// Anschlüsse einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
-    Kurve(KurvenWeicheSerialisiert),
-    /// Anschlüsse einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
-    Dreiwege(DreiwegeWeicheSerialisiert),
-}
+#[derive(Debug, Clone)]
+pub struct UnbekannteWeiche<S>(pub S);
 
-impl AktionSchaltenSerialisiert {
+impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
     /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere(
+    pub fn deserialisiere<Weiche: Clone + Serialisiere<Serialisiert = S>>(
         self,
-        gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
-        kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
-        dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
+        bekannte_weichen: &HashMap<<Weiche as Serialisiere>::Serialisiert, Weiche>,
         canvas: Arc<Mutex<Cache>>,
-    ) -> Result<AktionSchalten, UnbekannteWeiche> {
-        let aktion = match self {
-            AktionSchaltenSerialisiert::SchalteGerade { weiche, richtung } => {
-                let weiche = gerade_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteGerade { weiche: Steuerung::neu(weiche, canvas), richtung }
-            },
-            AktionSchaltenSerialisiert::SchalteKurve { weiche, richtung } => {
-                let weiche = kurven_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteKurve { weiche: Steuerung::neu(weiche, canvas), richtung }
-            },
-            AktionSchaltenSerialisiert::SchalteDreiwege { weiche, richtung } => {
-                let weiche = dreiwege_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteDreiwege { weiche: Steuerung::neu(weiche, canvas), richtung }
-            },
-        };
-        Ok(aktion)
+    ) -> Result<AktionSchalten<Steuerung<Weiche>, Richtung>, UnbekannteWeiche<S>> {
+        let AktionSchalten { weiche, richtung } = self;
+        let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
+        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas), richtung })
     }
 }
 

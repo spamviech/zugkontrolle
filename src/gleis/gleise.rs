@@ -24,7 +24,7 @@ use crate::{
     anschluss::{self, polarität::Fließend},
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt},
+        plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -576,7 +576,7 @@ pub enum Nachricht {
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    WeicheSchalten(AktionSchalten),
+    WeicheSchalten(AnyAktionSchalten),
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {

@@ -49,7 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
+        plan::{AktionStreckenabschnitt, AnyAktionSchalten, AsyncFehler},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -247,7 +247,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    WeicheSchalten(AktionSchalten),
+    WeicheSchalten(AnyAktionSchalten),
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.

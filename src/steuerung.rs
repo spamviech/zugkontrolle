@@ -15,5 +15,6 @@ pub use kontakt::{Kontakt, KontaktSerialisiert};
 pub mod plan;
 pub use plan::{
     Aktion, AktionGeschwindigkeit, AktionGeschwindigkeitSerialisiert, AktionSchalten,
-    AktionSchaltenSerialisiert, AktionSerialisiert, AktionStreckenabschnitt, AktionWarten, Plan,
+    AktionSerialisiert, AktionStreckenabschnitt, AktionWarten, AnyAktionSchalten,
+    AnyAktionSchaltenSerialisiert, Plan,
 };
