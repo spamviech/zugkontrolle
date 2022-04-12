@@ -49,7 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler, ZustandZurücksetzen},
+        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -119,6 +119,23 @@ type KurvenRichtung = gleis::weiche::kurve::Richtung;
 type DreiwegeRichtung = gleis::weiche::dreiwege::Richtung;
 type SKurvenRichtung = gleis::weiche::s_kurve::Richtung;
 type KreuzungRichtung = gleis::kreuzung::Richtung;
+
+/// Zustand auf Stand vor einer [Aktion] zurücksetzen.
+#[derive(zugkontrolle_macros::Debug)]
+pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
+    /// Richtung einer [weiche::Weiche] zurücksetzen.
+    Weiche(GleisId<Weiche>, GeradeRichtung, GeradeRichtung),
+    /// Richtung einer [weiche::DreiwegeWeiche] zurücksetzen.
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, DreiwegeRichtung, DreiwegeRichtung),
+    /// Richtung einer [weiche::KurvenWeiche] zurücksetzen.
+    KurvenWeiche(GleisId<KurvenWeiche>, KurvenRichtung, KurvenRichtung),
+    /// Richtung einer [weiche::SKurvenWeiche] zurücksetzen.
+    SKurvenWeiche(GleisId<SKurvenWeiche>, SKurvenRichtung, SKurvenRichtung),
+    /// Richtung einer [Kreuzung] zurücksetzen.
+    Kreuzung(GleisId<Kreuzung>, KreuzungRichtung, KreuzungRichtung),
+    /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
+    GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
+}
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
@@ -238,7 +255,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
         /// Die Nachricht der Fehlermeldung.
         nachricht: String,
         /// Zustand auf Stand vor der Aktion zurücksetzen.
-        zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
+        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
     },
 }
 
@@ -259,8 +276,8 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncFehler<Leiter>> for Nachricht<Leiter> {
-    fn from(fehler: AsyncFehler<Leiter>) -> Self {
+impl<Leiter: LeiterAnzeige> From<AsyncFehler<ZustandZurücksetzen<Leiter>>> for Nachricht<Leiter> {
+    fn from(fehler: AsyncFehler<ZustandZurücksetzen<Leiter>>) -> Self {
         let AsyncFehler { titel, nachricht, zustand_zurücksetzen } = fehler;
         Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen }
     }
@@ -473,7 +490,7 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
 #[allow(single_use_lifetimes)]
 impl<L> Application for Zugkontrolle<L>
 where
-    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + v2::Kompatibel + Display,
+    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + v2::Kompatibel + Display + Send,
     <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de>,

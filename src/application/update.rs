@@ -90,11 +90,14 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         &mut self,
         mut aktion: Aktion,
     ) where
-        L: 'static,
+        L: 'static + Send,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        let _join_handle =
-            aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
+        let _join_handle = aktion.async_ausführen(
+            self.gleise.zugtyp().into(),
+            self.sender.clone(),
+            todo!("zustand_zurücksetzen"),
+        );
     }
 
     fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
@@ -717,13 +720,9 @@ where
         &mut self,
         titel: String,
         nachricht: String,
-        zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
+        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
     ) -> Option<Command<Nachricht<Leiter>>> {
-        let command = if let Some(zustand_zurücksetzen) = zustand_zurücksetzen {
-            self.zustand_zurücksetzen(zustand_zurücksetzen)
-        } else {
-            None
-        };
+        let command = self.zustand_zurücksetzen(zustand_zurücksetzen);
         self.zeige_message_box(titel, nachricht);
         command
     }
@@ -795,10 +794,10 @@ where
             move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
                 titel,
                 nachricht: format!("{:?}", fehler),
-                zustand_zurücksetzen: Some(ZustandZurücksetzen::GeschwindigkeitAnzeige(
+                zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
                     name_clone,
                     zustand_zurücksetzen,
-                )),
+                ),
             },
         );
         match update_result {
