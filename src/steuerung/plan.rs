@@ -448,7 +448,7 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
     {
         let reserviert = match self {
             AktionSerialisiert::Geschwindigkeit(aktion) => {
-                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten, canvas)?)
+                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
             },
             AktionSerialisiert::Streckenabschnitt(aktion) => {
                 Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte, canvas)?)
@@ -502,7 +502,7 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 
 /// Eine Aktion mit einer [Geschwindigkeit].
 pub type AktionGeschwindigkeit<L> =
-    AktionGeschwindigkeitEnum<Steuerung<Geschwindigkeit<L>>, <L as Leiter>::Fahrtrichtung>;
+    AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
@@ -515,23 +515,21 @@ where
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
-                geschwindigkeit.as_mut().geschwindigkeit(
+            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
+                .geschwindigkeit(
                     *wert,
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
-                )
-            },
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => {
-                geschwindigkeit.as_mut().umdrehen_allgemein(
+                ),
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
+                .umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
-                )
-            },
+                ),
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
-                geschwindigkeit.as_mut().fahrtrichtung_allgemein(
+                geschwindigkeit.fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
@@ -564,25 +562,24 @@ where
                     |_clone, fehler| erzeuge_nachricht(fehler),
                     "einer Geschwindigkeit-Aktion",
                     ausführen(
-                        geschwindigkeit => as_mut,
+                        geschwindigkeit,
                         wert,
                         pwm_frequenz,
                         verhältnis_fahrspannung_überspannung,
                     )
                 )
             },
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => {
-                geschwindigkeit.as_mut().async_umdrehen_allgemein(
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
+                .async_umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                     sender,
                     |_clone, fehler| erzeuge_nachricht(fehler),
-                )
-            },
+                ),
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
-                geschwindigkeit.as_mut().async_fahrtrichtung_allgemein(
+                geschwindigkeit.async_fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
@@ -611,18 +608,18 @@ where
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
-                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
                     wert: *wert,
                 }
             },
             AktionGeschwindigkeit::Umdrehen { geschwindigkeit } => {
                 AktionGeschwindigkeitSerialisiert::Umdrehen {
-                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
                 }
             },
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 AktionGeschwindigkeitSerialisiert::Fahrtrichtung {
-                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
                     fahrtrichtung: fahrtrichtung.clone(),
                 }
             },
@@ -644,7 +641,6 @@ where
     pub fn deserialisiere(
         self,
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
-        canvas: Arc<Mutex<Cache>>,
     ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<L>> {
         let aktion = match self {
             AktionGeschwindigkeitSerialisiert::Geschwindigkeit { geschwindigkeit, wert } => {
@@ -652,29 +648,21 @@ where
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Geschwindigkeit {
-                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
-                    wert,
-                }
+                AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert }
             },
             AktionGeschwindigkeitSerialisiert::Umdrehen { geschwindigkeit } => {
                 let geschwindigkeit = geschwindigkeiten
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Umdrehen {
-                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
-                }
+                AktionGeschwindigkeit::Umdrehen { geschwindigkeit }
             },
             AktionGeschwindigkeitSerialisiert::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 let geschwindigkeit = geschwindigkeiten
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Fahrtrichtung {
-                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
-                    fahrtrichtung,
-                }
+                AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung }
             },
         };
         Ok(aktion)
