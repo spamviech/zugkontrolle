@@ -80,18 +80,21 @@ impl<T> Steuerung<&'_ mut Option<T>> {
 }
 
 /// Enthält eine Steuerung, die auf dem Canvas angezeigt wird.
-pub trait MitSteuerung<'t, S: 't> {
+pub trait MitSteuerung<'t> {
+    /// Die Steuerung für das Gleis.
+    type Steuerung: 't;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
     /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
-    fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<S>;
+    fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<Self::Steuerung>;
 }
 
 impl<L: Leiter> Gleise<L> {
+    #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung<'t, S: 't, T: 't + MitSteuerung<'t, S> + DatenAuswahl>(
+    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
         &'t mut self,
         gleis_id: &GleisId<T>,
-    ) -> Result<Steuerung<S>, GleisIdFehler> {
+    ) -> Result<Steuerung<<T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
@@ -109,7 +112,8 @@ type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Rich
 
 macro_rules! impl_mit_steuerung {
     ($type: ty, $steuerung: ty, $ident: ident) => {
-        impl<'t> MitSteuerung<'t, &'t mut $steuerung> for $type {
+        impl<'t> MitSteuerung<'t> for $type {
+            type Steuerung = &'t mut $steuerung;
             #[inline(always)]
             fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t mut $steuerung> {
                 Steuerung::neu(&mut self.$ident, canvas)

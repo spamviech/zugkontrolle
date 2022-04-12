@@ -92,7 +92,7 @@ impl<L: Leiter> Gleise<L> {
         &mut self,
         definition: T,
         streckenabschnitt: Option<StreckenabschnittId>,
-        verbindung_name: &T::VerbindungName,
+        verbindung_name: &<T as Zeichnen>::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
@@ -133,7 +133,7 @@ impl<L: Leiter> Gleise<L> {
     pub(crate) fn bewegen_anliegend<T: Debug + Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        verbindung_name: &T::VerbindungName,
+        verbindung_name: &<T as Zeichnen>::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<(), GleisIdFehler>
     where

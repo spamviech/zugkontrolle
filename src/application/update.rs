@@ -114,7 +114,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         als_nachricht: impl 'static
             + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
     ) where
-        T: 'static + for<'t> MitSteuerung<'t, &'t mut Option<W>> + DatenAuswahl,
+        T: 'static + for<'t> MitSteuerung<'t, Steuerung = &'t mut Option<W>> + DatenAuswahl,
         W: Serialisiere,
     {
         let steuerung_res = self.gleise.erhalte_steuerung(&id);
@@ -142,7 +142,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
     ) -> Option<Nachricht<L>>
     where
-        T: for<'t> MitSteuerung<'t, &'t mut Option<W>> + DatenAuswahl,
+        T: for<'t> MitSteuerung<'t, Steuerung = &'t mut Option<W>> + DatenAuswahl,
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
     {
@@ -640,6 +640,8 @@ where
     }
 }
 
+type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
+
 impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     fn weiche_zurücksetzen<'t, T, Richtung, Anschlüsse>(
         &'t mut self,
@@ -648,7 +650,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         letzte_richtung: Richtung,
     ) where
         T: 't
-            + MitSteuerung<'t, &'t mut Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>>
+            + MitSteuerung<'t, Steuerung = &'t mut OptionWeiche<Richtung, Anschlüsse>>
             + DatenAuswahl,
         Richtung: 't,
         Anschlüsse: 't,
