@@ -6,7 +6,9 @@ use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated,
     token::{And, As, Gt, Lt, Mut, SelfValue},
-    Type, *,
+    AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, GenericParam, Generics,
+    Ident, ImplItemMethod, Pat, PatIdent, PatType, Path, PathArguments, PathSegment, QSelf,
+    Receiver, ReturnType, Signature, Type, TypeParam, TypeParamBound, TypePath,
 };
 
 fn ersetze_generic(
@@ -250,12 +252,35 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
         let kreuzung_ident = format_ident!("{}_kreuzung", ident);
 
         let mut option_generic_ident = None;
+        let mut generic_params = Punctuated::new();
         for generic in generics.params.iter() {
-            if let GenericParam::Type(TypeParam { ident, .. }) = generic {
-                option_generic_ident = Some(ident);
-                break;
+            match generic {
+                GenericParam::Type(TypeParam { ident, bounds, .. })
+                    if bounds.iter().any(|bound| {
+                        if let TypeParamBound::Trait(trait_bound) = bound {
+                            trait_bound
+                                .path
+                                .segments
+                                .iter()
+                                .last()
+                                .map(|segment| segment.ident.to_string() == "DatenAuswahl")
+                                .unwrap_or(false)
+                        } else {
+                            false
+                        }
+                    }) =>
+                {
+                    option_generic_ident = Some(ident);
+                },
+                other => generic_params.push(other.clone()),
             }
         }
+        let new_generics = Generics {
+            lt_token: generics.lt_token,
+            params: generic_params,
+            gt_token: generics.gt_token,
+            where_clause: None,
+        };
 
         if let Some(generic_ident) = option_generic_ident {
             let (
@@ -307,7 +332,7 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
             let mut kurven_weiche_types = Vec::new();
             let mut s_kurven_weiche_types = Vec::new();
             let mut kreuzung_types = Vec::new();
-            let mut no_receiver = true;
+            let mut receiver = None;
             for fn_arg in inputs {
                 match fn_arg {
                     FnArg::Typed(PatType { pat, ty, .. }) => {
@@ -361,19 +386,21 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
                             ty.as_ref().clone(),
                         ));
                     },
-                    FnArg::Receiver(Receiver {
-                        attrs,
-                        reference: Some((And { spans: _ }, None)),
-                        mutability: Some(Mut { span: _ }),
-                        self_token: SelfValue { span: _ },
-                    }) if attrs.is_empty() => no_receiver = false,
+                    FnArg::Receiver(
+                        mut_self @ Receiver {
+                            attrs,
+                            reference: Some((And { spans: _ }, _lt)),
+                            mutability: Some(Mut { span: _ }),
+                            self_token: SelfValue { span: _ },
+                        },
+                    ) if attrs.is_empty() => receiver = Some(mut_self),
                     FnArg::Receiver(receiver) => errors.push(format!(
                         "Only '&mut self'-Receiver supported, got '{:?}' instead!",
                         receiver
                     )),
                 }
             }
-            if no_receiver {
+            if receiver.is_none() {
                 errors.push("'&mut self'-Argument required!".to_string())
             }
 
@@ -381,7 +408,7 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
                 quote! {
                     #[inline(always)]
                     #(#doc_attrs)*
-                    pub fn #new_ident(&mut self, #(#input_names: #types),*) #output {
+                    pub fn #new_ident #new_generics (#receiver, #(#input_names: #types),*) #output {
                         self.#ident(#(#input_names),*)
                     }
                 }
@@ -412,6 +439,8 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
                 #s_kurven_weiche_methode
                 #kreuzung_methode
             });
+        } else {
+            errors.push("Kein Parameter mit DatenAuswahl-Constraint.".to_owned())
         }
     } else {
         errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string())

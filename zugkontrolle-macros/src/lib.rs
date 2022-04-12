@@ -127,9 +127,11 @@ mod daten;
 ///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
-/// Es wird erwartet, dass die Funktion genau einen generic Typ hat,
-// das erste Argument &mut self ist und alle anderen Argumente reine Namen-Pattern sind.
-// Assoziierte Typen werden dem Zeichnen-Trait zugehörig angenommen.
+/// Die Funktion muss einen generic Typ mit DatenAuswahl-Constraint haben;
+/// das Constraint darf nicht in der `where`-Klausel stehen.
+/// Das erste Argument muss `&mut self`, oder `&'t mut self` und
+/// alle anderen Argumente reine Namen-Pattern sein.
+/// Die `where`-Klausel wird nicht inspiziert oder kopiert.
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
