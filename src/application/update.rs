@@ -26,9 +26,9 @@ use crate::{
         MessageBox, Nachricht, Zugkontrolle, ZustandZurücksetzen,
     },
     gleis::gleise::{
-        daten::{v2, StreckenabschnittMap},
+        daten::{v2, DatenAuswahl, StreckenabschnittMap},
         id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
-        steuerung::Steuerung,
+        steuerung::{MitSteuerung, Steuerung},
         GleisIdFehler, Gleise,
     },
     steuerung::{
@@ -102,24 +102,22 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         );
     }
 
-    fn zeige_anschlüsse_anpassen_aux<T: 'static, W: Serialisiere, Zustand>(
+    fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
-        gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<L>,
-            &GleisId<T>,
-        )
-            -> Result<Steuerung<&'t mut Option<W>>, GleisIdFehler>,
         erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
         erzeuge_modal: impl Fn(
             Zustand,
             Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
         ) -> AuswahlZustand<L>,
-        als_nachricht: impl Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen
-            + 'static,
-    ) {
-        let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
+        als_nachricht: impl 'static
+            + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
+    ) where
+        T: 'static + for<'t> MitSteuerung<'t, &'t mut Option<W>> + DatenAuswahl,
+        W: Serialisiere,
+    {
+        let steuerung_res = self.gleise.erhalte_steuerung(&id);
         if let Ok(steuerung) = steuerung_res {
             let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
             self.auswahl.zeige_modal(erzeuge_modal(
@@ -131,7 +129,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         } else {
             drop(steuerung_res);
             self.zeige_message_box(
-                "Gleis entfernt!".to_string(),
+                "Gleis entfernt!".to_owned(),
                 format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
             )
         }
@@ -142,20 +140,16 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         gleis_art: &str,
         id: GleisId<T>,
         anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
-        gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<L>,
-            &GleisId<T>,
-        )
-            -> Result<Steuerung<&'t mut Option<W>>, GleisIdFehler>,
     ) -> Option<Nachricht<L>>
     where
+        T: for<'t> MitSteuerung<'t, &'t mut Option<W>> + DatenAuswahl,
         W: Serialisiere,
         <W as Serialisiere>::Serialisiert: Debug + Clone,
     {
         let mut message = None;
 
         let mut error_message = None;
-        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung(&id) {
             if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
                 let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
                     if let Some(s) = steuerung.take() {
@@ -455,41 +449,21 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         anschlüsse_anpassen: AnschlüsseAnpassen,
     ) -> Option<Nachricht<L>> {
         match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    "Weiche",
-                    id,
-                    anschlüsse_serialisiert,
-                    Gleise::steuerung_weiche,
-                ),
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    "DreiwegeWeiche",
-                    id,
-                    anschlüsse_serialisiert,
-                    Gleise::steuerung_dreiwege_weiche,
-                ),
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    "KurvenWeiche",
-                    id,
-                    anschlüsse_serialisiert,
-                    Gleise::steuerung_kurven_weiche,
-                ),
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    "SKurvenWeiche",
-                    id,
-                    anschlüsse_serialisiert,
-                    Gleise::steuerung_s_kurven_weiche,
-                ),
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    "Kreuzung",
-                    id,
-                    anschlüsse_serialisiert,
-                    Gleise::steuerung_kreuzung,
-                ),
+            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen("Weiche", id, anschlüsse_serialisiert)
+            },
+            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen("DreiwegeWeiche", id, anschlüsse_serialisiert)
+            },
+            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen("KurvenWeiche", id, anschlüsse_serialisiert)
+            },
+            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen("SKurvenWeiche", id, anschlüsse_serialisiert)
+            },
+            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen("Kreuzung", id, anschlüsse_serialisiert)
+            },
         }
     }
 
@@ -667,21 +641,20 @@ where
 }
 
 impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
-    fn weiche_zurücksetzen<T, Richtung, Anschlüsse>(
-        &mut self,
+    fn weiche_zurücksetzen<'t, T, Richtung, Anschlüsse>(
+        &'t mut self,
         id: GleisId<T>,
-        gleise_steuerung: impl for<'t> Fn(
-            &'t mut Gleise<Leiter>,
-            &GleisId<T>,
-        ) -> Result<
-            Steuerung<&'t mut Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>>,
-            GleisIdFehler,
-        >,
         aktuelle_richtung: Richtung,
         letzte_richtung: Richtung,
-    ) {
+    ) where
+        T: 't
+            + MitSteuerung<'t, &'t mut Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>>
+            + DatenAuswahl,
+        Richtung: 't,
+        Anschlüsse: 't,
+    {
         // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
-        if let Ok(mut steuerung) = gleise_steuerung(&mut self.gleise, &id) {
+        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung(&id) {
             if let Some(weiche) = steuerung.as_mut() {
                 weiche.aktuelle_richtung = aktuelle_richtung;
                 weiche.letzte_richtung = letzte_richtung;
@@ -722,41 +695,21 @@ where
     ) -> Option<Command<Nachricht<Leiter>>> {
         let mut command = None;
         match zustand_zurücksetzen {
-            ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => self
-                .weiche_zurücksetzen(
-                    id,
-                    Gleise::steuerung_weiche,
-                    aktuelle_richtung,
-                    letzte_richtung,
-                ),
-            ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung) => self
-                .weiche_zurücksetzen(
-                    id,
-                    Gleise::steuerung_dreiwege_weiche,
-                    aktuelle_richtung,
-                    letzte_richtung,
-                ),
-            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung, letzte_richtung) => self
-                .weiche_zurücksetzen(
-                    id,
-                    Gleise::steuerung_kurven_weiche,
-                    aktuelle_richtung,
-                    letzte_richtung,
-                ),
-            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung, letzte_richtung) => self
-                .weiche_zurücksetzen(
-                    id,
-                    Gleise::steuerung_s_kurven_weiche,
-                    aktuelle_richtung,
-                    letzte_richtung,
-                ),
-            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung) => self
-                .weiche_zurücksetzen(
-                    id,
-                    Gleise::steuerung_kreuzung,
-                    aktuelle_richtung,
-                    letzte_richtung,
-                ),
+            ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => {
+                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
+            },
+            ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung) => {
+                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
+            },
+            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung, letzte_richtung) => {
+                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
+            },
+            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung, letzte_richtung) => {
+                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
+            },
+            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung) => {
+                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
+            },
             ZustandZurücksetzen::GeschwindigkeitAnzeige(name, zustand_zurücksetzen) => {
                 command = self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
             },
@@ -883,7 +836,6 @@ where
             AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "Weiche",
                 id,
-                Gleise::steuerung_weiche,
                 weiche::Zustand::neu,
                 AuswahlZustand::Weiche,
                 AnschlüsseAnpassen::Weiche,
@@ -891,7 +843,6 @@ where
             AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "DreiwegeWeiche",
                 id,
-                Gleise::steuerung_dreiwege_weiche,
                 weiche::Zustand::neu,
                 AuswahlZustand::DreiwegeWeiche,
                 AnschlüsseAnpassen::DreiwegeWeiche,
@@ -899,7 +850,6 @@ where
             AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "KurvenWeiche",
                 id,
-                Gleise::steuerung_kurven_weiche,
                 weiche::Zustand::neu,
                 AuswahlZustand::KurvenWeiche,
                 AnschlüsseAnpassen::KurvenWeiche,
@@ -907,7 +857,6 @@ where
             AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
                 "SKurvenWeiche",
                 id,
-                Gleise::steuerung_s_kurven_weiche,
                 weiche::Zustand::neu,
                 AuswahlZustand::Weiche,
                 AnschlüsseAnpassen::SKurvenWeiche,
@@ -915,7 +864,6 @@ where
             AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen_aux(
                 "Kreuzung",
                 id,
-                Gleise::steuerung_kreuzung,
                 weiche::Zustand::neu,
                 AuswahlZustand::Weiche,
                 AnschlüsseAnpassen::Kreuzung,

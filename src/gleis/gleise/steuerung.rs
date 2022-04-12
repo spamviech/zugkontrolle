@@ -10,17 +10,17 @@ use crate::{
     gleis::{
         self,
         gleise::{
-            daten::{Gleis, SelectEnvelope},
+            daten::{DatenAuswahl, Gleis, SelectEnvelope},
             id::GleisId,
             GleisIdFehler, Gleise,
         },
     },
-    steuerung::{self, geschwindigkeit::Leiter},
+    steuerung::{self, geschwindigkeit::Leiter, kontakt::Kontakt},
     typen::canvas::Cache,
 };
 
-/// Mutable Referenz auf die Steuerung eines Gleises.
-/// Mit dem Drop-Handler wird ein Neuzeichen des Canvas (Cache) ausgelöst.
+/// Steuerung eines Gleises.
+/// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Debug)]
 pub struct Steuerung<T> {
     steuerung: T,
@@ -79,68 +79,59 @@ impl<T> Steuerung<&'_ mut Option<T>> {
     }
 }
 
+/// Enthält eine Steuerung, die auf dem Canvas angezeigt wird.
+pub trait MitSteuerung<'t, S: 't> {
+    /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
+    /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
+    fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<S>;
+}
+
+impl<L: Leiter> Gleise<L> {
+    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
+    pub(crate) fn erhalte_steuerung<'t, S: 't, T: 't + MitSteuerung<'t, S> + DatenAuswahl>(
+        &'t mut self,
+        gleis_id: &GleisId<T>,
+    ) -> Result<Steuerung<S>, GleisIdFehler> {
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let Gleise { zustand, canvas, .. } = self;
+        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
+            .daten_mut(streckenabschnitt)?
+            .rstern_mut()
+            .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        Ok(definition.steuerung(canvas.clone()))
+    }
+}
+
 type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
 
-// TODO Trait MitSteuerung erstellen
-macro_rules! steuerung_weiche {
-    ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
-        /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-        pub fn $name<'t>(
-            &'t mut self,
-            gleis_id: &GleisId<$type>,
-        ) -> Result<Steuerung<&'t mut OptionWeiche<$richtung, $anschlüsse>>, GleisIdFehler> {
-            let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-            let Gleise { zustand, canvas, .. } = self;
-            let Gleis { definition, position: _ } = &mut zustand
-                .daten_mut(streckenabschnitt)?
-                .$map
-                .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
-                .next()
-                .ok_or(GleisIdFehler::GleisEntfernt)?
-                .data;
-            Ok(Steuerung::neu(&mut definition.steuerung, canvas.clone()))
+macro_rules! impl_mit_steuerung {
+    ($type: ty, $steuerung: ty, $ident: ident) => {
+        impl<'t> MitSteuerung<'t, &'t mut $steuerung> for $type {
+            #[inline(always)]
+            fn steuerung(&'t mut self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t mut $steuerung> {
+                Steuerung::neu(&mut self.$ident, canvas)
+            }
         }
     };
 }
 
-impl<L: Leiter> Gleise<L> {
-    steuerung_weiche! {
-        steuerung_weiche,
-        gleis::weiche::gerade::Weiche,
-        weichen,
-        gleis::weiche::gerade::Richtung,
-        gleis::weiche::gerade::RichtungAnschlüsse
-    }
-
-    steuerung_weiche! {
-        steuerung_dreiwege_weiche,
-        gleis::weiche::dreiwege::DreiwegeWeiche,
-        dreiwege_weichen,
-        gleis::weiche::dreiwege::Richtung,
-        gleis::weiche::dreiwege::RichtungAnschlüsse
-    }
-
-    steuerung_weiche! {
-        steuerung_kurven_weiche,
-        gleis::weiche::kurve::KurvenWeiche,
-        kurven_weichen,
-        gleis::weiche::kurve::Richtung,
-        gleis::weiche::kurve::RichtungAnschlüsse
-    }
-
-    steuerung_weiche! {
-        steuerung_s_kurven_weiche,
-        gleis::weiche::s_kurve::SKurvenWeiche,
-        s_kurven_weichen,
-        gleis::weiche::s_kurve::Richtung,
-        gleis::weiche::s_kurve::RichtungAnschlüsse
-    }
-
-    steuerung_weiche! {
-        steuerung_kreuzung,
-        gleis::kreuzung::Kreuzung,
-        kreuzungen,
-        gleis::kreuzung::Richtung,
-        gleis::kreuzung::RichtungAnschlüsse
+macro_rules! impl_mit_steuerung_weiche {
+    (gleis $(:: $pfad: ident)*, $type: ident $(,)?) => {
+        impl_mit_steuerung! {
+            gleis $(:: $pfad)* :: $type,
+            OptionWeiche<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsse>,
+            steuerung
+        }
     }
 }
+
+impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, kontakt}
+impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, kontakt}
+impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
+impl_mit_steuerung_weiche! {gleis::weiche::dreiwege, DreiwegeWeiche}
+impl_mit_steuerung_weiche! {gleis::weiche::kurve, KurvenWeiche}
+impl_mit_steuerung_weiche! {gleis::weiche::s_kurve, SKurvenWeiche}
+impl_mit_steuerung_weiche! {gleis::kreuzung, Kreuzung}
