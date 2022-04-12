@@ -13,8 +13,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{self, de_serialisieren::Serialisiere, polarität::Fließend, OutputSerialisiert},
+    application::geschwindigkeit::LeiterAnzeige,
     eingeschränkt::NichtNegativ,
-    gleis::weiche,
+    gleis::{
+        gleise::id::GleisId,
+        kreuzung::{self, Kreuzung},
+        weiche,
+    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
@@ -28,15 +33,38 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
+type GeradeRichtung = weiche::gerade::Richtung;
+type KurvenRichtung = weiche::kurve::Richtung;
+type DreiwegeRichtung = weiche::dreiwege::Richtung;
+type SKurvenRichtung = weiche::s_kurve::Richtung;
+type KreuzungRichtung = kreuzung::Richtung;
+
+/// Zustand auf Stand vor einer Aktion zurücksetzen.
+#[derive(zugkontrolle_macros::Debug)]
+pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
+    /// Richtung einer [weiche::Weiche] zurücksetzen.
+    Weiche(GleisId<weiche::Weiche>, GeradeRichtung, GeradeRichtung),
+    /// Richtung einer [weiche::DreiwegeWeiche] zurücksetzen.
+    DreiwegeWeiche(GleisId<weiche::DreiwegeWeiche>, DreiwegeRichtung, DreiwegeRichtung),
+    /// Richtung einer [weiche::KurvenWeiche] zurücksetzen.
+    KurvenWeiche(GleisId<weiche::KurvenWeiche>, KurvenRichtung, KurvenRichtung),
+    /// Richtung einer [weiche::SKurvenWeiche] zurücksetzen.
+    SKurvenWeiche(GleisId<weiche::SKurvenWeiche>, SKurvenRichtung, SKurvenRichtung),
+    /// Richtung einer [Kreuzung] zurücksetzen.
+    Kreuzung(GleisId<Kreuzung>, KreuzungRichtung, KreuzungRichtung),
+    /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
+    GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
+}
+
 /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
-#[derive(Debug)]
-pub struct AsyncFehler<ZustandZurücksetzen> {
+#[derive(zugkontrolle_macros::Debug)]
+pub struct AsyncFehler<Leiter: LeiterAnzeige> {
     /// Der Titel der Fehlermeldung.
     pub titel: String,
     /// Die Nachricht der Fehlermeldung.
     pub nachricht: String,
     /// Zustand auf Stand vor der Aktion zurücksetzen.
-    pub zustand_zurücksetzen: ZustandZurücksetzen,
+    pub zustand_zurücksetzen: Option<ZustandZurücksetzen<Leiter>>,
 }
 
 /// Einstellungen, die das [Ausführen] von Aktionen beeinflussen.
@@ -109,12 +137,13 @@ pub trait Ausführen<L: Leiter> {
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
-        fehler: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
-    ) -> JoinHandle<()>;
+        sender: Sender<Nachricht>,
+    ) -> JoinHandle<()>
+    where
+        L: LeiterAnzeige;
 }
 
 macro_rules! async_ausführen {
@@ -148,21 +177,19 @@ macro_rules! impl_ausführen_simple {
                 self.ausführen()
             }
 
-            fn async_ausführen<Nachricht, ZZ>(
+            fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
                 &mut self,
                 _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
-                zustand_zurücksetzen: ZZ,
             ) -> JoinHandle<()>
             where
-                Nachricht: 'static + From<AsyncFehler<ZZ>> + Send,
-                ZZ: 'static + Send,
+                L: LeiterAnzeige,
             {
                 let erzeuge_nachricht = |clone, fehler| {
                     AsyncFehler {
                         titel: format!("{clone:?}"),
                         nachricht: format!("{fehler:?}"),
-                        zustand_zurücksetzen,
+                        zustand_zurücksetzen: None,
                     }
                     .into()
                 };
@@ -220,19 +247,18 @@ where
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
-    ) -> JoinHandle<()> {
-        let erzeuge_nachricht = |clone, fehler| {
-            AsyncFehler {
-                titel: format!("{clone:?}"),
-                nachricht: format!("{fehler:?}"),
-                zustand_zurücksetzen,
-            }
-            .into()
+    ) -> JoinHandle<()>
+    where
+        L: LeiterAnzeige,
+    {
+        let erzeuge_nachricht = |clone, fehler: PlanFehler| {
+            let nachricht = format!("{fehler:?}");
+            let zustand_zurücksetzen = fehler.fehler.zustand_zurücksetzen();
+            AsyncFehler { titel: format!("{clone:?}"), nachricht, zustand_zurücksetzen }.into()
         };
         let ausführen = Self::ausführen;
         async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, einstellungen))
@@ -338,6 +364,16 @@ pub enum AktionFehler {
     Ausführen(Box<PlanFehler>),
 }
 
+impl AktionFehler {
+    fn zustand_zurücksetzen<L: LeiterAnzeige>(self) -> Option<ZustandZurücksetzen<L>> {
+        match self {
+            AktionFehler::Geschwindigkeit(_) => todo!(),
+            AktionFehler::Schalten(_) => todo!(),
+            _ => None,
+        }
+    }
+}
+
 impl<L: Leiter> Ausführen<L> for Aktion<L>
 where
     L: 'static + Leiter + Send + Debug,
@@ -365,28 +401,20 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
-    ) -> JoinHandle<()> {
+    ) -> JoinHandle<()>
+    where
+        L: LeiterAnzeige,
+    {
         match self {
-            Aktion::Geschwindigkeit(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Streckenabschnitt(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Schalten(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Warten(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Ausführen(plan) => {
-                plan.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
+            Aktion::Geschwindigkeit(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Streckenabschnitt(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Schalten(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Warten(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Ausführen(plan) => plan.async_ausführen(einstellungen, sender),
         }
     }
 }
@@ -525,15 +553,18 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
-    ) -> JoinHandle<()> {
+    ) -> JoinHandle<()>
+    where
+        L: LeiterAnzeige,
+    {
         let titel = format!("{self:?}");
         let erzeuge_nachricht = |_clone, fehler| {
-            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
+            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen: todo!() }
+                .into()
         };
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
@@ -778,15 +809,18 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<L>> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
-    ) -> JoinHandle<()> {
+    ) -> JoinHandle<()>
+    where
+        L: LeiterAnzeige,
+    {
         let titel = format!("{self:?}");
         let erzeuge_nachricht = |fehler| {
-            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
+            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen: todo!() }
+                .into()
         };
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => weiche.async_schalten(

@@ -49,7 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
+        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler, ZustandZurücksetzen},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -120,29 +120,6 @@ type DreiwegeRichtung = gleis::weiche::dreiwege::Richtung;
 type SKurvenRichtung = gleis::weiche::s_kurve::Richtung;
 type KreuzungRichtung = gleis::kreuzung::Richtung;
 
-/// Zustand auf Stand vor einer Aktion zurücksetzen.
-#[derive(zugkontrolle_macros::Debug)]
-pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
-    /// Richtung einer [Weiche] zurücksetzen.
-    Weiche(GleisId<Weiche>, GeradeRichtung, GeradeRichtung),
-    /// Richtung einer [DreiwegeWeiche] zurücksetzen.
-    DreiwegeWeiche(GleisId<DreiwegeWeiche>, DreiwegeRichtung, DreiwegeRichtung),
-    /// Richtung einer [KurvenWeiche] zurücksetzen.
-    KurvenWeiche(GleisId<KurvenWeiche>, KurvenRichtung, KurvenRichtung),
-    /// Richtung einer [SKurvenWeiche] zurücksetzen.
-    SKurvenWeiche(GleisId<SKurvenWeiche>, SKurvenRichtung, SKurvenRichtung),
-    /// Richtung einer [Kreuzung] zurücksetzen.
-    Kreuzung(GleisId<Kreuzung>, KreuzungRichtung, KreuzungRichtung),
-    /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
-    GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
-}
-
-impl<Leiter: LeiterAnzeige> ZustandZurücksetzen<Leiter> {
-    fn aus_id_und_aktion(id: AnyId, aktion: AktionSchalten) -> Self {
-        todo!()
-    }
-}
-
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 enum NachrichtClone<Leiter: LeiterAnzeige> {
@@ -173,7 +150,6 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
     }
 }
 
-// TODO verwende Aktion<Leiter>
 /// Eine Nachricht, die beim [Ausführen](ausführen) der Anwendung auftreten kann.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
@@ -283,10 +259,8 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncFehler<Option<ZustandZurücksetzen<Leiter>>>>
-    for Nachricht<Leiter>
-{
-    fn from(fehler: AsyncFehler<Option<ZustandZurücksetzen<Leiter>>>) -> Self {
+impl<Leiter: LeiterAnzeige> From<AsyncFehler<Leiter>> for Nachricht<Leiter> {
+    fn from(fehler: AsyncFehler<Leiter>) -> Self {
         let AsyncFehler { titel, nachricht, zustand_zurücksetzen } = fehler;
         Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen }
     }

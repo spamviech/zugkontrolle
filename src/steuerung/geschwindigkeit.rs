@@ -58,6 +58,8 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler>;
 
+    fn aktuelle_geschwindigkeit(&self) -> u8;
+
     /// Umdrehen der aktuellen Fahrtrichtung.
     fn umdrehen(
         &mut self,
@@ -76,6 +78,8 @@ pub trait Leiter {
         stopp_zeit: Duration,
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
+
+    fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung>;
 }
 
 /// Ein unterstützter Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
@@ -127,6 +131,10 @@ impl<L: Leiter> Geschwindigkeit<L> {
         verhältnis_fahrspannung_überspannung: L::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
+    }
+
+    pub fn aktuelle_geschwindigkeit(&self) -> u8 {
+        self.aktuelle_geschwindigkeit()
     }
 
     /// Umdrehen der aktuellen Fahrtrichtung.
@@ -224,6 +232,10 @@ impl<L: Leiter> Geschwindigkeit<L> {
                 umdrehen_zeit,
             )
         )
+    }
+
+    pub fn aktuelle_fahrtrichtung(&self) -> Option<<L as Leiter>::Fahrtrichtung> {
+        self.lock_leiter().aktuelle_fahrtrichtung()
     }
 }
 
@@ -568,6 +580,10 @@ impl Leiter for Mittelleiter {
         }
     }
 
+    fn aktuelle_geschwindigkeit(&self) -> u8 {
+        todo!()
+    }
+
     fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -604,6 +620,10 @@ impl Leiter for Mittelleiter {
         _umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
         neue_fahrtrichtung.unreachable()
+    }
+
+    fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung> {
+        None
     }
 }
 
@@ -745,6 +765,10 @@ impl Leiter for Zweileiter {
         }
     }
 
+    fn aktuelle_geschwindigkeit(&self) -> u8 {
+        todo!()
+    }
+
     #[inline(always)]
     fn umdrehen(
         &mut self,
@@ -766,6 +790,14 @@ impl Leiter for Zweileiter {
         PhantomData: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
         self.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
+    }
+
+    fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung> {
+        let anschluss = match self {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        };
+        Some(anschluss.fließend().into())
     }
 }
 
@@ -1027,6 +1059,7 @@ pub enum Fahrtrichtung {
     /// Fahren mit Triebwagen hinten.
     Rückwärts,
 }
+
 impl From<Fahrtrichtung> for Fließend {
     fn from(fahrtrichtung: Fahrtrichtung) -> Self {
         match fahrtrichtung {
@@ -1035,6 +1068,16 @@ impl From<Fahrtrichtung> for Fließend {
         }
     }
 }
+
+impl From<Fließend> for Fahrtrichtung {
+    fn from(fließend: Fließend) -> Self {
+        match fließend {
+            Fließend::Fließend => Fahrtrichtung::Vorwärts,
+            Fließend::Gesperrt => Fahrtrichtung::Rückwärts,
+        }
+    }
+}
+
 impl Display for Fahrtrichtung {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(

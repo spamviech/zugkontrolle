@@ -82,7 +82,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         if let Err(fehler) = aktion.ausführen(self.gleise.zugtyp().into()) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
         }
-        // TODO GUI anpassen (gleise::Steuerung verwenden?)
     }
 
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
@@ -94,12 +93,8 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        // TODO GUI anpassen (gleise::Steuerung verwenden?)
-        let _join_handle = aktion.async_ausführen(
-            self.gleise.zugtyp().into(),
-            self.sender.clone(),
-            todo!("ZustandZurücksetzen"),
-        );
+        let _join_handle =
+            aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
     }
 
     fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
