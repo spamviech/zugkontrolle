@@ -121,7 +121,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     ) {
         let steuerung_res = gleise_steuerung(&mut self.gleise, &id);
         if let Ok(steuerung) = steuerung_res {
-            let steuerung_save = steuerung.as_ref().map(|steuerung| steuerung.serialisiere());
+            let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
             self.auswahl.zeige_modal(erzeuge_modal(
                 erzeuge_modal_zustand(steuerung_save),
                 Arc::new(move |steuerung| {

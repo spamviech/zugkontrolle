@@ -36,6 +36,19 @@ impl<T> Drop for Steuerung<T> {
     }
 }
 
+impl<T> AsRef<T> for Steuerung<T> {
+    fn as_ref(&self) -> &T {
+        &self.steuerung
+    }
+}
+
+impl<T> AsMut<T> for Steuerung<T> {
+    fn as_mut(&mut self) -> &mut T {
+        self.verändert = true;
+        &mut self.steuerung
+    }
+}
+
 impl<T> Steuerung<T> {
     /// Erstelle eine neue [Steuerung].
     pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>) -> Self {
@@ -44,28 +57,25 @@ impl<T> Steuerung<T> {
 }
 
 impl<T> Steuerung<&'_ mut Option<T>> {
-    /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse None.
+    /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse [None].
     pub fn take(&mut self) -> Option<T> {
-        self.verändert = true;
-        self.steuerung.take()
+        self.as_mut().take()
     }
 
     /// Füge einen Wert in die zugehörige Option-Referenz ein.
     /// Enthält diese bereits einen Wert wird dieser überschrieben.
     pub fn insert(&mut self, steuerung: T) -> &mut T {
-        self.verändert = true;
-        self.steuerung.insert(steuerung)
+        self.as_mut().insert(steuerung)
     }
 
     /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
-    pub fn as_ref(&self) -> Option<&T> {
-        self.steuerung.as_ref()
+    pub fn opt_as_ref(&self) -> Option<&T> {
+        self.as_ref().as_ref()
     }
 
     /// Erhalte eine mutable Referenz, falls ein Wert vorhanden ist.
-    pub fn as_mut(&mut self) -> Option<&mut T> {
-        self.verändert = true;
-        self.steuerung.as_mut()
+    pub fn opt_as_mut(&mut self) -> Option<&mut T> {
+        self.as_mut().as_mut()
     }
 }
 
