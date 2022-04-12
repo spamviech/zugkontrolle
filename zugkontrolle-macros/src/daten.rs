@@ -144,11 +144,6 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
-        let zeichen_segments = vec![
-            PathSegment { ident: base_ident.clone(), arguments: PathArguments::None },
-            PathSegment { ident: format_ident!("typen"), arguments: PathArguments::None },
-            PathSegment { ident: format_ident!("Zeichnen"), arguments: PathArguments::None },
-        ];
         let start_segments = vec![
             PathSegment { ident: base_ident, arguments: PathArguments::None },
             PathSegment { ident: format_ident!("gleis"), arguments: PathArguments::None },
@@ -333,22 +328,16 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
                             ty.as_ref().clone(),
                         ));
                     },
-                    FnArg::Receiver(
-                        mut_self @ Receiver {
-                            attrs,
-                            reference: Some((And { spans: _ }, _lt)),
-                            mutability: Some(Mut { span: _ }),
-                            self_token: SelfValue { span: _ },
-                        },
-                    ) if attrs.is_empty() => receiver = Some(mut_self),
+                    FnArg::Receiver(self_or_mut_self) if self_or_mut_self.attrs.is_empty() => {
+                        receiver = Some(self_or_mut_self)
+                    },
                     FnArg::Receiver(receiver) => errors.push(format!(
-                        "Only '&mut self'-Receiver supported, got '{:?}' instead!",
-                        receiver
+                        "Only Receiver ([&mut] self) without attributes supported, got `{receiver:?}` instead.",
                     )),
                 }
             }
             if receiver.is_none() {
-                errors.push("'&mut self'-Argument required!".to_string())
+                errors.push("Only function with Receiver ([&mut] self) supported!".to_owned())
             }
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
