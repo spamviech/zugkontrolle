@@ -1,13 +1,16 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
 //! [Canvas](crate::application::touch_canvas::Canvas).
 
-use std::{collections::hash_map::Entry, convert::identity, fmt::Debug, iter, time::Instant};
+use std::{
+    collections::hash_map::Entry, convert::identity, fmt::Debug, iter, sync::Arc, time::Instant,
+};
 
 use iced::{
     canvas::{event, Cursor, Event, Geometry, Program},
     mouse, Rectangle,
 };
 use log::error;
+use parking_lot::Mutex;
 
 pub use self::{
     daten::Gleis,
@@ -76,7 +79,7 @@ impl ModusDaten {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Gleise<L: Leiter> {
-    canvas: Cache,
+    canvas: Arc<Mutex<Cache>>,
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<L>,
@@ -89,7 +92,7 @@ impl<L: Leiter> Gleise<L> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
     pub fn neu(zugtyp: Zugtyp<L>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
         Gleise {
-            canvas: Cache::neu(),
+            canvas: Arc::new(Mutex::new(Cache::neu())),
             pivot,
             skalieren,
             zustand: Zustand::neu(zugtyp),
@@ -120,25 +123,25 @@ impl<L: Leiter> Gleise<L> {
     /// Bewege aktuellen Pivot-Punkt nach `pivot`.
     pub fn setze_pivot(&mut self, pivot: Vektor) {
         self.pivot.punkt = pivot;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Setze den `winkel` für die aktuelle Darstellung.
     pub fn winkel(&mut self, winkel: Winkel) {
         self.pivot.winkel = winkel;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
         self.pivot.winkel += winkel;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Aktueller Skalierfaktor zur Darstellung.
@@ -149,13 +152,13 @@ impl<L: Leiter> Gleise<L> {
     /// Setze den aktueller Skalierfaktor zur Darstellung.
     pub fn setze_skalierfaktor(&mut self, skalieren: Skalar) {
         self.skalieren = skalieren;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
     }
 
     /// Füge einen Streckenabschnitt hinzu.
@@ -257,7 +260,7 @@ impl<L: Leiter> Gleise<L> {
         let StreckenabschnittId { geschwindigkeit, name: _ } = &streckenabschnitt_id;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         streckenabschnitt_entfernen(
             streckenabschnitt_map,
             streckenabschnitt_id,
@@ -486,7 +489,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                     }
                 }
                 *streckenabschnitt_id = id_neu;
-                self.canvas.leeren();
+                self.canvas.lock().leeren();
                 Ok(bisher)
             },
             Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(

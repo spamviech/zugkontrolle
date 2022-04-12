@@ -1,8 +1,9 @@
 //! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
 //! [Canvas](crate::application::touch_canvas::Canvas) erzwingt.
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
+use parking_lot::Mutex;
 use rstar::RTreeObject;
 
 use crate::{
@@ -21,25 +22,28 @@ use crate::{
 /// Mutable Referenz auf die Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein Neuzeichen des Canvas (Cache) ausgelöst.
 #[derive(Debug)]
-pub struct Steuerung<'t, T> {
-    steuerung: &'t mut Option<T>,
-    canvas: &'t mut Cache,
+pub struct Steuerung<T> {
+    steuerung: T,
+    canvas: Arc<Mutex<Cache>>,
     verändert: bool,
 }
 
-impl<T> Drop for Steuerung<'_, T> {
+impl<T> Drop for Steuerung<T> {
     fn drop(&mut self) {
         if self.verändert {
-            self.canvas.leeren()
+            self.canvas.lock().leeren()
         }
     }
 }
 
-impl<'t, T> Steuerung<'t, T> {
+impl<T> Steuerung<T> {
     /// Erstelle eine neue [Steuerung].
-    pub fn neu(steuerung: &'t mut Option<T>, canvas: &'t mut Cache) -> Self {
+    pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>) -> Self {
         Steuerung { steuerung, canvas, verändert: false }
     }
+}
+
+impl<T> Steuerung<&'_ mut Option<T>> {
     /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse None.
     pub fn take(&mut self) -> Option<T> {
         self.verändert = true;
@@ -65,14 +69,16 @@ impl<'t, T> Steuerung<'t, T> {
     }
 }
 
+type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
+
+// TODO Trait MitSteuerung erstellen
 macro_rules! steuerung_weiche {
     ($name:ident, $type:ty, $map:ident, $richtung:ty, $anschlüsse:ty) => {
         /// Erhalte die [Steuerung] für das spezifizierte Gleis.
         pub fn $name<'t>(
             &'t mut self,
             gleis_id: &GleisId<$type>,
-        ) -> Result<Steuerung<'t, steuerung::weiche::Weiche<$richtung, $anschlüsse>>, GleisIdFehler>
-        {
+        ) -> Result<Steuerung<&'t mut OptionWeiche<$richtung, $anschlüsse>>, GleisIdFehler> {
             let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
             let Gleise { zustand, canvas, .. } = self;
             let Gleis { definition, position: _ } = &mut zustand
@@ -82,7 +88,7 @@ macro_rules! steuerung_weiche {
                 .next()
                 .ok_or(GleisIdFehler::GleisEntfernt)?
                 .data;
-            Ok(Steuerung::neu(&mut definition.steuerung, canvas))
+            Ok(Steuerung::neu(&mut definition.steuerung, canvas.clone()))
         }
     };
 }

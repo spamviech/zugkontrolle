@@ -98,6 +98,7 @@ impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
     }
 }
 
+// TODO Steuerung<T> verwenden um GUI-updates automatisch zu erhalten
 /// Etwas ausführbares.
 pub trait Ausführen<L: Leiter> {
     /// Mögliche Fehler, die beim ausführen auftreten können.

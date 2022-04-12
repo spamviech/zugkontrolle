@@ -82,7 +82,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         if let Err(fehler) = aktion.ausführen(self.gleise.zugtyp().into()) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
         }
-        // TODO GUI anpassen
+        // TODO GUI anpassen (gleise::Steuerung verwenden?)
     }
 
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
@@ -94,7 +94,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        // TODO GUI anpassen
+        // TODO GUI anpassen (gleise::Steuerung verwenden?)
         let _join_handle = aktion.async_ausführen(
             self.gleise.zugtyp().into(),
             self.sender.clone(),
@@ -109,7 +109,8 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<L>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
+        )
+            -> Result<Steuerung<&'t mut Option<W>>, GleisIdFehler>,
         erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
         erzeuge_modal: impl Fn(
             Zustand,
@@ -144,7 +145,8 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         gleise_steuerung: impl for<'t> Fn(
             &'t mut Gleise<L>,
             &GleisId<T>,
-        ) -> Result<Steuerung<'t, W>, GleisIdFehler>,
+        )
+            -> Result<Steuerung<&'t mut Option<W>>, GleisIdFehler>,
     ) -> Option<Nachricht<L>>
     where
         W: Serialisiere,
@@ -672,7 +674,7 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
             &'t mut Gleise<Leiter>,
             &GleisId<T>,
         ) -> Result<
-            Steuerung<'t, steuerung::weiche::Weiche<Richtung, Anschlüsse>>,
+            Steuerung<&'t mut Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>>,
             GleisIdFehler,
         >,
         aktuelle_richtung: Richtung,

@@ -35,7 +35,7 @@ impl<L: Leiter> Gleise<L> {
         let gleis_id =
             self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
         // Erzwinge Neuzeichnen
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         // Rückgabewert
         Ok(gleis_id)
     }
@@ -107,7 +107,7 @@ impl<L: Leiter> Gleise<L> {
             ziel_verbindung,
         )?;
         // Erzwinge Neuzeichnen
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         // Rückgabewert
         Ok(gleis_id)
     }
@@ -126,7 +126,7 @@ impl<L: Leiter> Gleise<L> {
     {
         self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
         // Erzwinge Neuzeichnen
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         // Rückgabewert
         Ok(())
     }
@@ -145,7 +145,7 @@ impl<L: Leiter> Gleise<L> {
     {
         self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
         // Erzwinge Neuzeichnen
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         // Rückgabewert
         Ok(())
     }
@@ -159,7 +159,7 @@ impl<L: Leiter> Gleise<L> {
     {
         let data = self.zustand.entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         // Rückgabewert
         Ok(data)
     }
@@ -191,7 +191,7 @@ impl<L: Leiter> Gleise<L> {
                     true
                 )?;
                 *bewegt = true;
-                self.canvas.leeren();
+                self.canvas.lock().leeren();
             }
         }
         Ok(())

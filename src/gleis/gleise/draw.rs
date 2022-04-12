@@ -240,7 +240,7 @@ impl<L: Leiter> Gleise<L> {
         // - berücksichtige eigene Position (Punkt + Winkel)
         // - berücksichtige Zoom
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
-        vec![canvas.zeichnen_skaliert_von_pivot(
+        vec![canvas.lock().zeichnen_skaliert_von_pivot(
             bounds.size(),
             &self.pivot,
             &self.skalieren,

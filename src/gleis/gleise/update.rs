@@ -358,7 +358,7 @@ impl<L: Leiter> Gleise<L> {
             _otherwise => {},
         };
         if event_status == event::Status::Captured {
-            self.canvas.leeren()
+            self.canvas.lock().leeren()
         }
         (event_status, message)
     }

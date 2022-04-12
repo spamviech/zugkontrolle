@@ -879,7 +879,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
         <L as Serialisiere>::Serialisiert: Clone + Eq + Hash,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
-        self.canvas.leeren();
+        self.canvas.lock().leeren();
         let (pwm_pins, output_anschlüsse, input_anschlüsse) = self.zustand.anschlüsse_ausgeben();
 
         // TODO pivot, skalieren, Modus?

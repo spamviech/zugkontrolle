@@ -137,6 +137,12 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
     GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
 
+impl<Leiter: LeiterAnzeige> ZustandZurücksetzen<Leiter> {
+    fn aus_id_und_aktion(id: AnyId, aktion: AktionSchalten) -> Self {
+        todo!()
+    }
+}
+
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 enum NachrichtClone<Leiter: LeiterAnzeige> {
