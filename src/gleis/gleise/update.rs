@@ -236,28 +236,19 @@ fn aktion_gleis_an_position<'t>(
                         gleis_an_position
                     {
                         use GleisSteuerung::*;
-                        message = match (gleis_steuerung, streckenabschnitt) {
-                            (Gerade(_kontakt), Some(streckenabschnitt)) => {
+                        message = match gleis_steuerung {
+                            Gerade(_) | Kurve(_) => streckenabschnitt.map(|streckenabschnitt| {
                                 let fließend = !streckenabschnitt.fließend();
-                                Some(Nachricht::StreckenabschnittUmschalten(
+                                Nachricht::StreckenabschnittUmschalten(
                                     AktionStreckenabschnitt::Strom {
                                         streckenabschnitt: streckenabschnitt.clone(),
                                         fließend,
                                     },
-                                ))
-                            },
-                            (Gerade(_kontakt), None) => None,
-                            (Kurve(_kontakt), Some(streckenabschnitt)) => {
-                                let fließend = !streckenabschnitt.fließend();
-                                Some(Nachricht::StreckenabschnittUmschalten(
-                                    AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: streckenabschnitt.clone(),
-                                        fließend,
-                                    },
-                                ))
-                            },
-                            (Kurve(_kontakt), None) => None,
-                            (Weiche(steuerung), _streckenabschnitt) => {
+                                )
+                            }),
+                            Weiche((id, steuerung)) => {
+                                todo!()
+                                /*
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match weiche.aktuelle_richtung {
                                     Gerade => Kurve,
@@ -267,8 +258,11 @@ fn aktion_gleis_an_position<'t>(
                                     weiche: weiche.clone(),
                                     richtung,
                                 }))
+                                */
                             },
-                            (KurvenWeiche(steuerung), _streckenabschnitt) => {
+                            KurvenWeiche((id, steuerung)) => {
+                                todo!()
+                                /*
                                 use weiche::kurve::Richtung::*;
                                 let richtung = match weiche.aktuelle_richtung {
                                     Innen => Außen,
@@ -278,8 +272,11 @@ fn aktion_gleis_an_position<'t>(
                                     weiche: weiche.clone(),
                                     richtung,
                                 }))
+                                */
                             },
-                            (DreiwegeWeiche(steuerung), _streckenabschnitt) => {
+                            DreiwegeWeiche((id, steuerung)) => {
+                                todo!()
+                                /*
                                 use weiche::dreiwege::Richtung::*;
                                 let richtung = match (
                                     weiche.aktuelle_richtung,
@@ -298,8 +295,11 @@ fn aktion_gleis_an_position<'t>(
                                     weiche: weiche.clone(),
                                     richtung,
                                 }))
+                                */
                             },
-                            (SKurvenWeiche(steuerung), _streckenabschnitt) => {
+                            SKurvenWeiche((id, steuerung)) => {
+                                todo!()
+                                /*
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match weiche.aktuelle_richtung {
                                     Gerade => Kurve,
@@ -309,8 +309,11 @@ fn aktion_gleis_an_position<'t>(
                                     weiche: weiche.clone(),
                                     richtung,
                                 }))
+                                */
                             },
-                            (Kreuzung(steuerung), _streckenabschnitt) => {
+                            Kreuzung((id, steuerung)) => {
+                                todo!()
+                                /*
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match weiche.aktuelle_richtung {
                                     Gerade => Kurve,
@@ -320,6 +323,7 @@ fn aktion_gleis_an_position<'t>(
                                     weiche: weiche.clone(),
                                     richtung,
                                 }))
+                                */
                             },
                         };
 
