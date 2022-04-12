@@ -58,6 +58,7 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler>;
 
+    /// Die aktuell eingestellte Fahrgeschwindigkeit.
     fn aktuelle_geschwindigkeit(&self) -> u8;
 
     /// Umdrehen der aktuellen Fahrtrichtung.
@@ -79,6 +80,7 @@ pub trait Leiter {
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 
+    /// Die aktuell eingestellte Fahrtrichtung, falls bekannt.
     fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung>;
 }
 
@@ -133,8 +135,9 @@ impl<L: Leiter> Geschwindigkeit<L> {
         self.lock_leiter().geschwindigkeit(wert, pwm_frequenz, verhältnis_fahrspannung_überspannung)
     }
 
+    /// Die aktuell eingestellte Fahrgeschwindigkeit.
     pub fn aktuelle_geschwindigkeit(&self) -> u8 {
-        self.aktuelle_geschwindigkeit()
+        self.lock_leiter().aktuelle_geschwindigkeit()
     }
 
     /// Umdrehen der aktuellen Fahrtrichtung.
@@ -234,6 +237,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
         )
     }
 
+    /// Die aktuell eingestellte Fahrtrichtung, falls bekannt.
     pub fn aktuelle_fahrtrichtung(&self) -> Option<<L as Leiter>::Fahrtrichtung> {
         self.lock_leiter().aktuelle_fahrtrichtung()
     }
@@ -317,6 +321,7 @@ impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialis
 
 fn geschwindigkeit_pwm(
     pin: &mut pwm::Pin,
+    letzter_wert: &mut u8,
     wert: u8,
     frequenz: NichtNegativ,
     faktor: NullBisEins,
@@ -327,12 +332,14 @@ fn geschwindigkeit_pwm(
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
         zeit: pwm::Zeit { frequenz, betriebszyklus: faktor * verhältnis },
-    })
+    })?;
+    *letzter_wert = wert;
+    Ok(())
 }
 
 fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
-    letzter_wert: &mut usize,
+    letzter_wert: &mut u8,
     wert: u8,
 ) -> Result<(), Fehler> {
     let wert_usize = usize::from(wert);
@@ -343,7 +350,7 @@ fn geschwindigkeit_ks(
     // aktuellen Anschluss ausstellen
     if *letzter_wert == 0 {
         // Geschwindigkeit war aus, es muss also kein Anschluss ausgeschaltet werden
-    } else if let Some(anschluss) = geschwindigkeit.get_mut(*letzter_wert - 1) {
+    } else if let Some(anschluss) = geschwindigkeit.get_mut(usize::from(*letzter_wert - 1)) {
         anschluss.einstellen(Fließend::Gesperrt)?;
     } else {
         error!("Letzter Wert ist {letzter_wert}, Geschwindigkeit hat aber nur {length} Anschlüsse!")
@@ -360,12 +367,9 @@ fn geschwindigkeit_ks(
             return Err(Fehler::ZuWenigAnschlüsse { geschwindigkeit: wert, vorhanden: length });
         }
     }
-    *letzter_wert = wert_usize;
+    *letzter_wert = wert;
     Ok(())
 }
-
-/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
-pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
 
 /// Antrieb über einen Mittelleiter.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -375,6 +379,8 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         /// Der [Pwm-Pin](pwm::Pin).
         pin: Pwm,
+        /// Der letzte eingestellte Wert.
+        letzter_wert: u8,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
     },
@@ -383,7 +389,7 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<Anschluss>,
         /// Der letzte eingestellte Wert.
-        letzter_wert: usize,
+        letzter_wert: u8,
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: Anschluss,
     },
@@ -392,8 +398,8 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
 impl Display for Mittelleiter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Mittelleiter::Pwm { pin, polarität } => {
-                write!(f, "Pwm({}, {})", pin.pin(), polarität)
+            Mittelleiter::Pwm { pin, letzter_wert: _, polarität } => {
+                write!(f, "Pwm({}, {polarität})", pin.pin())
             },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 f.write_str("KonstanteSpannung(")?;
@@ -412,13 +418,18 @@ impl Display for Mittelleiter {
     }
 }
 
+/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
+pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
+
 impl Serialisiere for Mittelleiter {
     type Serialisiert = MittelleiterSerialisiert;
 
     fn serialisiere(&self) -> MittelleiterSerialisiert {
         match self {
-            Mittelleiter::Pwm { pin, polarität } => {
-                Mittelleiter::Pwm { pin: pin.serialisiere(), polarität: *polarität }
+            Mittelleiter::Pwm { pin, letzter_wert, polarität } => Mittelleiter::Pwm {
+                pin: pin.serialisiere(),
+                letzter_wert: *letzter_wert,
+                polarität: *polarität,
             },
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
                 Mittelleiter::KonstanteSpannung {
@@ -436,7 +447,7 @@ impl Serialisiere for Mittelleiter {
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match self {
-            Mittelleiter::Pwm { pin, polarität: _ } => pin.anschlüsse(),
+            Mittelleiter::Pwm { pin, letzter_wert: _, polarität: _ } => pin.anschlüsse(),
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
                 let acc = umdrehen.anschlüsse();
                 geschwindigkeit.into_iter().fold(acc, |mut acc, anschluss| {
@@ -459,8 +470,8 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Mittelleiter> {
-        Ok(match self {
-            Mittelleiter::Pwm { pin, polarität } => {
+        let reserviert = match self {
+            Mittelleiter::Pwm { pin, letzter_wert, polarität } => {
                 let Reserviert {
                     anschluss: pin,
                     pwm_nicht_benötigt,
@@ -468,7 +479,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     input_nicht_benötigt,
                 } = pin.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
                 Reserviert {
-                    anschluss: Mittelleiter::Pwm { pin, polarität },
+                    anschluss: Mittelleiter::Pwm { pin, letzter_wert, polarität },
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
@@ -538,7 +549,8 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     input_nicht_benötigt,
                 }
             },
-        })
+        };
+        Ok(reserviert)
     }
 }
 
@@ -566,8 +578,9 @@ impl Leiter for Mittelleiter {
         verhältnis_fahrspannung_überspannung: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         match self {
-            Mittelleiter::Pwm { pin, polarität } => geschwindigkeit_pwm(
+            Mittelleiter::Pwm { pin, letzter_wert, polarität } => geschwindigkeit_pwm(
                 pin,
+                letzter_wert,
                 wert,
                 pwm_frequenz,
                 verhältnis_fahrspannung_überspannung,
@@ -581,7 +594,10 @@ impl Leiter for Mittelleiter {
     }
 
     fn aktuelle_geschwindigkeit(&self) -> u8 {
-        todo!()
+        match self {
+            Mittelleiter::Pwm { letzter_wert, .. } => *letzter_wert,
+            Mittelleiter::KonstanteSpannung { letzter_wert, .. } => *letzter_wert,
+        }
     }
 
     fn umdrehen(
@@ -594,7 +610,7 @@ impl Leiter for Mittelleiter {
         self.geschwindigkeit(0, pwm_frequenz, verhältnis_fahrspannung_überspannung)?;
         sleep(stopp_zeit);
         match self {
-            Mittelleiter::Pwm { pin, polarität } => {
+            Mittelleiter::Pwm { pin, letzter_wert: _, polarität } => {
                 pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
                     polarität: *polarität,
                     zeit: pwm::Zeit { frequenz: pwm_frequenz, betriebszyklus: NullBisEins::MAX },
@@ -688,6 +704,8 @@ pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     Pwm {
         /// Der [Pwm-Pin](pwm::Pin).
         geschwindigkeit: Pwm,
+        /// Der letzte eingestellte Wert.
+        letzter_wert: u8,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
         /// Anschluss zur Steuerung der Fahrtrichtung.
@@ -698,7 +716,7 @@ pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<Anschluss>,
         /// Der letzte eingestellte Wert.
-        letzter_wert: usize,
+        letzter_wert: u8,
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: Anschluss,
     },
@@ -707,7 +725,7 @@ pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
 impl Display for Zweileiter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität, fahrtrichtung } => {
                 write!(f, "Pwm({}, {}-{})", geschwindigkeit.pin(), polarität, fahrtrichtung)
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
@@ -751,14 +769,17 @@ impl Leiter for Zweileiter {
         PhantomData: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, .. } => geschwindigkeit_pwm(
-                geschwindigkeit,
-                wert,
-                pwm_frequenz,
-                NullBisEins::MAX,
-                *polarität,
-            )
-            .map_err(Fehler::from),
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, .. } => {
+                geschwindigkeit_pwm(
+                    geschwindigkeit,
+                    letzter_wert,
+                    wert,
+                    pwm_frequenz,
+                    NullBisEins::MAX,
+                    *polarität,
+                )
+                .map_err(Fehler::from)
+            },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
@@ -766,7 +787,10 @@ impl Leiter for Zweileiter {
     }
 
     fn aktuelle_geschwindigkeit(&self) -> u8 {
-        todo!()
+        match self {
+            Zweileiter::Pwm { letzter_wert, .. } => *letzter_wert,
+            Zweileiter::KonstanteSpannung { letzter_wert, .. } => *letzter_wert,
+        }
     }
 
     #[inline(always)]
@@ -902,10 +926,13 @@ impl Serialisiere for Zweileiter {
 
     fn serialisiere(&self) -> ZweileiterSerialisiert {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => Zweileiter::Pwm {
-                geschwindigkeit: geschwindigkeit.serialisiere(),
-                polarität: *polarität,
-                fahrtrichtung: fahrtrichtung.serialisiere(),
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, fahrtrichtung } => {
+                Zweileiter::Pwm {
+                    geschwindigkeit: geschwindigkeit.serialisiere(),
+                    letzter_wert: *letzter_wert,
+                    polarität: *polarität,
+                    fahrtrichtung: fahrtrichtung.serialisiere(),
+                }
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, fahrtrichtung } => {
                 Zweileiter::KonstanteSpannung {
@@ -923,7 +950,7 @@ impl Serialisiere for Zweileiter {
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität: _, fahrtrichtung } => {
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität: _, fahrtrichtung } => {
                 let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
                 let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
                 pwm0.extend(pwm1.into_iter());
@@ -952,8 +979,8 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Zweileiter> {
-        Ok(match self {
-            Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+        let reserviert = match self {
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, fahrtrichtung } => {
                 let Reserviert {
                     anschluss: geschwindigkeit,
                     pwm_nicht_benötigt,
@@ -977,7 +1004,12 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     input_nicht_benötigt,
                 )?;
                 Reserviert {
-                    anschluss: Zweileiter::Pwm { geschwindigkeit, polarität, fahrtrichtung },
+                    anschluss: Zweileiter::Pwm {
+                        geschwindigkeit,
+                        letzter_wert,
+                        polarität,
+                        fahrtrichtung,
+                    },
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
@@ -1047,7 +1079,8 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     input_nicht_benötigt,
                 }
             },
-        })
+        };
+        Ok(reserviert)
     }
 }
 

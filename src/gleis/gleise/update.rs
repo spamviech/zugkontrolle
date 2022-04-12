@@ -241,89 +241,102 @@ fn aktion_gleis_an_position<'t>(
                                 let fließend = !streckenabschnitt.fließend();
                                 Nachricht::StreckenabschnittUmschalten(
                                     AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: todo!(), //streckenabschnitt.clone(),
+                                        streckenabschnitt: Steuerung::neu(
+                                            streckenabschnitt.clone(),
+                                            canvas.clone(),
+                                        ),
                                         fließend,
                                     },
                                 )
                             }),
                             Weiche((id, steuerung)) => {
-                                todo!()
-                                /*
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                                */
+                                steuerung.nur_some().map(|_| {
+                                    todo!()
+                                    /*
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                    */
+                                })
                             },
                             KurvenWeiche((id, steuerung)) => {
-                                todo!()
-                                /*
-                                use weiche::kurve::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Innen => Außen,
-                                    Außen => Innen,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                                */
+                                steuerung.nur_some().map(|_| {
+                                    todo!()
+                                    /*
+                                    use weiche::kurve::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Innen => Außen,
+                                        Außen => Innen,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                    */
+                                })
                             },
                             DreiwegeWeiche((id, steuerung)) => {
-                                todo!()
-                                /*
-                                use weiche::dreiwege::Richtung::*;
-                                let richtung = match (
-                                    weiche.aktuelle_richtung,
-                                    weiche.letzte_richtung,
-                                ) {
-                                    (Gerade, Links) => Rechts,
-                                    (Gerade, Rechts) => Links,
-                                    (Gerade, Gerade) => {
-                                        error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                        Links
-                                    },
-                                    (Links, _letzte) => Gerade,
-                                    (Rechts, _letzte) => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                                */
+                                steuerung.nur_some().map(|_| {
+                                    todo!()
+                                    /*
+                                    use weiche::dreiwege::Richtung::*;
+                                    let richtung = match (
+                                        weiche.aktuelle_richtung,
+                                        weiche.letzte_richtung,
+                                    ) {
+                                        (Gerade, Links) => Rechts,
+                                        (Gerade, Rechts) => Links,
+                                        (Gerade, Gerade) => {
+                                            error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                                            Links
+                                        },
+                                        (Links, _letzte) => Gerade,
+                                        (Rechts, _letzte) => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                    */
+                                })
                             },
                             SKurvenWeiche((id, steuerung)) => {
-                                todo!()
-                                /*
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                                */
+                                steuerung.nur_some().map(|_| {
+                                    todo!()
+                                    /*
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                    */
+                                })
                             },
                             Kreuzung((id, steuerung)) => {
-                                todo!()
-                                /*
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match weiche.aktuelle_richtung {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                    weiche: weiche.clone(),
-                                    richtung,
-                                }))
-                                */
+                                steuerung.nur_some().map(|_| {
+                                    todo!()
+                                    /*
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match weiche.aktuelle_richtung {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
+                                        weiche: weiche.clone(),
+                                        richtung,
+                                    }))
+                                    */
+                                })
                             },
                         };
 

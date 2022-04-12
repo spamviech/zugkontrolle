@@ -287,7 +287,7 @@ impl LeiterAnzeige for Mittelleiter {
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
             "Umdrehen",
-            &|_umdrehen, pin, polarität| Mittelleiter::Pwm { pin, polarität },
+            &|_umdrehen, pin, polarität| Mittelleiter::Pwm { pin, letzter_wert: 0, polarität },
             &|umdrehen, geschwindigkeit| Mittelleiter::KonstanteSpannung {
                 geschwindigkeit,
                 letzter_wert: 0,
@@ -455,6 +455,7 @@ impl LeiterAnzeige for Zweileiter {
             "Fahrtrichtung",
             &|fahrtrichtung, geschwindigkeit, polarität| Zweileiter::Pwm {
                 geschwindigkeit,
+                letzter_wert: 0,
                 polarität,
                 fahrtrichtung,
             },

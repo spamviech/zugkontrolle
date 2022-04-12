@@ -450,7 +450,7 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
     fn from(input: MittelleiterSerialisiert) -> Self {
         match input.0 {
             MittelleiterSerialisiertEnum::Pwm { pin, polarität } => {
-                geschwindigkeit::MittelleiterSerialisiert::Pwm { pin, polarität }
+                geschwindigkeit::MittelleiterSerialisiert::Pwm { pin, letzter_wert: 0, polarität }
             },
             MittelleiterSerialisiertEnum::KonstanteSpannung {
                 geschwindigkeit: NonEmpty { head, tail },
@@ -461,7 +461,7 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
-                letzter_wert,
+                letzter_wert: u8::try_from(letzter_wert).unwrap_or(u8::MAX),
                 umdrehen: umdrehen.into(),
             },
         }
@@ -507,6 +507,7 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
             ZweileiterSerialisiertEnum::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 geschwindigkeit::ZweileiterSerialisiert::Pwm {
                     geschwindigkeit,
+                    letzter_wert: 0,
                     polarität,
                     fahrtrichtung: fahrtrichtung.into(),
                 }
@@ -520,7 +521,7 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
-                letzter_wert,
+                letzter_wert: u8::try_from(letzter_wert).unwrap_or(u8::MAX),
                 fahrtrichtung: fahrtrichtung.into(),
             },
         }
