@@ -28,7 +28,7 @@ use crate::{
     gleis::gleise::{
         daten::{v2, DatenAuswahl, StreckenabschnittMap},
         id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
-        steuerung::{MitSteuerung, Steuerung},
+        steuerung::MitSteuerung,
         Gleise,
     },
     steuerung::{
@@ -89,17 +89,19 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
+        zustand_zurücksetzen: ZustandZurücksetzen<L>,
     ) where
-        L: 'static + Send,
+        L: 'static,
         <L as Serialisiere>::Serialisiert: Send,
     {
         let _join_handle = aktion.async_ausführen(
             self.gleise.zugtyp().into(),
             self.sender.clone(),
-            todo!("zustand_zurücksetzen"),
+            zustand_zurücksetzen,
         );
     }
 
+    #[allow(single_use_lifetimes)]
     fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
         &mut self,
         gleis_art: &str,
@@ -133,6 +135,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         }
     }
 
+    #[allow(single_use_lifetimes)]
     fn gleis_anschlüsse_anpassen<T, W>(
         &mut self,
         gleis_art: &str,

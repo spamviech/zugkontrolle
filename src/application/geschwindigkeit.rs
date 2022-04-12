@@ -152,6 +152,7 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
         <R as tab_bar::Renderer>::Style: From<TabBar>;
 }
 
+// TODO AktionGeschwindigkeit<L> verwenden
 /// Nachricht einer [Anzeige] für [Mittelleiter]-Geschwindigkeiten.
 #[derive(Debug, Clone, Copy)]
 pub enum NachrichtMittelleiter {
@@ -298,6 +299,7 @@ impl LeiterAnzeige for Mittelleiter {
     }
 }
 
+// TODO AktionGeschwindigkeit<L> verwenden
 /// Nachricht einer [Anzeige] für [Zweileiter]-Geschwindigkeiten.
 #[derive(Debug, Clone, Copy)]
 pub enum NachrichtZweileiter {

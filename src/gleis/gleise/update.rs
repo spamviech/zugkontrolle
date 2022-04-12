@@ -67,8 +67,8 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-// TODO ID, damit ZustandZurücksetzen erzeugt werden kann?
 type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>);
+
 #[derive(zugkontrolle_macros::From)]
 enum GleisSteuerung<'t> {
     Gerade(IdUndSteuerung<'t, Gerade>),
@@ -171,42 +171,37 @@ fn aktion_gleis_an_position<'t>(
                     gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos, canvas)
                 })
                 .or_else(|| {
-                    todo!()
-                    // gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos, canvas)
+                    gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos, canvas)
                 })
                 .or_else(|| {
-                    todo!()
-                    // gleis_an_position(
-                    //     spurweite,
-                    //     streckenabschnitt,
-                    //     dreiwege_weichen,
-                    //     canvas_pos,
-                    //     canvas,
-                    // )
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        dreiwege_weichen,
+                        canvas_pos,
+                        canvas,
+                    )
                 })
                 .or_else(|| {
-                    todo!()
-                    // gleis_an_position(
-                    //     spurweite,
-                    //     streckenabschnitt,
-                    //     kurven_weichen,
-                    //     canvas_pos,
-                    //     canvas,
-                    // )
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        kurven_weichen,
+                        canvas_pos,
+                        canvas,
+                    )
                 })
                 .or_else(|| {
-                    todo!()
-                    // gleis_an_position(
-                    //     spurweite,
-                    //     streckenabschnitt,
-                    //     s_kurven_weichen,
-                    //     canvas_pos,
-                    //     canvas,
-                    // )
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        s_kurven_weichen,
+                        canvas_pos,
+                        canvas,
+                    )
                 })
                 .or_else(|| {
-                    todo!()
-                    // gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos, canvas)
+                    gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos, canvas)
                 })
             });
             match modus {
@@ -249,95 +244,89 @@ fn aktion_gleis_an_position<'t>(
                                     },
                                 )
                             }),
-                            Weiche((id, steuerung)) => {
-                                steuerung.nur_some().map(|_| {
-                                    todo!()
-                                    /*
-                                    use weiche::gerade::Richtung::*;
-                                    let richtung = match weiche.aktuelle_richtung {
-                                        Gerade => Kurve,
-                                        Kurve => Gerade,
-                                    };
-                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                        weiche: weiche.clone(),
+                            Weiche((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+                                use weiche::gerade::Richtung::*;
+                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    Gerade => Kurve,
+                                    Kurve => Gerade,
+                                };
+                                Nachricht::GeradeWeicheSchalten(
+                                    id.als_id(),
+                                    AktionSchalten {
+                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
-                                    }))
-                                    */
-                                })
-                            },
+                                    },
+                                )
+                            }),
                             KurvenWeiche((id, steuerung)) => {
-                                steuerung.nur_some().map(|_| {
-                                    todo!()
-                                    /*
+                                steuerung.nur_some().map(|steuerung| {
                                     use weiche::kurve::Richtung::*;
-                                    let richtung = match weiche.aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
                                         Innen => Außen,
                                         Außen => Innen,
                                     };
-                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteKurve {
-                                        weiche: weiche.clone(),
-                                        richtung,
-                                    }))
-                                    */
+                                    Nachricht::KurvenWeicheSchalten(
+                                        id.als_id(),
+                                        AktionSchalten {
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            richtung,
+                                        },
+                                    )
                                 })
                             },
                             DreiwegeWeiche((id, steuerung)) => {
-                                steuerung.nur_some().map(|_| {
-                                    todo!()
-                                    /*
+                                steuerung.nur_some().map(|steuerung| {
                                     use weiche::dreiwege::Richtung::*;
-                                    let richtung = match (
-                                        weiche.aktuelle_richtung,
-                                        weiche.letzte_richtung,
-                                    ) {
-                                        (Gerade, Links) => Rechts,
-                                        (Gerade, Rechts) => Links,
-                                        (Gerade, Gerade) => {
-                                            error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                            Links
+                                    let weiche = steuerung.as_ref();
+                                    let richtung =
+                                        match (weiche.aktuelle_richtung, weiche.letzte_richtung) {
+                                            (Gerade, Links) => Rechts,
+                                            (Gerade, Rechts) => Links,
+                                            (Gerade, Gerade) => {
+                                                error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                                                Links
+                                            },
+                                            (Links | Rechts, _letzte) => Gerade,
+                                        };
+                                    Nachricht::DreiwegeWeicheSchalten(
+                                        id.als_id(),
+                                        AktionSchalten {
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            richtung,
                                         },
-                                        (Links, _letzte) => Gerade,
-                                        (Rechts, _letzte) => Gerade,
-                                    };
-                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteDreiwege {
-                                        weiche: weiche.clone(),
-                                        richtung,
-                                    }))
-                                    */
+                                    )
                                 })
                             },
                             SKurvenWeiche((id, steuerung)) => {
-                                steuerung.nur_some().map(|_| {
-                                    todo!()
-                                    /*
+                                steuerung.nur_some().map(|steuerung| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match weiche.aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     };
-                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                        weiche: weiche.clone(),
-                                        richtung,
-                                    }))
-                                    */
+                                    Nachricht::SKurvenWeicheSchalten(
+                                        id.als_id(),
+                                        AktionSchalten {
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            richtung,
+                                        },
+                                    )
                                 })
                             },
-                            Kreuzung((id, steuerung)) => {
-                                steuerung.nur_some().map(|_| {
-                                    todo!()
-                                    /*
-                                    use weiche::gerade::Richtung::*;
-                                    let richtung = match weiche.aktuelle_richtung {
-                                        Gerade => Kurve,
-                                        Kurve => Gerade,
-                                    };
-                                    Some(Nachricht::WeicheSchalten(AktionSchalten::SchalteGerade {
-                                        weiche: weiche.clone(),
+                            Kreuzung((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+                                use weiche::gerade::Richtung::*;
+                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    Gerade => Kurve,
+                                    Kurve => Gerade,
+                                };
+                                Nachricht::KreuzungSchalten(
+                                    id.als_id(),
+                                    AktionSchalten {
+                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
-                                    }))
-                                    */
-                                })
-                            },
+                                    },
+                                )
+                            }),
                         };
 
                         if message.is_some() {

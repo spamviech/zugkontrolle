@@ -19,12 +19,22 @@ pub use self::{
 use self::{
     daten::{GleiseDaten, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
+    steuerung::Steuerung,
 };
 use crate::{
     anschluss::{self, polarität::Fließend},
+    gleis::{
+        kreuzung::{self, Kreuzung},
+        weiche::{
+            dreiwege::{self, DreiwegeWeiche},
+            gerade::{self, Weiche},
+            kurve::{self, KurvenWeiche},
+            s_kurve::{self, SKurvenWeiche},
+        },
+    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
+        plan::{AktionSchalten, AktionStreckenabschnitt},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -563,6 +573,18 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
+type SteuerungWeiche<Richtung, Anschlüsse> =
+    Steuerung<crate::steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
+pub(crate) type SteuerungGeradeWeiche =
+    SteuerungWeiche<gerade::Richtung, gerade::RichtungAnschlüsse>;
+pub(crate) type SteuerungKurvenWeiche = SteuerungWeiche<kurve::Richtung, kurve::RichtungAnschlüsse>;
+pub(crate) type SteuerungDreiwegeWeiche =
+    SteuerungWeiche<dreiwege::Richtung, dreiwege::RichtungAnschlüsse>;
+pub(crate) type SteuerungSKurveWeiche =
+    SteuerungWeiche<s_kurve::Richtung, s_kurve::RichtungAnschlüsse>;
+pub(crate) type SteuerungKreuzung =
+    SteuerungWeiche<kreuzung::Richtung, kreuzung::RichtungAnschlüsse>;
+
 // AktionSchalten, AktionStreckenabschnitt (Streckenabschnitt ist bekannt, steht in Id!)
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
 /// [Canvas](crate::application::touch_canvas::Canvas).
@@ -575,8 +597,25 @@ pub enum Nachricht {
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
-    /// Ein [Weiche](crate::steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    WeicheSchalten(AnyAktionSchalten),
+    /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    GeradeWeicheSchalten(GleisId<Weiche>, AktionSchalten<SteuerungGeradeWeiche, gerade::Richtung>),
+    /// Ein [KurvenWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    KurvenWeicheSchalten(
+        GleisId<KurvenWeiche>,
+        AktionSchalten<SteuerungKurvenWeiche, kurve::Richtung>,
+    ),
+    /// Ein [DreiwegeWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    DreiwegeWeicheSchalten(
+        GleisId<DreiwegeWeiche>,
+        AktionSchalten<SteuerungDreiwegeWeiche, dreiwege::Richtung>,
+    ),
+    /// Ein [SKurvenWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    SKurvenWeicheSchalten(
+        GleisId<SKurvenWeiche>,
+        AktionSchalten<SteuerungSKurveWeiche, s_kurve::Richtung>,
+    ),
+    /// Ein [Kreuzung] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    KreuzungSchalten(GleisId<Kreuzung>, AktionSchalten<SteuerungKreuzung, kreuzung::Richtung>),
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {
