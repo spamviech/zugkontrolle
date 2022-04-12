@@ -50,6 +50,7 @@ pub type Map<Leiter> = BTreeMap<Name, AnzeigeZustand<Leiter>>;
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 pub struct AnzeigeZustand<L: LeiterAnzeige> {
     name: Name,
+    // TODO wird in der Geschwindigkeit gespeichert
     aktuelle_geschwindigkeit: u8,
     pwm_slider_zustand: slider::State,
     fahrtrichtung: <L as LeiterAnzeige>::Fahrtrichtung,
@@ -316,6 +317,7 @@ pub struct ZustandZurücksetzenZweileiter {
 }
 
 impl LeiterAnzeige for Zweileiter {
+    // TODO wird in der Geschwindigkeit gespeichert
     type Fahrtrichtung = Fahrtrichtung;
     type Nachricht = NachrichtZweileiter;
     type ZustandZurücksetzen = ZustandZurücksetzenZweileiter;
