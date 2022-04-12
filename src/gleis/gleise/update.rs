@@ -99,9 +99,15 @@ where
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+            let (streckenabschnitt_id, streckenabschnitt) =
+                if let Some((id, streckenabschnitt, _fließend)) = streckenabschnitt {
+                    (Some(id), Some(streckenabschnitt))
+                } else {
+                    (None, None)
+                };
             let any_id = AnyIdRef::from(GleisIdRef {
                 rectangle,
-                streckenabschnitt: streckenabschnitt.map(|(id, _, _)| id),
+                streckenabschnitt: streckenabschnitt_id,
                 phantom: PhantomData::<fn() -> T>,
             });
             return Some((
@@ -109,7 +115,7 @@ where
                 relative_pos,
                 position.winkel,
                 definition.steuerung(canvas.clone()),
-                streckenabschnitt.map(|(_, streckenabschnitt, _)| streckenabschnitt),
+                streckenabschnitt,
             ));
         }
     }
