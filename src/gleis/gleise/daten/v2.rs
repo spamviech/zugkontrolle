@@ -440,6 +440,7 @@ enum MittelleiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
+        #[allow(dead_code)]
         letzter_wert: usize,
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: OutputSerialisiert,
@@ -450,18 +451,17 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
     fn from(input: MittelleiterSerialisiert) -> Self {
         match input.0 {
             MittelleiterSerialisiertEnum::Pwm { pin, polarität } => {
-                geschwindigkeit::MittelleiterSerialisiert::Pwm { pin, letzter_wert: 0, polarität }
+                geschwindigkeit::MittelleiterSerialisiert::Pwm { pin, polarität }
             },
             MittelleiterSerialisiertEnum::KonstanteSpannung {
                 geschwindigkeit: NonEmpty { head, tail },
-                letzter_wert,
+                letzter_wert: _,
                 umdrehen,
             } => geschwindigkeit::MittelleiterSerialisiert::KonstanteSpannung {
                 geschwindigkeit: nonempty::NonEmpty {
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
-                letzter_wert: u8::try_from(letzter_wert).unwrap_or(u8::MAX),
                 umdrehen: umdrehen.into(),
             },
         }
@@ -495,6 +495,7 @@ enum ZweileiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
+        #[allow(dead_code)]
         letzter_wert: usize,
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: OutputSerialisiert,
@@ -507,21 +508,19 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
             ZweileiterSerialisiertEnum::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 geschwindigkeit::ZweileiterSerialisiert::Pwm {
                     geschwindigkeit,
-                    letzter_wert: 0,
                     polarität,
                     fahrtrichtung: fahrtrichtung.into(),
                 }
             },
             ZweileiterSerialisiertEnum::KonstanteSpannung {
                 geschwindigkeit: NonEmpty { head, tail },
-                letzter_wert,
+                letzter_wert: _,
                 fahrtrichtung,
             } => geschwindigkeit::ZweileiterSerialisiert::KonstanteSpannung {
                 geschwindigkeit: nonempty::NonEmpty {
                     head: head.into(),
                     tail: tail.into_iter().map(Into::into).collect(),
                 },
-                letzter_wert: u8::try_from(letzter_wert).unwrap_or(u8::MAX),
                 fahrtrichtung: fahrtrichtung.into(),
             },
         }

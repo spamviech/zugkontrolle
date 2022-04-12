@@ -27,7 +27,8 @@ use crate::{
     eingeschränkt::NichtNegativ,
     maybe_empty::MaybeEmpty,
     steuerung::geschwindigkeit::{
-        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Leiter, Mittelleiter, Zweileiter,
+        Fahrtrichtung, Fehler, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
+        MittelleiterSerialisiert, Zweileiter, ZweileiterSerialisiert,
     },
 };
 
@@ -288,10 +289,9 @@ impl LeiterAnzeige for Mittelleiter {
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
             "Umdrehen",
-            &|_umdrehen, pin, polarität| Mittelleiter::Pwm { pin, letzter_wert: 0, polarität },
-            &|umdrehen, geschwindigkeit| Mittelleiter::KonstanteSpannung {
+            &|_umdrehen, pin, polarität| MittelleiterSerialisiert::Pwm { pin, polarität },
+            &|umdrehen, geschwindigkeit| MittelleiterSerialisiert::KonstanteSpannung {
                 geschwindigkeit,
-                letzter_wert: 0,
                 umdrehen,
             },
         )
@@ -455,15 +455,13 @@ impl LeiterAnzeige for Zweileiter {
             zustand,
             FahrtrichtungAnschluss::Immer,
             "Fahrtrichtung",
-            &|fahrtrichtung, geschwindigkeit, polarität| Zweileiter::Pwm {
+            &|fahrtrichtung, geschwindigkeit, polarität| ZweileiterSerialisiert::Pwm {
                 geschwindigkeit,
-                letzter_wert: 0,
                 polarität,
                 fahrtrichtung,
             },
-            &|fahrtrichtung, geschwindigkeit| Zweileiter::KonstanteSpannung {
+            &|fahrtrichtung, geschwindigkeit| ZweileiterSerialisiert::KonstanteSpannung {
                 geschwindigkeit,
-                letzter_wert: 0,
                 fahrtrichtung,
             },
         )

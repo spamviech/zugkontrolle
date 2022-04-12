@@ -372,13 +372,12 @@ fn geschwindigkeit_ks(
 }
 
 /// Antrieb über einen Mittelleiter.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
-pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
+#[derive(Debug)]
+pub enum Mittelleiter{
     /// Steuerung über ein Pwm-Signal.
     Pwm {
         /// Der [Pwm-Pin](pwm::Pin).
-        pin: Pwm,
+        pin: pwm::Pin,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
         /// Die Polarität des Pwm-Signals.
@@ -387,11 +386,11 @@ pub enum Mittelleiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
     /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
     KonstanteSpannung {
         /// Die Anschlüsse.
-        geschwindigkeit: NonEmpty<Anschluss>,
+        geschwindigkeit: NonEmpty<OutputAnschluss>,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
-        umdrehen: Anschluss,
+        umdrehen: OutputAnschluss,
     },
 }
 
@@ -419,26 +418,40 @@ impl Display for Mittelleiter {
 }
 
 /// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
-pub type MittelleiterSerialisiert = Mittelleiter<pwm::Serialisiert, OutputSerialisiert>;
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(variant_size_differences)]
+pub enum MittelleiterSerialisiert {
+    /// Steuerung über ein Pwm-Signal.
+    Pwm {
+        /// Der [Pwm-Pin](pwm::Pin).
+        pin: pwm::Serialisiert,
+        /// Die Polarität des Pwm-Signals.
+        polarität: Polarität,
+    },
+    /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
+    KonstanteSpannung {
+        /// Die Anschlüsse.
+        geschwindigkeit: NonEmpty<OutputSerialisiert>,
+        /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
+        umdrehen: OutputSerialisiert,
+    },
+}
 
 impl Serialisiere for Mittelleiter {
     type Serialisiert = MittelleiterSerialisiert;
 
     fn serialisiere(&self) -> MittelleiterSerialisiert {
         match self {
-            Mittelleiter::Pwm { pin, letzter_wert, polarität } => Mittelleiter::Pwm {
-                pin: pin.serialisiere(),
-                letzter_wert: *letzter_wert,
-                polarität: *polarität,
+            Mittelleiter::Pwm { pin, letzter_wert: _, polarität } => {
+                MittelleiterSerialisiert::Pwm { pin: pin.serialisiere(), polarität: *polarität }
             },
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen } => {
-                Mittelleiter::KonstanteSpannung {
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+                MittelleiterSerialisiert::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
                         .iter()
                         .map(OutputAnschluss::serialisiere)
                         .collect::<MaybeEmpty<_>>()
                         .unwrap(),
-                    letzter_wert: *letzter_wert,
                     umdrehen: umdrehen.serialisiere(),
                 }
             },
@@ -471,7 +484,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Mittelleiter> {
         let reserviert = match self {
-            Mittelleiter::Pwm { pin, letzter_wert, polarität } => {
+            MittelleiterSerialisiert::Pwm { pin, polarität } => {
                 let Reserviert {
                     anschluss: pin,
                     pwm_nicht_benötigt,
@@ -479,13 +492,13 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     input_nicht_benötigt,
                 } = pin.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
                 Reserviert {
-                    anschluss: Mittelleiter::Pwm { pin, letzter_wert, polarität },
+                    anschluss: Mittelleiter::Pwm { pin, letzter_wert: 0, polarität },
                     pwm_nicht_benötigt,
                     output_nicht_benötigt,
                     input_nicht_benötigt,
                 }
             },
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
+            MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
                 let Reserviert {
                     anschluss: head,
                     pwm_nicht_benötigt,
@@ -693,32 +706,28 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 }
 
-/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
-pub type ZweileiterSerialisiert = Zweileiter<pwm::Serialisiert, OutputSerialisiert>;
-
 /// Antrieb über Spannungsunterschied zwischen linker und rechter Schiene.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(bound(serialize = "Pwm: Serialize, Anschluss: Clone + Serialize"))]
-pub enum Zweileiter<Pwm = pwm::Pin, Anschluss = OutputAnschluss> {
+#[derive(Debug)]
+pub enum Zweileiter {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
         /// Der [Pwm-Pin](pwm::Pin).
-        geschwindigkeit: Pwm,
+        geschwindigkeit: pwm::Pin,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
         /// Anschluss zur Steuerung der Fahrtrichtung.
-        fahrtrichtung: Anschluss,
+        fahrtrichtung: OutputAnschluss,
     },
     /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
     KonstanteSpannung {
         /// Die Anschlüsse.
-        geschwindigkeit: NonEmpty<Anschluss>,
+        geschwindigkeit: NonEmpty<OutputAnschluss>,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
         /// Anschluss zur Steuerung der Fahrtrichtung.
-        fahrtrichtung: Anschluss,
+        fahrtrichtung: OutputAnschluss,
     },
 }
 
@@ -921,27 +930,47 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
+/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(variant_size_differences)]
+pub enum ZweileiterSerialisiert {
+    /// Steuerung über ein Pwm-Signal.
+    Pwm {
+        /// Der [Pwm-Pin](pwm::Pin).
+        geschwindigkeit: pwm::Serialisiert,
+        /// Die Polarität des Pwm-Signals.
+        polarität: Polarität,
+        /// Anschluss zur Steuerung der Fahrtrichtung.
+        fahrtrichtung: OutputSerialisiert,
+    },
+    /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
+    KonstanteSpannung {
+        /// Die Anschlüsse.
+        geschwindigkeit: NonEmpty<OutputSerialisiert>,
+        /// Anschluss zur Steuerung der Fahrtrichtung.
+        fahrtrichtung: OutputSerialisiert,
+    },
+}
+
 impl Serialisiere for Zweileiter {
     type Serialisiert = ZweileiterSerialisiert;
 
     fn serialisiere(&self) -> ZweileiterSerialisiert {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, fahrtrichtung } => {
-                Zweileiter::Pwm {
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität, fahrtrichtung } => {
+                ZweileiterSerialisiert::Pwm {
                     geschwindigkeit: geschwindigkeit.serialisiere(),
-                    letzter_wert: *letzter_wert,
                     polarität: *polarität,
                     fahrtrichtung: fahrtrichtung.serialisiere(),
                 }
             },
-            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, fahrtrichtung } => {
-                Zweileiter::KonstanteSpannung {
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+                ZweileiterSerialisiert::KonstanteSpannung {
                     geschwindigkeit: geschwindigkeit
                         .iter()
                         .map(OutputAnschluss::serialisiere)
                         .collect::<MaybeEmpty<_>>()
                         .unwrap(),
-                    letzter_wert: *letzter_wert,
                     fahrtrichtung: fahrtrichtung.serialisiere(),
                 }
             },
@@ -971,6 +1000,7 @@ impl Serialisiere for Zweileiter {
         }
     }
 }
+
 impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     fn reserviere(
         self,
@@ -980,7 +1010,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Zweileiter> {
         let reserviert = match self {
-            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, fahrtrichtung } => {
+            ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 let Reserviert {
                     anschluss: geschwindigkeit,
                     pwm_nicht_benötigt,
@@ -1006,7 +1036,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                 Reserviert {
                     anschluss: Zweileiter::Pwm {
                         geschwindigkeit,
-                        letzter_wert,
+                        letzter_wert: 0,
                         polarität,
                         fahrtrichtung,
                     },
@@ -1015,7 +1045,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     input_nicht_benötigt,
                 }
             },
-            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
+            ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
                 let Reserviert {
                     anschluss: head,
                     pwm_nicht_benötigt,
