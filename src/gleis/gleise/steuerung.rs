@@ -21,7 +21,7 @@ use crate::{
 
 /// Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Steuerung<T> {
     steuerung: T,
     canvas: Arc<Mutex<Cache>>,

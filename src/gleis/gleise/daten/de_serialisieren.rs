@@ -6,9 +6,11 @@ use std::{
     fs,
     hash::Hash,
     io::{self, Read},
+    sync::Arc,
 };
 
 use nonempty::NonEmpty;
+use parking_lot::Mutex;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree,
@@ -49,7 +51,7 @@ use crate::{
         plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
-    typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
+    typen::{canvas::Cache, mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::{FalscherLeiter, Zugtyp, ZugtypSerialisiert},
 };
 
@@ -722,6 +724,7 @@ where
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        canvas: &Arc<Mutex<Cache>>,
     ) -> Result<(Zustand<L>, Vec<LadenFehler<L>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
@@ -823,6 +826,7 @@ where
                 &bekannte_kurven_weichen,
                 &bekannte_dreiwege_weichen,
                 &bekannte_kontakte,
+                &canvas,
             ) {
                 Ok(plan) => plan,
                 Err(anschlüsse) => {
@@ -901,7 +905,7 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
 
         // reserviere Anschlüsse
         let (zustand, fehler) = zustand_serialisiert
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, &self.canvas)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
         self.zustand = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {

@@ -4,11 +4,15 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
-    sync::mpsc::{RecvError, Sender},
+    sync::{
+        mpsc::{RecvError, Sender},
+        Arc,
+    },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -16,7 +20,7 @@ use crate::{
     application::geschwindigkeit::LeiterAnzeige,
     eingeschränkt::NichtNegativ,
     gleis::{
-        gleise::id::GleisId,
+        gleise::{id::GleisId, steuerung::Steuerung},
         kreuzung::{self, Kreuzung},
         weiche,
     },
@@ -26,6 +30,7 @@ use crate::{
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert},
     },
+    typen::canvas::Cache,
     zugtyp::Zugtyp,
 };
 
@@ -151,11 +156,11 @@ macro_rules! async_ausführen {
         $sender: expr,
         $erzeuge_nachricht: expr,
         $aktion_beschreibung: expr,
-        $funktion: ident ($self:expr $(, $($args: tt)*)?)
+        $funktion: ident ($self:expr $(=> $as_mut: ident)? $(, $($args: tt)*)?)
     ) => {{
         let mut clone = $self.clone();
         std::thread::spawn(move || {
-            if let Err(fehler) = $funktion(&mut clone $(, $($args)*)?) {
+            if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
                 if let Err(fehler) = $sender.send($erzeuge_nachricht(clone, fehler)) {
                     log::error!(
                         "Kein Empfänger wartet auf die Fehlermeldung {}: {fehler}",
@@ -169,7 +174,7 @@ macro_rules! async_ausführen {
 pub(crate) use async_ausführen;
 
 macro_rules! impl_ausführen_simple {
-    ($type: ty, $fehler: ty, $log: ident, $aktion_beschreibung: expr) => {
+    ($type: ty, $fehler: ty, $aktion_beschreibung: expr) => {
         impl<L: Leiter> Ausführen<L> for $type {
             type Fehler = $fehler;
 
@@ -309,6 +314,7 @@ impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
+        canvas: &Arc<Mutex<Cache>>,
     ) -> Result<Plan<L>, UnbekannteAnschlüsse<L>>
     where
         <L as Serialisiere>::Serialisiert: PartialEq + Eq + Hash,
@@ -323,6 +329,7 @@ impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
                 kurven_weichen,
                 dreiwege_weichen,
                 kontakte,
+                canvas.clone(),
             )?;
             aktionen.push(aktion);
         }
@@ -459,23 +466,27 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
+        canvas: Arc<Mutex<Cache>>,
     ) -> Result<Aktion<L>, UnbekannteAnschlüsse<L>>
     where
         <L as Serialisiere>::Serialisiert: PartialEq + Eq + Hash,
     {
         let reserviert = match self {
             AktionSerialisiert::Geschwindigkeit(aktion) => {
-                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
+                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten, canvas)?)
             },
             AktionSerialisiert::Streckenabschnitt(aktion) => {
-                Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte)?)
+                Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte, canvas)?)
             },
             AktionSerialisiert::Schalten(aktion) => Aktion::Schalten(aktion.deserialisiere(
                 gerade_weichen,
                 kurven_weichen,
                 dreiwege_weichen,
+                canvas,
             )?),
-            AktionSerialisiert::Warten(aktion) => Aktion::Warten(aktion.deserialisiere(kontakte)?),
+            AktionSerialisiert::Warten(aktion) => {
+                Aktion::Warten(aktion.deserialisiere(kontakte, canvas)?)
+            },
             AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
                 geschwindigkeiten,
                 streckenabschnitte,
@@ -483,6 +494,7 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
                 kurven_weichen,
                 dreiwege_weichen,
                 kontakte,
+                &canvas,
             )?),
         };
         Ok(reserviert)
@@ -515,7 +527,7 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 
 /// Eine Aktion mit einer [Geschwindigkeit].
 pub type AktionGeschwindigkeit<L> =
-    AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
+    AktionGeschwindigkeitEnum<Steuerung<Geschwindigkeit<L>>, <L as Leiter>::Fahrtrichtung>;
 
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
@@ -528,21 +540,23 @@ where
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
-                .geschwindigkeit(
+            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
+                geschwindigkeit.as_mut().geschwindigkeit(
                     *wert,
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
-                ),
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
-                .umdrehen_allgemein(
+                )
+            },
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => {
+                geschwindigkeit.as_mut().umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
-                ),
+                )
+            },
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
-                geschwindigkeit.fahrtrichtung_allgemein(
+                geschwindigkeit.as_mut().fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
@@ -562,7 +576,7 @@ where
         L: LeiterAnzeige,
     {
         let titel = format!("{self:?}");
-        let erzeuge_nachricht = |_clone, fehler| {
+        let erzeuge_nachricht = |fehler| {
             AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen: todo!() }
                 .into()
         };
@@ -575,34 +589,35 @@ where
                 let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
-                    erzeuge_nachricht,
+                    |_clone, fehler| erzeuge_nachricht(fehler),
                     "einer Geschwindigkeit-Aktion",
                     ausführen(
-                        geschwindigkeit,
+                        geschwindigkeit => as_mut,
                         wert,
                         pwm_frequenz,
                         verhältnis_fahrspannung_überspannung,
                     )
                 )
             },
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
-                .async_umdrehen_allgemein(
+            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => {
+                geschwindigkeit.as_mut().async_umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                     sender,
-                    erzeuge_nachricht,
-                ),
+                    |_clone, fehler| erzeuge_nachricht(fehler),
+                )
+            },
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
-                geschwindigkeit.async_fahrtrichtung_allgemein(
+                geschwindigkeit.as_mut().async_fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                     sender,
-                    erzeuge_nachricht,
+                    |_clone, fehler| erzeuge_nachricht(fehler),
                 )
             },
         }
@@ -624,18 +639,18 @@ where
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
-                    geschwindigkeit: geschwindigkeit.serialisiere(),
+                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
                     wert: *wert,
                 }
             },
             AktionGeschwindigkeit::Umdrehen { geschwindigkeit } => {
                 AktionGeschwindigkeitSerialisiert::Umdrehen {
-                    geschwindigkeit: geschwindigkeit.serialisiere(),
+                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
                 }
             },
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 AktionGeschwindigkeitSerialisiert::Fahrtrichtung {
-                    geschwindigkeit: geschwindigkeit.serialisiere(),
+                    geschwindigkeit: geschwindigkeit.as_ref().serialisiere(),
                     fahrtrichtung: fahrtrichtung.clone(),
                 }
             },
@@ -657,6 +672,7 @@ where
     pub fn deserialisiere(
         self,
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+        canvas: Arc<Mutex<Cache>>,
     ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<L>> {
         let aktion = match self {
             AktionGeschwindigkeitSerialisiert::Geschwindigkeit { geschwindigkeit, wert } => {
@@ -664,21 +680,29 @@ where
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert }
+                AktionGeschwindigkeit::Geschwindigkeit {
+                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
+                    wert,
+                }
             },
             AktionGeschwindigkeitSerialisiert::Umdrehen { geschwindigkeit } => {
                 let geschwindigkeit = geschwindigkeiten
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Umdrehen { geschwindigkeit }
+                AktionGeschwindigkeit::Umdrehen {
+                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
+                }
             },
             AktionGeschwindigkeitSerialisiert::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 let geschwindigkeit = geschwindigkeiten
                     .get(&geschwindigkeit)
                     .ok_or(UnbekannteGeschwindigkeit(geschwindigkeit))?
                     .clone();
-                AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung }
+                AktionGeschwindigkeit::Fahrtrichtung {
+                    geschwindigkeit: Steuerung::neu(geschwindigkeit, canvas),
+                    fahrtrichtung,
+                }
             },
         };
         Ok(aktion)
@@ -687,7 +711,7 @@ where
 
 /// Eine Aktion mit einem [Streckenabschnitt].
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
+pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt>> {
     /// Strom auf einem Streckenabschnitt einstellen.
     Strom {
         /// Die Anschlüsse zur Steuerung des Streckenabschnittes.
@@ -700,14 +724,13 @@ pub enum AktionStreckenabschnitt<S = Streckenabschnitt> {
 impl AktionStreckenabschnitt {
     fn ausführen(&mut self) -> Result<(), anschluss::Fehler> {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
-        streckenabschnitt.strom(*fließend)
+        streckenabschnitt.as_mut().strom(*fließend)
     }
 }
 
 impl_ausführen_simple! {
     AktionStreckenabschnitt,
     anschluss::Fehler,
-    error,
     "einer Streckenabschnitt-Aktion"
 }
 
@@ -721,7 +744,7 @@ impl AktionStreckenabschnitt {
         match self {
             AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } => {
                 AktionStreckenabschnittSerialisiert::Strom {
-                    streckenabschnitt: streckenabschnitt.serialisiere(),
+                    streckenabschnitt: streckenabschnitt.as_ref().serialisiere(),
                     fließend: *fließend,
                 }
             },
@@ -738,6 +761,7 @@ impl AktionStreckenabschnittSerialisiert {
     pub fn deserialisiere(
         self,
         streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
+        canvas: Arc<Mutex<Cache>>,
     ) -> Result<AktionStreckenabschnitt, UnbekannterStreckenabschnitt> {
         let aktion = match self {
             AktionStreckenabschnittSerialisiert::Strom { streckenabschnitt, fließend } => {
@@ -745,7 +769,10 @@ impl AktionStreckenabschnittSerialisiert {
                     .get(streckenabschnitt.anschluss_ref())
                     .ok_or(UnbekannterStreckenabschnitt(streckenabschnitt))?
                     .clone();
-                AktionStreckenabschnitt::Strom { streckenabschnitt, fließend }
+                AktionStreckenabschnitt::Strom {
+                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas),
+                    fließend,
+                }
             },
         };
         Ok(aktion)
@@ -767,7 +794,11 @@ pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionSchalten<Gerade = GeradeWeiche, Kurve = KurvenWeiche, Dreiwege = DreiwegeWeiche> {
+pub enum AktionSchalten<
+    Gerade = Steuerung<GeradeWeiche>,
+    Kurve = Steuerung<KurvenWeiche>,
+    Dreiwege = Steuerung<DreiwegeWeiche>,
+> {
     /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
     /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
     SchalteGerade {
@@ -798,13 +829,13 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => {
-                weiche.schalten(richtung, einstellungen.schalten_zeit)
+                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
             },
             AktionSchalten::SchalteKurve { weiche, richtung } => {
-                weiche.schalten(richtung, einstellungen.schalten_zeit)
+                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
             },
             AktionSchalten::SchalteDreiwege { weiche, richtung } => {
-                weiche.schalten(richtung, einstellungen.schalten_zeit)
+                weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
             },
         }
     }
@@ -823,19 +854,19 @@ impl<L: Leiter> Ausführen<L> for AktionSchalten {
                 .into()
         };
         match self {
-            AktionSchalten::SchalteGerade { weiche, richtung } => weiche.async_schalten(
+            AktionSchalten::SchalteGerade { weiche, richtung } => weiche.as_mut().async_schalten(
                 *richtung,
                 einstellungen.schalten_zeit,
                 sender,
                 erzeuge_nachricht,
             ),
-            AktionSchalten::SchalteKurve { weiche, richtung } => weiche.async_schalten(
+            AktionSchalten::SchalteKurve { weiche, richtung } => weiche.as_mut().async_schalten(
                 *richtung,
                 einstellungen.schalten_zeit,
                 sender,
                 erzeuge_nachricht,
             ),
-            AktionSchalten::SchalteDreiwege { weiche, richtung } => weiche.async_schalten(
+            AktionSchalten::SchalteDreiwege { weiche, richtung } => weiche.as_mut().async_schalten(
                 *richtung,
                 einstellungen.schalten_zeit,
                 sender,
@@ -855,19 +886,19 @@ impl AktionSchalten {
         match self {
             AktionSchalten::SchalteGerade { weiche, richtung } => {
                 AktionSchaltenSerialisiert::SchalteGerade {
-                    weiche: weiche.serialisiere(),
+                    weiche: weiche.as_ref().serialisiere(),
                     richtung: *richtung,
                 }
             },
             AktionSchalten::SchalteKurve { weiche, richtung } => {
                 AktionSchaltenSerialisiert::SchalteKurve {
-                    weiche: weiche.serialisiere(),
+                    weiche: weiche.as_ref().serialisiere(),
                     richtung: *richtung,
                 }
             },
             AktionSchalten::SchalteDreiwege { weiche, richtung } => {
                 AktionSchaltenSerialisiert::SchalteDreiwege {
-                    weiche: weiche.serialisiere(),
+                    weiche: weiche.as_ref().serialisiere(),
                     richtung: *richtung,
                 }
             },
@@ -895,19 +926,20 @@ impl AktionSchaltenSerialisiert {
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
+        canvas: Arc<Mutex<Cache>>,
     ) -> Result<AktionSchalten, UnbekannteWeiche> {
         let aktion = match self {
             AktionSchaltenSerialisiert::SchalteGerade { weiche, richtung } => {
                 let weiche = gerade_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteGerade { weiche, richtung }
+                AktionSchalten::SchalteGerade { weiche: Steuerung::neu(weiche, canvas), richtung }
             },
             AktionSchaltenSerialisiert::SchalteKurve { weiche, richtung } => {
                 let weiche = kurven_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteKurve { weiche, richtung }
+                AktionSchalten::SchalteKurve { weiche: Steuerung::neu(weiche, canvas), richtung }
             },
             AktionSchaltenSerialisiert::SchalteDreiwege { weiche, richtung } => {
                 let weiche = dreiwege_weichen.get(&weiche).ok_or(weiche)?.clone();
-                AktionSchalten::SchalteDreiwege { weiche, richtung }
+                AktionSchalten::SchalteDreiwege { weiche: Steuerung::neu(weiche, canvas), richtung }
             },
         };
         Ok(aktion)
@@ -916,7 +948,7 @@ impl AktionSchaltenSerialisiert {
 
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionWarten<K = Kontakt> {
+pub enum AktionWarten<K = Steuerung<Kontakt>> {
     /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.
@@ -934,7 +966,7 @@ impl AktionWarten {
     fn ausführen(&mut self) -> Result<(), RecvError> {
         match self {
             AktionWarten::WartenAuf { kontakt } => {
-                let _ = kontakt.warte_auf_trigger()?;
+                let _ = kontakt.as_mut().warte_auf_trigger()?;
             },
             AktionWarten::WartenFür { zeit } => thread::sleep(*zeit),
         }
@@ -942,7 +974,7 @@ impl AktionWarten {
     }
 }
 
-impl_ausführen_simple! {AktionWarten, RecvError, error, "einer Warte-Aktion"}
+impl_ausführen_simple! {AktionWarten, RecvError, "einer Warte-Aktion"}
 
 /// Serialisierbare Repräsentation einer Warte-Aktion.
 pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
@@ -952,7 +984,7 @@ impl AktionWarten {
     pub fn serialisiere(&self) -> AktionWartenSerialisiert {
         match self {
             AktionWarten::WartenAuf { kontakt } => {
-                AktionWartenSerialisiert::WartenAuf { kontakt: kontakt.serialisiere() }
+                AktionWartenSerialisiert::WartenAuf { kontakt: kontakt.as_ref().serialisiere() }
             },
             AktionWarten::WartenFür { zeit } => {
                 AktionWartenSerialisiert::WartenFür { zeit: *zeit }
@@ -970,11 +1002,12 @@ impl AktionWartenSerialisiert {
     pub fn deserialisiere(
         self,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
+        canvas: Arc<Mutex<Cache>>,
     ) -> Result<AktionWarten, UnbekannterKontakt> {
         let aktion = match self {
             AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf { kontakt }
+                AktionWarten::WartenAuf { kontakt: Steuerung::neu(kontakt, canvas) }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };

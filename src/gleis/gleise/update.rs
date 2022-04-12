@@ -241,7 +241,7 @@ fn aktion_gleis_an_position<'t>(
                                 let fließend = !streckenabschnitt.fließend();
                                 Nachricht::StreckenabschnittUmschalten(
                                     AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: streckenabschnitt.clone(),
+                                        streckenabschnitt: todo!(), //streckenabschnitt.clone(),
                                         fließend,
                                     },
                                 )
