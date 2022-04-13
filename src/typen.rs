@@ -182,6 +182,6 @@ impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
 
 impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
     fn aktuelle_richtung(&self) -> Option<R> {
-        Some(self.steuerung.lock().aktuelle_richtung.clone())
+        Some(self.aktuelle_richtung().clone())
     }
 }

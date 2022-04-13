@@ -35,7 +35,7 @@ pub struct BenannteWeiche<Steuerung> {
     /// Der Name der Weiche.
     pub name: Name,
     /// Die Steuerung der Weiche.
-    pub steuerung: Steuerung,
+    steuerung: Steuerung,
 }
 
 /// Die Steuerung einer [Weiche].
@@ -72,9 +72,36 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
+impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+    /// Erhalte die aktuelle Richtung einer [Weiche].
+    pub fn aktuelle_richtung(&self) -> Richtung {
+        let WeicheSteuerung { aktuelle_richtung, .. } = &*self.steuerung.lock();
+        aktuelle_richtung.clone()
+    }
+
+    /// Erhalte die aktuelle und letzte Richtung einer [Weiche].
+    pub fn aktuelle_und_letzte_richtung(&self) -> (Richtung, Richtung) {
+        let WeicheSteuerung { aktuelle_richtung, letzte_richtung, .. } = &*self.steuerung.lock();
+        (aktuelle_richtung.clone(), letzte_richtung.clone())
+    }
+}
+
 /// Serialisierbare Repräsentation der Steuerung einer [Weiche].
 pub type WeicheSerialisiert<Richtung, Anschlüsse> =
     BenannteWeiche<WeicheSteuerung<Richtung, Anschlüsse>>;
+
+impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
+    /// Erstelle eine neue [WeicheSerialisiert].
+    pub fn neu(name: Name, steuerung: WeicheSteuerung<Richtung, Anschlüsse>) -> Self {
+        WeicheSerialisiert { name, steuerung }
+    }
+
+    /// Erhalte [Name] und [Steuerung](WeicheSteuerung) einer [WeicheSerialisiert].
+    pub fn name_und_steuerung(self) -> (Name, WeicheSteuerung<Richtung, Anschlüsse>) {
+        let WeicheSerialisiert { name, steuerung } = self;
+        (name, steuerung)
+    }
+}
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
 where

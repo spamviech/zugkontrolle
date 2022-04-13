@@ -663,14 +663,15 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         Richtung: 't,
         Anschlüsse: 't,
     {
-        // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
-        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
-            if let Some(weiche) = steuerung.as_mut() {
-                let mut steuerung = weiche.steuerung.lock();
-                steuerung.aktuelle_richtung = aktuelle_richtung;
-                steuerung.letzte_richtung = letzte_richtung;
-            }
-        }
+        // // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
+        // if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
+        //     if let Some(weiche) = steuerung.as_mut() {
+        //         let mut steuerung = weiche.steuerung.lock();
+        //         steuerung.aktuelle_richtung = aktuelle_richtung;
+        //         steuerung.letzte_richtung = letzte_richtung;
+        //     }
+        // }
+        todo!("Kann im schalten selbst behoben werden!")
     }
 }
 

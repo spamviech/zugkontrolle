@@ -36,15 +36,14 @@ where
     pub fn neu<Richtung>(
         option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
-        let (name, anschlüsse_save, hat_steuerung) = if let Some(WeicheSerialisiert {
-            name,
-            steuerung: WeicheSteuerung { anschlüsse, .. },
-        }) = option_weiche
-        {
-            (name.0, anschlüsse, true)
-        } else {
-            (String::new(), Default::default(), false)
-        };
+        let (name, anschlüsse_save, hat_steuerung) =
+            if let Some((name, WeicheSteuerung { anschlüsse, .. })) =
+                option_weiche.map(WeicheSerialisiert::name_und_steuerung)
+            {
+                (name.0, anschlüsse, true)
+            } else {
+                (String::new(), Default::default(), false)
+            };
         let anschlüsse_zustand = anschlüsse_save.clone().into();
         Zustand {
             name,
@@ -205,14 +204,14 @@ where
                     *self.anschlüsse.erhalte_mut(&richtung) = anschluss
                 },
                 InterneNachricht::Festlegen => {
-                    messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert {
-                        name: Name(self.name.clone()),
-                        steuerung: WeicheSteuerung {
+                    messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
+                        Name(self.name.clone()),
+                        WeicheSteuerung {
                             aktuelle_richtung: Default::default(),
                             letzte_richtung: Default::default(),
                             anschlüsse: self.anschlüsse.clone(),
                         },
-                    })))
+                    ))))
                 },
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
