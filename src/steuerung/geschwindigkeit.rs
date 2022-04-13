@@ -71,6 +71,7 @@ pub trait Leiter {
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 
+    // TODO update-Nachricht nach erfolgreichem Lock, evtl über Steuerung?
     /// Umdrehen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
@@ -92,6 +93,7 @@ pub trait Leiter {
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 
+    // TODO update-Nachricht nach erfolgreichem Lock, evtl über Steuerung?
     /// Einstellen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
