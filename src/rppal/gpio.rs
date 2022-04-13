@@ -145,7 +145,7 @@ impl Pin {
     /// Consumes the `Pin` and returns an [`OutputPin`]. Changes the logic level to
     /// [`Level::High`] and then sets the mode to [`Mode::Output`].
     pub fn into_output_high(self) -> OutputPin {
-        OutputPin(self, Level::Low)
+        OutputPin(self, Level::High)
     }
 }
 
