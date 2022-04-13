@@ -504,7 +504,8 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
-/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
+/// FIXME umdrehen zeigt die Änderung erst nach erfolgreichem async_ausführen an,
+/// blockiert währenddessen dauerhaft den Mutex
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
     L: 'static + Leiter + Send + Debug,
@@ -862,6 +863,7 @@ impl AnyAktionSchaltenSerialisiert {
     }
 }
 
+/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Schalten einer [Weiche].
 pub struct AktionSchalten<Weiche, Richtung> {

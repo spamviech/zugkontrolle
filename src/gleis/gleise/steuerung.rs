@@ -22,6 +22,8 @@ use crate::{
     typen::canvas::Cache,
 };
 
+// FIXME Änderungen innerhalb eines Arc<Mutex<Cache>> werden von iced ignoriert.
+// -> Ändern auf Nachricht schicken
 /// Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Clone)]

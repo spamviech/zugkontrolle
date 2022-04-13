@@ -60,6 +60,7 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
+/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
 /// Serialisierbare Repräsentation der Steuerung einer Weiche.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
@@ -91,11 +92,9 @@ where
         richtung: &Richtung,
         schalten_zeit: Duration,
     ) -> Result<(), Fehler> {
-        let mut anschlüsse = mutex.lock();
-        let anschluss = anschlüsse.erhalte_mut(richtung);
-        anschluss.einstellen(Fließend::Fließend)?;
+        mutex.lock().erhalte_mut(richtung).einstellen(Fließend::Fließend)?;
         sleep(schalten_zeit);
-        anschluss.einstellen(Fließend::Gesperrt)?;
+        mutex.lock().erhalte_mut(richtung).einstellen(Fließend::Gesperrt)?;
         Ok(())
     }
 }
