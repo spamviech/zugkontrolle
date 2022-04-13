@@ -18,6 +18,8 @@
 - Klicks müssen nicht mehr aufs Pixel genau das Gleis treffen
 - Verwende selbst-geschriebene Bibliothek für Kommandozeilen-Argumente,
     inklusiver Anpassung der erlaubten Argumente
+- Anpassen des Speicher-Formats.
+  Ein Laden von mit Version 2.0.X erzeugten Dateien ist weiterhin möglich.
 - Bibliothek: erlaube assoziieren von Streckenabschnitten mit einer Geschwindigkeit
 - Bibliothek: erlaube Verwendung anderer I2c-Kanäle für Pcf8574-Anschlüsse
 - Bibliothek: Zugtyp kein Typ-Parameter mehr, sonder ein echter Typ gespeichert im Gleise-Zustand
