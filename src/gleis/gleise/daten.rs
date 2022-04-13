@@ -12,7 +12,6 @@ use crate::{
     anschluss::{
         self,
         de_serialisieren::{Reserviere, Reserviert, Serialisiere},
-        polarität::Fließend,
     },
     gleis::{
         gerade::Gerade,
@@ -102,7 +101,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
 }
 
 pub(crate) type StreckenabschnittMap =
-    HashMap<streckenabschnitt::Name, (Streckenabschnitt, Fließend, GleiseDaten)>;
+    HashMap<streckenabschnitt::Name, (Streckenabschnitt, GleiseDaten)>;
 type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
 
@@ -177,7 +176,7 @@ impl<L: Leiter> Zustand<L> {
                         streckenabschnitt_id.klonen(),
                     )
                 })?
-                .2
+                .1
         } else {
             &self.ohne_streckenabschnitt
         })
@@ -197,7 +196,7 @@ impl<L: Leiter> Zustand<L> {
                         streckenabschnitt_id.klonen(),
                     )
                 })?
-                .2
+                .1
         } else {
             &mut self.ohne_streckenabschnitt
         })
@@ -207,14 +206,12 @@ impl<L: Leiter> Zustand<L> {
         &'t self,
     ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
         iter::once((None, &self.ohne_streckenabschnitt))
-            .chain(self.ohne_geschwindigkeit.iter().map(
-                |(name, (_streckenabschnitt, _fließend, daten))| {
-                    (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
-                },
-            ))
+            .chain(self.ohne_geschwindigkeit.iter().map(|(name, (_streckenabschnitt, daten))| {
+                (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
+            }))
             .chain(self.geschwindigkeiten.iter().flat_map(
                 |(geschwindigkeit_name, (_geschwindigkeit, map))| {
-                    map.iter().map(move |(name, (_streckenabschnitt, _fließend, daten))| {
+                    map.iter().map(move |(name, (_streckenabschnitt, daten))| {
                         (
                             Some(StreckenabschnittIdRef {
                                 geschwindigkeit: Some(geschwindigkeit_name),
@@ -230,21 +227,11 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn alle_streckenabschnitte_und_daten<'t>(
         &'t self,
     ) -> impl Iterator<
-        Item = (
-            Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend)>,
-            &'t GleiseDaten,
-        ),
+        Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
     > {
         let iter_map = |geschwindigkeit: Option<&'t _>| {
-            move |(name, (streckenabschnitt, fließend, daten)): (&'t _, &'t (_, _, _))| {
-                (
-                    Some((
-                        StreckenabschnittIdRef { geschwindigkeit, name },
-                        streckenabschnitt,
-                        fließend,
-                    )),
-                    daten,
-                )
+            move |(name, (streckenabschnitt, daten)): (&'t _, &'t (_, _))| {
+                (Some((StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)), daten)
             }
         };
         iter::once((None, &self.ohne_streckenabschnitt))

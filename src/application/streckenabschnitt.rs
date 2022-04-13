@@ -181,7 +181,7 @@ impl AuswahlZustand {
             none_button_zustand: button::State::new(),
             streckenabschnitte: gleise
                 .streckenabschnitte()
-                .map(|(streckenabschnitt_id, (streckenabschnitt, _fließend))| {
+                .map(|(streckenabschnitt_id, streckenabschnitt)| {
                     Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
                 })
                 .collect(),

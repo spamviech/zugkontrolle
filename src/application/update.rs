@@ -303,11 +303,10 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
             geschwindigkeit: geschwindigkeit.cloned(),
             name: name.clone(),
         }) {
-            Ok((streckenabschnitt, fließend))
+            Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
-                *fließend = Fließend::Gesperrt;
                 let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
                 {
                     format!("{:?}", fehler)

@@ -22,7 +22,6 @@ use crate::{
         self,
         de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
         pin::pwm,
-        polarität::Fließend,
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
     gleis::{
@@ -281,7 +280,7 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
     {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
-                .map(|(name, (streckenabschnitt, _fließend, daten))| {
+                .map(|(name, (streckenabschnitt, daten))| {
                     (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
                 })
                 .collect()
@@ -384,8 +383,7 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
             output_anschlüsse: &mut Vec<OutputAnschluss>,
             input_anschlüsse: &mut Vec<InputAnschluss>,
         ) {
-            for (_name, (streckenabschnitt, _fließend, mut daten)) in streckenabschnitt_map.drain()
-            {
+            for (_name, (streckenabschnitt, mut daten)) in streckenabschnitt_map.drain() {
                 collect_anschlüsse(
                     streckenabschnitt,
                     pwm_pins,
@@ -500,7 +498,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                         laden_fehler,
                     );
 
-                    let _ = map.insert(name, (streckenabschnitt, Fließend::Gesperrt, daten));
+                    let _ = map.insert(name, (streckenabschnitt, daten));
 
                     (
                         Reserviert {

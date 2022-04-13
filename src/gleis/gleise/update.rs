@@ -14,7 +14,6 @@ use log::error;
 use parking_lot::Mutex;
 
 use crate::{
-    anschluss::polarität::Fließend,
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -97,7 +96,7 @@ impl<'t> GleisSteuerung<'t> {
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
-    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend)>,
+    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
     canvas: &Arc<Mutex<Cache>>,
@@ -114,7 +113,7 @@ where
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             let (streckenabschnitt_id, streckenabschnitt) =
-                if let Some((id, streckenabschnitt, _fließend)) = streckenabschnitt {
+                if let Some((id, streckenabschnitt)) = streckenabschnitt {
                     (Some(id), Some(streckenabschnitt))
                 } else {
                     (None, None)
@@ -141,10 +140,7 @@ fn aktion_gleis_an_position<'t>(
     spurweite: Spurweite,
     modus: &'t mut ModusDaten,
     daten_iter: impl Iterator<
-        Item = (
-            Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt, &'t Fließend)>,
-            &'t GleiseDaten,
-        ),
+        Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
     >,
     pivot: &'t Position,
     skalieren: &'t Skalar,

@@ -22,7 +22,7 @@ use self::{
     steuerung::Steuerung,
 };
 use crate::{
-    anschluss::{self, polarität::Fließend},
+    anschluss,
     gleis::{
         kreuzung::{self, Kreuzung},
         weiche::{
@@ -180,16 +180,9 @@ impl<L: Leiter> Gleise<L> {
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         streckenabschnitt: Streckenabschnitt,
-    ) -> Result<
-        (StreckenabschnittId, Option<(Streckenabschnitt, Fließend)>),
-        StreckenabschnittHinzufügenFehler,
-    > {
-        self.streckenabschnitt_hinzufügen_aux(
-            geschwindigkeit,
-            name,
-            streckenabschnitt,
-            Fließend::Gesperrt,
-        )
+    ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
+    {
+        self.streckenabschnitt_hinzufügen_aux(geschwindigkeit, name, streckenabschnitt)
     }
 
     /// Füge einen Streckenabschnitt mit angenommenen Fließend-Zustand hinzu.
@@ -199,11 +192,8 @@ impl<L: Leiter> Gleise<L> {
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         mut streckenabschnitt: Streckenabschnitt,
-        fließend: Fließend,
-    ) -> Result<
-        (StreckenabschnittId, Option<(Streckenabschnitt, Fließend)>),
-        StreckenabschnittHinzufügenFehler,
-    > {
+    ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
+    {
         let streckenabschnitt_map = match self.zustand.streckenabschnitt_map_mut(geschwindigkeit) {
             Ok(streckenabschnitt_map) => streckenabschnitt_map,
             Err(GeschwindigkeitEntferntFehler(name)) => {
@@ -216,14 +206,12 @@ impl<L: Leiter> Gleise<L> {
         let entry = streckenabschnitt_map.entry(name.clone());
         let bisher = match entry {
             Entry::Occupied(mut occupied) => {
-                let value = occupied.get_mut();
-                std::mem::swap(&mut value.0, &mut streckenabschnitt);
-                let bisherig_fließend = value.1;
-                value.1 = fließend;
-                Some((streckenabschnitt, bisherig_fließend))
+                let bisher = occupied.get_mut();
+                std::mem::swap(&mut bisher.0, &mut streckenabschnitt);
+                Some(streckenabschnitt)
             },
             Entry::Vacant(vacant) => {
-                let _ = vacant.insert((streckenabschnitt, Fließend::Gesperrt, GleiseDaten::neu()));
+                let _mut_ref = vacant.insert((streckenabschnitt, GleiseDaten::neu()));
                 None
             },
         };
@@ -234,12 +222,12 @@ impl<L: Leiter> Gleise<L> {
     pub fn streckenabschnitt<'s>(
         &'s self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<(&'s Streckenabschnitt, &'s Fließend), StreckenabschnittIdFehler> {
+    ) -> Result<&'s Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get(name)
-            .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
+            .map(|(streckenabschnitt, _daten)| streckenabschnitt)
             .ok_or_else(|| {
                 StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
@@ -249,13 +237,13 @@ impl<L: Leiter> Gleise<L> {
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<(&'s mut Streckenabschnitt, &'s mut Fließend), StreckenabschnittIdFehler> {
+    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get_mut(name)
-            .map(|(streckenabschnitt, fließend, _maps)| (streckenabschnitt, fließend))
+            .map(|(streckenabschnitt, _daten)| streckenabschnitt)
             .ok_or_else(|| {
                 StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
@@ -267,7 +255,7 @@ impl<L: Leiter> Gleise<L> {
     pub fn streckenabschnitt_entfernen(
         &mut self,
         streckenabschnitt_id: StreckenabschnittId,
-    ) -> Result<Option<(Streckenabschnitt, Fließend)>, StreckenabschnittBearbeitenFehler> {
+    ) -> Result<Option<Streckenabschnitt>, StreckenabschnittBearbeitenFehler> {
         let StreckenabschnittId { geschwindigkeit, name: _ } = &streckenabschnitt_id;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
@@ -283,11 +271,10 @@ impl<L: Leiter> Gleise<L> {
     /// Alle aktuell bekannten Streckenabschnitte.
     pub(crate) fn streckenabschnitte<'t>(
         &'t self,
-    ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, (&'t Streckenabschnitt, &Fließend))>
-    {
+    ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)> {
         let iter_map = |(geschwindigkeit, streckenabschnitt_map): (_, &'t StreckenabschnittMap)| {
-            streckenabschnitt_map.iter().map(move |(name, (streckenabschnitt, fließend, _maps))| {
-                (StreckenabschnittIdRef { geschwindigkeit, name }, (streckenabschnitt, fließend))
+            streckenabschnitt_map.iter().map(move |(name, (streckenabschnitt, _daten))| {
+                (StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)
             })
         };
         iter::once((None, &self.zustand.ohne_geschwindigkeit))
@@ -430,7 +417,7 @@ impl<L: Debug + Leiter> Gleise<L> {
         &mut self,
         streckenabschnitt_id: &mut StreckenabschnittId,
         geschwindigkeit_neu: Option<&geschwindigkeit::Name>,
-    ) -> Result<Option<(Streckenabschnitt, Fließend)>, StreckenabschnittBearbeitenFehler> {
+    ) -> Result<Option<Streckenabschnitt>, StreckenabschnittBearbeitenFehler> {
         if streckenabschnitt_id.geschwindigkeit.as_ref() == geschwindigkeit_neu {
             return Err(StreckenabschnittBearbeitenFehler::IdentischeGeschwindigkeit(
                 geschwindigkeit_neu.cloned(),
@@ -438,11 +425,11 @@ impl<L: Debug + Leiter> Gleise<L> {
         }
         let geschwindigkeit = streckenabschnitt_id.geschwindigkeit.clone();
         let name = streckenabschnitt_id.name.clone();
-        let (geschwindigkeit_name_und_eintrag, streckenabschnitt, fließend) =
+        let (geschwindigkeit_name_und_eintrag, streckenabschnitt) =
             if let Some(geschwindigkeit_name) = geschwindigkeit {
                 match self.zustand.geschwindigkeiten.remove(&geschwindigkeit_name) {
                     Some((geschwindigkeit, mut streckenabschnitt_map)) => {
-                        let (streckenabschnitt, fließend) = streckenabschnitt_entfernen(
+                        let streckenabschnitt = streckenabschnitt_entfernen(
                             &mut streckenabschnitt_map,
                             streckenabschnitt_id.klonen(),
                             identity,
@@ -455,7 +442,6 @@ impl<L: Debug + Leiter> Gleise<L> {
                         (
                             Some((geschwindigkeit_name, (geschwindigkeit, streckenabschnitt_map))),
                             streckenabschnitt,
-                            fließend,
                         )
                     },
                     None => {
@@ -465,7 +451,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                     },
                 }
             } else {
-                let (streckenabschnitt, fließend) = streckenabschnitt_entfernen(
+                let streckenabschnitt = streckenabschnitt_entfernen(
                     &mut self.zustand.ohne_geschwindigkeit,
                     streckenabschnitt_id.klonen(),
                     identity,
@@ -475,13 +461,12 @@ impl<L: Debug + Leiter> Gleise<L> {
                         ))
                     },
                 )?;
-                (None, streckenabschnitt, fließend)
+                (None, streckenabschnitt)
             };
         match self.streckenabschnitt_hinzufügen_aux(
             geschwindigkeit_neu,
             name.clone(),
             streckenabschnitt,
-            fließend,
         ) {
             Ok((id_neu, bisher)) => {
                 if let Some((geschwindigkeit_name, geschwindigkeit_eintrag)) =
@@ -512,7 +497,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                 {
                     if let Some(streckenabschnitt_eintrag) = geschwindigkeit_eintrag
                         .1
-                        .insert(name.clone(), (streckenabschnitt, fließend, GleiseDaten::neu()))
+                        .insert(name.clone(), (streckenabschnitt, GleiseDaten::neu()))
                     {
                         error!(
                             "Entfernter Streckenabschnitt {:?} war weiterhin vorhanden: {:?}",
@@ -538,7 +523,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                     if let Some(streckenabschnitt_eintrag) = self
                         .zustand
                         .ohne_geschwindigkeit
-                        .insert(name.clone(), (streckenabschnitt, fließend, GleiseDaten::neu()))
+                        .insert(name.clone(), (streckenabschnitt, GleiseDaten::neu()))
                     {
                         error!(
                             "Entfernter Streckenabschnitt {:?} war weiterhin vorhanden: {:?}",
@@ -556,17 +541,16 @@ impl<L: Debug + Leiter> Gleise<L> {
 fn streckenabschnitt_entfernen<T>(
     streckenabschnitt_map: &mut StreckenabschnittMap,
     streckenabschnitt_id: StreckenabschnittId,
-    gefunden: impl FnOnce((Streckenabschnitt, Fließend)) -> T,
+    gefunden: impl FnOnce(Streckenabschnitt) -> T,
     bereits_entfernt: impl FnOnce(StreckenabschnittId) -> Result<T, StreckenabschnittBearbeitenFehler>,
 ) -> Result<T, StreckenabschnittBearbeitenFehler> {
     let StreckenabschnittId { geschwindigkeit: _, name } = &streckenabschnitt_id;
-    if let Some((name_entry, (streckenabschnitt, fließend, daten))) =
-        streckenabschnitt_map.remove_entry(name)
+    if let Some((name_entry, (streckenabschnitt, daten))) = streckenabschnitt_map.remove_entry(name)
     {
         if daten.ist_leer() {
-            Ok(gefunden((streckenabschnitt, fließend)))
+            Ok(gefunden(streckenabschnitt))
         } else {
-            let _ = streckenabschnitt_map.insert(name_entry, (streckenabschnitt, fließend, daten));
+            let _ = streckenabschnitt_map.insert(name_entry, (streckenabschnitt, daten));
             Err(StreckenabschnittBearbeitenFehler::GleiseNichtEntfernt(streckenabschnitt_id))
         }
     } else {

@@ -25,7 +25,7 @@ use crate::{
         },
     },
     nachschlagen::Nachschlagen,
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Streckenabschnitt},
+    steuerung::geschwindigkeit::Leiter,
     typen::{
         canvas::{
             pfad::{self, Transformation},
@@ -280,13 +280,15 @@ impl<L: Leiter> Gleise<L> {
                 for (streckenabschnitt_opt, daten) in
                     zustand.alle_streckenabschnitte_und_daten()
                 {
-                    let (streckenabschnitt_id, Streckenabschnitt { farbe, .. }, fließend)
+                    let (streckenabschnitt_id, streckenabschnitt)
                         = if let Some(tuple) = streckenabschnitt_opt
                     {
                         tuple
                     } else {
                         continue
                     };
+                    let fließend = streckenabschnitt.fließend();
+                    let farbe = streckenabschnitt.farbe;
                     macro_rules! transparenz {
                         ($gleis: ident) => {
                             |rectangle, fließend| {
@@ -308,7 +310,7 @@ impl<L: Leiter> Gleise<L> {
                         fülle_alle_gleise,
                         transparenz,
                         &farbe,
-                        fließend
+                        &fließend
                     }
                 }
                 // Kontur
