@@ -49,7 +49,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncFehler},
+        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -249,10 +249,14 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncFehler> for Nachricht<Leiter> {
-    fn from(fehler: AsyncFehler) -> Self {
-        let AsyncFehler { titel, nachricht } = fehler;
-        Nachricht::AsyncFehler { titel, nachricht }
+impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
+    fn from(fehler: AsyncNachricht) -> Self {
+        match fehler {
+            AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
+            AsyncNachricht::Fehler { titel, nachricht } => {
+                Nachricht::AsyncFehler { titel, nachricht }
+            },
+        }
     }
 }
 
@@ -618,8 +622,8 @@ where
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
             Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                if let Some(message) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
-                    command = message.als_command()
+                if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
+                    command = nachricht.als_command()
                 }
             },
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),

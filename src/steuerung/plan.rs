@@ -37,13 +37,18 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-/// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
+/// Bei einer asynchronen Aktion aufgetretene Nachricht.
 #[derive(Debug)]
-pub struct AsyncFehler {
-    /// Der Titel der Fehlermeldung.
-    pub titel: String,
-    /// Die Nachricht der Fehlermeldung.
-    pub nachricht: String,
+pub enum AsyncNachricht {
+    /// Aktualisiere das GUI, damit Zustands-Änderungen korrekt dargestellt werden.
+    Aktualisieren,
+    /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
+    Fehler {
+        /// Der Titel der Fehlermeldung.
+        titel: String,
+        /// Die Nachricht der Fehlermeldung.
+        nachricht: String,
+    },
 }
 
 /// Einstellungen, die das [Ausführen] von Aktionen beeinflussen.
@@ -115,7 +120,7 @@ pub trait Ausführen<L: Leiter> {
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
@@ -153,14 +158,17 @@ macro_rules! impl_ausführen_simple {
                 self.ausführen()
             }
 
-            fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+            fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
                 &mut self,
                 _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
             ) -> JoinHandle<()> {
                 let erzeuge_nachricht = |clone, fehler| {
-                    AsyncFehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }
-                        .into()
+                    AsyncNachricht::Fehler {
+                        titel: format!("{clone:?}"),
+                        nachricht: format!("{fehler:?}"),
+                    }
+                    .into()
                 };
                 let ausführen = Self::ausführen;
                 async_ausführen!(sender, erzeuge_nachricht, $aktion_beschreibung, ausführen(self))
@@ -216,13 +224,14 @@ where
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let erzeuge_nachricht = |clone, fehler| {
-            AsyncFehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }.into()
+            AsyncNachricht::Fehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }
+                .into()
         };
         let ausführen = Self::ausführen;
         async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, einstellungen))
@@ -357,7 +366,7 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
@@ -513,14 +522,14 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
         let erzeuge_nachricht =
-            |fehler| AsyncFehler { titel, nachricht: format!("{fehler:?}") }.into();
+            |fehler| AsyncNachricht::Fehler { titel, nachricht: format!("{fehler:?}") }.into();
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
                 let wert = *wert;
@@ -751,7 +760,7 @@ impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
@@ -854,14 +863,14 @@ where
         weiche.as_mut().schalten(richtung.clone(), einstellungen.schalten_zeit)
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
         let erzeuge_nachricht =
-            |fehler| AsyncFehler { titel, nachricht: format!("{fehler:?}") }.into();
+            |fehler| AsyncNachricht::Fehler { titel, nachricht: format!("{fehler:?}") }.into();
         let AktionSchalten { weiche, richtung } = self;
         weiche.as_mut().async_schalten(
             richtung.clone(),
