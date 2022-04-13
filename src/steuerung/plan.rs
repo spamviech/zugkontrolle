@@ -39,13 +39,11 @@ pub struct Name(pub String);
 
 /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
 #[derive(Debug)]
-pub struct AsyncFehler<ZustandZurücksetzen> {
+pub struct AsyncFehler {
     /// Der Titel der Fehlermeldung.
     pub titel: String,
     /// Die Nachricht der Fehlermeldung.
     pub nachricht: String,
-    /// Zustand auf Stand vor der Aktion zurücksetzen.
-    pub zustand_zurücksetzen: ZustandZurücksetzen,
 }
 
 /// Einstellungen, die das [Ausführen] von Aktionen beeinflussen.
@@ -117,11 +115,10 @@ pub trait Ausführen<L: Leiter> {
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()>;
 }
 
@@ -156,23 +153,14 @@ macro_rules! impl_ausführen_simple {
                 self.ausführen()
             }
 
-            fn async_ausführen<Nachricht, ZZ>(
+            fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
                 &mut self,
                 _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
-                zustand_zurücksetzen: ZZ,
-            ) -> JoinHandle<()>
-            where
-                Nachricht: 'static + From<AsyncFehler<ZZ>> + Send,
-                ZZ: 'static + Send,
-            {
+            ) -> JoinHandle<()> {
                 let erzeuge_nachricht = |clone, fehler| {
-                    AsyncFehler {
-                        titel: format!("{clone:?}"),
-                        nachricht: format!("{fehler:?}"),
-                        zustand_zurücksetzen,
-                    }
-                    .into()
+                    AsyncFehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }
+                        .into()
                 };
                 let ausführen = Self::ausführen;
                 async_ausführen!(sender, erzeuge_nachricht, $aktion_beschreibung, ausführen(self))
@@ -228,19 +216,13 @@ where
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         let erzeuge_nachricht = |clone, fehler| {
-            AsyncFehler {
-                titel: format!("{clone:?}"),
-                nachricht: format!("{fehler:?}"),
-                zustand_zurücksetzen,
-            }
-            .into()
+            AsyncFehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }.into()
         };
         let ausführen = Self::ausführen;
         async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, einstellungen))
@@ -375,28 +357,17 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         match self {
-            Aktion::Geschwindigkeit(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Streckenabschnitt(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Schalten(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Warten(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
-            Aktion::Ausführen(plan) => {
-                plan.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
-            },
+            Aktion::Geschwindigkeit(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Streckenabschnitt(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Schalten(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Warten(aktion) => aktion.async_ausführen(einstellungen, sender),
+            Aktion::Ausführen(plan) => plan.async_ausführen(einstellungen, sender),
         }
     }
 }
@@ -542,16 +513,14 @@ where
         }
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
-        let erzeuge_nachricht = |fehler| {
-            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
-        };
+        let erzeuge_nachricht =
+            |fehler| AsyncFehler { titel, nachricht: format!("{fehler:?}") }.into();
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
                 let wert = *wert;
@@ -782,21 +751,20 @@ impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
         Ok(())
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         match self {
             AnyAktionSchalten::SchalteGerade(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender)
             },
             AnyAktionSchalten::SchalteKurve(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender)
             },
             AnyAktionSchalten::SchalteDreiwege(aktion) => {
-                aktion.async_ausführen(einstellungen, sender, zustand_zurücksetzen)
+                aktion.async_ausführen(einstellungen, sender)
             },
         }
     }
@@ -886,16 +854,14 @@ where
         weiche.as_mut().schalten(richtung.clone(), einstellungen.schalten_zeit)
     }
 
-    fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(
+    fn async_ausführen<Nachricht: 'static + From<AsyncFehler> + Send>(
         &mut self,
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
-        zustand_zurücksetzen: ZZ,
     ) -> JoinHandle<()> {
         let titel = format!("{self:?}");
-        let erzeuge_nachricht = |fehler| {
-            AsyncFehler { titel, nachricht: format!("{fehler:?}"), zustand_zurücksetzen }.into()
-        };
+        let erzeuge_nachricht =
+            |fehler| AsyncFehler { titel, nachricht: format!("{fehler:?}") }.into();
         let AktionSchalten { weiche, richtung } = self;
         weiche.as_mut().async_schalten(
             richtung.clone(),

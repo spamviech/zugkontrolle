@@ -22,8 +22,8 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        steuerung, streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand,
-        MessageBox, Nachricht, Zugkontrolle, ZustandZurücksetzen,
+        streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand, MessageBox,
+        Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
         daten::{v2, DatenAuswahl, StreckenabschnittMap},
@@ -88,18 +88,13 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
-        zustand_zurücksetzen: Option<ZustandZurücksetzen>,
         aktualisieren: Option<Nachricht<L>>,
     ) where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        let join_handle = aktion.async_ausführen(
-            self.gleise.zugtyp().into(),
-            self.sender.clone(),
-            zustand_zurücksetzen,
-        );
+        let join_handle = aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = std::thread::spawn(move || {
@@ -650,62 +645,10 @@ where
     }
 }
 
-type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
-
-impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
-    fn weiche_zurücksetzen<'t, T, Richtung, Anschlüsse>(
-        &'t mut self,
-        id: GleisId<T>,
-        aktuelle_richtung: Richtung,
-        letzte_richtung: Richtung,
-    ) where
-        T: 't + MitSteuerung<'t, Steuerung = OptionWeiche<Richtung, Anschlüsse>> + DatenAuswahl,
-        Richtung: 't,
-        Anschlüsse: 't,
-    {
-        // // Entferntes Gleis wird ignoriert, da es nur um eine Reaktion auf einen Fehler geht
-        // if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
-        //     if let Some(weiche) = steuerung.as_mut() {
-        //         let mut steuerung = weiche.steuerung.lock();
-        //         steuerung.aktuelle_richtung = aktuelle_richtung;
-        //         steuerung.letzte_richtung = letzte_richtung;
-        //     }
-        // }
-        todo!("Kann im schalten selbst behoben werden!")
-    }
-}
-
 impl<L: LeiterAnzeige> Zugkontrolle<L> {
-    fn zustand_zurücksetzen(&mut self, zustand_zurücksetzen: ZustandZurücksetzen) {
-        match zustand_zurücksetzen {
-            ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => {
-                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
-            },
-            ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung) => {
-                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
-            },
-            ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung, letzte_richtung) => {
-                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
-            },
-            ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung, letzte_richtung) => {
-                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
-            },
-            ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung) => {
-                self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
-            },
-        }
-    }
-
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    pub fn async_fehler(
-        &mut self,
-        titel: String,
-        nachricht: String,
-        zustand_zurücksetzen: Option<ZustandZurücksetzen>,
-    ) {
-        if let Some(zustand_zurücksetzen) = zustand_zurücksetzen {
-            self.zustand_zurücksetzen(zustand_zurücksetzen)
-        }
+    #[inline(always)]
+    pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
     }
 }

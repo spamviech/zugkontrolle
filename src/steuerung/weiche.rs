@@ -3,7 +3,6 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    mem,
     sync::{mpsc::Sender, Arc},
     thread::{sleep, JoinHandle},
     time::Duration,
@@ -119,13 +118,33 @@ where
         richtung: Richtung,
         schalten_zeit: Duration,
     ) -> Result<(), Fehler> {
-        // TODO zurücksetzen bei fehler
         let mut guard = mutex.lock();
-        guard.letzte_richtung = mem::replace(&mut guard.aktuelle_richtung, richtung.clone());
+        let letzte_richtung = guard.letzte_richtung.clone();
+        let aktuelle_richtung = guard.aktuelle_richtung.clone();
+        guard.letzte_richtung = aktuelle_richtung.clone();
+        guard.aktuelle_richtung = richtung.clone();
         drop(guard);
-        mutex.lock().anschlüsse.erhalte_mut(&richtung).einstellen(Fließend::Fließend)?;
+        macro_rules! bei_fehler_zurücksetzen {
+            ($result: expr) => {
+                if let Err(fehler) = $result {
+                    let mut guard = mutex.lock();
+                    guard.aktuelle_richtung = aktuelle_richtung;
+                    guard.letzte_richtung = letzte_richtung;
+                    return Err(fehler);
+                }
+            };
+        }
+        bei_fehler_zurücksetzen!(mutex
+            .lock()
+            .anschlüsse
+            .erhalte_mut(&richtung)
+            .einstellen(Fließend::Fließend));
         sleep(schalten_zeit);
-        mutex.lock().anschlüsse.erhalte_mut(&richtung).einstellen(Fließend::Gesperrt)?;
+        bei_fehler_zurücksetzen!(mutex
+            .lock()
+            .anschlüsse
+            .erhalte_mut(&richtung)
+            .einstellen(Fließend::Gesperrt));
         Ok(())
     }
 }
