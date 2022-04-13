@@ -127,22 +127,30 @@ pub trait Ausführen<L: Leiter> {
     ) -> JoinHandle<()>;
 }
 
+pub(crate) fn erzeuge_aktualisieren_nachricht<Nachricht: From<AsyncNachricht>>() -> Nachricht {
+    AsyncNachricht::Aktualisieren.into()
+}
+
 macro_rules! async_ausführen {
     (
         $sender: expr,
-        $erzeuge_nachricht: expr,
+        $erzeuge_aktualisieren_nachricht: expr,
+        $erzeuge_fehler_nachricht: expr,
         $aktion_beschreibung: expr,
         $funktion: ident ($self:expr $(=> $as_mut: ident)? $(, $($args: tt)*)?)
     ) => {{
         let mut clone = $self.clone();
         std::thread::spawn(move || {
-            if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
-                if let Err(fehler) = $sender.send($erzeuge_nachricht(clone, fehler)) {
-                    log::error!(
-                        "Kein Empfänger wartet auf die Fehlermeldung {}: {fehler}",
-                        $aktion_beschreibung,
-                    )
-                }
+            let nachricht = if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
+                $erzeuge_fehler_nachricht(clone, fehler)
+            } else {
+                $erzeuge_aktualisieren_nachricht()
+            };
+            if let Err(fehler) = $sender.send(nachricht) {
+                log::error!(
+                    "Kein Empfänger wartet auf die Fehlermeldung {}: {fehler}",
+                    $aktion_beschreibung,
+                )
             }
         })
     }}
@@ -163,7 +171,7 @@ macro_rules! impl_ausführen_simple {
                 _einstellungen: Einstellungen<L>,
                 sender: Sender<Nachricht>,
             ) -> JoinHandle<()> {
-                let erzeuge_nachricht = |clone, fehler| {
+                let erzeuge_fehler_nachricht = |clone, fehler| {
                     AsyncNachricht::Fehler {
                         titel: format!("{clone:?}"),
                         nachricht: format!("{fehler:?}"),
@@ -171,7 +179,13 @@ macro_rules! impl_ausführen_simple {
                     .into()
                 };
                 let ausführen = Self::ausführen;
-                async_ausführen!(sender, erzeuge_nachricht, $aktion_beschreibung, ausführen(self))
+                async_ausführen!(
+                    sender,
+                    erzeuge_aktualisieren_nachricht,
+                    erzeuge_fehler_nachricht,
+                    $aktion_beschreibung,
+                    ausführen(self)
+                )
             }
         }
     };
@@ -229,12 +243,18 @@ where
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
-        let erzeuge_nachricht = |clone, fehler| {
+        let erzeuge_fehler_nachricht = |clone, fehler| {
             AsyncNachricht::Fehler { titel: format!("{clone:?}"), nachricht: format!("{fehler:?}") }
                 .into()
         };
         let ausführen = Self::ausführen;
-        async_ausführen!(sender, erzeuge_nachricht, "eines Plans", ausführen(self, einstellungen))
+        async_ausführen!(
+            sender,
+            erzeuge_aktualisieren_nachricht,
+            erzeuge_fehler_nachricht,
+            "eines Plans",
+            ausführen(self, einstellungen)
+        )
     }
 }
 
@@ -527,8 +547,9 @@ where
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
+        let erzeuge_aktualisieren_nachricht = || AsyncNachricht::Aktualisieren.into();
         let titel = format!("{self:?}");
-        let erzeuge_nachricht =
+        let erzeuge_fehler_nachricht =
             |fehler| AsyncNachricht::Fehler { titel, nachricht: format!("{fehler:?}") }.into();
         match self {
             AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
@@ -539,7 +560,8 @@ where
                 let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
-                    |_clone, fehler| erzeuge_nachricht(fehler),
+                    erzeuge_aktualisieren_nachricht,
+                    |_clone, fehler| erzeuge_fehler_nachricht(fehler),
                     "einer Geschwindigkeit-Aktion",
                     ausführen(
                         geschwindigkeit,
@@ -556,7 +578,8 @@ where
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                     sender,
-                    |_clone, fehler| erzeuge_nachricht(fehler),
+                    Some(erzeuge_aktualisieren_nachricht),
+                    |_clone, fehler| erzeuge_fehler_nachricht(fehler),
                 ),
             AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.async_fahrtrichtung_allgemein(
@@ -566,7 +589,8 @@ where
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                     sender,
-                    |_clone, fehler| erzeuge_nachricht(fehler),
+                    Some(erzeuge_aktualisieren_nachricht),
+                    |_clone, fehler| erzeuge_fehler_nachricht(fehler),
                 )
             },
         }
@@ -868,15 +892,17 @@ where
         einstellungen: Einstellungen<L>,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
+        let erzeuge_aktualisieren_nachricht = || AsyncNachricht::Aktualisieren.into();
         let titel = format!("{self:?}");
-        let erzeuge_nachricht =
+        let erzeuge_fehler_nachricht =
             |fehler| AsyncNachricht::Fehler { titel, nachricht: format!("{fehler:?}") }.into();
         let AktionSchalten { weiche, richtung } = self;
         weiche.as_mut().async_schalten(
             richtung.clone(),
             einstellungen.schalten_zeit,
             sender,
-            erzeuge_nachricht,
+            Some(erzeuge_aktualisieren_nachricht),
+            erzeuge_fehler_nachricht,
         )
     }
 }

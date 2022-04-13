@@ -81,6 +81,7 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler>;
 
     /// Einstellen der aktuellen Fahrtrichtung.
@@ -104,6 +105,7 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler>;
 
     /// Die aktuell eingestellte Fahrtrichtung, falls bekannt.
@@ -190,7 +192,8 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
@@ -200,7 +203,8 @@ impl<L: Leiter> Geschwindigkeit<L> {
         let async_umdrehen_allgemein_aux = <L as Leiter>::async_umdrehen_allgemein_aux;
         async_ausführen!(
             sender,
-            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            || todo!(),
+            |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_umdrehen_allgemein_aux(
                 self.leiter,
@@ -208,6 +212,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
+                None::<fn()>,
             )
         )
     }
@@ -239,7 +244,8 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
@@ -250,7 +256,8 @@ impl<L: Leiter> Geschwindigkeit<L> {
         let async_fahrtrichtung_allgemein_aux = <L as Leiter>::async_fahrtrichtung_allgemein_aux;
         async_ausführen!(
             sender,
-            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            || todo!(),
+            |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_fahrtrichtung_allgemein_aux(
                 self.leiter,
@@ -259,6 +266,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
+                None::<fn()>
             )
         )
     }
@@ -690,6 +698,7 @@ impl Leiter for Mittelleiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler> {
         umdrehen_mittelleiter!(
             mutex=>lock=>deref_mut,
@@ -718,6 +727,7 @@ impl Leiter for Mittelleiter {
         _verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         _stopp_zeit: Duration,
         _umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler> {
         neue_fahrtrichtung.unreachable()
     }
@@ -753,7 +763,8 @@ impl Geschwindigkeit<Mittelleiter> {
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
         self.async_umdrehen_allgemein(
             pwm_frequenz,
@@ -761,7 +772,8 @@ impl Geschwindigkeit<Mittelleiter> {
             stopp_zeit,
             umdrehen_zeit,
             sender,
-            erzeuge_nachricht,
+            erzeuge_aktualisieren_nachricht,
+            erzeuge_fehler_nachricht,
         )
     }
 
@@ -887,6 +899,7 @@ impl Leiter for Zweileiter {
         PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         PhantomData: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler> {
         Self::async_umdrehen_aux(mutex, pwm_frequenz, stopp_zeit)
     }
@@ -911,6 +924,7 @@ impl Leiter for Zweileiter {
         PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         PhantomData: <Self as Leiter>::UmdrehenZeit,
+        aktualisieren: Option<impl FnMut()>,
     ) -> Result<(), Fehler> {
         Self::async_fahrtrichtung_aux(mutex, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
@@ -1004,12 +1018,14 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
         let async_umdrehen_aux = Zweileiter::async_umdrehen_aux;
         async_ausführen!(
             sender,
-            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            || todo!(),
+            |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_umdrehen_aux(self.leiter, pwm_frequenz, stopp_zeit,)
         )
@@ -1032,12 +1048,14 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
         let async_fahrtrichtung_aux = Zweileiter::async_fahrtrichtung_aux;
         async_ausführen!(
             sender,
-            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            || todo!(),
+            |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_fahrtrichtung_aux(self.leiter, neue_fahrtrichtung, pwm_frequenz, stopp_zeit,)
         )

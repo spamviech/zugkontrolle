@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use log::debug;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
@@ -109,7 +110,7 @@ where
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.steuerung, richtung, schalten_zeit)?;
+        Self::schalten_aux(&mut self.steuerung, richtung, schalten_zeit, None::<fn()>)?;
         Ok(())
     }
 
@@ -117,6 +118,7 @@ where
         mutex: &mut Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>,
         richtung: Richtung,
         schalten_zeit: Duration,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
         let mut guard = mutex.lock();
         let letzte_richtung = guard.letzte_richtung.clone();
@@ -124,6 +126,9 @@ where
         guard.letzte_richtung = aktuelle_richtung.clone();
         guard.aktuelle_richtung = richtung.clone();
         drop(guard);
+        if let Some(aktualisieren) = aktualisieren {
+            aktualisieren()
+        }
         macro_rules! bei_fehler_zurücksetzen {
             ($result: expr) => {
                 if let Err(fehler) = $result {
@@ -160,15 +165,30 @@ where
         richtung: Richtung,
         schalten_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<impl FnOnce() -> Nachricht + Send + 'static>,
+        erzeuge_fehler_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
         let name_clone = self.name.clone();
-        let schalten = Self::schalten_aux;
+        let sender_clone = sender.clone();
+        let sende_aktualisieren_nachricht =
+            erzeuge_aktualisieren_nachricht.map(|erzeuge_nachricht| {
+                move || {
+                    if let Err(fehler) = sender_clone.send(erzeuge_nachricht()) {
+                        debug!(
+                            "Kein Empfänger für Aktualisieren-Nachricht bei Schalten der Weiche {}: {:?}",
+                            name_clone.0, fehler
+                        )
+                    }
+                }
+            });
+        let name_clone = self.name.clone();
+        let schalten_aux = Self::schalten_aux;
         async_ausführen!(
             sender,
-            |_mutex_clone, fehler| erzeuge_nachricht(fehler),
+            || todo!(),
+            |_mutex_clone, fehler| erzeuge_fehler_nachricht(fehler),
             format!("für Schalten der Weiche {}", name_clone.0),
-            schalten(self.steuerung, richtung, schalten_zeit)
+            schalten_aux(self.steuerung, richtung, schalten_zeit, sende_aktualisieren_nachricht)
         )
     }
 }
