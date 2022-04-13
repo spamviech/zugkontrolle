@@ -884,7 +884,7 @@ where
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         let AktionSchalten { weiche, richtung } = self;
-        weiche.as_mut().schalten(richtung, einstellungen.schalten_zeit)
+        weiche.as_mut().schalten(richtung.clone(), einstellungen.schalten_zeit)
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncFehler<ZZ>> + Send, ZZ: 'static + Send>(

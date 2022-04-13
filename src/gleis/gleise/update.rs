@@ -242,7 +242,7 @@ fn aktion_gleis_an_position<'t>(
                             }),
                             Weiche((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                let richtung = match steuerung.as_ref().steuerung.lock().aktuelle_richtung {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };
@@ -257,7 +257,7 @@ fn aktion_gleis_an_position<'t>(
                             KurvenWeiche((id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::kurve::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().steuerung.lock().aktuelle_richtung {
                                         Innen => Außen,
                                         Außen => Innen,
                                     };
@@ -274,8 +274,9 @@ fn aktion_gleis_an_position<'t>(
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::dreiwege::Richtung::*;
                                     let weiche = steuerung.as_ref();
+                                    let guard = weiche.steuerung.lock();
                                     let richtung =
-                                        match (weiche.aktuelle_richtung, weiche.letzte_richtung) {
+                                        match (guard.aktuelle_richtung, guard.letzte_richtung) {
                                             (Gerade, Links) => Rechts,
                                             (Gerade, Rechts) => Links,
                                             (Gerade, Gerade) => {
@@ -296,7 +297,7 @@ fn aktion_gleis_an_position<'t>(
                             SKurvenWeiche((id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().steuerung.lock().aktuelle_richtung {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     };
@@ -311,7 +312,7 @@ fn aktion_gleis_an_position<'t>(
                             },
                             Kreuzung((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                let richtung = match steuerung.as_ref().steuerung.lock().aktuelle_richtung {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };

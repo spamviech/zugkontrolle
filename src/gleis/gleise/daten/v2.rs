@@ -171,15 +171,29 @@ impl From<KurveSerialisiert> for kurve::KurveSerialisiert {
     }
 }
 
-impl<R1, A1> weiche::WeicheSerialisiert<R1, A1> {
+#[derive(Deserialize)]
+struct WeicheSteuerungSerialisiert<Richtung, Anschlüsse> {
+    /// Der Name der Weiche.
+    name: weiche::Name,
+    /// Die aktuelle Richtung der Weiche.
+    aktuelle_richtung: Richtung,
+    /// Die Richtung vor der aktuellen Richtung.
+    letzte_richtung: Richtung,
+    /// Die Anschlüsse der Weiche.
+    anschlüsse: Anschlüsse,
+}
+
+impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
     fn konvertiere<R2: From<R1>, A2: From<A1>>(self) -> weiche::WeicheSerialisiert<R2, A2> {
-        let weiche::WeicheSerialisiert { name, aktuelle_richtung, letzte_richtung, anschlüsse } =
+        let WeicheSteuerungSerialisiert { name, aktuelle_richtung, letzte_richtung, anschlüsse } =
             self;
         weiche::WeicheSerialisiert {
             name,
-            aktuelle_richtung: aktuelle_richtung.into(),
-            letzte_richtung: letzte_richtung.into(),
-            anschlüsse: anschlüsse.into(),
+            steuerung: weiche::WeicheSteuerung {
+                aktuelle_richtung: aktuelle_richtung.into(),
+                letzte_richtung: letzte_richtung.into(),
+                anschlüsse: anschlüsse.into(),
+            },
         }
     }
 }
@@ -211,7 +225,7 @@ struct WeicheSerialisiert {
     orientierung: gerade_weiche::Orientierung,
     beschreibung: Option<String>,
     steuerung:
-        Option<weiche::WeicheSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
 }
 
 impl From<WeicheSerialisiert> for gerade_weiche::WeicheSerialisiert {
@@ -224,7 +238,7 @@ impl From<WeicheSerialisiert> for gerade_weiche::WeicheSerialisiert {
             winkel,
             orientierung,
             beschreibung,
-            steuerung: steuerung.map(weiche::WeicheSerialisiert::konvertiere),
+            steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
     }
 }
@@ -255,7 +269,7 @@ struct KurvenWeicheSerialisiert {
     orientierung: gerade_weiche::Orientierung,
     beschreibung: Option<String>,
     steuerung: Option<
-        weiche::WeicheSerialisiert<kurven_weiche::Richtung, KurvenWeicheAnschlüsseSerialisiert>,
+        WeicheSteuerungSerialisiert<kurven_weiche::Richtung, KurvenWeicheAnschlüsseSerialisiert>,
     >,
 }
 
@@ -275,7 +289,7 @@ impl From<KurvenWeicheSerialisiert> for kurven_weiche::KurvenWeicheSerialisiert 
             winkel,
             orientierung,
             beschreibung,
-            steuerung: steuerung.map(weiche::WeicheSerialisiert::konvertiere),
+            steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
     }
 }
@@ -308,7 +322,7 @@ struct DreiwegeWeicheSerialisiert {
     winkel: Winkel,
     beschreibung: Option<String>,
     steuerung:
-        Option<weiche::WeicheSerialisiert<dreiwege::Richtung, DreiwegeAnschlüsseSerialisiert>>,
+        Option<WeicheSteuerungSerialisiert<dreiwege::Richtung, DreiwegeAnschlüsseSerialisiert>>,
 }
 
 impl From<DreiwegeWeicheSerialisiert> for dreiwege::DreiwegeWeicheSerialisiert {
@@ -319,7 +333,7 @@ impl From<DreiwegeWeicheSerialisiert> for dreiwege::DreiwegeWeicheSerialisiert {
             radius,
             winkel,
             beschreibung,
-            steuerung: steuerung.map(weiche::WeicheSerialisiert::konvertiere),
+            steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
     }
 }
@@ -335,7 +349,7 @@ struct SKurvenWeicheSerialisiert {
     orientierung: gerade_weiche::Orientierung,
     beschreibung: Option<String>,
     steuerung:
-        Option<weiche::WeicheSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
 }
 
 impl From<SKurvenWeicheSerialisiert> for s_kurve::SKurvenWeicheSerialisiert {
@@ -358,7 +372,7 @@ impl From<SKurvenWeicheSerialisiert> for s_kurve::SKurvenWeicheSerialisiert {
             winkel_reverse,
             orientierung,
             beschreibung,
-            steuerung: steuerung.map(weiche::WeicheSerialisiert::konvertiere),
+            steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
     }
 }
@@ -371,7 +385,7 @@ struct KreuzungSerialisiert {
     variante: kreuzung::Variante,
     beschreibung: Option<String>,
     steuerung:
-        Option<weiche::WeicheSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
 }
 
 impl From<KreuzungSerialisiert> for kreuzung::KreuzungSerialisiert {
@@ -382,7 +396,7 @@ impl From<KreuzungSerialisiert> for kreuzung::KreuzungSerialisiert {
             radius,
             variante,
             beschreibung,
-            steuerung: steuerung.map(weiche::WeicheSerialisiert::konvertiere),
+            steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
     }
 }

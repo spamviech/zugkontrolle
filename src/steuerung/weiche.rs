@@ -29,19 +29,29 @@ use crate::{
 pub struct Name(pub String);
 
 // inklusive Kreuzung
-/// Die Steuerung einer Weiche.
-#[derive(Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_clone(Richtung: Clone)]
-pub struct Weiche<Richtung, Anschlüsse> {
+/// Die [Steuerung](WeicheSteuerung) und der [Name] einer [Weiche].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct BenannteWeiche<Steuerung> {
     /// Der Name der Weiche.
     pub name: Name,
+    /// Die Steuerung der Weiche.
+    pub steuerung: Steuerung,
+}
+
+/// Die Steuerung einer [Weiche].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct WeicheSteuerung<Richtung, Anschlüsse> {
     /// Die aktuelle Richtung der Weiche.
     pub aktuelle_richtung: Richtung,
     /// Die Richtung vor der aktuellen Richtung.
     pub letzte_richtung: Richtung,
     /// Die Anschlüsse der Weiche.
-    anschlüsse: Arc<Mutex<Anschlüsse>>,
+    pub anschlüsse: Anschlüsse,
 }
+
+/// Steuerung und Name eines Schaltbaren Gleises.
+pub type Weiche<Richtung, Anschlüsse> =
+    BenannteWeiche<Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>>;
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     /// Erstelle eine neue [Weichen-Steuerung](Weiche).
@@ -53,26 +63,18 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     ) -> Self {
         Weiche {
             name,
-            aktuelle_richtung,
-            letzte_richtung,
-            anschlüsse: Arc::new(Mutex::new(anschlüsse)),
+            steuerung: Arc::new(Mutex::new(WeicheSteuerung {
+                aktuelle_richtung,
+                letzte_richtung,
+                anschlüsse,
+            })),
         }
     }
 }
 
-/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
-/// Serialisierbare Repräsentation der Steuerung einer Weiche.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
-    /// Der Name der Weiche.
-    pub name: Name,
-    /// Die aktuelle Richtung der Weiche.
-    pub aktuelle_richtung: Richtung,
-    /// Die Richtung vor der aktuellen Richtung.
-    pub letzte_richtung: Richtung,
-    /// Die Anschlüsse der Weiche.
-    pub anschlüsse: Anschlüsse,
-}
+/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
+pub type WeicheSerialisiert<Richtung, Anschlüsse> =
+    BenannteWeiche<WeicheSteuerung<Richtung, Anschlüsse>>;
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
 where
@@ -80,21 +82,23 @@ where
     Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send,
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
-    pub fn schalten(&mut self, richtung: &Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.anschlüsse, richtung, schalten_zeit)?;
-        self.letzte_richtung = self.aktuelle_richtung.clone();
-        self.aktuelle_richtung = richtung.clone();
+    pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
+        Self::schalten_aux(&mut self.steuerung, richtung, schalten_zeit)?;
         Ok(())
     }
 
     fn schalten_aux(
-        mutex: &mut Arc<Mutex<Anschlüsse>>,
-        richtung: &Richtung,
+        mutex: &mut Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>,
+        richtung: Richtung,
         schalten_zeit: Duration,
     ) -> Result<(), Fehler> {
-        mutex.lock().erhalte_mut(richtung).einstellen(Fließend::Fließend)?;
+        // TODO zurücksetzen bei fehler
+        let mut guard = mutex.lock();
+        guard.letzte_richtung = mem::replace(&mut guard.aktuelle_richtung, richtung.clone());
+        drop(guard);
+        mutex.lock().anschlüsse.erhalte_mut(&richtung).einstellen(Fließend::Fließend)?;
         sleep(schalten_zeit);
-        mutex.lock().erhalte_mut(richtung).einstellen(Fließend::Gesperrt)?;
+        mutex.lock().anschlüsse.erhalte_mut(&richtung).einstellen(Fließend::Gesperrt)?;
         Ok(())
     }
 }
@@ -113,15 +117,12 @@ where
         erzeuge_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
         let name_clone = self.name.clone();
-        let richtung_clone = richtung.clone();
-        let tmp = mem::replace(&mut self.aktuelle_richtung, richtung);
-        self.letzte_richtung = tmp;
         let schalten = Self::schalten_aux;
         async_ausführen!(
             sender,
             |_mutex_clone, fehler| erzeuge_nachricht(fehler),
             format!("für Schalten der Weiche {}", name_clone.0),
-            schalten(self.anschlüsse, &richtung_clone, schalten_zeit)
+            schalten(self.steuerung, richtung, schalten_zeit)
         )
     }
 }
@@ -137,15 +138,20 @@ where
     fn serialisiere(&self) -> WeicheSerialisiert<Richtung, T::Serialisiert> {
         WeicheSerialisiert {
             name: self.name.clone(),
-            aktuelle_richtung: self.aktuelle_richtung.clone(),
-            letzte_richtung: self.letzte_richtung.clone(),
-            anschlüsse: self.anschlüsse.lock().serialisiere(),
+            steuerung: {
+                let guard = self.steuerung.lock();
+                WeicheSteuerung {
+                    aktuelle_richtung: guard.aktuelle_richtung.clone(),
+                    letzte_richtung: guard.letzte_richtung.clone(),
+                    anschlüsse: guard.anschlüsse.serialisiere(),
+                }
+            },
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match Arc::try_unwrap(self.anschlüsse) {
-            Ok(mutex) => mutex.into_inner().anschlüsse(),
+        match Arc::try_unwrap(self.steuerung) {
+            Ok(mutex) => mutex.into_inner().anschlüsse.anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
@@ -175,12 +181,17 @@ where
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             input_nicht_benötigt,
-        } = self.anschlüsse.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.steuerung.anschlüsse.reserviere(
+            lager,
+            pwm_pins,
+            output_anschlüsse,
+            input_anschlüsse,
+        )?;
         Ok(Reserviert {
             anschluss: Weiche::neu(
                 self.name,
-                self.aktuelle_richtung,
-                self.letzte_richtung,
+                self.steuerung.aktuelle_richtung,
+                self.steuerung.letzte_richtung,
                 anschlüsse,
             ),
             pwm_nicht_benötigt,

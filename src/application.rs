@@ -689,39 +689,43 @@ where
                 }
             },
             Nachricht::GeradeWeicheSchalten(id, aktion) => {
-                // FIXME führt zu stack-overflow
-                let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
-                    aktion.weiche.as_ref();
+                let steuerung::weiche::WeicheSteuerung {
+                    aktuelle_richtung, letzte_richtung, ..
+                } = *aktion.weiche.as_ref().steuerung.lock();
                 let zustand_zurücksetzen =
-                    ZustandZurücksetzen::Weiche(id, *aktuelle_richtung, *letzte_richtung);
+                    ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung);
                 self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::KurvenWeicheSchalten(id, aktion) => {
-                let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
-                    aktion.weiche.as_ref();
+                let steuerung::weiche::WeicheSteuerung {
+                    aktuelle_richtung, letzte_richtung, ..
+                } = *aktion.weiche.as_ref().steuerung.lock();
                 let zustand_zurücksetzen =
-                    ZustandZurücksetzen::KurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
+                    ZustandZurücksetzen::KurvenWeiche(id, aktuelle_richtung, letzte_richtung);
                 self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::DreiwegeWeicheSchalten(id, aktion) => {
-                let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
-                    aktion.weiche.as_ref();
+                let steuerung::weiche::WeicheSteuerung {
+                    aktuelle_richtung, letzte_richtung, ..
+                } = *aktion.weiche.as_ref().steuerung.lock();
                 let zustand_zurücksetzen =
-                    ZustandZurücksetzen::DreiwegeWeiche(id, *aktuelle_richtung, *letzte_richtung);
+                    ZustandZurücksetzen::DreiwegeWeiche(id, aktuelle_richtung, letzte_richtung);
                 self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::SKurvenWeicheSchalten(id, aktion) => {
-                let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
-                    aktion.weiche.as_ref();
+                let steuerung::weiche::WeicheSteuerung {
+                    aktuelle_richtung, letzte_richtung, ..
+                } = *aktion.weiche.as_ref().steuerung.lock();
                 let zustand_zurücksetzen =
-                    ZustandZurücksetzen::SKurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
+                    ZustandZurücksetzen::SKurvenWeiche(id, aktuelle_richtung, letzte_richtung);
                 self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::KreuzungSchalten(id, aktion) => {
-                let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
-                    aktion.weiche.as_ref();
+                let steuerung::weiche::WeicheSteuerung {
+                    aktuelle_richtung, letzte_richtung, ..
+                } = *aktion.weiche.as_ref().steuerung.lock();
                 let zustand_zurücksetzen =
-                    ZustandZurücksetzen::Kreuzung(id, *aktuelle_richtung, *letzte_richtung);
+                    ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung);
                 self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),

@@ -12,7 +12,7 @@ use crate::{
     anschluss::OutputSerialisiert,
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     nachschlagen::Nachschlagen,
-    steuerung::weiche::{Name, WeicheSerialisiert},
+    steuerung::weiche::{Name, WeicheSerialisiert, WeicheSteuerung},
 };
 
 /// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
@@ -36,12 +36,15 @@ where
     pub fn neu<Richtung>(
         option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
-        let (name, anschlüsse_save, hat_steuerung) =
-            if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
-                (name.0, anschlüsse, true)
-            } else {
-                (String::new(), Default::default(), false)
-            };
+        let (name, anschlüsse_save, hat_steuerung) = if let Some(WeicheSerialisiert {
+            name,
+            steuerung: WeicheSteuerung { anschlüsse, .. },
+        }) = option_weiche
+        {
+            (name.0, anschlüsse, true)
+        } else {
+            (String::new(), Default::default(), false)
+        };
         let anschlüsse_zustand = anschlüsse_save.clone().into();
         Zustand {
             name,
@@ -204,9 +207,11 @@ where
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert {
                         name: Name(self.name.clone()),
-                        aktuelle_richtung: Default::default(),
-                        letzte_richtung: Default::default(),
-                        anschlüsse: self.anschlüsse.clone(),
+                        steuerung: WeicheSteuerung {
+                            aktuelle_richtung: Default::default(),
+                            letzte_richtung: Default::default(),
+                            anschlüsse: self.anschlüsse.clone(),
+                        },
                     })))
                 },
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
