@@ -74,7 +74,7 @@ pub trait Leiter {
     /// Umdrehen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
-    fn async_umdrehen_allgemein_aux<Nachricht: Send + 'static>(
+    fn async_umdrehen_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
@@ -95,7 +95,7 @@ pub trait Leiter {
     /// Einstellen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
-    fn async_fahrtrichtung_allgemein_aux<Nachricht: Send + 'static>(
+    fn async_fahrtrichtung_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         neue_fahrtrichtung: <Self as Leiter>::Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
@@ -195,7 +195,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
-        let async_umdrehen_allgemein_aux = <L as Leiter>::async_umdrehen_allgemein_aux::<Nachricht>;
+        let async_umdrehen_allgemein_aux = <L as Leiter>::async_umdrehen_allgemein_aux;
         async_ausführen!(
             sender,
             |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
@@ -245,8 +245,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
-        let async_fahrtrichtung_allgemein_aux =
-            <L as Leiter>::async_fahrtrichtung_allgemein_aux::<Nachricht>;
+        let async_fahrtrichtung_allgemein_aux = <L as Leiter>::async_fahrtrichtung_allgemein_aux;
         async_ausführen!(
             sender,
             |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
@@ -609,7 +608,7 @@ macro_rules! umdrehen_mittelleiter {
         $self: ident $(=> $method: ident)*,
         $pwm_frequenz: expr,
         $verhältnis_fahrspannung_überspannung: expr,
-        $stopp_zeit:expr,
+        $stopp_zeit: expr,
         $umdrehen_zeit: expr
     ) => {{
         $self $(.$method())* .geschwindigkeit(0, $pwm_frequenz, $verhältnis_fahrspannung_überspannung)?;
@@ -683,7 +682,7 @@ impl Leiter for Mittelleiter {
         )
     }
 
-    fn async_umdrehen_allgemein_aux<Nachricht: Send + 'static>(
+    fn async_umdrehen_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
@@ -710,7 +709,7 @@ impl Leiter for Mittelleiter {
         neue_fahrtrichtung.unreachable()
     }
 
-    fn async_fahrtrichtung_allgemein_aux<Nachricht: Send + 'static>(
+    fn async_fahrtrichtung_allgemein_aux(
         _mutex: &Arc<Mutex<Self>>,
         neue_fahrtrichtung: <Self as Leiter>::Fahrtrichtung,
         _pwm_frequenz: NichtNegativ,
@@ -879,14 +878,15 @@ impl Leiter for Zweileiter {
         self.umdrehen(pwm_frequenz, stopp_zeit)
     }
 
-    fn async_umdrehen_allgemein_aux<Nachricht: Send + 'static>(
+    #[inline(always)]
+    fn async_umdrehen_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         pwm_frequenz: NichtNegativ,
-        verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
+        PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
-        umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        PhantomData: <Self as Leiter>::UmdrehenZeit,
     ) -> Result<(), Fehler> {
-        todo!()
+        Self::async_umdrehen_aux(mutex, pwm_frequenz, stopp_zeit)
     }
 
     #[inline(always)]
@@ -901,15 +901,16 @@ impl Leiter for Zweileiter {
         self.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
-    fn async_fahrtrichtung_allgemein_aux<Nachricht: Send + 'static>(
+    #[inline(always)]
+    fn async_fahrtrichtung_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         neue_fahrtrichtung: <Self as Leiter>::Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
-        verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
+        PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
-        umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
+        PhantomData: <Self as Leiter>::UmdrehenZeit,
     ) -> Result<(), Fehler> {
-        todo!()
+        Self::async_fahrtrichtung_aux(mutex, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
     fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung> {
@@ -921,7 +922,41 @@ impl Leiter for Zweileiter {
     }
 }
 
+macro_rules! fahrtrichtung_zweileiter {
+    (
+        $self: ident $(=> $method: ident)*,
+        $pwm_frequenz: expr,
+        $stopp_zeit: expr,
+        $methode: ident ( $($args: expr),* )
+    ) => {{
+        $self $(.$method())* .geschwindigkeit(0, $pwm_frequenz, PhantomData)?;
+        sleep($stopp_zeit);
+        match $self $(.$method())* {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        }.$methode( $($args),* )?;
+        Ok(())
+    }};
+}
+
 impl Zweileiter {
+    /// Umdrehen der aktuellen Fahrtrichtung.
+    pub fn umdrehen(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        fahrtrichtung_zweileiter!(self, pwm_frequenz, stopp_zeit, umschalten())
+    }
+
+    fn async_umdrehen_aux(
+        mutex: &Arc<Mutex<Self>>,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        fahrtrichtung_zweileiter!(mutex=>lock=>deref_mut, pwm_frequenz, stopp_zeit, umschalten())
+    }
+
     /// Einstellen der aktuellen Fahrtrichtung.
     pub fn fahrtrichtung(
         &mut self,
@@ -929,32 +964,55 @@ impl Zweileiter {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
-        sleep(stopp_zeit);
-        let fahrtrichtung = match self {
-            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
-        };
-        Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
+        fahrtrichtung_zweileiter!(
+            self,
+            pwm_frequenz,
+            stopp_zeit,
+            einstellen(neue_fahrtrichtung.into())
+        )
     }
+    fn async_fahrtrichtung_aux(
+        mutex: &Arc<Mutex<Self>>,
+        neue_fahrtrichtung: Fahrtrichtung,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+    ) -> Result<(), Fehler> {
+        fahrtrichtung_zweileiter!(
+            mutex=>lock=>deref_mut,
+            pwm_frequenz,
+            stopp_zeit,
+            einstellen(neue_fahrtrichtung.into())
+        )
+    }
+}
 
+impl Geschwindigkeit<Zweileiter> {
     /// Umdrehen der aktuellen Fahrtrichtung.
     pub fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.geschwindigkeit(0, pwm_frequenz, PhantomData)?;
-        sleep(stopp_zeit);
-        let fahrtrichtung = match self {
-            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
-        };
-        Ok(fahrtrichtung.umschalten()?)
+        self.lock_leiter().umdrehen(pwm_frequenz, stopp_zeit)
     }
-}
 
-impl Geschwindigkeit<Zweileiter> {
+    /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
+    pub fn async_umdrehen<Nachricht: Send + 'static>(
+        &mut self,
+        pwm_frequenz: NichtNegativ,
+        stopp_zeit: Duration,
+        sender: Sender<Nachricht>,
+        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+    ) -> JoinHandle<()> {
+        let async_umdrehen_aux = Zweileiter::async_umdrehen_aux;
+        async_ausführen!(
+            sender,
+            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            "einer Geschwindigkeit",
+            async_umdrehen_aux(self.leiter, pwm_frequenz, stopp_zeit,)
+        )
+    }
+
     /// Einstellen der aktuellen Fahrtrichtung.
     pub fn fahrtrichtung(
         &mut self,
@@ -974,41 +1032,13 @@ impl Geschwindigkeit<Zweileiter> {
         sender: Sender<Nachricht>,
         erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
     ) -> JoinHandle<()> {
-        todo!()
-        // let fahrtrichtung = Self::fahrtrichtung;
-        // async_ausführen!(
-        //     sender,
-        //     erzeuge_nachricht,
-        //     "einer Geschwindigkeit",
-        //     fahrtrichtung(self, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
-        // )
-    }
-
-    /// Umdrehen der aktuellen Fahrtrichtung.
-    pub fn umdrehen(
-        &mut self,
-        pwm_frequenz: NichtNegativ,
-        stopp_zeit: Duration,
-    ) -> Result<(), Fehler> {
-        self.lock_leiter().umdrehen(pwm_frequenz, stopp_zeit)
-    }
-
-    /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
-    pub fn async_umdrehen<Nachricht: Send + 'static>(
-        &mut self,
-        pwm_frequenz: NichtNegativ,
-        stopp_zeit: Duration,
-        sender: Sender<Nachricht>,
-        erzeuge_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
-    ) -> JoinHandle<()> {
-        todo!()
-        // let umdrehen = Self::umdrehen;
-        // async_ausführen!(
-        //     sender,
-        //     erzeuge_nachricht,
-        //     "einer Geschwindigkeit",
-        //     umdrehen(self, pwm_frequenz, stopp_zeit)
-        // )
+        let async_fahrtrichtung_aux = Zweileiter::async_fahrtrichtung_aux;
+        async_ausführen!(
+            sender,
+            |leiter, fehler| erzeuge_nachricht(Geschwindigkeit { leiter }, fehler),
+            "einer Geschwindigkeit",
+            async_fahrtrichtung_aux(self.leiter, neue_fahrtrichtung, pwm_frequenz, stopp_zeit,)
+        )
     }
 
     pub(crate) fn ks_länge(&self) -> Option<usize> {
