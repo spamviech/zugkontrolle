@@ -83,6 +83,7 @@ impl<L: LeiterAnzeige> AnzeigeZustand<L> {
         }
     }
 
+    /// Erzwinge ein Neuzeichnen durch ändern eines bool-Wertes.
     #[inline(always)]
     pub(crate) fn flip(&mut self) {
         self.flip = !self.flip
@@ -356,7 +357,6 @@ impl<M, R> Debug for Anzeige<'_, M, R> {
     }
 }
 
-// FIXME Anzeige hängt teilweise, da iced Änderungen im Mutex nicht zuverlässig erkennt!
 impl<'t, M, R> Anzeige<'t, M, R>
 where
     M: 'static + Clone,

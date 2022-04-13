@@ -89,7 +89,6 @@ impl ModusDaten {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Gleise<L: Leiter> {
-    // FIXME leeren wird von iced ignoriert, wenn innerhalb einer Mutex!
     canvas: Arc<Mutex<Cache>>,
     pivot: Position,
     skalieren: Skalar,

@@ -863,7 +863,6 @@ impl AnyAktionSchaltenSerialisiert {
     }
 }
 
-/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Schalten einer [Weiche].
 pub struct AktionSchalten<Weiche, Richtung> {
