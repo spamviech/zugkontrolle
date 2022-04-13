@@ -1,7 +1,10 @@
 //! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
 //! [Canvas](crate::application::touch_canvas::Canvas) erzwingt.
 
-use std::{fmt::Debug, sync::Arc};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::Arc,
+};
 
 use parking_lot::Mutex;
 use rstar::RTreeObject;
@@ -21,11 +24,22 @@ use crate::{
 
 /// Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Steuerung<T> {
     steuerung: T,
     canvas: Arc<Mutex<Cache>>,
     verändert: bool,
+}
+
+// Explizite Implementierung, um einen stack-overflow zu vermeiden.
+impl<T: Debug> Debug for Steuerung<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Steuerung")
+            .field("steuerung", &self.steuerung)
+            .field("canvas", &"<Cache>")
+            .field("verändert", &self.verändert)
+            .finish()
+    }
 }
 
 impl<T> Drop for Steuerung<T> {

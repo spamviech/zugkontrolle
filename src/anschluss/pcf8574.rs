@@ -411,12 +411,23 @@ pub enum Variante {
 }
 
 /// Ein Port eines Pcf8574.
-#[derive(Debug)]
 pub struct Port {
     pcf8574: Arc<Mutex<Pcf8574>>,
     lager: Lager,
     beschreibung: Beschreibung,
     port: kleiner_8,
+}
+
+// Explizite Implementierung um einen stack-overflow zu vermeiden.
+impl Debug for Port {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Port")
+            .field("pcf8574", &self.pcf8574)
+            .field("lager", &"<Lager>")
+            .field("beschreibung", &self.beschreibung)
+            .field("port", &self.port)
+            .finish()
+    }
 }
 
 impl PartialEq for Port {
