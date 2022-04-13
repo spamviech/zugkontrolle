@@ -5,7 +5,7 @@ use std::{
     fmt::{Debug, Display},
     hash::Hash,
     sync::Arc,
-    thread::sleep,
+    thread::{sleep, JoinHandle},
     time::{Duration, Instant},
 };
 
@@ -91,16 +91,17 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         &mut self,
         mut aktion: Aktion,
         zustand_zurücksetzen: Option<ZustandZurücksetzen>,
-    ) where
+    ) -> JoinHandle<()>
+    where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        let _join_handle = aktion.async_ausführen(
+        aktion.async_ausführen(
             self.gleise.zugtyp().into(),
             self.sender.clone(),
             zustand_zurücksetzen,
-        );
+        )
     }
 
     #[allow(single_use_lifetimes)]
