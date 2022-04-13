@@ -11,7 +11,7 @@ use std::{
     usize,
 };
 
-use log::error;
+use log::{debug, error};
 use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -71,7 +71,6 @@ pub trait Leiter {
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 
-    // TODO update-Nachricht nach erfolgreichem Lock, evtl über Steuerung?
     /// Umdrehen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
@@ -81,7 +80,7 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler>;
 
     /// Einstellen der aktuellen Fahrtrichtung.
@@ -94,7 +93,6 @@ pub trait Leiter {
         umdrehen_zeit: Self::UmdrehenZeit,
     ) -> Result<(), Fehler>;
 
-    // TODO update-Nachricht nach erfolgreichem Lock, evtl über Steuerung?
     /// Einstellen der aktuellen Fahrtrichtung in einem anderen Thread.
     ///
     /// Der Mutex sollte immer nur so schnell wie möglich wieder freigegeben werden.
@@ -105,7 +103,7 @@ pub trait Leiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler>;
 
     /// Die aktuell eingestellte Fahrtrichtung, falls bekannt.
@@ -145,6 +143,23 @@ impl<Leiter> Geschwindigkeit<Leiter> {
     pub(crate) fn lock_leiter<'t>(&'t self) -> MutexGuard<'t, Leiter> {
         self.leiter.lock()
     }
+}
+
+macro_rules! sende_aktualisieren_nachricht {
+    ($sender: expr, $erzeuge_aktualisieren_nachricht: expr) => {{
+        let sender_clone = $sender.clone();
+        let erzeuge_aktualisieren_nachricht_clone = $erzeuge_aktualisieren_nachricht.clone();
+        erzeuge_aktualisieren_nachricht_clone.map(|erzeuge_nachricht| {
+            move || {
+                if let Err(fehler) = sender_clone.send(erzeuge_nachricht()) {
+                    debug!(
+                        "Kein Empfänger für Aktualisieren-Nachricht bei Umdrehen einer Geschwindigkeit: {:?}",
+                        fehler
+                    )
+                }
+            }
+        })
+    }}
 }
 
 impl<L: Leiter> Geschwindigkeit<L> {
@@ -192,18 +207,22 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
+        let sende_aktualisieren_nachricht =
+            sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_umdrehen_allgemein_aux = <L as Leiter>::async_umdrehen_allgemein_aux;
         async_ausführen!(
             sender,
-            || todo!(),
+            erzeuge_aktualisieren_nachricht,
             |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_umdrehen_allgemein_aux(
@@ -212,7 +231,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
-                None::<fn()>,
+                sende_aktualisieren_nachricht,
             )
         )
     }
@@ -244,8 +263,10 @@ impl<L: Leiter> Geschwindigkeit<L> {
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
@@ -253,10 +274,12 @@ impl<L: Leiter> Geschwindigkeit<L> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
+        let sende_aktualisieren_nachricht =
+            sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_fahrtrichtung_allgemein_aux = <L as Leiter>::async_fahrtrichtung_allgemein_aux;
         async_ausführen!(
             sender,
-            || todo!(),
+            erzeuge_aktualisieren_nachricht,
             |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
             async_fahrtrichtung_allgemein_aux(
@@ -266,7 +289,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
                 verhältnis_fahrspannung_überspannung,
                 stopp_zeit,
                 umdrehen_zeit,
-                None::<fn()>
+                sende_aktualisieren_nachricht,
             )
         )
     }
@@ -620,8 +643,14 @@ macro_rules! umdrehen_mittelleiter {
         $verhältnis_fahrspannung_überspannung: expr,
         $stopp_zeit: expr,
         $umdrehen_zeit: expr
+        $(, $aktualisieren: expr)?
     ) => {{
         $self $(.$method())* .geschwindigkeit(0, $pwm_frequenz, $verhältnis_fahrspannung_überspannung)?;
+        $(
+            if let Some(aktualisieren) = $aktualisieren {
+                aktualisieren()
+            }
+        )?
         sleep($stopp_zeit);
         match $self $(.$method())* {
             Mittelleiter::Pwm { pin, letzter_wert: _, polarität } => {
@@ -698,14 +727,15 @@ impl Leiter for Mittelleiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
         umdrehen_mittelleiter!(
             mutex=>lock=>deref_mut,
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
-            umdrehen_zeit
+            umdrehen_zeit,
+            aktualisieren
         )
     }
 
@@ -727,7 +757,7 @@ impl Leiter for Mittelleiter {
         _verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         _stopp_zeit: Duration,
         _umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        _aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
         neue_fahrtrichtung.unreachable()
     }
@@ -763,8 +793,10 @@ impl Geschwindigkeit<Mittelleiter> {
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()> {
         self.async_umdrehen_allgemein(
             pwm_frequenz,
@@ -899,9 +931,9 @@ impl Leiter for Zweileiter {
         PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         PhantomData: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        Self::async_umdrehen_aux(mutex, pwm_frequenz, stopp_zeit)
+        Self::async_umdrehen_aux(mutex, pwm_frequenz, stopp_zeit, aktualisieren)
     }
 
     #[inline(always)]
@@ -924,9 +956,15 @@ impl Leiter for Zweileiter {
         PhantomData: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         PhantomData: <Self as Leiter>::UmdrehenZeit,
-        aktualisieren: Option<impl FnMut()>,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        Self::async_fahrtrichtung_aux(mutex, neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
+        Self::async_fahrtrichtung_aux(
+            mutex,
+            neue_fahrtrichtung,
+            pwm_frequenz,
+            stopp_zeit,
+            aktualisieren,
+        )
     }
 
     fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung> {
@@ -944,8 +982,14 @@ macro_rules! fahrtrichtung_zweileiter {
         $pwm_frequenz: expr,
         $stopp_zeit: expr,
         $methode: ident ( $($args: expr),* )
+        $(, $aktualisieren: expr)?
     ) => {{
         $self $(.$method())* .geschwindigkeit(0, $pwm_frequenz, PhantomData)?;
+        $(
+            if let Some(aktualisieren) = $aktualisieren {
+                aktualisieren()
+            }
+        )?
         sleep($stopp_zeit);
         match $self $(.$method())* {
             Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
@@ -969,8 +1013,15 @@ impl Zweileiter {
         mutex: &Arc<Mutex<Self>>,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        fahrtrichtung_zweileiter!(mutex=>lock=>deref_mut, pwm_frequenz, stopp_zeit, umschalten())
+        fahrtrichtung_zweileiter!(
+            mutex=>lock=>deref_mut,
+            pwm_frequenz,
+            stopp_zeit,
+            umschalten(),
+            aktualisieren
+        )
     }
 
     /// Einstellen der aktuellen Fahrtrichtung.
@@ -992,12 +1043,14 @@ impl Zweileiter {
         neue_fahrtrichtung: Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
         fahrtrichtung_zweileiter!(
             mutex=>lock=>deref_mut,
             pwm_frequenz,
             stopp_zeit,
-            einstellen(neue_fahrtrichtung.into())
+            einstellen(neue_fahrtrichtung.into()),
+            aktualisieren
         )
     }
 }
@@ -1018,16 +1071,25 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()> {
+        let sende_aktualisieren_nachricht =
+            sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_umdrehen_aux = Zweileiter::async_umdrehen_aux;
         async_ausführen!(
             sender,
-            || todo!(),
+            erzeuge_aktualisieren_nachricht,
             |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
-            async_umdrehen_aux(self.leiter, pwm_frequenz, stopp_zeit,)
+            async_umdrehen_aux(
+                self.leiter,
+                pwm_frequenz,
+                stopp_zeit,
+                sende_aktualisieren_nachricht
+            )
         )
     }
 
@@ -1048,16 +1110,26 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnMut() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Self, Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()> {
+        let sende_aktualisieren_nachricht =
+            sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_fahrtrichtung_aux = Zweileiter::async_fahrtrichtung_aux;
         async_ausführen!(
             sender,
-            || todo!(),
+            erzeuge_aktualisieren_nachricht,
             |leiter, fehler| erzeuge_fehler_nachricht(Geschwindigkeit { leiter }, fehler),
             "einer Geschwindigkeit",
-            async_fahrtrichtung_aux(self.leiter, neue_fahrtrichtung, pwm_frequenz, stopp_zeit,)
+            async_fahrtrichtung_aux(
+                self.leiter,
+                neue_fahrtrichtung,
+                pwm_frequenz,
+                stopp_zeit,
+                sende_aktualisieren_nachricht,
+            )
         )
     }
 

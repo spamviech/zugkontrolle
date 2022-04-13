@@ -141,17 +141,19 @@ macro_rules! async_ausführen {
     ) => {{
         let mut clone = $self.clone();
         std::thread::spawn(move || {
-            let nachricht = if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
-                $erzeuge_fehler_nachricht(clone, fehler)
-            } else {
-                $erzeuge_aktualisieren_nachricht()
-            };
+            let sende_nachricht = |nachricht|
             if let Err(fehler) = $sender.send(nachricht) {
                 log::error!(
                     "Kein Empfänger wartet auf die Fehlermeldung {}: {fehler}",
                     $aktion_beschreibung,
                 )
-            }
+            };
+            #[allow(unused_mut)]
+            if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
+                sende_nachricht($erzeuge_fehler_nachricht(clone, fehler))
+            } else if let Some(mut erzeuge_nachricht) = $erzeuge_aktualisieren_nachricht {
+                sende_nachricht(erzeuge_nachricht())
+            };
         })
     }}
 }
@@ -181,7 +183,7 @@ macro_rules! impl_ausführen_simple {
                 let ausführen = Self::ausführen;
                 async_ausführen!(
                     sender,
-                    erzeuge_aktualisieren_nachricht,
+                    Some(erzeuge_aktualisieren_nachricht),
                     erzeuge_fehler_nachricht,
                     $aktion_beschreibung,
                     ausführen(self)
@@ -250,7 +252,7 @@ where
         let ausführen = Self::ausführen;
         async_ausführen!(
             sender,
-            erzeuge_aktualisieren_nachricht,
+            Some(erzeuge_aktualisieren_nachricht),
             erzeuge_fehler_nachricht,
             "eines Plans",
             ausführen(self, einstellungen)
@@ -504,8 +506,6 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
-/// FIXME umdrehen zeigt die Änderung erst nach erfolgreichem async_ausführen an,
-/// blockiert währenddessen dauerhaft den Mutex
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
     L: 'static + Leiter + Send + Debug,
@@ -560,7 +560,7 @@ where
                 let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
-                    erzeuge_aktualisieren_nachricht,
+                    Some(erzeuge_aktualisieren_nachricht),
                     |_clone, fehler| erzeuge_fehler_nachricht(fehler),
                     "einer Geschwindigkeit-Aktion",
                     ausführen(

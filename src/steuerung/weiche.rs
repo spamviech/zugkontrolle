@@ -165,13 +165,16 @@ where
         richtung: Richtung,
         schalten_zeit: Duration,
         sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<impl FnOnce() -> Nachricht + Send + 'static>,
-        erzeuge_fehler_nachricht: impl FnOnce(Fehler) -> Nachricht + Send + 'static,
+        erzeuge_aktualisieren_nachricht: Option<
+            impl 'static + FnOnce() -> Nachricht + Clone + Send,
+        >,
+        erzeuge_fehler_nachricht: impl 'static + FnOnce(Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()> {
         let name_clone = self.name.clone();
         let sender_clone = sender.clone();
+        let erzeuge_aktualisieren_nachricht_clone = erzeuge_aktualisieren_nachricht.clone();
         let sende_aktualisieren_nachricht =
-            erzeuge_aktualisieren_nachricht.map(|erzeuge_nachricht| {
+            erzeuge_aktualisieren_nachricht_clone.map(|erzeuge_nachricht| {
                 move || {
                     if let Err(fehler) = sender_clone.send(erzeuge_nachricht()) {
                         debug!(
@@ -185,7 +188,7 @@ where
         let schalten_aux = Self::schalten_aux;
         async_ausführen!(
             sender,
-            || todo!(),
+            erzeuge_aktualisieren_nachricht,
             |_mutex_clone, fehler| erzeuge_fehler_nachricht(fehler),
             format!("für Schalten der Weiche {}", name_clone.0),
             schalten_aux(self.steuerung, richtung, schalten_zeit, sende_aktualisieren_nachricht)
