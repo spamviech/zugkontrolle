@@ -33,7 +33,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionGeschwindigkeit, Ausführen},
+        plan::Ausführen,
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
@@ -90,7 +90,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
-        zustand_zurücksetzen: ZustandZurücksetzen<L>,
+        zustand_zurücksetzen: Option<ZustandZurücksetzen>,
     ) where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
@@ -666,27 +666,8 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
-    fn geschwindigkeit_anzeige_zurücksetzen(
-        &mut self,
-        name: geschwindigkeit::Name,
-        zustand_zurücksetzen: <Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ) {
-        let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
-        // Entfernte Geschwindigkeit wird ignoriert,
-        // da es nur um eine Reaktion auf einen Fehler geht
-        if let Some(geschwindigkeit) = gleise.geschwindigkeit_mut(&name) {
-            if let Some(anzeige_zustand) = geschwindigkeiten.get_mut(&name) {
-                <Leiter as LeiterAnzeige>::zustand_zurücksetzen(
-                    geschwindigkeit,
-                    anzeige_zustand,
-                    zustand_zurücksetzen,
-                )
-            }
-        }
-    }
-
-    fn zustand_zurücksetzen(&mut self, zustand_zurücksetzen: ZustandZurücksetzen<Leiter>) {
+impl<L: LeiterAnzeige> Zugkontrolle<L> {
+    fn zustand_zurücksetzen(&mut self, zustand_zurücksetzen: ZustandZurücksetzen) {
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => {
                 self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
@@ -703,9 +684,6 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
             ZustandZurücksetzen::Kreuzung(id, aktuelle_richtung, letzte_richtung) => {
                 self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
             },
-            ZustandZurücksetzen::GeschwindigkeitAnzeige(name, zustand_zurücksetzen) => {
-                self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
-            },
         }
     }
 
@@ -714,9 +692,11 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
         &mut self,
         titel: String,
         nachricht: String,
-        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
+        zustand_zurücksetzen: Option<ZustandZurücksetzen>,
     ) {
-        self.zustand_zurücksetzen(zustand_zurücksetzen);
+        if let Some(zustand_zurücksetzen) = zustand_zurücksetzen {
+            self.zustand_zurücksetzen(zustand_zurücksetzen)
+        }
         self.zeige_message_box(titel, nachricht);
     }
 }
@@ -756,63 +736,6 @@ where
     <L as Leiter>::Fahrtrichtung: Debug + Send,
     <L as Serialisiere>::Serialisiert: Send,
 {
-    /// Eine Nachricht des Widgets zum Anpassen der Anschlüsse einer
-    /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    pub fn geschwindigkeit_anzeige_nachricht(
-        &mut self,
-        name: geschwindigkeit::Name,
-        nachricht: AktionGeschwindigkeit<L>,
-    ) -> Option<Command<Nachricht<L>>> {
-        // TODO AktionGeschwindigkeit kann einfach ausgeführt werden!
-        let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
-        macro_rules! unwrap_or_error_return {
-            ($value:expr) => {
-                if let Some(value) = $value {
-                    value
-                } else {
-                    error!(
-                        "Update-Nachricht für gelöschte Geschwindigkeit {}: {:?}",
-                        name.0, nachricht
-                    );
-                    return None;
-                }
-            };
-        }
-        let geschwindigkeit = unwrap_or_error_return!(gleise.geschwindigkeit_mut(&name));
-        let anzeige_zustand = unwrap_or_error_return!(geschwindigkeiten.get_mut(&name));
-        let name_clone = name.clone();
-        let update_result = <L as LeiterAnzeige>::anzeige_update(
-            geschwindigkeit,
-            anzeige_zustand,
-            nachricht,
-            self.sender.clone(),
-            move |titel, fehler, zustand_zurücksetzen| Nachricht::AsyncFehler {
-                titel,
-                nachricht: format!("{:?}", fehler),
-                zustand_zurücksetzen: ZustandZurücksetzen::GeschwindigkeitAnzeige(
-                    name_clone,
-                    zustand_zurücksetzen,
-                ),
-            },
-        );
-        match update_result {
-            Ok(cmd) => {
-                let name_clone = name.clone();
-                Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
-                    name: name_clone.clone(),
-                    nachricht,
-                }))
-            },
-            Err(error) => {
-                self.zeige_message_box(
-                    format!("Fehler Geschwindigkeit {}", name.0),
-                    format!("{:?}", error),
-                );
-                None
-            },
-        }
-    }
-
     /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
     pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
         match any_id {

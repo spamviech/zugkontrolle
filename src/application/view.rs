@@ -353,14 +353,9 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                     error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
                     continue;
                 };
-                let name_clone = name.clone();
                 scrollable = scrollable.push(
-                    Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_zustand)).map(
-                        move |nachricht| NachrichtClone::GeschwindigkeitAnzeige {
-                            name: name_clone.clone(),
-                            nachricht,
-                        },
-                    ),
+                    Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_zustand))
+                        .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?

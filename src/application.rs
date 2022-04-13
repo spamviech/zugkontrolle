@@ -121,9 +121,9 @@ type DreiwegeRichtung = gleis::weiche::dreiwege::Richtung;
 type SKurvenRichtung = gleis::weiche::s_kurve::Richtung;
 type KreuzungRichtung = gleis::kreuzung::Richtung;
 
-/// Zustand auf Stand vor einer [Aktion] zurücksetzen.
-#[derive(zugkontrolle_macros::Debug)]
-pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
+/// Zustand auf Stand vor einer [AktionSchalten] zurücksetzen.
+#[derive(Debug)]
+pub enum ZustandZurücksetzen {
     /// Richtung einer [weiche::Weiche] zurücksetzen.
     Weiche(GleisId<Weiche>, GeradeRichtung, GeradeRichtung),
     /// Richtung einer [weiche::DreiwegeWeiche] zurücksetzen.
@@ -134,8 +134,6 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
     SKurvenWeiche(GleisId<SKurvenWeiche>, SKurvenRichtung, SKurvenRichtung),
     /// Richtung einer [Kreuzung] zurücksetzen.
     Kreuzung(GleisId<Kreuzung>, KreuzungRichtung, KreuzungRichtung),
-    /// Einstellung einer [Geschwindigkeit](steuerung::Geschwindigkeit) zurücksetzen.
-    GeschwindigkeitAnzeige(geschwindigkeit::Name, <Leiter as LeiterAnzeige>::ZustandZurücksetzen),
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
@@ -146,7 +144,7 @@ enum NachrichtClone<L: LeiterAnzeige> {
     Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
     SchließeMessageBox,
-    GeschwindigkeitAnzeige { name: geschwindigkeit::Name, nachricht: AktionGeschwindigkeit<L> },
+    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     ZeigeAuswahlGeschwindigkeit,
 }
 
@@ -156,8 +154,8 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
-            NachrichtClone::GeschwindigkeitAnzeige { name, nachricht } => {
-                Nachricht::GeschwindigkeitAnzeige { name, nachricht }
+            NachrichtClone::AktionGeschwindigkeit(aktion) => {
+                Nachricht::AktionGeschwindigkeit(aktion)
             },
             NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
         }
@@ -169,7 +167,10 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
 #[zugkontrolle_debug(L: Debug + Serialisiere)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
-pub enum Nachricht<L: LeiterAnzeige> {
+pub enum Nachricht<L>
+where
+    L: Leiter + Serialisiere,
+{
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -225,13 +226,8 @@ pub enum Nachricht<L: LeiterAnzeige> {
     EntferneSpeichernFarbe(Instant),
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
-    /// Eine Nachricht der [Geschwindigkeit-Anzeige](geschwindigkeit::AnzeigeZustand).
-    GeschwindigkeitAnzeige {
-        /// Der Name der Geschwindigkeit.
-        name: geschwindigkeit::Name,
-        /// Die zugehörige Nachricht.
-        nachricht: AktionGeschwindigkeit<L>,
-    },
+    /// Eine Aktion einer [Geschwindigkeit](steuerung::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
+    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
     ZeigeAuswahlGeschwindigkeit,
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
@@ -271,7 +267,7 @@ pub enum Nachricht<L: LeiterAnzeige> {
         /// Die Nachricht der Fehlermeldung.
         nachricht: String,
         /// Zustand auf Stand vor der Aktion zurücksetzen.
-        zustand_zurücksetzen: ZustandZurücksetzen<L>,
+        zustand_zurücksetzen: Option<ZustandZurücksetzen>,
     },
 }
 
@@ -306,8 +302,8 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncFehler<ZustandZurücksetzen<Leiter>>> for Nachricht<Leiter> {
-    fn from(fehler: AsyncFehler<ZustandZurücksetzen<Leiter>>) -> Self {
+impl<Leiter: LeiterAnzeige> From<AsyncFehler<Option<ZustandZurücksetzen>>> for Nachricht<Leiter> {
+    fn from(fehler: AsyncFehler<Option<ZustandZurücksetzen>>) -> Self {
         let AsyncFehler { titel, nachricht, zustand_zurücksetzen } = fehler;
         Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen }
     }
@@ -530,8 +526,8 @@ where
         + v2::Kompatibel
         + Send,
     <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de>,
-    <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de>,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de> + Send,
+    <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
     <L as Serialisiere>::Serialisiert: Eq + Hash,
@@ -664,11 +660,7 @@ where
                 self.entferne_speichern_farbe(nachricht_zeit)
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
-            Nachricht::GeschwindigkeitAnzeige { name, nachricht } => {
-                if let Some(cmd) = self.geschwindigkeit_anzeige_nachricht(name, nachricht) {
-                    command = cmd
-                }
-            },
+            Nachricht::AktionGeschwindigkeit(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
@@ -685,35 +677,35 @@ where
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::Weiche(id, *aktuelle_richtung, *letzte_richtung);
-                self.async_aktion_ausführen(aktion, zustand_zurücksetzen)
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen))
             },
             Nachricht::KurvenWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::KurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                self.async_aktion_ausführen(aktion, zustand_zurücksetzen)
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen))
             },
             Nachricht::DreiwegeWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::DreiwegeWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                self.async_aktion_ausführen(aktion, zustand_zurücksetzen)
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen))
             },
             Nachricht::SKurvenWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::SKurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                self.async_aktion_ausführen(aktion, zustand_zurücksetzen)
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen))
             },
             Nachricht::KreuzungSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::Kreuzung(id, *aktuelle_richtung, *letzte_richtung);
-                self.async_aktion_ausführen(aktion, zustand_zurücksetzen)
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen))
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
