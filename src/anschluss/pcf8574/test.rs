@@ -12,8 +12,6 @@ use crate::{
 };
 
 #[test]
-// FIXME Test verursacht stack overflow
-// kein Problem in main code, sollte aber trotzdem behoben werden
 fn drop_semantics() {
     let mut log_spec_builder = LogSpecBuilder::new();
     let _ = log_spec_builder
