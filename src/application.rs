@@ -122,7 +122,7 @@ enum NachrichtClone<L: LeiterAnzeige> {
     Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
     SchließeMessageBox,
-    AktionGeschwindigkeit(geschwindigkeit::Name, AktionGeschwindigkeit<L>),
+    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     ZeigeAuswahlGeschwindigkeit,
 }
 
@@ -132,8 +132,8 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
             NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
-            NachrichtClone::AktionGeschwindigkeit(name, aktion) => {
-                Nachricht::AktionGeschwindigkeit(name, aktion)
+            NachrichtClone::AktionGeschwindigkeit(aktion) => {
+                Nachricht::AktionGeschwindigkeit(aktion)
             },
             NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
         }
@@ -205,9 +205,7 @@ where
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
     /// Eine Aktion einer [Geschwindigkeit](steuerung::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
-    AktionGeschwindigkeit(geschwindigkeit::Name, AktionGeschwindigkeit<L>),
-    /// Aktualisiere den Zustand einer [Geschwindigkeit-Anzeige](geschwindigkeit::Anzeige).
-    GeschwindigkeitAktualisieren(geschwindigkeit::Name),
+    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
     ZeigeAuswahlGeschwindigkeit,
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
@@ -223,6 +221,8 @@ where
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
+    /// Eine asynchrone Aktion hat eine Änderung des Zustands bewirkt.
+    AsyncAktualisieren,
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.
@@ -607,19 +607,9 @@ where
                 self.entferne_speichern_farbe(nachricht_zeit)
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
-            Nachricht::AktionGeschwindigkeit(name, aktion) => {
+            Nachricht::AktionGeschwindigkeit(aktion) => {
                 // TODO Umdrehen zeigt Geschwindigkeit(0) erst nach vollständigem ausführen an
-                self.async_aktion_ausführen(
-                    aktion,
-                    Some(Nachricht::GeschwindigkeitAktualisieren(name)),
-                )
-            },
-            Nachricht::GeschwindigkeitAktualisieren(name) => {
-                // Ignoriere entfernte Geschwindigkeiten,
-                // da es nur um ein aktualisieren als Reaktion auf eine asynchrone Aktion geht.
-                if let Some(anzeige_zustand) = self.geschwindigkeiten.get_mut(&name) {
-                    anzeige_zustand.flip()
-                }
+                self.async_aktion_ausführen(aktion, Some(Nachricht::AsyncAktualisieren))
             },
             Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
@@ -634,6 +624,7 @@ where
             },
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
+            Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
 

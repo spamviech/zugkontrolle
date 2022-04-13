@@ -58,7 +58,6 @@ pub struct AnzeigeZustand<L: LeiterAnzeige> {
     verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
     stopp_zeit: Duration,
     umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
-    flip: bool,
 }
 
 impl<L: LeiterAnzeige> AnzeigeZustand<L> {
@@ -79,14 +78,7 @@ impl<L: LeiterAnzeige> AnzeigeZustand<L> {
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
             umdrehen_zeit,
-            flip: false,
         }
-    }
-
-    /// Erzwinge ein Neuzeichnen durch ändern eines bool-Wertes.
-    #[inline(always)]
-    pub(crate) fn flip(&mut self) {
-        self.flip = !self.flip
     }
 }
 
@@ -108,7 +100,7 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Self>,
         zustand: &'t mut AnzeigeZustand<Self>,
-    ) -> Anzeige<'t, (Name, AktionGeschwindigkeit<Self>), R>
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
     where
         R: 't
             + column::Renderer
@@ -166,7 +158,7 @@ impl LeiterAnzeige for Mittelleiter {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
         zustand: &'t mut AnzeigeZustand<Mittelleiter>,
-    ) -> Anzeige<'t, (Name, AktionGeschwindigkeit<Self>), R>
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
     where
         R: 't
             + column::Renderer
@@ -176,26 +168,21 @@ impl LeiterAnzeige for Mittelleiter {
             + slider::Renderer
             + radio::Renderer,
     {
-        let name_clone = zustand.name.clone();
         let zeige_fahrtrichtung = |button_zustand: &'t mut button::State, _none| {
             Button::new(button_zustand, Text::new("Umdrehen"))
-                .on_press((
-                    name_clone,
-                    AktionGeschwindigkeit::Umdrehen { geschwindigkeit: geschwindigkeit.clone() },
-                ))
+                .on_press(AktionGeschwindigkeit::Umdrehen {
+                    geschwindigkeit: geschwindigkeit.clone(),
+                })
                 .into()
         };
-        let name_clone = zustand.name.clone();
         let clone = geschwindigkeit.clone();
         Anzeige::neu_mit_leiter(
             geschwindigkeit,
             zustand,
             Geschwindigkeit::<Mittelleiter>::ks_länge,
-            move |wert| {
-                (
-                    name_clone.clone(),
-                    AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit: clone.clone(), wert },
-                )
+            move |wert| AktionGeschwindigkeit::Geschwindigkeit {
+                geschwindigkeit: clone.clone(),
+                wert,
             },
             zeige_fahrtrichtung,
         )
@@ -262,7 +249,7 @@ impl LeiterAnzeige for Zweileiter {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
         zustand: &'t mut AnzeigeZustand<Zweileiter>,
-    ) -> Anzeige<'t, (Name, AktionGeschwindigkeit<Self>), R>
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
     where
         R: 't
             + column::Renderer
@@ -273,20 +260,14 @@ impl LeiterAnzeige for Zweileiter {
             + radio::Renderer,
     {
         let clone = geschwindigkeit.clone();
-        let name_clone = zustand.name.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
                 fahrtrichtung,
                 fahrtrichtung.to_string(),
                 Some(*aktuell),
-                move |fahrtrichtung| {
-                    (
-                        name_clone.clone(),
-                        AktionGeschwindigkeit::Fahrtrichtung {
-                            geschwindigkeit: clone.clone(),
-                            fahrtrichtung,
-                        },
-                    )
+                move |fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
+                    geschwindigkeit: clone.clone(),
+                    fahrtrichtung,
                 },
             )
         };
@@ -297,17 +278,14 @@ impl LeiterAnzeige for Zweileiter {
                 .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, &fahrtrichtung))
                 .into()
         };
-        let name_clone = zustand.name.clone();
         let clone = geschwindigkeit.clone();
         Anzeige::neu_mit_leiter(
             geschwindigkeit,
             zustand,
             Geschwindigkeit::<Zweileiter>::ks_länge,
-            move |wert| {
-                (
-                    name_clone.clone(),
-                    AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit: clone.clone(), wert },
-                )
+            move |wert| AktionGeschwindigkeit::Geschwindigkeit {
+                geschwindigkeit: clone.clone(),
+                wert,
             },
             zeige_fahrtrichtung,
         )
@@ -382,7 +360,6 @@ where
             verhältnis_fahrspannung_überspannung: _,
             stopp_zeit: _,
             umdrehen_zeit: _,
-            flip: _,
         } = zustand;
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();

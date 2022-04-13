@@ -355,7 +355,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                 };
                 scrollable = scrollable.push(
                     Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_zustand))
-                        .map(|(name, aktion)| NachrichtClone::AktionGeschwindigkeit(name, aktion)),
+                        .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
