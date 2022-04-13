@@ -1,5 +1,7 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [iced::Application]-Traits.
 
+use std::fmt::Debug;
+
 use iced::{Align, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text};
 use log::error;
 use num_traits::NumCast;
@@ -26,6 +28,7 @@ use crate::{
             s_kurve::SKurvenWeicheUnit,
         },
     },
+    steuerung::geschwindigkeit::Leiter,
     typen::{skalar::Skalar, Zeichnen},
 };
 
@@ -40,9 +43,13 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
 
 impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
+impl<L> Zugkontrolle<L>
+where
+    L: 'static + Debug + LeiterAnzeige,
+    <L as Leiter>::Fahrtrichtung: Clone,
+{
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
-    pub fn view(&mut self) -> Element<'_, Nachricht<Leiter>> {
+    pub fn view(&mut self) -> Element<'_, Nachricht<L>> {
         let Zugkontrolle {
             gleise,
             scrollable_zustand,
@@ -99,7 +106,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
             gleise,
         );
 
-        let column: Element<'_, Nachricht<Leiter>> = Column::new()
+        let column: Element<'_, Nachricht<L>> = Column::new()
             .push(top_row)
             .push(Rule::horizontal(1).style(TRENNLINIE))
             .push(
@@ -139,7 +146,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
                 }
             }),
             AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::from(
-                <Leiter as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
+                <L as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
             )
             .map(|message| {
                 use geschwindigkeit::AuswahlNachricht::*;
@@ -202,7 +209,7 @@ impl<Leiter: 'static + LeiterAnzeige> Zugkontrolle<Leiter> {
     }
 }
 
-fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
+fn top_row<'t, L>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -212,7 +219,11 @@ fn top_row<'t, Leiter: 'static + LeiterAnzeige>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Zustand,
-) -> Row<'t, Nachricht<Leiter>> {
+) -> Row<'t, Nachricht<L>>
+where
+    L: 'static + Debug + LeiterAnzeige,
+    <L as Leiter>::Fahrtrichtung: Clone,
+{
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));

@@ -373,7 +373,7 @@ fn geschwindigkeit_ks(
 
 /// Antrieb über einen Mittelleiter.
 #[derive(Debug)]
-pub enum Mittelleiter{
+pub enum Mittelleiter {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
         /// Der [Pwm-Pin](pwm::Pin).

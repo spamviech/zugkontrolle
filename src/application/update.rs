@@ -33,24 +33,25 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::Ausführen,
+        plan::{AktionGeschwindigkeit, Ausführen},
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
     zugtyp::Zugtyp,
 };
 
-impl<Leiter> Nachricht<Leiter>
+impl<L> Nachricht<L>
 where
-    Leiter: 'static + LeiterAnzeige,
-    <Leiter as Serialisiere>::Serialisiert: Send,
+    L: 'static + LeiterAnzeige + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    <L as Serialisiere>::Serialisiert: Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
         sleep(dauer);
         self
     }
 
-    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<Leiter>> {
+    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<L>> {
         Command::perform(self.nach_sleep(dauer), identity)
     }
 }
@@ -91,7 +92,8 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         mut aktion: Aktion,
         zustand_zurücksetzen: ZustandZurücksetzen<L>,
     ) where
-        L: 'static,
+        L: 'static + Send,
+        <L as Leiter>::Fahrtrichtung: Send,
         <L as Serialisiere>::Serialisiert: Send,
     {
         let _join_handle = aktion.async_ausführen(
@@ -664,37 +666,27 @@ impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter>
-where
-    Leiter: LeiterAnzeige,
-    <Leiter as LeiterAnzeige>::Nachricht: 'static,
-{
+impl<Leiter: LeiterAnzeige> Zugkontrolle<Leiter> {
     fn geschwindigkeit_anzeige_zurücksetzen(
         &mut self,
         name: geschwindigkeit::Name,
         zustand_zurücksetzen: <Leiter as LeiterAnzeige>::ZustandZurücksetzen,
-    ) -> Option<Command<Nachricht<Leiter>>> {
+    ) {
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         // Entfernte Geschwindigkeit wird ignoriert,
         // da es nur um eine Reaktion auf einen Fehler geht
-        let geschwindigkeit = gleise.geschwindigkeit_mut(&name)?;
-        let anzeige_zustand = geschwindigkeiten.get_mut(&name)?;
-        let cmd = <Leiter as LeiterAnzeige>::zustand_zurücksetzen(
-            geschwindigkeit,
-            anzeige_zustand,
-            zustand_zurücksetzen,
-        );
-        Some(cmd.map(move |nachricht| Nachricht::GeschwindigkeitAnzeige {
-            name: name.clone(),
-            nachricht,
-        }))
+        if let Some(geschwindigkeit) = gleise.geschwindigkeit_mut(&name) {
+            if let Some(anzeige_zustand) = geschwindigkeiten.get_mut(&name) {
+                <Leiter as LeiterAnzeige>::zustand_zurücksetzen(
+                    geschwindigkeit,
+                    anzeige_zustand,
+                    zustand_zurücksetzen,
+                )
+            }
+        }
     }
 
-    fn zustand_zurücksetzen(
-        &mut self,
-        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
-    ) -> Option<Command<Nachricht<Leiter>>> {
-        let mut command = None;
+    fn zustand_zurücksetzen(&mut self, zustand_zurücksetzen: ZustandZurücksetzen<Leiter>) {
         match zustand_zurücksetzen {
             ZustandZurücksetzen::Weiche(id, aktuelle_richtung, letzte_richtung) => {
                 self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
@@ -712,10 +704,9 @@ where
                 self.weiche_zurücksetzen(id, aktuelle_richtung, letzte_richtung)
             },
             ZustandZurücksetzen::GeschwindigkeitAnzeige(name, zustand_zurücksetzen) => {
-                command = self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
+                self.geschwindigkeit_anzeige_zurücksetzen(name, zustand_zurücksetzen)
             },
         }
-        command
     }
 
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
@@ -724,28 +715,27 @@ where
         titel: String,
         nachricht: String,
         zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
-    ) -> Option<Command<Nachricht<Leiter>>> {
-        let command = self.zustand_zurücksetzen(zustand_zurücksetzen);
+    ) {
+        self.zustand_zurücksetzen(zustand_zurücksetzen);
         self.zeige_message_box(titel, nachricht);
-        command
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter>
+impl<L> Zugkontrolle<L>
 where
-    Leiter: 'static + LeiterAnzeige,
-    <Leiter as Serialisiere>::Serialisiert: Send,
-    <Leiter as LeiterAnzeige>::Nachricht: 'static,
+    L: 'static + LeiterAnzeige + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    <L as Serialisiere>::Serialisiert: Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<Leiter>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
     }
 
     /// Tick für eine Bewegung des Pivot-Punktes.
-    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<Leiter>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -760,18 +750,20 @@ where
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter>
+impl<L> Zugkontrolle<L>
 where
-    Leiter: 'static + LeiterAnzeige,
-    <Leiter as Serialisiere>::Serialisiert: Send,
+    L: 'static + Debug + LeiterAnzeige + Send,
+    <L as Leiter>::Fahrtrichtung: Debug + Send,
+    <L as Serialisiere>::Serialisiert: Send,
 {
     /// Eine Nachricht des Widgets zum Anpassen der Anschlüsse einer
     /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_anzeige_nachricht(
         &mut self,
         name: geschwindigkeit::Name,
-        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
-    ) -> Option<Command<Nachricht<Leiter>>> {
+        nachricht: AktionGeschwindigkeit<L>,
+    ) -> Option<Command<Nachricht<L>>> {
+        // TODO AktionGeschwindigkeit kann einfach ausgeführt werden!
         let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
         macro_rules! unwrap_or_error_return {
             ($value:expr) => {
@@ -789,7 +781,7 @@ where
         let geschwindigkeit = unwrap_or_error_return!(gleise.geschwindigkeit_mut(&name));
         let anzeige_zustand = unwrap_or_error_return!(geschwindigkeiten.get_mut(&name));
         let name_clone = name.clone();
-        let update_result = <Leiter as LeiterAnzeige>::anzeige_update(
+        let update_result = <L as LeiterAnzeige>::anzeige_update(
             geschwindigkeit,
             anzeige_zustand,
             nachricht,
@@ -872,11 +864,11 @@ where
 #[allow(single_use_lifetimes)]
 impl<L> Zugkontrolle<L>
 where
-    L: 'static + LeiterAnzeige + BekannterLeiter,
+    L: 'static + LeiterAnzeige + BekannterLeiter + Send,
     <L as Serialisiere>::Serialisiert: Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de> + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
     pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L>>> {

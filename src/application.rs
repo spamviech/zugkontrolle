@@ -50,7 +50,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
+        plan::{AktionGeschwindigkeit, AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -140,17 +140,13 @@ pub enum ZustandZurücksetzen<Leiter: LeiterAnzeige> {
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-enum NachrichtClone<Leiter: LeiterAnzeige> {
-    Gleis {
-        gleis: AnyGleisUnit,
-        klick_höhe: Skalar,
-    },
+#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
+#[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
+enum NachrichtClone<L: LeiterAnzeige> {
+    Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
     SchließeMessageBox,
-    GeschwindigkeitAnzeige {
-        name: geschwindigkeit::Name,
-        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
-    },
+    GeschwindigkeitAnzeige { name: geschwindigkeit::Name, nachricht: AktionGeschwindigkeit<L> },
     ZeigeAuswahlGeschwindigkeit,
 }
 
@@ -170,8 +166,10 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
 
 /// Eine Nachricht, die beim [Ausführen](ausführen) der Anwendung auftreten kann.
 #[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(Leiter: Serialisiere, <Leiter as Serialisiere>::Serialisiert: Debug)]
-pub enum Nachricht<Leiter: LeiterAnzeige> {
+#[zugkontrolle_debug(L: Debug + Serialisiere)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
+#[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
+pub enum Nachricht<L: LeiterAnzeige> {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -232,12 +230,12 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
         /// Der Name der Geschwindigkeit.
         name: geschwindigkeit::Name,
         /// Die zugehörige Nachricht.
-        nachricht: <Leiter as LeiterAnzeige>::Nachricht,
+        nachricht: AktionGeschwindigkeit<L>,
     },
     /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
     ZeigeAuswahlGeschwindigkeit,
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
-    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>),
+    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<L>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
@@ -273,7 +271,7 @@ pub enum Nachricht<Leiter: LeiterAnzeige> {
         /// Die Nachricht der Fehlermeldung.
         nachricht: String,
         /// Zustand auf Stand vor der Aktion zurücksetzen.
-        zustand_zurücksetzen: ZustandZurücksetzen<Leiter>,
+        zustand_zurücksetzen: ZustandZurücksetzen<L>,
     },
 }
 
@@ -329,12 +327,13 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<Leiter> Nachricht<Leiter>
+impl<L> Nachricht<L>
 where
-    Leiter: 'static + LeiterAnzeige + Serialisiere,
-    Leiter::Serialisiert: Debug + Send,
+    L: 'static + LeiterAnzeige + Serialisiere + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    <L as Serialisiere>::Serialisiert: Debug + Send,
 {
-    fn als_command(self) -> Command<Nachricht<Leiter>> {
+    fn als_command(self) -> Command<Nachricht<L>> {
         Command::perform(async_identity(self), identity)
     }
 }
@@ -522,11 +521,19 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
 #[allow(single_use_lifetimes)]
 impl<L> Application for Zugkontrolle<L>
 where
-    L: 'static + LeiterAnzeige + BekannterLeiter + Serialisiere + v2::Kompatibel + Display + Send,
+    L: 'static
+        + Debug
+        + Display
+        + LeiterAnzeige
+        + BekannterLeiter
+        + Serialisiere
+        + v2::Kompatibel
+        + Send,
     <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de>,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    <L as Leiter>::Fahrtrichtung:
+        Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
     <L as Serialisiere>::Serialisiert: Eq + Hash,
 {
     type Executor = iced::executor::Default;
@@ -710,9 +717,7 @@ where
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
-                if let Some(cmd) = self.async_fehler(titel, nachricht, zustand_zurücksetzen) {
-                    command = cmd
-                }
+                self.async_fehler(titel, nachricht, zustand_zurücksetzen)
             },
         }
 
