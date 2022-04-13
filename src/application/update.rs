@@ -5,7 +5,7 @@ use std::{
     fmt::{Debug, Display},
     hash::Hash,
     sync::Arc,
-    thread::{sleep, JoinHandle},
+    thread::sleep,
     time::{Duration, Instant},
 };
 
@@ -75,7 +75,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     }
 
     /// Führe eine Aktion aus.
-    #[inline(always)]
     pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug>(&mut self, mut aktion: Aktion)
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
@@ -86,22 +85,30 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     }
 
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
-    #[inline(always)]
     pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
         zustand_zurücksetzen: Option<ZustandZurücksetzen>,
-    ) -> JoinHandle<()>
-    where
+        aktualisieren: Option<Nachricht<L>>,
+    ) where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
         <L as Serialisiere>::Serialisiert: Send,
     {
-        aktion.async_ausführen(
+        let join_handle = aktion.async_ausführen(
             self.gleise.zugtyp().into(),
             self.sender.clone(),
             zustand_zurücksetzen,
-        )
+        );
+        if let Some(aktualisieren) = aktualisieren {
+            let sender = self.sender.clone();
+            let _join_handle = std::thread::spawn(move || {
+                // Warte darauf, dass die Aktion beendet wurde
+                let _panic = join_handle.join();
+                // Initialisiere ein Update des Widgets.
+                let _ = sender.send(aktualisieren);
+            });
+        }
     }
 
     #[allow(single_use_lifetimes)]

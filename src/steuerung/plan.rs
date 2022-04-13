@@ -504,6 +504,7 @@ pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
 pub type AktionGeschwindigkeit<L> =
     AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
 
+/// FIXME aktuelle_richtung und letzte_richtung sind nicht im Mutex, werden also nicht angepasst!
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
     L: 'static + Leiter + Send + Debug,

@@ -663,15 +663,12 @@ where
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::AktionGeschwindigkeit(name, aktion) => {
-                // TODO Umdrehen zeigt Geschwindigkeit(0) erst nach ausführen an
-                let join_handle = self.async_aktion_ausführen(aktion, None);
-                let sender = self.sender.clone();
-                let _join_handle = std::thread::spawn(move || {
-                    // Warte darauf, dass die Aktion beendet wurde
-                    let _panic = join_handle.join();
-                    // Initialisiere ein Update des Widgets.
-                    let _ = sender.send(Nachricht::GeschwindigkeitAktualisieren(name));
-                });
+                // TODO Umdrehen zeigt Geschwindigkeit(0) erst nach vollständigem ausführen an
+                self.async_aktion_ausführen(
+                    aktion,
+                    None,
+                    Some(Nachricht::GeschwindigkeitAktualisieren(name)),
+                )
             },
             Nachricht::GeschwindigkeitAktualisieren(name) => {
                 // Ignoriere entfernte Geschwindigkeiten,
@@ -697,35 +694,35 @@ where
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::Weiche(id, *aktuelle_richtung, *letzte_richtung);
-                let _join_handle = self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen));
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::KurvenWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::KurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                let _join_handle = self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen));
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::DreiwegeWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::DreiwegeWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                let _join_handle = self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen));
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::SKurvenWeicheSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::SKurvenWeiche(id, *aktuelle_richtung, *letzte_richtung);
-                let _join_handle = self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen));
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::KreuzungSchalten(id, aktion) => {
                 let steuerung::Weiche { aktuelle_richtung, letzte_richtung, .. } =
                     aktion.weiche.as_ref();
                 let zustand_zurücksetzen =
                     ZustandZurücksetzen::Kreuzung(id, *aktuelle_richtung, *letzte_richtung);
-                let _join_handle = self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen));
+                self.async_aktion_ausführen(aktion, Some(zustand_zurücksetzen), None)
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht, zustand_zurücksetzen } => {
