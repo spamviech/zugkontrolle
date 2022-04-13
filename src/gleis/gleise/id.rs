@@ -183,17 +183,6 @@ impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
     }
 }
 
-impl<T> GleisIdRef<'_, T> {
-    pub(crate) fn als_id(self) -> GleisId<T> {
-        let GleisIdRef { rectangle, streckenabschnitt, phantom } = self;
-        GleisId {
-            rectangle: rectangle.clone(),
-            streckenabschnitt: streckenabschnitt.map(StreckenabschnittIdRef::als_id),
-            phantom: phantom.clone(),
-        }
-    }
-}
-
 #[derive(zugkontrolle_macros::Debug)]
 pub(in crate::gleis::gleise) enum AnyIdRef<'t> {
     Gerade(GleisIdRef<'t, Gerade>),

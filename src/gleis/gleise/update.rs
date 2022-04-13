@@ -31,7 +31,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::Leiter,
-        plan::{AktionSchalten, AktionStreckenabschnitt},
+        plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{
@@ -240,37 +240,35 @@ fn aktion_gleis_an_position<'t>(
                                     },
                                 )
                             }),
-                            Weiche((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+                            Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };
-                                Nachricht::GeradeWeicheSchalten(
-                                    id.als_id(),
+                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                     AktionSchalten {
                                         weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
-                                    },
-                                )
+                                    }
+                                ))
                             }),
-                            KurvenWeiche((id, steuerung)) => {
+                            KurvenWeiche((_id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::kurve::Richtung::*;
                                     let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                         Innen => Außen,
                                         Außen => Innen,
                                     };
-                                    Nachricht::KurvenWeicheSchalten(
-                                        id.als_id(),
+                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(
                                         AktionSchalten {
                                             weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
-                                    )
+                                    ))
                                 })
                             },
-                            DreiwegeWeiche((id, steuerung)) => {
+                            DreiwegeWeiche((_id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::dreiwege::Richtung::*;
                                     let weiche = steuerung.as_ref();
@@ -284,44 +282,41 @@ fn aktion_gleis_an_position<'t>(
                                             },
                                             (Links | Rechts, _letzte) => Gerade,
                                         };
-                                    Nachricht::DreiwegeWeicheSchalten(
-                                        id.als_id(),
+                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(
                                         AktionSchalten {
                                             weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
-                                    )
+                                    ))
                                 })
                             },
-                            SKurvenWeiche((id, steuerung)) => {
+                            SKurvenWeiche((_id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::gerade::Richtung::*;
                                     let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     };
-                                    Nachricht::SKurvenWeicheSchalten(
-                                        id.als_id(),
+                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                         AktionSchalten {
                                             weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
-                                    )
+                                    ))
                                 })
                             },
-                            Kreuzung((id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+                            Kreuzung((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };
-                                Nachricht::KreuzungSchalten(
-                                    id.als_id(),
+                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                     AktionSchalten {
                                         weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
                                     },
-                                )
+                                ))
                             }),
                         };
 

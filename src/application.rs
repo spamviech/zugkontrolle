@@ -34,23 +34,22 @@ use crate::{
             self,
             daten::v2,
             id::{AnyId, GleisId, StreckenabschnittId},
-            Gleise, Modus, SteuerungDreiwegeWeiche, SteuerungGeradeWeiche, SteuerungKreuzung,
-            SteuerungKurvenWeiche, SteuerungSKurveWeiche,
+            Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
-        kreuzung::{self, Kreuzung, KreuzungUnit},
+        kreuzung::{Kreuzung, KreuzungUnit},
         kurve::KurveUnit,
         weiche::{
-            dreiwege::{self, DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{self, Weiche, WeicheUnit},
-            kurve::{self, KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{self, SKurvenWeiche, SKurvenWeicheUnit},
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionGeschwindigkeit, AktionSchalten, AktionStreckenabschnitt, AsyncFehler},
+        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncFehler},
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -222,25 +221,8 @@ where
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
-    /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    GeradeWeicheSchalten(GleisId<Weiche>, AktionSchalten<SteuerungGeradeWeiche, gerade::Richtung>),
-    /// Ein [KurvenWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    KurvenWeicheSchalten(
-        GleisId<KurvenWeiche>,
-        AktionSchalten<SteuerungKurvenWeiche, kurve::Richtung>,
-    ),
-    /// Ein [DreiwegeWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    DreiwegeWeicheSchalten(
-        GleisId<DreiwegeWeiche>,
-        AktionSchalten<SteuerungDreiwegeWeiche, dreiwege::Richtung>,
-    ),
-    /// Ein [SKurvenWeiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    SKurvenWeicheSchalten(
-        GleisId<SKurvenWeiche>,
-        AktionSchalten<SteuerungSKurveWeiche, s_kurve::Richtung>,
-    ),
-    /// Ein [Kreuzung] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
-    KreuzungSchalten(GleisId<Kreuzung>, AktionSchalten<SteuerungKreuzung, kreuzung::Richtung>),
+    /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
+    WeicheSchalten(AnyAktionSchalten),
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.
@@ -262,21 +244,7 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
                 Nachricht::StreckenabschnittUmschalten(aktion)
             },
-            gleise::Nachricht::GeradeWeicheSchalten(id, aktion) => {
-                Nachricht::GeradeWeicheSchalten(id, aktion)
-            },
-            gleise::Nachricht::KurvenWeicheSchalten(id, aktion) => {
-                Nachricht::KurvenWeicheSchalten(id, aktion)
-            },
-            gleise::Nachricht::DreiwegeWeicheSchalten(id, aktion) => {
-                Nachricht::DreiwegeWeicheSchalten(id, aktion)
-            },
-            gleise::Nachricht::SKurvenWeicheSchalten(id, aktion) => {
-                Nachricht::SKurvenWeicheSchalten(id, aktion)
-            },
-            gleise::Nachricht::KreuzungSchalten(id, aktion) => {
-                Nachricht::KreuzungSchalten(id, aktion)
-            },
+            gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
         }
     }
 }
@@ -664,19 +632,7 @@ where
                     command = message.als_command()
                 }
             },
-            Nachricht::GeradeWeicheSchalten(id, aktion) => {
-                self.async_aktion_ausführen(aktion, None)
-            },
-            Nachricht::KurvenWeicheSchalten(id, aktion) => {
-                self.async_aktion_ausführen(aktion, None)
-            },
-            Nachricht::DreiwegeWeicheSchalten(id, aktion) => {
-                self.async_aktion_ausführen(aktion, None)
-            },
-            Nachricht::SKurvenWeicheSchalten(id, aktion) => {
-                self.async_aktion_ausführen(aktion, None)
-            },
-            Nachricht::KreuzungSchalten(id, aktion) => self.async_aktion_ausführen(aktion, None),
+            Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
