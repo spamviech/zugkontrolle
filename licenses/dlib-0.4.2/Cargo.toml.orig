@@ -1,0 +1,14 @@
+[package]
+name = "dlib"
+version = "0.4.2"
+repository = "https://github.com/vberger/dlib"
+authors = ["Victor Berger <victor.berger@m4x.org>"]
+license = "MIT"
+description = "Helper macros for handling manually loading optional system libraries."
+
+
+[dependencies]
+libloading = "0.6"
+
+[features]
+dlopen = []

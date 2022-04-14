@@ -1,0 +1,38 @@
+[package]
+name = "kommandozeilen_argumente"
+version = "0.2.0"
+authors = ["spamviech <spamviech@web.de>"]
+edition = "2021"
+license = "MIT"
+publish = true
+resolver = "2"
+repository = "https://github.com/spamviech/kommandozeilen_argumente"
+description = "Parser für Kommandozeilen-Argumente mit optionaler, automatischer Hilfe-Generierung."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["derive"]
+derive = ["kommandozeilen_argumente_derive"]
+
+[[test]]
+name = "derive"
+required-features = ["derive"]
+
+[[example]]
+name = "derive"
+required-features = ["derive"]
+
+[dependencies]
+either = "1.6.1"
+itertools = "0.10.3"
+nonempty = "0.7.0"
+unicase = "2.6.0"
+unicode-normalization = "0.1.19"
+unicode-segmentation = "1.9.0"
+void = "1.0.2"
+
+[dependencies.kommandozeilen_argumente_derive]
+path = "./kommandozeilen_argumente_derive"
+version = "0.2.0"
+optional = true

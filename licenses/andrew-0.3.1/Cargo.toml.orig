@@ -1,0 +1,20 @@
+[package]
+name = "andrew"
+version = "0.3.1"
+authors = ["Lucas Timmins <timmins.s.lucas@gmail.com>"]
+description = "The andrew crate provides convenient drawing of objects such as shapes, lines and text to buffers"
+repository = "https://github.com/Smithay/andrew"
+readme = "README.md"
+keywords = ["draw", "buffer", "shapes", "lines", "pixels"]
+categories = ["rendering", "multimedia::images"]
+license = "MIT"
+
+[dependencies]
+bitflags = "1.2.1"
+rusttype = "0.9.2"
+xdg = "2.2.0"
+xml-rs = "0.8.3"
+walkdir = "2.3.1"
+
+[dev-dependencies]
+smithay-client-toolkit = "0.12"
