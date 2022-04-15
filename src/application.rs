@@ -336,12 +336,12 @@ pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
     KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
     /// Anzeigen der verwendeten Open-Source Lizenzen.
-    ZeigeLizenzen(
-        BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
-        iced::scrollable::State,
-        iced::button::State,
-        String,
-    ),
+    ZeigeLizenzen {
+        lizenzen: BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
+        scrollable: iced::scrollable::State,
+        schließen: iced::button::State,
+        aktuell: String,
+    },
 }
 
 impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
@@ -364,12 +364,12 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
             AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
             },
-            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen_state, aktuell) => f
-                .debug_tuple("ZeigeLizenzen")
-                .field(map)
-                .field(scrollable_state)
-                .field(schließen_state)
-                .field(aktuell)
+            AuswahlZustand::ZeigeLizenzen { lizenzen, scrollable, schließen, aktuell } => f
+                .debug_struct("ZeigeLizenzen")
+                .field("lizenzen", lizenzen)
+                .field("scrollable", scrollable)
+                .field("schließen", schließen)
+                .field("aktuell", aktuell)
                 .finish(),
         }
     }
@@ -661,17 +661,17 @@ where
                 let g: fn() -> String = || {
                     String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
                 };
-                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
-                    [
+                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen {
+                    lizenzen: [
                         ("test", (iced::button::State::new(), f)),
                         ("alternativ", (iced::button::State::new(), g)),
                     ]
                     .into_iter()
                     .collect(),
-                    iced::scrollable::State::new(),
-                    iced::button::State::new(),
-                    f(),
-                ))
+                    scrollable: iced::scrollable::State::new(),
+                    schließen: iced::button::State::new(),
+                    aktuell: f(),
+                })
             },
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),

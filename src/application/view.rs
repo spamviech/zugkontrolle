@@ -193,10 +193,10 @@ where
                     }
                 })
             },
-            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen, aktuell) => {
+            AuswahlZustand::ZeigeLizenzen { lizenzen, scrollable, schließen, aktuell } => {
                 Element::from(Lizenzen::neu(
-                    map,
-                    scrollable_state,
+                    lizenzen,
+                    scrollable,
                     *scrollable_style,
                     schließen,
                     aktuell,
