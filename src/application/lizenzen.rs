@@ -9,14 +9,13 @@ use iced_native::{
     button::{self, Button},
     column::Column,
     container::{self, Container},
-    event,
+    event, layout,
     row::{self, Row},
     rule::{self, Rule},
     scrollable::{self, Scrollable},
     text::{self, Text},
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Renderer, Widget,
 };
-use log::error;
 
 use crate::application::{
     macros::reexport_no_event_methods,
@@ -25,73 +24,6 @@ use crate::application::{
         linie::{Linie, TRENNLINIE},
     },
 };
-
-struct Aktuell<R: text::Renderer> {
-    text: Text<R>,
-    width: Option<Length>,
-    height: Option<Length>,
-}
-
-impl<R: text::Renderer> Aktuell<R> {
-    fn neu(text: impl Into<String>) -> Self {
-        Aktuell { text: Text::new(text), width: None, height: None }
-    }
-
-    fn width(self, width: Length) -> Self {
-        Aktuell { text: self.text.width(width), width: Some(width), height: self.height }
-    }
-
-    fn height(self, height: Length) -> Self {
-        Aktuell { text: self.text.height(height), width: self.width, height: Some(height) }
-    }
-}
-
-impl<R: Renderer + text::Renderer> Widget<InterneNachricht, R> for Aktuell<R> {
-    reexport_no_event_methods! {Text<R>, text, InterneNachricht, R}
-
-    #[inline(always)]
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        nachrichten: &mut Vec<InterneNachricht>,
-    ) -> event::Status {
-        let mut event_status =
-            self.text.on_event(event, layout, cursor_position, renderer, clipboard, nachrichten);
-        let mut andere_nachrichten = Vec::new();
-        let setze_breite = |text: Text<R>| match self.width {
-            Some(width) => text.width(width),
-            None => text,
-        };
-        let setze_höhe = |text: Text<R>| match self.height {
-            Some(height) => text.height(height),
-            None => text,
-        };
-        for nachricht in nachrichten.drain(..) {
-            println!("{nachricht:?}");
-            match nachricht {
-                InterneNachricht::Aktuell(f) => {
-                    let text = f();
-                    println!("Neuer Text:\n{}", text);
-                    self.text = setze_höhe(setze_breite(Text::new(text)));
-                    event_status = event::Status::Captured;
-                },
-                _ => andere_nachrichten.push(nachricht),
-            }
-        }
-        *nachrichten = andere_nachrichten;
-        event_status
-    }
-}
-
-impl<'a, R: 'a + Renderer + text::Renderer> From<Aktuell<R>> for Element<'a, InterneNachricht, R> {
-    fn from(lizenzen: Aktuell<R>) -> Self {
-        Element::new(lizenzen)
-    }
-}
 
 #[derive(Debug, Clone)]
 enum InterneNachricht {
@@ -109,6 +41,7 @@ pub enum Nachricht {
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
 pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneNachricht, R>,
+    aktuell: &'a mut String,
 }
 
 impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
@@ -136,16 +69,13 @@ where
         scrollable_state: &'a mut scrollable::State,
         scrollable_style: impl Into<<R as scrollable::Renderer>::Style>,
         schließen: &'a mut button::State,
+        aktuell: &'a mut String,
     ) -> Self {
         let mut scrollable = Scrollable::new(scrollable_state)
             .width(Length::Shrink)
             .height(Length::Fill)
             .style(scrollable_style);
-        let mut aktuell = None;
         for (&name, (button_state, f)) in lizenzen_und_button_states {
-            if aktuell.is_none() {
-                aktuell = Some(f());
-            }
             scrollable = scrollable.push(
                 Button::new(button_state, Text::new(name)).on_press(InterneNachricht::Aktuell(*f)),
             );
@@ -158,16 +88,15 @@ where
             )
             .width(Length::Shrink)
             .height(Length::Fill);
-        let aktuell = aktuell.unwrap_or_else(String::new);
         // TODO aktuell veränderbar machen
         let container = Container::new(
             Row::new()
                 .push(column)
                 .push(Rule::vertical(1).style(TRENNLINIE))
-                .push(Aktuell::neu(aktuell).width(Length::Fill).height(Length::Fill)),
+                .push(Text::new(aktuell.as_str()).width(Length::Fill).height(Length::Fill)),
         )
         .style(hintergrund::WEIß);
-        Lizenzen { container }
+        Lizenzen { container, aktuell }
     }
 }
 
@@ -194,9 +123,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenz
         );
         for interne_nachricht in interne_nachrichten {
             match interne_nachricht {
-                InterneNachricht::Aktuell(f) => {
-                    error!("Nicht verwendeter Lizenz-Text:\n{}", f())
-                },
+                InterneNachricht::Aktuell(f) => *self.aktuell = f(),
                 InterneNachricht::Schließen => nachrichten.push(Nachricht::Schließen),
             }
         }

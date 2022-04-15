@@ -193,9 +193,15 @@ where
                     }
                 })
             },
-            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen) => {
-                Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style, schließen))
-                    .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen, aktuell) => {
+                Element::from(Lizenzen::neu(
+                    map,
+                    scrollable_state,
+                    *scrollable_style,
+                    schließen,
+                    aktuell,
+                ))
+                .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
