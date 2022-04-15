@@ -53,8 +53,8 @@ impl<Overlay> Zustand<Overlay> {
 pub struct Modal<'a, Overlay, Nachricht, R> {
     zustand: &'a mut Zustand<Overlay>,
     underlay: Element<'a, Nachricht, R>,
-    zeige_overlay: &'a dyn for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
-    esc_nachricht: Option<&'a dyn Fn() -> Nachricht>,
+    zeige_overlay: Box<dyn 'a + for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>>,
+    esc_nachricht: Option<Box<dyn 'a + Fn() -> Nachricht>>,
 }
 
 impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
@@ -63,7 +63,7 @@ impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
             .field("zustand", &self.zustand)
             .field("underlay", &"<Element>")
             .field("zeige_overlay", &"<closure>")
-            .field("esc_nachricht", &self.esc_nachricht.map(|_| "<closure>"))
+            .field("esc_nachricht", &self.esc_nachricht.as_ref().map(|_| "<closure>"))
             .finish()
     }
 }
@@ -72,15 +72,20 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     /// Erstelle ein neues [Modal].
     pub fn neu(
         zustand: &'a mut Zustand<Overlay>,
-        underlay: impl Into<Element<'a, Nachricht, R>>,
-        zeige_overlay: &'a impl for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
+        underlay: impl 'a + Into<Element<'a, Nachricht, R>>,
+        zeige_overlay: impl 'a + for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
     ) -> Self {
-        Modal { zustand, underlay: underlay.into(), zeige_overlay, esc_nachricht: None }
+        Modal {
+            zustand,
+            underlay: underlay.into(),
+            zeige_overlay: Box::new(zeige_overlay),
+            esc_nachricht: None,
+        }
     }
 
     /// Erzeuge die gegebene Nachricht, wenn die Esc-Taste gedrückt wird.
-    pub fn on_esc(mut self, esc_nachricht: &'a impl Fn() -> Nachricht) -> Self {
-        self.esc_nachricht = Some(esc_nachricht);
+    pub fn on_esc(mut self, esc_nachricht: impl 'a + Fn() -> Nachricht) -> Self {
+        self.esc_nachricht = Some(Box::new(esc_nachricht));
         self
     }
 }
@@ -140,7 +145,7 @@ where
         if self.zustand.overlay.is_none() {
             self.underlay.on_event(event, layout, cursor_position, renderer, clipboard, messages)
         } else {
-            match (self.esc_nachricht, event) {
+            match (&self.esc_nachricht, event) {
                 (
                     Some(esc_nachricht),
                     Event::Keyboard(keyboard::Event::KeyPressed {
@@ -159,7 +164,8 @@ where
 
 impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
 where
-    R: Renderer + container::Renderer,
+    Nachricht: 'a,
+    R: 'a + Renderer + container::Renderer,
     <R as container::Renderer>::Style: From<Hintergrund>,
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {

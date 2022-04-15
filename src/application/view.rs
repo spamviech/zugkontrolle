@@ -130,7 +130,7 @@ where
             )
             .into();
 
-        let modal = Modal::neu(auswahl, column, &|modal| match modal {
+        let modal = Modal::neu(auswahl, column, |modal| match modal {
             AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
@@ -194,13 +194,12 @@ where
                 })
             },
             AuswahlZustand::ZeigeLizenzen(map, scrollable_state) => {
-                todo!("WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY?")
-                // Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style))
+                Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style))
             },
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
-        Modal::neu(message_box, modal, &|MessageBox { titel, nachricht, button_zustand }| {
+        Modal::neu(message_box, modal, |MessageBox { titel, nachricht, button_zustand }| {
             Element::from(
                 iced_aw::Card::new(
                     Text::new(&*titel),
