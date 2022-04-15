@@ -16,6 +16,7 @@ use iced_native::{
     text::{self, Text},
     Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
+use log::error;
 
 use crate::application::{
     macros::reexport_no_event_methods,
@@ -25,9 +26,65 @@ use crate::application::{
     },
 };
 
+struct Aktuell<R: text::Renderer> {
+    text: Text<R>,
+}
+
+impl<R: text::Renderer> Aktuell<R> {
+    fn neu(text: impl Into<String>) -> Self {
+        Aktuell { text: Text::new(text) }
+    }
+
+    fn width(self, length: Length) -> Self {
+        Aktuell { text: self.text.width(length) }
+    }
+
+    fn height(self, length: Length) -> Self {
+        Aktuell { text: self.text.height(length) }
+    }
+}
+
+impl<R: Renderer + text::Renderer> Widget<InterneNachricht, R> for Aktuell<R> {
+    reexport_no_event_methods! {Text<R>, text, InterneNachricht, R}
+
+    #[inline(always)]
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &R,
+        clipboard: &mut dyn Clipboard,
+        nachrichten: &mut Vec<InterneNachricht>,
+    ) -> event::Status {
+        let mut event_status =
+            self.text.on_event(event, layout, cursor_position, renderer, clipboard, nachrichten);
+        let mut andere_nachrichten = Vec::new();
+        for nachricht in nachrichten.drain(..) {
+            println!("{nachricht:?}");
+            match nachricht {
+                InterneNachricht::Aktuell(f) => {
+                    println!("Neuer Text:\n{}", f());
+                    self.text = Text::new(f());
+                    event_status = event::Status::Captured;
+                },
+                _ => andere_nachrichten.push(nachricht),
+            }
+        }
+        *nachrichten = andere_nachrichten;
+        event_status
+    }
+}
+
+impl<'a, R: 'a + Renderer + text::Renderer> From<Aktuell<R>> for Element<'a, InterneNachricht, R> {
+    fn from(lizenzen: Aktuell<R>) -> Self {
+        Element::new(lizenzen)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum InterneNachricht {
-    Aktuell(String),
+    Aktuell(fn() -> String),
     Schließen,
 }
 
@@ -41,12 +98,11 @@ pub enum Nachricht {
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
 pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneNachricht, R>,
-    lizenzen: BTreeMap<&'a str, fn() -> String>,
 }
 
 impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Lizenzen").field("row", &"<Row>").field("lizenzen", &self.lizenzen).finish()
+        f.debug_struct("Lizenzen").field("row", &"<Row>").finish()
     }
 }
 
@@ -75,16 +131,13 @@ where
             .height(Length::Fill)
             .style(scrollable_style);
         let mut aktuell = None;
-        let mut lizenzen = BTreeMap::new();
         for (&name, (button_state, f)) in lizenzen_und_button_states {
             if aktuell.is_none() {
                 aktuell = Some(f());
             }
             scrollable = scrollable.push(
-                Button::new(button_state, Text::new(name))
-                    .on_press(InterneNachricht::Aktuell(String::from(name))),
+                Button::new(button_state, Text::new(name)).on_press(InterneNachricht::Aktuell(*f)),
             );
-            let _ = lizenzen.insert(name, *f);
         }
         let column = Column::new()
             .push(scrollable)
@@ -100,10 +153,10 @@ where
             Row::new()
                 .push(column)
                 .push(Rule::vertical(1).style(TRENNLINIE))
-                .push(Text::new(aktuell).width(Length::Fill)),
+                .push(Aktuell::neu(aktuell).width(Length::Fill).height(Length::Fill)),
         )
         .style(hintergrund::WEIß);
-        Lizenzen { container, lizenzen }
+        Lizenzen { container }
     }
 }
 
@@ -129,10 +182,10 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenz
             &mut interne_nachrichten,
         );
         for interne_nachricht in interne_nachrichten {
-            // TODO aktuell veränderbar machen
-            println!("{interne_nachricht:?}");
             match interne_nachricht {
-                InterneNachricht::Aktuell(_name) => {},
+                InterneNachricht::Aktuell(f) => {
+                    error!("Nicht verwendeter Lizenz-Text:\n{}", f())
+                },
                 InterneNachricht::Schließen => nachrichten.push(Nachricht::Schließen),
             }
         }

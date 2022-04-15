@@ -654,10 +654,18 @@ where
                 // TODO methode erstellen
                 // TODO verwende echte Lizenzen
                 let f: fn() -> String = || {
-                    String::from("Some long license text\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+                    String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+                };
+                let g: fn() -> String = || {
+                    String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
                 };
                 self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
-                    std::iter::once(("test", (iced::button::State::new(), f))).collect(),
+                    [
+                        ("test", (iced::button::State::new(), f)),
+                        ("alternativ", (iced::button::State::new(), g)),
+                    ]
+                    .into_iter()
+                    .collect(),
                     iced::scrollable::State::new(),
                     iced::button::State::new(),
                 ))
