@@ -64,6 +64,7 @@ pub mod farbwahl;
 pub mod fonts;
 pub mod geschwindigkeit;
 pub mod icon;
+pub mod lizenzen;
 pub(crate) mod macros;
 pub mod modal;
 pub mod speichern_laden;

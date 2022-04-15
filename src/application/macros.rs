@@ -2,12 +2,14 @@
 
 macro_rules! reexport_no_event_methods {
     ($type:ty, $record:ident, $message:ty, $renderer:ty) => {
-        fn width(&self) -> Length {
-            <$type as Widget<$message, $renderer>>::width(&self.$record)
+        #[allow(unused_qualifications)]
+        fn width(&self) -> iced_native::Length {
+            <$type as iced_native::Widget<$message, $renderer>>::width(&self.$record)
         }
 
-        fn height(&self) -> Length {
-            <$type as Widget<$message, $renderer>>::height(&self.$record)
+        #[allow(unused_qualifications)]
+        fn height(&self) -> iced_native::Length {
+            <$type as iced_native::Widget<$message, $renderer>>::height(&self.$record)
         }
 
         fn layout(
@@ -15,7 +17,11 @@ macro_rules! reexport_no_event_methods {
             renderer: &$renderer,
             limits: &iced_native::layout::Limits,
         ) -> iced_native::layout::Node {
-            <$type as Widget<$message, $renderer>>::layout(&self.$record, renderer, limits)
+            <$type as iced_native::Widget<$message, $renderer>>::layout(
+                &self.$record,
+                renderer,
+                limits,
+            )
         }
 
         fn draw(
@@ -26,7 +32,7 @@ macro_rules! reexport_no_event_methods {
             cursor_position: Point,
             viewport: &iced_native::Rectangle,
         ) -> <$renderer as iced_native::Renderer>::Output {
-            <$type as Widget<$message, $renderer>>::draw(
+            <$type as iced_native::Widget<$message, $renderer>>::draw(
                 &self.$record,
                 renderer,
                 defaults,
@@ -37,7 +43,7 @@ macro_rules! reexport_no_event_methods {
         }
 
         fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
-            <$type as Widget<$message, $renderer>>::hash_layout(&self.$record, zustand)
+            <$type as iced_native::Widget<$message, $renderer>>::hash_layout(&self.$record, zustand)
         }
     };
 }
