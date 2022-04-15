@@ -9,12 +9,12 @@ use iced_native::{
     button::{self, Button},
     column::Column,
     container::{self, Container},
-    event, layout,
+    event,
     row::{self, Row},
     rule::{self, Rule},
     scrollable::{self, Scrollable},
     text::{self, Text},
-    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Renderer, Widget,
+    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 
 use crate::application::{
@@ -88,7 +88,6 @@ where
             )
             .width(Length::Shrink)
             .height(Length::Fill);
-        // TODO aktuell veränderbar machen
         let container = Container::new(
             Row::new()
                 .push(column)
