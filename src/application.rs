@@ -339,6 +339,7 @@ pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     ZeigeLizenzen(
         BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
         iced::scrollable::State,
+        iced::button::State,
     ),
 }
 
@@ -362,9 +363,12 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
             AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
             },
-            AuswahlZustand::ZeigeLizenzen(map, scrollable_state) => {
-                f.debug_tuple("ZeigeLizenzen").field(map).field(scrollable_state).finish()
-            },
+            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen_state) => f
+                .debug_tuple("ZeigeLizenzen")
+                .field(map)
+                .field(scrollable_state)
+                .field(schließen_state)
+                .finish(),
         }
     }
 }
@@ -655,6 +659,7 @@ where
                 self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
                     std::iter::once(("test", (iced::button::State::new(), f))).collect(),
                     iced::scrollable::State::new(),
+                    iced::button::State::new(),
                 ))
             },
             Nachricht::AsyncAktualisieren => {},

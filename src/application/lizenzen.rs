@@ -7,6 +7,7 @@ use std::{
 
 use iced_native::{
     button::{self, Button},
+    column::Column,
     container::{self, Container},
     event,
     row::{self, Row},
@@ -24,13 +25,18 @@ use crate::application::{
     },
 };
 
-#[derive(Debug, Clone, Copy)]
-enum InterneNachricht {}
+#[derive(Debug, Clone)]
+enum InterneNachricht {
+    Aktuell(String),
+    Schließen,
+}
 
-// TODO vermutlich mindestens Schließen notwendig
-// /// Nachricht, die von einem [Lizenzen]-Widget erzeugt wird.
-// #[derive(Debug, Clone, Copy)]
-// pub enum Nachricht {}
+/// Nachricht, die von einem [Lizenzen]-Widget erzeugt wird.
+#[derive(Debug, Clone, Copy)]
+pub enum Nachricht {
+    /// Schließe die [Lizenzen]-Anzeige.
+    Schließen,
+}
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
 pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
@@ -62,23 +68,38 @@ where
         lizenzen_und_button_states: &'a mut BTreeMap<&'static str, (button::State, fn() -> String)>,
         scrollable_state: &'a mut scrollable::State,
         scrollable_style: impl Into<<R as scrollable::Renderer>::Style>,
+        schließen: &'a mut button::State,
     ) -> Self {
-        let mut scrollable =
-            Scrollable::new(scrollable_state).width(Length::Shrink).style(scrollable_style);
+        let mut scrollable = Scrollable::new(scrollable_state)
+            .width(Length::Shrink)
+            .height(Length::Fill)
+            .style(scrollable_style);
         let mut aktuell = None;
         let mut lizenzen = BTreeMap::new();
         for (&name, (button_state, f)) in lizenzen_und_button_states {
             if aktuell.is_none() {
                 aktuell = Some(f());
             }
-            scrollable = scrollable.push(Button::new(button_state, Text::new(name)));
+            scrollable = scrollable.push(
+                Button::new(button_state, Text::new(name))
+                    .on_press(InterneNachricht::Aktuell(String::from(name))),
+            );
             let _ = lizenzen.insert(name, *f);
         }
+        let column = Column::new()
+            .push(scrollable)
+            .push(Container::new(Rule::horizontal(1).style(TRENNLINIE)).width(Length::Shrink))
+            .push(
+                Button::new(schließen, Text::new("Schließen"))
+                    .on_press(InterneNachricht::Schließen),
+            )
+            .width(Length::Shrink)
+            .height(Length::Fill);
         let aktuell = aktuell.unwrap_or_else(String::new);
         // TODO aktuell veränderbar machen
         let container = Container::new(
             Row::new()
-                .push(scrollable)
+                .push(column)
                 .push(Rule::vertical(1).style(TRENNLINIE))
                 .push(Text::new(aktuell).width(Length::Fill)),
         )
@@ -87,9 +108,7 @@ where
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> Widget<Nachricht, R>
-    for Lizenzen<'a, R>
-{
+impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
     reexport_no_event_methods! {Container<'a, InterneNachricht, R>, container, InterneNachricht, R}
 
     fn on_event(
@@ -99,7 +118,7 @@ impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> Widget<Nachricht, R>
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        _nachrichten: &mut Vec<Nachricht>,
+        nachrichten: &mut Vec<Nachricht>,
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let event_status = self.container.on_event(
@@ -112,13 +131,17 @@ impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> Widget<Nachricht, R>
         );
         for interne_nachricht in interne_nachrichten {
             // TODO aktuell veränderbar machen
-            match interne_nachricht {}
+            println!("{interne_nachricht:?}");
+            match interne_nachricht {
+                InterneNachricht::Aktuell(_name) => {},
+                InterneNachricht::Schließen => nachrichten.push(Nachricht::Schließen),
+            }
         }
         event_status
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> From<Lizenzen<'a, R>>
+impl<'a, R: 'a + Renderer + container::Renderer> From<Lizenzen<'a, R>>
     for Element<'a, Nachricht, R>
 {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {

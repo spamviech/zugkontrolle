@@ -13,7 +13,7 @@ use crate::{
         bewegen::Bewegen,
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
-        lizenzen::Lizenzen,
+        lizenzen::{self, Lizenzen},
         modal::Modal,
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung},
@@ -193,8 +193,9 @@ where
                     }
                 })
             },
-            AuswahlZustand::ZeigeLizenzen(map, scrollable_state) => {
-                Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style))
+            AuswahlZustand::ZeigeLizenzen(map, scrollable_state, schließen) => {
+                Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style, schließen))
+                    .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
