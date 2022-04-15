@@ -337,9 +337,13 @@ pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
     /// Anzeigen der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen {
+        /// Identifier (Name-Version), Zustand des Auswahl-Buttons sowie Lizenztext.
         lizenzen: BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
+        /// Zustand für das [Scrollable](iced::Scrollable) der Auswahl-Buttons.
         scrollable: iced::scrollable::State,
+        /// Zustand des Schließen-Buttons.
         schließen: iced::button::State,
+        /// Der aktuell angezeigte Lizenztext.
         aktuell: String,
     },
 }
