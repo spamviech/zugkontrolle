@@ -7,6 +7,7 @@ use std::{
 
 use iced_native::{
     button::{self, Button},
+    container::{self, Container},
     event,
     row::{self, Row},
     rule::{self, Rule},
@@ -17,7 +18,10 @@ use iced_native::{
 
 use crate::application::{
     macros::reexport_no_event_methods,
-    style::linie::{Linie, TRENNLINIE},
+    style::{
+        hintergrund::{self, Hintergrund},
+        linie::{Linie, TRENNLINIE},
+    },
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -29,12 +33,12 @@ enum InterneNachricht {}
 // pub enum Nachricht {}
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
-pub struct Lizenzen<'a, R: Renderer + row::Renderer> {
-    row: Row<'a, InterneNachricht, R>,
+pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
+    container: Container<'a, InterneNachricht, R>,
     lizenzen: BTreeMap<&'a str, fn() -> String>,
 }
 
-impl<R: Renderer + row::Renderer> Debug for Lizenzen<'_, R> {
+impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Lizenzen").field("row", &"<Row>").field("lizenzen", &self.lizenzen).finish()
     }
@@ -44,12 +48,14 @@ impl<'a, R> Lizenzen<'a, R>
 where
     R: 'a
         + Renderer
+        + container::Renderer
         + row::Renderer
         + scrollable::Renderer
         + rule::Renderer
         + button::Renderer
         + text::Renderer,
     <R as rule::Renderer>::Style: From<Linie>,
+    <R as container::Renderer>::Style: From<Hintergrund>,
 {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
@@ -70,16 +76,21 @@ where
         }
         let aktuell = aktuell.unwrap_or_else(String::new);
         // TODO aktuell veränderbar machen
-        let row = Row::new()
-            .push(scrollable)
-            .push(Rule::vertical(1).style(TRENNLINIE))
-            .push(Text::new(aktuell).width(Length::Fill));
-        Lizenzen { row, lizenzen }
+        let container = Container::new(
+            Row::new()
+                .push(scrollable)
+                .push(Rule::vertical(1).style(TRENNLINIE))
+                .push(Text::new(aktuell).width(Length::Fill)),
+        )
+        .style(hintergrund::WEIß);
+        Lizenzen { container, lizenzen }
     }
 }
 
-impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> Widget<Nachricht, R> for Lizenzen<'a, R> {
-    reexport_no_event_methods! {Row<'a, InterneNachricht, R>, row, InterneNachricht, R}
+impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> Widget<Nachricht, R>
+    for Lizenzen<'a, R>
+{
+    reexport_no_event_methods! {Container<'a, InterneNachricht, R>, container, InterneNachricht, R}
 
     fn on_event(
         &mut self,
@@ -91,7 +102,7 @@ impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> Widget<Nachricht, R> for L
         _nachrichten: &mut Vec<Nachricht>,
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
-        let event_status = self.row.on_event(
+        let event_status = self.container.on_event(
             event,
             layout,
             cursor_position,
@@ -107,7 +118,7 @@ impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> Widget<Nachricht, R> for L
     }
 }
 
-impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> From<Lizenzen<'a, R>>
+impl<'a, R: 'a + Renderer + container::Renderer, Nachricht> From<Lizenzen<'a, R>>
     for Element<'a, Nachricht, R>
 {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
