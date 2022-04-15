@@ -88,7 +88,6 @@ where
         }
         let column = Column::new()
             .push(scrollable)
-            .push(Container::new(Rule::horizontal(1).style(TRENNLINIE)).width(Length::Shrink))
             .push(
                 Button::new(schließen, Text::new("Schließen"))
                     .on_press(InterneNachricht::Schließen),
