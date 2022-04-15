@@ -2,7 +2,9 @@
 
 use std::fmt::Debug;
 
-use iced::{Align, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text};
+use iced::{
+    Align, Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text,
+};
 use log::error;
 use num_traits::NumCast;
 
@@ -11,6 +13,7 @@ use crate::{
         bewegen::Bewegen,
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
+        lizenzen::Lizenzen,
         modal::Modal,
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung},
@@ -76,6 +79,7 @@ where
             bewegung: _,
             sender: _,
             empfänger: _,
+            zeige_lizenzen,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();
@@ -90,6 +94,7 @@ where
             zoom,
             aktueller_zoom,
             speichern_laden,
+            zeige_lizenzen,
         );
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
@@ -188,6 +193,10 @@ where
                     }
                 })
             },
+            AuswahlZustand::ZeigeLizenzen(map, scrollable_state) => {
+                todo!("WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY?")
+                // Element::from(Lizenzen::neu(map, scrollable_state, *scrollable_style))
+            },
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
@@ -219,6 +228,7 @@ fn top_row<'t, L>(
     zoom: &'t mut iced::slider::State,
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Zustand,
+    zeige_lizenzen: &'t mut iced::button::State,
 ) -> Row<'t, Nachricht<L>>
 where
     L: 'static + Debug + LeiterAnzeige,
@@ -282,6 +292,13 @@ where
             speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
             speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
         }))
+        .push(
+            Element::from(
+                Button::new(zeige_lizenzen, Text::new("Lizenzen"))
+                    .on_press(NachrichtClone::ZeigeLizenzen),
+            )
+            .map(Nachricht::from),
+        )
         .padding(5)
         .spacing(5)
         .width(Length::Fill)

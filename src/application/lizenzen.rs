@@ -23,9 +23,10 @@ use crate::application::{
 #[derive(Debug, Clone, Copy)]
 enum InterneNachricht {}
 
-/// Nachricht, die von einem [Lizenzen]-Widget erzeugt wird.
-#[derive(Debug, Clone, Copy)]
-pub enum Nachricht {}
+// TODO vermutlich mindestens Schließen notwendig
+// /// Nachricht, die von einem [Lizenzen]-Widget erzeugt wird.
+// #[derive(Debug, Clone, Copy)]
+// pub enum Nachricht {}
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
 pub struct Lizenzen<'a, R: Renderer + row::Renderer> {
@@ -52,10 +53,10 @@ where
 {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
-        lizenzen_und_button_states: &'a mut BTreeMap<&'a str, (button::State, fn() -> String)>,
+        lizenzen_und_button_states: &'a mut BTreeMap<&'static str, (button::State, fn() -> String)>,
         scrollable_state: &'a mut scrollable::State,
         scrollable_style: impl Into<<R as scrollable::Renderer>::Style>,
-    ) -> Lizenzen<'a, R> {
+    ) -> Self {
         let mut scrollable =
             Scrollable::new(scrollable_state).width(Length::Shrink).style(scrollable_style);
         let mut aktuell = None;
@@ -77,7 +78,7 @@ where
     }
 }
 
-impl<'a, R: 'a + Renderer + row::Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
+impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> Widget<Nachricht, R> for Lizenzen<'a, R> {
     reexport_no_event_methods! {Row<'a, InterneNachricht, R>, row, InterneNachricht, R}
 
     fn on_event(
@@ -106,7 +107,9 @@ impl<'a, R: 'a + Renderer + row::Renderer> Widget<Nachricht, R> for Lizenzen<'a,
     }
 }
 
-impl<'a, R: 'a + Renderer + row::Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R: 'a + Renderer + row::Renderer, Nachricht> From<Lizenzen<'a, R>>
+    for Element<'a, Nachricht, R>
+{
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
         Element::new(lizenzen)
     }

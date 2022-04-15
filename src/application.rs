@@ -1,6 +1,7 @@
 //! [Application] für die Gleis-Anzeige.
 
 use std::{
+    collections::BTreeMap,
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
@@ -125,6 +126,7 @@ enum NachrichtClone<L: LeiterAnzeige> {
     SchließeMessageBox,
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     ZeigeAuswahlGeschwindigkeit,
+    ZeigeLizenzen,
 }
 
 impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
@@ -137,6 +139,7 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
                 Nachricht::AktionGeschwindigkeit(aktion)
             },
             NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
+            NachrichtClone::ZeigeLizenzen => Nachricht::ZeigeLizenzen,
         }
     }
 }
@@ -222,6 +225,8 @@ where
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
+    /// Zeige Lizenzen der verwendeten Open Source Libraries an.
+    ZeigeLizenzen,
     /// Eine asynchrone Aktion hat eine Änderung des Zustands bewirkt.
     AsyncAktualisieren,
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
@@ -330,25 +335,35 @@ pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     ),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
     KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
+    /// Anzeigen der verwendeten Open-Source Lizenzen.
+    ZeigeLizenzen(
+        BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
+        iced::scrollable::State,
+    ),
 }
 
 impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Streckenabschnitt(arg0) => {
+            AuswahlZustand::Streckenabschnitt(arg0) => {
                 f.debug_tuple("Streckenabschnitt").field(arg0).finish()
             },
-            Self::Geschwindigkeit(arg0) => f.debug_tuple("Geschwindigkeit").field(arg0).finish(),
-            Self::Weiche(arg0, _arg1) => {
+            AuswahlZustand::Geschwindigkeit(arg0) => {
+                f.debug_tuple("Geschwindigkeit").field(arg0).finish()
+            },
+            AuswahlZustand::Weiche(arg0, _arg1) => {
                 f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
             },
-            Self::DreiwegeWeiche(arg0, _arg1) => f
+            AuswahlZustand::DreiwegeWeiche(arg0, _arg1) => f
                 .debug_tuple("DreiwegeWeiche")
                 .field(arg0)
                 .field(&"<function>".to_string())
                 .finish(),
-            Self::KurvenWeiche(arg0, _arg1) => {
+            AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
+            },
+            AuswahlZustand::ZeigeLizenzen(map, scrollable_state) => {
+                f.debug_tuple("ZeigeLizenzen").field(map).field(scrollable_state).finish()
             },
         }
     }
@@ -463,6 +478,7 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     bewegung: Option<Bewegung>,
     sender: Sender<Nachricht<L>>,
     empfänger: Empfänger<Nachricht<L>>,
+    zeige_lizenzen: iced::button::State,
     // TODO Plan
 }
 
@@ -547,6 +563,7 @@ where
             bewegung: None,
             sender,
             empfänger: Empfänger::neu(receiver),
+            zeige_lizenzen: iced::button::State::new(),
         };
 
         (zugkontrolle, command)
@@ -627,8 +644,19 @@ where
                     command = nachricht.als_command()
                 }
             },
-            Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
+            Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
+            Nachricht::ZeigeLizenzen => {
+                // TODO methode erstellen
+                // TODO verwende echte Lizenzen
+                let f: fn() -> String = || {
+                    String::from("Some long license text\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+                };
+                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
+                    std::iter::once(("test", (iced::button::State::new(), f))).collect(),
+                    iced::scrollable::State::new(),
+                ))
+            },
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
