@@ -28,19 +28,21 @@ use crate::application::{
 
 struct Aktuell<R: text::Renderer> {
     text: Text<R>,
+    width: Option<Length>,
+    height: Option<Length>,
 }
 
 impl<R: text::Renderer> Aktuell<R> {
     fn neu(text: impl Into<String>) -> Self {
-        Aktuell { text: Text::new(text) }
+        Aktuell { text: Text::new(text), width: None, height: None }
     }
 
-    fn width(self, length: Length) -> Self {
-        Aktuell { text: self.text.width(length) }
+    fn width(self, width: Length) -> Self {
+        Aktuell { text: self.text.width(width), width: Some(width), height: self.height }
     }
 
-    fn height(self, length: Length) -> Self {
-        Aktuell { text: self.text.height(length) }
+    fn height(self, height: Length) -> Self {
+        Aktuell { text: self.text.height(height), width: self.width, height: Some(height) }
     }
 }
 
@@ -60,12 +62,21 @@ impl<R: Renderer + text::Renderer> Widget<InterneNachricht, R> for Aktuell<R> {
         let mut event_status =
             self.text.on_event(event, layout, cursor_position, renderer, clipboard, nachrichten);
         let mut andere_nachrichten = Vec::new();
+        let setze_breite = |text: Text<R>| match self.width {
+            Some(width) => text.width(width),
+            None => text,
+        };
+        let setze_höhe = |text: Text<R>| match self.height {
+            Some(height) => text.height(height),
+            None => text,
+        };
         for nachricht in nachrichten.drain(..) {
             println!("{nachricht:?}");
             match nachricht {
                 InterneNachricht::Aktuell(f) => {
-                    println!("Neuer Text:\n{}", f());
-                    self.text = Text::new(f());
+                    let text = f();
+                    println!("Neuer Text:\n{}", text);
+                    self.text = setze_höhe(setze_breite(Text::new(text)));
                     event_status = event::Status::Captured;
                 },
                 _ => andere_nachrichten.push(nachricht),
