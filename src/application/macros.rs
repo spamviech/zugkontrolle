@@ -3,15 +3,18 @@
 macro_rules! reexport_no_event_methods {
     ($type:ty, $record:ident, $message:ty, $renderer:ty) => {
         #[allow(unused_qualifications)]
+        #[inline(always)]
         fn width(&self) -> iced_native::Length {
             <$type as iced_native::Widget<$message, $renderer>>::width(&self.$record)
         }
 
+        #[inline(always)]
         #[allow(unused_qualifications)]
         fn height(&self) -> iced_native::Length {
             <$type as iced_native::Widget<$message, $renderer>>::height(&self.$record)
         }
 
+        #[inline(always)]
         fn layout(
             &self,
             renderer: &$renderer,
@@ -24,6 +27,7 @@ macro_rules! reexport_no_event_methods {
             )
         }
 
+        #[inline(always)]
         fn draw(
             &self,
             renderer: &mut $renderer,
@@ -42,6 +46,7 @@ macro_rules! reexport_no_event_methods {
             )
         }
 
+        #[inline(always)]
         fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
             <$type as iced_native::Widget<$message, $renderer>>::hash_layout(&self.$record, zustand)
         }
