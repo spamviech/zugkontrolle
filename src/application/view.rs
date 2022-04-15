@@ -307,9 +307,20 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     let mut width = Length::Shrink;
     match aktueller_modus {
         Modus::Bauen => {
-            let mut max_width = None;
+            let mut max_breite = None;
+            macro_rules! max_breite_berechnen {
+                ($($vec: expr),* $(,)?) => {
+                    $(
+                        for button in $vec.iter() {
+                            let größe = button.rechteck().größe();
+                            let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
+                            max_breite = max_breite.max(Some(breite));
+                        }
+                    )*
+                }
+            }
             fn knöpfe_hinzufügen<'t, Leiter, T>(
-                max_width: &mut Option<u16>,
+                max_breite: &mut Option<u16>,
                 scrollable: &mut Scrollable<'t, NachrichtClone<Leiter>>,
                 buttons: &'t mut Vec<Knopf<T>>,
             ) where
@@ -318,17 +329,15 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
             {
                 take_mut::take(scrollable, |mut scrollable| {
                     for button in buttons {
-                        let größe = button.rechteck().größe();
-                        let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
-                        *max_width = (*max_width).max(Some(breite));
-                        scrollable = scrollable.push(button.als_iced_widget(*max_width))
+                        scrollable = scrollable.push(button.als_iced_widget(*max_breite))
                     }
                     scrollable
                 })
             }
             macro_rules! knöpfe_hinzufügen {
                 ($($vec: expr),* $(,)?) => {
-                    $(knöpfe_hinzufügen(&mut max_width, &mut scrollable, $vec);)*
+                    max_breite_berechnen!($($vec),*);
+                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable, $vec);)*
                 }
             }
             knöpfe_hinzufügen!(
@@ -340,7 +349,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                 s_kurven_weichen,
                 kreuzungen
             );
-            if let Some(max) = max_width {
+            if let Some(max) = max_breite {
                 width = Length::Units(max + scroller_width);
             }
         },
