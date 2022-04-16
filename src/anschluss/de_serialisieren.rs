@@ -1,5 +1,6 @@
 //! Traits zum serialisieren und reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
 
+use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
@@ -122,5 +123,102 @@ impl<T: Serialisiere> Reserviert<T> {
             },
         };
         Ok(reserviert.konvertiere(|r| kombiniere(t, r)))
+    }
+}
+
+#[allow(single_use_lifetimes)]
+impl<S, R> Serialisiere for Vec<R>
+where
+    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    type Serialisiert = Vec<S>;
+
+    fn serialisiere(&self) -> Self::Serialisiert {
+        self.iter().map(Serialisiere::serialisiere).collect()
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.into_iter().fold((Vec::new(), Vec::new(), Vec::new()), |mut acc, r| {
+            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
+            acc.0.extend(pwm_pins);
+            acc.1.extend(output_anschlüsse);
+            acc.2.extend(input_anschlüsse);
+            acc
+        })
+    }
+}
+
+#[allow(single_use_lifetimes)]
+impl<S, R> Reserviere<Vec<R>> for Vec<S>
+where
+    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    fn reserviere(
+        self,
+        lager: &mut anschluss::Lager,
+        pwm_nicht_benötigt: Vec<pwm::Pin>,
+        output_nicht_benötigt: Vec<OutputAnschluss>,
+        input_nicht_benötigt: Vec<InputAnschluss>,
+    ) -> Result<Vec<R>> {
+        self.into_iter().fold(
+            Ok(Reserviert {
+                anschluss: Vec::new(),
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
+            |acc, serialisiert| {
+                let reserviert = acc?;
+                reserviert.reserviere_ebenfalls_mit(lager, serialisiert, |mut vec, r| {
+                    vec.push(r);
+                    vec
+                })
+            },
+        )
+    }
+}
+
+#[allow(single_use_lifetimes)]
+impl<S, R> Serialisiere for NonEmpty<R>
+where
+    S: Clone + Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    type Serialisiert = NonEmpty<S>;
+
+    fn serialisiere(&self) -> Self::Serialisiert {
+        let head = self.head.serialisiere();
+        let tail = self.tail.serialisiere();
+        NonEmpty { head, tail }
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        self.into_iter().fold((Vec::new(), Vec::new(), Vec::new()), |mut acc, r| {
+            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
+            acc.0.extend(pwm_pins);
+            acc.1.extend(output_anschlüsse);
+            acc.2.extend(input_anschlüsse);
+            acc
+        })
+    }
+}
+
+#[allow(single_use_lifetimes)]
+impl<S, R> Reserviere<NonEmpty<R>> for NonEmpty<S>
+where
+    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    fn reserviere(
+        self,
+        lager: &mut anschluss::Lager,
+        pwm_pins: Vec<pwm::Pin>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
+    ) -> Result<NonEmpty<R>> {
+        let head = self.head.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        head.reserviere_ebenfalls_mit(lager, self.tail, |head, tail| NonEmpty { head, tail })
     }
 }
