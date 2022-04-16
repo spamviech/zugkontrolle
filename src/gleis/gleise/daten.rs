@@ -105,12 +105,12 @@ type GeschwindigkeitMap<Leiter> =
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub(crate) struct Zustand<L: Leiter> {
-    pub(crate) zugtyp: Zugtyp<L>,
-    pub(crate) ohne_streckenabschnitt: GleiseDaten,
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMap,
-    pub(crate) geschwindigkeiten: GeschwindigkeitMap<L>,
-    pub(crate) pläne: HashMap<plan::Name, Plan<L>>,
+pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
+    pub(in crate::gleis::gleise) zugtyp: Zugtyp<L>,
+    pub(in crate::gleis::gleise) ohne_streckenabschnitt: GleiseDaten,
+    pub(in crate::gleis::gleise) ohne_geschwindigkeit: StreckenabschnittMap,
+    pub(in crate::gleis::gleise) geschwindigkeiten: GeschwindigkeitMap<L>,
+    pub(in crate::gleis::gleise) pläne: HashMap<plan::Name, Plan<L>>,
 }
 
 impl<L: Leiter> Zustand<L> {
@@ -195,7 +195,7 @@ impl<L: Leiter> Zustand<L> {
         })
     }
 
-    pub(crate) fn alle_streckenabschnitt_daten<'t>(
+    pub(in crate::gleis::gleise) fn alle_streckenabschnitt_daten<'t>(
         &'t self,
     ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
         iter::once((None, &self.ohne_streckenabschnitt))
@@ -217,7 +217,7 @@ impl<L: Leiter> Zustand<L> {
             ))
     }
 
-    pub(crate) fn alle_streckenabschnitte_und_daten<'t>(
+    pub(in crate::gleis::gleise) fn alle_streckenabschnitte_und_daten<'t>(
         &'t self,
     ) -> impl Iterator<
         Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
@@ -302,7 +302,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(crate) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
+    pub(in crate::gleis::gleise) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         definition: T,
         mut position: Position,
@@ -324,7 +324,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
-    pub(crate) fn hinzufügen_anliegend<T>(
+    pub(in crate::gleis::gleise) fn hinzufügen_anliegend<T>(
         &mut self,
         definition: T,
         streckenabschnitt: Option<StreckenabschnittId>,
@@ -374,7 +374,7 @@ impl<L: Leiter> Zustand<L> {
 
     /// Bewege ein Gleis an die neue position.
     #[inline(always)]
-    pub(crate) fn bewegen<T: Zeichnen + DatenAuswahl>(
+    pub(in crate::gleis::gleise) fn bewegen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
         mut position_neu: Position,
@@ -389,7 +389,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    pub(crate) fn bewegen_anliegend<T>(
+    pub(in crate::gleis::gleise) fn bewegen_anliegend<T>(
         &mut self,
         gleis_id: &mut GleisId<T>,
         verbindung_name: &T::VerbindungName,
@@ -406,7 +406,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T: Zeichnen + DatenAuswahl>(
+    pub(in crate::gleis::gleise) fn entfernen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Gleis<T>, GleisIdFehler> {
@@ -450,22 +450,22 @@ impl Position {
     }
 }
 
-pub(crate) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
+pub(in crate::gleis::gleise) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
 
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
-    pub(crate) geraden: RStern<Gerade>,
-    pub(crate) kurven: RStern<Kurve>,
-    pub(crate) weichen: RStern<Weiche>,
-    pub(crate) dreiwege_weichen: RStern<DreiwegeWeiche>,
-    pub(crate) kurven_weichen: RStern<KurvenWeiche>,
-    pub(crate) s_kurven_weichen: RStern<SKurvenWeiche>,
-    pub(crate) kreuzungen: RStern<Kreuzung>,
+    pub(in crate::gleis::gleise) geraden: RStern<Gerade>,
+    pub(in crate::gleis::gleise) kurven: RStern<Kurve>,
+    pub(in crate::gleis::gleise) weichen: RStern<Weiche>,
+    pub(in crate::gleis::gleise) dreiwege_weichen: RStern<DreiwegeWeiche>,
+    pub(in crate::gleis::gleise) kurven_weichen: RStern<KurvenWeiche>,
+    pub(in crate::gleis::gleise) s_kurven_weichen: RStern<SKurvenWeiche>,
+    pub(in crate::gleis::gleise) kreuzungen: RStern<Kreuzung>,
 }
 
 impl GleiseDaten {
     /// Erstelle eine leere `GleiseDaten`-Struktur.
-    pub(crate) fn neu() -> Self {
+    pub(in crate::gleis::gleise) fn neu() -> Self {
         GleiseDaten {
             geraden: RStern::new(),
             kurven: RStern::new(),
@@ -581,7 +581,7 @@ impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
 }
 
 /// SelectionFunction, die einen bestimmten Envelope sucht.
-pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
+pub(in crate::gleis::gleise) struct SelectEnvelope(pub(in crate::gleis::gleise) AABB<Vektor>);
 
 impl<T> SelectionFunction<T> for SelectEnvelope
 where
@@ -612,11 +612,11 @@ pub(crate) trait DatenAuswahl: Sized {
 }
 impl GleiseDaten {
     #[inline(always)]
-    pub(crate) fn rstern<T: DatenAuswahl>(&self) -> &RStern<T> {
+    pub(in crate::gleis::gleise) fn rstern<T: DatenAuswahl>(&self) -> &RStern<T> {
         T::rstern(self)
     }
     #[inline(always)]
-    pub(crate) fn rstern_mut<T: DatenAuswahl>(&mut self) -> &mut RStern<T> {
+    pub(in crate::gleis::gleise) fn rstern_mut<T: DatenAuswahl>(&mut self) -> &mut RStern<T> {
         T::rstern_mut(self)
     }
 }
