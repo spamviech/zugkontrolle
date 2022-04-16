@@ -127,6 +127,58 @@ impl<T: Serialisiere> Reserviert<T> {
 }
 
 #[allow(single_use_lifetimes)]
+impl<S, R> Serialisiere for Option<R>
+where
+    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    type Serialisiert = Option<S>;
+
+    fn serialisiere(&self) -> Self::Serialisiert {
+        self.as_ref().map(Serialisiere::serialisiere)
+    }
+
+    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+        let mut acc = (Vec::new(), Vec::new(), Vec::new());
+        if let Some(r) = self {
+            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
+            acc.0.extend(pwm_pins);
+            acc.1.extend(output_anschlüsse);
+            acc.2.extend(input_anschlüsse);
+        }
+        acc
+    }
+}
+
+#[allow(single_use_lifetimes)]
+impl<S, R> Reserviere<Option<R>> for Option<S>
+where
+    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    R: Serialisiere<Serialisiert = S>,
+{
+    fn reserviere(
+        self,
+        lager: &mut anschluss::Lager,
+        pwm_nicht_benötigt: Vec<pwm::Pin>,
+        output_nicht_benötigt: Vec<OutputAnschluss>,
+        input_nicht_benötigt: Vec<InputAnschluss>,
+    ) -> Result<Option<R>> {
+        let reserviert = if let Some(s) = self {
+            s.reserviere(lager, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?
+                .konvertiere(Some)
+        } else {
+            Reserviert {
+                anschluss: None,
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }
+        };
+        Ok(reserviert)
+    }
+}
+
+#[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere for Vec<R>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
