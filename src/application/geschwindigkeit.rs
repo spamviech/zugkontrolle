@@ -23,7 +23,6 @@ use crate::{
     },
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     eingeschränkt::NichtNegativ,
-    maybe_empty::MaybeEmpty,
     steuerung::{
         geschwindigkeit::{
             Fahrtrichtung, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
@@ -835,11 +834,15 @@ where
                             } else {
                                 (self.ks_nachricht)(
                                     self.umdrehen_anschluss.clone(),
-                                    self.ks_anschlüsse
-                                        .iter()
-                                        .map(|output_save| (*output_save).clone())
-                                        .collect::<MaybeEmpty<_>>()
-                                        .unwrap(),
+                                    NonEmpty {
+                                        head: self.ks_anschlüsse.head.clone(),
+                                        tail: self
+                                            .ks_anschlüsse
+                                            .tail
+                                            .iter()
+                                            .map(|output_save| (*output_save).clone())
+                                            .collect(),
+                                    },
                                 )
                             },
                         },
