@@ -222,3 +222,75 @@ where
         head.reserviere_ebenfalls_mit(lager, self.tail, |head, tail| NonEmpty { head, tail })
     }
 }
+
+macro_rules! impl_serialisiere_tuple {
+    ($($name: ident : $type: ident - $serialisiert: ident),+) => {
+        #[allow(single_use_lifetimes)]
+        impl<A0, S0, $($type, $serialisiert),+> Serialisiere for (A0, $($type),+)
+        where
+            A0: Serialisiere<Serialisiert=S0>,
+            S0: Reserviere<A0> + Serialize + for<'de> Deserialize<'de>,
+            $(
+                $type: Serialisiere<Serialisiert=$serialisiert>,
+                $serialisiert: Reserviere<$type> + Serialize + for<'de> Deserialize<'de>,
+            )+
+        {
+            type Serialisiert = (S0, $($serialisiert),+);
+            fn serialisiere(&self) -> Self::Serialisiert {
+                let (a0, $($name),+) = self;
+                let s0 = a0.serialisiere();
+                $(
+                    let $name = $name.serialisiere();
+                )+
+                (s0, $($name),+)
+            }
+            fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+                let (a0, $($name),+) = self;
+                let mut acc = a0.anschlüsse();
+                $(
+                    let (pwm_pins, output_anschlüsse, input_anschlüsse) = $name.anschlüsse();
+                    acc.0.extend(pwm_pins);
+                    acc.1.extend(output_anschlüsse);
+                    acc.2.extend(input_anschlüsse);
+                )+
+                acc
+            }
+        }
+        impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
+        where
+            A0: Serialisiere,
+            S0: Reserviere<A0>,
+            $(
+                $type: Serialisiere,
+                $serialisiert: Reserviere<$type>,
+            )+
+        {
+            fn reserviere(
+                self,
+                lager: &mut anschluss::Lager,
+                pwm_pins: Vec<pwm::Pin>,
+                output_anschlüsse: Vec<OutputAnschluss>,
+                input_anschlüsse: Vec<InputAnschluss>,
+            ) -> Result<(A0, $($type),+)> {
+                let (a0, $($name),+) = self;
+                let reserviert = a0.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+                reserviert.reserviere_ebenfalls_mit(
+                    lager,
+                    ($($name),+),
+                    #[allow(unused_parens)]
+                    |a0, ($($name),+)| (a0, $($name),+)
+                )
+            }
+        }
+    };
+}
+
+impl_serialisiere_tuple! {a: A-SA}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH, i: I-SI}
