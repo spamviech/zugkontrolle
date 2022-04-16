@@ -1,7 +1,6 @@
 //! [Application] für die Gleis-Anzeige.
 
 use std::{
-    collections::BTreeMap,
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
@@ -335,17 +334,8 @@ pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
     ),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
     KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
-    /// Anzeigen der verwendeten Open-Source Lizenzen.
-    ZeigeLizenzen {
-        /// Identifier (Name-Version), Zustand des Auswahl-Buttons sowie Lizenztext.
-        lizenzen: BTreeMap<&'static str, (iced::button::State, fn() -> String)>,
-        /// Zustand für das [Scrollable](iced::Scrollable) der Auswahl-Buttons.
-        scrollable: iced::scrollable::State,
-        /// Zustand des Schließen-Buttons.
-        schließen: iced::button::State,
-        /// Der aktuell angezeigte Lizenztext.
-        aktuell: String,
-    },
+    /// Anzeige der verwendeten Open-Source Lizenzen.
+    ZeigeLizenzen(lizenzen::Zustand),
 }
 
 impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
@@ -368,13 +358,9 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
             AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
                 f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
             },
-            AuswahlZustand::ZeigeLizenzen { lizenzen, scrollable, schließen, aktuell } => f
-                .debug_struct("ZeigeLizenzen")
-                .field("lizenzen", lizenzen)
-                .field("scrollable", scrollable)
-                .field("schließen", schließen)
-                .field("aktuell", aktuell)
-                .finish(),
+            AuswahlZustand::ZeigeLizenzen(arg0) => {
+                f.debug_tuple("ZeigeLizenzen").field(arg0).finish()
+            },
         }
     }
 }
@@ -665,17 +651,9 @@ where
                 let g: fn() -> String = || {
                     String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
                 };
-                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen {
-                    lizenzen: [
-                        ("test", (iced::button::State::new(), f)),
-                        ("alternativ", (iced::button::State::new(), g)),
-                    ]
-                    .into_iter()
-                    .collect(),
-                    scrollable: iced::scrollable::State::new(),
-                    schließen: iced::button::State::new(),
-                    aktuell: f(),
-                })
+                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(lizenzen::Zustand::neu(
+                    [("test", f), ("alternativ", g)].into_iter(),
+                )))
             },
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),

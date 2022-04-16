@@ -38,7 +38,38 @@ pub enum Nachricht {
     Schließen,
 }
 
-/// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
+/// Zustand eines [Lizenzen]-Widgets.
+#[derive(Debug)]
+pub struct Zustand {
+    lizenzen_und_button_states: BTreeMap<&'static str, (button::State, fn() -> String)>,
+    scrollable: scrollable::State,
+    schließen: button::State,
+    aktuell: String,
+}
+
+impl Zustand {
+    /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
+    pub fn neu(lizenzen: impl Iterator<Item = (&'static str, fn() -> String)>) -> Self {
+        let mut aktuell = None;
+        let lizenzen_und_button_states = lizenzen
+            .map(|(name, f)| {
+                if aktuell.is_none() {
+                    aktuell = Some(f());
+                }
+                (name, (button::State::new(), f))
+            })
+            .collect();
+        let aktuell = aktuell.unwrap_or_else(String::new);
+        Zustand {
+            lizenzen_und_button_states,
+            scrollable: scrollable::State::new(),
+            schließen: button::State::new(),
+            aktuell,
+        }
+    }
+}
+
+/// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
 pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneNachricht, R>,
     aktuell: &'a mut String,
@@ -65,13 +96,11 @@ where
 {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
-        lizenzen_und_button_states: &'a mut BTreeMap<&'static str, (button::State, fn() -> String)>,
-        scrollable_state: &'a mut scrollable::State,
+        zustand: &'a mut Zustand,
         scrollable_style: impl Into<<R as scrollable::Renderer>::Style>,
-        schließen: &'a mut button::State,
-        aktuell: &'a mut String,
     ) -> Self {
-        let mut scrollable = Scrollable::new(scrollable_state)
+        let Zustand { lizenzen_und_button_states, scrollable, schließen, aktuell } = zustand;
+        let mut scrollable = Scrollable::new(scrollable)
             .width(Length::Shrink)
             .height(Length::Fill)
             .style(scrollable_style);

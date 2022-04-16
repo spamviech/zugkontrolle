@@ -18,7 +18,7 @@ impl Sammlung {
         Sammlung { breite }
     }
 
-    /// Die Breite des [iced::Scrollable].
+    /// Die Breite des [Scroller-Breite](iced::Scrollable::scroller_width) des [iced::Scrollable].
     #[inline(always)]
     pub fn breite(&self) -> u16 {
         self.breite

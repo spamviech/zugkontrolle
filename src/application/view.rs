@@ -193,15 +193,9 @@ where
                     }
                 })
             },
-            AuswahlZustand::ZeigeLizenzen { lizenzen, scrollable, schließen, aktuell } => {
-                Element::from(Lizenzen::neu(
-                    lizenzen,
-                    scrollable,
-                    *scrollable_style,
-                    schließen,
-                    aktuell,
-                ))
-                .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+            AuswahlZustand::ZeigeLizenzen(zustand) => {
+                Element::from(Lizenzen::neu(zustand, *scrollable_style))
+                    .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
