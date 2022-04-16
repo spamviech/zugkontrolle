@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{Reserviere, Serialisiere},
     },
     gleis::{
         gerade::Gerade,
@@ -85,18 +85,11 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
     ) -> anschluss::de_serialisieren::Result<Gleis<R>> {
-        let Reserviert {
-            anschluss: definition_reserviert,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        } = self.definition.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
-        Ok(Reserviert {
-            anschluss: Gleis { definition: definition_reserviert, position: self.position },
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        })
+        let Gleis { definition, position } = self;
+        let reserviert = definition
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .konvertiere(|definition| Gleis { definition, position });
+        Ok(reserviert)
     }
 }
 
