@@ -62,7 +62,11 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                                 ),*
                             }
                         }
-                        fn anschlüsse(self) -> (Vec<#base_ident::anschluss::pin::pwm::Pin>, Vec<#base_ident::anschluss::OutputAnschluss>, Vec<#base_ident::anschluss::InputAnschluss>) {
+                        fn anschlüsse(self) -> (
+                            Vec<#base_ident::anschluss::pin::pwm::Pin>,
+                            Vec<#base_ident::anschluss::OutputAnschluss>,
+                            Vec<#base_ident::anschluss::InputAnschluss>
+                        ) {
                             let mut pwm0 = Vec::new();
                             let mut output0 = Vec::new();
                             let mut input0 = Vec::new();
@@ -81,37 +85,17 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         fn reserviere(
                             self,
                             lager: &mut #base_ident::anschluss::Lager,
-                            pwm_nicht_benötigt: Vec<#base_ident::anschluss::pin::pwm::Pin>,
-                            output_nicht_benötigt: Vec<#base_ident::anschluss::OutputAnschluss>,
-                            input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
+                            pwm_pins: Vec<#base_ident::anschluss::pin::pwm::Pin>,
+                            output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
+                            input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
                         ) -> #base_ident::anschluss::de_serialisieren::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
-                            #(
-                                // FIXME verwende Hilfsfunktion Reserviert::reserviere_ebenfalls_mit,
-                                // aktuell werden bei Fehler nicht alle Anschlüsse zurück gegeben
-                                let #param_fields = if let Some(save) = #param_fields {
-                                    let #base_ident::anschluss::de_serialisieren::Reserviert {
-                                        anschluss,
-                                        pwm_nicht_benötigt,
-                                        output_nicht_benötigt,
-                                        input_nicht_benötigt
-                                    } = save.reserviere(lager, acc.0, acc.1, acc.2)?;
-                                    acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
-                                    Some(anschluss)
-                                } else {
-                                    None
-                                };
-                            )*
-                            Ok(#base_ident::anschluss::de_serialisieren::Reserviert {
-                                anschluss: #ident {
-                                    #(#other_fields),*,
-                                    #(#param_fields),*
-                                },
-                                pwm_nicht_benötigt: acc.0,
-                                output_nicht_benötigt: acc.1,
-                                input_nicht_benötigt: acc.2,
-                            })
+                            let reserviert = (#(#param_fields),*)
+                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                                .konvertiere(|(#(#param_fields),*)| {
+                                    #ident { #(#other_fields),*, #(#param_fields),* }
+                                });
+                            Ok(reserviert)
                         }
                     }
                     impl<#(#params),*> #ident<#(#params),*> {
