@@ -78,9 +78,9 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     let mut input0 = Vec::new();
                     #(
                         let (pwm1, output1, input1) = self.#struct_fields.anschlüsse();
-                        pwm0.extend(pwm1.into_iter());
-                        output0.extend(output1.into_iter());
-                        input0.extend(input1.into_iter());
+                        pwm0.extend(pwm1);
+                        output0.extend(output1);
+                        input0.extend(input1);
                     )*
                     (pwm0, output0, input0)
                 }
@@ -94,7 +94,21 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     input_nicht_benötigt: Vec<#base_ident::anschluss::InputAnschluss>,
                 ) -> #base_ident::anschluss::de_serialisieren::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert {  #(#struct_fields),* } = self;
-                    #(let #base_ident::anschluss::de_serialisieren::Reserviert {anschluss: #struct_fields, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt} = #struct_fields.reserviere(lager, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)?; )*
+                    #(
+                        // FIXME verwende Hilfsfunktion Reserviert::reserviere_ebenfalls_mit,
+                        // aktuell werden bei Fehler nicht alle Anschlüsse zurück gegeben
+                        let #base_ident::anschluss::de_serialisieren::Reserviert {
+                            anschluss: #struct_fields,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt
+                        } = #struct_fields.reserviere(
+                            lager,
+                            pwm_nicht_benötigt,
+                            output_nicht_benötigt,
+                            input_nicht_benötigt
+                        )?;
+                    )*
                     Ok(#base_ident::anschluss::de_serialisieren::Reserviert {
                         anschluss: RichtungAnschlüsse {
                             #(#struct_fields),*

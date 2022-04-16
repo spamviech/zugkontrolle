@@ -69,9 +69,9 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             #(
                                 if let Some(steuerung) = self.#param_fields {
                                     let (pwm1, output1, input1) = steuerung.anschlüsse();
-                                    pwm0.extend(pwm1.into_iter());
-                                    output0.extend(output1.into_iter());
-                                    input0.extend(input1.into_iter());
+                                    pwm0.extend(pwm1);
+                                    output0.extend(output1);
+                                    input0.extend(input1);
                                 }
                             )*
                             (pwm0, output0, input0)
@@ -88,7 +88,9 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             let mut acc = (pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt);
                             #(
-                               let #param_fields = if let Some(save) = #param_fields {
+                                // FIXME verwende Hilfsfunktion Reserviert::reserviere_ebenfalls_mit,
+                                // aktuell werden bei Fehler nicht alle Anschlüsse zurück gegeben
+                                let #param_fields = if let Some(save) = #param_fields {
                                     let #base_ident::anschluss::de_serialisieren::Reserviert {
                                         anschluss,
                                         pwm_nicht_benötigt,

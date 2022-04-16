@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{self, Reserviere, Serialisiere},
         pin::pwm,
         polarität::Fließend,
         Fehler, InputAnschluss, OutputAnschluss, OutputSerialisiert,
@@ -113,17 +113,10 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Streckenabschnitt> {
-        let Reserviert {
-            anschluss,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
-        Ok(Reserviert {
-            anschluss: Streckenabschnitt::neu(self.farbe, anschluss),
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        })
+        let Streckenabschnitt { anschluss, farbe } = self;
+        let reserviert = anschluss
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss));
+        Ok(reserviert)
     }
 }

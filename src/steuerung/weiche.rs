@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{self, Reserviere, Serialisiere},
         pin::pwm,
         polarität::Fließend,
         Fehler, InputAnschluss, OutputAnschluss,
@@ -245,27 +245,15 @@ where
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
-        let Reserviert {
-            anschluss: anschlüsse,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        } = self.steuerung.anschlüsse.reserviere(
-            lager,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        )?;
-        Ok(Reserviert {
-            anschluss: Weiche::neu(
-                self.name,
-                self.steuerung.aktuelle_richtung,
-                self.steuerung.letzte_richtung,
-                anschlüsse,
-            ),
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        })
+        let BenannteWeiche {
+            name,
+            steuerung: WeicheSteuerung { aktuelle_richtung, letzte_richtung, anschlüsse },
+        } = self;
+        let reserviert = anschlüsse
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .konvertiere(|anschlüsse| {
+                Weiche::neu(name, aktuelle_richtung, letzte_richtung, anschlüsse)
+            });
+        Ok(reserviert)
     }
 }

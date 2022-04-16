@@ -177,23 +177,22 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
             output_nicht_benötigt,
             mut input_nicht_benötigt,
         } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
-        let anschluss = match Kontakt::neu(self.name, anschluss, self.trigger) {
-            Ok(anschluss) => anschluss,
+        match Kontakt::neu(self.name, anschluss, self.trigger) {
+            Ok(anschluss) => Ok(Reserviert {
+                anschluss,
+                pwm_nicht_benötigt,
+                output_nicht_benötigt,
+                input_nicht_benötigt,
+            }),
             Err((fehler, anschluss)) => {
                 input_nicht_benötigt.push(anschluss);
-                return Err(de_serialisieren::Fehler {
+                Err(de_serialisieren::Fehler {
                     fehler,
                     pwm_pins: pwm_nicht_benötigt,
                     output_anschlüsse: output_nicht_benötigt,
                     input_anschlüsse: input_nicht_benötigt,
-                });
+                })
             },
-        };
-        Ok(Reserviert {
-            anschluss,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        })
+        }
     }
 }
