@@ -551,6 +551,7 @@ fn streckenabschnitt_entfernen<T>(
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
 /// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
+#[non_exhaustive]
 pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
     SetzeStreckenabschnitt(AnyId),

@@ -148,6 +148,7 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
 #[zugkontrolle_debug(L: Debug + Serialisiere)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
+#[non_exhaustive]
 pub enum Nachricht<L>
 where
     L: Leiter + Serialisiere,
