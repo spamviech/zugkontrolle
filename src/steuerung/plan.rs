@@ -637,8 +637,9 @@ where
 #[zugkontrolle_clone(<L as Serialisiere>::Serialisiert: Clone)]
 pub struct UnbekannteGeschwindigkeit<L: Serialisiere>(pub GeschwindigkeitSerialisiert<L>);
 
-impl<L: Leiter + Serialisiere> AktionGeschwindigkeitSerialisiert<L>
+impl<L> AktionGeschwindigkeitSerialisiert<L>
 where
+    L: Leiter + Serialisiere,
     <L as Serialisiere>::Serialisiert: PartialEq + Eq + Hash,
 {
     /// Deserialisiere eine Aktion mit einer [Geschwindigkeit] mithilfe bekannter Anschlüsse.
