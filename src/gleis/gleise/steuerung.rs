@@ -29,7 +29,6 @@ use crate::{
 pub struct Steuerung<T> {
     steuerung: T,
     canvas: Arc<Mutex<Cache>>,
-    verändert: bool,
 }
 
 // Explizite Implementierung, um einen stack-overflow zu vermeiden.
@@ -38,16 +37,7 @@ impl<T: Debug> Debug for Steuerung<T> {
         f.debug_struct("Steuerung")
             .field("steuerung", &self.steuerung)
             .field("canvas", &"<Cache>")
-            .field("verändert", &self.verändert)
             .finish()
-    }
-}
-
-impl<T> Drop for Steuerung<T> {
-    fn drop(&mut self) {
-        if self.verändert {
-            self.canvas.lock().leeren()
-        }
     }
 }
 
@@ -59,7 +49,7 @@ impl<T> AsRef<T> for Steuerung<T> {
 
 impl<T> AsMut<T> for Steuerung<T> {
     fn as_mut(&mut self) -> &mut T {
-        self.verändert = true;
+        self.canvas.lock().leeren();
         &mut self.steuerung
     }
 }
@@ -67,13 +57,13 @@ impl<T> AsMut<T> for Steuerung<T> {
 impl<T> Steuerung<T> {
     /// Erstelle eine neue [Steuerung].
     pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>) -> Self {
-        Steuerung { steuerung, canvas, verändert: false }
+        Steuerung { steuerung, canvas }
     }
 
     /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
     pub fn konvertiere<'t, S>(&'t self, f: impl FnOnce(&'t T) -> S) -> Steuerung<S> {
-        let Steuerung { steuerung, canvas, verändert: _ } = self;
-        Steuerung { steuerung: f(steuerung), canvas: canvas.clone(), verändert: false }
+        let Steuerung { steuerung, canvas } = self;
+        Steuerung { steuerung: f(steuerung), canvas: canvas.clone() }
     }
 }
 
@@ -85,9 +75,9 @@ impl<T> Steuerung<&Option<T>> {
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
     pub fn nur_some(&self) -> Option<Steuerung<&T>> {
-        let Steuerung { steuerung, canvas, verändert: _ } = self;
+        let Steuerung { steuerung, canvas } = self;
         if let Some(steuerung) = steuerung {
-            Some(Steuerung { steuerung, canvas: canvas.clone(), verändert: false })
+            Some(Steuerung { steuerung, canvas: canvas.clone() })
         } else {
             None
         }
@@ -118,9 +108,9 @@ impl<T> Steuerung<&mut Option<T>> {
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
     pub fn nur_some(&mut self) -> Option<Steuerung<&mut T>> {
-        let Steuerung { steuerung, canvas, verändert: _ } = self;
+        let Steuerung { steuerung, canvas } = self;
         if let Some(steuerung) = steuerung {
-            Some(Steuerung { steuerung, canvas: canvas.clone(), verändert: false })
+            Some(Steuerung { steuerung, canvas: canvas.clone() })
         } else {
             None
         }
