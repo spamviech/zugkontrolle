@@ -547,7 +547,12 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-// AktionSchalten, AktionStreckenabschnitt (Streckenabschnitt ist bekannt, steht in Id!)
+// TODO Id aus Nachricht entfernen?
+// SetzeStreckenabschnitt(AnyGleis)
+//      Entferne Gleis um es neu hinzuzufügen
+//      Id auch in Gehalten durch AnyGleis ersetzen
+// AnschlüsseAnpassen(Arc<Mutex<AnyGleis>>)
+//      Muss in Arc<Mutex<_>> sein, da in Nachricht aus update keine Referenz aus self enthalten kann.
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
 /// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
