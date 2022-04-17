@@ -1,7 +1,8 @@
 //! Definition und zeichnen einer Gerade.
 
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
@@ -26,7 +27,7 @@ use crate::{
 /// Definition einer Gerade.
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Gerade<Anschluss = Option<Kontakt>> {
+pub struct Gerade<Anschluss = Arc<Mutex<Option<Kontakt>>>> {
     /// Die Länge der Gerade auf dem [Canvas](crate::application::touch_canvas::Canvas).
     pub länge: Skalar,
     /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.

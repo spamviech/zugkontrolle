@@ -1,7 +1,8 @@
 //! Definition und zeichnen einer [Kurve].
 
-use std::{f32::consts::PI, fmt::Debug};
+use std::{f32::consts::PI, fmt::Debug, sync::Arc};
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
@@ -28,7 +29,7 @@ use crate::{
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Kurve<Anschluss = Option<Kontakt>> {
+pub struct Kurve<Anschluss = Arc<Mutex<Option<Kontakt>>>> {
     /// Der Radius auf dem Canvas.
     pub radius: Skalar,
     /// Der Winkel der Kurve.
