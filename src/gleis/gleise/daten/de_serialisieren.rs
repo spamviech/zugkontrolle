@@ -133,15 +133,15 @@ impl GleiseDaten {
     }
 }
 
-fn reserviere_anschlüsse<T, S, L>(
+fn reserviere_anschlüsse<T, S, SS, L>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     serialisiert: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
     pwm_pins: Vec<pwm::Pin>,
     output_anschlüsse: Vec<OutputAnschluss>,
     input_anschlüsse: Vec<InputAnschluss>,
-    steuerung: impl Fn(&T) -> &Option<S>,
-    map: &mut HashMap<S::Serialisiert, S>,
+    steuerung: impl Fn(&T) -> &S,
+    map: &mut HashMap<SS, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
 ) -> (
     Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>,
@@ -151,8 +151,8 @@ fn reserviere_anschlüsse<T, S, L>(
 )
 where
     T: Zeichnen + Serialisiere,
-    S: Clone + Serialisiere,
-    <S as Serialisiere>::Serialisiert: Eq + Hash,
+    S: Clone + Serialisiere<Serialisiert = Option<SS>>,
+    SS: Eq + Hash,
     L: Serialisiere,
 {
     serialisiert.into_iter().fold(
@@ -177,8 +177,8 @@ where
                 },
             };
             // Bekannte Steuerung sichern
-            if let Some(steuerung) = steuerung(&gleis.definition) {
-                let serialisiert = steuerung.serialisiere();
+            let steuerung = steuerung(&gleis.definition);
+            if let Some(serialisiert) = steuerung.serialisiere() {
                 let _ = map.insert(serialisiert, steuerung.clone());
             }
             // Gleis mit BoundingBox speichern
@@ -199,10 +199,19 @@ impl GleiseDatenSerialisiert {
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
-        gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
-        kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
-        dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
-        kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
+        gerade_weichen: &mut HashMap<
+            plan::GeradeWeicheSerialisiert,
+            Arc<Mutex<Option<plan::GeradeWeiche>>>,
+        >,
+        kurven_weichen: &mut HashMap<
+            plan::KurvenWeicheSerialisiert,
+            Arc<Mutex<Option<plan::KurvenWeiche>>>,
+        >,
+        dreiwege_weichen: &mut HashMap<
+            plan::DreiwegeWeicheSerialisiert,
+            Arc<Mutex<Option<plan::DreiwegeWeiche>>>,
+        >,
+        kontakte: &mut HashMap<KontaktSerialisiert, Arc<Mutex<Option<Kontakt>>>>,
         fehler: &mut Vec<LadenFehler<L>>,
     ) -> Reserviert<GleiseDaten> {
         macro_rules! reserviere_anschlüsse {
