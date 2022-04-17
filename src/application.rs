@@ -298,7 +298,7 @@ type WeicheZustand = weiche::Zustand<
 >;
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::gerade::RichtungAnschlüsse,
 >;
 
 type DreiwegeWeicheZustand = weiche::Zustand<
@@ -307,7 +307,7 @@ type DreiwegeWeicheZustand = weiche::Zustand<
 >;
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::dreiwege::RichtungAnschlüsse,
 >;
 
 type KurvenWeicheZustand = weiche::Zustand<
@@ -316,7 +316,7 @@ type KurvenWeicheZustand = weiche::Zustand<
 >;
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+    gleis::weiche::kurve::RichtungAnschlüsse,
 >;
 type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
 

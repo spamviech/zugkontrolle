@@ -9,10 +9,10 @@ use iced_native::{
 };
 
 use crate::{
-    anschluss::OutputSerialisiert,
+    anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     nachschlagen::Nachschlagen,
-    steuerung::weiche::{Name, WeicheSerialisiert, WeicheSteuerung},
+    steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
 /// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
@@ -33,13 +33,14 @@ where
     AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlZustand>,
 {
     /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
-    pub fn neu<Richtung>(
-        option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
-    ) -> Self {
+    pub fn neu<Anschlüsse, Richtung>(
+        option_weiche: Option<WeicheSerialisiert<Richtung, Anschlüsse>>,
+    ) -> Self
+    where
+        Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
+    {
         let (name, anschlüsse_save, hat_steuerung) =
-            if let Some((name, WeicheSteuerung { anschlüsse, .. })) =
-                option_weiche.map(WeicheSerialisiert::name_und_steuerung)
-            {
+            if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
                 (name.0, anschlüsse, true)
             } else {
                 (String::new(), Default::default(), false)
@@ -157,18 +158,19 @@ where
 
 /// Nachricht einer [Auswahl].
 #[derive(Debug, Clone)]
-pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
+pub enum Nachricht<Richtung, Anschlüsse: Serialisiere> {
     /// Steuerung einer Weiche anpassen.
-    Festlegen(Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>),
+    Festlegen(Option<WeicheSerialisiert<Richtung, Anschlüsse>>),
     /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
-    for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, Anschlüsse, R> Widget<Nachricht<Richtung, Anschlüsse>, R>
+    for Auswahl<'t, Richtung, <Anschlüsse as Serialisiere>::Serialisiert, R>
 where
     Richtung: Clone + Default,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    Anschlüsse: Serialisiere,
+    <Anschlüsse as Serialisiere>::Serialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {
@@ -185,7 +187,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht<Richtung, AnschlüsseSerialisiert>>,
+        messages: &mut Vec<Nachricht<Richtung, Anschlüsse>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
         let mut status = self.card.on_event(
@@ -206,11 +208,9 @@ where
                 InterneNachricht::Festlegen => {
                     messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(self.name.clone()),
-                        WeicheSteuerung {
-                            aktuelle_richtung: Default::default(),
-                            letzte_richtung: Default::default(),
-                            anschlüsse: self.anschlüsse.clone(),
-                        },
+                        Richtung::default(),
+                        Richtung::default(),
+                        self.anschlüsse.clone(),
                     ))))
                 },
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
@@ -221,14 +221,18 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
-    for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, Anschlüsse, R>
+    From<Auswahl<'t, Richtung, <Anschlüsse as Serialisiere>::Serialisiert, R>>
+    for Element<'t, Nachricht<Richtung, Anschlüsse>, R>
 where
     Richtung: 't + Clone + Default,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    Anschlüsse: Serialisiere,
+    <Anschlüsse as Serialisiere>::Serialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't + Renderer + card::Renderer,
 {
-    fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
+    fn from(
+        anzeige: Auswahl<'t, Richtung, <Anschlüsse as Serialisiere>::Serialisiert, R>
+    ) -> Self {
         Element::new(anzeige)
     }
 }

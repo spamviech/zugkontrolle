@@ -1,5 +1,9 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
+use std::sync::Arc;
+
+use parking_lot::Mutex;
+
 use crate::{
     gleis::verbindung::{self, Verbindung},
     nachschlagen::Nachschlagen,
@@ -144,21 +148,33 @@ impl MitName for () {
     }
 }
 
-impl<R, A> MitName for Option<Weiche<R, A>> {
+impl<T: MitName> MitName for Option<T> {
     fn name(&self) -> Option<&String> {
-        self.as_ref().map(|weiche| &weiche.name.0)
+        self.as_ref().and_then(MitName::name)
     }
 }
 
-impl MitName for Option<Kontakt> {
+impl<T: MitName> MitName for Arc<Mutex<T>> {
     fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
+        self.lock().name()
     }
 }
 
-impl MitName for Option<KontaktSerialisiert> {
+impl<R, A> MitName for Weiche<R, A> {
     fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
+        Some(&self.name.0)
+    }
+}
+
+impl MitName for Kontakt {
+    fn name(&self) -> Option<&String> {
+        Some(&self.name.0)
+    }
+}
+
+impl MitName for KontaktSerialisiert {
+    fn name(&self) -> Option<&String> {
+        Some(&self.name.0)
     }
 }
 
@@ -174,6 +190,12 @@ impl<R> MitRichtung<R> for () {
     }
 }
 
+impl<R, T: MitRichtung<R>> MitRichtung<R> for Arc<Mutex<T>> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.lock().aktuelle_richtung()
+    }
+}
+
 impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
     fn aktuelle_richtung(&self) -> Option<R> {
         self.as_ref().and_then(|t| t.aktuelle_richtung())
@@ -182,6 +204,6 @@ impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
 
 impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
     fn aktuelle_richtung(&self) -> Option<R> {
-        Some(self.aktuelle_richtung().clone())
+        Some(self.aktuelle_richtung.clone())
     }
 }

@@ -746,16 +746,14 @@ impl AktionStreckenabschnittSerialisiert {
 
 pub(crate) type GeradeWeiche = Weiche<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsse>;
 pub(crate) type GeradeWeicheSerialisiert =
-    WeicheSerialisiert<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsseSerialisiert>;
+    WeicheSerialisiert<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsse>;
 pub(crate) type KurvenWeiche = Weiche<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsse>;
 pub(crate) type KurvenWeicheSerialisiert =
-    WeicheSerialisiert<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsseSerialisiert>;
+    WeicheSerialisiert<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsse>;
 pub(crate) type DreiwegeWeiche =
     Weiche<weiche::dreiwege::Richtung, weiche::dreiwege::RichtungAnschlüsse>;
-pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
-    weiche::dreiwege::Richtung,
-    weiche::dreiwege::RichtungAnschlüsseSerialisiert,
->;
+pub(crate) type DreiwegeWeicheSerialisiert =
+    WeicheSerialisiert<weiche::dreiwege::Richtung, weiche::dreiwege::RichtungAnschlüsse>;
 
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]

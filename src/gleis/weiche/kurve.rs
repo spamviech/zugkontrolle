@@ -1,7 +1,8 @@
 //! Definition und zeichnen einer [KurvenWeiche].
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
@@ -24,8 +25,7 @@ use crate::{
     },
 };
 
-type AnschlüsseSerialisiert =
-    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+type AnschlüsseSerialisiert = steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsse>;
 type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 
 /// Definition einer Kurven-Weiche.
@@ -33,7 +33,7 @@ type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct KurvenWeiche<Anschlüsse = Arc<Mutex<Option<self::Anschlüsse>>>> {
     /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
     /// Der Radius der Kurven.

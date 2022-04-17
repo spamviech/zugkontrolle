@@ -31,16 +31,9 @@ pub struct Name(pub String);
 // inklusive Kreuzung
 /// Die [Steuerung](WeicheSteuerung) und der [Name] einer [Weiche].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BenannteWeiche<Steuerung> {
+pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
-    /// Die Steuerung der Weiche.
-    steuerung: Steuerung,
-}
-
-/// Die Steuerung einer [Weiche].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct WeicheSteuerung<Richtung, Anschlüsse> {
     /// Die aktuelle Richtung der Weiche.
     pub aktuelle_richtung: Richtung,
     /// Die Richtung vor der aktuellen Richtung.
@@ -49,57 +42,21 @@ pub struct WeicheSteuerung<Richtung, Anschlüsse> {
     pub anschlüsse: Anschlüsse,
 }
 
-/// Steuerung und Name eines Schaltbaren Gleises.
-pub type Weiche<Richtung, Anschlüsse> =
-    BenannteWeiche<Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>>;
-
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
-    /// Erstelle eine neue [Weichen-Steuerung](Weiche).
+    /// Erstelle eine neue [Weiche].
     pub fn neu(
         name: Name,
         aktuelle_richtung: Richtung,
         letzte_richtung: Richtung,
         anschlüsse: Anschlüsse,
     ) -> Self {
-        Weiche {
-            name,
-            steuerung: Arc::new(Mutex::new(WeicheSteuerung {
-                aktuelle_richtung,
-                letzte_richtung,
-                anschlüsse,
-            })),
-        }
+        Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse }
     }
 }
 
-impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
-    /// Erhalte die aktuelle Richtung einer [Weiche].
-    pub fn aktuelle_richtung(&self) -> Richtung {
-        let WeicheSteuerung { aktuelle_richtung, .. } = &*self.steuerung.lock();
-        aktuelle_richtung.clone()
-    }
-
-    /// Erhalte die aktuelle und letzte Richtung einer [Weiche].
-    pub fn aktuelle_und_letzte_richtung(&self) -> (Richtung, Richtung) {
-        let WeicheSteuerung { aktuelle_richtung, letzte_richtung, .. } = &*self.steuerung.lock();
-        (aktuelle_richtung.clone(), letzte_richtung.clone())
-    }
-}
-
-/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
-pub type WeicheSerialisiert<Richtung, Anschlüsse> =
-    BenannteWeiche<WeicheSteuerung<Richtung, Anschlüsse>>;
-
-impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
-    /// Erstelle eine neue [WeicheSerialisiert].
-    pub fn neu(name: Name, steuerung: WeicheSteuerung<Richtung, Anschlüsse>) -> Self {
-        WeicheSerialisiert { name, steuerung }
-    }
-
-    /// Erhalte [Name] und [Steuerung](WeicheSteuerung) einer [WeicheSerialisiert].
-    pub fn name_und_steuerung(self) -> (Name, WeicheSteuerung<Richtung, Anschlüsse>) {
-        let WeicheSerialisiert { name, steuerung } = self;
-        (name, steuerung)
+impl<Richtung, Anschlüsse> AsMut<Weiche<Richtung, Anschlüsse>> for Weiche<Richtung, Anschlüsse> {
+    fn as_mut(&mut self) -> &mut Weiche<Richtung, Anschlüsse> {
+        self
     }
 }
 
@@ -110,43 +67,43 @@ where
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.steuerung, richtung, schalten_zeit, None::<fn()>)?;
+        Self::schalten_aux(self, richtung, schalten_zeit, None::<fn()>)?;
         Ok(())
     }
 
-    fn schalten_aux(
-        mutex: &mut Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>,
+    fn schalten_aux<S: AsMut<Weiche<Richtung, Anschlüsse>>>(
+        s: S,
         richtung: Richtung,
         schalten_zeit: Duration,
         aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        let mut guard = mutex.lock();
-        let letzte_richtung = guard.letzte_richtung.clone();
-        let aktuelle_richtung = guard.aktuelle_richtung.clone();
-        guard.letzte_richtung = aktuelle_richtung.clone();
-        guard.aktuelle_richtung = richtung.clone();
-        drop(guard);
+        let mut_ref = s.as_mut();
+        let letzte_richtung = mut_ref.letzte_richtung.clone();
+        let aktuelle_richtung = mut_ref.aktuelle_richtung.clone();
+        mut_ref.letzte_richtung = aktuelle_richtung.clone();
+        mut_ref.aktuelle_richtung = richtung.clone();
+        drop(mut_ref);
         if let Some(aktualisieren) = aktualisieren {
             aktualisieren()
         }
         macro_rules! bei_fehler_zurücksetzen {
             ($result: expr) => {
                 if let Err(fehler) = $result {
-                    let mut guard = mutex.lock();
-                    guard.aktuelle_richtung = aktuelle_richtung;
-                    guard.letzte_richtung = letzte_richtung;
+                    let mut_ref = s.as_mut();
+                    mut_ref.aktuelle_richtung = aktuelle_richtung;
+                    mut_ref.letzte_richtung = letzte_richtung;
                     return Err(fehler);
                 }
             };
         }
-        bei_fehler_zurücksetzen!(mutex
-            .lock()
+        bei_fehler_zurücksetzen!(s
+            .as_mut()
             .anschlüsse
             .erhalte_mut(&richtung)
             .einstellen(Fließend::Fließend));
         sleep(schalten_zeit);
-        bei_fehler_zurücksetzen!(mutex
-            .lock()
+        bei_fehler_zurücksetzen!(s
+            .as_mut()
             .anschlüsse
             .erhalte_mut(&richtung)
             .einstellen(Fließend::Gesperrt));
@@ -196,47 +153,37 @@ where
     }
 }
 
+/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
+pub type WeicheSerialisiert<Richtung, Anschlüsse> =
+    Weiche<Richtung, <Anschlüsse as Serialisiere>::Serialisiert>;
+
 #[allow(single_use_lifetimes)]
 impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
     T: Serialisiere,
 {
-    type Serialisiert = WeicheSerialisiert<Richtung, T::Serialisiert>;
+    type Serialisiert = WeicheSerialisiert<Richtung, T>;
 
-    fn serialisiere(&self) -> WeicheSerialisiert<Richtung, T::Serialisiert> {
+    fn serialisiere(&self) -> WeicheSerialisiert<Richtung, T> {
         WeicheSerialisiert {
             name: self.name.clone(),
-            steuerung: {
-                let guard = self.steuerung.lock();
-                WeicheSteuerung {
-                    aktuelle_richtung: guard.aktuelle_richtung.clone(),
-                    letzte_richtung: guard.letzte_richtung.clone(),
-                    anschlüsse: guard.anschlüsse.serialisiere(),
-                }
-            },
+            aktuelle_richtung: self.aktuelle_richtung.clone(),
+            letzte_richtung: self.letzte_richtung.clone(),
+            anschlüsse: self.anschlüsse.serialisiere(),
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match Arc::try_unwrap(self.steuerung) {
-            Ok(mutex) => mutex.into_inner().anschlüsse.anschlüsse(),
-            Err(_arc) => {
-                // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
-                // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
-                // Gebe stattdessen keine Anschlüsse zurück
-                (Vec::new(), Vec::new(), Vec::new())
-            },
-        }
+        self.anschlüsse.anschlüsse()
     }
 }
 
 #[allow(single_use_lifetimes)]
-impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, T>
+impl<Richtung, R> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, R>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
     R: Serialisiere,
-    T: Reserviere<R>,
 {
     fn reserviere(
         self,
@@ -245,10 +192,7 @@ where
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
     ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
-        let BenannteWeiche {
-            name,
-            steuerung: WeicheSteuerung { aktuelle_richtung, letzte_richtung, anschlüsse },
-        } = self;
+        let Weiche { name, aktuelle_richtung, letzte_richtung, anschlüsse } = self;
         let reserviert = anschlüsse
             .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
             .konvertiere(|anschlüsse| {
