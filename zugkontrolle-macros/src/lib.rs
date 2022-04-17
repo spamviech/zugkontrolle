@@ -106,13 +106,14 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 mod alias;
 #[proc_macro_attribute]
-/// Erzeuge /*Serialisiert/ und /'Unit/ Typ-Synonyme,
+/// Erzeuge `*Serialisiert` und `*Unit` Typ-Synonyme,
 /// sowie [zugkontrolle::anschluss::de_serialisieren::Serialisiere]
 /// und [zugkontrolle::::anschluss::de_serialisieren::Reserviere] Implementierungen.
 ///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
-/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
+/// Es wird erwartet, dass der default-Typ ein Arc<Mutex<Option<_>>> ist
+/// und eine Konvertierung in den Serialisiert-Typ
 /// (Argument) über eine `serialisiere`-Methode möglich ist!
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);

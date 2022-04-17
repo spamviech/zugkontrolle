@@ -44,6 +44,8 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                 let save_ident = format_ident!("{}Serialisiert", ident);
                 let unit_ident = format_ident!("{}Unit", ident);
                 let params_start = if params.is_empty() { quote!() } else { quote!(#(#params),*,) };
+                let arc = quote!(::std::sync::Arc);
+                let mutex = quote!(::parking_lot::Mutex);
                 type_definitionen = Some(quote! {
                     /// Eine Variante ohne Anschlüsse.
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
@@ -56,7 +58,7 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             #save_ident {
                                 #(#other_fields: #other_fields.clone()),*,
                                 #(
-                                    #param_fields: #param_fields.as_ref().map(
+                                    #param_fields: #param_fields.lock().as_ref().map(
                                         |steuerung| steuerung.serialisiere()
                                     )
                                 ),*
@@ -71,11 +73,14 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             let mut output0 = Vec::new();
                             let mut input0 = Vec::new();
                             #(
-                                if let Some(steuerung) = self.#param_fields {
-                                    let (pwm1, output1, input1) = steuerung.anschlüsse();
-                                    pwm0.extend(pwm1);
-                                    output0.extend(output1);
-                                    input0.extend(input1);
+                                // Ignoriere noch anderweitig benötigte Anschlüsse
+                                if let Ok(mutex) = #arc::try_unwrap(self.#param_fields) {
+                                    if let Some(steuerung) = mutex.into_inner() {
+                                        let (pwm1, output1, input1) = steuerung.anschlüsse();
+                                        pwm0.extend(pwm1);
+                                        output0.extend(output1);
+                                        input0.extend(input1);
+                                    }
                                 }
                             )*
                             (pwm0, output0, input0)
@@ -93,7 +98,10 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             let reserviert = (#(#param_fields),*)
                                 .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
                                 .konvertiere(|(#(#param_fields),*)| {
-                                    #ident { #(#other_fields),*, #(#param_fields),* }
+                                    #ident {
+                                        #(#other_fields),*,
+                                        #(#param_fields: #arc::new(#mutex::new(#param_fields))),*
+                                    }
                                 });
                             Ok(reserviert)
                         }
@@ -110,17 +118,19 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                     }
                     impl<#(#params),*> #unit_ident<#(#params),*> {
                         /// Clone in eine äquivalente Darstellung mit [None] als Anschlüsse.
-                        pub fn mit_none<T>(&self) -> #ident<#params_start Option<T>> {
+                        pub fn mit_none<T>(&self)
+                            -> #ident<#params_start #arc<#mutex<Option<T>>>>
+                        {
                             let #ident { #(#other_fields),*, .. } = self;
                             #ident {
                                 #(#other_fields: #other_fields.clone()),*,
-                                #(#param_fields: None),*
+                                #(#param_fields: #arc::new(#mutex::new(None))),*
                             }
                         }
                     }
                 })
             } else {
-                errors.push("Only named field supported!".to_string())
+                errors.push("Only named fields supported!".to_string())
             }
         } else {
             errors.push("Missing generics!".to_string())
