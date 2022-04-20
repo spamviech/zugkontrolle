@@ -35,8 +35,8 @@ pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
     /// Die aktuelle Richtung der Weiche.
-    // TODO Steuerung verwenden, damit GUI-update getriggert wird
-    pub steuerung: Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>,
+    // TODO gleise::Steuerung verwenden, damit GUI-update getriggert wird
+    steuerung: Arc<Mutex<WeicheSteuerung<Richtung, Anschlüsse>>>,
 }
 
 /// Die [Steuerung](WeicheSteuerung) einer [Weiche].
@@ -66,6 +66,19 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
                 anschlüsse,
             })),
         }
+    }
+}
+
+impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+    /// Die aktuelle Richtung der Weiche.
+    pub fn aktuelle_richtung(&self) -> Richtung {
+        self.steuerung.lock().aktuelle_richtung.clone()
+    }
+
+    /// Die aktuelle und letzte Richtung der Weiche.
+    pub fn aktuelle_und_letzte_richtung(&self) -> (Richtung, Richtung) {
+        let WeicheSteuerung { aktuelle_richtung, letzte_richtung, .. } = &*self.steuerung.lock();
+        (aktuelle_richtung.clone(), letzte_richtung.clone())
     }
 }
 
