@@ -2,7 +2,7 @@
 
 use std::{
     marker::PhantomData,
-    sync::Arc,
+    sync::{mpsc::Sender, Arc},
     time::{Duration, Instant},
 };
 
@@ -66,20 +66,21 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>);
+type IdUndSteuerung<'t, T, F> =
+    (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, F>);
 
 #[derive(zugkontrolle_macros::From)]
-enum GleisSteuerung<'t> {
-    Gerade(IdUndSteuerung<'t, Gerade>),
-    Kurve(IdUndSteuerung<'t, Kurve>),
-    Weiche(IdUndSteuerung<'t, Weiche>),
-    KurvenWeiche(IdUndSteuerung<'t, KurvenWeiche>),
-    DreiwegeWeiche(IdUndSteuerung<'t, DreiwegeWeiche>),
-    SKurvenWeiche(IdUndSteuerung<'t, SKurvenWeiche>),
-    Kreuzung(IdUndSteuerung<'t, Kreuzung>),
+enum GleisSteuerung<'t, Nachricht> {
+    Gerade(IdUndSteuerung<'t, Gerade, Nachricht>),
+    Kurve(IdUndSteuerung<'t, Kurve, Nachricht>),
+    Weiche(IdUndSteuerung<'t, Weiche, Nachricht>),
+    KurvenWeiche(IdUndSteuerung<'t, KurvenWeiche, Nachricht>),
+    DreiwegeWeiche(IdUndSteuerung<'t, DreiwegeWeiche, Nachricht>),
+    SKurvenWeiche(IdUndSteuerung<'t, SKurvenWeiche, Nachricht>),
+    Kreuzung(IdUndSteuerung<'t, Kreuzung, Nachricht>),
 }
 
-impl<'t> GleisSteuerung<'t> {
+impl<'t, Nachricht> GleisSteuerung<'t, Nachricht> {
     fn id(self) -> AnyIdRef<'t> {
         match self {
             GleisSteuerung::Gerade((id, _steuerung)) => id.into(),
@@ -94,17 +95,18 @@ impl<'t> GleisSteuerung<'t> {
 }
 
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T>(
+fn gleis_an_position<'t, T, Nachricht>(
     spurweite: Spurweite,
     streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
     canvas: &Arc<Mutex<Cache>>,
-) -> Option<(GleisSteuerung<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
+    sender: &Sender<Nachricht>,
+) -> Option<(GleisSteuerung<'t, Nachricht>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
     T: Zeichnen + MitSteuerung<'t>,
-    GleisSteuerung<'t>:
-        From<(GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>)>,
+    GleisSteuerung<'t, Nachricht>:
+        From<(GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, Nachricht>)>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
@@ -124,7 +126,7 @@ where
                 phantom: PhantomData,
             };
             return Some((
-                (gleis_id_ref, definition.steuerung(canvas.clone())).into(),
+                (gleis_id_ref, definition.steuerung(canvas.clone(), sender.clone())).into(),
                 relative_pos,
                 position.winkel,
                 streckenabschnitt,
@@ -134,7 +136,7 @@ where
     None
 }
 
-fn aktion_gleis_an_position<'t>(
+fn aktion_gleis_an_position<'t, N>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
@@ -145,6 +147,7 @@ fn aktion_gleis_an_position<'t>(
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<N>,
 ) -> (event::Status, Option<Nachricht>) {
     let mut message = None;
     let mut status = event::Status::Ignored;
@@ -161,13 +164,34 @@ fn aktion_gleis_an_position<'t>(
                     kreuzungen,
                 } = maps;
                 acc.or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, geraden, canvas_pos, canvas)
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        geraden,
+                        canvas_pos,
+                        canvas,
+                        sender,
+                    )
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos, canvas)
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        kurven,
+                        canvas_pos,
+                        canvas,
+                        sender,
+                    )
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos, canvas)
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        weichen,
+                        canvas_pos,
+                        canvas,
+                        sender,
+                    )
                 })
                 .or_else(|| {
                     gleis_an_position(
@@ -176,6 +200,7 @@ fn aktion_gleis_an_position<'t>(
                         dreiwege_weichen,
                         canvas_pos,
                         canvas,
+                        sender,
                     )
                 })
                 .or_else(|| {
@@ -185,6 +210,7 @@ fn aktion_gleis_an_position<'t>(
                         kurven_weichen,
                         canvas_pos,
                         canvas,
+                        sender,
                     )
                 })
                 .or_else(|| {
@@ -194,10 +220,18 @@ fn aktion_gleis_an_position<'t>(
                         s_kurven_weichen,
                         canvas_pos,
                         canvas,
+                        sender,
                     )
                 })
                 .or_else(|| {
-                    gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos, canvas)
+                    gleis_an_position(
+                        spurweite,
+                        streckenabschnitt,
+                        kreuzungen,
+                        canvas_pos,
+                        canvas,
+                        sender,
+                    )
                 })
             });
             match modus {
@@ -235,6 +269,7 @@ fn aktion_gleis_an_position<'t>(
                                         streckenabschnitt: Steuerung::neu(
                                             streckenabschnitt.clone(),
                                             canvas.clone(),
+                                            sender.clone(),
                                         ),
                                         fließend,
                                     },
@@ -355,6 +390,7 @@ impl<L: Leiter> Gleise<L> {
                     pivot,
                     skalieren,
                     canvas,
+                    todo!("sender"),
                 );
                 event_status = click_result.0;
                 message = click_result.1;
