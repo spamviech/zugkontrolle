@@ -11,7 +11,6 @@ use iced_native::{
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
-    gleis::Weiche,
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
@@ -41,8 +40,8 @@ where
         Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
     {
         let (name, anschlüsse_serialisiert, hat_steuerung) =
-            if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
-                (name.0, anschlüsse, true)
+            if let Some(WeicheSerialisiert { name, steuerung }) = option_weiche {
+                (name.0, steuerung.anschlüsse, true)
             } else {
                 (String::new(), AnschlüsseSerialisiert::default(), false)
             };
@@ -158,7 +157,11 @@ where
 }
 
 /// Nachricht einer [Auswahl].
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(Richtung: Debug)]
+#[zugkontrolle_debug(Anschlüsse: Serialisiere, <Anschlüsse as Serialisiere>::Serialisiert: Debug)]
+#[zugkontrolle_clone(Richtung: Clone)]
+#[zugkontrolle_clone(Anschlüsse: Serialisiere, <Anschlüsse as Serialisiere>::Serialisiert: Clone)]
 pub enum Nachricht<Richtung, Anschlüsse: Serialisiere> {
     /// Steuerung einer Weiche anpassen.
     Festlegen(Option<WeicheSerialisiert<Richtung, Anschlüsse>>),

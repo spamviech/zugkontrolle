@@ -184,9 +184,12 @@ struct WeicheSteuerungSerialisiert<Richtung, Anschlüsse> {
 }
 
 impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
-    fn konvertiere<R2: From<R1>, A2: From<A1> + Serialisiere>(
-        self,
-    ) -> weiche::WeicheSerialisiert<R2, A2> {
+    fn konvertiere<R2, A2>(self) -> weiche::WeicheSerialisiert<R2, A2>
+    where
+        R2: From<R1>,
+        A2: Serialisiere,
+        <A2 as Serialisiere>::Serialisiert: From<A1>,
+    {
         let WeicheSteuerungSerialisiert { name, aktuelle_richtung, letzte_richtung, anschlüsse } =
             self;
         weiche::WeicheSerialisiert::neu(
