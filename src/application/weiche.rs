@@ -11,6 +11,7 @@ use iced_native::{
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, OutputSerialisiert},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    gleis::Weiche,
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
@@ -20,7 +21,7 @@ use crate::{
 pub struct Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand> {
     name: String,
     name_zustand: text_input::State,
-    anschlüsse_save: AnschlüsseSerialisiert,
+    anschlüsse_serialisiert: AnschlüsseSerialisiert,
     anschlüsse_zustand: AnschlüsseAuswahlZustand,
     festlegen_zustand: button::State,
     entfernen_zustand: button::State,
@@ -39,17 +40,17 @@ where
     where
         Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
     {
-        let (name, anschlüsse_save, hat_steuerung) =
+        let (name, anschlüsse_serialisiert, hat_steuerung) =
             if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
                 (name.0, anschlüsse, true)
             } else {
-                (String::new(), Default::default(), false)
+                (String::new(), AnschlüsseSerialisiert::default(), false)
             };
-        let anschlüsse_zustand = anschlüsse_save.clone().into();
+        let anschlüsse_zustand = anschlüsse_serialisiert.clone().into();
         Zustand {
             name,
             name_zustand: text_input::State::new(),
-            anschlüsse_save,
+            anschlüsse_serialisiert,
             anschlüsse_zustand,
             festlegen_zustand: button::State::new(),
             entfernen_zustand: button::State::new(),
@@ -115,7 +116,7 @@ where
         let Zustand {
             name,
             name_zustand,
-            anschlüsse_save,
+            anschlüsse_serialisiert,
             anschlüsse_zustand,
             festlegen_zustand,
             entfernen_zustand,
@@ -152,7 +153,7 @@ where
             .on_close(InterneNachricht::Schließen)
             .width(Length::Shrink)
             .height(Length::Shrink);
-        Auswahl { card, name, anschlüsse: anschlüsse_save }
+        Auswahl { card, name, anschlüsse: anschlüsse_serialisiert }
     }
 }
 
@@ -206,12 +207,14 @@ where
                     *self.anschlüsse.erhalte_mut(&richtung) = anschluss
                 },
                 InterneNachricht::Festlegen => {
-                    messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
-                        Name(self.name.clone()),
-                        Richtung::default(),
-                        Richtung::default(),
-                        self.anschlüsse.clone(),
-                    ))))
+                    let weiche_serialisiert: WeicheSerialisiert<Richtung, Anschlüsse> =
+                        WeicheSerialisiert::neu(
+                            Name(self.name.clone()),
+                            Richtung::default(),
+                            Richtung::default(),
+                            self.anschlüsse.clone(),
+                        );
+                    messages.push(Nachricht::Festlegen(Some(weiche_serialisiert)))
                 },
                 InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
