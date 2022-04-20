@@ -242,13 +242,13 @@ fn aktion_gleis_an_position<'t>(
                             }),
                             Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };
                                 Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                     AktionSchalten {
-                                        weiche: todo!(), //steuerung.konvertiere(|&weiche| weiche.clone()),
+                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
                                     },
                                 ))
@@ -256,13 +256,13 @@ fn aktion_gleis_an_position<'t>(
                             KurvenWeiche((_id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::kurve::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                         Innen => Außen,
                                         Außen => Innen,
                                     };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(
                                         AktionSchalten {
-                                            weiche: todo!(), //steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
                                     ))
@@ -273,7 +273,7 @@ fn aktion_gleis_an_position<'t>(
                                     use weiche::dreiwege::Richtung::*;
                                     let weiche = steuerung.as_ref();
                                     let richtung =
-                                        match (weiche.aktuelle_richtung, weiche.letzte_richtung) {
+                                        match weiche.aktuelle_und_letzte_richtung() {
                                             (Gerade, Links) => Rechts,
                                             (Gerade, Rechts) => Links,
                                             (Gerade, Gerade) => {
@@ -284,7 +284,7 @@ fn aktion_gleis_an_position<'t>(
                                         };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(
                                         AktionSchalten {
-                                            weiche: todo!(),//steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
                                     ))
@@ -293,13 +293,13 @@ fn aktion_gleis_an_position<'t>(
                             SKurvenWeiche((_id, steuerung)) => {
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                         AktionSchalten {
-                                            weiche: todo!(), //steuerung.konvertiere(|&weiche| weiche.clone()),
+                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                             richtung,
                                         },
                                     ))
@@ -307,13 +307,13 @@ fn aktion_gleis_an_position<'t>(
                             },
                             Kreuzung((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung {
+                                let richtung = match steuerung.as_ref().aktuelle_richtung() {
                                     Gerade => Kurve,
                                     Kurve => Gerade,
                                 };
                                 Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
                                     AktionSchalten {
-                                        weiche: todo!(), //steuerung.konvertiere(|&weiche| weiche.clone()),
+                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
                                         richtung,
                                     },
                                 ))
