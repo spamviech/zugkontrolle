@@ -101,19 +101,21 @@ where
         schalten_zeit: Duration,
         aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        let mut_ref = mutex.lock().as_mut();
+        let mut guard = mutex.lock();
+        let mut_ref = guard.as_mut();
         let letzte_richtung = mut_ref.letzte_richtung.clone();
         let aktuelle_richtung = mut_ref.aktuelle_richtung.clone();
         mut_ref.letzte_richtung = aktuelle_richtung.clone();
         mut_ref.aktuelle_richtung = richtung.clone();
-        drop(mut_ref);
+        drop(guard);
         if let Some(aktualisieren) = aktualisieren {
             aktualisieren()
         }
         macro_rules! bei_fehler_zurücksetzen {
             ($result: expr) => {
                 if let Err(fehler) = $result {
-                    let mut_ref = mutex.lock().as_mut();
+                    let mut guard = mutex.lock();
+                    let mut_ref = guard.as_mut();
                     mut_ref.aktuelle_richtung = aktuelle_richtung;
                     mut_ref.letzte_richtung = letzte_richtung;
                     return Err(fehler);
