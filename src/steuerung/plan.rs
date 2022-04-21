@@ -676,7 +676,7 @@ where
 
 /// Eine Aktion mit einem [Streckenabschnitt].
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt>> {
+pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt, N>> {
     /// Strom auf einem Streckenabschnitt einstellen.
     Strom {
         /// Die Anschlüsse zur Steuerung des Streckenabschnittes.
@@ -735,7 +735,7 @@ impl AktionStreckenabschnittSerialisiert {
                     .ok_or(UnbekannterStreckenabschnitt(streckenabschnitt))?
                     .clone();
                 AktionStreckenabschnitt::Strom {
-                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas),
+                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas, todo!("sender")),
                     fließend,
                 }
             },
@@ -758,9 +758,9 @@ pub(crate) type DreiwegeWeicheSerialisiert =
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AnyAktionSchalten<
-    Gerade = Steuerung<GeradeWeiche>,
-    Kurve = Steuerung<KurvenWeiche>,
-    Dreiwege = Steuerung<DreiwegeWeiche>,
+    Gerade = Steuerung<GeradeWeiche, N>,
+    Kurve = Steuerung<KurvenWeiche, N>,
+    Dreiwege = Steuerung<DreiwegeWeiche, N>,
 > {
     /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
     /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
@@ -873,7 +873,7 @@ pub struct AktionSchalten<Weiche, Richtung> {
 }
 
 impl<L, Anschlüsse, Richtung> Ausführen<L>
-    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>>, Richtung>
+    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>, N>, Richtung>
 where
     L: Leiter,
     Richtung: 'static + Debug + Clone + Send,
@@ -906,7 +906,7 @@ where
     }
 }
 
-impl<Weiche: Serialisiere, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
+impl<Weiche: Serialisiere, Richtung: Clone> AktionSchalten<Steuerung<Weiche, N>, Richtung> {
     /// Serialisiere eine Aktion mit einer [Weiche].
     pub fn serialisiere(&self) -> AktionSchalten<<Weiche as Serialisiere>::Serialisiert, Richtung> {
         let AktionSchalten { weiche, richtung } = self;
@@ -924,7 +924,7 @@ impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
         self,
         bekannte_weichen: &HashMap<<Weiche as Serialisiere>::Serialisiert, Weiche>,
         canvas: Arc<Mutex<Cache>>,
-    ) -> Result<AktionSchalten<Steuerung<Weiche>, Richtung>, UnbekannteWeiche<S>> {
+    ) -> Result<AktionSchalten<Steuerung<Weiche, N>, Richtung>, UnbekannteWeiche<S>> {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
         Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas), richtung })
@@ -933,7 +933,7 @@ impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
 
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionWarten<K = Steuerung<Kontakt>> {
+pub enum AktionWarten<K = Steuerung<Kontakt, N>> {
     /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.
@@ -992,7 +992,9 @@ impl AktionWartenSerialisiert {
         let aktion = match self {
             AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf { kontakt: Steuerung::neu(kontakt, canvas) }
+                AktionWarten::WartenAuf {
+                    kontakt: Steuerung::neu(kontakt, canvas, todo!("sender")),
+                }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };
