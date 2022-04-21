@@ -197,7 +197,7 @@ struct GehaltenVerbindung {
     andere_gehalten: bool,
 }
 
-impl<L: Leiter, N> Gleise<L, N> {
+impl<L: Leiter> Gleise<L> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,

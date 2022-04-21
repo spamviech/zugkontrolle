@@ -6,7 +6,10 @@ use std::{
     convert::identity,
     fmt::Debug,
     iter,
-    sync::{mpsc::Sender, Arc},
+    sync::{
+        mpsc::{channel, Sender},
+        Arc,
+    },
     time::Instant,
 };
 
@@ -24,10 +27,11 @@ pub use self::{
 use self::{
     daten::{GleiseDaten, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
-    steuerung::Steuerung,
+    steuerung::{AsyncAktualisieren, Steuerung},
 };
 use crate::{
     anschluss,
+    application::empfänger::Empfänger,
     gleis::{
         gerade::Gerade,
         kreuzung::Kreuzung,
@@ -112,7 +116,7 @@ impl ModusDaten {
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub struct Gleise<L: Leiter, N> {
+pub struct Gleise<L: Leiter> {
     canvas: Arc<Mutex<Cache>>,
     pivot: Position,
     skalieren: Skalar,
@@ -120,19 +124,19 @@ pub struct Gleise<L: Leiter, N> {
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten,
-    sender: Sender<N>,
+    sender: Sender<AsyncAktualisieren>,
 }
 
-impl<L: Leiter, N> Gleise<L, N> {
+impl<L: Leiter> Gleise<L> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
     pub fn neu(
         zugtyp: Zugtyp<L>,
         modus: Modus,
         pivot: Position,
         skalieren: Skalar,
-        sender: Sender<N>,
-    ) -> Self {
-        Gleise {
+    ) -> (Self, Empfänger<AsyncAktualisieren>) {
+        let (sender, receiver) = channel();
+        let gleise = Gleise {
             canvas: Arc::new(Mutex::new(Cache::neu())),
             pivot,
             skalieren,
@@ -141,7 +145,8 @@ impl<L: Leiter, N> Gleise<L, N> {
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
             sender,
-        }
+        };
+        (gleise, Empfänger::neu(receiver))
     }
 
     /// Aktueller Modus.
@@ -437,7 +442,7 @@ impl<L: Leiter, N> Gleise<L, N> {
     }
 }
 
-impl<L: Debug + Leiter, N> Gleise<L, N> {
+impl<L: Debug + Leiter> Gleise<L> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Existiert bei der neuen Geschwindigkeit ein Streckenabschnitt mit identischem Namen
     /// wird dieser überschrieben und zurückgegeben.
@@ -599,18 +604,18 @@ fn streckenabschnitt_entfernen<T>(
 /// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
 #[non_exhaustive]
-pub enum Nachricht<N> {
+pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
     SetzeStreckenabschnitt(AnyGleis),
     /// Öffne das Fenster zum Anpassen eines Kontaktes ([Gerade], [Kurve]).
-    KontaktAnpassen(Steuerung<Arc<Mutex<Option<Kontakt>>>, N>),
+    KontaktAnpassen(Steuerung<Arc<Mutex<Option<Kontakt>>>, AsyncAktualisieren>),
     /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche
     /// ([Weiche], [SKurvenWeiche], [Kreuzung]).
-    GeradeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::GeradeWeiche>>>, N>),
+    GeradeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::GeradeWeiche>>>, AsyncAktualisieren>),
     /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
-    KurvenWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::KurvenWeiche>>>, N>),
+    KurvenWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::KurvenWeiche>>>, AsyncAktualisieren>),
     /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
-    DreiwegeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::DreiwegeWeiche>>>, N>),
+    DreiwegeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::DreiwegeWeiche>>>, AsyncAktualisieren>),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -618,7 +623,7 @@ pub enum Nachricht<N> {
     WeicheSchalten(AnyAktionSchalten),
 }
 
-impl<L: Leiter, N> Program<Nachricht<N>> for Gleise<L, N> {
+impl<L: Leiter> Program<Nachricht> for Gleise<L> {
     #[inline(always)]
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         self.draw(bounds, cursor)
@@ -630,7 +635,7 @@ impl<L: Leiter, N> Program<Nachricht<N>> for Gleise<L, N> {
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht<N>>) {
+    ) -> (event::Status, Option<Nachricht>) {
         self.update(event, bounds, cursor)
     }
 

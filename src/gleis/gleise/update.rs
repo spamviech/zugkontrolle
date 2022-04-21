@@ -148,7 +148,7 @@ fn aktion_gleis_an_position<'t, N>(
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
     sender: &Sender<N>,
-) -> (event::Status, Option<Nachricht<N>>) {
+) -> (event::Status, Option<Nachricht>) {
     let mut message = None;
     let mut status = event::Status::Ignored;
     if cursor.is_over(&bounds) {
@@ -309,14 +309,14 @@ fn aktion_gleis_an_position<'t, N>(
     (status, message)
 }
 
-impl<L: Leiter, N> Gleise<L, N> {
+impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &mut self,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht<N>>) {
+    ) -> (event::Status, Option<Nachricht>) {
         let mut event_status = event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };

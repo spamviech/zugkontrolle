@@ -79,6 +79,7 @@ where
             bewegung: _,
             sender: _,
             empfänger: _,
+            gleise_empfänger: _,
             zeige_lizenzen,
         } = self;
         let aktueller_modus = gleise.modus();
@@ -317,7 +318,7 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     s_kurven_weichen: &'t mut Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t mut Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
-    gleise: &Gleise<Leiter, Nachricht<Leiter>>,
+    gleise: &Gleise<Leiter>,
 ) -> Row<'t, Nachricht<Leiter>> {
     let mut scrollable = Scrollable::new(scrollable_zustand);
     let scroller_width = scrollable_style.breite();

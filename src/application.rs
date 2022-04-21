@@ -239,8 +239,8 @@ where
     },
 }
 
-impl<Leiter: LeiterAnzeige> From<gleise::Nachricht<Nachricht<Leiter>>> for Nachricht<Leiter> {
-    fn from(nachricht: gleise::Nachricht<Nachricht<Leiter>>) -> Self {
+impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
+    fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
             // gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
             //     Nachricht::SetzeStreckenabschnitt(any_id)
@@ -457,7 +457,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Zugkontrolle<L: LeiterAnzeige> {
-    gleise: Gleise<L, Nachricht<L>>,
+    gleise: Gleise<L>,
     lager: Lager,
     scrollable_zustand: iced::scrollable::State,
     scrollable_style: style::sammlung::Sammlung,
@@ -482,6 +482,7 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     bewegung: Option<Bewegung>,
     sender: Sender<Nachricht<L>>,
     empfänger: Empfänger<Nachricht<L>>,
+    gleise_empfänger: Empfänger<AsyncAktualisieren>,
     zeige_lizenzen: iced::button::State,
     // TODO Plan
 }
@@ -538,15 +539,10 @@ where
         let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
         let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
 
-        let (sender, receiver) = channel();
+        let (gleise, gleise_empfänger) =
+            Gleise::neu(zugtyp, modus, Position { punkt: Vektor { x, y }, winkel }, zoom);
 
-        let gleise = Gleise::neu(
-            zugtyp,
-            modus,
-            Position { punkt: Vektor { x, y }, winkel },
-            zoom,
-            sender.clone(),
-        );
+        let (sender, receiver) = channel();
 
         let zugkontrolle = Zugkontrolle {
             gleise,
@@ -574,6 +570,7 @@ where
             bewegung: None,
             sender,
             empfänger: Empfänger::neu(receiver),
+            gleise_empfänger,
             zeige_lizenzen: iced::button::State::new(),
         };
 
@@ -682,6 +679,9 @@ where
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        Subscription::from_recipe(self.empfänger.clone())
+        Subscription::batch([
+            Subscription::from_recipe(self.empfänger.clone()),
+            Subscription::from_recipe(self.gleise_empfänger.clone()).map(Nachricht::from),
+        ])
     }
 }
