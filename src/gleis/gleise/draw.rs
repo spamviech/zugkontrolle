@@ -163,7 +163,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
         let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
-            (None, Some(name)) => Some(name.clone()),
+            (None, Some(name)) => Some(name.into_owned()),
             (Some(beschreibung), None) => Some(beschreibung.clone()),
             (None, None) => None,
         } {

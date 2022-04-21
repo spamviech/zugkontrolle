@@ -1,15 +1,16 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::Mutex;
 
 use crate::{
+    anschluss::de_serialisieren::Serialisiere,
     gleis::verbindung::{self, Verbindung},
     nachschlagen::Nachschlagen,
     steuerung::{
         kontakt::{Kontakt, KontaktSerialisiert},
-        weiche::Weiche,
+        weiche::{Weiche, WeicheSerialisiert},
     },
 };
 
@@ -99,7 +100,7 @@ pub trait Zeichnen {
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>);
+    ) -> (Position, Option<&String>, Option<Cow<'_, str>>);
 
     /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(
@@ -136,55 +137,51 @@ pub trait Zeichnen {
     }
 }
 
-pub trait UnitOderMutex<T> {
-    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&T) -> Ergebnis) -> Ergebnis;
-}
-
-impl UnitOderMutex<()> for () {
-    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&()) -> Ergebnis) -> Ergebnis {
-        f(self)
-    }
-}
-
-impl<T> UnitOderMutex<T> for Arc<Mutex<T>> {
-    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&T) -> Ergebnis) -> Ergebnis {
-        f(&*self.lock())
-    }
-}
-
 /// Trait für (potentiell) benannte Typen.
 pub trait MitName {
     /// Der Name des Wertes.
-    fn name(&self) -> Option<&String>;
+    fn name(&self) -> Option<Cow<'_, str>>;
 }
 
 impl MitName for () {
-    fn name(&self) -> Option<&String> {
+    fn name(&self) -> Option<Cow<'_, str>> {
         None
     }
 }
 
 impl<T: MitName> MitName for Option<T> {
-    fn name(&self) -> Option<&String> {
+    fn name(&self) -> Option<Cow<'_, str>> {
         self.as_ref().and_then(MitName::name)
     }
 }
 
+impl<T: MitName> MitName for Arc<Mutex<T>> {
+    fn name(&self) -> Option<Cow<'_, str>> {
+        self.lock().name().map(|cow| Cow::Owned(cow.into_owned()))
+    }
+}
+
 impl<R, A> MitName for Weiche<R, A> {
-    fn name(&self) -> Option<&String> {
-        Some(&self.name.0)
+    fn name(&self) -> Option<Cow<'_, str>> {
+        Some(Cow::Borrowed(&self.name.0))
+    }
+}
+
+impl<R, A: Serialisiere> MitName for WeicheSerialisiert<R, A> {
+    fn name(&self) -> Option<Cow<'_, str>> {
+        Some(Cow::Borrowed(&self.name.0))
     }
 }
 
 impl MitName for Kontakt {
-    fn name(&self) -> Option<&String> {
-        Some(&self.name.0)
+    fn name(&self) -> Option<Cow<'_, str>> {
+        Some(Cow::Borrowed(&self.name.0))
     }
 }
 
 impl MitName for KontaktSerialisiert {
-    fn name(&self) -> Option<&String> {
-        Some(&self.name.0)
+    fn name(&self) -> Option<Cow<'_, str>> {
+        Some(Cow::Borrowed(&self.name.0))
     }
 }
 
@@ -203,6 +200,12 @@ impl<R> MitRichtung<R> for () {
 impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
     fn aktuelle_richtung(&self) -> Option<R> {
         self.as_ref().and_then(|t| t.aktuelle_richtung())
+    }
+}
+
+impl<R, T: MitRichtung<R>> MitRichtung<R> for Arc<Mutex<T>> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.lock().aktuelle_richtung()
     }
 }
 

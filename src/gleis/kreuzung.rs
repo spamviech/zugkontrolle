@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer [Kreuzung].
 
-use std::{fmt::Debug, sync::Arc};
+use std::{borrow::Cow, fmt::Debug, sync::Arc};
 
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, UnitOderMutex, Zeichnen,
+        MitName, MitRichtung, Transparenz, Zeichnen,
     },
 };
 
@@ -113,9 +113,7 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>> Zeichnen
-    for Kreuzung<S>
-{
+impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
@@ -278,7 +276,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&String>, Option<Cow<'_, str>>) {
         // utility sizes
         let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();

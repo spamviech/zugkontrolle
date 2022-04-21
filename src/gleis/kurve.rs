@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer [Kurve].
 
-use std::{f32::consts::PI, fmt::Debug, sync::Arc};
+use std::{borrow::Cow, f32::consts::PI, fmt::Debug, sync::Arc};
 
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, Transparenz, UnitOderMutex, Zeichnen,
+        MitName, Transparenz, Zeichnen,
     },
 };
 
@@ -71,7 +71,7 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName, S: UnitOderMutex<Anschluss>> Zeichnen for Kurve<S> {
+impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
@@ -106,7 +106,7 @@ impl<Anschluss: MitName, S: UnitOderMutex<Anschluss>> Zeichnen for Kurve<S> {
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&String>, Option<Cow<'_, str>>) {
         let half_angle = 0.5 * self.winkel;
         (
             Position {
