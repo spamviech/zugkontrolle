@@ -169,7 +169,7 @@ pub struct AuswahlZustand {
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
+    pub fn neu<L: Leiter, N>(gleise: &Gleise<L, N>) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlZustand {
             neu_name: String::new(),

@@ -2,7 +2,12 @@
 //! [Canvas](crate::application::touch_canvas::Canvas).
 
 use std::{
-    collections::hash_map::Entry, convert::identity, fmt::Debug, iter, sync::Arc, time::Instant,
+    collections::hash_map::Entry,
+    convert::identity,
+    fmt::Debug,
+    iter,
+    sync::{mpsc::Sender, Arc},
+    time::Instant,
 };
 
 use iced::{
@@ -78,7 +83,7 @@ impl ModusDaten {
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub struct Gleise<L: Leiter> {
+pub struct Gleise<L: Leiter, N> {
     canvas: Arc<Mutex<Cache>>,
     pivot: Position,
     skalieren: Skalar,
@@ -86,11 +91,18 @@ pub struct Gleise<L: Leiter> {
     last_mouse: Vektor,
     last_size: Vektor,
     modus: ModusDaten,
+    sender: Sender<N>,
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, N> Gleise<L, N> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
-    pub fn neu(zugtyp: Zugtyp<L>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
+    pub fn neu(
+        zugtyp: Zugtyp<L>,
+        modus: Modus,
+        pivot: Position,
+        skalieren: Skalar,
+        sender: Sender<N>,
+    ) -> Self {
         Gleise {
             canvas: Arc::new(Mutex::new(Cache::neu())),
             pivot,
@@ -99,6 +111,7 @@ impl<L: Leiter> Gleise<L> {
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
+            sender,
         }
     }
 
@@ -395,7 +408,7 @@ impl<L: Leiter> Gleise<L> {
     }
 }
 
-impl<L: Debug + Leiter> Gleise<L> {
+impl<L: Debug + Leiter, N> Gleise<L, N> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Existiert bei der neuen Geschwindigkeit ein Streckenabschnitt mit identischem Namen
     /// wird dieser überschrieben und zurückgegeben.
@@ -569,7 +582,7 @@ pub enum Nachricht {
     WeicheSchalten(AnyAktionSchalten),
 }
 
-impl<L: Leiter> Program<Nachricht> for Gleise<L> {
+impl<L: Leiter, N> Program<Nachricht> for Gleise<L, N> {
     #[inline(always)]
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         self.draw(bounds, cursor)

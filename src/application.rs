@@ -450,7 +450,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Zugkontrolle<L: LeiterAnzeige> {
-    gleise: Gleise<L>,
+    gleise: Gleise<L, Nachricht<L>>,
     lager: Lager,
     scrollable_zustand: iced::scrollable::State,
     scrollable_style: style::sammlung::Sammlung,
@@ -531,9 +531,16 @@ where
         let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
         let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
 
-        let gleise = Gleise::neu(zugtyp, modus, Position { punkt: Vektor { x, y }, winkel }, zoom);
-
         let (sender, receiver) = channel();
+
+        let gleise = Gleise::neu(
+            zugtyp,
+            modus,
+            Position { punkt: Vektor { x, y }, winkel },
+            zoom,
+            sender.clone(),
+        );
+
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,

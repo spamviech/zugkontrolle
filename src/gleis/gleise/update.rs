@@ -366,7 +366,7 @@ fn aktion_gleis_an_position<'t, N>(
     (status, message)
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, N> Gleise<L, N> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &mut self,
@@ -380,7 +380,7 @@ impl<L: Leiter> Gleise<L> {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
-                let Gleise { modus, zustand, pivot, skalieren, canvas, .. } = self;
+                let Gleise { modus, zustand, pivot, skalieren, canvas, sender, .. } = self;
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
@@ -390,7 +390,7 @@ impl<L: Leiter> Gleise<L> {
                     pivot,
                     skalieren,
                     canvas,
-                    todo!("sender"),
+                    sender,
                 );
                 event_status = click_result.0;
                 message = click_result.1;

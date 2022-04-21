@@ -18,7 +18,7 @@ use crate::{
     typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
 };
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, N> Gleise<L, N> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(crate) fn hinzufügen<T: Debug + Zeichnen + DatenAuswahl>(

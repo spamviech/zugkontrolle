@@ -145,13 +145,12 @@ pub trait MitSteuerung<'t> {
     ) -> Steuerung<&'t mut Self::Steuerung, F>;
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, Nachricht> Gleise<L, Nachricht> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl, Nachricht>(
+    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
         &'t self,
         gleis_id: &GleisId<T>,
-        sender: Sender<Nachricht>,
     ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, Nachricht>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
@@ -162,15 +161,14 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung(canvas.clone(), sender))
+        Ok(definition.steuerung(canvas.clone(), self.sender.clone()))
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl, Nachricht>(
+    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
         &'t mut self,
         gleis_id: &GleisId<T>,
-        sender: Sender<Nachricht>,
     ) -> Result<Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung, Nachricht>, GleisIdFehler>
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
@@ -182,7 +180,7 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung_mut(canvas.clone(), sender))
+        Ok(definition.steuerung_mut(canvas.clone(), self.sender.clone()))
     }
 }
 

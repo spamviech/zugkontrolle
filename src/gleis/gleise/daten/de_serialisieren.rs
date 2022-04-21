@@ -848,7 +848,7 @@ where
     }
 }
 
-impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
+impl<L: Serialisiere + BekannterLeiter, N> Gleise<L, N> {
     /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// in einer Datei.
