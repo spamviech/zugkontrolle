@@ -66,8 +66,8 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-type IdUndSteuerung<'t, T, F> =
-    (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, F>);
+type IdUndSteuerung<'t, T, N> =
+    (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, N>);
 
 #[derive(zugkontrolle_macros::From)]
 enum GleisSteuerung<'t, Nachricht> {
@@ -95,18 +95,17 @@ impl<'t, Nachricht> GleisSteuerung<'t, Nachricht> {
 }
 
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T, Nachricht>(
+fn gleis_an_position<'t, T, N>(
     spurweite: Spurweite,
     streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
     canvas: &Arc<Mutex<Cache>>,
-    sender: &Sender<Nachricht>,
-) -> Option<(GleisSteuerung<'t, Nachricht>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
+    sender: &Sender<N>,
+) -> Option<(GleisSteuerung<'t, N>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
     T: Zeichnen + MitSteuerung<'t>,
-    GleisSteuerung<'t, Nachricht>:
-        From<(GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, Nachricht>)>,
+    GleisSteuerung<'t, N>: From<IdUndSteuerung<'t, T, N>>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
@@ -136,14 +135,15 @@ where
     None
 }
 
+type StreckenabschnittUndDaten<'t> =
+    (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten);
+
 fn aktion_gleis_an_position<'t, N>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t mut ModusDaten,
-    daten_iter: impl Iterator<
-        Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
-    >,
+    daten_iter: impl Iterator<Item = StreckenabschnittUndDaten<'t>>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
