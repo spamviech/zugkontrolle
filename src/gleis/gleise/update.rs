@@ -154,7 +154,20 @@ fn aktion_gleis_an_position<'t, N>(
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
-                let GleiseDaten {
+                macro_rules! gleis_an_position {
+                    ($($map: ident),* $(,)?) => {{
+                        let GleiseDaten { $($map),* } = maps;
+                        acc $(.or_else(|| gleis_an_position(
+                            spurweite,
+                            streckenabschnitt,
+                            $map,
+                            canvas_pos,
+                            canvas,
+                            sender,
+                        )))*
+                    }};
+                }
+                gleis_an_position!(
                     geraden,
                     kurven,
                     weichen,
@@ -162,77 +175,7 @@ fn aktion_gleis_an_position<'t, N>(
                     dreiwege_weichen,
                     s_kurven_weichen,
                     kreuzungen,
-                } = maps;
-                acc.or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        geraden,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        kurven,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        weichen,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        dreiwege_weichen,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        kurven_weichen,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        s_kurven_weichen,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
-                .or_else(|| {
-                    gleis_an_position(
-                        spurweite,
-                        streckenabschnitt,
-                        kreuzungen,
-                        canvas_pos,
-                        canvas,
-                        sender,
-                    )
-                })
+                )
             });
             match modus {
                 ModusDaten::Bauen { gehalten, last } => {
