@@ -1,0 +1,47 @@
+block-0.1.6: MIT
+    http://github.com/SSheldon/rust-block
+    None in repository
+
+critical-section-0.2.7: Apache-2.0 or MIT
+    https://github.com/embassy-rs/critical-section
+    according to ReadMe, may be optained from
+    - http://www.apache.org/licenses/LICENSE-2.0
+    - http://opensource.org/licenses/MIT
+
+dispatch-0.2.0: MIT
+    None in repository
+    http://github.com/SSheldon/rust-dispatch
+
+fuchsia-zircon-sys-0.3.3: BSD-3-Clause
+    Repository private
+    https://fuchsia.googlesource.com/garnet/
+
+fxhash-0.2.1: Apache-2.0/MIT
+    https://github.com/cbreeden/fxhash
+    None in repository
+
+glow_glyph-0.4.0: MIT
+    https://github.com/hecrj/glow_glyph
+    None in repository
+
+objc_id-0.1.1: MIT
+    http://github.com/SSheldon/rust-objc-id
+    None in repository
+
+objc-foundation-0.1.1: MIT
+    http://github.com/SSheldon/rust-objc-foundation
+    None in repository
+
+osmesa-sys-0.1.2: CC0-1.0
+    https://github.com/Daggerbot/osmesa-rs.git
+    Repository not found
+
+sid-0.6.1: MIT/Apache-2.0
+    https://github.com/nical/sid
+    None in repository
+
+winapi-wsapoll-0.1.1: MIT OR Apache-2.0
+    https://github.com/psychon/winapi-wsapoll
+    according to ReadMe, may be optained from
+    - http://www.apache.org/licenses/LICENSE-2.0
+    - http://opensource.org/licenses/MIT

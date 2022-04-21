@@ -17,7 +17,8 @@ license_files = [
     "LICENSE-Apache-2.0_WITH_LLVM-exception",
     "LICENSE-APACHE",
     "UNLICENSE",
-    "COPYING"
+    "COPYING",
+    "NOTICE",
 ]
 cargo_toml = ["Cargo.toml", "Cargo.toml.orig"]
 readme = ["README.md"]
