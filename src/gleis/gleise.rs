@@ -48,6 +48,7 @@ use crate::{
     },
     typen::{
         canvas::{Cache, Position},
+        farbe::Farbe,
         mm::Spurweite,
         skalar::Skalar,
         vektor::Vektor,
@@ -85,9 +86,17 @@ pub enum AnyGleis {
 
 #[derive(Debug)]
 struct Gehalten {
-    gleis_id: AnyId,
+    /// Das Gleis.
+    gleis: AnyGleis,
+    /// Der Streckenabschnitt des Gleises.
+    streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
+    /// Die Geschwindigkeit des Gleises.
+    geschwindigkeit: Option<geschwindigkeit::Name>,
+    /// Die Position der Maus relativ zum Gleis.
     halte_position: Vektor,
+    /// Der ursprüngliche Winkel des Gleises.
     winkel: Winkel,
+    /// Wurde das Gleis bewegt.
     bewegt: bool,
 }
 
@@ -96,7 +105,12 @@ struct Gehalten {
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten: Option<Gehalten>, last: Instant },
+    Bauen {
+        /// Das aktuell gehaltene Gleis.
+        gehalten: Option<Gehalten>,
+        /// Der Zeitpunkt des letzten Klicks.
+        last: Instant,
+    },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
