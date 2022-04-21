@@ -74,14 +74,14 @@ impl<T, Nachricht> Steuerung<T, Nachricht> {
     }
 }
 
-impl<T, Nachricht> Steuerung<&Option<T>, Nachricht> {
+impl<'t, T, Nachricht> Steuerung<&'t Option<T>, Nachricht> {
     /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
     pub fn opt_as_ref(&self) -> Option<&T> {
         self.as_ref().as_ref()
     }
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
-    pub fn nur_some(self) -> Option<Steuerung<T, Nachricht>> {
+    pub fn nur_some(self) -> Option<Steuerung<&'t T, Nachricht>> {
         let Steuerung { steuerung, canvas, sender } = self;
         if let Some(steuerung) = steuerung {
             Some(Steuerung { steuerung, canvas, sender })
@@ -131,18 +131,18 @@ pub trait MitSteuerung<'t> {
     /// Die Steuerung für das Gleis.
     type Steuerung: 't;
     /// Erzeuge eine [Steuerung]-Struktur, ohne die Möglichkeit sie zu verändern.
-    fn steuerung<F>(
+    fn steuerung<N>(
         &'t self,
         canvas: Arc<Mutex<Cache>>,
-        sende_nachricht: F,
-    ) -> Steuerung<&'t Self::Steuerung, F>;
+        sender: Sender<N>,
+    ) -> Steuerung<&'t Self::Steuerung, N>;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
     /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
-    fn steuerung_mut<F>(
+    fn steuerung_mut<N>(
         &'t mut self,
         canvas: Arc<Mutex<Cache>>,
-        sende_nachricht: F,
-    ) -> Steuerung<&'t mut Self::Steuerung, F>;
+        sender: Sender<N>,
+    ) -> Steuerung<&'t mut Self::Steuerung, N>;
 }
 
 impl<L: Leiter, Nachricht> Gleise<L, Nachricht> {
@@ -184,32 +184,35 @@ impl<L: Leiter, Nachricht> Gleise<L, Nachricht> {
     }
 }
 
-type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
-
 macro_rules! impl_mit_steuerung {
     ($type: ty, $steuerung: ty, $ident: ident) => {
         impl<'t> MitSteuerung<'t> for $type {
             type Steuerung = $steuerung;
             #[inline(always)]
-            fn steuerung<F>(
+            fn steuerung<N>(
                 &'t self,
                 canvas: Arc<Mutex<Cache>>,
-                sende_nachricht: F,
-            ) -> Steuerung<&'t Self::Steuerung, F> {
-                Steuerung::neu(&self.$ident, canvas, sende_nachricht)
+                sender: Sender<N>,
+            ) -> Steuerung<&'t Self::Steuerung, N> {
+                Steuerung::neu(&self.$ident, canvas, sender)
             }
             #[inline(always)]
-            fn steuerung_mut<F>(
+            fn steuerung_mut<N>(
                 &'t mut self,
                 canvas: Arc<Mutex<Cache>>,
-                sende_nachricht: F,
-            ) -> Steuerung<&'t mut Self::Steuerung, F> {
-                Steuerung::neu(&mut self.$ident, canvas, sende_nachricht)
+                sender: Sender<N>,
+            ) -> Steuerung<&'t mut Self::Steuerung, N> {
+                Steuerung::neu(&mut self.$ident, canvas, sender)
             }
         }
     };
 }
 
+impl_mit_steuerung! {gleis::gerade::Gerade, Arc<Mutex<Option<Kontakt>>>, kontakt}
+impl_mit_steuerung! {gleis::kurve::Kurve, Arc<Mutex<Option<Kontakt>>>, kontakt}
+
+type OptionWeiche<Richtung, Anschlüsse> =
+    Arc<Mutex<Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>>>;
 macro_rules! impl_mit_steuerung_weiche {
     (gleis $(:: $pfad: ident)*, $type: ident $(,)?) => {
         impl_mit_steuerung! {
@@ -219,9 +222,6 @@ macro_rules! impl_mit_steuerung_weiche {
         }
     }
 }
-
-impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, kontakt}
-impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, kontakt}
 impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
 impl_mit_steuerung_weiche! {gleis::weiche::dreiwege, DreiwegeWeiche}
 impl_mit_steuerung_weiche! {gleis::weiche::kurve, KurvenWeiche}
