@@ -34,6 +34,7 @@ use crate::{
             self,
             daten::v2,
             id::{AnyId, GleisId, StreckenabschnittId},
+            steuerung::AsyncAktualisieren,
             Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
@@ -238,26 +239,32 @@ where
     },
 }
 
-impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
-    fn from(nachricht: gleise::Nachricht) -> Self {
+impl<Leiter: LeiterAnzeige> From<gleise::Nachricht<Nachricht<Leiter>>> for Nachricht<Leiter> {
+    fn from(nachricht: gleise::Nachricht<Nachricht<Leiter>>) -> Self {
         match nachricht {
-            gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
-                Nachricht::SetzeStreckenabschnitt(any_id)
-            },
-            gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
-                Nachricht::ZeigeAnschlüsseAnpassen(any_id)
-            },
+            // gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
+            //     Nachricht::SetzeStreckenabschnitt(any_id)
+            // },
+            // gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
+            //     Nachricht::ZeigeAnschlüsseAnpassen(any_id)
+            // },
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
                 Nachricht::StreckenabschnittUmschalten(aktion)
             },
             gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
+            _ => todo!(),
         }
+    }
+}
+impl<Leiter: LeiterAnzeige> From<AsyncAktualisieren> for Nachricht<Leiter> {
+    fn from(AsyncAktualisieren: AsyncAktualisieren) -> Self {
+        Nachricht::AsyncAktualisieren
     }
 }
 
 impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
-    fn from(fehler: AsyncNachricht) -> Self {
-        match fehler {
+    fn from(nachricht: AsyncNachricht) -> Self {
+        match nachricht {
             AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
             AsyncNachricht::Fehler { titel, nachricht } => {
                 Nachricht::AsyncFehler { titel, nachricht }

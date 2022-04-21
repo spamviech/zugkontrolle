@@ -148,7 +148,7 @@ fn aktion_gleis_an_position<'t, N>(
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
     sender: &Sender<N>,
-) -> (event::Status, Option<Nachricht>) {
+) -> (event::Status, Option<Nachricht<N>>) {
     let mut message = None;
     let mut status = event::Status::Ignored;
     if cursor.is_over(&bounds) {
@@ -316,7 +316,7 @@ impl<L: Leiter, N> Gleise<L, N> {
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> (event::Status, Option<Nachricht<N>>) {
         let mut event_status = event::Status::Ignored;
         let mut message = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };

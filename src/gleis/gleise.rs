@@ -24,12 +24,22 @@ pub use self::{
 use self::{
     daten::{GleiseDaten, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
+    steuerung::Steuerung,
 };
 use crate::{
     anschluss,
+    gleis::{
+        gerade::Gerade,
+        kreuzung::Kreuzung,
+        kurve::Kurve,
+        weiche::{
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+        },
+    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        plan::{AktionStreckenabschnitt, AnyAktionSchalten},
+        kontakt::Kontakt,
+        plan::{self, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
@@ -49,6 +59,25 @@ pub mod hinzufügen_entfernen;
 pub mod id;
 pub mod steuerung;
 pub mod update;
+
+/// Ein beliebiges Gleis.
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum AnyGleis {
+    /// Eine [Gerade].
+    Gerade(Gleis<Gerade>),
+    /// Eine [Kurve].
+    Kurve(Gleis<Kurve>),
+    /// Eine [Weiche].
+    Weiche(Gleis<Weiche>),
+    /// Eine [DreiwegeWeiche].
+    DreiwegeWeiche(Gleis<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
+    KurvenWeiche(Gleis<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
+    SKurvenWeiche(Gleis<SKurvenWeiche>),
+    /// Eine [Kreuzung].
+    Kreuzung(Gleis<Kreuzung>),
+}
 
 #[derive(Debug)]
 struct Gehalten {
@@ -570,11 +599,18 @@ fn streckenabschnitt_entfernen<T>(
 /// [Canvas](crate::application::touch_canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
 #[non_exhaustive]
-pub enum Nachricht {
+pub enum Nachricht<N> {
     /// Setze den Streckenabschnitt für ein Gleis.
-    SetzeStreckenabschnitt(AnyId),
-    /// Öffne das Fenster zum Anpassen der Anschlüsse für ein Gleis.
-    AnschlüsseAnpassen(AnyId),
+    SetzeStreckenabschnitt(AnyGleis),
+    /// Öffne das Fenster zum Anpassen eines Kontaktes ([Gerade], [Kurve]).
+    KontaktAnpassen(Steuerung<Arc<Mutex<Option<Kontakt>>>, N>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche
+    /// ([Weiche], [SKurvenWeiche], [Kreuzung]).
+    GeradeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::GeradeWeiche>>>, N>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
+    KurvenWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::KurvenWeiche>>>, N>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
+    DreiwegeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::DreiwegeWeiche>>>, N>),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -582,7 +618,7 @@ pub enum Nachricht {
     WeicheSchalten(AnyAktionSchalten),
 }
 
-impl<L: Leiter, N> Program<Nachricht> for Gleise<L, N> {
+impl<L: Leiter, N> Program<Nachricht<N>> for Gleise<L, N> {
     #[inline(always)]
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         self.draw(bounds, cursor)
@@ -594,7 +630,7 @@ impl<L: Leiter, N> Program<Nachricht> for Gleise<L, N> {
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> (event::Status, Option<Nachricht<N>>) {
         self.update(event, bounds, cursor)
     }
 

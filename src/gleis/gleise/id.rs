@@ -62,7 +62,7 @@ impl<T> PartialEq for GleisId<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(Debug, zugkontrolle_macros::From)]
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::From)]
 pub enum AnyId {
     /// Eine [Gerade].
     Gerade(GleisId<Gerade>),
