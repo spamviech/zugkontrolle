@@ -19,7 +19,7 @@ use crate::{
         gleise::{
             daten::{Gleis, GleiseDaten, RStern},
             id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
-            steuerung::{MitSteuerung, Steuerung},
+            steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
         kreuzung::Kreuzung,
@@ -138,7 +138,7 @@ where
 type StreckenabschnittUndDaten<'t> =
     (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten);
 
-fn aktion_gleis_an_position<'t, N>(
+fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
@@ -147,7 +147,7 @@ fn aktion_gleis_an_position<'t, N>(
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
-    sender: &Sender<N>,
+    sender: &Sender<AsyncAktualisieren>,
 ) -> (event::Status, Option<Nachricht>) {
     let mut message = None;
     let mut status = event::Status::Ignored;
@@ -187,13 +187,20 @@ fn aktion_gleis_an_position<'t, N>(
                             gleis_an_position
                         {
                             let gleis_id = gleis_steuerung.id().als_id();
-                            *gehalten =
-                                Some(Gehalten { gleis_id, halte_position, winkel, bewegt: false })
+                            *gehalten = Some(Gehalten {
+                                gleis: todo!(),
+                                streckenabschnitt: todo!(),
+                                geschwindigkeit: todo!(),
+                                halte_position,
+                                winkel,
+                                bewegt: false,
+                            })
                         }
                     }
-                    if let Some(Gehalten { gleis_id, .. }) = gehalten {
+                    if let Some(Gehalten { gleis, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()));
+                            // message = Some(Nachricht::AnschlüsseAnpassen(gleis_id.klonen()));
+                            message = Some(todo!());
                             *gehalten = None
                         }
                         status = event::Status::Captured
@@ -218,6 +225,7 @@ fn aktion_gleis_an_position<'t, N>(
                                     },
                                 )
                             }),
+                            /*
                             Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
                                 use weiche::gerade::Richtung::*;
                                 let richtung = match steuerung.as_ref().aktuelle_richtung() {
@@ -296,6 +304,8 @@ fn aktion_gleis_an_position<'t, N>(
                                     },
                                 ))
                             }),
+                            */
+                            _ => todo!(),
                         };
 
                         if message.is_some() {
@@ -340,18 +350,20 @@ impl<L: Leiter> Gleise<L> {
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
+                    if let Some(Gehalten { gleis, bewegt, .. }) = gehalten.take() {
                         if bewegt {
                             if !cursor.is_over(&bounds) {
-                                if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
-                                {
-                                    error!("Entfernen für entferntes Gleis: {:?}", fehler)
-                                }
+                                todo!()
+                                // if let Err(fehler) =
+                                //     mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
+                                // {
+                                //     error!("Entfernen für entferntes Gleis: {:?}", fehler)
+                                // }
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.klonen()));
+                            message = Some(todo!());
+                            // message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.klonen()));
                         }
                         event_status = event::Status::Captured;
                     }

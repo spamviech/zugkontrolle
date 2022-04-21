@@ -6,7 +6,7 @@ use std::{
     sync::{mpsc::Sender, Arc},
 };
 
-use parking_lot::Mutex;
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use rstar::RTreeObject;
 
 use crate::{

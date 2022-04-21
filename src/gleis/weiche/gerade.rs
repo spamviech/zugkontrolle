@@ -20,7 +20,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, MitRichtung, Transparenz, UnitOderMutex, Zeichnen,
     },
 };
 
@@ -106,7 +106,9 @@ pub enum VerbindungName {
     Kurve,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>> Zeichnen
+    for Weiche<S>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 

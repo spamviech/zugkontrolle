@@ -20,7 +20,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Winkel},
-        MitName, Transparenz, Zeichnen,
+        MitName, Transparenz, UnitOderMutex, Zeichnen,
     },
 };
 
@@ -62,7 +62,7 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
+impl<Anschluss: MitName, S: UnitOderMutex<Anschluss>> Zeichnen for Gerade<S> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 

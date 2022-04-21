@@ -453,23 +453,24 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         &mut self,
         anschlüsse_anpassen: AnschlüsseAnpassen,
     ) -> Option<Nachricht<L>> {
-        match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("Weiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("DreiwegeWeiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("KurvenWeiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("SKurvenWeiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("Kreuzung", id, anschlüsse_serialisiert)
-            },
-        }
+        todo!()
+        // match anschlüsse_anpassen {
+        //     AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
+        //         self.gleis_anschlüsse_anpassen("Weiche", id, anschlüsse_serialisiert)
+        //     },
+        //     AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
+        //         self.gleis_anschlüsse_anpassen("DreiwegeWeiche", id, anschlüsse_serialisiert)
+        //     },
+        //     AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
+        //         self.gleis_anschlüsse_anpassen("KurvenWeiche", id, anschlüsse_serialisiert)
+        //     },
+        //     AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
+        //         self.gleis_anschlüsse_anpassen("SKurvenWeiche", id, anschlüsse_serialisiert)
+        //     },
+        //     AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
+        //         self.gleis_anschlüsse_anpassen("Kreuzung", id, anschlüsse_serialisiert)
+        //     },
+        // }
     }
 
     /// Beende die Bewegung des Pivot-Punktes.
@@ -690,49 +691,50 @@ where
 {
     /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
     pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
-        match any_id {
-            AnyId::Gerade(id) => {
-                debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-            },
-            AnyId::Kurve(id) => {
-                debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-            },
-            AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
-                "Weiche",
-                id,
-                weiche::Zustand::neu,
-                AuswahlZustand::Weiche,
-                AnschlüsseAnpassen::Weiche,
-            ),
-            AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-                "DreiwegeWeiche",
-                id,
-                weiche::Zustand::neu,
-                AuswahlZustand::DreiwegeWeiche,
-                AnschlüsseAnpassen::DreiwegeWeiche,
-            ),
-            AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-                "KurvenWeiche",
-                id,
-                weiche::Zustand::neu,
-                AuswahlZustand::KurvenWeiche,
-                AnschlüsseAnpassen::KurvenWeiche,
-            ),
-            AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-                "SKurvenWeiche",
-                id,
-                weiche::Zustand::neu,
-                AuswahlZustand::Weiche,
-                AnschlüsseAnpassen::SKurvenWeiche,
-            ),
-            AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen_aux(
-                "Kreuzung",
-                id,
-                weiche::Zustand::neu,
-                AuswahlZustand::Weiche,
-                AnschlüsseAnpassen::Kreuzung,
-            ),
-        }
+        todo!()
+        // match any_id {
+        //     AnyId::Gerade(id) => {
+        //         debug!("Anschlüsse für Gerade {:?} anpassen.", id)
+        //     },
+        //     AnyId::Kurve(id) => {
+        //         debug!("Anschlüsse für Kurve {:?} anpassen.", id)
+        //     },
+        //     AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
+        //         "Weiche",
+        //         id,
+        //         weiche::Zustand::neu,
+        //         AuswahlZustand::Weiche,
+        //         AnschlüsseAnpassen::Weiche,
+        //     ),
+        //     AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
+        //         "DreiwegeWeiche",
+        //         id,
+        //         weiche::Zustand::neu,
+        //         AuswahlZustand::DreiwegeWeiche,
+        //         AnschlüsseAnpassen::DreiwegeWeiche,
+        //     ),
+        //     AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
+        //         "KurvenWeiche",
+        //         id,
+        //         weiche::Zustand::neu,
+        //         AuswahlZustand::KurvenWeiche,
+        //         AnschlüsseAnpassen::KurvenWeiche,
+        //     ),
+        //     AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
+        //         "SKurvenWeiche",
+        //         id,
+        //         weiche::Zustand::neu,
+        //         AuswahlZustand::Weiche,
+        //         AnschlüsseAnpassen::SKurvenWeiche,
+        //     ),
+        //     AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen_aux(
+        //         "Kreuzung",
+        //         id,
+        //         weiche::Zustand::neu,
+        //         AuswahlZustand::Weiche,
+        //         AnschlüsseAnpassen::Kreuzung,
+        //     ),
+        // }
     }
 }
 

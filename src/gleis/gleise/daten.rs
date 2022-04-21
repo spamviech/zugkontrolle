@@ -19,7 +19,7 @@ use crate::{
             id::{
                 AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
             },
-            GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
+            AnyGleis, GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
@@ -243,9 +243,9 @@ impl<L: Leiter> Zustand<L> {
         &'t self,
         verbindung: &'t Verbindung,
         eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
+        gehalten: Option<&'t AnyGleis>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
-        let mut gehalten = false;
+        let mut ist_gehalten = false;
         let überlappend =
             self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
                 macro_rules! überlappende_verbindungen {
@@ -256,9 +256,9 @@ impl<L: Leiter> Zustand<L> {
                                 verbindung,
                                 streckenabschnitt.clone(),
                                 eigene_id,
-                                gehalten_id,
+                                gehalten,
                             );
-                        gehalten = gehalten || gehalten_daten;
+                        ist_gehalten = ist_gehalten || gehalten_daten;
                         überlappend_daten
                     }};
                 }
@@ -277,7 +277,7 @@ impl<L: Leiter> Zustand<L> {
                     .chain(überlappend_s_kurven_weiche)
                     .chain(überlappend_kreuzung)
             });
-        (überlappend, gehalten)
+        (überlappend, ist_gehalten)
     }
 
     fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
@@ -486,7 +486,7 @@ impl GleiseDaten {
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
         eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
+        gehalten: Option<&'t AnyGleis>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
         T: Zeichnen + DatenAuswahl + 't,
@@ -503,7 +503,7 @@ impl GleiseDaten {
         let kandidaten = self
             .rstern::<T>()
             .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
-        let mut gehalten = false;
+        let mut ist_gehalten = false;
         let überlappend = kandidaten.flat_map(move |kandidat| {
             let rectangle = kandidat.geom();
             let kandidat_id = AnyIdRef::from(GleisIdRef {
@@ -525,12 +525,17 @@ impl GleiseDaten {
                     }
                 }
             }
-            if !gehalten && gehalten_id.map_or(false, |id| id == &kandidat_id) {
-                gehalten = true;
+            if !ist_gehalten
+                && gehalten.map_or(false, |gleis| {
+                    let todo: &AnyIdRef<'_> = todo!();
+                    todo == &kandidat_id
+                })
+            {
+                ist_gehalten = true;
             }
             überlappend.into_iter()
         });
-        (überlappend, gehalten)
+        (überlappend, ist_gehalten)
     }
 
     pub(in crate::gleis::gleise) fn ist_leer(&self) -> bool {

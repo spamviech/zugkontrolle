@@ -21,7 +21,10 @@ use crate::{
         OutputSerialisiert,
     },
     eingeschränkt::NichtNegativ,
-    gleis::{gleise::steuerung::Steuerung, weiche},
+    gleis::{
+        gleise::steuerung::{AsyncAktualisieren, Steuerung},
+        weiche,
+    },
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
@@ -676,7 +679,7 @@ where
 
 /// Eine Aktion mit einem [Streckenabschnitt].
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt, N>> {
+pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt, AsyncAktualisieren>> {
     /// Strom auf einem Streckenabschnitt einstellen.
     Strom {
         /// Die Anschlüsse zur Steuerung des Streckenabschnittes.
@@ -758,9 +761,9 @@ pub(crate) type DreiwegeWeicheSerialisiert =
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AnyAktionSchalten<
-    Gerade = Steuerung<GeradeWeiche, N>,
-    Kurve = Steuerung<KurvenWeiche, N>,
-    Dreiwege = Steuerung<DreiwegeWeiche, N>,
+    Gerade = Steuerung<GeradeWeiche, AsyncAktualisieren>,
+    Kurve = Steuerung<KurvenWeiche, AsyncAktualisieren>,
+    Dreiwege = Steuerung<DreiwegeWeiche, AsyncAktualisieren>,
 > {
     /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
     /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
@@ -873,7 +876,7 @@ pub struct AktionSchalten<Weiche, Richtung> {
 }
 
 impl<L, Anschlüsse, Richtung> Ausführen<L>
-    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>, N>, Richtung>
+    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>, AsyncAktualisieren>, Richtung>
 where
     L: Leiter,
     Richtung: 'static + Debug + Clone + Send,
@@ -906,7 +909,9 @@ where
     }
 }
 
-impl<Weiche: Serialisiere, Richtung: Clone> AktionSchalten<Steuerung<Weiche, N>, Richtung> {
+impl<Weiche: Serialisiere, Richtung: Clone>
+    AktionSchalten<Steuerung<Weiche, AsyncAktualisieren>, Richtung>
+{
     /// Serialisiere eine Aktion mit einer [Weiche].
     pub fn serialisiere(&self) -> AktionSchalten<<Weiche as Serialisiere>::Serialisiert, Richtung> {
         let AktionSchalten { weiche, richtung } = self;
@@ -924,16 +929,17 @@ impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
         self,
         bekannte_weichen: &HashMap<<Weiche as Serialisiere>::Serialisiert, Weiche>,
         canvas: Arc<Mutex<Cache>>,
-    ) -> Result<AktionSchalten<Steuerung<Weiche, N>, Richtung>, UnbekannteWeiche<S>> {
+    ) -> Result<AktionSchalten<Steuerung<Weiche, AsyncAktualisieren>, Richtung>, UnbekannteWeiche<S>>
+    {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
-        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas), richtung })
+        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas, todo!("sender")), richtung })
     }
 }
 
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionWarten<K = Steuerung<Kontakt, N>> {
+pub enum AktionWarten<K = Steuerung<Kontakt, AsyncAktualisieren>> {
     /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.

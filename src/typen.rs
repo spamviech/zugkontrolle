@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use parking_lot::Mutex;
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 
 use crate::{
     gleis::verbindung::{self, Verbindung},
@@ -136,6 +136,22 @@ pub trait Zeichnen {
     }
 }
 
+pub trait UnitOderMutex<T> {
+    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&T) -> Ergebnis) -> Ergebnis;
+}
+
+impl UnitOderMutex<()> for () {
+    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&()) -> Ergebnis) -> Ergebnis {
+        f(self)
+    }
+}
+
+impl<T> UnitOderMutex<T> for Arc<Mutex<T>> {
+    fn ausführen<Ergebnis>(&self, f: impl FnOnce(&T) -> Ergebnis) -> Ergebnis {
+        f(&*self.lock())
+    }
+}
+
 /// Trait für (potentiell) benannte Typen.
 pub trait MitName {
     /// Der Name des Wertes.
@@ -151,12 +167,6 @@ impl MitName for () {
 impl<T: MitName> MitName for Option<T> {
     fn name(&self) -> Option<&String> {
         self.as_ref().and_then(MitName::name)
-    }
-}
-
-impl<T: MitName> MitName for Arc<Mutex<T>> {
-    fn name(&self) -> Option<&String> {
-        self.lock().name()
     }
 }
 
@@ -187,12 +197,6 @@ pub trait MitRichtung<Richtung> {
 impl<R> MitRichtung<R> for () {
     fn aktuelle_richtung(&self) -> Option<R> {
         None
-    }
-}
-
-impl<R, T: MitRichtung<R>> MitRichtung<R> for Arc<Mutex<T>> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        self.lock().aktuelle_richtung()
     }
 }
 

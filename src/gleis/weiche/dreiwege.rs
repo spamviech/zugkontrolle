@@ -20,7 +20,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, MitRichtung, Transparenz, UnitOderMutex, Zeichnen,
     },
 };
 
@@ -89,7 +89,9 @@ pub enum VerbindungName {
     Rechts,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>> Zeichnen
+    for DreiwegeWeiche<S>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 

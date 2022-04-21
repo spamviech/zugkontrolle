@@ -23,7 +23,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, MitRichtung, Transparenz, UnitOderMutex, Zeichnen,
     },
 };
 
@@ -113,7 +113,9 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>> Zeichnen
+    for Kreuzung<S>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 

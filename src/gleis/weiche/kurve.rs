@@ -21,7 +21,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, MitRichtung, Transparenz, UnitOderMutex, Zeichnen,
     },
 };
 
@@ -97,7 +97,9 @@ pub enum VerbindungName {
     Außen,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>, S: UnitOderMutex<Anschlüsse>> Zeichnen
+    for KurvenWeiche<S>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 

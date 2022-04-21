@@ -77,7 +77,9 @@ impl<L: Leiter> Gleise<L> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let any_id = gleis_id.klonen().into();
             *gehalten = Some(Gehalten {
-                gleis_id: any_id,
+                gleis: todo!(),
+                streckenabschnitt: todo!(),
+                geschwindigkeit: todo!(),
                 halte_position,
                 winkel: winkel::ZERO,
                 bewegt: true,
@@ -179,15 +181,25 @@ impl<L: Leiter> Gleise<L> {
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_id, halte_position, winkel, bewegt }) = gehalten {
+            if let Some(Gehalten {
+                gleis,
+                streckenabschnitt,
+                geschwindigkeit,
+                halte_position,
+                winkel,
+                bewegt,
+            }) = gehalten
+            {
                 let punkt = canvas_pos - halte_position;
-                mit_any_id!(
-                    gleis_id,
-                    Zustand::bewegen,
-                    &mut self.zustand,
-                    Position { punkt, winkel: *winkel },
-                    true
-                )?;
+                todo!();
+                // gleis.position.punkt = punkt;
+                // mit_any_id!(
+                //     gleis_id,
+                //     Zustand::bewegen,
+                //     &mut self.zustand,
+                //     Position { punkt, winkel: *winkel },
+                //     true
+                // )?;
                 *bewegt = true;
                 self.canvas.lock().leeren();
             }

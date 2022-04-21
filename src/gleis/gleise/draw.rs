@@ -15,7 +15,7 @@ use crate::{
         gleise::{
             daten::{Gleis, RStern},
             id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
-            Gehalten, Gleise, ModusDaten,
+            AnyGleis, Gehalten, Gleise, ModusDaten,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
@@ -201,15 +201,16 @@ impl<L: Leiter> Gleise<L> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
-    ) -> impl Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung + 't
+        gehalten: Option<&'t AnyGleis>,
+    ) -> impl 't + Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung
     where
         T: Zeichnen,
         AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
-        let ist_gehalten = ist_gehalten_test(gehalten_id);
+        // let ist_gehalten = ist_gehalten_test(gehalten_id);
+        let ist_gehalten = |_id| todo!();
         move |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
-            let gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
+            let ist_gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
                 rectangle,
                 streckenabschnitt,
                 phantom: PhantomData::<fn() -> T>,
@@ -220,13 +221,13 @@ impl<L: Leiter> Gleise<L> {
                 phantom: PhantomData::<fn() -> T>,
             });
             let (mut überlappende, andere_gehalten) =
-                self.zustand.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten_id);
+                self.zustand.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten);
             let ist_entgegengesetzt = |überlappend: &Verbindung| {
                 (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
                     < Winkel(0.1)
             };
             let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
-            GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten }
+            GehaltenVerbindung { gehalten: ist_gehalten, andere_entgegengesetzt, andere_gehalten }
         }
     }
 
@@ -246,24 +247,27 @@ impl<L: Leiter> Gleise<L> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<&AnyId>;
+                let gehalten: Option<&AnyGleis>;
                 let modus_bauen: bool;
                 match modus {
-                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
-                        gehalten_id = Some(gleis_id);
+                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis, .. }), .. } => {
+                        gehalten = Some(gleis);
                         modus_bauen = true;
                     }
                     ModusDaten::Bauen { gehalten: None, .. } => {
-                        gehalten_id = None;
+                        gehalten = None;
                         modus_bauen = true;
                     }
                     ModusDaten::Fahren => {
-                        gehalten_id = None;
+                        gehalten = None;
                         modus_bauen = false;
                     }
                 };
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten = ist_gehalten_test(gehalten_id);
+                
+                // TODO gehaltenes Gleis zeichnen
+                // let ist_gehalten = ist_gehalten_test(gehalten);
+                let ist_gehalten = |_id| todo!();
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
@@ -336,7 +340,7 @@ impl<L: Leiter> Gleise<L> {
                         ($gleis: ident) => {
                             self.ist_gehalten_und_andere_verbindung::<$gleis>(
                                 streckenabschnitt,
-                                gehalten_id
+                                gehalten
                             )
                         };
                     }
