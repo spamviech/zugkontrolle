@@ -308,6 +308,7 @@ impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
         canvas: &Arc<Mutex<Cache>>,
+        sender: &Sender<AsyncAktualisieren>,
     ) -> Result<Plan<L>, UnbekannteAnschlüsse<L>>
     where
         <L as Serialisiere>::Serialisiert: PartialEq + Eq + Hash,
@@ -322,7 +323,8 @@ impl<L: Leiter + Serialisiere> PlanSerialisiert<L> {
                 kurven_weichen,
                 dreiwege_weichen,
                 kontakte,
-                canvas.clone(),
+                canvas,
+                sender,
             )?;
             aktionen.push(aktion);
         }
@@ -446,7 +448,8 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
-        canvas: Arc<Mutex<Cache>>,
+        canvas: &Arc<Mutex<Cache>>,
+        sender: &Sender<AsyncAktualisieren>,
     ) -> Result<Aktion<L>, UnbekannteAnschlüsse<L>>
     where
         <L as Serialisiere>::Serialisiert: PartialEq + Eq + Hash,
@@ -455,17 +458,18 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
             AktionSerialisiert::Geschwindigkeit(aktion) => {
                 Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
             },
-            AktionSerialisiert::Streckenabschnitt(aktion) => {
-                Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte, canvas)?)
-            },
+            AktionSerialisiert::Streckenabschnitt(aktion) => Aktion::Streckenabschnitt(
+                aktion.deserialisiere(streckenabschnitte, canvas.clone(), sender.clone())?,
+            ),
             AktionSerialisiert::Schalten(aktion) => Aktion::Schalten(aktion.deserialisiere(
                 gerade_weichen,
                 kurven_weichen,
                 dreiwege_weichen,
-                canvas,
+                canvas.clone(),
+                sender.clone(),
             )?),
             AktionSerialisiert::Warten(aktion) => {
-                Aktion::Warten(aktion.deserialisiere(kontakte, canvas)?)
+                Aktion::Warten(aktion.deserialisiere(kontakte, canvas.clone(), sender.clone())?)
             },
             AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
                 geschwindigkeiten,
@@ -474,7 +478,8 @@ impl<L: Leiter + Serialisiere> AktionSerialisiert<L> {
                 kurven_weichen,
                 dreiwege_weichen,
                 kontakte,
-                &canvas,
+                canvas,
+                sender,
             )?),
         };
         Ok(reserviert)
@@ -730,6 +735,7 @@ impl AktionStreckenabschnittSerialisiert {
         self,
         streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
         canvas: Arc<Mutex<Cache>>,
+        sender: Sender<AsyncAktualisieren>,
     ) -> Result<AktionStreckenabschnitt, UnbekannterStreckenabschnitt> {
         let aktion = match self {
             AktionStreckenabschnittSerialisiert::Strom { streckenabschnitt, fließend } => {
@@ -738,7 +744,7 @@ impl AktionStreckenabschnittSerialisiert {
                     .ok_or(UnbekannterStreckenabschnitt(streckenabschnitt))?
                     .clone();
                 AktionStreckenabschnitt::Strom {
-                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas, todo!("sender")),
+                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas, sender),
                     fließend,
                 }
             },
@@ -850,16 +856,25 @@ impl AnyAktionSchaltenSerialisiert {
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         canvas: Arc<Mutex<Cache>>,
+        sender: Sender<AsyncAktualisieren>,
     ) -> Result<AnyAktionSchalten, AnyUnbekannteWeiche> {
         let aktion = match self {
             AnyAktionSchaltenSerialisiert::SchalteGerade(aktion) => {
-                AnyAktionSchalten::SchalteGerade(aktion.deserialisiere(gerade_weichen, canvas)?)
+                AnyAktionSchalten::SchalteGerade(aktion.deserialisiere(
+                    gerade_weichen,
+                    canvas,
+                    sender,
+                )?)
             },
-            AnyAktionSchaltenSerialisiert::SchalteKurve(aktion) => {
-                AnyAktionSchalten::SchalteKurve(aktion.deserialisiere(kurven_weichen, canvas)?)
-            },
+            AnyAktionSchaltenSerialisiert::SchalteKurve(aktion) => AnyAktionSchalten::SchalteKurve(
+                aktion.deserialisiere(kurven_weichen, canvas, sender)?,
+            ),
             AnyAktionSchaltenSerialisiert::SchalteDreiwege(aktion) => {
-                AnyAktionSchalten::SchalteDreiwege(aktion.deserialisiere(dreiwege_weichen, canvas)?)
+                AnyAktionSchalten::SchalteDreiwege(aktion.deserialisiere(
+                    dreiwege_weichen,
+                    canvas,
+                    sender,
+                )?)
             },
         };
         Ok(aktion)
@@ -929,11 +944,12 @@ impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
         self,
         bekannte_weichen: &HashMap<<Weiche as Serialisiere>::Serialisiert, Weiche>,
         canvas: Arc<Mutex<Cache>>,
+        sender: Sender<AsyncAktualisieren>,
     ) -> Result<AktionSchalten<Steuerung<Weiche, AsyncAktualisieren>, Richtung>, UnbekannteWeiche<S>>
     {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
-        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas, todo!("sender")), richtung })
+        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas, sender), richtung })
     }
 }
 
@@ -994,13 +1010,12 @@ impl AktionWartenSerialisiert {
         self,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
         canvas: Arc<Mutex<Cache>>,
+        sender: Sender<AsyncAktualisieren>,
     ) -> Result<AktionWarten, UnbekannterKontakt> {
         let aktion = match self {
             AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf {
-                    kontakt: Steuerung::neu(kontakt, canvas, todo!("sender")),
-                }
+                AktionWarten::WartenAuf { kontakt: Steuerung::neu(kontakt, canvas, sender) }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };

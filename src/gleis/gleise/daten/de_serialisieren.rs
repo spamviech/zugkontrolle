@@ -6,7 +6,7 @@ use std::{
     fs,
     hash::Hash,
     io::{self, Read},
-    sync::Arc,
+    sync::{mpsc::Sender, Arc},
 };
 
 use nonempty::NonEmpty;
@@ -31,6 +31,7 @@ use crate::{
                 v2, DatenAuswahl, GeschwindigkeitMap, Gleis, GleiseDaten, SelectAll,
                 StreckenabschnittMap, Zustand,
             },
+            steuerung::AsyncAktualisieren,
             Fehler, Gleise,
         },
         kreuzung::{Kreuzung, KreuzungSerialisiert},
@@ -723,6 +724,7 @@ where
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
         canvas: &Arc<Mutex<Cache>>,
+        sender: &Sender<AsyncAktualisieren>,
     ) -> Result<(Zustand<L>, Vec<LadenFehler<L>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
@@ -825,6 +827,7 @@ where
                 &bekannte_dreiwege_weichen,
                 &bekannte_kontakte,
                 &canvas,
+                &sender,
             ) {
                 Ok(plan) => plan,
                 Err(anschlüsse) => {
@@ -903,7 +906,14 @@ impl<L: Serialisiere + BekannterLeiter> Gleise<L> {
 
         // reserviere Anschlüsse
         let (zustand, fehler) = zustand_serialisiert
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, &self.canvas)
+            .reserviere(
+                lager,
+                pwm_pins,
+                output_anschlüsse,
+                input_anschlüsse,
+                &self.canvas,
+                &self.sender,
+            )
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
         self.zustand = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {
