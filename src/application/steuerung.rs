@@ -13,7 +13,7 @@ use crate::{
     gleis::{
         self,
         gleise::{
-            daten::{DatenAuswahl, Gleis, SelectEnvelope},
+            daten::{DatenAuswahl, Gleis},
             id::GleisId,
             GleisIdFehler, Gleise,
         },
@@ -154,48 +154,6 @@ pub trait MitSteuerung<'t> {
         canvas: Arc<Mutex<Cache>>,
         sender: Sender<N>,
     ) -> Steuerung<&'t mut Self::Steuerung, N>;
-}
-
-impl<L: Leiter> Gleise<L> {
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
-        &'t self,
-        gleis_id: &GleisId<T>,
-    ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, AsyncAktualisieren>, GleisIdFehler>
-    {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &Gleis<T> = &zustand
-            .daten(streckenabschnitt)?
-            .rstern()
-            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        Ok(definition.steuerung(canvas.clone(), self.sender.clone()))
-    }
-
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
-        &'t mut self,
-        gleis_id: &GleisId<T>,
-    ) -> Result<
-        Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung, AsyncAktualisieren>,
-        GleisIdFehler,
-    > {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
-            .daten_mut(streckenabschnitt)?
-            .rstern_mut()
-            .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        Ok(definition.steuerung_mut(canvas.clone(), self.sender.clone()))
-    }
 }
 
 macro_rules! impl_mit_steuerung {

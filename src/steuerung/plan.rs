@@ -20,11 +20,9 @@ use crate::{
         self, de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss,
         OutputSerialisiert,
     },
+    application::steuerung::{AsyncAktualisieren, Steuerung},
     eingeschränkt::NichtNegativ,
-    gleis::{
-        gleise::steuerung::{AsyncAktualisieren, Steuerung},
-        weiche,
-    },
+    gleis::weiche,
     nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},

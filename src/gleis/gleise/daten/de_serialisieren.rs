@@ -24,6 +24,7 @@ use crate::{
         pin::pwm,
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
+    application::steuerung::AsyncAktualisieren,
     gleis::{
         gerade::{Gerade, GeradeSerialisiert},
         gleise::{
@@ -31,7 +32,6 @@ use crate::{
                 v2, DatenAuswahl, GeschwindigkeitMap, Gleis, GleiseDaten, SelectAll,
                 StreckenabschnittMap, Zustand,
             },
-            steuerung::AsyncAktualisieren,
             Fehler, Gleise,
         },
         kreuzung::{Kreuzung, KreuzungSerialisiert},

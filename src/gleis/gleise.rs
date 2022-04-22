@@ -19,19 +19,22 @@ use iced::{
 };
 use log::error;
 use parking_lot::Mutex;
+use rstar::RTreeObject;
 
 pub use self::{
     daten::Gleis,
     id::{AnyId, GleisId, StreckenabschnittId},
 };
 use self::{
-    daten::{GleiseDaten, StreckenabschnittMap, Zustand},
+    daten::{DatenAuswahl, GleiseDaten, SelectEnvelope, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
-    steuerung::{AsyncAktualisieren, Steuerung},
 };
 use crate::{
     anschluss,
-    application::empfänger::Empfänger,
+    application::{
+        empfänger::Empfänger,
+        steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
+    },
     gleis::{
         gerade::Gerade,
         kreuzung::Kreuzung,
@@ -62,7 +65,6 @@ pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
 pub mod id;
-pub mod steuerung;
 pub mod update;
 
 /// Ein beliebiges Gleis.
@@ -605,6 +607,48 @@ fn streckenabschnitt_entfernen<T>(
         }
     } else {
         bereits_entfernt(streckenabschnitt_id)
+    }
+}
+
+impl<L: Leiter> Gleise<L> {
+    #[zugkontrolle_macros::erstelle_daten_methoden]
+    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
+    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
+        &'t self,
+        gleis_id: &GleisId<T>,
+    ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, AsyncAktualisieren>, GleisIdFehler>
+    {
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let Gleise { zustand, canvas, sender, .. } = self;
+        let Gleis { definition, position: _ }: &Gleis<T> = &zustand
+            .daten(streckenabschnitt)?
+            .rstern()
+            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        Ok(definition.steuerung(canvas.clone(), sender.clone()))
+    }
+
+    #[zugkontrolle_macros::erstelle_daten_methoden]
+    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
+    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
+        &'t mut self,
+        gleis_id: &GleisId<T>,
+    ) -> Result<
+        Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung, AsyncAktualisieren>,
+        GleisIdFehler,
+    > {
+        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let Gleise { zustand, canvas, sender, .. } = self;
+        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
+            .daten_mut(streckenabschnitt)?
+            .rstern_mut()
+            .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
+            .next()
+            .ok_or(GleisIdFehler::GleisEntfernt)?
+            .data;
+        Ok(definition.steuerung_mut(canvas.clone(), sender.clone()))
     }
 }
 

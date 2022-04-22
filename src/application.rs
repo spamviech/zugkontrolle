@@ -23,6 +23,7 @@ use self::{
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
     icon::icon,
+    steuerung::AsyncAktualisieren,
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
@@ -34,7 +35,6 @@ use crate::{
             self,
             daten::v2,
             id::{AnyId, GleisId, StreckenabschnittId},
-            steuerung::AsyncAktualisieren,
             Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
@@ -48,7 +48,6 @@ use crate::{
         },
     },
     steuerung::{
-        self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
     },
@@ -69,6 +68,7 @@ pub mod lizenzen;
 pub(crate) mod macros;
 pub mod modal;
 pub mod speichern_laden;
+pub mod steuerung;
 pub mod streckenabschnitt;
 pub mod style;
 pub mod touch_canvas;
@@ -303,7 +303,7 @@ type WeicheZustand = weiche::Zustand<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
     gleis::weiche::gerade::RichtungAnschlüsseAuswahlZustand,
 >;
-type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
+type WeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsse,
 >;
@@ -312,7 +312,7 @@ type DreiwegeWeicheZustand = weiche::Zustand<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
     gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlZustand,
 >;
-type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
+type DreiwegeWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
     gleis::weiche::dreiwege::RichtungAnschlüsse,
 >;
@@ -321,7 +321,7 @@ type KurvenWeicheZustand = weiche::Zustand<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
     gleis::weiche::kurve::RichtungAnschlüsseAuswahlZustand,
 >;
-type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
+type KurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsse,
 >;
