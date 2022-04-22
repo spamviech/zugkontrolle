@@ -6,7 +6,7 @@ use std::{
     sync::{mpsc::Sender, Arc},
 };
 
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::Mutex;
 use rstar::RTreeObject;
 
 use crate::{
@@ -28,7 +28,7 @@ use crate::{
 #[derive(Clone)]
 pub struct Steuerung<T, Nachricht> {
     steuerung: T,
-    canvas: Arc<Mutex<Cache>>,
+    canvas: Option<Arc<Mutex<Cache>>>,
     sender: Sender<Nachricht>,
 }
 
@@ -37,7 +37,7 @@ impl<T: Debug, F> Debug for Steuerung<T, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Steuerung")
             .field("steuerung", &self.steuerung)
-            .field("canvas", &"<Cache>")
+            .field("canvas", &self.canvas.as_ref().map(|_| "<Cache>"))
             .field("sender", &self.sender)
             .finish()
     }
@@ -55,7 +55,9 @@ pub struct AsyncAktualisieren;
 
 impl<T, Nachricht: From<AsyncAktualisieren>> AsMut<T> for Steuerung<T, Nachricht> {
     fn as_mut(&mut self) -> &mut T {
-        self.canvas.lock().leeren();
+        if let Some(canvas) = &self.canvas {
+            canvas.lock().leeren();
+        }
         let _ = self.sender.send(AsyncAktualisieren.into());
         &mut self.steuerung
     }
@@ -63,8 +65,17 @@ impl<T, Nachricht: From<AsyncAktualisieren>> AsMut<T> for Steuerung<T, Nachricht
 
 impl<T, Nachricht> Steuerung<T, Nachricht> {
     /// Erstelle eine neue [Steuerung].
-    pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>, sender: Sender<Nachricht>) -> Self {
-        Steuerung { steuerung, canvas, sender }
+    pub fn neu(steuerung: T, sender: Sender<Nachricht>) -> Self {
+        Steuerung { steuerung, canvas: None, sender }
+    }
+
+    /// Erstelle eine neue [Steuerung] mit einem [Cache], der bei Änderung geleert wird.
+    pub fn neu_mit_canvas(
+        steuerung: T,
+        canvas: Arc<Mutex<Cache>>,
+        sender: Sender<Nachricht>,
+    ) -> Self {
+        Steuerung { steuerung, canvas: Some(canvas), sender }
     }
 
     /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
@@ -197,7 +208,7 @@ macro_rules! impl_mit_steuerung {
                 canvas: Arc<Mutex<Cache>>,
                 sender: Sender<N>,
             ) -> Steuerung<&'t Self::Steuerung, N> {
-                Steuerung::neu(&self.$ident, canvas, sender)
+                Steuerung::neu_mit_canvas(&self.$ident, canvas, sender)
             }
             #[inline(always)]
             fn steuerung_mut<N>(
@@ -205,7 +216,7 @@ macro_rules! impl_mit_steuerung {
                 canvas: Arc<Mutex<Cache>>,
                 sender: Sender<N>,
             ) -> Steuerung<&'t mut Self::Steuerung, N> {
-                Steuerung::neu(&mut self.$ident, canvas, sender)
+                Steuerung::neu_mit_canvas(&mut self.$ident, canvas, sender)
             }
         }
     };

@@ -744,7 +744,7 @@ impl AktionStreckenabschnittSerialisiert {
                     .ok_or(UnbekannterStreckenabschnitt(streckenabschnitt))?
                     .clone();
                 AktionStreckenabschnitt::Strom {
-                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas, sender),
+                    streckenabschnitt: Steuerung::neu_mit_canvas(streckenabschnitt, canvas, sender),
                     fließend,
                 }
             },
@@ -949,7 +949,7 @@ impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
     {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
-        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas, sender), richtung })
+        Ok(AktionSchalten { weiche: Steuerung::neu_mit_canvas(weiche, canvas, sender), richtung })
     }
 }
 
@@ -1015,7 +1015,9 @@ impl AktionWartenSerialisiert {
         let aktion = match self {
             AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf { kontakt: Steuerung::neu(kontakt, canvas, sender) }
+                AktionWarten::WartenAuf {
+                    kontakt: Steuerung::neu_mit_canvas(kontakt, canvas, sender),
+                }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };
