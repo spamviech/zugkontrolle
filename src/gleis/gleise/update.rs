@@ -211,7 +211,6 @@ fn aktion_gleis_an_position<'t>(
                             *gehalten = Some(Gehalten {
                                 gleis: todo!(),
                                 streckenabschnitt: todo!(),
-                                geschwindigkeit: todo!(),
                                 halte_position,
                                 winkel,
                                 bewegt: false,

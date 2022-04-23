@@ -79,7 +79,6 @@ impl<L: Leiter> Gleise<L> {
             *gehalten = Some(Gehalten {
                 gleis: todo!(),
                 streckenabschnitt: todo!(),
-                geschwindigkeit: todo!(),
                 halte_position,
                 winkel: winkel::ZERO,
                 bewegt: true,
