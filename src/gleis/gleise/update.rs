@@ -30,6 +30,7 @@ use crate::{
         },
     },
     steuerung::{
+        self,
         geschwindigkeit::Leiter,
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::Streckenabschnitt,
@@ -135,6 +136,32 @@ where
     None
 }
 
+fn erzeuge_weiche_schalten_nachricht<Richtung, RichtungAnschlüsse>(
+    steuerung: Steuerung<
+        &Arc<Mutex<Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>>>,
+        AsyncAktualisieren,
+    >,
+    nächste_richtung: impl FnOnce(
+        (Richtung, Richtung),
+        &steuerung::Weiche<Richtung, RichtungAnschlüsse>,
+    ) -> Richtung,
+) -> Option<Nachricht>
+where
+    Richtung: Clone,
+    AnyAktionSchalten:
+        From<AktionSchalten<Steuerung<steuerung::Weiche<Richtung, RichtungAnschlüsse>>, Richtung>>,
+{
+    let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
+    steuerung.nur_some().map(|steuerung| {
+        let weiche = steuerung.as_ref();
+        let richtung = nächste_richtung(weiche.aktuelle_und_letzte_richtung(), &weiche);
+        Nachricht::WeicheSchalten(AnyAktionSchalten::from(AktionSchalten {
+            weiche: steuerung,
+            richtung,
+        }))
+    })
+}
+
 type StreckenabschnittUndDaten<'t> =
     (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten);
 
@@ -225,78 +252,61 @@ fn aktion_gleis_an_position<'t>(
                                     },
                                 )
                             }),
-                            Weiche((_id, steuerung)) => {
-                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
-                                steuerung.nur_some().map(|steuerung| {
+                            Weiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
+                                steuerung,
+                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                    match aktuelle_richtung {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                        AktionSchalten { weiche: steuerung, richtung },
-                                    ))
-                                })
-                            },
-                            KurvenWeiche((_id, steuerung)) => {
-                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
-                                steuerung.nur_some().map(|steuerung| {
+                                    }
+                                },
+                            ),
+                            KurvenWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
+                                steuerung,
+                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
                                     use weiche::kurve::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                    match aktuelle_richtung {
                                         Innen => Außen,
                                         Außen => Innen,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(
-                                        AktionSchalten { weiche: steuerung, richtung },
-                                    ))
-                                })
-                            },
-                            DreiwegeWeiche((_id, steuerung)) => {
-                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
-                                steuerung.nur_some().map(|steuerung| {
+                                    }
+                                },
+                            ),
+                            DreiwegeWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
+                                steuerung,
+                                |aktuelle_und_letzte_richtung, weiche| {
                                     use weiche::dreiwege::Richtung::*;
-                                    let weiche = steuerung.as_ref();
-                                    let richtung =
-                                        match weiche.aktuelle_und_letzte_richtung() {
-                                            (Gerade, Links) => Rechts,
-                                            (Gerade, Rechts) => Links,
-                                            (Gerade, Gerade) => {
-                                                error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                                Links
-                                            },
-                                            (Links | Rechts, _letzte) => Gerade,
-                                        };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(
-                                        AktionSchalten { weiche: steuerung, richtung },
-                                    ))
-                                })
-                            },
-                            SKurvenWeiche((_id, steuerung)) => {
-                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
-                                steuerung.nur_some().map(|steuerung| {
+                                    match aktuelle_und_letzte_richtung {
+                                        (Gerade, Links) => Rechts,
+                                        (Gerade, Rechts) => Links,
+                                        (Gerade, Gerade) => {
+                                            error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                                            Links
+                                        },
+                                        (Links | Rechts, _letzte) => Gerade,
+                                    }
+                                },
+                            ),
+                            SKurvenWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
+                                steuerung,
+                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                    match aktuelle_richtung {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                        AktionSchalten { weiche: steuerung, richtung },
-                                    ))
-                                })
-                            },
-                            Kreuzung((_id, steuerung)) => {
-                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
-                                steuerung.nur_some().map(|steuerung| {
+                                    }
+                                },
+                            ),
+                            Kreuzung((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
+                                steuerung,
+                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                    match aktuelle_richtung {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                        AktionSchalten { weiche: steuerung, richtung },
-                                    ))
-                                })
-                            },
+                                    }
+                                },
+                            ),
                         };
 
                         if message.is_some() {

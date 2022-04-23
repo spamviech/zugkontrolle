@@ -26,7 +26,7 @@ use crate::{
 /// Steuerung eines Gleises.
 /// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Clone)]
-pub struct Steuerung<T, Nachricht> {
+pub struct Steuerung<T, Nachricht = AsyncAktualisieren> {
     steuerung: T,
     canvas: Option<Arc<Mutex<Cache>>>,
     sender: Sender<Nachricht>,
