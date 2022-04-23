@@ -12,6 +12,10 @@ use iced::{
 };
 use log::error;
 use parking_lot::Mutex;
+use rstar::{
+    primitives::{GeomWithData, Rectangle as RStarRectangle},
+    RTreeObject, SelectionFunction, AABB,
+};
 
 use crate::{
     application::steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
@@ -91,6 +95,31 @@ impl<'t> GleisSteuerung<'t> {
             GleisSteuerung::SKurvenWeiche((id, _steuerung)) => id.into(),
             GleisSteuerung::Kreuzung((id, _steuerung)) => id.into(),
         }
+    }
+}
+
+/// SelectionFunction, die ein angeklicktes Gleis sucht.
+struct KlickInnerhalb {
+    spurweite: Spurweite,
+    canvas_pos: Vektor,
+}
+
+impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T>>>
+    for KlickInnerhalb
+{
+    fn should_unpack_parent(&self, envelope: &AABB<Vektor>) -> bool {
+        let Vektor { x, y } = self.canvas_pos;
+        let upper = envelope.upper();
+        let lower = envelope.lower();
+        lower.x <= x && x <= upper.y && lower.y <= y && y <= upper.y
+    }
+
+    fn should_unpack_leaf(&self, leaf: &GeomWithData<RStarRectangle<Vektor>, Gleis<T>>) -> bool {
+        let KlickInnerhalb { spurweite, canvas_pos } = *self;
+        let Gleis { definition, position } = &leaf.data;
+        let relative_pos = canvas_pos - position.punkt;
+        let rotated_pos = relative_pos.rotiert(-position.winkel);
+        definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT)
     }
 }
 
