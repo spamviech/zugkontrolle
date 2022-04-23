@@ -606,7 +606,7 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung(canvas.clone(), sender.clone()))
+        Ok(definition.steuerung(Some(canvas.clone()), sender.clone()))
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
@@ -627,7 +627,7 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung_mut(canvas.clone(), sender.clone()))
+        Ok(definition.steuerung_mut(Some(canvas.clone()), sender.clone()))
     }
 }
 

@@ -65,8 +65,8 @@ impl<T, Nachricht: From<AsyncAktualisieren>> AsMut<T> for Steuerung<T, Nachricht
 
 impl<T, Nachricht> Steuerung<T, Nachricht> {
     /// Erstelle eine neue [Steuerung].
-    pub fn neu(steuerung: T, sender: Sender<Nachricht>) -> Self {
-        Steuerung { steuerung, canvas: None, sender }
+    pub fn neu(steuerung: T, canvas: Option<Arc<Mutex<Cache>>>, sender: Sender<Nachricht>) -> Self {
+        Steuerung { steuerung, canvas, sender }
     }
 
     /// Erstelle eine neue [Steuerung] mit einem [Cache], der bei Änderung geleert wird.
@@ -76,6 +76,11 @@ impl<T, Nachricht> Steuerung<T, Nachricht> {
         sender: Sender<Nachricht>,
     ) -> Self {
         Steuerung { steuerung, canvas: Some(canvas), sender }
+    }
+
+    /// Erstelle eine neue [Steuerung] ohne [Cache].
+    pub fn neu_ohne_canvas(steuerung: T, sender: Sender<Nachricht>) -> Self {
+        Steuerung { steuerung, canvas: None, sender }
     }
 
     /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
@@ -167,14 +172,14 @@ pub trait MitSteuerung<'t> {
     /// Erzeuge eine [Steuerung]-Struktur, ohne die Möglichkeit sie zu verändern.
     fn steuerung<N>(
         &'t self,
-        canvas: Arc<Mutex<Cache>>,
+        canvas: Option<Arc<Mutex<Cache>>>,
         sender: Sender<N>,
     ) -> Steuerung<&'t Self::Steuerung, N>;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
     /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
     fn steuerung_mut<N>(
         &'t mut self,
-        canvas: Arc<Mutex<Cache>>,
+        canvas: Option<Arc<Mutex<Cache>>>,
         sender: Sender<N>,
     ) -> Steuerung<&'t mut Self::Steuerung, N>;
 }
@@ -186,18 +191,18 @@ macro_rules! impl_mit_steuerung {
             #[inline(always)]
             fn steuerung<N>(
                 &'t self,
-                canvas: Arc<Mutex<Cache>>,
+                canvas: Option<Arc<Mutex<Cache>>>,
                 sender: Sender<N>,
             ) -> Steuerung<&'t Self::Steuerung, N> {
-                Steuerung::neu_mit_canvas(&self.$ident, canvas, sender)
+                Steuerung::neu(&self.$ident, canvas, sender)
             }
             #[inline(always)]
             fn steuerung_mut<N>(
                 &'t mut self,
-                canvas: Arc<Mutex<Cache>>,
+                canvas: Option<Arc<Mutex<Cache>>>,
                 sender: Sender<N>,
             ) -> Steuerung<&'t mut Self::Steuerung, N> {
-                Steuerung::neu_mit_canvas(&mut self.$ident, canvas, sender)
+                Steuerung::neu(&mut self.$ident, canvas, sender)
             }
         }
     };
