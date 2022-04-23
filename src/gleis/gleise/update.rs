@@ -22,7 +22,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            daten::{Gleis, GleiseDaten, RStern},
+            daten::{AnyGleis, Gleis, GleiseDaten, RStern},
             id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
@@ -123,6 +123,36 @@ impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T
     }
 }
 
+/// Erhalte das Gleis an der gesuchten Position.
+fn entferne_gleis_an_position<'t, T>(
+    spurweite: Spurweite,
+    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>,
+    rstern: &'t RStern<T>,
+    canvas_pos: Vektor,
+    canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<AsyncAktualisieren>,
+) -> Option<Gehalten>
+where
+    T: Zeichnen + MitSteuerung<'t>,
+    AnyGleis: From<Gleis<T>>,
+{
+    rstern.remove_with_selection_function(KlickInnerhalb { spurweite, canvas_pos }).map(
+        |geom_with_data| {
+            let gleis = geom_with_data.data;
+            let halte_position = canvas_pos - gleis.position.punkt;
+            let winkel = gleis.position.winkel;
+            Gehalten {
+                gleis: gleis.into(),
+                streckenabschnitt: streckenabschnitt
+                    .map(|(id_ref, streckenabschnitt)| (id_ref.als_id(), streckenabschnitt.farbe)),
+                halte_position,
+                winkel,
+                bewegt: false,
+            }
+        },
+    )
+}
+
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
@@ -136,12 +166,12 @@ where
     T: Zeichnen + MitSteuerung<'t>,
     GleisSteuerung<'t>: From<IdUndSteuerung<'t, T>>,
 {
-    for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        let relative_pos = canvas_pos - position.punkt;
-        let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+    rstern.locate_with_selection_function(KlickInnerhalb { spurweite, canvas_pos }).next().map(
+        |geom_with_data| {
+            let rectangle = geom_with_data.geom();
+            let Gleis { definition, position } = &geom_with_data.data;
+            let relative_pos = canvas_pos - position.punkt;
+            let rotated_pos = relative_pos.rotiert(-position.winkel);
             let (streckenabschnitt_id, streckenabschnitt) =
                 if let Some((id, streckenabschnitt)) = streckenabschnitt {
                     (Some(id), Some(&*streckenabschnitt))
@@ -153,15 +183,11 @@ where
                 streckenabschnitt: streckenabschnitt_id,
                 phantom: PhantomData,
             };
-            return Some((
-                (gleis_id_ref, definition.steuerung(canvas.clone(), sender.clone())).into(),
-                relative_pos,
-                position.winkel,
-                streckenabschnitt,
-            ));
-        }
-    }
-    None
+            let gleis_steuerung =
+                (gleis_id_ref, definition.steuerung(canvas.clone(), sender.clone())).into();
+            (gleis_steuerung, relative_pos, position.winkel, streckenabschnitt)
+        },
+    )
 }
 
 fn erzeuge_weiche_schalten_nachricht<Richtung, Weiche>(
