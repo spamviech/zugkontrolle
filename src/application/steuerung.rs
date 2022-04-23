@@ -85,6 +85,30 @@ impl<T, Nachricht> Steuerung<T, Nachricht> {
     }
 }
 
+impl<T, Nachricht: From<AsyncAktualisieren>> Steuerung<Option<T>, Nachricht> {
+    /// Erhalte eine veränderliche Referenz, falls ein Wert vorhanden ist.
+    pub fn opt_as_mut(&mut self) -> Option<&mut T> {
+        self.as_mut().as_mut()
+    }
+}
+
+impl<T, Nachricht> Steuerung<Option<T>, Nachricht> {
+    /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
+    pub fn opt_as_ref(&self) -> Option<&T> {
+        self.as_ref().as_ref()
+    }
+
+    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
+    pub fn nur_some(self) -> Option<Steuerung<T, Nachricht>> {
+        let Steuerung { steuerung, canvas, sender } = self;
+        if let Some(steuerung) = steuerung {
+            Some(Steuerung { steuerung, canvas, sender })
+        } else {
+            None
+        }
+    }
+}
+
 impl<'t, T, Nachricht> Steuerung<&'t Option<T>, Nachricht> {
     /// Erhalte eine Referenz, falls ein Wert vorhanden ist.
     pub fn opt_as_ref(&self) -> Option<&T> {
@@ -125,7 +149,6 @@ impl<'t, T, Nachricht> Steuerung<&'t mut Option<T>, Nachricht> {
     pub fn opt_as_ref(&self) -> Option<&T> {
         self.as_ref().as_ref()
     }
-
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
     pub fn nur_some(self) -> Option<Steuerung<&'t mut T, Nachricht>> {
         let Steuerung { steuerung, canvas, sender } = self;

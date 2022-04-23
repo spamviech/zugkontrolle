@@ -225,21 +225,21 @@ fn aktion_gleis_an_position<'t>(
                                     },
                                 )
                             }),
-                            /*
-                            Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung() {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                    AktionSchalten {
-                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                        richtung,
-                                    },
-                                ))
-                            }),
+                            Weiche((_id, steuerung)) => {
+                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
+                                steuerung.nur_some().map(|steuerung| {
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
+                                        AktionSchalten { weiche: steuerung, richtung },
+                                    ))
+                                })
+                            },
                             KurvenWeiche((_id, steuerung)) => {
+                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::kurve::Richtung::*;
                                     let richtung = match steuerung.as_ref().aktuelle_richtung() {
@@ -247,14 +247,12 @@ fn aktion_gleis_an_position<'t>(
                                         Außen => Innen,
                                     };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
+                                        AktionSchalten { weiche: steuerung, richtung },
                                     ))
                                 })
                             },
                             DreiwegeWeiche((_id, steuerung)) => {
+                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::dreiwege::Richtung::*;
                                     let weiche = steuerung.as_ref();
@@ -269,14 +267,12 @@ fn aktion_gleis_an_position<'t>(
                                             (Links | Rechts, _letzte) => Gerade,
                                         };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
+                                        AktionSchalten { weiche: steuerung, richtung },
                                     ))
                                 })
                             },
                             SKurvenWeiche((_id, steuerung)) => {
+                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
                                 steuerung.nur_some().map(|steuerung| {
                                     use weiche::gerade::Richtung::*;
                                     let richtung = match steuerung.as_ref().aktuelle_richtung() {
@@ -284,28 +280,23 @@ fn aktion_gleis_an_position<'t>(
                                         Kurve => Gerade,
                                     };
                                     Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
+                                        AktionSchalten { weiche: steuerung, richtung },
                                     ))
                                 })
                             },
-                            Kreuzung((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().aktuelle_richtung() {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                    AktionSchalten {
-                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                        richtung,
-                                    },
-                                ))
-                            }),
-                            */
-                            _ => todo!(),
+                            Kreuzung((_id, steuerung)) => {
+                                let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
+                                steuerung.nur_some().map(|steuerung| {
+                                    use weiche::gerade::Richtung::*;
+                                    let richtung = match steuerung.as_ref().aktuelle_richtung() {
+                                        Gerade => Kurve,
+                                        Kurve => Gerade,
+                                    };
+                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
+                                        AktionSchalten { weiche: steuerung, richtung },
+                                    ))
+                                })
+                            },
                         };
 
                         if message.is_some() {
