@@ -136,25 +136,19 @@ where
     None
 }
 
-fn erzeuge_weiche_schalten_nachricht<Richtung, RichtungAnschlüsse>(
-    steuerung: Steuerung<
-        &Arc<Mutex<Option<steuerung::Weiche<Richtung, RichtungAnschlüsse>>>>,
-        AsyncAktualisieren,
-    >,
-    nächste_richtung: impl FnOnce(
-        (Richtung, Richtung),
-        &steuerung::Weiche<Richtung, RichtungAnschlüsse>,
-    ) -> Richtung,
+fn erzeuge_weiche_schalten_nachricht<Richtung, Weiche>(
+    steuerung: Steuerung<&Arc<Mutex<Option<Weiche>>>, AsyncAktualisieren>,
+    nächste_richtung: impl FnOnce(&Weiche) -> Richtung,
 ) -> Option<Nachricht>
 where
+    Weiche: Clone,
     Richtung: Clone,
-    AnyAktionSchalten:
-        From<AktionSchalten<Steuerung<steuerung::Weiche<Richtung, RichtungAnschlüsse>>, Richtung>>,
+    AnyAktionSchalten: From<AktionSchalten<Steuerung<Weiche>, Richtung>>,
 {
     let steuerung = steuerung.konvertiere(|mutex| mutex.lock().clone());
     steuerung.nur_some().map(|steuerung| {
         let weiche = steuerung.as_ref();
-        let richtung = nächste_richtung(weiche.aktuelle_und_letzte_richtung(), &weiche);
+        let richtung = nächste_richtung(&weiche);
         Nachricht::WeicheSchalten(AnyAktionSchalten::from(AktionSchalten {
             weiche: steuerung,
             richtung,
@@ -252,31 +246,28 @@ fn aktion_gleis_an_position<'t>(
                                     },
                                 )
                             }),
-                            Weiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
-                                steuerung,
-                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
+                            Weiche((_id, steuerung)) => {
+                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    match aktuelle_richtung {
+                                    match weiche.aktuelle_richtung() {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     }
-                                },
-                            ),
-                            KurvenWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
-                                steuerung,
-                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
+                                })
+                            },
+                            KurvenWeiche((_id, steuerung)) => {
+                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
                                     use weiche::kurve::Richtung::*;
-                                    match aktuelle_richtung {
+                                    match weiche.aktuelle_richtung() {
                                         Innen => Außen,
                                         Außen => Innen,
                                     }
-                                },
-                            ),
-                            DreiwegeWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
-                                steuerung,
-                                |aktuelle_und_letzte_richtung, weiche| {
+                                })
+                            },
+                            DreiwegeWeiche((_id, steuerung)) => {
+                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
                                     use weiche::dreiwege::Richtung::*;
-                                    match aktuelle_und_letzte_richtung {
+                                    match weiche.aktuelle_und_letzte_richtung() {
                                         (Gerade, Links) => Rechts,
                                         (Gerade, Rechts) => Links,
                                         (Gerade, Gerade) => {
@@ -285,28 +276,26 @@ fn aktion_gleis_an_position<'t>(
                                         },
                                         (Links | Rechts, _letzte) => Gerade,
                                     }
-                                },
-                            ),
-                            SKurvenWeiche((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
-                                steuerung,
-                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
+                                })
+                            },
+                            SKurvenWeiche((_id, steuerung)) => {
+                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    match aktuelle_richtung {
+                                    match weiche.aktuelle_richtung() {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     }
-                                },
-                            ),
-                            Kreuzung((_id, steuerung)) => erzeuge_weiche_schalten_nachricht(
-                                steuerung,
-                                |(aktuelle_richtung, _letzte_richtung), _weiche| {
+                                })
+                            },
+                            Kreuzung((_id, steuerung)) => {
+                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
                                     use weiche::gerade::Richtung::*;
-                                    match aktuelle_richtung {
+                                    match weiche.aktuelle_richtung() {
                                         Gerade => Kurve,
                                         Kurve => Gerade,
                                     }
-                                },
-                            ),
+                                })
+                            },
                         };
 
                         if message.is_some() {
