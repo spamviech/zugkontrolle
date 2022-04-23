@@ -413,14 +413,16 @@ impl<L: Leiter> Gleise<L> {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(Gehalten { gleis, bewegt, streckenabschnitt, .. }) = gehalten.take()
                     {
-                        if bewegt {
+                        let hinzufügen = if bewegt {
                             // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
-                            if cursor.is_over(&bounds) {
-                                todo!("erneut hinzufügen")
-                            }
+                            cursor.is_over(&bounds)
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                             message = Some(Nachricht::SetzeStreckenabschnittGehalten);
+                            true
+                        };
+                        if hinzufügen {
+                            todo!("erneut hinzufügen")
                         }
                         event_status = event::Status::Captured;
                     }
