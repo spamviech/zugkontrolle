@@ -236,6 +236,28 @@ impl<L: Leiter> Zustand<L> {
             ))
     }
 
+    pub(in crate::gleis::gleise) fn alle_streckenabschnitte_und_daten_mut<'t>(
+        &'t mut self,
+    ) -> impl Iterator<
+        Item = (
+            Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>,
+            &'t mut GleiseDaten,
+        ),
+    > {
+        let iter_map = |geschwindigkeit: Option<&'t _>| {
+            move |(name, (streckenabschnitt, daten)): (&'t _, &'t mut (_, _))| {
+                (Some((StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)), daten)
+            }
+        };
+        iter::once((None, &mut self.ohne_streckenabschnitt))
+            .chain(self.ohne_geschwindigkeit.iter_mut().map(iter_map(None)))
+            .chain(self.geschwindigkeiten.iter_mut().flat_map(
+                move |(geschwindigkeit_name, (_geschwindigkeit, map))| {
+                    map.iter_mut().map(iter_map(Some(geschwindigkeit_name)))
+                },
+            ))
+    }
+
     /// Alle Verbindungen in der Nähe der übergebenen Position.
     /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
     /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.

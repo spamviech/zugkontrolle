@@ -126,7 +126,7 @@ impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
-    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
+    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
     canvas: &Arc<Mutex<Cache>>,
@@ -144,7 +144,7 @@ where
         if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             let (streckenabschnitt_id, streckenabschnitt) =
                 if let Some((id, streckenabschnitt)) = streckenabschnitt {
-                    (Some(id), Some(streckenabschnitt))
+                    (Some(id), Some(&*streckenabschnitt))
                 } else {
                     (None, None)
                 };
@@ -184,15 +184,15 @@ where
     })
 }
 
-type StreckenabschnittUndDaten<'t> =
-    (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten);
+type StreckenabschnittUndDatenMut<'t> =
+    (Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>, &'t mut GleiseDaten);
 
 fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t mut ModusDaten,
-    daten_iter: impl Iterator<Item = StreckenabschnittUndDaten<'t>>,
+    daten_iter: impl Iterator<Item = StreckenabschnittUndDatenMut<'t>>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
@@ -356,7 +356,7 @@ impl<L: Leiter> Gleise<L> {
                     &cursor,
                     spurweite,
                     modus,
-                    zustand.alle_streckenabschnitte_und_daten(),
+                    zustand.alle_streckenabschnitte_und_daten_mut(),
                     pivot,
                     skalieren,
                     canvas,
