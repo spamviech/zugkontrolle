@@ -67,21 +67,20 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-type IdUndSteuerung<'t, T, N> =
-    (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung, N>);
+type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>);
 
 #[derive(zugkontrolle_macros::From)]
-enum GleisSteuerung<'t, Nachricht> {
-    Gerade(IdUndSteuerung<'t, Gerade, Nachricht>),
-    Kurve(IdUndSteuerung<'t, Kurve, Nachricht>),
-    Weiche(IdUndSteuerung<'t, Weiche, Nachricht>),
-    KurvenWeiche(IdUndSteuerung<'t, KurvenWeiche, Nachricht>),
-    DreiwegeWeiche(IdUndSteuerung<'t, DreiwegeWeiche, Nachricht>),
-    SKurvenWeiche(IdUndSteuerung<'t, SKurvenWeiche, Nachricht>),
-    Kreuzung(IdUndSteuerung<'t, Kreuzung, Nachricht>),
+enum GleisSteuerung<'t> {
+    Gerade(IdUndSteuerung<'t, Gerade>),
+    Kurve(IdUndSteuerung<'t, Kurve>),
+    Weiche(IdUndSteuerung<'t, Weiche>),
+    KurvenWeiche(IdUndSteuerung<'t, KurvenWeiche>),
+    DreiwegeWeiche(IdUndSteuerung<'t, DreiwegeWeiche>),
+    SKurvenWeiche(IdUndSteuerung<'t, SKurvenWeiche>),
+    Kreuzung(IdUndSteuerung<'t, Kreuzung>),
 }
 
-impl<'t, Nachricht> GleisSteuerung<'t, Nachricht> {
+impl<'t> GleisSteuerung<'t> {
     fn id(self) -> AnyIdRef<'t> {
         match self {
             GleisSteuerung::Gerade((id, _steuerung)) => id.into(),
@@ -96,17 +95,17 @@ impl<'t, Nachricht> GleisSteuerung<'t, Nachricht> {
 }
 
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T, N>(
+fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
     streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas_pos: Vektor,
     canvas: &Arc<Mutex<Cache>>,
-    sender: &Sender<N>,
-) -> Option<(GleisSteuerung<'t, N>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
+    sender: &Sender<AsyncAktualisieren>,
+) -> Option<(GleisSteuerung<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
     T: Zeichnen + MitSteuerung<'t>,
-    GleisSteuerung<'t, N>: From<IdUndSteuerung<'t, T, N>>,
+    GleisSteuerung<'t>: From<IdUndSteuerung<'t, T>>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
