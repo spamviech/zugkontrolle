@@ -26,7 +26,7 @@ pub use self::{
     id::{AnyId, GleisId, StreckenabschnittId},
 };
 use self::{
-    daten::{DatenAuswahl, GleiseDaten, SelectEnvelope, StreckenabschnittMap, Zustand},
+    daten::{AnyGleis, DatenAuswahl, GleiseDaten, SelectEnvelope, StreckenabschnittMap, Zustand},
     id::StreckenabschnittIdRef,
 };
 use crate::{
@@ -66,25 +66,6 @@ pub mod draw;
 pub mod hinzufügen_entfernen;
 pub mod id;
 pub mod update;
-
-/// Ein beliebiges Gleis.
-#[derive(Debug, zugkontrolle_macros::From)]
-pub enum AnyGleis {
-    /// Eine [Gerade].
-    Gerade(Gleis<Gerade>),
-    /// Eine [Kurve].
-    Kurve(Gleis<Kurve>),
-    /// Eine [Weiche].
-    Weiche(Gleis<Weiche>),
-    /// Eine [DreiwegeWeiche].
-    DreiwegeWeiche(Gleis<DreiwegeWeiche>),
-    /// Eine [KurvenWeiche].
-    KurvenWeiche(Gleis<KurvenWeiche>),
-    /// Eine [SKurvenWeiche].
-    SKurvenWeiche(Gleis<SKurvenWeiche>),
-    /// Eine [Kreuzung].
-    Kreuzung(Gleis<Kreuzung>),
-}
 
 #[derive(Debug)]
 struct Gehalten {

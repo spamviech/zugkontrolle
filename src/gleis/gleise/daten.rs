@@ -19,7 +19,7 @@ use crate::{
             id::{
                 AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
             },
-            AnyGleis, GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
+            GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
@@ -91,6 +91,25 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
             .konvertiere(|definition| Gleis { definition, position });
         Ok(reserviert)
     }
+}
+
+/// Ein beliebiges Gleis.
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum AnyGleis {
+    /// Eine [Gerade].
+    Gerade(Gleis<Gerade>),
+    /// Eine [Kurve].
+    Kurve(Gleis<Kurve>),
+    /// Eine [Weiche].
+    Weiche(Gleis<Weiche>),
+    /// Eine [DreiwegeWeiche].
+    DreiwegeWeiche(Gleis<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
+    KurvenWeiche(Gleis<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
+    SKurvenWeiche(Gleis<SKurvenWeiche>),
+    /// Eine [Kreuzung].
+    Kreuzung(Gleis<Kreuzung>),
 }
 
 pub(crate) type StreckenabschnittMap =
