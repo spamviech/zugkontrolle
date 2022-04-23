@@ -157,7 +157,7 @@ where
             };
         let gleis_id_ref: GleisIdRef<'t, T> =
             GleisIdRef { rectangle, streckenabschnitt: streckenabschnitt_id, phantom: PhantomData };
-        let gleis_steuerung = definition.steuerung(canvas.clone(), sender.clone()).into();
+        let gleis_steuerung = definition.steuerung(Some(canvas.clone()), sender.clone()).into();
         (gleis_steuerung, streckenabschnitt)
     })
 }
@@ -239,6 +239,86 @@ macro_rules! finde_gleis_an_position {
     };
 }
 
+fn erzeuge_anpassen_nachricht(
+    gleis: &AnyGleis,
+    canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<AsyncAktualisieren>,
+) -> Nachricht {
+    match gleis {
+        AnyGleis::Gerade(Gleis { definition, .. }) => Nachricht::KontaktAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::Kurve(Gleis { definition, .. }) => Nachricht::KontaktAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::Weiche(Gleis { definition, .. }) => Nachricht::GeradeWeicheAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::DreiwegeWeiche(Gleis { definition, .. }) => Nachricht::DreiwegeWeicheAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::KurvenWeiche(Gleis { definition, .. }) => Nachricht::KurvenWeicheAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::SKurvenWeiche(Gleis { definition, .. }) => Nachricht::GeradeWeicheAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+        AnyGleis::Kreuzung(Gleis { definition, .. }) => Nachricht::GeradeWeicheAnpassen(
+            definition.steuerung(Some(canvas.clone()), sender.clone()).konvertiere(Clone::clone),
+        ),
+    }
+}
+
+fn erzeuge_steuerung_nachricht(
+    gleis_steuerung: GleisSteuerung<'_>,
+    streckenabschnitt: Option<&Streckenabschnitt>,
+    canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<AsyncAktualisieren>,
+) -> Option<Nachricht> {
+    use GleisSteuerung::*;
+    match gleis_steuerung {
+        Kontakt(_) => streckenabschnitt.map(|streckenabschnitt| {
+            let fließend = !streckenabschnitt.fließend();
+            Nachricht::StreckenabschnittUmschalten(AktionStreckenabschnitt::Strom {
+                streckenabschnitt: Steuerung::neu_mit_canvas(
+                    streckenabschnitt.clone(),
+                    canvas.clone(),
+                    sender.clone(),
+                ),
+                fließend,
+            })
+        }),
+        GeradeWeiche(steuerung) => erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
+            use weiche::gerade::Richtung::*;
+            match weiche.aktuelle_richtung() {
+                Gerade => Kurve,
+                Kurve => Gerade,
+            }
+        }),
+        KurvenWeiche(steuerung) => erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
+            use weiche::kurve::Richtung::*;
+            match weiche.aktuelle_richtung() {
+                Innen => Außen,
+                Außen => Innen,
+            }
+        }),
+        DreiwegeWeiche(steuerung) => {
+            erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
+                use weiche::dreiwege::Richtung::*;
+                match weiche.aktuelle_und_letzte_richtung() {
+                    (Gerade, Links) => Rechts,
+                    (Gerade, Rechts) => Links,
+                    (Gerade, Gerade) => {
+                        error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
+                        Links
+                    },
+                    (Links | Rechts, _letzte) => Gerade,
+                }
+            })
+        },
+    }
+}
+
 fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
@@ -271,15 +351,7 @@ fn aktion_gleis_an_position<'t>(
                     }
                     if let Some(Gehalten { gleis, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            let nachricht = match &*gleis {
-                                AnyGleis::Gerade(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::Kurve(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::Weiche(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::DreiwegeWeiche(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::KurvenWeiche(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::SKurvenWeiche(Gleis { definition, .. }) => todo!(),
-                                AnyGleis::Kreuzung(Gleis { definition, .. }) => todo!(),
-                            };
+                            let nachricht = erzeuge_anpassen_nachricht(gleis, canvas, sender);
                             message = Some(nachricht);
                             *gehalten = None
                         }
@@ -296,54 +368,12 @@ fn aktion_gleis_an_position<'t>(
                         gleis_an_position
                     );
                     if let Some((gleis_steuerung, streckenabschnitt)) = gleis_an_position {
-                        use GleisSteuerung::*;
-                        message = match gleis_steuerung {
-                            Kontakt(_) => streckenabschnitt.map(|streckenabschnitt| {
-                                let fließend = !streckenabschnitt.fließend();
-                                Nachricht::StreckenabschnittUmschalten(
-                                    AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: Steuerung::neu_mit_canvas(
-                                            streckenabschnitt.clone(),
-                                            canvas.clone(),
-                                            sender.clone(),
-                                        ),
-                                        fließend,
-                                    },
-                                )
-                            }),
-                            GeradeWeiche(steuerung) => {
-                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
-                                    use weiche::gerade::Richtung::*;
-                                    match weiche.aktuelle_richtung() {
-                                        Gerade => Kurve,
-                                        Kurve => Gerade,
-                                    }
-                                })
-                            },
-                            KurvenWeiche(steuerung) => {
-                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
-                                    use weiche::kurve::Richtung::*;
-                                    match weiche.aktuelle_richtung() {
-                                        Innen => Außen,
-                                        Außen => Innen,
-                                    }
-                                })
-                            },
-                            DreiwegeWeiche(steuerung) => {
-                                erzeuge_weiche_schalten_nachricht(steuerung, |weiche| {
-                                    use weiche::dreiwege::Richtung::*;
-                                    match weiche.aktuelle_und_letzte_richtung() {
-                                        (Gerade, Links) => Rechts,
-                                        (Gerade, Rechts) => Links,
-                                        (Gerade, Gerade) => {
-                                            error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                            Links
-                                        },
-                                        (Links | Rechts, _letzte) => Gerade,
-                                    }
-                                })
-                            },
-                        };
+                        message = erzeuge_steuerung_nachricht(
+                            gleis_steuerung,
+                            streckenabschnitt,
+                            canvas,
+                            sender,
+                        );
 
                         if message.is_some() {
                             status = event::Status::Captured
