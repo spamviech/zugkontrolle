@@ -642,8 +642,8 @@ impl<L: Leiter> Gleise<L> {
 #[derive(zugkontrolle_macros::Debug)]
 #[non_exhaustive]
 pub enum Nachricht {
-    /// Setze den Streckenabschnitt für ein Gleis.
-    SetzeStreckenabschnitt(AnyGleis),
+    /// Setze den Streckenabschnitt für das gehaltene Gleis.
+    SetzeStreckenabschnittGehalten,
     /// Öffne das Fenster zum Anpassen eines Kontaktes ([Gerade], [Kurve]).
     KontaktAnpassen(Steuerung<Arc<Mutex<Option<Kontakt>>>, AsyncAktualisieren>),
     /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche

@@ -108,18 +108,19 @@ impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T
 /// Erhalte das Gleis an der gesuchten Position.
 fn entferne_gleis_an_position<'t, T>(
     klick_innerhalb: KlickInnerhalb,
-    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>,
-    rstern: &'t RStern<T>,
-    canvas: &Arc<Mutex<Cache>>,
-    sender: &Sender<AsyncAktualisieren>,
+    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
+    rstern: &'t mut RStern<T>,
+    _canvas: &Arc<Mutex<Cache>>,
+    _sender: &Sender<AsyncAktualisieren>,
 ) -> Option<Gehalten>
 where
     T: Zeichnen,
     AnyGleis: From<Gleis<T>>,
 {
+    let canvas_pos = klick_innerhalb.canvas_pos;
     rstern.remove_with_selection_function(klick_innerhalb).map(|geom_with_data| {
         let gleis = geom_with_data.data;
-        let halte_position = klick_innerhalb.canvas_pos - gleis.position.punkt;
+        let halte_position = canvas_pos - gleis.position.punkt;
         let winkel = gleis.position.winkel;
         Gehalten {
             gleis: gleis.into(),
@@ -135,7 +136,7 @@ where
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
     klick_innerhalb: KlickInnerhalb,
-    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>,
+    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
     rstern: &'t RStern<T>,
     canvas: &Arc<Mutex<Cache>>,
     sender: &Sender<AsyncAktualisieren>,
@@ -145,19 +146,9 @@ where
     GleisSteuerung<'t>: From<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>>,
 {
     rstern.locate_with_selection_function(klick_innerhalb).next().map(|geom_with_data| {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        let relative_pos = klick_innerhalb.canvas_pos - position.punkt;
-        let rotated_pos = relative_pos.rotiert(-position.winkel);
-        let (streckenabschnitt_id, streckenabschnitt) =
-            if let Some((id, streckenabschnitt)) = streckenabschnitt {
-                (Some(id), Some(&*streckenabschnitt))
-            } else {
-                (None, None)
-            };
-        let gleis_id_ref: GleisIdRef<'t, T> =
-            GleisIdRef { rectangle, streckenabschnitt: streckenabschnitt_id, phantom: PhantomData };
+        let Gleis { definition, position: _ } = &geom_with_data.data;
         let gleis_steuerung = definition.steuerung(Some(canvas.clone()), sender.clone()).into();
+        let streckenabschnitt = streckenabschnitt.map(|(_id, streckenabschnitt)| streckenabschnitt);
         (gleis_steuerung, streckenabschnitt)
     })
 }
@@ -217,6 +208,9 @@ macro_rules! finde_gleis_an_position {
         $f: expr
     ) => {
         $daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
+            // Option ist Copy, falls nur unveränderliche Referenzen involviert sind.
+            let streckenabschnitt =
+                streckenabschnitt.map(|(id, streckenabschnitt)| (id, &*streckenabschnitt));
             gleis_an_position!(
                 $spurweite,
                 $canvas_pos,
@@ -417,20 +411,16 @@ impl<L: Leiter> Gleise<L> {
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis, bewegt, .. }) = gehalten.take() {
+                    if let Some(Gehalten { gleis, bewegt, streckenabschnitt, .. }) = gehalten.take()
+                    {
                         if bewegt {
-                            if !cursor.is_over(&bounds) {
-                                todo!()
-                                // if let Err(fehler) =
-                                //     mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
-                                // {
-                                //     error!("Entfernen für entferntes Gleis: {:?}", fehler)
-                                // }
+                            // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
+                            if cursor.is_over(&bounds) {
+                                todo!("erneut hinzufügen")
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(todo!());
-                            // message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id.klonen()));
+                            message = Some(Nachricht::SetzeStreckenabschnittGehalten);
                         }
                         event_status = event::Status::Captured;
                     }

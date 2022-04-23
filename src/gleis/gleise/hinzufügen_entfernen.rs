@@ -180,14 +180,8 @@ impl<L: Leiter> Gleise<L> {
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten {
-                gleis,
-                streckenabschnitt,
-                geschwindigkeit,
-                halte_position,
-                winkel,
-                bewegt,
-            }) = gehalten
+            if let Some(Gehalten { gleis, streckenabschnitt, halte_position, winkel, bewegt }) =
+                gehalten
             {
                 let punkt = canvas_pos - halte_position;
                 todo!();
