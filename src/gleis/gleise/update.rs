@@ -434,32 +434,31 @@ impl<L: Leiter> Gleise<L> {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(Gehalten { gleis, bewegt, streckenabschnitt, .. }) = gehalten.take()
                     {
-                        let hinzufügen = if bewegt {
+                        if bewegt {
                             // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
-                            cursor.is_over(&bounds)
+                            if cursor.is_over(&bounds) {
+                                let streckenabschnitt_id = streckenabschnitt.map(|(id, _farbe)| id);
+
+                                let spurweite = self.zustand.zugtyp.spurweite;
+                                let daten = match self.zustand.daten_mut(&streckenabschnitt_id) {
+                                    Ok(daten) => daten,
+                                    Err(fehler) => {
+                                        error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
+                                        &mut self.zustand.ohne_streckenabschnitt
+                                    },
+                                };
+                                mit_any_gleis!(
+                                    gleis,
+                                    gleis_hinzufügen,
+                                    daten,
+                                    spurweite,
+                                    streckenabschnitt_id
+                                );
+                            }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                             message = Some(Nachricht::SetzeStreckenabschnittGehalten);
-                            true
                         };
-                        let streckenabschnitt_id = streckenabschnitt.map(|(id, _farbe)| id);
-                        if hinzufügen {
-                            let spurweite = self.zustand.zugtyp.spurweite;
-                            let daten = match self.zustand.daten_mut(&streckenabschnitt_id) {
-                                Ok(daten) => daten,
-                                Err(fehler) => {
-                                    error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
-                                    &mut self.zustand.ohne_streckenabschnitt
-                                },
-                            };
-                            mit_any_gleis!(
-                                gleis,
-                                gleis_hinzufügen,
-                                daten,
-                                spurweite,
-                                streckenabschnitt_id
-                            );
-                        }
                         event_status = event::Status::Captured;
                     }
                 }
