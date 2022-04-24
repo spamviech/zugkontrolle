@@ -119,6 +119,45 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     }
 }
 
+fn zeichne_anchor_points<T: Zeichnen>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    gleis: &Gleis<T>,
+    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> GehaltenVerbindung,
+) {
+    let Gleis { definition, position } = gleis;
+    frame.with_save(|frame| {
+        bewege_an_position(frame, position);
+        // zeichne anchor points
+        definition.verbindungen(spurweite).für_alle(|_name, &verbindung| {
+            let verbindung_an_position = Verbindung {
+                position: position.transformation(verbindung.position),
+                richtung: position.winkel + verbindung.richtung,
+            };
+            frame.with_save(|frame| {
+                let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
+                    ist_gehalten_und_andere_verbindung(verbindung_an_position);
+                let a = Transparenz::true_reduziert(gehalten).alpha();
+                let g = if andere_entgegengesetzt { 1. } else { 0. };
+                let color = Color { r: 0., g, b: 1. - g, a };
+                let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
+                let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
+                let verbindung_position = verbindung.position;
+                let mut path_builder = pfad::Erbauer::neu();
+                path_builder.move_to(verbindung_position + richtung_seite);
+                path_builder.line_to(verbindung_position + richtung);
+                path_builder.line_to(verbindung_position - richtung_seite);
+                let path = path_builder.baue();
+                frame.stroke(&path, Stroke { color, width: 1.5, ..Default::default() });
+                // fill on connect/snap for drag&drop
+                if andere_gehalten {
+                    frame.fill(&path, Fill { color, ..Default::default() });
+                }
+            });
+        });
+    })
+}
+
 fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
@@ -126,38 +165,8 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> GehaltenVerbindung,
 ) {
     for geom_with_data in rstern.iter() {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        frame.with_save(|frame| {
-            bewege_an_position(frame, position);
-            // zeichne anchor points
-            definition.verbindungen(spurweite).für_alle(|_name, &verbindung| {
-                let verbindung_an_position = Verbindung {
-                    position: position.transformation(verbindung.position),
-                    richtung: position.winkel + verbindung.richtung,
-                };
-                frame.with_save(|frame| {
-                    let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
-                        ist_gehalten_und_andere_verbindung(verbindung_an_position);
-                    let a = Transparenz::true_reduziert(gehalten).alpha();
-                    let g = if andere_entgegengesetzt { 1. } else { 0. };
-                    let color = Color { r: 0., g, b: 1. - g, a };
-                    let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
-                    let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
-                    let verbindung_position = verbindung.position;
-                    let mut path_builder = pfad::Erbauer::neu();
-                    path_builder.move_to(verbindung_position + richtung_seite);
-                    path_builder.line_to(verbindung_position + richtung);
-                    path_builder.line_to(verbindung_position - richtung_seite);
-                    let path = path_builder.baue();
-                    frame.stroke(&path, Stroke { color, width: 1.5, ..Default::default() });
-                    // fill on connect/snap for drag&drop
-                    if andere_gehalten {
-                        frame.fill(&path, Fill { color, ..Default::default() });
-                    }
-                });
-            });
-        })
+        let gleis = &geom_with_data.data;
+        zeichne_anchor_points(frame, spurweite, gleis, &ist_gehalten_und_andere_verbindung)
     }
 }
 
