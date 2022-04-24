@@ -22,8 +22,11 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            daten::{AnyGleis, Gleis, GleiseDaten, RStern},
-            id::{mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
+            daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, GleiseDaten, RStern},
+            id::{
+                mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittId,
+                StreckenabschnittIdRef,
+            },
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
         kreuzung::Kreuzung,
@@ -86,6 +89,16 @@ struct KlickInnerhalb {
     canvas_pos: Vektor,
 }
 
+impl KlickInnerhalb {
+    fn ist_innerhalb<T: Zeichnen>(&self, gleis: &Gleis<T>) -> bool {
+        let KlickInnerhalb { spurweite, canvas_pos } = *self;
+        let Gleis { definition, position } = gleis;
+        let relative_pos = canvas_pos - position.punkt;
+        let rotated_pos = relative_pos.rotiert(-position.winkel);
+        definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT)
+    }
+}
+
 impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T>>>
     for KlickInnerhalb
 {
@@ -97,11 +110,7 @@ impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T
     }
 
     fn should_unpack_leaf(&self, leaf: &GeomWithData<RStarRectangle<Vektor>, Gleis<T>>) -> bool {
-        let KlickInnerhalb { spurweite, canvas_pos } = *self;
-        let Gleis { definition, position } = &leaf.data;
-        let relative_pos = canvas_pos - position.punkt;
-        let rotated_pos = relative_pos.rotiert(-position.winkel);
-        definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT)
+        self.ist_innerhalb(&leaf.data)
     }
 }
 
@@ -380,6 +389,18 @@ fn aktion_gleis_an_position<'t>(
     (status, message)
 }
 
+/// Synonym von [GleiseDaten::hinzufügen], zur Verwendung mit [mit_any_gleis].
+#[inline(always)]
+fn gleis_hinzufügen<T: Zeichnen + DatenAuswahl>(
+    daten: &mut GleiseDaten,
+    gleis: Gleis<T>,
+    spurweite: Spurweite,
+    streckenabschnitt: Option<StreckenabschnittId>,
+) {
+    let Gleis { definition, position } = gleis;
+    let _ = daten.hinzufügen(definition, spurweite, position, streckenabschnitt);
+}
+
 impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
@@ -421,8 +442,23 @@ impl<L: Leiter> Gleise<L> {
                             message = Some(Nachricht::SetzeStreckenabschnittGehalten);
                             true
                         };
+                        let streckenabschnitt_id = streckenabschnitt.map(|(id, _farbe)| id);
                         if hinzufügen {
-                            todo!("erneut hinzufügen")
+                            let spurweite = self.zustand.zugtyp.spurweite;
+                            let daten = match self.zustand.daten_mut(&streckenabschnitt_id) {
+                                Ok(daten) => daten,
+                                Err(fehler) => {
+                                    error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
+                                    &mut self.zustand.ohne_streckenabschnitt
+                                },
+                            };
+                            mit_any_gleis!(
+                                gleis,
+                                gleis_hinzufügen,
+                                daten,
+                                spurweite,
+                                streckenabschnitt_id
+                            );
                         }
                         event_status = event::Status::Captured;
                     }
