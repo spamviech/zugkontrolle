@@ -94,7 +94,7 @@ impl<L: Leiter> Gleise<L> {
         definition: T,
         streckenabschnitt: Option<StreckenabschnittId>,
         verbindung_name: &<T as Zeichnen>::VerbindungName,
-        ziel_verbindung: Verbindung,
+        ziel_verbindung: &Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
@@ -135,7 +135,7 @@ impl<L: Leiter> Gleise<L> {
         &mut self,
         gleis_id: &mut GleisId<T>,
         verbindung_name: &<T as Zeichnen>::VerbindungName,
-        ziel_verbindung: Verbindung,
+        ziel_verbindung: &Verbindung,
     ) -> Result<(), GleisIdFehler>
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
@@ -232,8 +232,8 @@ impl<L: Leiter> Gleise<L> {
 /// Berechne die neue Position unter Berücksichtigung naher Gleise und bewege das Gleis.
 #[inline(always)]
 fn gleis_bewegen_einrasten<L: Leiter, T: Zeichnen + DatenAuswahl>(
-    zustand: &Zustand<L>,
     gleis: &mut Gleis<T>,
+    zustand: &Zustand<L>,
     ziel_position: Position,
 ) {
     let Gleis { definition, position } = gleis;

@@ -13,7 +13,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            daten::{Gleis, RStern},
+            daten::{Gleis, RStern, Zustand},
             id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
             AnyGleis, Gehalten, Gleise, ModusDaten,
         },
@@ -40,6 +40,8 @@ use crate::{
         Transparenz, Zeichnen,
     },
 };
+
+use super::daten::mit_any_gleis;
 
 pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     // bewege Kontext zur Position
@@ -210,24 +212,6 @@ struct GehaltenVerbindung {
 }
 
 impl<L: Leiter> Gleise<L> {
-    fn ist_gehalten_und_andere_verbindung<'t, T: Zeichnen>(
-        &'t self,
-        gehalten: Option<&'t AnyGleis>,
-    ) -> impl 't + Fn(Verbindung) -> GehaltenVerbindung {
-        // FIXME vergleiche mit gehalten
-        move |verbindung: Verbindung| {
-            let ist_gehalten = todo!();
-            let andere_gehalten = todo!();
-            let mut überlappende = self.zustand.überlappende_verbindungen(&verbindung);
-            let ist_entgegengesetzt = |überlappend: &Verbindung| {
-                (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
-                    < Winkel(0.1)
-            };
-            let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
-            GehaltenVerbindung { gehalten: ist_gehalten, andere_entgegengesetzt, andere_gehalten }
-        }
-    }
-
     /// [draw](iced::Application::draw)-Methode für [Gleise].
     pub fn draw(&self, bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let spurweite = self.spurweite();
@@ -349,7 +333,10 @@ impl<L: Leiter> Gleise<L> {
             for (_streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                 macro_rules! ist_gehalten_und_andere_verbindung {
                     ($gleis: ident) => {
-                        self.ist_gehalten_und_andere_verbindung::<$gleis>(gehalten_gleis)
+                        ist_gehalten_und_andere_verbindung::<L, $gleis>(
+                            &self.zustand,
+                            gehalten_gleis,
+                        )
                     };
                 }
                 mit_allen_gleisen! {
@@ -373,5 +360,26 @@ impl<L: Leiter> Gleise<L> {
             }
         };
         vec![canvas.lock().zeichnen_skaliert_von_pivot(bounds.size(), pivot, skalieren, draw_frame)]
+    }
+}
+
+fn ist_gehalten_und_andere_verbindung<'t, L: Leiter, T: Zeichnen>(
+    zustand: &'t Zustand<L>,
+    gehalten: Option<&'t AnyGleis>,
+) -> impl 't + Fn(Verbindung) -> GehaltenVerbindung {
+    let spurweite = zustand.zugtyp.spurweite;
+    move |verbindung: Verbindung| {
+        let überlappend_gehalten = gehalten.map_or(Vec::new(), |gehalten| {
+            mit_any_gleis!(gehalten, Gleis::überlappende_verbindungen, spurweite, &verbindung)
+        });
+        let ist_gehalten = überlappend_gehalten.contains(&verbindung);
+        let andere_gehalten = !überlappend_gehalten.is_empty();
+        let mut überlappende = zustand.überlappende_verbindungen(&verbindung);
+        let ist_entgegengesetzt = |überlappend: &Verbindung| {
+            (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
+                < Winkel(0.1)
+        };
+        let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
+        GehaltenVerbindung { gehalten: ist_gehalten, andere_entgegengesetzt, andere_gehalten }
     }
 }

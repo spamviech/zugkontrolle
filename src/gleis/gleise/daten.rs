@@ -96,8 +96,8 @@ impl<T: Zeichnen> Gleis<T> {
     pub(in crate::gleis::gleise) fn überlappende_verbindungen<'t>(
         &'t self,
         spurweite: Spurweite,
-        verbindung: &'t Verbindung,
-    ) -> impl 't + Iterator<Item = Verbindung>
+        verbindung: &Verbindung,
+    ) -> Vec<Verbindung>
     where
         T: Zeichnen + DatenAuswahl + 't,
     {
@@ -108,10 +108,10 @@ impl<T: Zeichnen> Gleis<T> {
             if (verbindung.position - kandidat_verbindung.position).länge()
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
-                überlappend.push(kandidat_verbindung.clone())
+                überlappend.push(*kandidat_verbindung)
             }
         }
-        überlappend.into_iter()
+        überlappend
     }
 }
 
@@ -135,29 +135,29 @@ pub enum AnyGleis {
 }
 
 macro_rules! mit_any_gleis {
-    ($any_gleis: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {{
+    ($(| $objekt: expr =>)? $any_gleis: expr , $function: expr $(, $extra_arg:expr)*) => {{
         use crate::gleis::gleise::daten::AnyGleis;
         match $any_gleis {
             AnyGleis::Gerade(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::Kurve(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::Weiche(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::DreiwegeWeiche(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::KurvenWeiche(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::SKurvenWeiche(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
             AnyGleis::Kreuzung(gleis) => {
-                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+                $function($($objekt,)? gleis $(, $extra_arg)*)
             }
         }
     }};
@@ -378,7 +378,7 @@ impl<L: Leiter> Zustand<L> {
                 spurweite,
                 definition,
                 &einrasten_name,
-                einrasten_verbindung,
+                &einrasten_verbindung,
             )
         })
     }
@@ -406,7 +406,7 @@ impl<L: Leiter> Zustand<L> {
         definition: T,
         streckenabschnitt: Option<StreckenabschnittId>,
         verbindung_name: &T::VerbindungName,
-        ziel_verbindung: Verbindung,
+        ziel_verbindung: &Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         T: Zeichnen + DatenAuswahl,
@@ -470,7 +470,7 @@ impl<L: Leiter> Zustand<L> {
         &mut self,
         gleis_id: &mut GleisId<T>,
         verbindung_name: &T::VerbindungName,
-        ziel_verbindung: Verbindung,
+        ziel_verbindung: &Verbindung,
     ) -> Result<(), GleisIdFehler>
     where
         T: Zeichnen + DatenAuswahl,
@@ -505,7 +505,7 @@ impl Position {
         spurweite: Spurweite,
         definition: &T,
         verbindung_name: &T::VerbindungName,
-        ziel_verbindung: Verbindung,
+        ziel_verbindung: &Verbindung,
     ) -> Position
     where
         T: Zeichnen,

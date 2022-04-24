@@ -381,8 +381,8 @@ fn aktion_gleis_an_position<'t>(
 /// Synonym von [GleiseDaten::hinzufügen], zur Verwendung mit [mit_any_gleis].
 #[inline(always)]
 fn gleis_hinzufügen<T: Zeichnen + DatenAuswahl>(
-    daten: &mut GleiseDaten,
     gleis: Gleis<T>,
+    daten: &mut GleiseDaten,
     spurweite: Spurweite,
     streckenabschnitt: Option<StreckenabschnittId>,
 ) {
