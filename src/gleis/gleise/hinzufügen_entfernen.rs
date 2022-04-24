@@ -8,8 +8,8 @@ use rstar::RTreeObject;
 use crate::{
     gleis::{
         gleise::{
-            daten::{mit_any_gleis, DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
+            daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, SelectEnvelope, Zustand},
+            id::{GleisId, StreckenabschnittId},
             Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
@@ -41,17 +41,18 @@ impl<L: Leiter> Gleise<L> {
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
+    /// Ein bisher gehaltenes Gleis wird zurückgegeben.
+    /// Schlägt fehl, wenn der aktuelle Modus nicht [Modus::Bauen] ist.
     pub(crate) fn hinzufügen_gehalten_bei_maus<T>(
         &mut self,
         definition: T,
         halte_position: Vektor,
         streckenabschnitt: Option<StreckenabschnittId>,
         einrasten: bool,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
+    ) -> Result<Option<Gehalten>, Gleis<T>>
     where
-        GleisId<T>: Into<AnyId>,
-        T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        T: Zeichnen,
+        Gleis<T>: Into<AnyGleis>,
     {
         let mut canvas_position = self.last_mouse;
         let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
@@ -68,23 +69,24 @@ impl<L: Leiter> Gleise<L> {
         } else if cp_y > self.last_size.y {
             canvas_position -= (cp_y - self.last_size.y) * ey;
         }
-        let gleis_id = self.hinzufügen(
-            definition,
-            Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
-            streckenabschnitt.map(|id| id.klonen()),
-            einrasten,
-        )?;
+        let position =
+            Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel };
+        let mut gleis = Gleis { definition, position: position.clone() };
+        if einrasten {
+            gleis_bewegen_einrasten(&mut gleis, &self.zustand, position)
+        }
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            let any_id = gleis_id.klonen().into();
-            *gehalten = Some(Gehalten {
-                gleis: todo!(),
-                streckenabschnitt: todo!(),
+            let bisher = gehalten.replace(Gehalten {
+                gleis: gleis.into(),
+                streckenabschnitt,
                 halte_position,
                 winkel: winkel::ZERO,
                 bewegt: true,
             });
+            Ok(bisher)
+        } else {
+            Err(gleis)
         }
-        Ok(gleis_id)
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
@@ -231,7 +233,7 @@ impl<L: Leiter> Gleise<L> {
 
 /// Berechne die neue Position unter Berücksichtigung naher Gleise und bewege das Gleis.
 #[inline(always)]
-fn gleis_bewegen_einrasten<L: Leiter, T: Zeichnen + DatenAuswahl>(
+fn gleis_bewegen_einrasten<L: Leiter, T: Zeichnen>(
     gleis: &mut Gleis<T>,
     zustand: &Zustand<L>,
     ziel_position: Position,

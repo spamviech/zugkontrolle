@@ -68,7 +68,7 @@ pub mod id;
 pub mod update;
 
 #[derive(Debug)]
-struct Gehalten {
+pub(crate) struct Gehalten {
     /// Das Gleis.
     gleis: AnyGleis,
     /// Der Streckenabschnitt des Gleises.
