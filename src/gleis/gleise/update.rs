@@ -14,30 +14,20 @@ use log::error;
 use parking_lot::Mutex;
 use rstar::{
     primitives::{GeomWithData, Rectangle as RStarRectangle},
-    RTreeObject, SelectionFunction, AABB,
+    SelectionFunction, AABB,
 };
 
 use crate::{
     application::steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
     gleis::{
-        gerade::Gerade,
         gleise::{
             daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, GleiseDaten, RStern},
-            id::{
-                mit_any_id, AnyId, AnyIdRef, GleisIdRef, StreckenabschnittId,
-                StreckenabschnittIdRef,
-            },
+            id::{StreckenabschnittId, StreckenabschnittIdRef},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            self, dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche,
-            s_kurve::SKurvenWeiche,
-        },
+        weiche,
     },
     steuerung::{
-        self,
         geschwindigkeit::Leiter,
         kontakt::Kontakt,
         plan::{self, AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
@@ -48,7 +38,6 @@ use crate::{
         mm::Spurweite,
         skalar::Skalar,
         vektor::Vektor,
-        winkel::Winkel,
         Zeichnen,
     },
 };
