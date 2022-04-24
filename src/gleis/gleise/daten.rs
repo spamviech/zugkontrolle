@@ -135,30 +135,16 @@ pub enum AnyGleis {
 }
 
 macro_rules! mit_any_gleis {
-    ($(| $objekt: expr =>)? $any_gleis: expr , $function: expr $(, $extra_arg:expr)*) => {{
-        use crate::gleis::gleise::daten::AnyGleis;
+    ($(=> $($initial_arg: expr),+ =>)? $any_gleis: expr , $function: expr $(, $extra_arg:expr)*) => {{
+        use crate::gleis::gleise::daten::AnyGleis::*;
         match $any_gleis {
-            AnyGleis::Gerade(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::Kurve(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::Weiche(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::DreiwegeWeiche(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::KurvenWeiche(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::SKurvenWeiche(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
-            AnyGleis::Kreuzung(gleis) => {
-                $function($($objekt,)? gleis $(, $extra_arg)*)
-            }
+            Gerade(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            Kurve(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            Weiche(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            DreiwegeWeiche(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            KurvenWeiche(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            SKurvenWeiche(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
+            Kreuzung(gleis) => $function($($($initial_arg),+ , )? gleis $(, $extra_arg)*),
         }
     }};
 }
