@@ -72,7 +72,7 @@ struct Gehalten {
     /// Das Gleis.
     gleis: AnyGleis,
     /// Der Streckenabschnitt des Gleises.
-    streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt: Option<StreckenabschnittId>,
     /// Die Position der Maus relativ zum Gleis.
     halte_position: Vektor,
     /// Der ursprüngliche Winkel des Gleises.

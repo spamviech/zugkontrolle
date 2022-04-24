@@ -123,7 +123,7 @@ where
         Gehalten {
             gleis: gleis.into(),
             streckenabschnitt: streckenabschnitt
-                .map(|(id_ref, streckenabschnitt)| (id_ref.als_id(), streckenabschnitt.farbe)),
+                .map(|(id_ref, _streckenabschnitt)| id_ref.als_id()),
             halte_position,
             winkel,
             bewegt: false,

@@ -4,12 +4,14 @@ use iced::{
     canvas::{Cursor, Geometry},
     Point,
 };
+use log::error;
 
 use crate::{
     anschluss::polarität::Fließend,
     gleis::{
         gleise::{
             daten::{Gleis, RStern, Zustand},
+            id::StreckenabschnittId,
             AnyGleis, Gehalten, Gleise, ModusDaten,
         },
         verbindung::Verbindung,
@@ -120,7 +122,7 @@ enum SelbstGehalten<'t> {
     /// Es geht um die Verbindungen des gehaltenen Gleises.
     Selbst,
     /// Es geht um die Verbindungen eines nicht-gehaltenen Gleises.
-    Anderes(Option<(&'t AnyGleis, Option<&'t Farbe>)>),
+    Anderes(Option<(&'t AnyGleis, &'t mut Option<StreckenabschnittId>)>),
 }
 
 fn finde_andere_verbindung<'t, L: Leiter>(
@@ -135,12 +137,18 @@ fn finde_andere_verbindung<'t, L: Leiter>(
                 < Winkel(0.1)
         };
         let andere_entgegengesetzt = überlappende.iter().find(ist_entgegengesetzt).is_some();
-        let andere_gehalten = match gehalten {
+        let andere_gehalten = match &gehalten {
             SelbstGehalten::Selbst => !überlappende.is_empty(),
             SelbstGehalten::Anderes(gehalten) => {
-                let überlappend_gehalten = gehalten.map_or(Vec::new(), |(gleis, _farbe)| {
-                    mit_any_gleis!(gleis, Gleis::überlappende_verbindungen, spurweite, &verbindung)
-                });
+                let überlappend_gehalten =
+                    gehalten.as_ref().map_or(Vec::new(), |(gleis, _farbe)| {
+                        mit_any_gleis!(
+                            gleis,
+                            Gleis::überlappende_verbindungen,
+                            spurweite,
+                            &verbindung
+                        )
+                    });
                 !überlappend_gehalten.is_empty()
             },
         };
@@ -265,13 +273,13 @@ impl<L: Leiter> Gleise<L> {
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
         let draw_frame = |frame: &mut Frame<'_>| {
             // Zeichne Gleise
-            let gehalten_gleis_und_farbe: Option<(&AnyGleis, Option<&Farbe>)>;
+            let gehalten_gleis_und_farbe: Option<(&AnyGleis, &mut Option<StreckenabschnittId>)>;
             let modus_bauen: bool;
             match modus {
                 ModusDaten::Bauen { gehalten, .. } => {
                     gehalten_gleis_und_farbe =
-                        gehalten.as_ref().map(|Gehalten { gleis, streckenabschnitt, .. }| {
-                            (gleis, streckenabschnitt.as_ref().map(|(_id, farbe)| farbe))
+                        gehalten.as_mut().map(|Gehalten { gleis, streckenabschnitt, .. }| {
+                            (&*gleis, streckenabschnitt)
                         });
                     modus_bauen = true;
                 },
@@ -342,10 +350,30 @@ impl<L: Leiter> Gleise<L> {
             }
             // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
             // Gehaltenes Gleis
-            if let Some((gleis, farbe)) = gehalten_gleis_und_farbe {
+            if let Some((gleis, streckenabschnitt_id_opt)) = gehalten_gleis_und_farbe {
                 let transparenz = Transparenz::Reduziert;
-                if let Some(farbe) = farbe {
-                    mit_any_gleis!(=> frame, spurweite => gleis, fülle_gleis, &transparenz, farbe);
+                if let Some(streckenabschnitt_id) = &*streckenabschnitt_id_opt {
+                    match self.streckenabschnitt(streckenabschnitt_id) {
+                        Ok(streckenabschnitt) => {
+                            let fließend = streckenabschnitt.fließend();
+                            let farbe = &streckenabschnitt.farbe;
+                            let transparenz_füllen = Transparenz::true_reduziert(
+                                modus_bauen || fließend == Fließend::Gesperrt,
+                            )
+                            .kombiniere(transparenz);
+                            mit_any_gleis!(
+                                => frame, spurweite =>
+                                gleis,
+                                fülle_gleis,
+                                &transparenz_füllen,
+                                farbe
+                            );
+                        },
+                        Err(fehler) => {
+                            error!("Streckenabschnitt des gehaltenen Gleises entfernt: {fehler:?}");
+                            *streckenabschnitt_id_opt = None;
+                        },
+                    }
                 }
                 mit_any_gleis!(=> frame, spurweite => gleis, zeichne_gleis, &transparenz);
                 mit_any_gleis!(
