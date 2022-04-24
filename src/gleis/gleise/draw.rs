@@ -48,31 +48,38 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn fülle_alle_gleise<'t, T: Zeichnen>(
+fn fülle_gleis<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
-    rstern: &'t RStern<T>,
-    transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
-    streckenabschnitt_farbe: &Farbe,
-    streckenabschnitt_fließend: &Fließend,
+    gleis: &Gleis<T>,
+    transparenz: &Transparenz,
+    farbe: &Farbe,
+) {
+    let Gleis { definition, position } = gleis;
+    frame.with_save(|frame| {
+        bewege_an_position(frame, position);
+        // einfärben
+        for (path, pfad_transparenz) in definition.fülle(spurweite) {
+            let alpha = transparenz.kombiniere(pfad_transparenz).alpha();
+            frame.with_save(|frame| {
+                let Farbe { rot, grün, blau } = *farbe;
+                let color = Color { r: rot, g: grün, b: blau, a: alpha };
+                frame.fill(&path, Fill { color, rule: FillRule::EvenOdd });
+            });
+        }
+    })
+}
+
+fn fülle_alle_gleise<T: Zeichnen>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    rstern: &RStern<T>,
+    transparenz: &Transparenz,
+    farbe: &Farbe,
 ) {
     for geom_with_data in rstern.iter() {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        frame.with_save(|frame| {
-            bewege_an_position(frame, position);
-            // einfärben
-            for (path, transparenz) in definition.fülle(spurweite) {
-                let alpha = transparent(rectangle, *streckenabschnitt_fließend)
-                    .kombiniere(transparenz)
-                    .alpha();
-                frame.with_save(|frame| {
-                    let Farbe { rot, grün, blau } = *streckenabschnitt_farbe;
-                    let color = Color { r: rot, g: grün, b: blau, a: alpha };
-                    frame.fill(&path, Fill { color, rule: FillRule::EvenOdd });
-                });
-            }
-        })
+        let gleis = &geom_with_data.data;
+        fülle_gleis(frame, spurweite, gleis, transparenz, farbe)
     }
 }
 
@@ -234,140 +241,164 @@ impl<L: Leiter> Gleise<L> {
     /// [draw](iced::Application::draw)-Methode für [Gleise].
     pub fn draw(&self, bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let spurweite = self.spurweite();
-        let Gleise { canvas, zustand, modus, .. } = self;
+        let Gleise { canvas, zustand, modus, pivot, skalieren, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
         // bounds müssen an Position angepasst werden:
         // - ignoriere screen-position (verwende nur height+width, i.e. size)
         // - berücksichtige eigene Position (Punkt + Winkel)
         // - berücksichtige Zoom
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
-        vec![canvas.lock().zeichnen_skaliert_von_pivot(
-            bounds.size(),
-            &self.pivot,
-            &self.skalieren,
-            |frame| {
-                // Zeichne Gleise
-                let gehalten: Option<&AnyGleis>;
-                let modus_bauen: bool;
-                match modus {
-                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis, .. }), .. } => {
-                        gehalten = Some(gleis);
-                        modus_bauen = true;
-                    }
-                    ModusDaten::Bauen { gehalten: None, .. } => {
-                        gehalten = None;
-                        modus_bauen = true;
-                    }
-                    ModusDaten::Fahren => {
-                        gehalten = None;
-                        modus_bauen = false;
-                    }
-                };
-                // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                
-                // TODO gehaltenes Gleis zeichnen
-                // let ist_gehalten = ist_gehalten_test(gehalten);
-                let ist_gehalten = |_id| todo!();
+        let draw_frame = |frame: &mut Frame<'_>| {
+            // Zeichne Gleise
+            let gehalten_gleis: Option<&AnyGleis>;
+            let modus_bauen: bool;
+            match modus {
+                ModusDaten::Bauen { gehalten, .. } => {
+                    gehalten_gleis = gehalten.as_ref().map(|Gehalten { gleis, .. }| gleis);
+                    modus_bauen = true;
+                },
+                ModusDaten::Fahren => {
+                    gehalten_gleis = None;
+                    modus_bauen = false;
+                },
+            };
+            // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
+            // TODO gehaltenes Gleis zeichnen
+            // let ist_gehalten = ist_gehalten_test(gehalten);
+            let ist_gehalten = |_id| todo!();
 
-                macro_rules! mit_allen_gleisen {
-                    ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
-                        $funktion(frame, spurweite, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.kurven_weichen, $arg_macro!(KurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.s_kurven_weichen, $arg_macro!(SKurvenWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.dreiwege_weichen, $arg_macro!(DreiwegeWeiche)$(, $($extra_args),*)?);
-                        $funktion(frame, spurweite, &$daten.kreuzungen, $arg_macro!(Kreuzung)$(, $($extra_args),*)?);
-                    };
-                }
-                // Hintergrund
-                for (streckenabschnitt_opt, daten) in
-                    zustand.alle_streckenabschnitte_und_daten()
-                {
-                    let (streckenabschnitt_id, streckenabschnitt)
-                        = if let Some(tuple) = streckenabschnitt_opt
-                    {
-                        tuple
+            macro_rules! mit_allen_gleisen {
+                ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),* $(,)?)?) => {
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.geraden,
+                        $arg_macro!(Gerade)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.kurven,
+                        $arg_macro!(Kurve)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.weichen,
+                        $arg_macro!(Weiche)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.kurven_weichen,
+                        $arg_macro!(KurvenWeiche)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.s_kurven_weichen,
+                        $arg_macro!(SKurvenWeiche)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.dreiwege_weichen,
+                        $arg_macro!(DreiwegeWeiche)
+                        $(, $($extra_args),*)?
+                    );
+                    $funktion(
+                        frame,
+                        spurweite,
+                        &$daten.kreuzungen,
+                        $arg_macro!(Kreuzung)
+                        $(, $($extra_args),*)?
+                    );
+                };
+            }
+            // Hintergrund
+            for (streckenabschnitt_opt, daten) in zustand.alle_streckenabschnitte_und_daten() {
+                let streckenabschnitt =
+                    if let Some((_id, streckenabschnitt)) = streckenabschnitt_opt {
+                        streckenabschnitt
                     } else {
-                        continue
+                        continue;
                     };
-                    let fließend = streckenabschnitt.fließend();
-                    let farbe = streckenabschnitt.farbe;
-                    macro_rules! transparenz {
-                        ($gleis: ident) => {
-                            |rectangle, fließend| {
-                                Transparenz::true_reduziert(if modus_bauen {
-                                    let any_id_ref =  AnyIdRef::from(GleisIdRef {
-                                        rectangle,
-                                        streckenabschnitt: Some(streckenabschnitt_id),
-                                        phantom: PhantomData::<fn() -> $gleis>
-                                    });
-                                    ist_gehalten(any_id_ref)
-                                } else {
-                                    fließend == Fließend::Gesperrt
-                                })
-                            }
-                        };
-                    }
-                    mit_allen_gleisen! {
-                        daten,
-                        fülle_alle_gleise,
-                        transparenz,
-                        &farbe,
-                        &fließend
-                    }
+                let fließend = streckenabschnitt.fließend();
+                let farbe = streckenabschnitt.farbe;
+                let transparenz =
+                    Transparenz::true_reduziert(modus_bauen || fließend == Fließend::Gesperrt);
+                macro_rules! transparenz {
+                    ($typ: ident) => {
+                        &transparenz
+                    };
                 }
-                // Kontur
-                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
-                    macro_rules! ist_gehalten {
-                        ($gleis: ident) => {
-                            |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
+                mit_allen_gleisen! {
+                    daten,
+                    fülle_alle_gleise,
+                    transparenz,
+                    &farbe,
+                }
+            }
+            // Kontur
+            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+                macro_rules! ist_gehalten {
+                    ($gleis: ident) => {
+                        |rectangle| {
+                            ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis>
+                                phantom: PhantomData::<fn() -> $gleis>,
                             }))
-                        };
-                    }
-                    mit_allen_gleisen! {
-                        daten,
-                        zeichne_alle_gleise,
-                        ist_gehalten,
-                    }
+                        }
+                    };
                 }
-                // Verbindungen
-                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
-                    macro_rules! ist_gehalten_und_andere_verbindung {
-                        ($gleis: ident) => {
-                            self.ist_gehalten_und_andere_verbindung::<$gleis>(
-                                streckenabschnitt,
-                                gehalten
-                            )
-                        };
-                    }
-                    mit_allen_gleisen! {
-                        daten,
-                        zeichne_alle_anchor_points,
-                        ist_gehalten_und_andere_verbindung
-                    }
+                mit_allen_gleisen! {
+                    daten,
+                    zeichne_alle_gleise,
+                    ist_gehalten,
                 }
-                // Beschreibung
-                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
-                    macro_rules! ist_gehalten {
-                        ($gleis: ident) => {
-                            |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
+            }
+            // Verbindungen
+            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+                macro_rules! ist_gehalten_und_andere_verbindung {
+                    ($gleis: ident) => {
+                        self.ist_gehalten_und_andere_verbindung::<$gleis>(
+                            streckenabschnitt,
+                            gehalten_gleis,
+                        )
+                    };
+                }
+                mit_allen_gleisen! {
+                    daten,
+                    zeichne_alle_anchor_points,
+                    ist_gehalten_und_andere_verbindung
+                }
+            }
+            // Beschreibung
+            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+                macro_rules! ist_gehalten {
+                    ($gleis: ident) => {
+                        |rectangle| {
+                            ist_gehalten(AnyIdRef::from(GleisIdRef {
                                 rectangle,
                                 streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis>
+                                phantom: PhantomData::<fn() -> $gleis>,
                             }))
-                        };
-                    }
-                    mit_allen_gleisen! {
-                        daten,
-                        schreibe_alle_beschreibungen,
-                        ist_gehalten
-                    }
+                        }
+                    };
                 }
-            },
-        )]
+                mit_allen_gleisen! {
+                    daten,
+                    schreibe_alle_beschreibungen,
+                    ist_gehalten
+                }
+            }
+        };
+        vec![canvas.lock().zeichnen_skaliert_von_pivot(bounds.size(), pivot, skalieren, draw_frame)]
     }
 }
