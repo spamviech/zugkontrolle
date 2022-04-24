@@ -438,7 +438,6 @@ impl<L: Leiter> Gleise<L> {
                             // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
                             if cursor.is_over(&bounds) {
                                 let streckenabschnitt_id = streckenabschnitt.map(|(id, _farbe)| id);
-
                                 let spurweite = self.zustand.zugtyp.spurweite;
                                 let daten = match self.zustand.daten_mut(&streckenabschnitt_id) {
                                     Ok(daten) => daten,
@@ -468,9 +467,7 @@ impl<L: Leiter> Gleise<L> {
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
-                        error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
-                    }
+                    self.gehalten_bewegen(canvas_pos);
                     event_status = event::Status::Captured
                 }
             },

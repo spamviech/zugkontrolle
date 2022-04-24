@@ -8,7 +8,7 @@ use rstar::RTreeObject;
 use crate::{
     gleis::{
         gleise::{
-            daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
+            daten::{mit_any_gleis, DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
             Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
         },
@@ -175,29 +175,16 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
-    pub(in crate::gleis::gleise) fn gehalten_bewegen(
-        &mut self,
-        canvas_pos: Vektor,
-    ) -> Result<(), GleisIdFehler> {
+    pub(in crate::gleis::gleise) fn gehalten_bewegen(&mut self, canvas_pos: Vektor) {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis, streckenabschnitt, halte_position, winkel, bewegt }) =
-                gehalten
-            {
+            if let Some(Gehalten { gleis, halte_position, winkel, bewegt, .. }) = gehalten {
                 let punkt = canvas_pos - halte_position;
-                todo!();
-                // gleis.position.punkt = punkt;
-                // mit_any_id!(
-                //     gleis_id,
-                //     Zustand::bewegen,
-                //     &mut self.zustand,
-                //     Position { punkt, winkel: *winkel },
-                //     true
-                // )?;
+                let position = Position { punkt, winkel: *winkel };
+                mit_any_gleis!(gleis, gleis_bewegen_einrasten, &self.zustand, position);
                 *bewegt = true;
                 self.canvas.lock().leeren();
             }
         }
-        Ok(())
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
@@ -240,4 +227,15 @@ impl<L: Leiter> Gleise<L> {
             },
         }
     }
+}
+
+/// Berechne die neue Position unter Berücksichtigung naher Gleise und bewege das Gleis.
+#[inline(always)]
+fn gleis_bewegen_einrasten<L: Leiter, T: Zeichnen + DatenAuswahl>(
+    zustand: &Zustand<L>,
+    gleis: &mut Gleis<T>,
+    ziel_position: Position,
+) {
+    let Gleis { definition, position } = gleis;
+    *position = zustand.einraste_position(definition, ziel_position);
 }

@@ -113,7 +113,8 @@ pub enum AnyGleis {
 }
 
 macro_rules! mit_any_gleis {
-    ($any_gleis: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
+    ($any_gleis: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {{
+        use crate::gleis::gleise::daten::AnyGleis;
         match $any_gleis {
             AnyGleis::Gerade(gleis) => {
                 $function($($objekt,)? gleis $($(, $extra_arg)*)?)
@@ -137,7 +138,7 @@ macro_rules! mit_any_gleis {
                 $function($($objekt,)? gleis $($(, $extra_arg)*)?)
             }
         }
-    };
+    }};
 }
 pub(crate) use mit_any_gleis;
 
@@ -350,7 +351,11 @@ impl<L: Leiter> Zustand<L> {
         (überlappend, ist_gehalten)
     }
 
-    fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
+    pub(in crate::gleis::gleise) fn einraste_position<T: Zeichnen>(
+        &self,
+        definition: &T,
+        position: Position,
+    ) -> Position {
         let spurweite = self.zugtyp.spurweite;
         let mut snap = None;
         let verbindungen = definition.verbindungen_an_position(spurweite, position.clone());
