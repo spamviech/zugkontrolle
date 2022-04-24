@@ -15,6 +15,7 @@ use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger
 use iced::{Application, Clipboard, Command, Element, Radio, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use self::{
@@ -23,7 +24,7 @@ use self::{
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
     icon::icon,
-    steuerung::AsyncAktualisieren,
+    steuerung::{AsyncAktualisieren, Steuerung},
 };
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
@@ -49,7 +50,10 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
+        kontakt::Kontakt,
+        plan::{
+            self, AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht,
+        },
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -194,10 +198,10 @@ where
     ),
     /// Lösche einen [Streckenabschnitt](steuerung::Streckenabschnitt).
     LöscheStreckenabschnitt(StreckenabschnittId),
-    /// Setze den [Streckenabschnitt](steuerung::Streckenabschnitt) des spezifizierten Gleises,
+    /// Setze den [Streckenabschnitt](steuerung::Streckenabschnitt) für das gehaltene Gleis,
     /// sofern es über [StreckenabschnittFestlegen](Nachricht::StreckenabschnittFestlegen)
     /// aktiviert wurde.
-    SetzeStreckenabschnitt(AnyId),
+    SetzeStreckenabschnittGehalten,
     /// Einstellen, ob bei Klick auf ein Gleis der [Streckenabschnitt](steuerung::Streckenabschnitt)
     /// auf den aktuellen gesetzt werden soll
     /// (beeinflusst Reaktion auf [SetzeStreckenabschnitt](Nachricht::SetzeStreckenabschnitt)).
@@ -217,8 +221,15 @@ where
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<L>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
-    /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
-    ZeigeAnschlüsseAnpassen(AnyId),
+    /// Öffne das Fenster zum Anpassen eines Kontaktes ([Gerade], [Kurve]).
+    KontaktAnpassen(Steuerung<Arc<Mutex<Option<Kontakt>>>, AsyncAktualisieren>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche
+    /// ([Weiche], [SKurvenWeiche], [Kreuzung]).
+    GeradeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::GeradeWeiche>>>, AsyncAktualisieren>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
+    KurvenWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::KurvenWeiche>>>, AsyncAktualisieren>),
+    /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
+    DreiwegeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::DreiwegeWeiche>>>, AsyncAktualisieren>),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
@@ -242,17 +253,23 @@ where
 impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
-            // gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
-            //     Nachricht::SetzeStreckenabschnitt(any_id)
-            // },
-            // gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
-            //     Nachricht::ZeigeAnschlüsseAnpassen(any_id)
-            // },
+            gleise::Nachricht::SetzeStreckenabschnittGehalten => {
+                Nachricht::SetzeStreckenabschnittGehalten
+            },
+            gleise::Nachricht::KontaktAnpassen(steuerung) => Nachricht::KontaktAnpassen(steuerung),
+            gleise::Nachricht::GeradeWeicheAnpassen(steuerung) => {
+                Nachricht::GeradeWeicheAnpassen(steuerung)
+            },
+            gleise::Nachricht::KurvenWeicheAnpassen(steuerung) => {
+                Nachricht::KurvenWeicheAnpassen(steuerung)
+            },
+            gleise::Nachricht::DreiwegeWeicheAnpassen(steuerung) => {
+                Nachricht::DreiwegeWeicheAnpassen(steuerung)
+            },
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
                 Nachricht::StreckenabschnittUmschalten(aktion)
             },
             gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
-            _ => todo!(),
         }
     }
 }
@@ -621,8 +638,9 @@ where
             Nachricht::LöscheStreckenabschnitt(streckenabschnitt_id) => {
                 self.streckenabschnitt_löschen(streckenabschnitt_id)
             },
-            Nachricht::SetzeStreckenabschnitt(any_id) => {
-                self.gleis_setzte_streckenabschnitt(any_id)
+            Nachricht::SetzeStreckenabschnittGehalten => {
+                todo!()
+                // self.gleis_setzte_streckenabschnitt(any_id)
             },
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
@@ -646,7 +664,11 @@ where
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
+            // Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
+            Nachricht::KontaktAnpassen(steuerung) => todo!(),
+            Nachricht::GeradeWeicheAnpassen(steuerung) => todo!(),
+            Nachricht::KurvenWeicheAnpassen(steuerung) => todo!(),
+            Nachricht::DreiwegeWeicheAnpassen(steuerung) => todo!(),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = nachricht.als_command()
