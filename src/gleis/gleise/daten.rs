@@ -112,6 +112,35 @@ pub enum AnyGleis {
     Kreuzung(Gleis<Kreuzung>),
 }
 
+macro_rules! mit_any_gleis {
+    ($any_gleis: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
+        match $any_gleis {
+            AnyGleis::Gerade(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::Kurve(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::Weiche(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::DreiwegeWeiche(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::KurvenWeiche(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::SKurvenWeiche(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+            AnyGleis::Kreuzung(gleis) => {
+                $function($($objekt,)? gleis $($(, $extra_arg)*)?)
+            }
+        }
+    };
+}
+pub(crate) use mit_any_gleis;
+
 pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, GleiseDaten)>;
 type GeschwindigkeitMap<Leiter> =
@@ -342,7 +371,7 @@ impl<L: Leiter> Zustand<L> {
         })
     }
 
-    /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         definition: T,
@@ -354,14 +383,9 @@ impl<L: Leiter> Zustand<L> {
         if einrasten {
             position = self.einraste_position(&definition, position)
         }
-        // Berechne Bounding Box.
-        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
-        // Füge zu RStern hinzu.
-        self.daten_mut(&streckenabschnitt)?
-            .rstern_mut()
-            .insert(GeomWithData::new(rectangle.clone(), Gleis { definition, position }));
-        // Rückgabewert
-        Ok(GleisId { rectangle, streckenabschnitt, phantom: PhantomData })
+        let daten = self.daten_mut(&streckenabschnitt)?;
+        let id = daten.hinzufügen(definition, spurweite, position, streckenabschnitt);
+        Ok(id)
     }
 
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
@@ -611,6 +635,23 @@ impl GleiseDaten {
             s_kurven_weichen,
             kreuzungen,
         }
+    }
+
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
+    pub(in crate::gleis::gleise) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
+        &mut self,
+        definition: T,
+        spurweite: Spurweite,
+        position: Position,
+        streckenabschnitt: Option<StreckenabschnittId>,
+    ) -> GleisId<T> {
+        // Berechne Bounding Box.
+        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
+        // Füge zu RStern hinzu.
+        self.rstern_mut()
+            .insert(GeomWithData::new(rectangle.clone(), Gleis { definition, position }));
+        // Rückgabewert
+        GleisId { rectangle, streckenabschnitt, phantom: PhantomData }
     }
 }
 
