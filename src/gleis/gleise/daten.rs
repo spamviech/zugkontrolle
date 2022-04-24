@@ -16,9 +16,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            id::{
-                AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
-            },
+            id::{GleisId, StreckenabschnittId, StreckenabschnittIdRef},
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
@@ -90,6 +88,30 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
             .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
             .konvertiere(|definition| Gleis { definition, position });
         Ok(reserviert)
+    }
+}
+
+impl<T: Zeichnen> Gleis<T> {
+    /// Alle Verbindungen in der Nähe der übergebenen [Verbindung], die zu dem [Gleis] gehören.
+    pub(in crate::gleis::gleise) fn überlappende_verbindungen<'t>(
+        &'t self,
+        spurweite: Spurweite,
+        verbindung: &'t Verbindung,
+    ) -> impl 't + Iterator<Item = Verbindung>
+    where
+        T: Zeichnen + DatenAuswahl + 't,
+    {
+        let mut überlappend = Vec::new();
+        let kandidat_verbindungen =
+            self.definition.verbindungen_an_position(spurweite, self.position.clone());
+        for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.referenzen() {
+            if (verbindung.position - kandidat_verbindung.position).länge()
+                < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
+            {
+                überlappend.push(kandidat_verbindung.clone())
+            }
+        }
+        überlappend.into_iter()
     }
 }
 
@@ -307,48 +329,34 @@ impl<L: Leiter> Zustand<L> {
             ))
     }
 
-    /// Alle Verbindungen in der Nähe der übergebenen Position.
-    /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
-    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+    /// Alle Verbindungen in der Nähe der übergebenen [Verbindung].
     pub(in crate::gleis::gleise) fn überlappende_verbindungen<'t>(
         &'t self,
         verbindung: &'t Verbindung,
-        eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten: Option<&'t AnyGleis>,
-    ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
-        let mut ist_gehalten = false;
-        let überlappend =
-            self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
-                macro_rules! überlappende_verbindungen {
-                    ($gleis: ident) => {{
-                        let (überlappend_daten, gehalten_daten) = daten
-                            .überlappende_verbindungen::<$gleis>(
-                                self.zugtyp.spurweite,
-                                verbindung,
-                                streckenabschnitt.clone(),
-                                eigene_id,
-                                gehalten,
-                            );
-                        ist_gehalten = ist_gehalten || gehalten_daten;
-                        überlappend_daten
-                    }};
-                }
-                let überlappend_gerade = überlappende_verbindungen!(Gerade);
-                let überlappend_kurve = überlappende_verbindungen!(Kurve);
-                let überlappend_weiche = überlappende_verbindungen!(Weiche);
-                let überlappend_dreiwege_weiche = überlappende_verbindungen!(DreiwegeWeiche);
-                let überlappend_kurven_weiche = überlappende_verbindungen!(KurvenWeiche);
-                let überlappend_s_kurven_weiche = überlappende_verbindungen!(SKurvenWeiche);
-                let überlappend_kreuzung = überlappende_verbindungen!(Kreuzung);
-                überlappend_gerade
-                    .chain(überlappend_kurve)
-                    .chain(überlappend_weiche)
-                    .chain(überlappend_dreiwege_weiche)
-                    .chain(überlappend_kurven_weiche)
-                    .chain(überlappend_s_kurven_weiche)
-                    .chain(überlappend_kreuzung)
-            });
-        (überlappend, ist_gehalten)
+    ) -> impl 't + Iterator<Item = Verbindung> {
+        self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
+            macro_rules! überlappende_verbindungen {
+                ($gleis: ident) => {{
+                    let überlappend_daten = daten
+                        .überlappende_verbindungen::<$gleis>(self.zugtyp.spurweite, verbindung);
+                    überlappend_daten
+                }};
+            }
+            let überlappend_gerade = überlappende_verbindungen!(Gerade);
+            let überlappend_kurve = überlappende_verbindungen!(Kurve);
+            let überlappend_weiche = überlappende_verbindungen!(Weiche);
+            let überlappend_dreiwege_weiche = überlappende_verbindungen!(DreiwegeWeiche);
+            let überlappend_kurven_weiche = überlappende_verbindungen!(KurvenWeiche);
+            let überlappend_s_kurven_weiche = überlappende_verbindungen!(SKurvenWeiche);
+            let überlappend_kreuzung = überlappende_verbindungen!(Kreuzung);
+            überlappend_gerade
+                .chain(überlappend_kurve)
+                .chain(überlappend_weiche)
+                .chain(überlappend_dreiwege_weiche)
+                .chain(überlappend_kurven_weiche)
+                .chain(überlappend_s_kurven_weiche)
+                .chain(überlappend_kreuzung)
+        })
     }
 
     pub(in crate::gleis::gleise) fn einraste_position<T: Zeichnen>(
@@ -361,8 +369,7 @@ impl<L: Leiter> Zustand<L> {
         let verbindungen = definition.verbindungen_an_position(spurweite, position.clone());
         verbindungen.für_alle(|verbindung_name, verbindung| {
             if snap.is_none() {
-                let (mut überlappende, _gehalten) =
-                    self.überlappende_verbindungen(verbindung, None, None);
+                let mut überlappende = self.überlappende_verbindungen(verbindung);
                 snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
             }
         });
@@ -547,21 +554,13 @@ impl GleiseDaten {
         }
     }
 
-    /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen `RStern`.
-    /// Der erste Rückgabewert sind alle `Verbindung`en in der Nähe,
-    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
-    fn überlappende_verbindungen<'t, T>(
+    /// Alle [Verbindungen](Verbindung) in der Nähe der übergebenen Position im zugehörigen [RStern].
+    /// Der Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe.
+    fn überlappende_verbindungen<'t, T: 't + Zeichnen + DatenAuswahl>(
         &'t self,
         spurweite: Spurweite,
         verbindung: &'t Verbindung,
-        streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten: Option<&'t AnyGleis>,
-    ) -> (impl Iterator<Item = Verbindung> + 't, bool)
-    where
-        T: Zeichnen + DatenAuswahl + 't,
-        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
-    {
+    ) -> impl 't + Iterator<Item = Verbindung> {
         let vektor_genauigkeit = Vektor {
             x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
             y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
@@ -573,39 +572,11 @@ impl GleiseDaten {
         let kandidaten = self
             .rstern::<T>()
             .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
-        let mut ist_gehalten = false;
         let überlappend = kandidaten.flat_map(move |kandidat| {
-            let rectangle = kandidat.geom();
-            let kandidat_id = AnyIdRef::from(GleisIdRef {
-                rectangle,
-                streckenabschnitt: streckenabschnitt.clone(),
-                phantom: PhantomData::<fn() -> T>,
-            });
-            let mut überlappend = Vec::new();
-            if Some(&kandidat_id) != eigene_id {
-                let kandidat_verbindungen = kandidat
-                    .data
-                    .definition
-                    .verbindungen_an_position(spurweite, kandidat.data.position.clone());
-                for (_kandidat_name, kandidat_verbindung) in kandidat_verbindungen.referenzen() {
-                    if (verbindung.position - kandidat_verbindung.position).länge()
-                        < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
-                    {
-                        überlappend.push(kandidat_verbindung.clone())
-                    }
-                }
-            }
-            if !ist_gehalten
-                && gehalten.map_or(false, |gleis| {
-                    let todo: &AnyIdRef<'_> = todo!();
-                    todo == &kandidat_id
-                })
-            {
-                ist_gehalten = true;
-            }
-            überlappend.into_iter()
+            let gleis = &kandidat.data;
+            gleis.überlappende_verbindungen(spurweite, verbindung)
         });
-        (überlappend, ist_gehalten)
+        überlappend
     }
 
     pub(in crate::gleis::gleise) fn ist_leer(&self) -> bool {

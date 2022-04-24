@@ -117,16 +117,12 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
+fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
-    rstern: &'t RStern<T>,
-    ist_gehalten_und_andere_verbindung: F,
-) where
-    't: 'r + 's,
-    T: Zeichnen,
-    F: Fn(&'r Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung,
-{
+    rstern: &RStern<T>,
+    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> GehaltenVerbindung,
+) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
@@ -140,7 +136,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
                 };
                 frame.with_save(|frame| {
                     let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
-                        ist_gehalten_und_andere_verbindung(rectangle, verbindung_an_position);
+                        ist_gehalten_und_andere_verbindung(verbindung_an_position);
                     let a = Transparenz::true_reduziert(gehalten).alpha();
                     let g = if andere_entgegengesetzt { 1. } else { 0. };
                     let color = Color { r: 0., g, b: 1. - g, a };
@@ -214,30 +210,15 @@ struct GehaltenVerbindung {
 }
 
 impl<L: Leiter> Gleise<L> {
-    fn ist_gehalten_und_andere_verbindung<'t, T>(
+    fn ist_gehalten_und_andere_verbindung<'t, T: Zeichnen>(
         &'t self,
-        streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
         gehalten: Option<&'t AnyGleis>,
-    ) -> impl 't + Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung
-    where
-        T: Zeichnen,
-        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
-    {
-        // let ist_gehalten = ist_gehalten_test(gehalten_id);
-        let ist_gehalten = |_id| todo!();
-        move |rectangle: &Rectangle<Vektor>, verbindung: Verbindung| {
-            let ist_gehalten = ist_gehalten(AnyIdRef::from(GleisIdRef {
-                rectangle,
-                streckenabschnitt,
-                phantom: PhantomData::<fn() -> T>,
-            }));
-            let any_id = AnyIdRef::from(GleisIdRef {
-                rectangle,
-                streckenabschnitt,
-                phantom: PhantomData::<fn() -> T>,
-            });
-            let (mut überlappende, andere_gehalten) =
-                self.zustand.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten);
+    ) -> impl 't + Fn(Verbindung) -> GehaltenVerbindung {
+        // FIXME vergleiche mit gehalten
+        move |verbindung: Verbindung| {
+            let ist_gehalten = todo!();
+            let andere_gehalten = todo!();
+            let mut überlappende = self.zustand.überlappende_verbindungen(&verbindung);
             let ist_entgegengesetzt = |überlappend: &Verbindung| {
                 (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
                     < Winkel(0.1)
@@ -365,13 +346,10 @@ impl<L: Leiter> Gleise<L> {
                 }
             }
             // Verbindungen
-            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+            for (_streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                 macro_rules! ist_gehalten_und_andere_verbindung {
                     ($gleis: ident) => {
-                        self.ist_gehalten_und_andere_verbindung::<$gleis>(
-                            streckenabschnitt,
-                            gehalten_gleis,
-                        )
+                        self.ist_gehalten_und_andere_verbindung::<$gleis>(gehalten_gleis)
                     };
                 }
                 mit_allen_gleisen! {
