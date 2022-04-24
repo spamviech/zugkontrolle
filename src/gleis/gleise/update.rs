@@ -426,9 +426,8 @@ impl<L: Leiter> Gleise<L> {
                         if bewegt {
                             // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
                             if cursor.is_over(&bounds) {
-                                let streckenabschnitt_id = streckenabschnitt.map(|(id, _farbe)| id);
                                 let spurweite = self.zustand.zugtyp.spurweite;
-                                let daten = match self.zustand.daten_mut(&streckenabschnitt_id) {
+                                let daten = match self.zustand.daten_mut(&streckenabschnitt) {
                                     Ok(daten) => daten,
                                     Err(fehler) => {
                                         error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
@@ -440,7 +439,7 @@ impl<L: Leiter> Gleise<L> {
                                     gleis_hinzufügen,
                                     daten,
                                     spurweite,
-                                    streckenabschnitt_id
+                                    streckenabschnitt
                                 );
                             }
                         } else {
