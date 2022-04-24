@@ -83,32 +83,37 @@ fn fülle_alle_gleise<T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_gleise<'t, T: Zeichnen>(
+fn zeichne_gleis<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
-    rstern: &'t RStern<T>,
-    ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
+    gleis: &Gleis<T>,
+    transparenz: &Transparenz,
+) {
+    let Gleis { definition, position } = gleis;
+    frame.with_save(|frame| {
+        bewege_an_position(frame, position);
+        // zeichne Kontur
+        for path in definition.zeichne(spurweite) {
+            frame.with_save(|frame| {
+                let a = transparenz.alpha();
+                frame.stroke(
+                    &path,
+                    Stroke { color: Color { a, ..Color::BLACK }, width: 1.5, ..Default::default() },
+                );
+            });
+        }
+    })
+}
+
+fn zeichne_alle_gleise<T: Zeichnen>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    rstern: &RStern<T>,
+    transparenz: &Transparenz,
 ) {
     for geom_with_data in rstern.iter() {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        frame.with_save(|frame| {
-            bewege_an_position(frame, position);
-            // zeichne Kontur
-            for path in definition.zeichne(spurweite) {
-                frame.with_save(|frame| {
-                    let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
-                    frame.stroke(
-                        &path,
-                        Stroke {
-                            color: Color { a, ..Color::BLACK },
-                            width: 1.5,
-                            ..Default::default()
-                        },
-                    );
-                });
-            }
-        })
+        let gleis = &geom_with_data.data;
+        zeichne_gleis(frame, spurweite, gleis, transparenz)
     }
 }
 
@@ -192,10 +197,6 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
             })
         }
     }
-}
-
-fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl Fn(AnyIdRef<'t>) -> bool + 't {
-    move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
 }
 
 struct GehaltenVerbindung {
@@ -345,22 +346,16 @@ impl<L: Leiter> Gleise<L> {
                 }
             }
             // Kontur
-            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
-                macro_rules! ist_gehalten {
+            for (_streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+                macro_rules! transparenz {
                     ($gleis: ident) => {
-                        |rectangle| {
-                            ist_gehalten(AnyIdRef::from(GleisIdRef {
-                                rectangle,
-                                streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis>,
-                            }))
-                        }
+                        &Transparenz::Voll
                     };
                 }
                 mit_allen_gleisen! {
                     daten,
                     zeichne_alle_gleise,
-                    ist_gehalten,
+                    transparenz,
                 }
             }
             // Verbindungen
