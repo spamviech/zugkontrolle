@@ -7,18 +7,10 @@ use std::{
 };
 
 use parking_lot::Mutex;
-use rstar::RTreeObject;
 
 use crate::{
-    gleis::{
-        self,
-        gleise::{
-            daten::{DatenAuswahl, Gleis},
-            id::GleisId,
-            GleisIdFehler, Gleise,
-        },
-    },
-    steuerung::{self, geschwindigkeit::Leiter, kontakt::Kontakt},
+    gleis,
+    steuerung::{self, kontakt::Kontakt},
     typen::canvas::Cache,
 };
 
