@@ -1,29 +1,18 @@
 //! [draw](iced::Application::draw)-Methode für [Gleise].
 
-use std::marker::PhantomData;
-
 use iced::{
     canvas::{Cursor, Geometry},
     Point,
 };
-use rstar::primitives::Rectangle;
 
 use crate::{
     anschluss::polarität::Fließend,
-    application::streckenabschnitt::Streckenabschnitt,
     gleis::{
-        gerade::Gerade,
         gleise::{
             daten::{Gleis, RStern, Zustand},
-            id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
             AnyGleis, Gehalten, Gleise, ModusDaten,
         },
-        kreuzung::Kreuzung,
-        kurve::Kurve,
         verbindung::Verbindung,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
     },
     nachschlagen::Nachschlagen,
     steuerung::geschwindigkeit::Leiter,
@@ -120,30 +109,42 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     }
 }
 
-struct GehaltenVerbindung {
-    gehalten: bool,
+struct AndereVerbindung {
+    /// Es existiert eine entgegengesetzte [Verbindung] in der Nähe.
     andere_entgegengesetzt: bool,
+    /// Es existiert eine gehaltene [Verbindung] in der Nähe.
     andere_gehalten: bool,
 }
 
-fn ist_gehalten_und_andere_verbindung<'t, L: Leiter>(
+enum SelbstGehalten<'t> {
+    /// Es geht um die Verbindungen des gehaltenen Gleises.
+    Selbst,
+    /// Es geht um die Verbindungen eines nicht-gehaltenen Gleises.
+    Anderes(Option<(&'t AnyGleis, Option<&'t Farbe>)>),
+}
+
+fn finde_andere_verbindung<'t, L: Leiter>(
     zustand: &'t Zustand<L>,
-    gehalten: Option<(&'t AnyGleis, Option<&'t Farbe>)>,
-) -> impl 't + Fn(Verbindung) -> GehaltenVerbindung {
+    gehalten: SelbstGehalten<'t>,
+) -> impl 't + Fn(Verbindung) -> AndereVerbindung {
     let spurweite = zustand.zugtyp.spurweite;
     move |verbindung: Verbindung| {
-        let überlappend_gehalten = gehalten.map_or(Vec::new(), |(gleis, _farbe)| {
-            mit_any_gleis!(gleis, Gleis::überlappende_verbindungen, spurweite, &verbindung)
-        });
-        let ist_gehalten = überlappend_gehalten.contains(&verbindung);
-        let andere_gehalten = !überlappend_gehalten.is_empty();
-        let mut überlappende = zustand.überlappende_verbindungen(&verbindung);
-        let ist_entgegengesetzt = |überlappend: &Verbindung| {
+        let überlappende: Vec<_> = zustand.überlappende_verbindungen(&verbindung).collect();
+        let ist_entgegengesetzt = |überlappend: &&Verbindung| {
             (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
                 < Winkel(0.1)
         };
-        let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
-        GehaltenVerbindung { gehalten: ist_gehalten, andere_entgegengesetzt, andere_gehalten }
+        let andere_entgegengesetzt = überlappende.iter().find(ist_entgegengesetzt).is_some();
+        let andere_gehalten = match gehalten {
+            SelbstGehalten::Selbst => !überlappende.is_empty(),
+            SelbstGehalten::Anderes(gehalten) => {
+                let überlappend_gehalten = gehalten.map_or(Vec::new(), |(gleis, _farbe)| {
+                    mit_any_gleis!(gleis, Gleis::überlappende_verbindungen, spurweite, &verbindung)
+                });
+                !überlappend_gehalten.is_empty()
+            },
+        };
+        AndereVerbindung { andere_entgegengesetzt, andere_gehalten }
     }
 }
 
@@ -151,7 +152,8 @@ fn zeichne_anchor_points<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     gleis: &Gleis<T>,
-    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> GehaltenVerbindung,
+    transparenz: &Transparenz,
+    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> AndereVerbindung,
 ) {
     let Gleis { definition, position } = gleis;
     frame.with_save(|frame| {
@@ -163,9 +165,9 @@ fn zeichne_anchor_points<T: Zeichnen>(
                 richtung: position.winkel + verbindung.richtung,
             };
             frame.with_save(|frame| {
-                let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
+                let AndereVerbindung { andere_entgegengesetzt, andere_gehalten } =
                     ist_gehalten_und_andere_verbindung(verbindung_an_position);
-                let a = Transparenz::true_reduziert(gehalten).alpha();
+                let a = transparenz.alpha();
                 let g = if andere_entgegengesetzt { 1. } else { 0. };
                 let b = 1. - g;
                 let color = Color { r: 0., g, b, a };
@@ -191,11 +193,18 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     rstern: &RStern<T>,
-    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> GehaltenVerbindung,
+    transparenz: &Transparenz,
+    ist_gehalten_und_andere_verbindung: impl Fn(Verbindung) -> AndereVerbindung,
 ) {
     for geom_with_data in rstern.iter() {
         let gleis = &geom_with_data.data;
-        zeichne_anchor_points(frame, spurweite, gleis, &ist_gehalten_und_andere_verbindung)
+        zeichne_anchor_points(
+            frame,
+            spurweite,
+            gleis,
+            transparenz,
+            &ist_gehalten_und_andere_verbindung,
+        )
     }
 }
 
@@ -316,7 +325,11 @@ impl<L: Leiter> Gleise<L> {
                 mit_allen_gleisen! {
                     daten,
                     zeichne_alle_anchor_points,
-                    ist_gehalten_und_andere_verbindung(&self.zustand, gehalten_gleis_und_farbe)
+                    &transparenz_voll,
+                    finde_andere_verbindung(
+                        &self.zustand,
+                        SelbstGehalten::Anderes(gehalten_gleis_und_farbe)
+                    )
                 }
             }
             // Beschreibung
@@ -335,7 +348,13 @@ impl<L: Leiter> Gleise<L> {
                     mit_any_gleis!(=> frame, spurweite => gleis, fülle_gleis, &transparenz, farbe);
                 }
                 mit_any_gleis!(=> frame, spurweite => gleis, zeichne_gleis, &transparenz);
-                mit_any_gleis!(=> frame, spurweite => gleis, zeichne_anchor_points, ist_gehalten_und_andere_verbindung(&self.zustand, gehalten_gleis_und_farbe));
+                mit_any_gleis!(
+                    => frame, spurweite =>
+                    gleis,
+                    zeichne_anchor_points,
+                    &transparenz,
+                    finde_andere_verbindung(&self.zustand, SelbstGehalten::Selbst)
+                );
                 mit_any_gleis!(=> frame, spurweite => gleis, schreibe_beschreibung, &transparenz);
             }
         };
