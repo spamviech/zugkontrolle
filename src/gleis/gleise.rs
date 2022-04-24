@@ -35,14 +35,6 @@ use crate::{
         empfänger::Empfänger,
         steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
     },
-    gleis::{
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
         kontakt::Kontakt,
@@ -51,7 +43,6 @@ use crate::{
     },
     typen::{
         canvas::{Cache, Position},
-        farbe::Farbe,
         mm::Spurweite,
         skalar::Skalar,
         vektor::Vektor,

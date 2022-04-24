@@ -320,7 +320,7 @@ impl<L: Leiter> Zustand<L> {
         &'t self,
         verbindung: &'t Verbindung,
     ) -> impl 't + Iterator<Item = Verbindung> {
-        self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {
+        self.alle_streckenabschnitt_daten().flat_map(move |(_streckenabschnitt, daten)| {
             macro_rules! überlappende_verbindungen {
                 ($gleis: ident) => {{
                     let überlappend_daten = daten

@@ -1,7 +1,6 @@
 //! [update](iced::Application::update)-Methode für [Gleise].
 
 use std::{
-    marker::PhantomData,
     sync::{mpsc::Sender, Arc},
     time::{Duration, Instant},
 };
