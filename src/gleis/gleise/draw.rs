@@ -163,39 +163,47 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     }
 }
 
-fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
+fn schreibe_beschreibung<T: Zeichnen>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
-    rstern: &'t RStern<T>,
-    ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
+    gleis: &Gleis<T>,
+    transparenz: &Transparenz,
+) {
+    let Gleis { definition, position } = gleis;
+    let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
+    if let Some(content) = match (beschreibung, name) {
+        (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
+        (None, Some(name)) => Some(name.into_owned()),
+        (Some(beschreibung), None) => Some(beschreibung.clone()),
+        (None, None) => None,
+    } {
+        let punkt = position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
+        let winkel = position.winkel + relative_position.winkel;
+        let absolute_position = Position { punkt, winkel };
+        frame.with_save(|frame| {
+            bewege_an_position(frame, &absolute_position);
+            let a = transparenz.alpha();
+            frame.fill_text(Text {
+                content,
+                position: Point::ORIGIN,
+                color: Color { a, ..Color::BLACK },
+                horizontal_alignment: HorizontalAlignment::Center,
+                vertical_alignment: VerticalAlignment::Center,
+                ..Default::default()
+            });
+        })
+    }
+}
+
+fn schreibe_alle_beschreibungen<T: Zeichnen>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    rstern: &RStern<T>,
+    transparenz: &Transparenz,
 ) {
     for geom_with_data in rstern.iter() {
-        let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
-        let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
-        if let Some(content) = match (beschreibung, name) {
-            (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
-            (None, Some(name)) => Some(name.into_owned()),
-            (Some(beschreibung), None) => Some(beschreibung.clone()),
-            (None, None) => None,
-        } {
-            let punkt =
-                position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
-            let winkel = position.winkel + relative_position.winkel;
-            let absolute_position = Position { punkt, winkel };
-            frame.with_save(|frame| {
-                bewege_an_position(frame, &absolute_position);
-                let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
-                frame.fill_text(Text {
-                    content,
-                    position: Point::ORIGIN,
-                    color: Color { a, ..Color::BLACK },
-                    horizontal_alignment: HorizontalAlignment::Center,
-                    vertical_alignment: VerticalAlignment::Center,
-                    ..Default::default()
-                });
-            })
-        }
+        let gleis = &geom_with_data.data;
+        schreibe_beschreibung(frame, spurweite, gleis, transparenz)
     }
 }
 
@@ -264,9 +272,7 @@ impl<L: Leiter> Gleise<L> {
                 },
             };
             // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-            // TODO gehaltenes Gleis zeichnen
-            // let ist_gehalten = ist_gehalten_test(gehalten);
-            let ist_gehalten = |_id| todo!();
+            // FIXME gehaltenes Gleis zeichnen
 
             macro_rules! mit_allen_gleisen {
                 ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),* $(,)?)?) => {
@@ -375,16 +381,10 @@ impl<L: Leiter> Gleise<L> {
                 }
             }
             // Beschreibung
-            for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
+            for (_streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                 macro_rules! ist_gehalten {
                     ($gleis: ident) => {
-                        |rectangle| {
-                            ist_gehalten(AnyIdRef::from(GleisIdRef {
-                                rectangle,
-                                streckenabschnitt,
-                                phantom: PhantomData::<fn() -> $gleis>,
-                            }))
-                        }
+                        &Transparenz::Voll
                     };
                 }
                 mit_allen_gleisen! {
