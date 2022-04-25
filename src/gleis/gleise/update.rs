@@ -20,7 +20,7 @@ use crate::{
     application::steuerung::{AsyncAktualisieren, MitSteuerung, Steuerung},
     gleis::{
         gleise::{
-            daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, GleiseDaten, RStern},
+            daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, GleiseDaten, RStern, Zustand},
             id::{StreckenabschnittId, StreckenabschnittIdRef},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
@@ -389,6 +389,23 @@ fn gleis_hinzufügen<T: Zeichnen + DatenAuswahl>(
     let _ = daten.hinzufügen(definition, spurweite, position, streckenabschnitt);
 }
 
+/// Füge das gehaltene Gleis dem entsprechenden [RStern](crate::gleis::gleise::daten::RStern) hinzu.
+pub(in crate::gleis::gleise) fn gehalten_hinzufügen<L: Leiter>(
+    zustand: &mut Zustand<L>,
+    gehalten: Gehalten,
+) {
+    let spurweite = zustand.zugtyp.spurweite;
+    let Gehalten { gleis, streckenabschnitt, .. } = gehalten;
+    let daten = match zustand.daten_mut(&streckenabschnitt) {
+        Ok(daten) => daten,
+        Err(fehler) => {
+            error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
+            &mut zustand.ohne_streckenabschnitt
+        },
+    };
+    mit_any_gleis!(gleis, gleis_hinzufügen, daten, spurweite, streckenabschnitt);
+}
+
 impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
@@ -419,31 +436,17 @@ impl<L: Leiter> Gleise<L> {
                 message = click_result.1;
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    if let Some(Gehalten { gleis, bewegt, streckenabschnitt, .. }) = gehalten.take()
-                    {
-                        if bewegt {
+                if let ModusDaten::Bauen { gehalten: modus_gehalten, .. } = &mut self.modus {
+                    if let Some(gehalten) = modus_gehalten.take() {
+                        if gehalten.bewegt {
                             // Entferne Gleis, wenn es aus dem canvas bewegt wurde.
                             if cursor.is_over(&bounds) {
-                                let spurweite = self.zustand.zugtyp.spurweite;
-                                let daten = match self.zustand.daten_mut(&streckenabschnitt) {
-                                    Ok(daten) => daten,
-                                    Err(fehler) => {
-                                        error!("Streckenabschnitt des gehaltenes Gleises entfernt: {fehler:?}");
-                                        &mut self.zustand.ohne_streckenabschnitt
-                                    },
-                                };
-                                mit_any_gleis!(
-                                    gleis,
-                                    gleis_hinzufügen,
-                                    daten,
-                                    spurweite,
-                                    streckenabschnitt
-                                );
+                                gehalten_hinzufügen(&mut self.zustand, gehalten)
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
                             message = Some(Nachricht::SetzeStreckenabschnittGehalten);
+                            *modus_gehalten = Some(gehalten)
                         };
                         event_status = event::Status::Captured;
                     }

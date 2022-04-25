@@ -10,6 +10,7 @@ use crate::{
         gleise::{
             daten::{mit_any_gleis, AnyGleis, DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{GleisId, StreckenabschnittId},
+            update::gehalten_hinzufügen,
             Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
@@ -176,14 +177,25 @@ impl<L: Leiter> Gleise<L> {
         Ok(())
     }
 
-    /// Ändere den Streckenabschnitt des gehaltenen Gleises.
+    /// Füge das gehaltene Gleis dem [RStern](crate::gleis::gleise::daten::RStern) hinzu.
+    pub(crate) fn gehalten_hinzufügen(&mut self) {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            if let Some(gehalten) = gehalten.take() {
+                gehalten_hinzufügen(&mut self.zustand, gehalten)
+            }
+        }
+    }
+
+    /// Ändere den Streckenabschnitt des gehaltenen Gleises und füge es dem
+    /// [RStern](crate::gleis::gleise::daten::RStern) hinzu.
     pub(crate) fn setzte_streckenabschnitt_gehalten(
         &mut self,
         neuer_streckenabschnitt: Option<StreckenabschnittId>,
     ) {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { streckenabschnitt, .. }) = gehalten {
-                *streckenabschnitt = neuer_streckenabschnitt
+            if let Some(mut gehalten) = gehalten.take() {
+                gehalten.streckenabschnitt = neuer_streckenabschnitt;
+                gehalten_hinzufügen(&mut self.zustand, gehalten)
             }
         }
     }

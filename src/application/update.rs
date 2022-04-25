@@ -414,6 +414,8 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
             let aktuell =
                 self.streckenabschnitt_aktuell.aktuell().as_ref().map(|(id, _farbe)| id.klonen());
             self.gleise.setzte_streckenabschnitt_gehalten(aktuell)
+        } else {
+            self.gleise.gehalten_hinzufügen()
         }
     }
 
