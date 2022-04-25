@@ -406,6 +406,17 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         }
     }
 
+    /// Ändere den [Streckenabschnitt] für das gehaltene Gleis zum aktuellen Streckenabschnitt,
+    /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
+    /// deaktiviert wurde.
+    pub fn setzte_streckenabschnitt_gehalten(&mut self) {
+        if self.streckenabschnitt_aktuell_festlegen {
+            let aktuell =
+                self.streckenabschnitt_aktuell.aktuell().as_ref().map(|(id, _farbe)| id.klonen());
+            self.gleise.setzte_streckenabschnitt_gehalten(aktuell)
+        }
+    }
+
     /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.

@@ -176,6 +176,18 @@ impl<L: Leiter> Gleise<L> {
         Ok(())
     }
 
+    /// Ändere den Streckenabschnitt des gehaltenen Gleises.
+    pub(crate) fn setzte_streckenabschnitt_gehalten(
+        &mut self,
+        neuer_streckenabschnitt: Option<StreckenabschnittId>,
+    ) {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            if let Some(Gehalten { streckenabschnitt, .. }) = gehalten {
+                *streckenabschnitt = neuer_streckenabschnitt
+            }
+        }
+    }
+
     /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(&mut self, canvas_pos: Vektor) {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {

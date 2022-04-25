@@ -638,10 +638,7 @@ where
             Nachricht::LöscheStreckenabschnitt(streckenabschnitt_id) => {
                 self.streckenabschnitt_löschen(streckenabschnitt_id)
             },
-            Nachricht::SetzeStreckenabschnittGehalten => {
-                todo!()
-                // self.gleis_setzte_streckenabschnitt(any_id)
-            },
+            Nachricht::SetzeStreckenabschnittGehalten => self.setzte_streckenabschnitt_gehalten(),
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
             },
@@ -656,7 +653,6 @@ where
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::AktionGeschwindigkeit(aktion) => {
-                // TODO Umdrehen zeigt Geschwindigkeit(0) erst nach vollständigem ausführen an
                 self.async_aktion_ausführen(aktion, Some(Nachricht::AsyncAktualisieren))
             },
             Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
