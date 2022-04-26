@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
 use rstar::{
     primitives::{GeomWithData, Rectangle},
-    RTree, RTreeObject, SelectionFunction, AABB,
+    Envelope, RTree, RTreeObject, SelectionFunction, AABB,
 };
 use serde::{Deserialize, Serialize};
 
@@ -637,15 +637,7 @@ where
     T: RTreeObject<Envelope = AABB<Vektor>>,
 {
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
-        let self_upper = self.0.upper();
-        let self_lower = self.0.lower();
-        let upper = envelope.upper();
-        let lower = envelope.lower();
-        // der gesuchte Envelope muss komplett in den parent passen
-        lower.x <= self_lower.x
-            && lower.y <= self_lower.y
-            && upper.x >= self_upper.x
-            && upper.y >= self_upper.y
+        envelope.contains_envelope(&self.0)
     }
 
     fn should_unpack_leaf(&self, leaf: &T) -> bool {
