@@ -1,7 +1,7 @@
 //! Einstellen der Steuerung einer [Weiche](crate::steuerung::Weiche).
 
 use std::{
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display, Formatter},
     sync::Arc,
 };
 
@@ -86,14 +86,17 @@ pub struct Auswahl<'t, Richtung, Anschlüsse: Serialisiere, R: card::Renderer> {
 
 impl<Richtung, Anschlüsse: Serialisiere, R> Debug for Auswahl<'_, Richtung, Anschlüsse, R>
 where
+    Richtung: Debug,
+    Anschlüsse: Debug,
     <Anschlüsse as Serialisiere>::Serialisiert: Debug,
     R: card::Renderer,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("card", &"<Card>")
             .field("name", &self.name)
             .field("anschlüsse", &self.anschlüsse)
+            .field("mutex", &self.mutex)
             .finish()
     }
 }
