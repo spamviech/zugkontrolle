@@ -164,35 +164,17 @@ where
                     Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
                 }
             }),
-            AuswahlZustand::Weiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
+            AuswahlZustand::Weiche(zustand, mutex) => {
+                Element::from(weiche::Auswahl::neu(zustand, mutex))
+                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
-            AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
+            AuswahlZustand::DreiwegeWeiche(zustand, mutex) => {
+                Element::from(weiche::Auswahl::neu(zustand, mutex))
+                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
-            AuswahlZustand::KurvenWeiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
+            AuswahlZustand::KurvenWeiche(zustand, mutex) => {
+                Element::from(weiche::Auswahl::neu(zustand, mutex))
+                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
                 Element::from(Lizenzen::neu(zustand, *scrollable_style))

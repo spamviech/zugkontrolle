@@ -14,7 +14,7 @@ use std::{
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{Application, Clipboard, Command, Element, Radio, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
@@ -320,6 +320,10 @@ type WeicheZustand = weiche::Zustand<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
     gleis::weiche::gerade::RichtungAnschlüsseAuswahlZustand,
 >;
+type WeicheAnschlüsse = crate::steuerung::weiche::Weiche<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsse,
+>;
 type WeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsse,
@@ -328,6 +332,10 @@ type WeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
 type DreiwegeWeicheZustand = weiche::Zustand<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
     gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlZustand,
+>;
+type DreiwegeWeicheAnschlüsse = crate::steuerung::weiche::Weiche<
+    gleis::weiche::dreiwege::Richtung,
+    gleis::weiche::dreiwege::RichtungAnschlüsse,
 >;
 type DreiwegeWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::Richtung,
@@ -338,58 +346,35 @@ type KurvenWeicheZustand = weiche::Zustand<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
     gleis::weiche::kurve::RichtungAnschlüsseAuswahlZustand,
 >;
+type KurvenWeicheAnschlüsse = crate::steuerung::weiche::Weiche<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsse,
+>;
 type KurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsse,
 >;
-type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
+
+type AnschlüsseMutex<T> = Steuerung<Arc<Mutex<Option<T>>>>;
 
 /// Zustand des Auswahl-Fensters.
-pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
+#[derive(Debug)]
+pub enum AuswahlZustand {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt(streckenabschnitt::AuswahlZustand),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     Geschwindigkeit(geschwindigkeit::AuswahlZustand),
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(WeicheZustand, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
+    Weiche(WeicheZustand, AnschlüsseMutex<WeicheAnschlüsse>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(
-        DreiwegeWeicheZustand,
-        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Leiter>,
-    ),
+    DreiwegeWeiche(DreiwegeWeicheZustand, AnschlüsseMutex<DreiwegeWeicheAnschlüsse>),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
+    KurvenWeiche(KurvenWeicheZustand, AnschlüsseMutex<KurvenWeicheAnschlüsse>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen(lizenzen::Zustand),
 }
 
-impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuswahlZustand::Streckenabschnitt(arg0) => {
-                f.debug_tuple("Streckenabschnitt").field(arg0).finish()
-            },
-            AuswahlZustand::Geschwindigkeit(arg0) => {
-                f.debug_tuple("Geschwindigkeit").field(arg0).finish()
-            },
-            AuswahlZustand::Weiche(arg0, _arg1) => {
-                f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
-            },
-            AuswahlZustand::DreiwegeWeiche(arg0, _arg1) => f
-                .debug_tuple("DreiwegeWeiche")
-                .field(arg0)
-                .field(&"<function>".to_string())
-                .finish(),
-            AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
-                f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
-            },
-            AuswahlZustand::ZeigeLizenzen(arg0) => {
-                f.debug_tuple("ZeigeLizenzen").field(arg0).finish()
-            },
-        }
-    }
-}
-
+/// Fenster zur Anzeige einer Nachricht (im allgemeinen eine Fehlermeldung).
 #[derive(Debug)]
 struct MessageBox {
     titel: String,
@@ -486,7 +471,7 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<L>,
-    auswahl: modal::Zustand<AuswahlZustand<L>>,
+    auswahl: modal::Zustand<AuswahlZustand>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_zustand: iced::button::State,
@@ -661,10 +646,16 @@ where
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
             // Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
-            Nachricht::KontaktAnpassen(steuerung) => todo!(),
-            Nachricht::GeradeWeicheAnpassen(steuerung) => todo!(),
-            Nachricht::KurvenWeicheAnpassen(steuerung) => todo!(),
-            Nachricht::DreiwegeWeicheAnpassen(steuerung) => todo!(),
+            Nachricht::KontaktAnpassen(steuerung) => debug!("Kontakt anpassen: {steuerung:?}"),
+            Nachricht::GeradeWeicheAnpassen(steuerung) => {
+                self.zeige_weiche_anpassen(steuerung, AuswahlZustand::Weiche)
+            },
+            Nachricht::KurvenWeicheAnpassen(steuerung) => {
+                self.zeige_weiche_anpassen(steuerung, AuswahlZustand::KurvenWeiche)
+            },
+            Nachricht::DreiwegeWeicheAnpassen(steuerung) => {
+                self.zeige_weiche_anpassen(steuerung, AuswahlZustand::DreiwegeWeiche)
+            },
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = nachricht.als_command()

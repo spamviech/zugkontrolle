@@ -11,6 +11,7 @@ use std::{
 
 use iced::{button, Command};
 use log::{debug, error};
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -22,7 +23,7 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        steuerung::MitSteuerung,
+        steuerung::{MitSteuerung, Steuerung},
         streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand, MessageBox,
         Nachricht, Zugkontrolle,
     },
@@ -32,6 +33,7 @@ use crate::{
         Gleise,
     },
     steuerung::{
+        self,
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::Ausführen,
         streckenabschnitt::Streckenabschnitt,
@@ -103,40 +105,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 // Initialisiere ein Update des Widgets.
                 let _ = sender.send(aktualisieren);
             });
-        }
-    }
-
-    #[allow(single_use_lifetimes)]
-    fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
-        erzeuge_modal: impl Fn(
-            Zustand,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
-        ) -> AuswahlZustand<L>,
-        als_nachricht: impl 'static
-            + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
-    ) where
-        T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
-    {
-        let steuerung_res = self.gleise.erhalte_steuerung(&id);
-        if let Ok(steuerung) = steuerung_res {
-            let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
-            self.auswahl.zeige_modal(erzeuge_modal(
-                erzeuge_modal_zustand(steuerung_save),
-                Arc::new(move |steuerung| {
-                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
-                }),
-            ))
-        } else {
-            drop(steuerung_res);
-            self.zeige_message_box(
-                "Gleis entfernt!".to_owned(),
-                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
-            )
         }
     }
 
@@ -696,14 +664,72 @@ where
     }
 }
 
-impl<L> Zugkontrolle<L>
-where
-    L: 'static + Debug + LeiterAnzeige + Send,
-    <L as Leiter>::Fahrtrichtung: Debug + Send,
-    <L as Serialisiere>::Serialisiert: Send,
-{
+impl<L: LeiterAnzeige> Zugkontrolle<L> {
+    /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse einer Weiche.
+    #[allow(single_use_lifetimes)]
+    pub fn zeige_weiche_anpassen<
+        Richtung,
+        Anschlüsse,
+        AnschlüsseSerialisiert,
+        AnschlüsseAuswahlZustand,
+    >(
+        &mut self,
+        weiche: Steuerung<Arc<Mutex<Option<steuerung::Weiche<Richtung, Anschlüsse>>>>>,
+        erzeuge_modal: impl Fn(
+            weiche::Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>,
+            Steuerung<Arc<Mutex<Option<steuerung::Weiche<Richtung, Anschlüsse>>>>>,
+        ) -> AuswahlZustand,
+    ) where
+        Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+        Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
+        AnschlüsseSerialisiert: Clone + Default,
+        AnschlüsseAuswahlZustand: From<AnschlüsseSerialisiert>,
+    {
+        let serialisiert = weiche.as_ref().lock().serialisiere();
+        self.auswahl.zeige_modal(erzeuge_modal(weiche::Zustand::neu(serialisiert), weiche))
+    }
+
+    #[allow(single_use_lifetimes)]
+    fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
+        &mut self,
+        gleis_art: &str,
+        id: GleisId<T>,
+        erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
+        erzeuge_modal: impl Fn(
+            Zustand,
+            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
+        ) -> AuswahlZustand,
+        als_nachricht: impl 'static
+            + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
+    ) where
+        T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
+        W: Serialisiere,
+    {
+        let steuerung_res = self.gleise.erhalte_steuerung(&id);
+        if let Ok(steuerung) = steuerung_res {
+            let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
+            self.auswahl.zeige_modal(erzeuge_modal(
+                erzeuge_modal_zustand(steuerung_save),
+                Arc::new(move |steuerung| {
+                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
+                }),
+            ))
+        } else {
+            drop(steuerung_res);
+            self.zeige_message_box(
+                "Gleis entfernt!".to_owned(),
+                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
+            )
+        }
+    }
+
     /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
-    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
+    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId)
+    where
+        L: 'static + Debug + Send,
+        <L as Leiter>::Fahrtrichtung: Debug + Send,
+        <L as Serialisiere>::Serialisiert: Send,
+    {
         todo!()
         // match any_id {
         //     AnyId::Gerade(id) => {
