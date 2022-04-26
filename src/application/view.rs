@@ -165,16 +165,25 @@ where
                 }
             }),
             AuswahlZustand::Weiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex))
-                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
+                {
+                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                })
             },
             AuswahlZustand::DreiwegeWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex))
-                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
+                {
+                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                })
             },
             AuswahlZustand::KurvenWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex))
-                    .map(|weiche::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
+                {
+                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                })
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
                 Element::from(Lizenzen::neu(zustand, *scrollable_style))

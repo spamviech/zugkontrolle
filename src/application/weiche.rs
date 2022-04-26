@@ -172,10 +172,10 @@ where
 /// Nachricht einer [Auswahl].
 #[derive(Debug, Clone)]
 pub enum Nachricht {
-    // /// Steuerung einer Weiche anpassen.
-    // Festlegen(Option<WeicheSerialisiert<Richtung, Anschlüsse>>),
     /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
+    /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der Weiche.
+    ReservierenFehler { titel: String, nachricht: String },
 }
 
 impl<'t, Richtung, Anschlüsse, AnschlüsseSerialisiert, R> Widget<Nachricht, R>
@@ -226,13 +226,10 @@ where
                             Richtung::default(),
                             self.anschlüsse.clone(),
                         );
-                    todo!()
-                    // messages.push(Nachricht::Festlegen(Some(weiche_serialisiert)))
+                    let weiche = todo!("reservieren");
+                    *self.mutex.as_mut().lock() = Some(weiche)
                 },
-                InterneNachricht::Entfernen => {
-                    todo!()
-                    // messages.push(Nachricht::Festlegen(None))
-                },
+                InterneNachricht::Entfernen => *self.mutex.as_mut().lock() = None,
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
         }
