@@ -15,7 +15,7 @@ use parking_lot::Mutex;
 use crate::{
     anschluss::{
         de_serialisieren::{Reserviere, Serialisiere},
-        OutputSerialisiert,
+        Lager, OutputSerialisiert,
     },
     application::{
         anschluss, macros::reexport_no_event_methods, steuerung::Steuerung, style::tab_bar::TabBar,
@@ -82,6 +82,7 @@ pub struct Auswahl<'t, Richtung, Anschlüsse: Serialisiere, R: card::Renderer> {
     name: &'t mut String,
     anschlüsse: &'t mut <Anschlüsse as Serialisiere>::Serialisiert,
     mutex: &'t mut Steuerung<Arc<Mutex<Option<Weiche<Richtung, Anschlüsse>>>>>,
+    lager: &'t mut Lager,
 }
 
 impl<Richtung, Anschlüsse: Serialisiere, R> Debug for Auswahl<'_, Richtung, Anschlüsse, R>
@@ -97,6 +98,7 @@ where
             .field("name", &self.name)
             .field("anschlüsse", &self.anschlüsse)
             .field("mutex", &self.mutex)
+            .field("lager", &self.lager)
             .finish()
     }
 }
@@ -124,6 +126,7 @@ where
     pub fn neu<AnschlüsseAuswahlZustand>(
         zustand: &'t mut Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>,
         mutex: &'t mut Steuerung<Arc<Mutex<Option<Weiche<Richtung, Anschlüsse>>>>>,
+        lager: &'t mut Lager,
     ) -> Self
     where
         AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
@@ -168,7 +171,7 @@ where
             .on_close(InterneNachricht::Schließen)
             .width(Length::Shrink)
             .height(Length::Shrink);
-        Auswahl { card, name, anschlüsse: anschlüsse_serialisiert, mutex }
+        Auswahl { card, name, anschlüsse: anschlüsse_serialisiert, mutex, lager }
     }
 }
 

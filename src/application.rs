@@ -273,6 +273,7 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
         }
     }
 }
+
 impl<Leiter: LeiterAnzeige> From<AsyncAktualisieren> for Nachricht<Leiter> {
     fn from(AsyncAktualisieren: AsyncAktualisieren) -> Self {
         Nachricht::AsyncAktualisieren
@@ -284,6 +285,17 @@ impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
         match nachricht {
             AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
             AsyncNachricht::Fehler { titel, nachricht } => {
+                Nachricht::ZeigeMessageBox { titel, nachricht }
+            },
+        }
+    }
+}
+
+impl<Leiter: LeiterAnzeige> From<weiche::Nachricht> for Nachricht<Leiter> {
+    fn from(nachricht: weiche::Nachricht) -> Self {
+        match nachricht {
+            weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
+            weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
                 Nachricht::ZeigeMessageBox { titel, nachricht }
             },
         }

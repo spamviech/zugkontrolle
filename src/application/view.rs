@@ -74,7 +74,7 @@ where
             drehen,
             zoom,
             speichern_laden,
-            lager: _,
+            lager,
             speichern_gefärbt: _,
             bewegung: _,
             sender: _,
@@ -165,31 +165,19 @@ where
                 }
             }),
             AuswahlZustand::Weiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
-                {
-                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
-                        Nachricht::ZeigeMessageBox { titel, nachricht }
-                    },
-                })
+                // FIXME lager hat lifetime der view-Methode, zustand und mutex der closure.
+                // Es müssten aber beide identisch sein (oder closure-lifetime länger),
+                // sonst funktioniert Element::from nicht richtig.
+                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
+                    .map(Nachricht::from)
             },
             AuswahlZustand::DreiwegeWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
-                {
-                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
-                        Nachricht::ZeigeMessageBox { titel, nachricht }
-                    },
-                })
+                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
+                    .map(Nachricht::from)
             },
             AuswahlZustand::KurvenWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
-                {
-                    weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
-                        Nachricht::ZeigeMessageBox { titel, nachricht }
-                    },
-                })
+                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
+                    .map(Nachricht::from)
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
                 Element::from(Lizenzen::neu(zustand, *scrollable_style))
