@@ -241,11 +241,11 @@ where
     ZeigeLizenzen,
     /// Eine asynchrone Aktion hat eine Änderung des Zustands bewirkt.
     AsyncAktualisieren,
-    /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
-    AsyncFehler {
-        /// Der Titel der Fehlermeldung.
+    /// Zeige eine [MessageBox].
+    ZeigeMessageBox {
+        /// Der Titel der MessageBox.
         titel: String,
-        /// Die Nachricht der Fehlermeldung.
+        /// Die Nachricht der MessageBox.
         nachricht: String,
     },
 }
@@ -284,7 +284,7 @@ impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
         match nachricht {
             AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
             AsyncNachricht::Fehler { titel, nachricht } => {
-                Nachricht::AsyncFehler { titel, nachricht }
+                Nachricht::ZeigeMessageBox { titel, nachricht }
             },
         }
     }
@@ -677,7 +677,9 @@ where
                 )))
             },
             Nachricht::AsyncAktualisieren => {},
-            Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
+            Nachricht::ZeigeMessageBox { titel, nachricht } => {
+                self.zeige_message_box(titel, nachricht)
+            },
         }
 
         command

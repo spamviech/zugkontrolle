@@ -168,21 +168,27 @@ where
                 Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
                 {
                     weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
+                        Nachricht::ZeigeMessageBox { titel, nachricht }
+                    },
                 })
             },
             AuswahlZustand::DreiwegeWeiche(zustand, mutex) => {
                 Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
                 {
                     weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
+                        Nachricht::ZeigeMessageBox { titel, nachricht }
+                    },
                 })
             },
             AuswahlZustand::KurvenWeiche(zustand, mutex) => {
                 Element::from(weiche::Auswahl::neu(zustand, mutex)).map(|nachricht| match nachricht
                 {
                     weiche::Nachricht::Schließen => Nachricht::SchließeAuswahl,
-                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => todo!(),
+                    weiche::Nachricht::ReservierenFehler { titel, nachricht } => {
+                        Nachricht::ZeigeMessageBox { titel, nachricht }
+                    },
                 })
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
