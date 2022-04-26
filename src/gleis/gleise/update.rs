@@ -13,7 +13,7 @@ use log::error;
 use parking_lot::Mutex;
 use rstar::{
     primitives::{GeomWithData, Rectangle as RStarRectangle},
-    SelectionFunction, AABB,
+    Envelope, PointDistance, SelectionFunction, AABB,
 };
 
 use crate::{
@@ -91,14 +91,11 @@ impl<T: Zeichnen> SelectionFunction<GeomWithData<RStarRectangle<Vektor>, Gleis<T
     for KlickInnerhalb
 {
     fn should_unpack_parent(&self, envelope: &AABB<Vektor>) -> bool {
-        let Vektor { x, y } = self.canvas_pos;
-        let upper = envelope.upper();
-        let lower = envelope.lower();
-        lower.x <= x && x <= upper.y && lower.y <= y && y <= upper.y
+        envelope.contains_point(&self.canvas_pos)
     }
 
     fn should_unpack_leaf(&self, leaf: &GeomWithData<RStarRectangle<Vektor>, Gleis<T>>) -> bool {
-        self.ist_innerhalb(&leaf.data)
+        leaf.contains_point(&self.canvas_pos) && self.ist_innerhalb(&leaf.data)
     }
 }
 
