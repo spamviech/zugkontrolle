@@ -11,6 +11,7 @@ use iced_native::{
     Element, Event, Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
 };
 use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
@@ -181,15 +182,21 @@ pub enum Nachricht {
     /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
     /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der Weiche.
-    ReservierenFehler { titel: String, nachricht: String },
+    ReservierenFehler {
+        /// Titel der Fehlermeldung.
+        titel: String,
+        /// Nachricht der Fehlermeldung
+        nachricht: String,
+    },
 }
 
+#[allow(single_use_lifetimes)]
 impl<'t, Richtung, Anschlüsse, AnschlüsseSerialisiert, R> Widget<Nachricht, R>
     for Auswahl<'t, Richtung, Anschlüsse, R>
 where
-    Richtung: Clone + Default,
+    Richtung: Clone + PartialEq + Default + Serialize + for<'de> Deserialize<'de>,
     Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: Clone + PartialEq + Nachschlagen<Richtung, OutputSerialisiert>,
     R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {
@@ -232,8 +239,23 @@ where
                             Richtung::default(),
                             self.anschlüsse.clone(),
                         );
-                    let weiche = todo!("reservieren");
-                    *self.mutex.as_mut().lock() = Some(weiche)
+                    let mut_ref = &mut *self.mutex.as_mut().lock();
+                    if mut_ref.serialisiere().as_ref() == Some(&weiche_serialisiert) {
+                        let bisher = mut_ref.take();
+                        let (pwm_pins, output_anschlüsse, input_anschlüsse) = bisher.anschlüsse();
+                        match weiche_serialisiert.reserviere(
+                            &mut self.lager,
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse,
+                        ) {
+                            Ok(weiche) => *mut_ref = Some(weiche.anschluss),
+                            Err(fehler) => messages.push(Nachricht::ReservierenFehler {
+                                titel: format!("Anschlüsse für Weiche {} reservieren.", self.name),
+                                nachricht: format!("{fehler:?}"),
+                            }),
+                        }
+                    }
                 },
                 InterneNachricht::Entfernen => *self.mutex.as_mut().lock() = None,
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
@@ -243,12 +265,13 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<'t, Richtung, Anschlüsse, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, Anschlüsse, R>>
     for Element<'t, Nachricht, R>
 where
-    Richtung: Clone + Default,
+    Richtung: Clone + PartialEq + Default + Serialize + for<'de> Deserialize<'de>,
     Anschlüsse: Serialisiere<Serialisiert = AnschlüsseSerialisiert>,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: Clone + PartialEq + Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Richtung, Anschlüsse, R>) -> Self {
