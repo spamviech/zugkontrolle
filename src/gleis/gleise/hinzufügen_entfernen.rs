@@ -166,17 +166,6 @@ impl<L: Leiter> Gleise<L> {
         Ok(data)
     }
 
-    /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
-    #[inline(always)]
-    pub(crate) fn entfernen_unit<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisIdFehler>
-    where
-        T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let _ = self.entfernen(gleis_id)?;
-        Ok(())
-    }
-
     /// Füge das gehaltene Gleis dem [RStern](crate::gleis::gleise::daten::RStern) hinzu.
     pub(crate) fn gehalten_hinzufügen(&mut self) {
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {

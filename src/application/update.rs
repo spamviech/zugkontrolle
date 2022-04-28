@@ -10,7 +10,7 @@ use std::{
 };
 
 use iced::{button, Command};
-use log::{debug, error};
+use log::error;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
@@ -23,13 +23,13 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        steuerung::{MitSteuerung, Steuerung},
-        streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand, MessageBox,
-        Nachricht, Zugkontrolle,
+        steuerung::Steuerung,
+        streckenabschnitt, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Nachricht,
+        Zugkontrolle,
     },
     gleis::gleise::{
-        daten::{v2, DatenAuswahl, StreckenabschnittMap},
-        id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
+        daten::{v2, StreckenabschnittMap},
+        id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
         Gleise,
     },
     steuerung::{
@@ -106,86 +106,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 let _ = sender.send(aktualisieren);
             });
         }
-    }
-
-    #[allow(single_use_lifetimes)]
-    fn gleis_anschlüsse_anpassen<T, W>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
-    ) -> Option<Nachricht<L>>
-    where
-        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
-        <W as Serialisiere>::Serialisiert: Debug + Clone,
-    {
-        let mut message = None;
-
-        let mut error_message = None;
-        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
-            if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
-                let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-                    if let Some(s) = steuerung.take() {
-                        (Some(s.serialisiere()), s.anschlüsse())
-                    } else {
-                        (None, (Vec::new(), Vec::new(), Vec::new()))
-                    };
-                match anschlüsse_serialisiert.reserviere(
-                    &mut self.lager,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                ) {
-                    Ok(Reserviert { anschluss, .. }) => {
-                        let _ = steuerung.insert(anschluss);
-                        message = Some(Nachricht::SchließeAuswahl)
-                    },
-                    Err(de_serialisieren::Fehler {
-                        fehler,
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                    }) => {
-                        let mut fehlermeldung = format!("{:?}", fehler);
-                        if let Some(steuerung_save) = steuerung_save {
-                            let save_clone = steuerung_save.clone();
-                            match steuerung_save.reserviere(
-                                &mut self.lager,
-                                pwm_pins,
-                                output_anschlüsse,
-                                input_anschlüsse,
-                            ) {
-                                Ok(Reserviert { anschluss, .. }) => {
-                                    let _ = steuerung.insert(anschluss);
-                                },
-                                Err(error) => {
-                                    fehlermeldung.push_str(&format!(
-                                    "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
-                                    error, save_clone
-                                ));
-                                },
-                            }
-                        }
-                        let _ = error_message
-                            .insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
-                    },
-                }
-            } else {
-                let _ = steuerung.take();
-                message = Some(Nachricht::SchließeAuswahl);
-            }
-        } else {
-            let _ = error_message.insert((
-                "Gleis entfernt!".to_string(),
-                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
-            ));
-        }
-        if let Some((titel, nachricht)) = error_message {
-            self.zeige_message_box(titel, nachricht)
-        }
-
-        message
     }
 
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
@@ -429,31 +349,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         }
     }
 
-    /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(
-        &mut self,
-        anschlüsse_anpassen: AnschlüsseAnpassen,
-    ) -> Option<Nachricht<L>> {
-        todo!()
-        // match anschlüsse_anpassen {
-        //     AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
-        //         self.gleis_anschlüsse_anpassen("Weiche", id, anschlüsse_serialisiert)
-        //     },
-        //     AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
-        //         self.gleis_anschlüsse_anpassen("DreiwegeWeiche", id, anschlüsse_serialisiert)
-        //     },
-        //     AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
-        //         self.gleis_anschlüsse_anpassen("KurvenWeiche", id, anschlüsse_serialisiert)
-        //     },
-        //     AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
-        //         self.gleis_anschlüsse_anpassen("SKurvenWeiche", id, anschlüsse_serialisiert)
-        //     },
-        //     AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
-        //         self.gleis_anschlüsse_anpassen("Kreuzung", id, anschlüsse_serialisiert)
-        //     },
-        // }
-    }
-
     /// Beende die Bewegung des Pivot-Punktes.
     #[inline(always)]
     pub fn bewegung_beenden(&mut self) {
@@ -687,93 +582,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     {
         let serialisiert = weiche.as_ref().lock().serialisiere();
         self.auswahl.zeige_modal(erzeuge_modal(weiche::Zustand::neu(serialisiert), weiche))
-    }
-
-    #[allow(single_use_lifetimes)]
-    fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
-        erzeuge_modal: impl Fn(
-            Zustand,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
-        ) -> AuswahlZustand,
-        als_nachricht: impl 'static
-            + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
-    ) where
-        T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
-    {
-        let steuerung_res = self.gleise.erhalte_steuerung(&id);
-        if let Ok(steuerung) = steuerung_res {
-            let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
-            self.auswahl.zeige_modal(erzeuge_modal(
-                erzeuge_modal_zustand(steuerung_save),
-                Arc::new(move |steuerung| {
-                    Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
-                }),
-            ))
-        } else {
-            drop(steuerung_res);
-            self.zeige_message_box(
-                "Gleis entfernt!".to_owned(),
-                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
-            )
-        }
-    }
-
-    /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
-    pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId)
-    where
-        L: 'static + Debug + Send,
-        <L as Leiter>::Fahrtrichtung: Debug + Send,
-        <L as Serialisiere>::Serialisiert: Send,
-    {
-        todo!()
-        // match any_id {
-        //     AnyId::Gerade(id) => {
-        //         debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-        //     },
-        //     AnyId::Kurve(id) => {
-        //         debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-        //     },
-        //     AnyId::Weiche(id) => self.zeige_anschlüsse_anpassen_aux(
-        //         "Weiche",
-        //         id,
-        //         weiche::Zustand::neu,
-        //         AuswahlZustand::Weiche,
-        //         AnschlüsseAnpassen::Weiche,
-        //     ),
-        //     AnyId::DreiwegeWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-        //         "DreiwegeWeiche",
-        //         id,
-        //         weiche::Zustand::neu,
-        //         AuswahlZustand::DreiwegeWeiche,
-        //         AnschlüsseAnpassen::DreiwegeWeiche,
-        //     ),
-        //     AnyId::KurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-        //         "KurvenWeiche",
-        //         id,
-        //         weiche::Zustand::neu,
-        //         AuswahlZustand::KurvenWeiche,
-        //         AnschlüsseAnpassen::KurvenWeiche,
-        //     ),
-        //     AnyId::SKurvenWeiche(id) => self.zeige_anschlüsse_anpassen_aux(
-        //         "SKurvenWeiche",
-        //         id,
-        //         weiche::Zustand::neu,
-        //         AuswahlZustand::Weiche,
-        //         AnschlüsseAnpassen::SKurvenWeiche,
-        //     ),
-        //     AnyId::Kreuzung(id) => self.zeige_anschlüsse_anpassen_aux(
-        //         "Kreuzung",
-        //         id,
-        //         weiche::Zustand::neu,
-        //         AuswahlZustand::Weiche,
-        //         AnschlüsseAnpassen::Kreuzung,
-        //     ),
-        // }
     }
 }
 

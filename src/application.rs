@@ -32,20 +32,13 @@ use crate::{
     gleis::{
         self,
         gerade::GeradeUnit,
-        gleise::{
-            self,
-            daten::v2,
-            id::{AnyId, GleisId, StreckenabschnittId},
-            Gleise, Modus,
-        },
+        gleise::{self, daten::v2, id::StreckenabschnittId, Gleise, Modus},
         knopf::{Knopf, KnopfNachricht},
-        kreuzung::{Kreuzung, KreuzungUnit},
+        kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+            s_kurve::SKurvenWeicheUnit,
         },
     },
     steuerung::{
@@ -103,21 +96,6 @@ impl Modus {
     fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
-}
-
-/// Anschlüsse für ein Gleis anpassen.
-#[derive(Debug)]
-pub enum AnschlüsseAnpassen {
-    /// Anschlüsse einer [Weiche] anpassen.
-    Weiche(GleisId<Weiche>, Option<WeicheSerialisiert>),
-    /// Anschlüsse einer [DreiwegeWeiche] anpassen.
-    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
-    /// Anschlüsse einer [KurvenWeiche] anpassen.
-    KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
-    /// Anschlüsse einer [SKurvenWeiche] anpassen.
-    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<WeicheSerialisiert>),
-    /// Anschlüsse einer [Kreuzung] anpassen.
-    Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).
@@ -230,8 +208,6 @@ where
     KurvenWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::KurvenWeiche>>>, AsyncAktualisieren>),
     /// Öffne das Fenster zum Anpassen der Anschlüsse einer Weiche ([KurvenWeiche]).
     DreiwegeWeicheAnpassen(Steuerung<Arc<Mutex<Option<plan::DreiwegeWeiche>>>, AsyncAktualisieren>),
-    /// Anpassen der Anschlüsse eines Gleises.
-    AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -336,10 +312,6 @@ type WeicheAnschlüsse = crate::steuerung::weiche::Weiche<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsse,
 >;
-type WeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsse,
->;
 
 type DreiwegeWeicheZustand = weiche::Zustand<
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
@@ -349,20 +321,12 @@ type DreiwegeWeicheAnschlüsse = crate::steuerung::weiche::Weiche<
     gleis::weiche::dreiwege::Richtung,
     gleis::weiche::dreiwege::RichtungAnschlüsse,
 >;
-type DreiwegeWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::dreiwege::Richtung,
-    gleis::weiche::dreiwege::RichtungAnschlüsse,
->;
 
 type KurvenWeicheZustand = weiche::Zustand<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
     gleis::weiche::kurve::RichtungAnschlüsseAuswahlZustand,
 >;
 type KurvenWeicheAnschlüsse = crate::steuerung::weiche::Weiche<
-    gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsse,
->;
-type KurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsse,
 >;
@@ -657,7 +621,6 @@ where
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            // Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Nachricht::KontaktAnpassen(steuerung) => debug!("Kontakt anpassen: {steuerung:?}"),
             Nachricht::GeradeWeicheAnpassen(steuerung) => {
                 self.zeige_weiche_anpassen(steuerung, AuswahlZustand::Weiche)
@@ -667,11 +630,6 @@ where
             },
             Nachricht::DreiwegeWeicheAnpassen(steuerung) => {
                 self.zeige_weiche_anpassen(steuerung, AuswahlZustand::DreiwegeWeiche)
-            },
-            Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
-                    command = nachricht.als_command()
-                }
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
