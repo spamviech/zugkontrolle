@@ -131,7 +131,7 @@ where
             )
             .into();
 
-        let modal = Modal::neu(auswahl, column, |modal| match modal {
+        let modal = Modal::neu(auswahl, lager, column, |modal, lager| match modal {
             AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
@@ -165,19 +165,13 @@ where
                 }
             }),
             AuswahlZustand::Weiche(zustand, mutex) => {
-                // FIXME lager hat lifetime der view-Methode, zustand und mutex der closure.
-                // Es müssten aber beide identisch sein (oder closure-lifetime länger),
-                // sonst funktioniert Element::from nicht richtig.
-                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
-                    .map(Nachricht::from)
+                Element::from(weiche::Auswahl::neu(zustand, mutex, lager)).map(Nachricht::from)
             },
             AuswahlZustand::DreiwegeWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
-                    .map(Nachricht::from)
+                Element::from(weiche::Auswahl::neu(zustand, mutex, lager)).map(Nachricht::from)
             },
             AuswahlZustand::KurvenWeiche(zustand, mutex) => {
-                Element::from(weiche::Auswahl::neu(zustand, mutex, todo!("lager")))
-                    .map(Nachricht::from)
+                Element::from(weiche::Auswahl::neu(zustand, mutex, lager)).map(Nachricht::from)
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
                 Element::from(Lizenzen::neu(zustand, *scrollable_style))
@@ -186,7 +180,7 @@ where
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
-        Modal::neu(message_box, modal, |MessageBox { titel, nachricht, button_zustand }| {
+        Modal::neu(message_box, (), modal, |MessageBox { titel, nachricht, button_zustand }, ()| {
             Element::from(
                 iced_aw::Card::new(
                     Text::new(&*titel),

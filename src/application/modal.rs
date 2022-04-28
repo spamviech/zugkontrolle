@@ -1,6 +1,9 @@
 //! Überdecke ein Widget einem anderen Widget.
 
-use std::{fmt::Debug, hash::Hash};
+use std::{
+    fmt::{self, Debug, Formatter},
+    hash::Hash,
+};
 
 use iced::{Rectangle, Size};
 use iced_native::{
@@ -50,17 +53,20 @@ impl<Overlay> Zustand<Overlay> {
 }
 
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
-pub struct Modal<'a, Overlay, Nachricht, R> {
+pub struct Modal<'a, Overlay, Args, Nachricht, R> {
     zustand: &'a mut Zustand<Overlay>,
+    args: Args,
     underlay: Element<'a, Nachricht, R>,
-    zeige_overlay: Box<dyn 'a + for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>>,
+    zeige_overlay:
+        Box<dyn 'a + for<'t> Fn(&'t mut Overlay, &'t mut Args) -> Element<'t, Nachricht, R>>,
     esc_nachricht: Option<Box<dyn 'a + Fn() -> Nachricht>>,
 }
 
-impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<Overlay: Debug, Args: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Args, Nachricht, R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Modal")
             .field("zustand", &self.zustand)
+            .field("args", &self.args)
             .field("underlay", &"<Element>")
             .field("zeige_overlay", &"<closure>")
             .field("esc_nachricht", &self.esc_nachricht.as_ref().map(|_| "<closure>"))
@@ -68,15 +74,17 @@ impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     }
 }
 
-impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
+impl<'a, Overlay, Args, Nachricht, R> Modal<'a, Overlay, Args, Nachricht, R> {
     /// Erstelle ein neues [Modal].
     pub fn neu(
         zustand: &'a mut Zustand<Overlay>,
+        args: Args,
         underlay: impl 'a + Into<Element<'a, Nachricht, R>>,
-        zeige_overlay: impl 'a + for<'t> Fn(&'t mut Overlay) -> Element<'t, Nachricht, R>,
+        zeige_overlay: impl 'a + for<'t> Fn(&'t mut Overlay, &'t mut Args) -> Element<'t, Nachricht, R>,
     ) -> Self {
         Modal {
             zustand,
+            args,
             underlay: underlay.into(),
             zeige_overlay: Box::new(zeige_overlay),
             esc_nachricht: None,
@@ -90,7 +98,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R>
+impl<Overlay, Args, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Args, Nachricht, R>
 where
     R: Renderer + container::Renderer,
     <R as container::Renderer>::Style: From<Hintergrund>,
@@ -127,7 +135,7 @@ where
         if let Some(overlay) = self.zustand.overlay_mut() {
             let bounds = layout.bounds();
             let position = Point::new(bounds.x, bounds.y);
-            Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
+            Some(ModalOverlay::neu((self.zeige_overlay)(overlay, &mut self.args)).overlay(position))
         } else {
             self.underlay.overlay(layout)
         }
@@ -162,13 +170,15 @@ where
     }
 }
 
-impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
+impl<'a, Inner, Args, Nachricht, R> From<Modal<'a, Inner, Args, Nachricht, R>>
+    for Element<'a, Nachricht, R>
 where
+    Args: 'a,
     Nachricht: 'a,
     R: 'a + Renderer + container::Renderer,
     <R as container::Renderer>::Style: From<Hintergrund>,
 {
-    fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
+    fn from(modal: Modal<'a, Inner, Args, Nachricht, R>) -> Self {
         Element::new(modal)
     }
 }
