@@ -167,9 +167,6 @@ where
     })
 }
 
-type StreckenabschnittUndDatenMut<'t> =
-    (Option<(StreckenabschnittIdRef<'t>, &'t mut Streckenabschnitt)>, &'t mut GleiseDaten);
-
 macro_rules! gleis_an_position {
     (
         $spurweite: expr,
@@ -307,12 +304,12 @@ fn erzeuge_steuerung_nachricht(
     }
 }
 
-fn aktion_gleis_an_position<'t>(
+fn aktion_gleis_an_position<'t, L: Leiter>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t mut ModusDaten,
-    daten_iter: impl Iterator<Item = StreckenabschnittUndDatenMut<'t>>,
+    zustand: &'t mut Zustand<L>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
@@ -333,17 +330,18 @@ fn aktion_gleis_an_position<'t>(
                             canvas_pos,
                             canvas,
                             sender,
-                            daten_iter,
+                            zustand.alle_streckenabschnitte_und_daten_mut(),
                             entferne_gleis_an_position
                         );
                     }
-                    if let Some(Gehalten { gleis, .. }) = gehalten {
-                        if diff < DOUBLE_CLICK_TIME {
-                            let nachricht = erzeuge_anpassen_nachricht(gleis, canvas, sender);
+                    if diff < DOUBLE_CLICK_TIME {
+                        if let Some(gehalten) = gehalten.take() {
+                            let nachricht =
+                                erzeuge_anpassen_nachricht(&gehalten.gleis, canvas, sender);
                             message = Some(nachricht);
-                            *gehalten = None
+                            gehalten_hinzufügen(zustand, gehalten);
+                            status = event::Status::Captured;
                         }
-                        status = event::Status::Captured
                     }
                 },
                 ModusDaten::Fahren => {
@@ -352,7 +350,7 @@ fn aktion_gleis_an_position<'t>(
                         canvas_pos,
                         canvas,
                         sender,
-                        daten_iter,
+                        zustand.alle_streckenabschnitte_und_daten_mut(),
                         gleis_an_position
                     );
                     if let Some((gleis_steuerung, streckenabschnitt)) = gleis_an_position {
@@ -419,15 +417,7 @@ impl<L: Leiter> Gleise<L> {
                 let spurweite = self.spurweite();
                 let Gleise { modus, zustand, pivot, skalieren, canvas, sender, .. } = self;
                 let click_result = aktion_gleis_an_position(
-                    &bounds,
-                    &cursor,
-                    spurweite,
-                    modus,
-                    zustand.alle_streckenabschnitte_und_daten_mut(),
-                    pivot,
-                    skalieren,
-                    canvas,
-                    sender,
+                    &bounds, &cursor, spurweite, modus, zustand, pivot, skalieren, canvas, sender,
                 );
                 event_status = click_result.0;
                 message = click_result.1;
