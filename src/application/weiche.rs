@@ -240,7 +240,7 @@ where
                             self.anschlüsse.clone(),
                         );
                     let mut_ref = &mut *self.mutex.as_mut().lock();
-                    if mut_ref.serialisiere().as_ref() == Some(&weiche_serialisiert) {
+                    if mut_ref.serialisiere().as_ref() != Some(&weiche_serialisiert) {
                         let bisher = mut_ref.take();
                         let (pwm_pins, output_anschlüsse, input_anschlüsse) = bisher.anschlüsse();
                         match weiche_serialisiert.reserviere(
