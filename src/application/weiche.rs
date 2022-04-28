@@ -249,7 +249,10 @@ where
                             output_anschlüsse,
                             input_anschlüsse,
                         ) {
-                            Ok(weiche) => *mut_ref = Some(weiche.anschluss),
+                            Ok(weiche) => {
+                                *mut_ref = Some(weiche.anschluss);
+                                messages.push(Nachricht::Schließen);
+                            },
                             Err(fehler) => messages.push(Nachricht::ReservierenFehler {
                                 titel: format!("Anschlüsse für Weiche {} reservieren.", self.name),
                                 nachricht: format!("{fehler:?}"),
@@ -257,7 +260,10 @@ where
                         }
                     }
                 },
-                InterneNachricht::Entfernen => *self.mutex.as_mut().lock() = None,
+                InterneNachricht::Entfernen => {
+                    *self.mutex.as_mut().lock() = None;
+                    messages.push(Nachricht::Schließen);
+                },
                 InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
             }
         }
