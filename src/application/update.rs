@@ -484,18 +484,11 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         self.gleise.setze_pivot(Vektor::null_vektor())
     }
 
-    /// Zeige die Lizenzen verwendeter Open-Source Bibliotheken.
+    /// Zeige die Lizenzen der verwendeter Open-Source Bibliotheken.
     pub fn zeige_lizenzen(&mut self) {
-        // FIXME verwende echte Lizenzen
-        let f: fn() -> String = || {
-            String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
-        };
-        let g: fn() -> String = || {
-            String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
-        };
-        self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(lizenzen::Zustand::neu(
-            [("test", f), ("alternativ", g)].into_iter(),
-        )))
+        self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
+            lizenzen::Zustand::neu_mit_verwendeten_lizenzen(),
+        ))
     }
 }
 

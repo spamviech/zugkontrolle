@@ -67,6 +67,12 @@ impl Zustand {
             aktuell,
         }
     }
+
+    /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
+    #[inline(always)]
+    pub fn neu_mit_verwendeten_lizenzen() -> Self {
+        Self::neu(verwendete_lizenzen())
+    }
 }
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
@@ -166,3 +172,18 @@ impl<'a, R: 'a + Renderer + container::Renderer> From<Lizenzen<'a, R>>
         Element::new(lizenzen)
     }
 }
+
+/// Die Lizenzen der verwendeter Open-Source Bibliotheken.
+pub fn verwendete_lizenzen() -> impl Iterator<Item = (&'static str, fn() -> String)> {
+    // FIXME verwende echte Lizenzen
+    let f: fn() -> String = || {
+        String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+    };
+    let g: fn() -> String = || {
+        String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+    };
+    // TODO
+    [("test", f), ("alternativ", g), ("noch eine", f)].into_iter()
+}
+
+// TODO Test schreiben ob, die angezeigte Lizenz mit der wirklichen übereinstimmt
