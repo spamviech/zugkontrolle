@@ -81,7 +81,7 @@ where
         let Zustand { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
-            Button::new(speichern, Text::new("speichern")).on_press(InterneNachricht::Speichern);
+            Button::new(speichern, Text::new("Speichern")).on_press(InterneNachricht::Speichern);
         let speichern_style =
             if *speichern_gefärbt { hintergrund::GRÜN } else { hintergrund::STANDARD };
         let row = Row::new()
@@ -89,15 +89,15 @@ where
                 Column::new()
                     .push(speichern_ungefärbt.style(speichern_style))
                     .push(
-                        Button::new(laden, Text::new("laden"))
+                        Button::new(laden, Text::new("Laden"))
                             .style(hintergrund::STANDARD)
                             .on_press(InterneNachricht::Laden),
                     )
                     .align_items(Align::End),
             )
             .push(
-                TextInput::new(pfad, "pfad", aktueller_pfad, InterneNachricht::Pfad)
-                    .width(Length::Units(250))
+                TextInput::new(pfad, "Pfad", aktueller_pfad, InterneNachricht::Pfad)
+                    .width(Length::Units(200))
                     .padding(1),
             )
             .spacing(5)
