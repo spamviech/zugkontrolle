@@ -627,7 +627,6 @@ where
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::AktionGeschwindigkeit(aktion) => {
-                // TODO Umdrehen zeigt Geschwindigkeit(0) erst nach vollständigem ausführen an
                 self.async_aktion_ausführen(aktion, Some(Nachricht::AsyncAktualisieren))
             },
             Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
