@@ -642,19 +642,7 @@ where
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
-            Nachricht::ZeigeLizenzen => {
-                // TODO methode erstellen
-                // TODO verwende echte Lizenzen
-                let f: fn() -> String = || {
-                    String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
-                };
-                let g: fn() -> String = || {
-                    String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
-                };
-                self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(lizenzen::Zustand::neu(
-                    [("test", f), ("alternativ", g)].into_iter(),
-                )))
-            },
+            Nachricht::ZeigeLizenzen => self.zeige_lizenzen(),
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
