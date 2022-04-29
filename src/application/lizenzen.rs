@@ -141,7 +141,7 @@ where
             Scrollable::new(scrollable_text).width(Length::Fill).height(Length::Fill);
         if let Some(aktuell_text) = aktuell_text {
             scrollable_aktuell = scrollable_aktuell
-                .push(Text::new(aktuell_text.as_str()).width(Length::Fill).height(Length::Fill))
+                .push(Text::new(aktuell_text.as_str()).width(Length::Fill).height(Length::Shrink))
         }
         let container = Container::new(
             Row::new()
