@@ -45,6 +45,7 @@ pub struct Zustand {
     lizenzen_und_button_states: BTreeMap<&'static str, (button::State, fn() -> String)>,
     scrollable_buttons: scrollable::State,
     scrollable_text: scrollable::State,
+    scrollable_text_zurücksetzen: bool,
     schließen: button::State,
     aktuell: Option<(&'static str, String)>,
 }
@@ -65,6 +66,7 @@ impl Zustand {
             lizenzen_und_button_states,
             scrollable_buttons: scrollable::State::new(),
             scrollable_text: scrollable::State::new(),
+            scrollable_text_zurücksetzen: false,
             schließen: button::State::new(),
             aktuell,
         }
@@ -81,6 +83,7 @@ impl Zustand {
 pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
     container: Container<'a, InterneNachricht, R>,
     aktuell: &'a mut Option<(&'static str, String)>,
+    scrollable_text_zurücksetzen: &'a mut bool,
 }
 
 impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
@@ -88,6 +91,8 @@ impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
         f.debug_struct("Lizenzen").field("row", &"<Row>").finish()
     }
 }
+
+const PADDING: u16 = 5;
 
 impl<'a, R> Lizenzen<'a, R>
 where
@@ -112,6 +117,7 @@ where
             lizenzen_und_button_states,
             scrollable_buttons,
             scrollable_text,
+            scrollable_text_zurücksetzen,
             schließen,
             aktuell,
         } = zustand;
@@ -139,21 +145,32 @@ where
             )
             .width(Length::Shrink)
             .height(Length::Fill);
+        if *scrollable_text_zurücksetzen {
+            *scrollable_text = scrollable::State::new();
+            *scrollable_text_zurücksetzen = false;
+        }
         let mut scrollable_aktuell =
             Scrollable::new(scrollable_text).width(Length::Fill).height(Length::Fill);
         if let Some(aktuell_text) = aktuell_text {
-            scrollable_aktuell = scrollable_aktuell
+            let text_mit_horizontalem_padding = Row::new()
+                .push(Space::with_width(Length::Units(PADDING)))
                 .push(Text::new(aktuell_text.as_str()).width(Length::Fill).height(Length::Shrink))
+                .push(Space::with_width(Length::Units(PADDING)))
+                .width(Length::Fill)
+                .height(Length::Shrink);
+            scrollable_aktuell = scrollable_aktuell
+                .push(Space::with_height(Length::Units(PADDING)))
+                .push(text_mit_horizontalem_padding)
+                .push(Space::with_height(Length::Units(PADDING)))
         }
         let container = Container::new(
             Row::new()
                 .push(column)
                 .push(Rule::vertical(1).style(TRENNLINIE))
-                .push(Space::with_width(Length::Units(5)))
                 .push(scrollable_aktuell),
         )
         .style(hintergrund::WEIß);
-        Lizenzen { container, aktuell }
+        Lizenzen { container, aktuell, scrollable_text_zurücksetzen }
     }
 }
 
@@ -180,7 +197,10 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenz
         );
         for interne_nachricht in interne_nachrichten {
             match interne_nachricht {
-                InterneNachricht::Aktuell(name, f) => *self.aktuell = Some((name, f())),
+                InterneNachricht::Aktuell(name, f) => {
+                    *self.aktuell = Some((name, f()));
+                    *self.scrollable_text_zurücksetzen = true;
+                },
                 InterneNachricht::Schließen => nachrichten.push(Nachricht::Schließen),
             }
         }
