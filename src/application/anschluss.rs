@@ -262,7 +262,13 @@ impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R> {
+impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
+where
+    R: 'a + text::Renderer + number_input::Renderer,
+    Element<'a, InputNachricht, R>: From<NumberInput<'a, u8, InputNachricht, R>>,
+    Element<'a, InterneNachricht<InputNachricht>, R>:
+        From<NumberInput<'a, u8, InterneNachricht<InputNachricht>, R>>,
+{
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(zustand: &'a mut Zustand<Input<'a>>) -> Self {
         let interrupt_pins = zustand.modus.interrupt_pins.clone();
@@ -294,7 +300,12 @@ impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R> {
+impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
+where
+    R: 'a + text::Renderer + number_input::Renderer,
+    Element<'a, InterneNachricht<OutputNachricht>, R>:
+        From<NumberInput<'a, u8, InterneNachricht<OutputNachricht>, R>>,
+{
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(zustand: &'a mut Zustand<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(
@@ -344,16 +355,24 @@ fn make_radios<'a, T, M, R>(
     to_message: impl Fn(T) -> M + Clone + 'static,
 ) -> Column<'a, M, R>
 where
-    T: Copy + Eq,
+    T: Eq + Copy,
     M: 'a + Clone,
-    R: 'a, //+ column::Renderer + row::Renderer + text::Renderer + radio::Renderer,
+    R: 'a + text::Renderer,
 {
     Column::new()
         .push(Radio::new(fst, fst_s, Some(current.clone()), to_message.clone()).spacing(0))
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R> {
+impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
+where
+    T: Eq + Copy,
+    M: 'a + Clone,
+    R: 'a + text::Renderer + number_input::Renderer + tabs::Renderer,
+    Element<'a, InterneNachricht<I>, R>: From<NumberInput<'a, u8, InterneNachricht<I>, R>>,
+    Element<'a, InterneNachricht<I>, R>: From<Row<'a, InterneNachricht<I>, R>>,
+    Element<'a, InterneNachricht<I>, R>: From<Tabs<'a, InterneNachricht<I>, R>>,
+{
     fn neu_mit_interrupt_view<IO>(
         zustand: &'a mut Zustand<IO>,
         zeige_modus: ZeigeModus,
