@@ -130,7 +130,7 @@ impl<'a, R> Anzeige<'a, R> {
     }
 }
 
-impl<'a, R> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
+impl<'a, R: Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
     reexport_no_event_methods! {Container<'a, AnzeigeNachricht, R>, container, AnzeigeNachricht, R}
 
     fn on_event(
@@ -262,7 +262,7 @@ pub struct Auswahl<'a, R: Renderer + card::Renderer> {
 }
 
 impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("card", &"<Card>")
             .field("neu_name", &self.neu_name)
@@ -272,7 +272,7 @@ impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, R> {
+impl<'a, R: Renderer + card::Renderer> Auswahl<'a, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
         let AuswahlZustand {
@@ -350,7 +350,7 @@ impl<'a, R> Auswahl<'a, R> {
     }
 }
 
-impl<'a, R> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
+impl<'a, R: Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
     fn on_event(
@@ -402,7 +402,7 @@ impl<'a, R> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     }
 }
 
-impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
+impl<'a, R: Renderer + card::Renderer> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl)
     }

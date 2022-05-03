@@ -120,7 +120,9 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     //         + radio::Renderer;
 
     /// Erstelle eine neue [Auswahl].
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>;
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
+    where
+        R: Renderer + card::Renderer;
     // where
     //     R: 't
     //         + container::Renderer
@@ -188,7 +190,10 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R> {
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
+    where
+        R: Renderer + card::Renderer,
+    {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -267,7 +272,10 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R> {
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
+    where
+        R: Renderer + card::Renderer,
+    {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::Immer,
@@ -357,7 +365,7 @@ impl<'t, M, R> Anzeige<'t, M, R> {
     }
 }
 
-impl<'t, M, R> Widget<M, R> for Anzeige<'t, M, R> {
+impl<'t, M, R: Renderer> Widget<M, R> for Anzeige<'t, M, R> {
     reexport_no_event_methods! {Column<'t, M, R>, column, M, R}
 
     fn on_event(
@@ -378,7 +386,7 @@ impl<'t, M, R> Widget<M, R> for Anzeige<'t, M, R> {
     }
 }
 
-impl<'t, M, R> From<Anzeige<'t, M, R>> for Element<'t, M, R> {
+impl<'t, M, R: Renderer> From<Anzeige<'t, M, R>> for Element<'t, M, R> {
     fn from(anzeige: Anzeige<'t, M, R>) -> Self {
         Element::new(anzeige)
     }
@@ -549,7 +557,11 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
-impl<'t, Leiter, R> Auswahl<'t, Leiter, R> {
+impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
+where
+    R: Renderer + card::Renderer,
+    Leiter: Serialisiere,
+{
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
         zustand: &'t mut AuswahlZustand,

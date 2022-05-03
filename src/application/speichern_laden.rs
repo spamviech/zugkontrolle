@@ -110,7 +110,7 @@ impl<'a, R> SpeichernLaden<'a, R> {
     }
 }
 
-impl<'a, R> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
+impl<'a, R: Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
     reexport_no_event_methods! {Row<'a, InterneNachricht, R>, row, InterneNachricht, R}
 
     fn on_event(

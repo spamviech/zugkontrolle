@@ -163,7 +163,7 @@ impl<'a, R> Lizenzen<'a, R> {
     }
 }
 
-impl<'a, R> Widget<Nachricht, R> for Lizenzen<'a, R> {
+impl<'a, R: Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
     reexport_no_event_methods! {Container<'a, InterneNachricht, R>, container, InterneNachricht, R}
 
     fn on_event(

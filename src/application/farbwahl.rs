@@ -97,7 +97,7 @@ impl<'a, M> Farbwahl<'a, M> {
     }
 }
 
-impl<M, R> Widget<M, R> for Farbwahl<'_, M> {
+impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
     fn width(&self) -> Length {
         Length::Units(self.durchmesser)
     }

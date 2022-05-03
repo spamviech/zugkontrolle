@@ -437,7 +437,7 @@ impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R> {
     }
 }
 
-impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, M, R> {
+impl<'a, T, I, M, R: Renderer> Widget<M, R> for Auswahl<'a, T, I, M, R> {
     reexport_no_event_methods! {Row<'a, InterneNachricht<I>, R>, row, InterneNachricht<I>, R}
 
     fn on_event(
@@ -529,7 +529,7 @@ impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
     }
 }
 
-impl<'a, R> Pwm<'a, R> {
+impl<'a, R: Renderer + number_input::Renderer> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(PwmZustand { pin, number_input_zustand }: &'a mut PwmZustand) -> Self {
         Pwm {
@@ -539,8 +539,13 @@ impl<'a, R> Pwm<'a, R> {
     }
 }
 
-impl<'a, R> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
-    reexport_no_event_methods! {NumberInput<'a, u8, pwm::Serialisiert, R>, number_input, pwm::Serialisiert, R}
+impl<'a, R: Renderer + number_input::Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
+    reexport_no_event_methods! {
+        NumberInput<'a, u8, pwm::Serialisiert, R>,
+        number_input,
+        pwm::Serialisiert,
+        R
+    }
 
     fn on_event(
         &mut self,
@@ -567,7 +572,9 @@ impl<'a, R> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
     }
 }
 
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
+impl<'a, R: Renderer + number_input::Renderer> From<Pwm<'a, R>>
+    for Element<'a, pwm::Serialisiert, R>
+{
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }

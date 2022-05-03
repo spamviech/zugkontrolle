@@ -95,7 +95,9 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R> {
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+    Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+{
     /// Erstelle eine neue [Auswahl].
     pub fn neu<
         AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
@@ -155,12 +157,9 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+    Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
     for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
-where
-    Richtung: Clone + Default,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
-    R: Renderer + card::Renderer,
 {
     reexport_no_event_methods! {
         Card<'t, InterneNachricht<Richtung>, R>,
@@ -212,12 +211,9 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+    From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
     for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
-where
-    Richtung: 't + Clone + Default,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
-    R: 't + Renderer + card::Renderer,
 {
     fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
         Element::new(anzeige)

@@ -92,7 +92,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R> {
+impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R> {
     fn width(&self) -> Length {
         self.underlay.width()
     }
@@ -187,7 +187,7 @@ impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
     }
 }
 
-impl<Nachricht, R> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
+impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> iced_native::layout::Node {
         let mut layout = self.0.layout(renderer, &layout::Limits::new(bounds, bounds));
         layout.move_to(position);
