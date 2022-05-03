@@ -4,8 +4,9 @@ use std::{collections::HashMap, fmt::Debug};
 
 use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
 use iced_native::{
-    button, column, container, event, radio, row, text, Clipboard, Column, Element, Event, Layout,
-    Length, Point, Radio, Renderer, Row, Text, Widget,
+    event, text,
+    widget::{button, column, container, radio, row, Column, Radio, Row, Text},
+    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 use log::error;
 

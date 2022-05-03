@@ -4,10 +4,11 @@ use std::{fmt::Debug, hash::Hash};
 
 use iced::{Rectangle, Size};
 use iced_native::{
-    container, event,
+    event,
     keyboard::{self, KeyCode},
-    layout, overlay, Clipboard, Container, Element, Event, Layout, Length, Overlay, Point,
-    Renderer, Widget,
+    layout, overlay,
+    widget::container::{self, Container},
+    Clipboard, Element, Event, Layout, Length, Overlay, Point, Renderer, Widget,
 };
 
 use crate::application::style::hintergrund::Hintergrund;

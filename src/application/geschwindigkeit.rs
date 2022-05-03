@@ -9,9 +9,19 @@ use std::{
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
 use iced_native::{
-    button, column, container, event, overlay, radio, row, scrollable, slider, text, text_input,
-    Button, Clipboard, Column, Element, Event, Layout, Length, Point, Radio, Renderer, Row,
-    Scrollable, Slider, Text, TextInput, Widget,
+    event, overlay, text,
+    widget::{
+        button::{self, Button},
+        column::{self, Column},
+        container,
+        radio::{self, Radio},
+        row::{self, Row},
+        scrollable::{self, Scrollable},
+        slider::{self, Slider},
+        text_input::{self, TextInput},
+        Text,
+    },
+    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 use log::error;
 use nonempty::NonEmpty;

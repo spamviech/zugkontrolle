@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use iced::{
-    Align, Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text,
+    Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text,
 };
 use log::error;
 use num_traits::NumCast;

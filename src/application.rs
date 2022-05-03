@@ -12,7 +12,7 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{Application, Clipboard, Command, Element, Radio, Settings, Subscription};
+use iced::{Application, Command, Element, Radio, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -95,7 +95,7 @@ pub enum AnyGleisUnit {
 }
 
 impl Modus {
-    fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus> {
+    fn erstelle_radio<'t>(self, aktueller_modus: Self) -> Radio<'t, Modus> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
@@ -570,11 +570,7 @@ where
         format!("Zugkontrolle {}", crate_version!())
     }
 
-    fn update(
-        &mut self,
-        message: Self::Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         let mut command = Command::none();
 
         match message {

@@ -10,6 +10,8 @@ use iced_native::{
 };
 use log::trace;
 
+use crate::application::macros::reexport_no_event_methods;
+
 /// [iced::Canvas]-Wrapper mit Touch-Event.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Message: Debug, P: Debug + Program<Message>)]
@@ -33,39 +35,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
 }
 
 impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for Canvas<Message, P> {
-    fn width(&self) -> Length {
-        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::width(&self.0)
-    }
-
-    fn height(&self) -> Length {
-        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::height(&self.0)
-    }
-
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        Widget::layout(&self.0, renderer, limits)
-    }
-
-    fn hash_layout(&self, zustand: &mut Hasher) {
-        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::hash_layout(&self.0, zustand)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer<B>,
-        defaults: &<Renderer<B> as iced_native::Renderer>::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
-        <iced::Canvas<Message, P> as Widget<Message, Renderer<B>>>::draw(
-            &self.0,
-            renderer,
-            defaults,
-            layout,
-            cursor_position,
-            viewport,
-        )
-    }
+    reexport_no_event_methods! {iced::Canvas<Message, P>, 0, Message, Renderer<B>}
 
     fn on_event(
         &mut self,
@@ -101,13 +71,6 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
             }
         }
         Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, messages)
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-    ) -> Option<overlay::Element<'_, Message, Renderer<B>>> {
-        Widget::overlay(&mut self.0, layout)
     }
 }
 

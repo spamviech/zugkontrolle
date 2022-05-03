@@ -1,7 +1,7 @@
 //! Macros zur einfacheren Implementierung des Widget-Traits.
 
 macro_rules! reexport_no_event_methods {
-    ($type:ty, $record:ident, $message:ty, $renderer:ty) => {
+    ($type:ty, $record:tt, $message:ty, $renderer:ty) => {
         #[inline(always)]
         #[allow(unused_qualifications)]
         fn width(&self) -> iced_native::Length {
@@ -33,26 +33,24 @@ macro_rules! reexport_no_event_methods {
         fn draw(
             &self,
             renderer: &mut $renderer,
-            defaults: &<$renderer as iced_native::Renderer>::Defaults,
+            style: &iced_native::renderer::Style,
             layout: Layout<'_>,
             cursor_position: Point,
             viewport: &iced_native::Rectangle,
-        ) -> <$renderer as iced_native::Renderer>::Output {
+        ) {
             <$type as iced_native::Widget<$message, $renderer>>::draw(
                 &self.$record,
                 renderer,
-                defaults,
+                style,
                 layout,
                 cursor_position,
                 viewport,
             )
         }
-
-        #[inline(always)]
-        #[allow(unused_qualifications)]
-        fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
-            <$type as iced_native::Widget<$message, $renderer>>::hash_layout(&self.$record, zustand)
-        }
     };
 }
 pub(crate) use reexport_no_event_methods;
+
+struct Test;
+
+impl iced_native::Widget for Test {}

@@ -9,8 +9,9 @@ pub mod pfad;
 
 // re-exports
 pub use iced::{
+    alignment::{Horizontal, Vertical},
     canvas::{Fill, FillRule, Stroke, Text},
-    Color, HorizontalAlignment, VerticalAlignment,
+    Color,
 };
 pub use pfad::{Bogen, Pfad, Transformation};
 

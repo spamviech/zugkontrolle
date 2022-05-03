@@ -3,8 +3,15 @@
 use std::fmt::Debug;
 
 use iced_native::{
-    button, column, event, row, text, text_input, Align, Button, Clipboard, Column, Element, Event,
-    Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
+    event, text,
+    widget::{
+        button::{self, Button},
+        column::{self, Column},
+        row::{self, Row},
+        text_input::{self, TextInput},
+        Text,
+    },
+    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 
 use crate::application::{

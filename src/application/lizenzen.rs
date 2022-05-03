@@ -6,15 +6,17 @@ use std::{
 };
 
 use iced_native::{
-    button::{self, Button},
-    column::Column,
-    container::{self, Container},
     event,
-    row::{self, Row},
-    rule::{self, Rule},
-    scrollable::{self, Scrollable},
-    space::{self, Space},
-    text::{self, Text},
+    widget::{
+        button::{self, Button},
+        column::Column,
+        container::{self, Container},
+        row::{self, Row},
+        rule::{self, Rule},
+        scrollable::{self, Scrollable},
+        space::{self, Space},
+        text::{self, Text},
+    },
     Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 

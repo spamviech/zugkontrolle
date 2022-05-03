@@ -4,8 +4,16 @@ use std::fmt::{Debug, Display};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
-    button, column, container, event, radio, row, text, text_input, Button, Clipboard, Column,
-    Element, Event, Layout, Length, Point, Renderer, Row, Text, TextInput, Widget,
+    event,
+    text::{self, Text},
+    widget::{
+        button::{self, Button},
+        column::{self, Column},
+        container, radio,
+        row::{self, Row},
+        text_input::{self, TextInput},
+    },
+    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 
 use crate::{
