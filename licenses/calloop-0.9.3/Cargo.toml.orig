@@ -1,0 +1,34 @@
+[package]
+name = "calloop"
+version = "0.9.3"
+authors = ["Victor Berger <victor.berger@m4x.org>"]
+documentation = "https://docs.rs/calloop/"
+repository = "https://github.com/Smithay/calloop"
+license = "MIT"
+description = "A callback-based event loop"
+keywords = [ "events", "loop", "callback", "eventloop", "unix" ]
+autotests = false
+edition = "2018"
+readme = "README.md"
+
+[badges]
+codecov = { repository = "Smithay/calloop" }
+
+[dependencies]
+log = "0.4"
+nix = "0.22"
+futures-util = { version = "0.3.5", optional = true, default-features = false, features = ["std"]}
+futures-io = { version = "0.3.5", optional = true }
+
+[dev-dependencies]
+futures = "0.3.5"
+
+[features]
+executor = ["futures-util"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[test]]
+name = "signals"
+harness = false

@@ -1,0 +1,60 @@
+[package]
+name = "ndk"
+version = "0.5.0"
+authors = ["The Rust Windowing contributors"]
+edition = "2018"
+description = "Safe Rust bindings to the Android NDK"
+license = "MIT OR Apache-2.0"
+keywords = ["android", "ndk"]
+readme = "../README.md"
+documentation = "https://docs.rs/android-ndk"
+homepage = "https://github.com/rust-windowing/android-ndk-rs"
+repository = "https://github.com/rust-windowing/android-ndk-rs"
+
+[features]
+all = ["aaudio", "bitmap", "hardware_buffer", "media", "trace", "api-level-30"]
+
+aaudio = ["ffi/aaudio", "api-level-26"]
+bitmap = ["ffi/bitmap"]
+hardware_buffer = ["api-level-26"]
+media = ["ffi/media"]
+trace = ["api-level-23"]
+
+api-level-23 = []
+api-level-24 = ["api-level-23"]
+api-level-25 = ["api-level-24"]
+api-level-26 = ["api-level-25"]
+api-level-27 = ["api-level-26"]
+api-level-28 = ["api-level-27"]
+api-level-29 = ["api-level-28"]
+api-level-30 = ["api-level-29"]
+
+test = ["ffi/test", "jni", "jni-glue", "all"]
+
+[dependencies]
+bitflags = "1.2.1"
+jni-sys = "0.3.0"
+num_enum = "0.5.1"
+thiserror = "1.0.23"
+
+[dependencies.jni]
+version = "0.18.0"
+optional = true
+
+[dependencies.jni-glue]
+version = "0.0.10"
+optional = true
+
+[dependencies.ffi]
+package = "ndk-sys"
+path = "../ndk-sys"
+version = "0.2.2"
+
+[package.metadata.docs.rs]
+features = ["jni", "jni-glue", "all"]
+targets = [
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "i686-linux-android",
+    "x86_64-linux-android",
+]
