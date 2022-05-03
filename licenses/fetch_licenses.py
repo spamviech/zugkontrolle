@@ -9,7 +9,7 @@ crates_io_dir = os.path.join(cargo_dir, "registry", "src", "github.com-1ecc6299d
 # crate-name followed by a `-` and some hash(probably), inside folder with the commit-hash (abbreviated)
 git_dir = os.path.join(cargo_dir, "git", "checkouts")
 
-license_files = [
+license_files = {
     "LICENSE",
     "LICENSE.md",
     "LICENSE.txt",
@@ -19,9 +19,9 @@ license_files = [
     "UNLICENSE",
     "COPYING",
     "NOTICE",
-]
-cargo_toml = ["Cargo.toml", "Cargo.toml.orig"]
-readme = ["README.md"]
+}
+cargo_toml = {"Cargo.toml", "Cargo.toml.orig"}
+readme = {"README.md"}
 
 name_prefix = "name = "
 version_prefix = "version = "
@@ -60,15 +60,20 @@ with open(os.path.join("..", "Cargo.lock"), 'r') as cargo_lock:
                 git = True
 next_package()
 
-copy_filenames = license_files + cargo_toml
+copy_filenames = license_files | cargo_toml | readme
 def copy_licenses(src_dir, dst_dir):
     global copy_filenames
     os.makedirs(dst_dir, exist_ok=True)
+    found = False
     for license in copy_filenames:
         src = os.path.join(src_dir, license)
         if os.path.isfile(src):
+            if license in license_files:
+                found = True
             dst = os.path.join(dst_dir, license)
             shutil.copy(src, dst)
+    if not found:
+        print(f"Missing License: {dst_dir}")
 
 for name, version, git in packages:
     if git is None:
