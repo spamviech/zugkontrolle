@@ -59,7 +59,7 @@ version = "0.4.0"
 
 [dependencies.iced_aw]
 git = "https://github.com/iced-rs/iced_aw"
-rev = "53e87f244766a056723fda9116cc3f662e1f9a68"
+rev = "e94f826ab1bd53cf5bc797eece0e017e47a97397"
 default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 
