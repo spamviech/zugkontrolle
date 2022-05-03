@@ -3,6 +3,7 @@
 use std::marker::PhantomData;
 
 use iced::{
+    alignment::{Horizontal, Vertical},
     canvas::{Cursor, Geometry},
     Point,
 };
@@ -29,8 +30,7 @@ use crate::{
     typen::{
         canvas::{
             pfad::{self, Transformation},
-            Color, Fill, FillRule, Frame, HorizontalAlignment, Position, Stroke, Text,
-            VerticalAlignment,
+            Color, Fill, FillRule, Frame, Position, Stroke, Text,
         },
         farbe::Farbe,
         mm::Spurweite,
@@ -178,8 +178,8 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
                     content,
                     position: Point::ORIGIN,
                     color: Color { a, ..Color::BLACK },
-                    horizontal_alignment: HorizontalAlignment::Center,
-                    vertical_alignment: VerticalAlignment::Center,
+                    horizontal_alignment: Horizontal::Center,
+                    vertical_alignment: Vertical::Center,
                     ..Default::default()
                 });
             })

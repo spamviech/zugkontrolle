@@ -9,7 +9,6 @@ pub mod pfad;
 
 // re-exports
 pub use iced::{
-    alignment::{Horizontal, Vertical},
     canvas::{Fill, FillRule, Stroke, Text},
     Color,
 };
@@ -30,7 +29,11 @@ impl<'t> Frame<'t> {
     }
 
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Stroke).
-    pub fn stroke(&mut self, Pfad { pfad, transformationen }: &Pfad, stroke: impl Into<Stroke>) {
+    pub fn stroke<'s>(
+        &mut self,
+        Pfad { pfad, transformationen }: &Pfad,
+        stroke: impl Into<Stroke<'s>>,
+    ) {
         self.with_save(|frame| {
             for transformation in transformationen {
                 frame.transformation(transformation)

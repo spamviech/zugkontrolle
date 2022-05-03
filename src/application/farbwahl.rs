@@ -4,8 +4,11 @@ use std::{fmt::Debug, hash::Hash};
 
 use iced_graphics::Primitive;
 use iced_native::{
-    event, layout, mouse, touch, Background, Clipboard, Color, Element, Event, Hasher, Layout,
-    Length, Point, Rectangle, Renderer, Size, Widget,
+    event::{self, Event},
+    layout::{self, Layout},
+    mouse,
+    renderer::{Renderer, Style},
+    touch, Background, Clipboard, Color, Element, Hasher, Length, Point, Rectangle, Size, Widget,
 };
 
 use crate::typen::{
@@ -94,11 +97,7 @@ impl<'a, M> Farbwahl<'a, M> {
     }
 }
 
-impl<M, R> Widget<M, R> for Farbwahl<'_, M>
-where
-    R: Renderer,
-    R::Output: From<(Primitive, mouse::Interaction)>,
-{
+impl<M, R> Widget<M, R> for Farbwahl<'_, M> {
     fn width(&self) -> Length {
         Length::Units(self.durchmesser)
     }
@@ -115,11 +114,11 @@ where
     fn draw(
         &self,
         _renderer: &mut R,
-        _defaults: &<R as Renderer>::Defaults,
+        _style: &Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> <R as Renderer>::Output {
+    ) {
         let mut primitives = Vec::new();
         let bounds = layout.bounds();
         let radius = Skalar(0.5 * self.durchmesser as f32);
@@ -145,10 +144,6 @@ where
             }
         }
         (Primitive::Group { primitives }, mouse::Interaction::default()).into()
-    }
-
-    fn hash_layout(&self, zustand: &mut Hasher) {
-        self.durchmesser.hash(zustand)
     }
 
     fn on_event(
@@ -178,11 +173,7 @@ where
     }
 }
 
-impl<'a, M, R> From<Farbwahl<'a, M>> for Element<'a, M, R>
-where
-    R: Renderer,
-    R::Output: From<(Primitive, mouse::Interaction)>,
-{
+impl<'a, M, R> From<Farbwahl<'a, M>> for Element<'a, M, R> {
     fn from(farbwahl: Farbwahl<'a, M>) -> Self {
         Element::new(farbwahl)
     }

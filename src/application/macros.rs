@@ -53,4 +53,4 @@ pub(crate) use reexport_no_event_methods;
 
 struct Test;
 
-impl iced_native::Widget for Test {}
+impl<M, R> iced_native::Widget<M, R> for Test {}

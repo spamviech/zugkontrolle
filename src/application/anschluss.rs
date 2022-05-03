@@ -1,6 +1,9 @@
 //! Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
 use iced_native::{
@@ -231,7 +234,7 @@ impl OutputNachricht {
 }
 
 /// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
+pub struct Auswahl<'a, T, I, M, R> {
     row: Row<'a, InterneNachricht<I>, R>,
     active_tab: &'a mut usize,
     pin: &'a mut u8,
@@ -243,8 +246,8 @@ pub struct Auswahl<'a, T, I, M, R: row::Renderer> {
     make_port: Box<dyn Fn(Beschreibung, kleiner_8, &T) -> M>,
 }
 
-impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("row", &"<Row>")
             .field("active_tab", &self.active_tab)
@@ -259,20 +262,7 @@ impl<T: Debug, I, M, R: row::Renderer> Debug for Auswahl<'_, T, I, M, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
-where
-    R: 'a
-        + Renderer
-        + text::Renderer
-        + radio::Renderer
-        + column::Renderer
-        + row::Renderer
-        + container::Renderer
-        + button::Renderer
-        + number_input::Renderer
-        + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-{
+impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R> {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(zustand: &'a mut Zustand<Input<'a>>) -> Self {
         let interrupt_pins = zustand.modus.interrupt_pins.clone();
@@ -304,20 +294,7 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
-where
-    R: 'a
-        + Renderer
-        + text::Renderer
-        + radio::Renderer
-        + column::Renderer
-        + row::Renderer
-        + container::Renderer
-        + button::Renderer
-        + number_input::Renderer
-        + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-{
+impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R> {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(zustand: &'a mut Zustand<Output>) -> Self {
         Auswahl::neu_mit_interrupt_view(
@@ -369,27 +346,14 @@ fn make_radios<'a, T, M, R>(
 where
     T: Copy + Eq,
     M: 'a + Clone,
-    R: 'a + column::Renderer + row::Renderer + text::Renderer + radio::Renderer,
+    R: 'a, //+ column::Renderer + row::Renderer + text::Renderer + radio::Renderer,
 {
     Column::new()
         .push(Radio::new(fst, fst_s, Some(current.clone()), to_message.clone()).spacing(0))
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
-where
-    R: 'a
-        + Renderer
-        + text::Renderer
-        + radio::Renderer
-        + column::Renderer
-        + row::Renderer
-        + container::Renderer
-        + button::Renderer
-        + number_input::Renderer
-        + tabs::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-{
+impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R> {
     fn neu_mit_interrupt_view<IO>(
         zustand: &'a mut Zustand<IO>,
         zeige_modus: ZeigeModus,
@@ -473,11 +437,7 @@ where
     }
 }
 
-impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, M, R>
-where
-    T: Copy,
-    R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
-{
+impl<'a, T, I, M, R> Widget<M, R> for Auswahl<'a, T, I, M, R> {
     reexport_no_event_methods! {Row<'a, InterneNachricht<I>, R>, row, InterneNachricht<I>, R}
 
     fn on_event(
@@ -535,11 +495,7 @@ where
     }
 }
 
-impl<'a, T, I, M, R> From<Auswahl<'a, T, I, M, R>> for Element<'a, M, R>
-where
-    T: Copy,
-    R: 'a + Renderer + text::Renderer + column::Renderer + row::Renderer + tabs::Renderer,
-{
+impl<'a, T, I, M, R> From<Auswahl<'a, T, I, M, R>> for Element<'a, M, R> {
     fn from(auswahl: Auswahl<'a, T, I, M, R>) -> Self {
         Element::new(auswahl)
     }
@@ -565,7 +521,7 @@ pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
 }
 
 impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Pwm")
             .field("number_input", &"<NumberInput>")
             .field("pin", &self.pin)
@@ -573,17 +529,7 @@ impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
     }
 }
 
-impl<'a, R> Pwm<'a, R>
-where
-    R: 'a
-        + Renderer
-        + button::Renderer
-        + text::Renderer
-        + column::Renderer
-        + row::Renderer
-        + container::Renderer
-        + number_input::Renderer,
-{
+impl<'a, R> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(PwmZustand { pin, number_input_zustand }: &'a mut PwmZustand) -> Self {
         Pwm {
@@ -593,15 +539,7 @@ where
     }
 }
 
-impl<'a, R> Widget<pwm::Serialisiert, R> for Pwm<'a, R>
-where
-    R: 'a
-        + Renderer
-        + container::Renderer
-        + column::Renderer
-        + row::Renderer
-        + number_input::Renderer,
-{
+impl<'a, R> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
     reexport_no_event_methods! {NumberInput<'a, u8, pwm::Serialisiert, R>, number_input, pwm::Serialisiert, R}
 
     fn on_event(
@@ -629,15 +567,7 @@ where
     }
 }
 
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
-where
-    R: 'a
-        + Renderer
-        + container::Renderer
-        + column::Renderer
-        + row::Renderer
-        + number_input::Renderer,
-{
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }

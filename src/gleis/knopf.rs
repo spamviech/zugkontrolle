@@ -1,6 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis.
 
 use iced::{
+    alignment::{Horizontal, Vertical},
     canvas::{event, Cursor, Event, Geometry, Program},
     mouse, Canvas, Container, Element, Length, Point, Rectangle,
 };
@@ -11,7 +12,7 @@ use crate::{
     typen::{
         canvas::{
             pfad::{Pfad, Transformation},
-            Cache, Color, Fill, FillRule, HorizontalAlignment, Stroke, Text, VerticalAlignment,
+            Cache, Color, Fill, FillRule, Stroke, Text,
         },
         mm::Spurweite,
         rechteck::Rechteck,
@@ -131,8 +132,8 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
                         content: content.clone(),
                         position: Point::ORIGIN,
                         color: Color::BLACK,
-                        horizontal_alignment: HorizontalAlignment::Center,
-                        vertical_alignment: VerticalAlignment::Center,
+                        horizontal_alignment: Horizontal::Center,
+                        vertical_alignment: Vertical::Center,
                         ..Default::default()
                     });
                 })

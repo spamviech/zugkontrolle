@@ -1,12 +1,25 @@
 //! Anzeige & Erstellen eines [Streckenabschnittes](Streckenabschnitt).
 
-use std::{collections::BTreeMap, fmt::Debug};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Debug, Formatter},
+};
 
 use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
 use iced_native::{
-    button, checkbox, column, container, event, mouse, radio, row, scrollable, text, text_input,
-    Align, Button, Checkbox, Clipboard, Column, Container, Element, Event, Layout, Length, Point,
-    Renderer, Row, Scrollable, Text, TextInput, Widget,
+    event, mouse,
+    text::{self, Text},
+    widget::{
+        button::{self, Button},
+        checkbox::{self, Checkbox},
+        column::{self, Column},
+        container::{self, Container},
+        radio,
+        row::{self, Row},
+        scrollable::{self, Scrollable},
+        text_input::{self, TextInput},
+    },
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 
 use crate::{
@@ -76,29 +89,17 @@ pub enum AnzeigeNachricht {
 
 /// Widget zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
-pub struct Anzeige<'a, R: Renderer + container::Renderer> {
+pub struct Anzeige<'a, R> {
     container: Container<'a, AnzeigeNachricht, R>,
 }
 
-impl<R: Renderer + container::Renderer> Debug for Anzeige<'_, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<R> Debug for Anzeige<'_, R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Anzeige").field("container", &"<Container>").finish()
     }
 }
 
-impl<'a, R> Anzeige<'a, R>
-where
-    R: 'a
-        + Renderer
-        + container::Renderer
-        + text::Renderer
-        + button::Renderer
-        + row::Renderer
-        + column::Renderer
-        + checkbox::Renderer,
-    <R as container::Renderer>::Style: From<style::Anzeige>,
-    <R as iced_native::container::Renderer>::Style: From<style::Beschreibung>,
-{
+impl<'a, R> Anzeige<'a, R> {
     /// Erstelle eine neue [Anzeige].
     pub fn neu(zustand: &'a mut AnzeigeZustand, festlegen: bool) -> Self {
         let mut children = Vec::new();
@@ -123,13 +124,13 @@ where
                 .into(),
         );
         let container =
-            Container::new(Row::with_children(children).spacing(1).align_items(Align::Center))
+            Container::new(Row::with_children(children).spacing(1).align_items(Alignment::Center))
                 .style(style);
         Anzeige { container }
     }
 }
 
-impl<'a, R: Renderer + container::Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
+impl<'a, R> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
     reexport_no_event_methods! {Container<'a, AnzeigeNachricht, R>, container, AnzeigeNachricht, R}
 
     fn on_event(
@@ -145,9 +146,7 @@ impl<'a, R: Renderer + container::Renderer> Widget<AnzeigeNachricht, R> for Anze
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer> From<Anzeige<'a, R>>
-    for Element<'a, AnzeigeNachricht, R>
-{
+impl<'a, R> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
     fn from(auswahl: Anzeige<'a, R>) -> Self {
         Element::new(auswahl)
     }
@@ -273,25 +272,7 @@ impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, R>
-where
-    R: 'a
-        + Renderer
-        + text::Renderer
-        + radio::Renderer
-        + column::Renderer
-        + row::Renderer
-        + container::Renderer
-        + button::Renderer
-        + scrollable::Renderer
-        + number_input::Renderer
-        + tabs::Renderer
-        + card::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-    <R as button::Renderer>::Style: From<style::Auswahl>,
-    <R as iced_native::container::Renderer>::Style: From<style::Auswahl>,
-    <R as Renderer>::Output: From<(iced_graphics::Primitive, mouse::Interaction)>,
-{
+impl<'a, R> Auswahl<'a, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
         let AuswahlZustand {
@@ -369,7 +350,7 @@ where
     }
 }
 
-impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
+impl<'a, R> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
     fn on_event(
@@ -421,9 +402,7 @@ impl<'a, R: 'a + Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Ausw
     }
 }
 
-impl<'a, R: 'a + Renderer + card::Renderer> From<Auswahl<'a, R>>
-    for Element<'a, AuswahlNachricht, R>
-{
+impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl)
     }

@@ -82,13 +82,13 @@ impl Zustand {
 }
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
-pub struct Lizenzen<'a, R: Renderer + container::Renderer> {
+pub struct Lizenzen<'a, R> {
     container: Container<'a, InterneNachricht, R>,
     aktuell: &'a mut Option<(&'static str, String)>,
     scrollable_text_zurücksetzen: &'a mut bool,
 }
 
-impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
+impl<R> Debug for Lizenzen<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Lizenzen").field("row", &"<Row>").finish()
     }
@@ -96,24 +96,11 @@ impl<R: Renderer + container::Renderer> Debug for Lizenzen<'_, R> {
 
 const PADDING: u16 = 5;
 
-impl<'a, R> Lizenzen<'a, R>
-where
-    R: 'a
-        + Renderer
-        + container::Renderer
-        + row::Renderer
-        + scrollable::Renderer
-        + rule::Renderer
-        + button::Renderer
-        + space::Renderer
-        + text::Renderer,
-    <R as rule::Renderer>::Style: From<Linie>,
-    <R as container::Renderer>::Style: From<Hintergrund>,
-{
+impl<'a, R> Lizenzen<'a, R> {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
         zustand: &'a mut Zustand,
-        scrollable_style: impl Into<<R as scrollable::Renderer>::Style>,
+        scrollable_style: impl Into<Box<dyn scrollable::StyleSheet + 'a>>,
     ) -> Self {
         let Zustand {
             lizenzen_und_button_states,
@@ -176,7 +163,7 @@ where
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
+impl<'a, R> Widget<Nachricht, R> for Lizenzen<'a, R> {
     reexport_no_event_methods! {Container<'a, InterneNachricht, R>, container, InterneNachricht, R}
 
     fn on_event(
@@ -210,9 +197,7 @@ impl<'a, R: 'a + Renderer + container::Renderer> Widget<Nachricht, R> for Lizenz
     }
 }
 
-impl<'a, R: 'a + Renderer + container::Renderer> From<Lizenzen<'a, R>>
-    for Element<'a, Nachricht, R>
-{
+impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
         Element::new(lizenzen)
     }

@@ -7,8 +7,9 @@ use iced_native::{
     event,
     keyboard::{self, KeyCode},
     layout, overlay,
+    renderer::{Renderer, Style},
     widget::container::{self, Container},
-    Clipboard, Element, Event, Layout, Length, Overlay, Point, Renderer, Widget,
+    Clipboard, Element, Event, Layout, Length, Overlay, Point, Widget,
 };
 
 use crate::application::style::hintergrund::Hintergrund;
@@ -91,11 +92,7 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
     }
 }
 
-impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R>
-where
-    R: Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Hintergrund>,
-{
+impl<Overlay, Nachricht, R> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R> {
     fn width(&self) -> Length {
         self.underlay.width()
     }
@@ -111,26 +108,25 @@ where
     fn draw(
         &self,
         renderer: &mut R,
-        defaults: &R::Defaults,
+        style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> R::Output {
-        self.underlay.draw(renderer, defaults, layout, cursor_position, viewport)
+    ) {
+        self.underlay.draw(renderer, style, layout, cursor_position, viewport)
     }
 
-    fn hash_layout(&self, zustand: &mut iced_native::Hasher) {
-        self.zustand.overlay.is_some().hash(zustand);
-        self.underlay.hash_layout(zustand)
-    }
-
-    fn overlay<'s>(&'s mut self, layout: Layout<'_>) -> Option<overlay::Element<'s, Nachricht, R>> {
+    fn overlay<'s>(
+        &'s mut self,
+        layout: Layout<'_>,
+        renderer: &R,
+    ) -> Option<overlay::Element<'s, Nachricht, R>> {
         if let Some(overlay) = self.zustand.overlay_mut() {
             let bounds = layout.bounds();
             let position = Point::new(bounds.x, bounds.y);
             Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
         } else {
-            self.underlay.overlay(layout)
+            self.underlay.overlay(layout, renderer)
         }
     }
 
@@ -163,12 +159,7 @@ where
     }
 }
 
-impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
-where
-    Nachricht: 'a,
-    R: 'a + Renderer + container::Renderer,
-    <R as container::Renderer>::Style: From<Hintergrund>,
-{
+impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R> {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
     }
@@ -176,11 +167,7 @@ where
 
 struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
 
-impl<'a, Nachricht: 'a, R> ModalOverlay<'a, Nachricht, R>
-where
-    R: Renderer + container::Renderer + 'a,
-    <R as container::Renderer>::Style: From<Hintergrund>,
-{
+impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
     fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
         ModalOverlay(
             Container::new(overlay)
@@ -194,32 +181,21 @@ where
     }
 }
 
-impl<'a, Nachricht: 'a, R: Renderer + 'a> ModalOverlay<'a, Nachricht, R> {
+impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
     fn overlay(self, position: Point) -> overlay::Element<'a, Nachricht, R> {
         overlay::Element::new(position, Box::new(self))
     }
 }
 
-impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
+impl<Nachricht, R> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> iced_native::layout::Node {
         let mut layout = self.0.layout(renderer, &layout::Limits::new(bounds, bounds));
         layout.move_to(position);
         layout
     }
 
-    fn draw(
-        &self,
-        renderer: &mut R,
-        defaults: &R::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> R::Output {
-        self.0.draw(renderer, defaults, layout, cursor_position, &layout.bounds())
-    }
-
-    fn hash_layout(&self, zustand: &mut iced_native::Hasher, position: Point) {
-        format!("{:?}", position).hash(zustand);
-        self.0.hash_layout(zustand);
+    fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
+        self.0.draw(renderer, style, layout, cursor_position, &layout.bounds())
     }
 
     fn on_event(

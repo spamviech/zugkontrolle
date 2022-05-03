@@ -95,24 +95,7 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
-where
-    Richtung: 'static + Clone + Display,
-    AnschlüsseSerialisiert: Nachschlagen<Richtung, OutputSerialisiert>,
-    R: 't
-        + Renderer
-        + container::Renderer
-        + column::Renderer
-        + row::Renderer
-        + text::Renderer
-        + button::Renderer
-        + text_input::Renderer
-        + radio::Renderer
-        + card::Renderer
-        + tabs::Renderer
-        + number_input::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-{
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<
         AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,

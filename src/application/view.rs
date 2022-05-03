@@ -3,7 +3,8 @@
 use std::fmt::Debug;
 
 use iced::{
-    Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space, Text,
+    Alignment, Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space,
+    Text,
 };
 use log::error;
 use num_traits::NumCast;
@@ -250,7 +251,7 @@ where
             .step(0.01)
             .width(Length::Units(100)),
         )
-        .align_items(Align::Center);
+        .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
     let mut row = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus))

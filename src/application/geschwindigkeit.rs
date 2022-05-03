@@ -109,32 +109,32 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Self>,
         zustand: &'t mut AnzeigeZustand<Self>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer;
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
+    // where
+    //     R: 't
+    //         + column::Renderer
+    //         + row::Renderer
+    //         + button::Renderer
+    //         + text::Renderer
+    //         + slider::Renderer
+    //         + radio::Renderer;
 
     /// Erstelle eine neue [Auswahl].
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: 't
-            + container::Renderer
-            + column::Renderer
-            + row::Renderer
-            + scrollable::Renderer
-            + text::Renderer
-            + text_input::Renderer
-            + button::Renderer
-            + radio::Renderer
-            + card::Renderer
-            + tabs::Renderer
-            + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<TabBar>;
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>;
+    // where
+    //     R: 't
+    //         + container::Renderer
+    //         + column::Renderer
+    //         + row::Renderer
+    //         + scrollable::Renderer
+    //         + text::Renderer
+    //         + text_input::Renderer
+    //         + button::Renderer
+    //         + radio::Renderer
+    //         + card::Renderer
+    //         + tabs::Renderer
+    //         + number_input::Renderer,
+    //     <R as tab_bar::Renderer>::Style: From<TabBar>;
 }
 
 /// Zurücksetzen des Zustands des [Anzeige]-Widgets.
@@ -167,16 +167,7 @@ impl LeiterAnzeige for Mittelleiter {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
         zustand: &'t mut AnzeigeZustand<Mittelleiter>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer,
-    {
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let zeige_fahrtrichtung = |button_zustand: &'t mut button::State, _none| {
             Button::new(button_zustand, Text::new("Umdrehen"))
                 .on_press(AktionGeschwindigkeit::Umdrehen {
@@ -197,22 +188,7 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: 't
-            + container::Renderer
-            + column::Renderer
-            + row::Renderer
-            + scrollable::Renderer
-            + text::Renderer
-            + text_input::Renderer
-            + button::Renderer
-            + radio::Renderer
-            + card::Renderer
-            + tabs::Renderer
-            + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<TabBar>,
-    {
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -258,16 +234,7 @@ impl LeiterAnzeige for Zweileiter {
     fn anzeige_neu<'t, R>(
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
         zustand: &'t mut AnzeigeZustand<Zweileiter>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>
-    where
-        R: 't
-            + column::Renderer
-            + row::Renderer
-            + button::Renderer
-            + text::Renderer
-            + slider::Renderer
-            + radio::Renderer,
-    {
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
@@ -300,22 +267,7 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: 't
-            + container::Renderer
-            + column::Renderer
-            + row::Renderer
-            + scrollable::Renderer
-            + text::Renderer
-            + text_input::Renderer
-            + button::Renderer
-            + radio::Renderer
-            + card::Renderer
-            + tabs::Renderer
-            + number_input::Renderer,
-        <R as tab_bar::Renderer>::Style: From<TabBar>,
-    {
+    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::Immer,
@@ -344,11 +296,7 @@ impl<M, R> Debug for Anzeige<'_, M, R> {
     }
 }
 
-impl<'t, M, R> Anzeige<'t, M, R>
-where
-    M: 'static + Clone,
-    R: 't + column::Renderer + row::Renderer + text::Renderer + slider::Renderer + radio::Renderer,
-{
+impl<'t, M, R> Anzeige<'t, M, R> {
     /// Erstelle eine neue [Anzeige] für eine [LeiterAnzeige].
     pub fn neu_mit_leiter<'s, L: LeiterAnzeige>(
         geschwindigkeit: &'s Geschwindigkeit<L>,
@@ -409,10 +357,7 @@ where
     }
 }
 
-impl<'t, M, R> Widget<M, R> for Anzeige<'t, M, R>
-where
-    R: Renderer + column::Renderer,
-{
+impl<'t, M, R> Widget<M, R> for Anzeige<'t, M, R> {
     reexport_no_event_methods! {Column<'t, M, R>, column, M, R}
 
     fn on_event(
@@ -433,11 +378,7 @@ where
     }
 }
 
-impl<'t, M, R> From<Anzeige<'t, M, R>> for Element<'t, M, R>
-where
-    M: 'static,
-    R: 't + Renderer + column::Renderer,
-{
+impl<'t, M, R> From<Anzeige<'t, M, R>> for Element<'t, M, R> {
     fn from(anzeige: Anzeige<'t, M, R>) -> Self {
         Element::new(anzeige)
     }
@@ -608,24 +549,7 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
-impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
-where
-    Leiter: Serialisiere,
-    <Leiter as Serialisiere>::Serialisiert: 't,
-    R: 't
-        + container::Renderer
-        + column::Renderer
-        + row::Renderer
-        + scrollable::Renderer
-        + text::Renderer
-        + text_input::Renderer
-        + button::Renderer
-        + radio::Renderer
-        + card::Renderer
-        + tabs::Renderer
-        + number_input::Renderer,
-    <R as tab_bar::Renderer>::Style: From<TabBar>,
-{
+impl<'t, Leiter, R> Auswahl<'t, Leiter, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
         zustand: &'t mut AuswahlZustand,

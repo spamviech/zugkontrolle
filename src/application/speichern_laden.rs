@@ -11,7 +11,7 @@ use iced_native::{
         text_input::{self, TextInput},
         Text,
     },
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
 };
 
 use crate::application::{
@@ -78,11 +78,7 @@ impl<R> Debug for SpeichernLaden<'_, R> {
     }
 }
 
-impl<'a, R> SpeichernLaden<'a, R>
-where
-    R: 'a + column::Renderer + text::Renderer + button::Renderer + text_input::Renderer,
-    <R as button::Renderer>::Style: From<Hintergrund>,
-{
+impl<'a, R> SpeichernLaden<'a, R> {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(zustand: &'a mut Zustand) -> Self {
         let Zustand { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = zustand;
@@ -100,7 +96,7 @@ where
                             .style(hintergrund::STANDARD)
                             .on_press(InterneNachricht::Laden),
                     )
-                    .align_items(Align::End),
+                    .align_items(Alignment::End),
             )
             .push(
                 TextInput::new(pfad, "Pfad", aktueller_pfad, InterneNachricht::Pfad)
@@ -108,13 +104,13 @@ where
                     .padding(1),
             )
             .spacing(5)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .width(Length::Shrink);
         SpeichernLaden { row, aktueller_pfad }
     }
 }
 
-impl<'a, R: Renderer + row::Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
+impl<'a, R> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
     reexport_no_event_methods! {Row<'a, InterneNachricht, R>, row, InterneNachricht, R}
 
     fn on_event(
@@ -154,7 +150,7 @@ impl<'a, R: Renderer + row::Renderer> Widget<Nachricht, R> for SpeichernLaden<'a
     }
 }
 
-impl<'a, R: 'a + row::Renderer> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
         Element::new(auswahl)
     }
