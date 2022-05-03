@@ -122,7 +122,7 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
     where
-        R: Renderer + card::Renderer;
+        R: Renderer;
     // where
     //     R: 't
     //         + container::Renderer
@@ -192,7 +192,7 @@ impl LeiterAnzeige for Mittelleiter {
 
     fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
     where
-        R: Renderer + card::Renderer,
+        R: Renderer,
     {
         Auswahl::neu(
             zustand,
@@ -274,7 +274,7 @@ impl LeiterAnzeige for Zweileiter {
 
     fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
     where
-        R: Renderer + card::Renderer,
+        R: Renderer,
     {
         Auswahl::neu(
             zustand,
@@ -502,7 +502,6 @@ pub struct Auswahl<'t, Leiter, R>
 where
     Leiter: Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    R: card::Renderer,
 {
     card: Card<'t, InterneAuswahlNachricht, R>,
     neu_name: &'t mut String,
@@ -527,7 +526,6 @@ impl<'t, Leiter, R> Debug for Auswahl<'t, Leiter, R>
 where
     Leiter: Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    R: card::Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Auswahl")
@@ -559,7 +557,7 @@ pub enum FahrtrichtungAnschluss {
 
 impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
-    R: Renderer + card::Renderer,
+    R: Renderer,
     Leiter: Serialisiere,
 {
     /// Erstelle eine neue [Auswahl].
@@ -714,7 +712,7 @@ impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, 
 where
     Leiter: Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    R: Renderer + card::Renderer,
+    R: Renderer,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
@@ -807,7 +805,7 @@ impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachrich
 where
     Leiter: 't + Serialisiere,
     <Leiter as Serialisiere>::Serialisiert: 't,
-    R: 't + Renderer + card::Renderer,
+    R: 't + Renderer,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {
         Element::new(anzeige)

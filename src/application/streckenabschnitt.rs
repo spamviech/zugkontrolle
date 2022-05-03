@@ -254,14 +254,14 @@ pub enum AuswahlNachricht {
 }
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
-pub struct Auswahl<'a, R: Renderer + card::Renderer> {
+pub struct Auswahl<'a, R: Renderer> {
     card: Card<'a, InterneAuswahlNachricht, R>,
     neu_name: &'a mut String,
     neu_farbe: &'a mut Farbe,
     neu_anschluss: &'a mut OutputSerialisiert,
 }
 
-impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
+impl<R: Renderer> Debug for Auswahl<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("card", &"<Card>")
@@ -272,7 +272,7 @@ impl<R: Renderer + card::Renderer> Debug for Auswahl<'_, R> {
     }
 }
 
-impl<'a, R: Renderer + card::Renderer> Auswahl<'a, R> {
+impl<'a, R: Renderer> Auswahl<'a, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
         let AuswahlZustand {
@@ -350,7 +350,7 @@ impl<'a, R: Renderer + card::Renderer> Auswahl<'a, R> {
     }
 }
 
-impl<'a, R: Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
+impl<'a, R: Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
     fn on_event(
@@ -402,7 +402,7 @@ impl<'a, R: Renderer + card::Renderer> Widget<AuswahlNachricht, R> for Auswahl<'
     }
 }
 
-impl<'a, R: Renderer + card::Renderer> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
+impl<'a, R: Renderer> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl)
     }

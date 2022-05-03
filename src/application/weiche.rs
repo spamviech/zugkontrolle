@@ -75,7 +75,7 @@ enum InterneNachricht<Richtung> {
 }
 
 /// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
-pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R: card::Renderer> {
+pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R> {
     card: Card<'t, InterneNachricht<Richtung>, R>,
     name: &'t mut String,
     anschlüsse: &'t mut AnschlüsseSerialisiert,
@@ -84,7 +84,6 @@ pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R: card::Renderer> {
 impl<Richtung, AnschlüsseSerialisiert, R> Debug for Auswahl<'_, Richtung, AnschlüsseSerialisiert, R>
 where
     AnschlüsseSerialisiert: Debug,
-    R: card::Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Auswahl")
@@ -95,7 +94,7 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
     Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 {
     /// Erstelle eine neue [Auswahl].
@@ -157,7 +156,7 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
     Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
     for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 {
@@ -211,7 +210,7 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer + card::Renderer>
+impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
     From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
     for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
 {

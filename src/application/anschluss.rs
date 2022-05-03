@@ -264,7 +264,7 @@ impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
 
 impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
-    R: 'a + text::Renderer + number_input::Renderer,
+    R: 'a + text::Renderer,
     Element<'a, InputNachricht, R>: From<NumberInput<'a, u8, InputNachricht, R>>,
     Element<'a, InterneNachricht<InputNachricht>, R>:
         From<NumberInput<'a, u8, InterneNachricht<InputNachricht>, R>>,
@@ -302,7 +302,7 @@ where
 
 impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
-    R: 'a + text::Renderer + number_input::Renderer,
+    R: 'a + text::Renderer,
     Element<'a, InterneNachricht<OutputNachricht>, R>:
         From<NumberInput<'a, u8, InterneNachricht<OutputNachricht>, R>>,
 {
@@ -368,7 +368,7 @@ impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
 where
     T: Eq + Copy,
     M: 'a + Clone,
-    R: 'a + text::Renderer + number_input::Renderer + tabs::Renderer,
+    R: 'a + text::Renderer,
     Element<'a, InterneNachricht<I>, R>: From<NumberInput<'a, u8, InterneNachricht<I>, R>>,
     Element<'a, InterneNachricht<I>, R>: From<Row<'a, InterneNachricht<I>, R>>,
     Element<'a, InterneNachricht<I>, R>: From<Tabs<'a, InterneNachricht<I>, R>>,
@@ -534,12 +534,12 @@ impl PwmZustand {
 }
 
 /// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-pub struct Pwm<'a, R: 'a + Renderer + number_input::Renderer> {
+pub struct Pwm<'a, R: 'a + Renderer> {
     number_input: NumberInput<'a, u8, pwm::Serialisiert, R>,
     pin: &'a mut u8,
 }
 
-impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
+impl<'a, R: 'a + Renderer> Debug for Pwm<'a, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Pwm")
             .field("number_input", &"<NumberInput>")
@@ -548,7 +548,7 @@ impl<'a, R: 'a + Renderer + number_input::Renderer> Debug for Pwm<'a, R> {
     }
 }
 
-impl<'a, R: Renderer + number_input::Renderer> Pwm<'a, R> {
+impl<'a, R: Renderer> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(PwmZustand { pin, number_input_zustand }: &'a mut PwmZustand) -> Self {
         Pwm {
@@ -558,7 +558,7 @@ impl<'a, R: Renderer + number_input::Renderer> Pwm<'a, R> {
     }
 }
 
-impl<'a, R: Renderer + number_input::Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
+impl<'a, R: Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
     reexport_no_event_methods! {
         NumberInput<'a, u8, pwm::Serialisiert, R>,
         number_input,
@@ -591,9 +591,7 @@ impl<'a, R: Renderer + number_input::Renderer> Widget<pwm::Serialisiert, R> for 
     }
 }
 
-impl<'a, R: Renderer + number_input::Renderer> From<Pwm<'a, R>>
-    for Element<'a, pwm::Serialisiert, R>
-{
+impl<'a, R: Renderer> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }
