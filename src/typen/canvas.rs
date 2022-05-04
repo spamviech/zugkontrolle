@@ -1,5 +1,7 @@
 //! Newtypes für [iced::canvas::Frame] und [iced::canvas::Cache].
 
+use std::fmt::{self, Debug, Formatter};
+
 use iced::{canvas::Geometry, Size};
 use serde::{Deserialize, Serialize};
 
@@ -19,8 +21,13 @@ pub use pfad::{Bogen, Pfad, Transformation};
 /// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [iced::Frame] liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
-#[derive(Debug)]
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
+
+impl Debug for Frame<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Frame").field(&"<Frame>").finish()
+    }
+}
 
 impl<'t> Frame<'t> {
     /// Erzeuge einen neuen [Frame].
@@ -29,6 +36,7 @@ impl<'t> Frame<'t> {
     }
 
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Stroke).
+    #[allow(single_use_lifetimes)]
     pub fn stroke<'s>(
         &mut self,
         Pfad { pfad, transformationen }: &Pfad,
