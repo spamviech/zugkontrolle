@@ -27,10 +27,12 @@ glow_glyph-0.4.0: MIT
 objc_id-0.1.1: MIT
     http://github.com/SSheldon/rust-objc-id
     None in repository
+    objc from the same author has a copy of the MIT license
 
 objc-foundation-0.1.1: MIT
     http://github.com/SSheldon/rust-objc-foundation
     None in repository
+    objc from the same author has a copy of the MIT license
 
 osmesa-sys-0.1.2: CC0-1.0
     https://github.com/Daggerbot/osmesa-rs.git
@@ -39,6 +41,7 @@ osmesa-sys-0.1.2: CC0-1.0
 sid-0.6.1: MIT/Apache-2.0
     https://github.com/nical/sid
     None in repository
+    Author of (among others) lyon
 
 winapi-wsapoll-0.1.1: MIT OR Apache-2.0
     https://github.com/psychon/winapi-wsapoll
@@ -49,7 +52,6 @@ winapi-wsapoll-0.1.1: MIT OR Apache-2.0
 ------------------------------------------------------------------
 Missing License: android_glue-0.2.3
 Missing License: ansi_term-0.12.1
-Missing License: base64-0.13.0
 Missing License: block-0.1.6
 Missing License: clipboard-win-4.4.1
 Missing License: cocoa-foundation-0.1.0
@@ -71,7 +73,7 @@ Missing License: iced_graphics-0.3.0
 Missing License: iced_native-0.5.0
 Missing License: iced_style-0.3.0
 Missing License: iced_style-0.4.0
-Missing License: iced_web-0.4.0\5f85529
+Missing License: iced_web-0.4.0
 Missing License: iced_winit-0.4.0
 Missing License: khronos_api-3.1.0
 Missing License: lyon-0.17.10
@@ -104,3 +106,5 @@ Missing License: windows_i686_msvc-0.36.1
 Missing License: windows_x86_64_gnu-0.36.1
 Missing License: windows_x86_64_msvc-0.36.1
 Missing License: xi-unicode-0.3.0
+Skip zugkontrolle-3.0.0
+Skip zugkontrolle-macros-3.0.0

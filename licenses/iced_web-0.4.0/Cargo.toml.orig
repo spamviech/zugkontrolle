@@ -5,7 +5,7 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A web backend for Iced"
 license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced_web"
 readme = "README.md"
 keywords = ["gui", "ui", "web", "interface", "widgets"]
@@ -15,15 +15,23 @@ categories = ["web-programming"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-iced_core = "0.4"
-iced_futures = "0.3"
-iced_style = "0.3"
 dodrio = "0.2"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 url = "2.0"
 num-traits = "0.2"
-base64 = "0.13"
+
+[dependencies.iced_core]
+version = "0.4"
+path = "../core"
+
+[dependencies.iced_futures]
+version = "0.3"
+path = "../futures"
+
+[dependencies.iced_style]
+version = "0.3"
+path = "../style"
 
 [dependencies.web-sys]
 version = "0.3.27"
@@ -37,15 +45,3 @@ features = [
     "InputEvent",
     "KeyboardEvent",
 ]
-
-[patch.crates-io.iced_core]
-git = "https://github.com/iced-rs/iced.git"
-rev = "ba9c6168b976f92b90bf5d2106f1010cfc9c8be0"
-
-[patch.crates-io.iced_futures]
-git = "https://github.com/iced-rs/iced.git"
-rev = "ba9c6168b976f92b90bf5d2106f1010cfc9c8be0"
-
-[patch.crates-io.iced_style]
-git = "https://github.com/iced-rs/iced.git"
-rev = "ba9c6168b976f92b90bf5d2106f1010cfc9c8be0"

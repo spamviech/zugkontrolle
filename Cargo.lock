@@ -99,12 +99,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
-name = "base64"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -953,8 +947,8 @@ dependencies = [
  "iced_futures 0.4.0",
  "iced_glow",
  "iced_glutin",
- "iced_graphics 0.3.0",
- "iced_native 0.5.0",
+ "iced_graphics",
+ "iced_native",
  "iced_winit",
  "thiserror",
 ]
@@ -962,12 +956,12 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced_aw?rev=e94f826ab1bd53cf5bc797eece0e017e47a97397#e94f826ab1bd53cf5bc797eece0e017e47a97397"
+source = "git+https://github.com/genusistimelord/iced_aw/?rev=b98dfa82a0351c20a999628ec639e29f12786281#b98dfa82a0351c20a999628ec639e29f12786281"
 dependencies = [
  "dodrio",
- "iced_graphics 0.2.0",
- "iced_native 0.4.0",
- "iced_style 0.3.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
+ "iced_graphics",
+ "iced_native",
+ "iced_style 0.4.0",
  "iced_web",
  "num-traits",
  "wasm-bindgen",
@@ -979,15 +973,6 @@ name = "iced_core"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fafe4a5eeee85876f3bad347338456e0f3e7fcdc2381a5ce6c3ba2a60dd769bf"
-
-[[package]]
-name = "iced_core"
-version = "0.4.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=af7cbf0#af7cbf0003496d757696ea6e15ea32f0649cf8f9"
-dependencies = [
- "bitflags",
- "wasm-timer",
-]
 
 [[package]]
 name = "iced_core"
@@ -1008,17 +993,6 @@ dependencies = [
  "futures",
  "log",
  "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "iced_futures"
-version = "0.3.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=af7cbf0#af7cbf0003496d757696ea6e15ea32f0649cf8f9"
-dependencies = [
- "futures",
- "log",
- "wasm-bindgen-futures",
- "wasm-timer",
 ]
 
 [[package]]
@@ -1044,8 +1018,8 @@ dependencies = [
  "glow",
  "glow_glyph",
  "glyph_brush",
- "iced_graphics 0.3.0",
- "iced_native 0.5.0",
+ "iced_graphics",
+ "iced_native",
  "log",
 ]
 
@@ -1056,22 +1030,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e18f56d746d304b92a7dcdfcffa93fafb732aec046b0bf9fb1b39d6bc91c20a7"
 dependencies = [
  "glutin",
- "iced_graphics 0.3.0",
- "iced_native 0.5.0",
+ "iced_graphics",
+ "iced_native",
  "iced_winit",
-]
-
-[[package]]
-name = "iced_graphics"
-version = "0.2.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=af7cbf0#af7cbf0003496d757696ea6e15ea32f0649cf8f9"
-dependencies = [
- "bytemuck",
- "glam",
- "iced_native 0.4.0",
- "iced_style 0.3.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
- "raw-window-handle 0.4.3",
- "thiserror",
 ]
 
 [[package]]
@@ -1082,24 +1043,11 @@ checksum = "e5f5e700f76069666fe7eb920f715a46471a6b8063d8c237b17ff2c1d2f31ce5"
 dependencies = [
  "bytemuck",
  "glam",
- "iced_native 0.5.0",
+ "iced_native",
  "iced_style 0.4.0",
  "lyon",
  "raw-window-handle 0.4.3",
  "thiserror",
-]
-
-[[package]]
-name = "iced_native"
-version = "0.4.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=af7cbf0#af7cbf0003496d757696ea6e15ea32f0649cf8f9"
-dependencies = [
- "iced_core 0.4.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
- "iced_futures 0.3.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
- "iced_style 0.3.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
- "num-traits",
- "twox-hash",
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -1122,15 +1070,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca93066a80759bfb31f2900d45ca4cf7500b88611607da5e380143badfcd7837"
 dependencies = [
- "iced_core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "iced_style"
-version = "0.3.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=af7cbf0#af7cbf0003496d757696ea6e15ea32f0649cf8f9"
-dependencies = [
- "iced_core 0.4.0 (git+https://github.com/iced-rs/iced.git?rev=af7cbf0)",
+ "iced_core 0.4.0",
 ]
 
 [[package]]
@@ -1145,13 +1085,13 @@ dependencies = [
 [[package]]
 name = "iced_web"
 version = "0.4.0"
-source = "git+https://github.com/iced-rs/iced_web?rev=5f85529#5f85529835fe88b261ebc485fa6fe4824bfd5718"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c57300b109735abcee7aed27101eb1b29016ba07ec50b6944530982231397ad"
 dependencies = [
- "base64",
  "dodrio",
- "iced_core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "iced_futures 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "iced_style 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iced_core 0.4.0",
+ "iced_futures 0.3.0",
+ "iced_style 0.3.0",
  "num-traits",
  "url",
  "wasm-bindgen",
@@ -1166,8 +1106,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72011b895e439e2ebad8f545720e3e97c7368ecfc47a23cbfeaa9508a98af90c"
 dependencies = [
  "iced_futures 0.4.0",
- "iced_graphics 0.3.0",
- "iced_native 0.5.0",
+ "iced_graphics",
+ "iced_native",
  "log",
  "thiserror",
  "web-sys",
@@ -2673,8 +2613,8 @@ dependencies = [
  "iced",
  "iced_aw",
  "iced_futures 0.4.0",
- "iced_graphics 0.3.0",
- "iced_native 0.5.0",
+ "iced_graphics",
+ "iced_native",
  "itertools",
  "kommandozeilen_argumente",
  "log",
