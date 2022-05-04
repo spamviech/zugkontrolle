@@ -1,6 +1,6 @@
 //! Überdecke ein Widget einem anderen Widget.
 
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
 use iced::{Rectangle, Size};
 use iced_native::{
@@ -8,8 +8,8 @@ use iced_native::{
     keyboard::{self, KeyCode},
     layout, overlay,
     renderer::{Renderer, Style},
-    widget::container::{self, Container},
-    Clipboard, Element, Event, Font, Layout, Length, Overlay, Point, Shell, Widget,
+    widget::container::Container,
+    Clipboard, Element, Event, Layout, Length, Overlay, Point, Shell, Widget,
 };
 
 use crate::application::style::hintergrund::Hintergrund;

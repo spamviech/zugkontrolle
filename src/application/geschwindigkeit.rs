@@ -7,19 +7,15 @@ use std::{
     time::Duration,
 };
 
-use iced_aw::native::{card, number_input, tab_bar, tabs, Card, TabLabel, Tabs};
+use iced_aw::native::{Card, TabLabel, Tabs};
 use iced_native::{
     event, overlay, text,
     widget::{
         button::{self, Button},
-        column::{self, Column},
-        container,
-        radio::{self, Radio},
-        row::{self, Row},
         scrollable::{self, Scrollable},
         slider::{self, Slider},
         text_input::{self, TextInput},
-        Text,
+        Column, Radio, Row, Text,
     },
     Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
