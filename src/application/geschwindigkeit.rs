@@ -758,9 +758,13 @@ where
                             *self.pwm_polarität,
                         )
                     } else {
+                        let NonEmpty { head, tail } = &self.ks_anschlüsse;
                         (self.ks_nachricht)(
                             self.umdrehen_anschluss.clone(),
-                            self.ks_anschlüsse.map(|anschluss| anschluss.clone()),
+                            NonEmpty {
+                                head: (*head).clone(),
+                                tail: tail.iter().map(|anschluss| (*anschluss).clone()).collect(),
+                            },
                         )
                     };
                     let nachricht = AuswahlNachricht::Hinzufügen(
