@@ -269,9 +269,6 @@ impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
 impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
-    Element<'a, InputNachricht, R>: From<NumberInput<'a, u8, InputNachricht, R>>,
-    Element<'a, InterneNachricht<InputNachricht>, R>:
-        From<NumberInput<'a, u8, InterneNachricht<InputNachricht>, R>>,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(zustand: &'a mut Zustand<Input<'a>>) -> Self {
@@ -307,8 +304,6 @@ where
 impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
-    Element<'a, InterneNachricht<OutputNachricht>, R>:
-        From<NumberInput<'a, u8, InterneNachricht<OutputNachricht>, R>>,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(zustand: &'a mut Zustand<Output>) -> Self {
@@ -373,9 +368,6 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text::Renderer<Font = Font>,
-    Element<'a, InterneNachricht<I>, R>: From<NumberInput<'a, u8, InterneNachricht<I>, R>>,
-    Element<'a, InterneNachricht<I>, R>: From<Row<'a, InterneNachricht<I>, R>>,
-    Element<'a, InterneNachricht<I>, R>: From<Tabs<'a, InterneNachricht<I>, R>>,
 {
     fn neu_mit_interrupt_view<IO>(
         zustand: &'a mut Zustand<IO>,
