@@ -2,23 +2,20 @@
 
 use std::fmt::{Debug, Display};
 
-use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
+use iced_aw::native::Card;
 use iced_native::{
-    event,
-    text::{self, Text},
+    event, text,
     widget::{
         button::{self, Button},
-        column::{self, Column},
-        container, radio,
-        row::{self, Row},
         text_input::{self, TextInput},
+        Column, Row, Text,
     },
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
 };
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    application::{anschluss, macros::reexport_no_event_methods},
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert, WeicheSteuerung},
 };
@@ -94,15 +91,18 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
-    Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+where
+    Richtung: 'static + Clone + Display,
+    R: 't + text::Renderer<Font = Font>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<
-        AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
-    >(
+    pub fn neu<AnschlüsseAuswahlZustand>(
         zustand: &'t mut Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>,
-    ) -> Self {
+    ) -> Self
+    where
+        AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
+    {
         let Zustand {
             name,
             name_zustand,
@@ -117,7 +117,7 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
                 .width(Length::Units(200)),
         );
         for (richtung, anschluss_zustand) in anschlüsse_zustand.referenzen_mut().into_iter() {
-            column = column.push(Row::new().push(Text::new(format!("{}", richtung))).push(
+            column = column.push(Row::new().push(Text::new(richtung.to_string())).push(
                 Element::from(anschluss::Auswahl::neu_output(anschluss_zustand)).map(
                     move |anschluss_save| {
                         InterneNachricht::Anschluss(richtung.clone(), anschluss_save)
@@ -156,9 +156,12 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
-    Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
     for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+where
+    Richtung: Clone + Default,
+    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    R: text::Renderer<Font = Font>,
 {
     reexport_no_event_methods! {
         Card<'t, InterneNachricht<Richtung>, R>,
@@ -174,17 +177,23 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht<Richtung, AnschlüsseSerialisiert>>,
+        shell: &mut Shell<'_, Nachricht<Richtung, AnschlüsseSerialisiert>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
+        let mut card_shell = Shell::new(&mut card_messages);
         let mut status = self.card.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut card_messages,
+            &mut card_shell,
         );
+        if card_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            card_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
         for message in card_messages {
             status = event::Status::Captured;
             match message {
@@ -193,26 +202,31 @@ impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
                     *self.anschlüsse.erhalte_mut(&richtung) = anschluss
                 },
                 InterneNachricht::Festlegen => {
-                    messages.push(Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
+                    let weiche_steuerung = WeicheSteuerung {
+                        aktuelle_richtung: Richtung::default(),
+                        letzte_richtung: Richtung::default(),
+                        anschlüsse: self.anschlüsse.clone(),
+                    };
+                    let nachricht = Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(self.name.clone()),
-                        WeicheSteuerung {
-                            aktuelle_richtung: Default::default(),
-                            letzte_richtung: Default::default(),
-                            anschlüsse: self.anschlüsse.clone(),
-                        },
-                    ))))
+                        weiche_steuerung,
+                    )));
+                    shell.publish(nachricht)
                 },
-                InterneNachricht::Entfernen => messages.push(Nachricht::Festlegen(None)),
-                InterneNachricht::Schließen => messages.push(Nachricht::Schließen),
+                InterneNachricht::Entfernen => shell.publish(Nachricht::Festlegen(None)),
+                InterneNachricht::Schließen => shell.publish(Nachricht::Schließen),
             }
         }
         status
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R: Renderer>
-    From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
     for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+where
+    Richtung: 't + Clone + Default,
+    AnschlüsseSerialisiert: 't + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    R: 't + text::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
         Element::new(anzeige)
