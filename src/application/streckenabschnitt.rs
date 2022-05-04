@@ -5,28 +5,21 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::native::{card, number_input, tab_bar, tabs, Card};
+use iced_aw::native::Card;
 use iced_native::{
-    event, mouse,
-    text::{self, Text},
+    event, text,
     widget::{
         button::{self, Button},
-        checkbox::{self, Checkbox},
-        column::{self, Column},
-        container::{self, Container},
-        radio,
-        row::{self, Row},
         scrollable::{self, Scrollable},
         text_input::{self, TextInput},
+        Checkbox, Column, Container, Row, Text,
     },
-    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Alignment, Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{
-        anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods, style::tab_bar::TabBar,
-    },
+    application::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
@@ -99,7 +92,7 @@ impl<R> Debug for Anzeige<'_, R> {
     }
 }
 
-impl<'a, R> Anzeige<'a, R> {
+impl<'a, R: 'a + text::Renderer> Anzeige<'a, R> {
     /// Erstelle eine neue [Anzeige].
     pub fn neu(zustand: &'a mut AnzeigeZustand, festlegen: bool) -> Self {
         let mut children = Vec::new();
@@ -140,13 +133,13 @@ impl<'a, R: Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<AnzeigeNachricht>,
+        shell: &mut Shell<'_, AnzeigeNachricht>,
     ) -> event::Status {
-        self.container.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+        self.container.on_event(event, layout, cursor_position, renderer, clipboard, shell)
     }
 }
 
-impl<'a, R> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
+impl<'a, R: 'a + Renderer> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
     fn from(auswahl: Anzeige<'a, R>) -> Self {
         Element::new(auswahl)
     }
@@ -272,7 +265,7 @@ impl<R: Renderer> Debug for Auswahl<'_, R> {
     }
 }
 
-impl<'a, R: Renderer> Auswahl<'a, R> {
+impl<'a, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, R> {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
         let AuswahlZustand {
@@ -350,7 +343,7 @@ impl<'a, R: Renderer> Auswahl<'a, R> {
     }
 }
 
-impl<'a, R: Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
+impl<'a, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
     fn on_event(
@@ -360,37 +353,44 @@ impl<'a, R: Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<AuswahlNachricht>,
+        shell: &mut Shell<'_, AuswahlNachricht>,
     ) -> event::Status {
         let mut container_messages = Vec::new();
+        let mut container_shell = Shell::new(&mut container_messages);
         let mut status = self.card.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut container_messages,
+            &mut container_shell,
         );
+        if container_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            container_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
         for message in container_messages {
             let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match message {
-                InterneAuswahlNachricht::Schließe => messages.push(AuswahlNachricht::Schließe),
+                InterneAuswahlNachricht::Schließe => shell.publish(AuswahlNachricht::Schließe),
                 InterneAuswahlNachricht::Wähle(wahl) => {
-                    messages.push(AuswahlNachricht::Wähle(
+                    shell.publish(AuswahlNachricht::Wähle(
                         wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
                     ));
-                    messages.push(AuswahlNachricht::Schließe)
+                    shell.publish(AuswahlNachricht::Schließe)
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(
+                    let nachricht = AuswahlNachricht::Hinzufügen(
                         None,
                         Name(self.neu_name.clone()),
                         self.neu_farbe.clone(),
                         self.neu_anschluss.clone(),
-                    ));
+                    );
+                    shell.publish(nachricht);
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
-                    messages.push(AuswahlNachricht::Lösche(erstelle_id(name)))
+                    shell.publish(AuswahlNachricht::Lösche(erstelle_id(name)))
                 },
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
@@ -402,7 +402,10 @@ impl<'a, R: Renderer> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
     }
 }
 
-impl<'a, R: Renderer> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R> {
+impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
+where
+    R: 'a + text::Renderer<Font = Font>,
+{
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl)
     }
