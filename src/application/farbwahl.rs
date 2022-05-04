@@ -1,14 +1,13 @@
 //! Widget zur Farbwahl ohne Overlay.
 
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
-use iced_graphics::Primitive;
 use iced_native::{
     event::{self, Event},
     layout::{self, Layout},
     mouse,
-    renderer::{Renderer, Style},
-    touch, Background, Clipboard, Color, Element, Hasher, Length, Point, Rectangle, Size, Widget,
+    renderer::{Quad, Renderer, Style},
+    touch, Background, Clipboard, Color, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
 
 use crate::typen::{
@@ -113,37 +112,37 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
 
     fn draw(
         &self,
-        _renderer: &mut R,
+        renderer: &mut R,
         _style: &Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let mut primitives = Vec::new();
+        // let mut primitives = Vec::new();
         let bounds = layout.bounds();
         let radius = Skalar(0.5 * self.durchmesser as f32);
         let center = Vektor { x: radius, y: radius };
         for x in 0..self.durchmesser {
             for y in 0..self.durchmesser {
-                let v = Vektor { x: Skalar(x as f32), y: Skalar(y as f32) };
+                let v = Vektor { x: Skalar(f32::from(x)), y: Skalar(f32::from(y)) };
                 let vr = v - center;
                 if let Some(farbe) = self.farbe(vr) {
-                    primitives.push(Primitive::Quad {
+                    let quad = Quad {
                         bounds: Rectangle {
                             x: bounds.x + v.x.0,
                             y: bounds.y + v.y.0,
                             width: 1.,
                             height: 1.,
                         },
-                        background: Background::Color(farbe.into()),
                         border_radius: 0.,
                         border_width: 0.,
                         border_color: Color::default(),
-                    })
+                    };
+                    let background = Background::Color(farbe.into());
+                    renderer.fill_quad(quad, background);
                 }
             }
         }
-        (Primitive::Group { primitives }, mouse::Interaction::default()).into()
     }
 
     fn on_event(
@@ -153,7 +152,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
         cursor_position: Point,
         _renderer: &R,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<M>,
+        shell: &mut Shell<'_, M>,
     ) -> event::Status {
         let mut status = event::Status::Ignored;
         let bounds = layout.bounds();
@@ -165,7 +164,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
             let vr = Vektor { x: Skalar(position.x), y: Skalar(position.y) }
                 - Vektor { x: Skalar(bounds.center_x()), y: Skalar(bounds.center_y()) };
             if let Some(farbe) = self.farbe(vr) {
-                messages.push((self.nachricht)(farbe));
+                shell.publish((self.nachricht)(farbe));
                 status = event::Status::Captured;
             }
         }
@@ -173,7 +172,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
     }
 }
 
-impl<'a, M, R> From<Farbwahl<'a, M>> for Element<'a, M, R> {
+impl<'a, M, R: Renderer> From<Farbwahl<'a, M>> for Element<'a, M, R> {
     fn from(farbwahl: Farbwahl<'a, M>) -> Self {
         Element::new(farbwahl)
     }
