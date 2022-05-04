@@ -21,7 +21,7 @@ use iced_native::{
         text_input::{self, TextInput},
         Text,
     },
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -106,37 +106,15 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
     ) -> AnzeigeZustand<Self>;
 
     /// Erstelle eine neue [Anzeige].
-    fn anzeige_neu<'t, R>(
+    fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Self>,
         zustand: &'t mut AnzeigeZustand<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
-    // where
-    //     R: 't
-    //         + column::Renderer
-    //         + row::Renderer
-    //         + button::Renderer
-    //         + text::Renderer
-    //         + slider::Renderer
-    //         + radio::Renderer;
 
     /// Erstelle eine neue [Auswahl].
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: Renderer;
-    // where
-    //     R: 't
-    //         + container::Renderer
-    //         + column::Renderer
-    //         + row::Renderer
-    //         + scrollable::Renderer
-    //         + text::Renderer
-    //         + text_input::Renderer
-    //         + button::Renderer
-    //         + radio::Renderer
-    //         + card::Renderer
-    //         + tabs::Renderer
-    //         + number_input::Renderer,
-    //     <R as tab_bar::Renderer>::Style: From<TabBar>;
+    fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        zustand: &'t mut AuswahlZustand,
+    ) -> Auswahl<'t, Self, R>;
 }
 
 /// Zurücksetzen des Zustands des [Anzeige]-Widgets.
@@ -166,7 +144,7 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn anzeige_neu<'t, R>(
+    fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
         zustand: &'t mut AnzeigeZustand<Mittelleiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
@@ -190,10 +168,9 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: Renderer,
-    {
+    fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        zustand: &'t mut AuswahlZustand,
+    ) -> Auswahl<'t, Self, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -236,7 +213,7 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn anzeige_neu<'t, R>(
+    fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
         zustand: &'t mut AnzeigeZustand<Zweileiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
@@ -272,10 +249,9 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
-    fn auswahl_neu<'t, R>(zustand: &'t mut AuswahlZustand) -> Auswahl<'t, Self, R>
-    where
-        R: Renderer,
-    {
+    fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        zustand: &'t mut AuswahlZustand,
+    ) -> Auswahl<'t, Self, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::Immer,
@@ -304,7 +280,11 @@ impl<M, R> Debug for Anzeige<'_, M, R> {
     }
 }
 
-impl<'t, M, R> Anzeige<'t, M, R> {
+impl<'t, M, R> Anzeige<'t, M, R>
+where
+    M: 't + Clone,
+    R: 't + text::Renderer,
+{
     /// Erstelle eine neue [Anzeige] für eine [LeiterAnzeige].
     pub fn neu_mit_leiter<'s, L: LeiterAnzeige>(
         geschwindigkeit: &'s Geschwindigkeit<L>,
@@ -375,18 +355,22 @@ impl<'t, M, R: Renderer> Widget<M, R> for Anzeige<'t, M, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<M>,
+        shell: &mut Shell<'_, M>,
     ) -> event::Status {
-        self.column.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+        self.column.on_event(event, layout, cursor_position, renderer, clipboard, shell)
     }
 
-    fn overlay(&mut self, _layout: Layout<'_>) -> Option<overlay::Element<'_, M, R>> {
+    fn overlay(
+        &mut self,
+        _layout: Layout<'_>,
+        _renderer: &R,
+    ) -> Option<overlay::Element<'_, M, R>> {
         //TODO overlay (Expander-artige Anschlüsse-Anzeige)
         None
     }
 }
 
-impl<'t, M, R: Renderer> From<Anzeige<'t, M, R>> for Element<'t, M, R> {
+impl<'t, M: 't, R: 't + Renderer> From<Anzeige<'t, M, R>> for Element<'t, M, R> {
     fn from(anzeige: Anzeige<'t, M, R>) -> Self {
         Element::new(anzeige)
     }
@@ -557,7 +541,7 @@ pub enum FahrtrichtungAnschluss {
 
 impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
 where
-    R: Renderer,
+    R: 't + text::Renderer<Font = Font>,
     Leiter: Serialisiere,
 {
     /// Erstelle eine neue [Auswahl].
@@ -711,8 +695,7 @@ where
 impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
 where
     Leiter: Serialisiere,
-    <Leiter as Serialisiere>::Serialisiert: 't,
-    R: Renderer,
+    R: text::Renderer<Font = Font>,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
 
@@ -723,21 +706,27 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<AuswahlNachricht<Leiter>>,
+        shell: &mut Shell<'_, AuswahlNachricht<Leiter>>,
     ) -> event::Status {
         let mut column_messages = Vec::new();
+        let mut column_shell = Shell::new(&mut column_messages);
         let mut status = self.card.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut column_messages,
+            &mut column_shell,
         );
+        if column_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            column_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
         for message in column_messages {
             status = event::Status::Captured;
             match message {
-                InterneAuswahlNachricht::Schließen => messages.push(AuswahlNachricht::Schließen),
+                InterneAuswahlNachricht::Schließen => shell.publish(AuswahlNachricht::Schließen),
                 InterneAuswahlNachricht::WähleTab(tab) => *self.aktueller_tab = tab,
                 InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
                 InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
@@ -766,34 +755,26 @@ where
                     let _ = remove_from_nonempty_tail(&mut self.ks_anschlüsse, ix);
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    messages.push(AuswahlNachricht::Hinzufügen(
+                    let leiter = if self.aktueller_tab == &0 {
+                        (self.pwm_nachricht)(
+                            self.umdrehen_anschluss.clone(),
+                            self.pwm_pin.clone(),
+                            *self.pwm_polarität,
+                        )
+                    } else {
+                        (self.ks_nachricht)(
+                            self.umdrehen_anschluss.clone(),
+                            self.ks_anschlüsse.map(|anschluss| anschluss.clone()),
+                        )
+                    };
+                    let nachricht = AuswahlNachricht::Hinzufügen(
                         Name(self.neu_name.clone()),
-                        GeschwindigkeitSerialisiert {
-                            leiter: if self.aktueller_tab == &0 {
-                                (self.pwm_nachricht)(
-                                    self.umdrehen_anschluss.clone(),
-                                    self.pwm_pin.clone(),
-                                    *self.pwm_polarität,
-                                )
-                            } else {
-                                (self.ks_nachricht)(
-                                    self.umdrehen_anschluss.clone(),
-                                    NonEmpty {
-                                        head: self.ks_anschlüsse.head.clone(),
-                                        tail: self
-                                            .ks_anschlüsse
-                                            .tail
-                                            .iter()
-                                            .map(|output_save| (*output_save).clone())
-                                            .collect(),
-                                    },
-                                )
-                            },
-                        },
-                    ))
+                        GeschwindigkeitSerialisiert { leiter },
+                    );
+                    shell.publish(nachricht)
                 },
                 InterneAuswahlNachricht::Löschen(name) => {
-                    messages.push(AuswahlNachricht::Löschen(name))
+                    shell.publish(AuswahlNachricht::Löschen(name))
                 },
             }
         }
@@ -804,8 +785,7 @@ where
 impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
 where
     Leiter: 't + Serialisiere,
-    <Leiter as Serialisiere>::Serialisiert: 't,
-    R: 't + Renderer,
+    R: 't + text::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {
         Element::new(anzeige)
