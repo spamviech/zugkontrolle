@@ -22,3 +22,4 @@ __pycache__/
 /deps.dot
 /deps.png
 build_all.sh
+/licenses/_bak/
