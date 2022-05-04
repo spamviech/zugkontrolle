@@ -6,18 +6,13 @@ use iced_native::{
     event, text,
     widget::{
         button::{self, Button},
-        column::{self, Column},
-        row::{self, Row},
         text_input::{self, TextInput},
-        Text,
+        Column, Row, Text,
     },
-    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Shell, Widget,
 };
 
-use crate::application::{
-    macros::reexport_no_event_methods,
-    style::hintergrund::{self, Hintergrund},
-};
+use crate::application::{macros::reexport_no_event_methods, style::hintergrund};
 
 /// Zustand von [SpeichernLaden].
 #[derive(Debug)]
@@ -78,7 +73,7 @@ impl<R> Debug for SpeichernLaden<'_, R> {
     }
 }
 
-impl<'a, R> SpeichernLaden<'a, R> {
+impl<'a, R: 'a + text::Renderer> SpeichernLaden<'a, R> {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(zustand: &'a mut Zustand) -> Self {
         let Zustand { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = zustand;
@@ -120,27 +115,27 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht>,
+        shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
         let mut row_messages = Vec::new();
-        let mut status = self.row.on_event(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            &mut row_messages,
-        );
+        let mut row_shell = Shell::new(&mut row_messages);
+        let mut status =
+            self.row.on_event(event, layout, cursor_position, renderer, clipboard, &mut row_shell);
+        if row_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            row_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
 
         for message in row_messages {
             status = event::Status::Captured;
 
             match message {
                 InterneNachricht::Speichern => {
-                    messages.push(Nachricht::Speichern(self.aktueller_pfad.clone()))
+                    shell.publish(Nachricht::Speichern(self.aktueller_pfad.clone()))
                 },
                 InterneNachricht::Laden => {
-                    messages.push(Nachricht::Laden(self.aktueller_pfad.clone()))
+                    shell.publish(Nachricht::Laden(self.aktueller_pfad.clone()))
                 },
                 InterneNachricht::Pfad(pfad) => *self.aktueller_pfad = pfad,
             }
@@ -150,7 +145,7 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
     }
 }
 
-impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R: 'a + Renderer> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
         Element::new(auswahl)
     }
