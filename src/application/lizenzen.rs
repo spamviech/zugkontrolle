@@ -1,4 +1,4 @@
-//! Show all Licenses of dependencies.
+//! Zeige alle Lizenzen verwendeter Open-Source Bibliotheken.
 
 use std::{
     collections::BTreeMap,
@@ -6,26 +6,19 @@ use std::{
 };
 
 use iced_native::{
-    event,
+    event::{self, Event},
+    text,
     widget::{
         button::{self, Button},
-        column::Column,
-        container::{self, Container},
-        row::{self, Row},
-        rule::{self, Rule},
         scrollable::{self, Scrollable},
-        space::{self, Space},
-        text::{self, Text},
+        Column, Container, Row, Rule, Space, Text,
     },
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
 };
 
 use crate::application::{
     macros::reexport_no_event_methods,
-    style::{
-        hintergrund::{self, Hintergrund},
-        linie::{Linie, TRENNLINIE},
-    },
+    style::{hintergrund, linie::TRENNLINIE},
 };
 
 #[derive(Debug, Clone)]
@@ -96,7 +89,7 @@ impl<R> Debug for Lizenzen<'_, R> {
 
 const PADDING: u16 = 5;
 
-impl<'a, R> Lizenzen<'a, R> {
+impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
         zustand: &'a mut Zustand,
@@ -173,31 +166,37 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        nachrichten: &mut Vec<Nachricht>,
+        shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
+        let mut interne_shell = Shell::new(&mut interne_nachrichten);
         let event_status = self.container.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut interne_nachrichten,
+            &mut interne_shell,
         );
+        if interne_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            interne_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
         for interne_nachricht in interne_nachrichten {
             match interne_nachricht {
                 InterneNachricht::Aktuell(name, f) => {
                     *self.aktuell = Some((name, f()));
                     *self.scrollable_text_zurücksetzen = true;
                 },
-                InterneNachricht::Schließen => nachrichten.push(Nachricht::Schließen),
+                InterneNachricht::Schließen => shell.publish(Nachricht::Schließen),
             }
         }
         event_status
     }
 }
 
-impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
         Element::new(lizenzen)
     }
