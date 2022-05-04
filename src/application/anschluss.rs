@@ -2,14 +2,18 @@
 
 use std::{
     collections::HashMap,
+    convert::identity,
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::native::{number_input, tab_bar, tabs, NumberInput, TabLabel, Tabs};
+use iced_aw::native::{
+    number_input::{self, NumberInput},
+    TabLabel, Tabs,
+};
 use iced_native::{
     event, text,
-    widget::{button, column, container, radio, row, Column, Radio, Row, Text},
-    Clipboard, Element, Event, Layout, Length, Point, Renderer, Widget,
+    widget::{Column, Radio, Row, Text},
+    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 use log::error;
 
@@ -264,7 +268,7 @@ impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
 
 impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
-    R: 'a + text::Renderer,
+    R: 'a + text::Renderer<Font = Font>,
     Element<'a, InputNachricht, R>: From<NumberInput<'a, u8, InputNachricht, R>>,
     Element<'a, InterneNachricht<InputNachricht>, R>:
         From<NumberInput<'a, u8, InterneNachricht<InputNachricht>, R>>,
@@ -302,7 +306,7 @@ where
 
 impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
-    R: 'a + text::Renderer,
+    R: 'a + text::Renderer<Font = Font>,
     Element<'a, InterneNachricht<OutputNachricht>, R>:
         From<NumberInput<'a, u8, InterneNachricht<OutputNachricht>, R>>,
 {
@@ -368,7 +372,7 @@ impl<'a, T, I: 'static + Clone, M, R> Auswahl<'a, T, I, M, R>
 where
     T: Eq + Copy,
     M: 'a + Clone,
-    R: 'a + text::Renderer,
+    R: 'a + text::Renderer<Font = Font>,
     Element<'a, InterneNachricht<I>, R>: From<NumberInput<'a, u8, InterneNachricht<I>, R>>,
     Element<'a, InterneNachricht<I>, R>: From<Row<'a, InterneNachricht<I>, R>>,
     Element<'a, InterneNachricht<I>, R>: From<Tabs<'a, InterneNachricht<I>, R>>,
@@ -466,17 +470,23 @@ impl<'a, T, I, M, R: Renderer> Widget<M, R> for Auswahl<'a, T, I, M, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<M>,
+        shell: &mut Shell<'_, M>,
     ) -> event::Status {
         let mut internal_messages = Vec::new();
+        let mut internal_shell = Shell::new(&mut internal_messages);
         let mut status = self.row.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut internal_messages,
+            &mut internal_shell,
         );
+        if internal_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else {
+            internal_shell.revalidate_layout(|| shell.invalidate_layout())
+        }
         let mut changed = false;
         for message in internal_messages {
             changed = true;
@@ -504,17 +514,18 @@ impl<'a, T, I, M, R: Renderer> Widget<M, R> for Auswahl<'a, T, I, M, R> {
             status = event::Status::Captured;
         }
         if changed {
-            messages.push(if *self.active_tab == 0 {
+            let message = if *self.active_tab == 0 {
                 (self.make_pin)(*self.pin, &self.modus)
             } else {
                 (self.make_port)(*self.beschreibung, *self.port, self.modus)
-            })
+            };
+            shell.publish(message);
         }
         status
     }
 }
 
-impl<'a, T, I, M, R> From<Auswahl<'a, T, I, M, R>> for Element<'a, M, R> {
+impl<'a, T, I, M, R: 'a + Renderer> From<Auswahl<'a, T, I, M, R>> for Element<'a, M, R> {
     fn from(auswahl: Auswahl<'a, T, I, M, R>) -> Self {
         Element::new(auswahl)
     }
@@ -526,6 +537,7 @@ pub struct PwmZustand {
     pin: u8,
     number_input_zustand: number_input::State,
 }
+
 impl PwmZustand {
     /// Erstelle einen neuen [PwmZustand].
     pub fn neu() -> Self {
@@ -534,12 +546,12 @@ impl PwmZustand {
 }
 
 /// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-pub struct Pwm<'a, R: 'a + Renderer> {
+pub struct Pwm<'a, R: 'a + text::Renderer<Font = Font>> {
     number_input: NumberInput<'a, u8, pwm::Serialisiert, R>,
     pin: &'a mut u8,
 }
 
-impl<'a, R: 'a + Renderer> Debug for Pwm<'a, R> {
+impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Pwm")
             .field("number_input", &"<NumberInput>")
@@ -548,7 +560,7 @@ impl<'a, R: 'a + Renderer> Debug for Pwm<'a, R> {
     }
 }
 
-impl<'a, R: Renderer> Pwm<'a, R> {
+impl<'a, R: text::Renderer<Font = Font>> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(PwmZustand { pin, number_input_zustand }: &'a mut PwmZustand) -> Self {
         Pwm {
@@ -558,7 +570,7 @@ impl<'a, R: Renderer> Pwm<'a, R> {
     }
 }
 
-impl<'a, R: Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
+impl<'a, R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
     reexport_no_event_methods! {
         NumberInput<'a, u8, pwm::Serialisiert, R>,
         number_input,
@@ -573,17 +585,20 @@ impl<'a, R: Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<pwm::Serialisiert>,
+        shell: &mut Shell<'_, pwm::Serialisiert>,
     ) -> event::Status {
+        let mut internal_messages = Vec::new();
+        let mut internal_shell = Shell::new(&mut internal_messages);
         let mut status = self.number_input.on_event(
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            &mut internal_shell,
         );
-        if let Some(pwm::Serialisiert(pin)) = messages.last() {
+        shell.merge(internal_shell, identity);
+        if let Some(pwm::Serialisiert(pin)) = internal_messages.last() {
             *self.pin = *pin;
             status = event::Status::Captured;
         }
@@ -591,7 +606,7 @@ impl<'a, R: Renderer> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
     }
 }
 
-impl<'a, R: Renderer> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
+impl<'a, R: text::Renderer<Font = Font>> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }
