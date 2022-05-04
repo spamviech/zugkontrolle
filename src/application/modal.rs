@@ -9,7 +9,7 @@ use iced_native::{
     layout, overlay,
     renderer::{Renderer, Style},
     widget::container::{self, Container},
-    Clipboard, Element, Event, Layout, Length, Overlay, Point, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Overlay, Point, Shell, Widget,
 };
 
 use crate::application::style::hintergrund::Hintergrund;
@@ -137,10 +137,10 @@ impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht>,
+        shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
         if self.zustand.overlay.is_none() {
-            self.underlay.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+            self.underlay.on_event(event, layout, cursor_position, renderer, clipboard, shell)
         } else {
             match (&self.esc_nachricht, event) {
                 (
@@ -150,7 +150,7 @@ impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay
                         modifiers: _,
                     }),
                 ) => {
-                    messages.push(esc_nachricht());
+                    shell.publish(esc_nachricht());
                     event::Status::Captured
                 },
                 _ => event::Status::Ignored,
@@ -159,7 +159,12 @@ impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay
     }
 }
 
-impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R> {
+impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
+where
+    Inner: 'a,
+    Nachricht: 'a,
+    R: 'a + Renderer,
+{
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
     }
@@ -167,7 +172,7 @@ impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'
 
 struct ModalOverlay<'a, Nachricht, R>(Element<'a, Nachricht, R>);
 
-impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
+impl<'a, Nachricht: 'a, R: 'a + Renderer> ModalOverlay<'a, Nachricht, R> {
     fn neu(overlay: Element<'a, Nachricht, R>) -> Self {
         ModalOverlay(
             Container::new(overlay)
@@ -181,7 +186,7 @@ impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
     }
 }
 
-impl<'a, Nachricht, R> ModalOverlay<'a, Nachricht, R> {
+impl<'a, Nachricht: 'a, R: 'a + Renderer> ModalOverlay<'a, Nachricht, R> {
     fn overlay(self, position: Point) -> overlay::Element<'a, Nachricht, R> {
         overlay::Element::new(position, Box::new(self))
     }
@@ -205,8 +210,8 @@ impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachrich
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Nachricht>,
+        shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
-        self.0.on_event(event, layout, cursor_position, renderer, clipboard, messages)
+        self.0.on_event(event, layout, cursor_position, renderer, clipboard, shell)
     }
 }

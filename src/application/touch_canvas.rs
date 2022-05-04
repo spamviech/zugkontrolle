@@ -4,9 +4,9 @@ use std::fmt::Debug;
 
 use iced_graphics::{backend::Backend, canvas::Program, Renderer};
 use iced_native::{
-    event, layout,
+    event,
     mouse::{self, Button},
-    overlay, touch, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+    touch, Clipboard, Element, Layout, Length, Point, Shell, Widget,
 };
 use log::trace;
 
@@ -44,7 +44,7 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
         mut cursor_position: Point,
         renderer: &Renderer<B>,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let iced_native::Event::Touch(touch_event) = event {
             match touch_event {
@@ -70,7 +70,7 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
                 },
             }
         }
-        Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, messages)
+        Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, shell)
     }
 }
 
