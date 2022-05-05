@@ -1,4 +1,0 @@
-block-0.1.6: MIT
-    http://github.com/SSheldon/rust-block
-    None in repository
-    objc from the same author has a copy of the MIT license

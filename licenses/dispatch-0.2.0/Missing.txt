@@ -1,4 +1,0 @@
-dispatch-0.2.0: MIT
-    None in repository
-    http://github.com/SSheldon/rust-dispatch
-    objc from the same author has a copy of the MIT license

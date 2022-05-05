@@ -38,6 +38,10 @@ osmesa-sys-0.1.2: CC0-1.0
     Repository not found
     https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
+riscv-0.7.0: ISC
+    https://github.com/rust-embedded/riscv
+    License in ReadMe
+
 sid-0.6.1: MIT/Apache-2.0
     https://github.com/nical/sid
     None in repository
@@ -48,63 +52,84 @@ winapi-wsapoll-0.1.1: MIT OR Apache-2.0
     according to ReadMe, may be optained from
     - http://www.apache.org/licenses/LICENSE-2.0
     - http://opensource.org/licenses/MIT
+    
+windows_*-0.36.1: MIT OR Apache-2.0
+    Copy from e.g. the windows crate: https://github.com/microsoft/windows-rs/tree/master/crates/libs/windows
+    See associated PR:
+    https://github.com/microsoft/windows-rs/pull/1602
 
 ------------------------------------------------------------------
-Missing License: android_glue-0.2.3
-Missing License: ansi_term-0.12.1
+13 / 275
 Missing License: block-0.1.6
-Missing License: clipboard-win-4.4.1
-Missing License: cocoa-foundation-0.1.0
-Missing License: core-graphics-types-0.1.1
+        Repository: http://github.com/SSheldon/rust-block
+        Announced License: MIT
+26 / 275
+39 / 275
 Missing License: critical-section-0.2.7
+        Repository: https://github.com/embassy-rs/critical-section
+        Announced License: MIT OR Apache-2.0
+52 / 275
 Missing License: dispatch-0.2.0
-Missing License: error-code-2.3.1
+        Repository: http://github.com/SSheldon/rust-dispatch
+        Announced License: MIT
+65 / 275
 Missing License: fxhash-0.2.1
-Missing License: gl_generator-0.14.0
+        Repository: https://github.com/cbreeden/fxhash
+        Announced License: Apache-2.0/MIT
+78 / 275
 Missing License: glow_glyph-0.5.0
-Missing License: glutin_emscripten_sys-0.1.1
-Missing License: iced_core-0.4.0
-Missing License: iced_core-0.5.0
-Missing License: iced_futures-0.3.0
-Missing License: iced_futures-0.4.0
-Missing License: iced_glow-0.3.0
-Missing License: iced_glutin-0.3.0
-Missing License: iced_graphics-0.3.0
-Missing License: iced_native-0.5.0
-Missing License: iced_style-0.3.0
-Missing License: iced_style-0.4.0
-Missing License: iced_web-0.4.0
-Missing License: iced_winit-0.4.0
-Missing License: khronos_api-3.1.0
-Missing License: lyon-0.17.10
-Missing License: lyon_algorithms-0.17.7
-Missing License: lyon_geom-0.17.6
-Missing License: lyon_path-0.17.7
-Missing License: lyon_tessellation-0.17.10
-Missing License: malloc_buf-0.0.6
-Missing License: ndk-0.5.0
-Missing License: ndk-context-0.1.1
-Missing License: ndk-glue-0.5.2
-Missing License: ndk-macro-0.3.0
-Missing License: ndk-sys-0.2.2
+        Repository: https://github.com/hecrj/glow_glyph
+        Announced License: MIT
+91 / 275
+104 / 275
+117 / 275
+130 / 275
+143 / 275
+156 / 275
 Missing License: objc-foundation-0.1.1
+        Repository: http://github.com/SSheldon/rust-objc-foundation
+        Announced License: MIT
 Missing License: objc_id-0.1.1
+        Repository: http://github.com/SSheldon/rust-objc-id
+        Announced License: MIT
 Missing License: osmesa-sys-0.1.2
-Missing License: raw-window-handle-0.4.3
+        Repository: https://github.com/Daggerbot/osmesa-rs.git
+        Announced License: CC0-1.0
+169 / 275
+182 / 275
 Missing License: riscv-0.7.0
-Missing License: rstar-0.9.3
+        Repository: https://github.com/rust-embedded/riscv
+        Announced License: ISC
+195 / 275
 Missing License: sid-0.6.1
-Missing License: str-buf-1.0.5
-Missing License: tinyvec-1.6.0
+        Repository: https://github.com/nical/sid
+        Announced License: MIT/Apache-2.0
+208 / 275
+221 / 275
+234 / 275
 Missing License: void-1.0.2
-Missing License: winapi-i686-pc-windows-gnu-0.4.0
+        Repository: https://github.com/reem/rust-void.git
+        Announced License: MIT
+247 / 275
 Missing License: winapi-wsapoll-0.1.1
-Missing License: winapi-x86_64-pc-windows-gnu-0.4.0
+        Repository: https://github.com/psychon/winapi-wsapoll
+        Announced License: MIT OR Apache-2.0
+260 / 275
 Missing License: windows_aarch64_msvc-0.36.1
+        Repository: https://github.com/microsoft/windows-rs
+        Announced License: MIT OR Apache-2.0
 Missing License: windows_i686_gnu-0.36.1
+        Repository: https://github.com/microsoft/windows-rs
+        Announced License: MIT OR Apache-2.0
 Missing License: windows_i686_msvc-0.36.1
+        Repository: https://github.com/microsoft/windows-rs
+        Announced License: MIT OR Apache-2.0
 Missing License: windows_x86_64_gnu-0.36.1
+        Repository: https://github.com/microsoft/windows-rs
+        Announced License: MIT OR Apache-2.0
 Missing License: windows_x86_64_msvc-0.36.1
-Missing License: xi-unicode-0.3.0
+        Repository: https://github.com/microsoft/windows-rs
+        Announced License: MIT OR Apache-2.0
+273 / 275
 Skip zugkontrolle-3.0.0
 Skip zugkontrolle-macros-3.0.0

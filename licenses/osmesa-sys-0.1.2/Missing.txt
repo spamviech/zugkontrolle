@@ -1,4 +1,0 @@
-osmesa-sys-0.1.2: CC0-1.0
-    https://github.com/Daggerbot/osmesa-rs.git
-    Repository not found
-    https://creativecommons.org/publicdomain/zero/1.0/legalcode

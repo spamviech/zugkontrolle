@@ -1,4 +1,0 @@
-glow_glyph-0.4.0: MIT
-    https://github.com/hecrj/glow_glyph
-    None in repository
-    iced from the same author has a copy of the MIT license

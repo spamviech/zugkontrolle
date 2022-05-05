@@ -1,6 +1,0 @@
-winapi-wsapoll-0.1.1: MIT OR Apache-2.0
-    https://github.com/psychon/winapi-wsapoll
-    according to ReadMe, may be optained from
-    - http://www.apache.org/licenses/LICENSE-2.0
-    - http://opensource.org/licenses/MIT
-
