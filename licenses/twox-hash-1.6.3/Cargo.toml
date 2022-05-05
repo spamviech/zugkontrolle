@@ -12,15 +12,21 @@
 [package]
 edition = "2018"
 name = "twox-hash"
-version = "1.6.2"
+version = "1.6.3"
 authors = ["Jake Goulding <jake.goulding@gmail.com>"]
 description = "A Rust implementation of the XXHash and XXH3 algorithms"
 documentation = "https://docs.rs/twox-hash/"
 readme = "README.md"
-keywords = ["hash", "hasher", "xxhash", "xxh3"]
+keywords = [
+    "hash",
+    "hasher",
+    "xxhash",
+    "xxh3",
+]
 categories = ["algorithms"]
 license = "MIT"
 repository = "https://github.com/shepmaster/twox-hash"
+
 [dependencies.cfg-if]
 version = ">= 0.1, < 2"
 default-features = false
@@ -55,6 +61,7 @@ optional = true
 [dependencies.static_assertions]
 version = "1.0"
 default-features = false
+
 [dev-dependencies.serde_json]
 version = "1.0"
 

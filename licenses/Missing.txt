@@ -54,7 +54,7 @@ winapi-wsapoll-0.1.1: MIT OR Apache-2.0
     - http://opensource.org/licenses/MIT
     
 windows_*-0.36.1: MIT OR Apache-2.0
-    Copy from e.g. the windows crate: https://github.com/microsoft/windows-rs/tree/master/crates/libs/windows
+    Copy from e.g. the windows-sys crate: https://github.com/microsoft/windows-rs/tree/master/crates/libs/sys
     See associated PR:
     https://github.com/microsoft/windows-rs/pull/1602
 

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "iced"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 description = "A cross-platform GUI library inspired by Elm"
 documentation = "https://docs.rs/iced"

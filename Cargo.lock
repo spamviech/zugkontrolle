@@ -939,9 +939,9 @@ dependencies = [
 
 [[package]]
 name = "iced"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "892c61a60283f791d91d118696d6cce50dcf435b2e48dfc471624ba19250af94"
+checksum = "6025abe6b1056c9b5adad79c484c5fd8b7012e5230f3b0439a1294ade7ded7bf"
 dependencies = [
  "iced_core 0.5.0",
  "iced_futures 0.4.0",
@@ -956,7 +956,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.1.0"
-source = "git+https://github.com/genusistimelord/iced_aw/?rev=b98dfa82a0351c20a999628ec639e29f12786281#b98dfa82a0351c20a999628ec639e29f12786281"
+source = "git+https://github.com/iced-rs/iced_aw?rev=9a99d5bbdf37e007b9f29d5bd80587d987c6954b#9a99d5bbdf37e007b9f29d5bd80587d987c6954b"
 dependencies = [
  "dodrio",
  "iced_graphics",
@@ -1550,9 +1550,9 @@ dependencies = [
 
 [[package]]
 name = "num_threads"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aba1801fb138d8e85e11d0fc70baf4fe1cdfffda7c6cd34a854905df588e5ed0"
+checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
 dependencies = [
  "libc",
 ]
@@ -2138,9 +2138,9 @@ checksum = "c74c96594835e10fa545e2a51e8709f30b173a092bfd6036ef2cec53376244f3"
 
 [[package]]
 name = "twox-hash"
-version = "1.6.2"
+version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ee73e6e4924fe940354b8d4d98cad5231175d615cd855b758adc658c0aac6a0"
+checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if 1.0.0",
  "rand",

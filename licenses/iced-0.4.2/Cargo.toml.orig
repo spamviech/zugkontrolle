@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
@@ -85,6 +85,7 @@ members = [
     "examples/todos",
     "examples/tooltip",
     "examples/tour",
+    "examples/url_handler",
     "examples/pure/component",
     "examples/pure/counter",
     "examples/pure/game_of_life",

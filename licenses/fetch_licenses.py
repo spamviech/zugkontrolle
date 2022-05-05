@@ -70,23 +70,26 @@ def extract_repository_and_license(cargo_toml_path):
     # not a true toml parser, assume simplified Cargo.toml
     repository_prefix = "repository = "
     license_prefix = "license = "
-    with open(cargo_toml_path, 'r') as f:
-        package = False
-        for line in f:
-            line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
-            if line == "[package]":
-                package = True
-            elif package:
-                if line.startswith(repository_prefix):
-                    if repository is not None:
-                        print(f"Overwrite duplicate repository entry: {repository}")
-                    repository = line.removeprefix(repository_prefix).removesuffix(".git").strip('"')
-                if line.startswith(license_prefix):
-                    if license is not None:
-                        print(f"Overwrite duplicate license entry: {license}")
-                    license = line.removeprefix(license_prefix).strip('"')
-                elif line.startswith("["):
-                    break
+    if os.path.isfile(cargo_toml_path):
+        with open(cargo_toml_path, 'r') as f:
+            package = False
+            for line in f:
+                line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
+                if line == "[package]":
+                    package = True
+                elif package:
+                    if line.startswith(repository_prefix):
+                        if repository is not None:
+                            print(f"Overwrite duplicate repository entry: {repository}")
+                        repository = line.removeprefix(repository_prefix).removesuffix(".git").strip('"')
+                    if line.startswith(license_prefix):
+                        if license is not None:
+                            print(f"Overwrite duplicate license entry: {license}")
+                        license = line.removeprefix(license_prefix).strip('"')
+                    elif line.startswith("["):
+                        break
+    else:
+        print(f"Cargo.toml not found in \"{cargo_toml_file}\"")
     return repository, license
 
 def dowload_licenses(repository, dst_dir):
