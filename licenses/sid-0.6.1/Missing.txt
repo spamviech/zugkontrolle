@@ -1,0 +1,4 @@
+sid-0.6.1: MIT/Apache-2.0
+    https://github.com/nical/sid
+    None in repository
+    Author of (among others) lyon

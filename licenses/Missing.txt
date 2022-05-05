@@ -1,6 +1,7 @@
 block-0.1.6: MIT
     http://github.com/SSheldon/rust-block
     None in repository
+    objc from the same author has a copy of the MIT license
 
 critical-section-0.2.7: Apache-2.0 or MIT
     https://github.com/embassy-rs/critical-section
@@ -11,10 +12,7 @@ critical-section-0.2.7: Apache-2.0 or MIT
 dispatch-0.2.0: MIT
     None in repository
     http://github.com/SSheldon/rust-dispatch
-
-fuchsia-zircon-sys-0.3.3: BSD-3-Clause
-    Repository private
-    https://fuchsia.googlesource.com/garnet/
+    objc from the same author has a copy of the MIT license
 
 fxhash-0.2.1: Apache-2.0/MIT
     https://github.com/cbreeden/fxhash
@@ -23,6 +21,7 @@ fxhash-0.2.1: Apache-2.0/MIT
 glow_glyph-0.4.0: MIT
     https://github.com/hecrj/glow_glyph
     None in repository
+    iced from the same author has a copy of the MIT license
 
 objc_id-0.1.1: MIT
     http://github.com/SSheldon/rust-objc-id

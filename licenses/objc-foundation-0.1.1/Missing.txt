@@ -1,0 +1,4 @@
+objc-foundation-0.1.1: MIT
+    http://github.com/SSheldon/rust-objc-foundation
+    None in repository
+    objc from the same author has a copy of the MIT license

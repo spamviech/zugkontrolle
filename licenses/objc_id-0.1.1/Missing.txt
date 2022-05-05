@@ -1,0 +1,4 @@
+objc_id-0.1.1: MIT
+    http://github.com/SSheldon/rust-objc-id
+    None in repository
+    objc from the same author has a copy of the MIT license

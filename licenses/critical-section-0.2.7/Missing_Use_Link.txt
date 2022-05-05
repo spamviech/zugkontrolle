@@ -1,0 +1,5 @@
+critical-section-0.2.7: Apache-2.0 or MIT
+    https://github.com/embassy-rs/critical-section
+    according to ReadMe, may be optained from
+    - http://www.apache.org/licenses/LICENSE-2.0
+    - http://opensource.org/licenses/MIT
