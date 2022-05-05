@@ -36,6 +36,7 @@ objc-foundation-0.1.1: MIT
 osmesa-sys-0.1.2: CC0-1.0
     https://github.com/Daggerbot/osmesa-rs.git
     Repository not found
+    https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
 sid-0.6.1: MIT/Apache-2.0
     https://github.com/nical/sid
