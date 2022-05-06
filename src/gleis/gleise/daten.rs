@@ -78,16 +78,19 @@ impl<T: Serialisiere> Serialisiere for Gleis<T> {
 }
 
 impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
+    type Arg = <T as Reserviere<R>>::Arg;
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<crate::anschluss::pin::pwm::Pin>,
         output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
         input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
+        arg: Self::Arg,
     ) -> anschluss::de_serialisieren::Result<Gleis<R>> {
         let Gleis { definition, position } = self;
         let reserviert = definition
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
             .konvertiere(|definition| Gleis { definition, position });
         Ok(reserviert)
     }

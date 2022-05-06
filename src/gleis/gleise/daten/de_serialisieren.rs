@@ -143,6 +143,7 @@ fn reserviere_anschlüsse<T, S, L>(
     steuerung: impl Fn(&T) -> &Option<S>,
     map: &mut HashMap<S::Serialisiert, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
+    arg: <<T as Serialisiere>::Serialisiert as Reserviere<T>>::Arg,
 ) -> (
     Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>,
     Vec<pwm::Pin>,
@@ -164,7 +165,7 @@ where
                 pwm_nicht_benötigt,
                 output_nicht_benötigt,
                 input_nicht_benötigt,
-            } = match gleis_serialisiert.reserviere(lager, acc.1, acc.2, acc.3) {
+            } = match gleis_serialisiert.reserviere(lager, acc.1, acc.2, acc.3, arg) {
                 Ok(reserviert) => reserviert,
                 Err(de_serialisieren::Fehler {
                     fehler,
@@ -219,6 +220,7 @@ impl GleiseDatenSerialisiert {
                             |gleis: &$ty| &gleis.$steuerung,
                             $map,
                             fehler,
+                            todo!("arg"),
                         );
                 )*
                 Reserviert {
@@ -469,6 +471,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                 pwm_nicht_benötigt,
                 output_nicht_benötigt,
                 input_nicht_benötigt,
+                todo!("arg"),
             );
             match streckenabschnitt_result {
                 Ok(Reserviert {
@@ -605,6 +608,7 @@ where
                 pwm_nicht_benötigt,
                 output_nicht_benötigt,
                 input_nicht_benötigt,
+                todo!("arg"),
             ) {
                 Ok(Reserviert {
                     anschluss: geschwindigkeit,

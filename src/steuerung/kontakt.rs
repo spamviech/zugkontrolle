@@ -164,19 +164,22 @@ impl Serialisiere for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        arg: (),
     ) -> de_serialisieren::Result<Kontakt> {
         let Reserviert {
             anschluss,
             pwm_nicht_benötigt,
             output_nicht_benötigt,
             mut input_nicht_benötigt,
-        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?;
+        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?;
         match Kontakt::neu(self.name, anschluss, self.trigger) {
             Ok(anschluss) => Ok(Reserviert {
                 anschluss,

@@ -168,6 +168,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
+                    todo!("arg"),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         let _ = steuerung.insert(anschluss);
@@ -187,6 +188,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                                 pwm_pins,
                                 output_anschlüsse,
                                 input_anschlüsse,
+                                todo!("arg"),
                             ) {
                                 Ok(Reserviert { anschluss, .. }) => {
                                     let _ = steuerung.insert(anschluss);
@@ -324,6 +326,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
+                    todo!("arg"),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.setze_aktuell(
@@ -551,6 +554,7 @@ where
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
+            todo!("arg"),
         ) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                 match auswahl.overlay_mut() {
@@ -611,6 +615,7 @@ where
                         pwm_pins,
                         output_anschlüsse,
                         input_anschlüsse,
+                        todo!("arg"),
                     ) {
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                             // Modal/AnzeigeZustand-Map muss nicht angepasst werden,

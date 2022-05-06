@@ -38,6 +38,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
             .iter()
             .map(|variant| format_ident!("{}", &variant.to_string().to_snake_case()))
             .collect();
+        let unit_args = enum_variants.iter().map(|_| quote!(()));
 
         enum_definition = Some(quote! {
             type OutputAuswahl = #base_ident::application::anschluss::Zustand<#base_ident::application::anschluss::Output>;
@@ -90,16 +91,19 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                 }
             }
             impl #base_ident::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
+                type Arg = ();
                 fn reserviere(
                     self,
                     lager: &mut #base_ident::anschluss::Lager,
                     pwm_pins: Vec<#base_ident::anschluss::pin::pwm::Pin>,
                     output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
+                    _arg: (),
                 ) -> #base_ident::anschluss::de_serialisieren::Result<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
+                    #[allow(unused_parens)]
                     let reserviert = (#(#struct_fields),*)
-                        .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                        .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, (#(#unit_args),*))?
                         .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* });
                     Ok(reserviert)
                 }

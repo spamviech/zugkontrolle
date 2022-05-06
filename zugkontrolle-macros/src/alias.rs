@@ -16,7 +16,9 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
         if let Some((
-            syn::GenericParam::Type(syn::TypeParam { ident: g, default: Some(_type), .. }),
+            syn::GenericParam::Type(syn::TypeParam {
+                ident: g, default: Some(default_type), ..
+            }),
             params,
         )) = generics.params.iter().collect::<Vec<_>>().split_last()
         {
@@ -82,16 +84,20 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         }
                     }
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                        #[allow(unused_qualifications)]
+                        type Arg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::Arg;
+
                         fn reserviere(
                             self,
                             lager: &mut #base_ident::anschluss::Lager,
                             pwm_pins: Vec<#base_ident::anschluss::pin::pwm::Pin>,
                             output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
+                            arg: Self::Arg,
                         ) -> #base_ident::anschluss::de_serialisieren::Result<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             let reserviert = (#(#param_fields),*)
-                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
                                 .konvertiere(|(#(#param_fields),*)| {
                                     #ident { #(#other_fields),*, #(#param_fields),* }
                                 });

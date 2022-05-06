@@ -22,9 +22,8 @@ use crate::{
     typen::canvas::Cache,
 };
 
-// -> Ändern auf Nachricht schicken
 /// Steuerung eines Gleises.
-/// Mit dem Drop-Handler wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
+/// Bei [AsMut]-Zugriff wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Clone)]
 pub struct Steuerung<T> {
     steuerung: T,
@@ -64,6 +63,12 @@ impl<T> Steuerung<T> {
     pub fn konvertiere<'t, S>(&'t self, f: impl FnOnce(&'t T) -> S) -> Steuerung<S> {
         let Steuerung { steuerung, canvas } = self;
         Steuerung { steuerung: f(steuerung), canvas: canvas.clone() }
+    }
+
+    /// Konsumiere die [Steuerung] und beende die Überwachung.
+    #[inline(always)]
+    pub fn konsumiere<S>(self, f: impl FnOnce(T) -> S) -> S {
+        f(self.steuerung)
     }
 }
 

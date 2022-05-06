@@ -106,16 +106,19 @@ impl Serialisiere for Streckenabschnitt {
 }
 
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        arg: (),
     ) -> de_serialisieren::Result<Streckenabschnitt> {
         let Streckenabschnitt { anschluss, farbe } = self;
         let reserviert = anschluss
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
             .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss));
         Ok(reserviert)
     }

@@ -274,12 +274,15 @@ impl Serialisiere for OutputAnschluss {
 }
 
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        _arg: (),
     ) -> de_serialisieren::Result<OutputAnschluss> {
         let polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
@@ -472,12 +475,14 @@ impl Serialisiere for InputAnschluss {
 }
 
 impl Reserviere<InputAnschluss> for InputSerialisiert {
+    type Arg = ();
     fn reserviere(
         self,
         lager: &mut Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        _arg: (),
     ) -> de_serialisieren::Result<InputAnschluss> {
         let (gesuchter_anschluss, input_nicht_benötigt) =
             input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {

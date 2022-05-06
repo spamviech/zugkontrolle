@@ -186,12 +186,15 @@ impl Serialisiere for Pin {
 }
 
 impl Reserviere<Pin> for Serialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<Pin>,
         output_nicht_benötigt: Vec<OutputAnschluss>,
         input_nicht_benötigt: Vec<InputAnschluss>,
+        _arg: (),
     ) -> de_serialisieren::Result<Pin> {
         let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);

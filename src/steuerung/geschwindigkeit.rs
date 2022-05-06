@@ -353,16 +353,19 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
 }
 
 impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<T> {
+    type Arg = <<T as Serialisiere>::Serialisiert as Reserviere<T>>::Arg;
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        arg: Self::Arg,
     ) -> de_serialisieren::Result<Geschwindigkeit<T>> {
         let reserviert = self
             .leiter
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
             .konvertiere(Geschwindigkeit::neu);
         Ok(reserviert)
     }
@@ -519,16 +522,19 @@ impl Serialisiere for Mittelleiter {
 }
 
 impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        arg: (),
     ) -> de_serialisieren::Result<Mittelleiter> {
         let reserviert = match self {
             MittelleiterSerialisiert::Pwm { pin, polarität } => pin
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse)?
+                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
                 .konvertiere(|pin| Mittelleiter::Pwm { pin, letzter_wert: 0, polarität }),
             MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
                 let geschwindigkeit = geschwindigkeit.reserviere(
@@ -536,10 +542,12 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
+                    arg,
                 )?;
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     umdrehen,
+                    arg,
                     |geschwindigkeit, umdrehen| Mittelleiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1135,12 +1143,15 @@ impl Serialisiere for Zweileiter {
 }
 
 impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
+    type Arg = ();
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<pwm::Pin>,
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
+        arg: (),
     ) -> de_serialisieren::Result<Zweileiter> {
         match self {
             ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
@@ -1149,10 +1160,12 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
+                    arg,
                 )?;
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     fahrtrichtung,
+                    arg,
                     |geschwindigkeit, fahrtrichtung| Zweileiter::Pwm {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1167,10 +1180,12 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
+                    arg,
                 )?;
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     fahrtrichtung,
+                    arg,
                     |geschwindigkeit, fahrtrichtung| Zweileiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
