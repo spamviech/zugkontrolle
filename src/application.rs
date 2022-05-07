@@ -25,7 +25,10 @@ use self::{
     icon::icon,
 };
 use crate::{
-    anschluss::{de_serialisieren::Serialisiere, Lager, OutputSerialisiert},
+    anschluss::{
+        de_serialisieren::{Reserviere, Serialisiere},
+        Lager, OutputSerialisiert,
+    },
     argumente::{Argumente, ZugtypArgument},
     gleis::{
         self,
@@ -495,7 +498,7 @@ where
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
-    <L as Serialisiere>::Serialisiert: Eq + Hash,
+    <L as Serialisiere>::Serialisiert: Eq + Hash + Reserviere<L, Arg = ()>,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

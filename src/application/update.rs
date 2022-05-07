@@ -786,7 +786,7 @@ where
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
     <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-    <L as Serialisiere>::Serialisiert: Debug + Clone + Eq + Hash,
+    <L as Serialisiere>::Serialisiert: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()>,
 {
     /// Lade einen neuen Zustand aus einer Datei.
     pub fn laden(&mut self, pfad: String) {
