@@ -1,7 +1,6 @@
 //! Traits zum serialisieren und reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
 
 use nonempty::NonEmpty;
-use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
@@ -313,7 +312,7 @@ where
 }
 
 macro_rules! impl_serialisiere_tuple {
-    ($($name: ident : $type: ident - $serialisiert: ident),+) => {
+    ($($name: ident - $arg_name: ident : $type: ident - $serialisiert: ident),+) => {
         #[allow(single_use_lifetimes)]
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere for (A0, $($type),+)
         where
@@ -365,31 +364,24 @@ macro_rules! impl_serialisiere_tuple {
                 arg: Self::Arg,
             ) -> Result<(A0, $($type),+)> {
                 let (a0, $($name),+) = self;
-                paste! {
-                    let (arg_0, $([<arg_ $name>]),+) = arg;
-                }
+                let (arg_0, $($arg_name),+) = arg;
                 let reserviert
                     = a0.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg_0)?;
-                paste! {
-                    reserviert.reserviere_ebenfalls_mit(
-                        lager,
-                        ($($name),+),
-                        ($([<arg_ $name>]),+),
-                        #[allow(unused_parens)]
-                        |a0, ($($name),+)| (a0, $($name),+)
-                    )
-                }
+                reserviert.reserviere_ebenfalls_mit(
+                    lager,
+                    ($($name),+),
+                    ($($arg_name),+),
+                    #[allow(unused_parens)]
+                    |a0, ($($name),+)| (a0, $($name),+)
+                )
             }
         }
     };
 }
 
-impl_serialisiere_tuple! {a: A-SA}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH}
-impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH, i: I-SI}
+impl_serialisiere_tuple! {a-aa: A-SA}
+impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB}
+impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC}
+impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD}
+impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD, e-ee: E-SE}
+impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD, e-ee: E-SE, f-ff: F-SF}

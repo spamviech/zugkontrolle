@@ -10,7 +10,6 @@ use std::{
 
 use log::debug;
 use parking_lot::Mutex;
-use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::{
