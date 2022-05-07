@@ -29,7 +29,7 @@ use crate::{
         daten::{v2, DatenAuswahl, StreckenabschnittMap},
         id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
         steuerung::MitSteuerung,
-        Gleise,
+        AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -140,88 +140,6 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         }
     }
 
-    #[allow(single_use_lifetimes)]
-    fn gleis_anschlüsse_anpassen<T, W>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
-    ) -> Option<Nachricht<L>>
-    where
-        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
-        <W as Serialisiere>::Serialisiert: Debug + Clone,
-    {
-        let mut message = None;
-
-        let mut error_message = None;
-        if let Ok(mut steuerung) = self.gleise.erhalte_steuerung_mut(&id) {
-            if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
-                let (steuerung_save, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
-                    if let Some(s) = steuerung.take() {
-                        (Some(s.serialisiere()), s.anschlüsse())
-                    } else {
-                        (None, (Vec::new(), Vec::new(), Vec::new()))
-                    };
-                match anschlüsse_serialisiert.reserviere(
-                    &mut self.lager,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                    todo!("arg"),
-                ) {
-                    Ok(Reserviert { anschluss, .. }) => {
-                        let _ = steuerung.insert(anschluss);
-                        message = Some(Nachricht::SchließeAuswahl)
-                    },
-                    Err(de_serialisieren::Fehler {
-                        fehler,
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                    }) => {
-                        let mut fehlermeldung = format!("{:?}", fehler);
-                        if let Some(steuerung_save) = steuerung_save {
-                            let save_clone = steuerung_save.clone();
-                            match steuerung_save.reserviere(
-                                &mut self.lager,
-                                pwm_pins,
-                                output_anschlüsse,
-                                input_anschlüsse,
-                                todo!("arg"),
-                            ) {
-                                Ok(Reserviert { anschluss, .. }) => {
-                                    let _ = steuerung.insert(anschluss);
-                                },
-                                Err(error) => {
-                                    fehlermeldung.push_str(&format!(
-                                    "\nFehler beim Wiederherstellen: {:?}\nSteuerung {:?} entfernt.",
-                                    error, save_clone
-                                ));
-                                },
-                            }
-                        }
-                        let _ = error_message
-                            .insert(("Anschlüsse anpassen".to_string(), fehlermeldung));
-                    },
-                }
-            } else {
-                let _ = steuerung.take();
-                message = Some(Nachricht::SchließeAuswahl);
-            }
-        } else {
-            let _ = error_message.insert((
-                "Gleis entfernt!".to_string(),
-                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
-            ));
-        }
-        if let Some((titel, nachricht)) = error_message {
-            self.zeige_message_box(titel, nachricht)
-        }
-
-        message
-    }
-
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
     pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
         let streckenabschnitt = self
@@ -326,7 +244,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
-                    todo!("arg"),
+                    (),
                 ) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.setze_aktuell(
@@ -456,22 +374,32 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
         &mut self,
         anschlüsse_anpassen: AnschlüsseAnpassen,
     ) -> Option<Nachricht<L>> {
-        match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("Weiche", id, anschlüsse_serialisiert)
+        use AnschlüsseAnpassenFehler::*;
+        let mut fehlermeldung = None;
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+            Ok(()) => {},
+            Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
+                let titel = "Anschlüsse anpassen!".to_owned();
+                let mut nachricht = format!("{fehler:?}");
+                if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
+                    nachricht.push_str(&format!(
+                        "\nFehler beim wiederherstellen der Anschlüsse: {w_fehler:?}\n{anschlüsse}"
+                    ));
+                }
+                fehlermeldung = Some((titel, nachricht));
             },
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("DreiwegeWeiche", id, anschlüsse_serialisiert)
+            Err(GleisEntfernt(fehler)) => {
+                fehlermeldung = Some((
+                    "Gleis entfernt!".to_owned(),
+                    format!("Anschlüsse anpassen für ein entferntes Gleis: {fehler:?}"),
+                ));
             },
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("KurvenWeiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("SKurvenWeiche", id, anschlüsse_serialisiert)
-            },
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen("Kreuzung", id, anschlüsse_serialisiert)
-            },
+        }
+        if let Some((titel, nachricht)) = fehlermeldung {
+            self.zeige_message_box(titel, nachricht);
+            None
+        } else {
+            Some(Nachricht::SchließeAuswahl)
         }
     }
 
@@ -530,7 +458,7 @@ impl<Leiter: LeiterAnzeige + Display> Zugkontrolle<Leiter> {
 impl<Leiter> Zugkontrolle<Leiter>
 where
     Leiter: LeiterAnzeige + Display,
-    <Leiter as Serialisiere>::Serialisiert: Debug + Clone,
+    <Leiter as Serialisiere>::Serialisiert: Debug + Clone + Reserviere<Leiter, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
@@ -554,7 +482,7 @@ where
             pwm_pins,
             output_anschlüsse,
             input_anschlüsse,
-            todo!("arg"),
+            (),
         ) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                 match auswahl.overlay_mut() {
@@ -615,7 +543,7 @@ where
                         pwm_pins,
                         output_anschlüsse,
                         input_anschlüsse,
-                        todo!("arg"),
+                        (),
                     ) {
                         Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                             // Modal/AnzeigeZustand-Map muss nicht angepasst werden,

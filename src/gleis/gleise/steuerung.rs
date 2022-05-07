@@ -172,8 +172,6 @@ impl<L: Leiter> Gleise<L> {
     }
 }
 
-type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
-
 macro_rules! impl_mit_steuerung {
     ($type: ty, $steuerung: ty, $ident: ident) => {
         impl<'t> MitSteuerung<'t> for $type {
@@ -192,6 +190,8 @@ macro_rules! impl_mit_steuerung {
         }
     };
 }
+
+type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
 
 macro_rules! impl_mit_steuerung_weiche {
     (gleis $(:: $pfad: ident)*, $type: ident $(,)?) => {

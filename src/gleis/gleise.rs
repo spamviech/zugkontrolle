@@ -22,10 +22,18 @@ use self::{
 };
 use crate::{
     anschluss,
+    gleis::{
+        self,
+        kreuzung::Kreuzung,
+        weiche::{
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+        },
+    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
         plan::{AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::{self, Streckenabschnitt},
+        weiche,
     },
     typen::{
         canvas::{Cache, Position},
@@ -757,4 +765,47 @@ impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittBearbeitenFehler {
 pub enum GeschwindigkeitEntfernenFehler {
     /// Es gibt noch mit der [Geschwindigkeit] assoziierte [Streckenabschnitte](Streckenabschnitt).
     StreckenabschnitteNichtEntfernt(geschwindigkeit::Name),
+}
+
+type WeicheSerialisiert = weiche::WeicheSerialisiert<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+>;
+type DreiwegeWeicheSerialisiert = weiche::WeicheSerialisiert<
+    gleis::weiche::dreiwege::Richtung,
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+type KurvenWeicheSerialisiert = weiche::WeicheSerialisiert<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+>;
+
+/// Anschlüsse für ein Gleis anpassen.
+#[derive(Debug)]
+pub enum AnschlüsseAnpassen {
+    /// Anschlüsse einer [Weiche] anpassen.
+    Weiche(GleisId<Weiche>, Option<WeicheSerialisiert>),
+    /// Anschlüsse einer [DreiwegeWeiche] anpassen.
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
+    /// Anschlüsse einer [KurvenWeiche] anpassen.
+    KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
+    /// Anschlüsse einer [SKurvenWeiche] anpassen.
+    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<WeicheSerialisiert>),
+    /// Anschlüsse einer [Kreuzung] anpassen.
+    Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
+}
+
+/// Fehler, die beim Anpassen der Anschlüsse eines Gleises auftreten können.
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum AnschlüsseAnpassenFehler {
+    /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
+    Deserialisieren {
+        /// Der Fehler beim reservieren der neuen Anschlüsse.
+        fehler: anschluss::Fehler,
+        /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
+        /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
+        wiederherstellen_fehler: Option<(anschluss::Fehler, String)>,
+    },
+    /// Das betroffene Gleis wurde entfernt.
+    GleisEntfernt(GleisIdFehler),
 }

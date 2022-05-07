@@ -36,17 +36,15 @@ use crate::{
         gleise::{
             self,
             daten::v2,
-            id::{AnyId, GleisId, StreckenabschnittId},
-            Gleise, Modus,
+            id::{AnyId, StreckenabschnittId},
+            AnschlüsseAnpassen, Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
-        kreuzung::{Kreuzung, KreuzungUnit},
+        kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+            s_kurve::SKurvenWeicheUnit,
         },
     },
     steuerung::{
@@ -101,21 +99,6 @@ impl Modus {
     fn erstelle_radio<'t>(self, aktueller_modus: Self) -> Radio<'t, Modus> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
-}
-
-/// Anschlüsse für ein Gleis anpassen.
-#[derive(Debug)]
-pub enum AnschlüsseAnpassen {
-    /// Anschlüsse einer [Weiche] anpassen.
-    Weiche(GleisId<Weiche>, Option<WeicheSerialisiert>),
-    /// Anschlüsse einer [DreiwegeWeiche] anpassen.
-    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
-    /// Anschlüsse einer [KurvenWeiche] anpassen.
-    KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
-    /// Anschlüsse einer [SKurvenWeiche] anpassen.
-    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<WeicheSerialisiert>),
-    /// Anschlüsse einer [Kreuzung] anpassen.
-    Kreuzung(GleisId<Kreuzung>, Option<WeicheSerialisiert>),
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::Button).

@@ -6,11 +6,17 @@ use log::error;
 use rstar::RTreeObject;
 
 use crate::{
+    anschluss::{
+        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        Lager,
+    },
     gleis::{
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
-            Gehalten, GleisIdFehler, Gleise, ModusDaten, StreckenabschnittIdFehler,
+            steuerung::MitSteuerung,
+            AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, Gleise,
+            ModusDaten, StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
     },
@@ -232,6 +238,100 @@ impl<L: Leiter> Gleise<L> {
                 };
                 daten.rstern_mut().insert(geom_with_data);
                 Err(fehler.into())
+            },
+        }
+    }
+    #[allow(single_use_lifetimes)]
+    fn gleis_anschlüsse_anpassen<T, W>(
+        &mut self,
+        id: GleisId<T>,
+        anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
+        lager: &mut Lager,
+        arg: <<W as Serialisiere>::Serialisiert as Reserviere<W>>::Arg,
+    ) -> Result<(), AnschlüsseAnpassenFehler>
+    where
+        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
+        W: Serialisiere,
+        <W as Serialisiere>::Serialisiert: Debug,
+        <<W as Serialisiere>::Serialisiert as Reserviere<W>>::Arg: Clone,
+    {
+        let mut steuerung = self.erhalte_steuerung_mut(&id)?;
+        if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
+            let (steuerung_serialisiert, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+                if let Some(s) = steuerung.take() {
+                    (Some(s.serialisiere()), s.anschlüsse())
+                } else {
+                    (None, (Vec::new(), Vec::new(), Vec::new()))
+                };
+            match anschlüsse_serialisiert.reserviere(
+                lager,
+                pwm_pins,
+                output_anschlüsse,
+                input_anschlüsse,
+                arg.clone(),
+            ) {
+                Ok(Reserviert { anschluss, .. }) => {
+                    let _ = steuerung.insert(anschluss);
+                },
+                Err(de_serialisieren::Fehler {
+                    fehler,
+                    pwm_pins,
+                    output_anschlüsse,
+                    input_anschlüsse,
+                }) => {
+                    let mut wiederherstellen_fehler = None;
+                    if let Some(steuerung_serialisiert) = steuerung_serialisiert {
+                        let serialisiert_string = format!("{steuerung_serialisiert:?}");
+                        match steuerung_serialisiert.reserviere(
+                            lager,
+                            pwm_pins,
+                            output_anschlüsse,
+                            input_anschlüsse,
+                            arg,
+                        ) {
+                            Ok(Reserviert { anschluss, .. }) => {
+                                let _ = steuerung.insert(anschluss);
+                            },
+                            Err(de_serialisieren::Fehler { fehler, .. }) => {
+                                wiederherstellen_fehler = Some((fehler, serialisiert_string));
+                            },
+                        };
+                    }
+                    return Err(AnschlüsseAnpassenFehler::Deserialisieren {
+                        fehler,
+                        wiederherstellen_fehler,
+                    });
+                },
+            }
+        } else {
+            let _ = steuerung.take();
+        }
+
+        Ok(())
+    }
+
+    /// Passe die Anschlüsse für ein Gleis an.
+    pub fn anschlüsse_anpassen(
+        &mut self,
+        lager: &mut Lager,
+        anschlüsse_anpassen: AnschlüsseAnpassen,
+    ) -> Result<(), AnschlüsseAnpassenFehler> {
+        let canvas = self.canvas.clone();
+        match anschlüsse_anpassen {
+            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
+            },
+            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
+            },
+            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
+            },
+            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
+            },
+            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
+                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
         }
     }
