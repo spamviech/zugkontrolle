@@ -27,42 +27,48 @@ license_files = {root + ext for root in license_roots for ext in license_exts}
 cargo_toml = {"Cargo.toml", "Cargo.toml.orig"}
 readme = {"README.md"}
 
-name_prefix = "name = "
-version_prefix = "version = "
-source_prefix = "source = "
+class Package:
+    def __init__(self):
+        self.name = None
+        self.version = None
+        self.git = None
 
-packages = []
-name = None
-version = None
-git = None
-def next_package():
-    global name, version, git
-    if name is not None:
-        packages.append((name, version, git))
-    name = None
-    version = None
-    git = None
+    def __str__(self):
+        print(f"Package(name = {self.name}, version = {self.version}, git = {self.git})")
 
-with open(os.path.join("..", "Cargo.lock"), 'r') as cargo_lock:
-    found_package = False
-    for line in cargo_lock:
-        line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
-        if line == "[[package]]":
-            next_package()
-        elif line.startswith(name_prefix):
-            suffix = line[len(name_prefix):]
-            name = suffix.strip('"')
-        elif line.startswith(version_prefix):
-            suffix = line[len(version_prefix):]
-            version = suffix.strip('"')
-        elif line.startswith(source_prefix):
-            suffix = line[len(source_prefix):]
-            source = suffix.strip('"')
-            if source.startswith("registry"):
-                git = False
-            elif source.startswith("git"):
-                git = True
-next_package()
+def append_package(packages, current):
+    if current.name is not None:
+        packages.append(current)
+
+def collect_cargo_lock_packages():
+    name_prefix = "name = "
+    version_prefix = "version = "
+    source_prefix = "source = "
+
+    packages = []
+    current = Package()
+    with open(os.path.join("..", "Cargo.lock"), 'r') as cargo_lock:
+        found_package = False
+        for line in cargo_lock:
+            line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
+            if line == "[[package]]":
+                append_package(packages, current)
+                current = Package()
+            elif line.startswith(name_prefix):
+                suffix = line[len(name_prefix):]
+                current.name = suffix.strip('"')
+            elif line.startswith(version_prefix):
+                suffix = line[len(version_prefix):]
+                current.version = suffix.strip('"')
+            elif line.startswith(source_prefix):
+                suffix = line[len(source_prefix):]
+                source = suffix.strip('"')
+                if source.startswith("registry"):
+                    current.git = False
+                elif source.startswith("git"):
+                    current.git = True
+    append_package(packages, current)
+    return packages
 
 def extract_repository_and_license(cargo_toml_path):
     repository = None
@@ -81,7 +87,7 @@ def extract_repository_and_license(cargo_toml_path):
                     if line.startswith(repository_prefix):
                         if repository is not None:
                             print(f"Overwrite duplicate repository entry: {repository}")
-                        repository = line.removeprefix(repository_prefix).removesuffix(".git").strip('"')
+                        repository = line.removeprefix(repository_prefix).strip('"').removesuffix(".git")
                     if line.startswith(license_prefix):
                         if license is not None:
                             print(f"Overwrite duplicate license entry: {license}")
@@ -89,7 +95,7 @@ def extract_repository_and_license(cargo_toml_path):
                     elif line.startswith("["):
                         break
     else:
-        print(f"Cargo.toml not found in \"{cargo_toml_file}\"")
+        print(f"Cargo.toml not found in \"{cargo_toml_path}\"")
     return repository, license
 
 def dowload_licenses(repository, dst_dir):
@@ -134,23 +140,26 @@ def copy_licenses(src_dir, dst_dir):
         print(f"\tRepository: {repository}")
         print(f"\tAnnounced License: {license}")
 
-i = 0
-l = len(packages)
-show_percent = 5
-step = int(show_percent * l / 100)
-for name, version, git in packages:
-    if git is None:
-        print(f"Skip {name}-{version}")
-    elif git:
-        dir_name = f"{name}-{version}"
-        for dir in os.listdir(git_dir):
-            if dir.startswith(name):
-                dir_path = os.path.join(git_dir, dir)
-                for rev in os.listdir(dir_path):
-                    copy_licenses(os.path.join(dir_path, rev), os.path.join(dir_name, rev))
-    else:
-        dir_name = f"{name}-{version}"
-        copy_licenses(os.path.join(crates_io_dir, dir_name), dir_name)
-    i += 1
-    if i % step == 0:
-        print(f"{i} / {l}")
+def copy_or_download_licenses(show_percent = 5):
+    packages = collect_cargo_lock_packages()
+    i = 0
+    l = len(packages)
+    step = int(show_percent * l / 100)
+    for package in packages:
+        name_and_version = f"{package.name}-{package.version}"
+        if package.git is None:
+            print(f"Skip {name_and_version}")
+        elif package.git:
+            for dir in os.listdir(git_dir):
+                if dir.startswith(package.name):
+                    dir_path = os.path.join(git_dir, dir)
+                    for rev in os.listdir(dir_path):
+                        copy_licenses(os.path.join(dir_path, rev), os.path.join(name_and_version, rev))
+        else:
+            copy_licenses(os.path.join(crates_io_dir, name_and_version), name_and_version)
+        i += 1
+        if i % step == 0:
+            print(f"{i} / {l}")
+
+if __name__ == "__main__":
+    copy_or_download_licenses()

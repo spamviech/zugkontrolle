@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "ordered-float"
-version = "2.10.0"
+version = "3.0.0"
 authors = ["Jonathan Reem <jonathan.reem@gmail.com>", "Matt Brubeck <mbrubeck@limpet.net>"]
 description = "Wrappers for total ordering on floats"
 readme = "README.md"
@@ -44,7 +44,7 @@ optional = true
 default-features = false
 
 [dependencies.schemars]
-version = "0.6.5"
+version = "0.8.8"
 optional = true
 
 [dependencies.serde]

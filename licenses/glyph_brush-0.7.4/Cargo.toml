@@ -12,11 +12,16 @@
 [package]
 edition = "2018"
 name = "glyph_brush"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["Alex Butler <alexheretic@gmail.com>"]
 description = "Fast cached text render library using ab_glyph"
 readme = "README.md"
-keywords = ["font", "ttf", "truetype", "text"]
+keywords = [
+    "font",
+    "ttf",
+    "truetype",
+    "text",
+]
 license = "Apache-2.0"
 repository = "https://github.com/alexheretic/glyph-brush"
 resolver = "2"
@@ -24,6 +29,7 @@ resolver = "2"
 [[bench]]
 name = "glyph_brush"
 harness = false
+
 [dependencies.glyph_brush_draw_cache]
 version = "0.1.1"
 
@@ -34,7 +40,7 @@ version = "0.2"
 version = "0.4.4"
 
 [dependencies.ordered-float]
-version = "2.5.1"
+version = "3"
 
 [dependencies.rustc-hash]
 version = "1"
@@ -42,6 +48,7 @@ version = "1"
 [dependencies.twox-hash]
 version = "1.6.1"
 default-features = false
+
 [dev-dependencies.approx]
 version = "0.5"
 
@@ -56,13 +63,14 @@ default-features = false
 version = "0.14"
 
 [dev-dependencies.glutin]
-version = "0.27"
+version = "0.28"
 
 [dev-dependencies.once_cell]
 version = "1.3"
 
 [dev-dependencies.spin_sleep]
 version = "1"
+
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.twox-hash]
 version = "1.6.1"
 features = ["std"]

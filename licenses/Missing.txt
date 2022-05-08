@@ -93,7 +93,7 @@ Missing License: objc_id-0.1.1
         Repository: http://github.com/SSheldon/rust-objc-id
         Announced License: MIT
 Missing License: osmesa-sys-0.1.2
-        Repository: https://github.com/Daggerbot/osmesa-rs.git
+        Repository: https://github.com/Daggerbot/osmesa-rs
         Announced License: CC0-1.0
 169 / 275
 182 / 275
@@ -107,9 +107,6 @@ Missing License: sid-0.6.1
 208 / 275
 221 / 275
 234 / 275
-Missing License: void-1.0.2
-        Repository: https://github.com/reem/rust-void.git
-        Announced License: MIT
 247 / 275
 Missing License: winapi-wsapoll-0.1.1
         Repository: https://github.com/psychon/winapi-wsapoll
