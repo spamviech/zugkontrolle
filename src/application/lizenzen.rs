@@ -206,8 +206,8 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
     vec![
-        ("ab_glyph_rasterizer-0.1.5", apache_2_0),
-        ("ab_glyph-0.2.15", apache_2_0),
+        ("ab_glyph_rasterizer-0.1.5", || apache_2_0_applied("2020", "Alex Butler")),
+        ("ab_glyph-0.2.15", || apache_2_0_applied("2020", "Alex Butler")),
         ("aho-corasick-0.7.18", || mit("2015", "Andrew Gallant")),
     ]
 }
@@ -257,8 +257,13 @@ SOFTWARE."#
     )
 }
 
+#[inline(always)]
 fn apache_2_0() -> String {
-    String::from(
+    apache_2_0_applied("[yyyy]", "[name of copyright owner]")
+}
+
+fn apache_2_0_applied(year: &str, full_name: &str) -> String {
+    format!(
         r#"        Apache License
         Version 2.0, January 2004
      http://www.apache.org/licenses/
@@ -447,7 +452,7 @@ file or class name and description of purpose be included on the
 same "printed page" as the copyright notice for easier
 identification within third-party archives.
 
-Copyright [yyyy] [name of copyright owner]
+Copyright {year} {full_name}
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -465,7 +470,13 @@ limitations under the License.
 }
 
 #[test]
-fn passende_lizenzen() -> Result<(), BTreeMap<&'static str, (String, String)>> {
+fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
+    use difference::{Changeset, Difference};
+    use term::{
+        color::{GREEN, RED},
+        stderr,
+    };
+
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
     let lizenz_dateien = BTreeMap::from([("aho-corasick-0.7.18", "LICENSE-MIT")]);
@@ -477,14 +488,37 @@ fn passende_lizenzen() -> Result<(), BTreeMap<&'static str, (String, String)>> {
         let lizenz_pfad = format!("licenses/{name}/{datei}");
         let lese_fehler = format!("Konnte Datei \"{lizenz_pfad}\" nicht lesen");
         let gespeicherte_lizenz = std::fs::read_to_string(lizenz_pfad).expect(&lese_fehler);
-        if verwendete_lizenz != gespeicherte_lizenz {
-            let _ = unterschiede.insert(name, (verwendete_lizenz, gespeicherte_lizenz));
+        let changeset = Changeset::new(&gespeicherte_lizenz, &verwendete_lizenz, "\n");
+        if !changeset.diffs.is_empty() {
+            let _ = unterschiede.insert(name, changeset);
         }
     }
 
     if unterschiede.is_empty() {
         Ok(())
     } else {
-        Err(unterschiede)
+        let mut t = stderr().expect("Failed to open stderr!");
+        for (name, changeset) in unterschiede.iter() {
+            writeln!(t, "{name}").expect("Failed to write to stderr!");
+            for diff in changeset.diffs.iter() {
+                match diff {
+                    Difference::Same(text) => {
+                        t.reset().expect("Failed to reset!");
+                        writeln!(t, "{text}").expect("Failed to write to stderr!");
+                    },
+                    Difference::Add(text) => {
+                        t.fg(GREEN).expect("Failed to set Color to Green!");
+                        writeln!(t, "+{text}").expect("Failed to write to stderr!");
+                    },
+                    Difference::Rem(text) => {
+                        t.fg(RED).expect("Failed to set Color to Red!");
+                        writeln!(t, "-{text}").expect("Failed to write to stderr!");
+                    },
+                }
+            }
+            t.reset().expect("Failed to reset!");
+            t.flush().expect("Failed to flush!");
+        }
+        Err(unterschiede.into_keys().collect())
     }
 }
