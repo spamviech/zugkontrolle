@@ -471,11 +471,7 @@ limitations under the License.
 
 #[test]
 fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
-    use difference::{Changeset, Difference};
-    use term::{
-        color::{GREEN, RED},
-        stderr,
-    };
+    use difference::Changeset;
 
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
@@ -497,27 +493,8 @@ fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
     if unterschiede.is_empty() {
         Ok(())
     } else {
-        let mut t = stderr().expect("Failed to open stderr!");
         for (name, changeset) in unterschiede.iter() {
-            writeln!(t, "{name}").expect("Failed to write to stderr!");
-            for diff in changeset.diffs.iter() {
-                match diff {
-                    Difference::Same(text) => {
-                        t.reset().expect("Failed to reset!");
-                        writeln!(t, "{text}").expect("Failed to write to stderr!");
-                    },
-                    Difference::Add(text) => {
-                        t.fg(GREEN).expect("Failed to set Color to Green!");
-                        writeln!(t, "+{text}").expect("Failed to write to stderr!");
-                    },
-                    Difference::Rem(text) => {
-                        t.fg(RED).expect("Failed to set Color to Red!");
-                        writeln!(t, "-{text}").expect("Failed to write to stderr!");
-                    },
-                }
-            }
-            t.reset().expect("Failed to reset!");
-            t.flush().expect("Failed to flush!");
+            eprintln!("{name}\n{changeset}")
         }
         Err(unterschiede.into_keys().collect())
     }

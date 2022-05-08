@@ -87,4 +87,3 @@ embed-resource = "1.7.1"
 
 [dev-dependencies]
 difference = "2.0.0"
-term = "0.7.0"
