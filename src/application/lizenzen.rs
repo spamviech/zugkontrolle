@@ -47,9 +47,10 @@ pub struct Zustand {
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
-    pub fn neu(lizenzen: impl Iterator<Item = (&'static str, fn() -> String)>) -> Self {
+    pub fn neu(lizenzen: impl IntoIterator<Item = (&'static str, fn() -> String)>) -> Self {
         let mut aktuell = None;
         let lizenzen_und_button_states = lizenzen
+            .into_iter()
             .map(|(name, f)| {
                 if aktuell.is_none() {
                     aktuell = Some((name, f()));
@@ -70,7 +71,7 @@ impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
     pub fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(verwendete_lizenzen())
+        Self::neu(verwendete_lizenzen_mock())
     }
 }
 
@@ -203,7 +204,15 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 }
 
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
-pub fn verwendete_lizenzen() -> impl Iterator<Item = (&'static str, fn() -> String)> {
+pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
+    vec![
+        ("ab_glyph_rasterizer-0.1.5", apache_2_0),
+        ("ab_glyph-0.2.15", apache_2_0),
+        ("aho-corasick-0.7.18", || mit("2015", "Andrew Gallant")),
+    ]
+}
+
+fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> String)> {
     // FIXME verwende echte Lizenzen
     let f: fn() -> String = || {
         String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.\n\n\n\n\n\n\n\n\n\n\nSome text in the middle.\n\n\n\n\n\n\nAnother midway text.\n\n\n\n\n\n\n\nYet another debug line.\n\n\n\nHello from the deep.\n\n\n\n\nA final last line after a lot of vertical space.")
@@ -212,13 +221,12 @@ pub fn verwendete_lizenzen() -> impl Iterator<Item = (&'static str, fn() -> Stri
         String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
     };
     // TODO
-    [
+    vec![
         ("test", f),
         ("alternativ", g),
         ("mit", || mit("YYYY", "Full Name")),
         ("apache-2.0", apache_2_0),
     ]
-    .into_iter()
 }
 
 // TODO Test schreiben ob, die angezeigte Lizenz mit der wirklichen übereinstimmt
@@ -454,4 +462,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 "#,
     )
+}
+
+#[test]
+fn passende_lizenzen() -> Result<(), BTreeMap<&'static str, (String, String)>> {
+    let lizenzen = verwendete_lizenzen();
+    // Lizenz-Dateien, die nicht "LICENSE" heißen.
+    let lizenz_dateien = BTreeMap::from([("aho-corasick-0.7.18", "LICENSE-MIT")]);
+
+    let mut unterschiede = BTreeMap::new();
+    for (name, f) in lizenzen {
+        let datei = lizenz_dateien.get(name).unwrap_or(&"LICENSE");
+        let verwendete_lizenz = f();
+        let lizenz_pfad = format!("licenses/{name}/{datei}");
+        let lese_fehler = format!("Konnte Datei \"{lizenz_pfad}\" nicht lesen");
+        let gespeicherte_lizenz = std::fs::read_to_string(lizenz_pfad).expect(&lese_fehler);
+        if verwendete_lizenz != gespeicherte_lizenz {
+            let _ = unterschiede.insert(name, (verwendete_lizenz, gespeicherte_lizenz));
+        }
+    }
+
+    if unterschiede.is_empty() {
+        Ok(())
+    } else {
+        Err(unterschiede)
+    }
 }
