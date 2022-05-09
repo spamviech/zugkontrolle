@@ -80,7 +80,7 @@ impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
     pub fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(verwendete_lizenzen_mock())
+        Self::neu(verwendete_lizenzen())
     }
 }
 
@@ -496,23 +496,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("xcursor-0.3.4", mit_plain),
         ("xi-unicode-0.3.0", apache_2_0_plain),
         ("xml-rs-0.8.4", mit_plain),
-    ]
-}
-
-fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
-    // FIXME verwende echte Lizenzen
-    let f: fn() -> Cow<'static, str> = || {
-        Cow::Borrowed("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.\n\n\n\n\n\n\n\n\n\n\nSome text in the middle.\n\n\n\n\n\n\nAnother midway text.\n\n\n\n\n\n\n\nYet another debug line.\n\n\n\nHello from the deep.\n\n\n\n\nA final last line after a lot of vertical space.")
-    };
-    let g: fn() -> Cow<'static, str> = || {
-        Cow::Borrowed("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
-    };
-    // TODO
-    vec![
-        ("test", f),
-        ("alternativ", g),
-        ("mit", || mit("", "YYYY", "Full Name")),
-        ("apache-2.0", apache_2_0_plain),
     ]
 }
 
