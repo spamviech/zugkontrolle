@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT"
 publish = false
 resolver = "2"
-rust-version = "1.59"
+rust-version = "1.60"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
@@ -50,12 +50,15 @@ features = ["glow", "canvas"]
 
 [dependencies.iced_native]
 version = "0.5.0"
+default-features = false
 
 [dependencies.iced_graphics]
 version = "0.3.0"
+default-features = false
 
 [dependencies.iced_futures]
 version = "0.4.0"
+default-features = false
 
 [dependencies.iced_aw]
 git = "https://github.com/iced-rs/iced_aw"
