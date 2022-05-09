@@ -406,7 +406,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     ) -> Settings<(Argumente, Lager, Zugtyp<L>)> {
         Settings {
             window: iced::window::Settings {
-                size: (1024, 768),
+                size: (1024, 576),
                 icon: icon(),
                 ..iced::window::Settings::default()
             },
