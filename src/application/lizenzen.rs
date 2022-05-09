@@ -206,8 +206,8 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
     vec![
-        ("ab_glyph_rasterizer-0.1.5", || apache_2_0_applied("2020", "Alex Butler")),
-        ("ab_glyph-0.2.15", || apache_2_0_applied("2020", "Alex Butler")),
+        ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
+        ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
         ("aho-corasick-0.7.18", || mit("2015", "Andrew Gallant")),
     ]
 }
@@ -225,7 +225,7 @@ fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> String)> {
         ("test", f),
         ("alternativ", g),
         ("mit", || mit("YYYY", "Full Name")),
-        ("apache-2.0", apache_2_0),
+        ("apache-2.0", apache_2_0_plain),
     ]
 }
 
@@ -258,11 +258,11 @@ SOFTWARE."#
 }
 
 #[inline(always)]
-fn apache_2_0() -> String {
-    apache_2_0_applied("[yyyy]", "[name of copyright owner]")
+fn apache_2_0_plain() -> String {
+    apache_2_0("[yyyy]", "[name of copyright owner]")
 }
 
-fn apache_2_0_applied(year: &str, full_name: &str) -> String {
+fn apache_2_0(year: &str, full_name: &str) -> String {
     format!(
         r#"        Apache License
         Version 2.0, January 2004
@@ -493,7 +493,13 @@ fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
     if unterschiede.is_empty() {
         Ok(())
     } else {
+        let mut not_first = false;
         for (name, changeset) in unterschiede.iter() {
+            if not_first {
+                eprintln!("---------------------------------");
+            } else {
+                not_first = true;
+            }
             eprintln!("{name}\n{changeset}")
         }
         Err(unterschiede.into_keys().collect())
