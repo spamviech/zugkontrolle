@@ -59,33 +59,33 @@ windows_*-0.36.1: MIT OR Apache-2.0
     https://github.com/microsoft/windows-rs/pull/1602
 
 ------------------------------------------------------------------
-13 / 275
+13 / 276
 Missing License: block-0.1.6
         Repository: http://github.com/SSheldon/rust-block
         Announced License: MIT
-26 / 275
-39 / 275
+26 / 276
+39 / 276
 Missing License: critical-section-0.2.7
         Repository: https://github.com/embassy-rs/critical-section
         Announced License: MIT OR Apache-2.0
-52 / 275
+52 / 276
 Missing License: dispatch-0.2.0
         Repository: http://github.com/SSheldon/rust-dispatch
         Announced License: MIT
-65 / 275
+65 / 276
 Missing License: fxhash-0.2.1
         Repository: https://github.com/cbreeden/fxhash
         Announced License: Apache-2.0/MIT
-78 / 275
+78 / 276
 Missing License: glow_glyph-0.5.0
         Repository: https://github.com/hecrj/glow_glyph
         Announced License: MIT
-91 / 275
-104 / 275
-117 / 275
-130 / 275
-143 / 275
-156 / 275
+91 / 276
+104 / 276
+117 / 276
+130 / 276
+143 / 276
+156 / 276
 Missing License: objc-foundation-0.1.1
         Repository: http://github.com/SSheldon/rust-objc-foundation
         Announced License: MIT
@@ -95,23 +95,23 @@ Missing License: objc_id-0.1.1
 Missing License: osmesa-sys-0.1.2
         Repository: https://github.com/Daggerbot/osmesa-rs
         Announced License: CC0-1.0
-169 / 275
-182 / 275
+169 / 276
+182 / 276
 Missing License: riscv-0.7.0
         Repository: https://github.com/rust-embedded/riscv
         Announced License: ISC
-195 / 275
+195 / 276
 Missing License: sid-0.6.1
         Repository: https://github.com/nical/sid
         Announced License: MIT/Apache-2.0
-208 / 275
-221 / 275
-234 / 275
-247 / 275
+208 / 276
+221 / 276
+234 / 276
+247 / 276
 Missing License: winapi-wsapoll-0.1.1
         Repository: https://github.com/psychon/winapi-wsapoll
         Announced License: MIT OR Apache-2.0
-260 / 275
+260 / 276
 Missing License: windows_aarch64_msvc-0.36.1
         Repository: https://github.com/microsoft/windows-rs
         Announced License: MIT OR Apache-2.0
@@ -127,6 +127,6 @@ Missing License: windows_x86_64_gnu-0.36.1
 Missing License: windows_x86_64_msvc-0.36.1
         Repository: https://github.com/microsoft/windows-rs
         Announced License: MIT OR Apache-2.0
-273 / 275
+273 / 276
 Skip zugkontrolle-3.0.0
 Skip zugkontrolle-macros-3.0.0
