@@ -1,6 +1,7 @@
 //! Zeige alle Lizenzen verwendeter Open-Source Bibliotheken.
 
 use std::{
+    borrow::Cow,
     collections::BTreeMap,
     fmt::{self, Debug, Formatter},
 };
@@ -17,13 +18,14 @@ use iced_native::{
 };
 
 use crate::application::{
+    fonts,
     macros::reexport_no_event_methods,
     style::{hintergrund, linie::TRENNLINIE},
 };
 
 #[derive(Debug, Clone)]
 enum InterneNachricht {
-    Aktuell(&'static str, fn() -> String),
+    Aktuell(&'static str, fn() -> Cow<'static, str>),
     Schließen,
 }
 
@@ -37,17 +39,19 @@ pub enum Nachricht {
 /// Zustand eines [Lizenzen]-Widgets.
 #[derive(Debug)]
 pub struct Zustand {
-    lizenzen_und_button_states: BTreeMap<&'static str, (button::State, fn() -> String)>,
+    lizenzen_und_button_states: BTreeMap<&'static str, (button::State, fn() -> Cow<'static, str>)>,
     scrollable_buttons: scrollable::State,
     scrollable_text: scrollable::State,
     scrollable_text_zurücksetzen: bool,
     schließen: button::State,
-    aktuell: Option<(&'static str, String)>,
+    aktuell: Option<(&'static str, Cow<'static, str>)>,
 }
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
-    pub fn neu(lizenzen: impl IntoIterator<Item = (&'static str, fn() -> String)>) -> Self {
+    pub fn neu(
+        lizenzen: impl IntoIterator<Item = (&'static str, fn() -> Cow<'static, str>)>,
+    ) -> Self {
         let mut aktuell = None;
         let lizenzen_und_button_states = lizenzen
             .into_iter()
@@ -78,7 +82,7 @@ impl Zustand {
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
 pub struct Lizenzen<'a, R> {
     container: Container<'a, InterneNachricht, R>,
-    aktuell: &'a mut Option<(&'static str, String)>,
+    aktuell: &'a mut Option<(&'static str, Cow<'static, str>)>,
     scrollable_text_zurücksetzen: &'a mut bool,
 }
 
@@ -137,7 +141,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
                 .push(Space::with_width(Length::Units(PADDING)))
-                .push(Text::new(aktuell_text.as_str()).width(Length::Fill).height(Length::Shrink))
+                .push(Text::new(aktuell_text.as_ref()).width(Length::Fill).height(Length::Shrink))
                 .push(Space::with_width(Length::Units(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
@@ -207,7 +211,6 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 // Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT (2): wasi, wasi
 // Apache-2.0 OR BSD-3-Clause OR MIT (2): num_enum, num_enum_derive
 // Apache-2.0 OR MIT (160): arrayvec, atomic-polyfill, autocfg, bare-metal, bare-metal, bit_field, bitfield, bitflags, bumpalo, bumpalo, cc, cfg-if, cfg-if, cgl, cocoa, cocoa-foundation, core-foundation, core-foundation, core-foundation-sys, core-foundation-sys, core-graphics, core-graphics, core-graphics-types, cortex-m, critical-section, crossbeam-channel, crossbeam-deque, crossbeam-epoch, crossbeam-utils, cty, downcast-rs, either, embedded-hal, euclid, flexi_logger, fnv, foreign-types, foreign-types-shared, form_urlencoded, futures, futures-channel, futures-core, futures-executor, futures-io, futures-macro, futures-sink, futures-task, futures-util, fxhash, getrandom, glam, glob, glow, hash32, heapless, heck, hermit-abi, ident_case, idna, itertools, itoa, jni-sys, js-sys, lazy_static, libc, libm, linked-hash-map, lock_api, log, longest-increasing-subsequence, lyon, lyon_algorithms, lyon_geom, lyon_path, lyon_tessellation, memmap2, minimal-lexical, miow, nb, nb, ndk, ndk-context, ndk-glue, ndk-macro, ndk-sys, ntapi, num-traits, num_cpus, num_threads, once_cell, parking_lot, parking_lot, parking_lot_core, parking_lot_core, percent-encoding, pin-project-lite, pin-utils, pkg-config, ppv-lite86, proc-macro-crate, proc-macro2, quote, rand, rand_chacha, rand_core, rayon, rayon-core, regex, regex-syntax, rstar, rustc-hash, rustc_version, rustc_version, rustversion, scoped-tls, scopeguard, semver, semver, semver-parser, serde, serde_derive, shared_library, sid, smallvec, stable_deref_trait, static_assertions, syn, thiserror, thiserror-impl, time, time-macros, toml, ttf-parser, unicase, unicode-bidi, unicode-normalization, unicode-segmentation, unicode-xid, url, vcell, version_check, volatile-register, wasm-bindgen, wasm-bindgen-backend, wasm-bindgen-futures, wasm-bindgen-macro, wasm-bindgen-macro-support, wasm-bindgen-shared, web-sys, winapi, winapi-i686-pc-windows-gnu, winapi-wsapoll, winapi-x86_64-pc-windows-gnu, windows-sys, windows_aarch64_msvc, windows_i686_gnu, windows_i686_msvc, windows_x86_64_gnu, windows_x86_64_msvc, x11rb
-// Apache-2.0 OR MIT OR Zlib (5): bytemuck, bytemuck_derive, raw-window-handle, tinyvec, tinyvec_macros
 // BSD-3-Clause (1): instant
 // BSL-1.0 (3): clipboard-win, error-code, str-buf
 // CC0-1.0 (1): osmesa-sys
@@ -217,8 +220,9 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 // Zlib (1): slotmap
 
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
-pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
+pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
     vec![
+        ("SourceSerif4-Regular", || Cow::Borrowed(fonts::LICENSE)),
         ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
         ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
         ("aho-corasick-0.7.18", || mit("The ", "2015", "Andrew Gallant")),
@@ -238,8 +242,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("block-0.1.6", mit_plain),
         ("bumpalo-2.6.0", todo!()),
         ("bumpalo-3.9.1", todo!()),
-        ("bytemuck-1.9.1", todo!()),
-        ("bytemuck_derive-1.1.0", todo!()),
+        ("bytemuck-1.9.1", mit_plain),
+        ("bytemuck_derive-1.1.0", mit_plain),
         ("byteorder-1.4.3", mit_plain),
         ("calloop-0.9.3", mit_plain),
         ("cc-1.0.73", todo!()),
@@ -441,8 +445,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("thiserror-impl-1.0.31", todo!()),
         ("time-0.3.9", todo!()),
         ("time-macros-0.2.4", todo!()),
-        ("tinyvec-1.6.0", todo!()),
-        ("tinyvec_macros-0.1.0", todo!()),
+        ("tinyvec-1.6.0", mit_plain),
+        ("tinyvec_macros-0.1.0", mit_plain),
         ("toml-0.5.9", todo!()),
         ("ttf-parser-0.15.0", todo!()),
         ("twox-hash-1.6.3", mit_plain),
@@ -496,13 +500,13 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
     ]
 }
 
-fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> String)> {
+fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
     // FIXME verwende echte Lizenzen
-    let f: fn() -> String = || {
-        String::from("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.\n\n\n\n\n\n\n\n\n\n\nSome text in the middle.\n\n\n\n\n\n\nAnother midway text.\n\n\n\n\n\n\n\nYet another debug line.\n\n\n\nHello from the deep.\n\n\n\n\nA final last line after a lot of vertical space.")
+    let f: fn() -> Cow<'static, str> = || {
+        Cow::Borrowed("Some long license text.\n\nTherefore, it needs multiple lines!\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.\n\n\n\n\n\n\n\n\n\n\nSome text in the middle.\n\n\n\n\n\n\nAnother midway text.\n\n\n\n\n\n\n\nYet another debug line.\n\n\n\nHello from the deep.\n\n\n\n\nA final last line after a lot of vertical space.")
     };
-    let g: fn() -> String = || {
-        String::from("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
+    let g: fn() -> Cow<'static, str> = || {
+        Cow::Borrowed("Ein andere Lizenz.\nAußerdem gibt es dabei sehr lange Texte, die ausreichen sollten um neben expliziten neuen Zeilen auch automatische Zeilenumbrüche überprüfen zu können.\n\nNO WARRANTIES GIVEN, PROVIDED AS IS, ect.")
     };
     // TODO
     vec![
@@ -516,12 +520,12 @@ fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> String)> {
 // TODO Test schreiben ob, die angezeigte Lizenz mit der wirklichen übereinstimmt
 
 #[inline(always)]
-fn mit_plain() -> String {
+fn mit_plain() -> Cow<'static, str> {
     mit("", "[year]", "[full_name]")
 }
 
-fn mit(prefix_the: &str, year: &str, full_name: &str) -> String {
-    format!(
+fn mit(prefix_the: &str, year: &str, full_name: &str) -> Cow<'static, str> {
+    Cow::Owned(format!(
         r#"{prefix_the}MIT License
 
 Copyright (c) {year} {full_name}
@@ -543,16 +547,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."#
-    )
+    ))
 }
 
 #[inline(always)]
-fn apache_2_0_plain() -> String {
+fn apache_2_0_plain() -> Cow<'static, str> {
     apache_2_0("[yyyy]", "[name of copyright owner]")
 }
 
-fn apache_2_0(year: &str, full_name: &str) -> String {
-    format!(
+fn apache_2_0(year: &str, full_name: &str) -> Cow<'static, str> {
+    Cow::Owned(format!(
         r#"        Apache License
         Version 2.0, January 2004
      http://www.apache.org/licenses/
@@ -755,7 +759,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 "#,
-    )
+    ))
 }
 
 #[test]
