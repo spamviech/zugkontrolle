@@ -943,7 +943,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 fn zlib<'t>(year: &str, full_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
-        r#"Copyright (c) 2021 Orson Peters <orsonpeters@gmail.com>
+        r#"Copyright (c) {year} {full_name}
 
 This software is provided 'as-is', without any express or implied warranty. In
 no event will the authors be held liable for any damages arising from the use of
