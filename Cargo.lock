@@ -2615,6 +2615,7 @@ dependencies = [
  "bincode",
  "cfg_aliases",
  "difference",
+ "either",
  "embed-resource",
  "flexi_logger",
  "iced",

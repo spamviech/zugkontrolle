@@ -203,41 +203,54 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     }
 }
 
+// Apache-2.0 (20): ab_glyph, ab_glyph_rasterizer, approx, clipboard_macos, clipboard_wayland, gethostname, gl_generator, glutin, glutin_egl_sys, glutin_emscripten_sys, glutin_gles2_sys, glutin_glx_sys, glutin_wgl_sys, glyph_brush, glyph_brush_draw_cache, glyph_brush_layout, khronos_api, owned_ttf_parser, winit, xi-unicode
+// Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT (2): wasi, wasi
+// Apache-2.0 OR BSD-3-Clause OR MIT (2): num_enum, num_enum_derive
+// Apache-2.0 OR MIT (160): arrayvec, atomic-polyfill, autocfg, bare-metal, bare-metal, bit_field, bitfield, bitflags, bumpalo, bumpalo, cc, cfg-if, cfg-if, cgl, cocoa, cocoa-foundation, core-foundation, core-foundation, core-foundation-sys, core-foundation-sys, core-graphics, core-graphics, core-graphics-types, cortex-m, critical-section, crossbeam-channel, crossbeam-deque, crossbeam-epoch, crossbeam-utils, cty, downcast-rs, either, embedded-hal, euclid, flexi_logger, fnv, foreign-types, foreign-types-shared, form_urlencoded, futures, futures-channel, futures-core, futures-executor, futures-io, futures-macro, futures-sink, futures-task, futures-util, fxhash, getrandom, glam, glob, glow, hash32, heapless, heck, hermit-abi, ident_case, idna, itertools, itoa, jni-sys, js-sys, lazy_static, libc, libm, linked-hash-map, lock_api, log, longest-increasing-subsequence, lyon, lyon_algorithms, lyon_geom, lyon_path, lyon_tessellation, memmap2, minimal-lexical, miow, nb, nb, ndk, ndk-context, ndk-glue, ndk-macro, ndk-sys, ntapi, num-traits, num_cpus, num_threads, once_cell, parking_lot, parking_lot, parking_lot_core, parking_lot_core, percent-encoding, pin-project-lite, pin-utils, pkg-config, ppv-lite86, proc-macro-crate, proc-macro2, quote, rand, rand_chacha, rand_core, rayon, rayon-core, regex, regex-syntax, rstar, rustc-hash, rustc_version, rustc_version, rustversion, scoped-tls, scopeguard, semver, semver, semver-parser, serde, serde_derive, shared_library, sid, smallvec, stable_deref_trait, static_assertions, syn, thiserror, thiserror-impl, time, time-macros, toml, ttf-parser, unicase, unicode-bidi, unicode-normalization, unicode-segmentation, unicode-xid, url, vcell, version_check, volatile-register, wasm-bindgen, wasm-bindgen-backend, wasm-bindgen-futures, wasm-bindgen-macro, wasm-bindgen-macro-support, wasm-bindgen-shared, web-sys, winapi, winapi-i686-pc-windows-gnu, winapi-wsapoll, winapi-x86_64-pc-windows-gnu, windows-sys, windows_aarch64_msvc, windows_i686_gnu, windows_i686_msvc, windows_x86_64_gnu, windows_x86_64_msvc, x11rb
+// Apache-2.0 OR MIT OR Zlib (5): bytemuck, bytemuck_derive, raw-window-handle, tinyvec, tinyvec_macros
+// BSD-3-Clause (1): instant
+// BSL-1.0 (3): clipboard-win, error-code, str-buf
+// CC0-1.0 (1): osmesa-sys
+// ISC (3): libloading, riscv, riscv-target
+// MIT AND OFL-1.1 (1): iced_glow
+// MPL-2.0 (1): dodrio
+// Zlib (1): slotmap
+
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
     vec![
         ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
         ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
-        ("aho-corasick-0.7.18", || mit("2015", "Andrew Gallant")),
-        ("android_glue-0.2.3", todo!()),
-        ("ansi_term-0.12.1", todo!()),
+        ("aho-corasick-0.7.18", || mit("The ", "2015", "Andrew Gallant")),
+        ("android_glue-0.2.3", mit_plain),
+        ("ansi_term-0.12.1", mit_plain),
         ("approx-0.5.1", todo!()),
         ("arrayvec-0.5.2", todo!()),
         ("atomic-polyfill-0.1.8", todo!()),
-        ("atty-0.2.14", todo!()),
+        ("atty-0.2.14", mit_plain),
         ("autocfg-1.1.0", todo!()),
         ("bare-metal-0.2.5", todo!()),
         ("bare-metal-1.0.0", todo!()),
-        ("bincode-1.3.3", todo!()),
+        ("bincode-1.3.3", mit_plain),
         ("bitfield-0.13.2", todo!()),
         ("bitflags-1.3.2", todo!()),
         ("bit_field-0.10.1", todo!()),
-        ("block-0.1.6", todo!()),
+        ("block-0.1.6", mit_plain),
         ("bumpalo-2.6.0", todo!()),
         ("bumpalo-3.9.1", todo!()),
         ("bytemuck-1.9.1", todo!()),
         ("bytemuck_derive-1.1.0", todo!()),
-        ("byteorder-1.4.3", todo!()),
-        ("calloop-0.9.3", todo!()),
+        ("byteorder-1.4.3", mit_plain),
+        ("calloop-0.9.3", mit_plain),
         ("cc-1.0.73", todo!()),
         ("cfg-if-0.1.10", todo!()),
         ("cfg-if-1.0.0", todo!()),
-        ("cfg_aliases-0.1.1", todo!()),
+        ("cfg_aliases-0.1.1", mit_plain),
         ("cgl-0.3.2", todo!()),
         ("clipboard-win-4.4.1", todo!()),
         ("clipboard_macos-0.1.0", todo!()),
         ("clipboard_wayland-0.2.0", todo!()),
-        ("clipboard_x11-0.3.1", todo!()),
+        ("clipboard_x11-0.3.1", mit_plain),
         ("cocoa-0.24.0", todo!()),
         ("cocoa-foundation-0.1.0", todo!()),
         ("core-foundation-0.7.0", todo!()),
@@ -247,7 +260,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("core-graphics-0.19.2", todo!()),
         ("core-graphics-0.22.3", todo!()),
         ("core-graphics-types-0.1.1", todo!()),
-        ("core-video-sys-0.1.4", todo!()),
+        ("core-video-sys-0.1.4", mit_plain),
         ("cortex-m-0.7.4", todo!()),
         ("critical-section-0.2.7", todo!()),
         ("crossbeam-channel-0.5.4", todo!()),
@@ -255,21 +268,21 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("crossbeam-epoch-0.9.8", todo!()),
         ("crossbeam-utils-0.8.8", todo!()),
         ("cty-0.2.2", todo!()),
-        ("darling-0.13.4", todo!()),
-        ("darling_core-0.13.4", todo!()),
-        ("darling_macro-0.13.4", todo!()),
-        ("difference-2.0.0", todo!()),
-        ("dispatch-0.2.0", todo!()),
-        ("dlib-0.5.0", todo!()),
+        ("darling-0.13.4", mit_plain),
+        ("darling_core-0.13.4", mit_plain),
+        ("darling_macro-0.13.4", mit_plain),
+        ("difference-2.0.0", mit_plain),
+        ("dispatch-0.2.0", mit_plain),
+        ("dlib-0.5.0", mit_plain),
         ("dodrio-0.2.0", todo!()),
         ("downcast-rs-1.2.0", todo!()),
         ("either-1.6.1", todo!()),
-        ("embed-resource-1.7.2", todo!()),
+        ("embed-resource-1.7.2", mit_plain),
         ("embedded-hal-0.2.7", todo!()),
         ("error-code-2.3.1", todo!()),
         ("euclid-0.22.7", todo!()),
         ("flexi_logger-0.22.3", todo!()),
-        ("float_next_after-0.1.5", todo!()),
+        ("float_next_after-0.1.5", mit_plain),
         ("fnv-1.0.7", todo!()),
         ("foreign-types-0.3.2", todo!()),
         ("foreign-types-shared-0.1.1", todo!()),
@@ -289,7 +302,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("glam-0.10.2", todo!()),
         ("glob-0.3.0", todo!()),
         ("glow-0.11.2", todo!()),
-        ("glow_glyph-0.5.0", todo!()),
+        ("glow_glyph-0.5.0", mit_plain),
         ("glutin-0.28.0", todo!()),
         ("glutin_egl_sys-0.1.5", todo!()),
         ("glutin_emscripten_sys-0.1.1", todo!()),
@@ -304,20 +317,20 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("heapless-0.7.10", todo!()),
         ("heck-0.4.0", todo!()),
         ("hermit-abi-0.1.19", todo!()),
-        ("iced-0.4.2", todo!()),
-        ("iced_aw-0.1.0", todo!()),
-        ("iced_core-0.4.0", todo!()),
-        ("iced_core-0.5.0", todo!()),
-        ("iced_futures-0.3.0", todo!()),
-        ("iced_futures-0.4.0", todo!()),
+        ("iced-0.4.2", mit_plain),
+        ("iced_aw-0.1.0", mit_plain),
+        ("iced_core-0.4.0", mit_plain),
+        ("iced_core-0.5.0", mit_plain),
+        ("iced_futures-0.3.0", mit_plain),
+        ("iced_futures-0.4.0", mit_plain),
         ("iced_glow-0.3.0", todo!()),
-        ("iced_glutin-0.3.0", todo!()),
-        ("iced_graphics-0.3.0", todo!()),
-        ("iced_native-0.5.0", todo!()),
-        ("iced_style-0.3.0", todo!()),
-        ("iced_style-0.4.0", todo!()),
-        ("iced_web-0.4.0", todo!()),
-        ("iced_winit-0.4.0", todo!()),
+        ("iced_glutin-0.3.0", mit_plain),
+        ("iced_graphics-0.3.0", mit_plain),
+        ("iced_native-0.5.0", mit_plain),
+        ("iced_style-0.3.0", mit_plain),
+        ("iced_style-0.4.0", mit_plain),
+        ("iced_web-0.4.0", mit_plain),
+        ("iced_winit-0.4.0", mit_plain),
         ("ident_case-1.0.1", todo!()),
         ("idna-0.2.3", todo!()),
         ("instant-0.1.12", todo!()),
@@ -326,8 +339,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("jni-sys-0.3.0", todo!()),
         ("js-sys-0.3.57", todo!()),
         ("khronos_api-3.1.0", todo!()),
-        ("kommandozeilen_argumente-0.2.0", todo!()),
-        ("kommandozeilen_argumente_derive-0.2.0", todo!()),
+        ("kommandozeilen_argumente-0.2.0", mit_plain),
+        ("kommandozeilen_argumente_derive-0.2.0", mit_plain),
         ("lazy_static-1.4.0", todo!()),
         ("libc-0.2.125", todo!()),
         ("libloading-0.7.3", todo!()),
@@ -341,13 +354,13 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("lyon_geom-0.17.6", todo!()),
         ("lyon_path-0.17.7", todo!()),
         ("lyon_tessellation-0.17.10", todo!()),
-        ("malloc_buf-0.0.6", todo!()),
-        ("matches-0.1.9", todo!()),
-        ("memchr-2.5.0", todo!()),
+        ("malloc_buf-0.0.6", mit_plain),
+        ("matches-0.1.9", mit_plain),
+        ("memchr-2.5.0", mit_plain),
         ("memmap2-0.3.1", todo!()),
-        ("memoffset-0.6.5", todo!()),
+        ("memoffset-0.6.5", mit_plain),
         ("minimal-lexical-0.2.1", todo!()),
-        ("mio-0.8.2", todo!()),
+        ("mio-0.8.2", mit_plain),
         ("miow-0.3.7", todo!()),
         ("nb-0.1.3", todo!()),
         ("nb-1.0.0", todo!()),
@@ -356,21 +369,21 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("ndk-glue-0.5.2", todo!()),
         ("ndk-macro-0.3.0", todo!()),
         ("ndk-sys-0.2.2", todo!()),
-        ("nix-0.20.0", todo!()),
-        ("nix-0.22.3", todo!()),
-        ("nom-7.1.1", todo!()),
-        ("nonempty-0.7.0", todo!()),
+        ("nix-0.20.0", mit_plain),
+        ("nix-0.22.3", mit_plain),
+        ("nom-7.1.1", mit_plain),
+        ("nonempty-0.7.0", mit_plain),
         ("ntapi-0.3.7", todo!()),
         ("num-traits-0.2.15", todo!()),
         ("num_cpus-1.13.1", todo!()),
         ("num_enum-0.5.7", todo!()),
         ("num_enum_derive-0.5.7", todo!()),
         ("num_threads-0.1.6", todo!()),
-        ("objc-0.2.7", todo!()),
-        ("objc-foundation-0.1.1", todo!()),
-        ("objc_id-0.1.1", todo!()),
+        ("objc-0.2.7", mit_plain),
+        ("objc-foundation-0.1.1", mit_plain),
+        ("objc_id-0.1.1", mit_plain),
         ("once_cell-1.10.0", todo!()),
-        ("ordered-float-3.0.0", todo!()),
+        ("ordered-float-3.0.0", mit_plain),
         ("osmesa-sys-0.1.2", todo!()),
         ("owned_ttf_parser-0.15.0", todo!()),
         ("parking_lot-0.11.2", todo!()),
@@ -388,16 +401,16 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("rand-0.8.5", todo!()),
         ("rand_chacha-0.3.1", todo!()),
         ("rand_core-0.6.3", todo!()),
-        ("raw-window-handle-0.3.4", todo!()),
-        ("raw-window-handle-0.4.3", todo!()),
+        ("raw-window-handle-0.3.4", mit_plain),
+        ("raw-window-handle-0.4.3", mit_plain),
         ("rayon-1.5.2", todo!()),
         ("rayon-core-1.9.2", todo!()),
-        ("redox_syscall-0.2.13", todo!()),
+        ("redox_syscall-0.2.13", mit_plain),
         ("regex-1.5.5", todo!()),
         ("regex-syntax-0.6.25", todo!()),
         ("riscv-0.7.0", todo!()),
         ("riscv-target-0.1.2", todo!()),
-        ("rppal-0.13.1", todo!()),
+        ("rppal-0.13.1", mit_plain),
         ("rstar-0.9.3", todo!()),
         ("rustc-hash-1.1.0", todo!()),
         ("rustc_version-0.2.3", todo!()),
@@ -412,18 +425,18 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("serde_derive-1.0.137", todo!()),
         ("shared_library-0.1.9", todo!()),
         ("sid-0.6.1", todo!()),
-        ("slab-0.4.6", todo!()),
+        ("slab-0.4.6", mit_plain),
         ("slotmap-1.0.6", todo!()),
         ("smallvec-1.8.0", todo!()),
-        ("smithay-client-toolkit-0.15.4", todo!()),
-        ("smithay-clipboard-0.6.5", todo!()),
-        ("spin-0.9.3", todo!()),
+        ("smithay-client-toolkit-0.15.4", mit_plain),
+        ("smithay-clipboard-0.6.5", mit_plain),
+        ("spin-0.9.3", mit_plain),
         ("stable_deref_trait-1.2.0", todo!()),
         ("static_assertions-1.1.0", todo!()),
         ("str-buf-1.0.5", todo!()),
-        ("strsim-0.10.0", todo!()),
+        ("strsim-0.10.0", mit_plain),
         ("syn-1.0.92", todo!()),
-        ("take_mut-0.2.2", todo!()),
+        ("take_mut-0.2.2", mit_plain),
         ("thiserror-1.0.31", todo!()),
         ("thiserror-impl-1.0.31", todo!()),
         ("time-0.3.9", todo!()),
@@ -432,7 +445,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("tinyvec_macros-0.1.0", todo!()),
         ("toml-0.5.9", todo!()),
         ("ttf-parser-0.15.0", todo!()),
-        ("twox-hash-1.6.3", todo!()),
+        ("twox-hash-1.6.3", mit_plain),
         ("unicase-2.6.0", todo!()),
         ("unicode-bidi-0.3.8", todo!()),
         ("unicode-normalization-0.1.19", todo!()),
@@ -441,10 +454,10 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("url-2.2.2", todo!()),
         ("vcell-0.1.3", todo!()),
         ("version_check-0.9.4", todo!()),
-        ("void-1.0.2", todo!()),
+        ("void-1.0.2", mit_plain),
         ("volatile-register-0.2.1", todo!()),
-        ("vswhom-0.1.0", todo!()),
-        ("vswhom-sys-0.1.1", todo!()),
+        ("vswhom-0.1.0", mit_plain),
+        ("vswhom-sys-0.1.1", mit_plain),
         ("wasi-0.10.2+wasi-snapshot-preview1", todo!()),
         ("wasi-0.11.0+wasi-snapshot-preview1", todo!()),
         ("wasm-bindgen-0.2.80", todo!()),
@@ -453,14 +466,14 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("wasm-bindgen-macro-0.2.80", todo!()),
         ("wasm-bindgen-macro-support-0.2.80", todo!()),
         ("wasm-bindgen-shared-0.2.80", todo!()),
-        ("wasm-timer-0.2.5", todo!()),
-        ("wayland-client-0.29.4", todo!()),
-        ("wayland-commons-0.29.4", todo!()),
-        ("wayland-cursor-0.29.4", todo!()),
-        ("wayland-egl-0.29.4", todo!()),
-        ("wayland-protocols-0.29.4", todo!()),
-        ("wayland-scanner-0.29.4", todo!()),
-        ("wayland-sys-0.29.4", todo!()),
+        ("wasm-timer-0.2.5", mit_plain),
+        ("wayland-client-0.29.4", mit_plain),
+        ("wayland-commons-0.29.4", mit_plain),
+        ("wayland-cursor-0.29.4", mit_plain),
+        ("wayland-egl-0.29.4", mit_plain),
+        ("wayland-protocols-0.29.4", mit_plain),
+        ("wayland-scanner-0.29.4", mit_plain),
+        ("wayland-sys-0.29.4", mit_plain),
         ("web-sys-0.3.57", todo!()),
         ("winapi-0.3.9", todo!()),
         ("winapi-i686-pc-windows-gnu-0.4.0", todo!()),
@@ -472,14 +485,14 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> String)> {
         ("windows_i686_msvc-0.36.1", todo!()),
         ("windows_x86_64_gnu-0.36.1", todo!()),
         ("windows_x86_64_msvc-0.36.1", todo!()),
-        ("window_clipboard-0.2.2", todo!()),
+        ("window_clipboard-0.2.2", mit_plain),
         ("winit-0.26.1", todo!()),
-        ("winreg-0.10.1", todo!()),
-        ("x11-dl-2.19.1", todo!()),
+        ("winreg-0.10.1", mit_plain),
+        ("x11-dl-2.19.1", mit_plain),
         ("x11rb-0.8.1", todo!()),
-        ("xcursor-0.3.4", todo!()),
+        ("xcursor-0.3.4", mit_plain),
         ("xi-unicode-0.3.0", todo!()),
-        ("xml-rs-0.8.4", todo!()),
+        ("xml-rs-0.8.4", mit_plain),
     ]
 }
 
@@ -495,16 +508,21 @@ fn verwendete_lizenzen_mock() -> Vec<(&'static str, fn() -> String)> {
     vec![
         ("test", f),
         ("alternativ", g),
-        ("mit", || mit("YYYY", "Full Name")),
+        ("mit", || mit("", "YYYY", "Full Name")),
         ("apache-2.0", apache_2_0_plain),
     ]
 }
 
 // TODO Test schreiben ob, die angezeigte Lizenz mit der wirklichen übereinstimmt
 
-fn mit(year: &str, full_name: &str) -> String {
+#[inline(always)]
+fn mit_plain() -> String {
+    mit("", "[year]", "[full_name]")
+}
+
+fn mit(prefix_the: &str, year: &str, full_name: &str) -> String {
     format!(
-        r#"MIT License
+        r#"{prefix_the}MIT License
 
 Copyright (c) {year} {full_name}
 
@@ -743,6 +761,7 @@ limitations under the License.
 #[test]
 fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
     use difference::Changeset;
+    use either::Either;
 
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
@@ -753,11 +772,16 @@ fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
         let datei = lizenz_dateien.get(name).unwrap_or(&"LICENSE");
         let verwendete_lizenz = f();
         let lizenz_pfad = format!("licenses/{name}/{datei}");
-        let lese_fehler = format!("Konnte Datei \"{lizenz_pfad}\" nicht lesen");
-        let gespeicherte_lizenz = std::fs::read_to_string(lizenz_pfad).expect(&lese_fehler);
-        let changeset = Changeset::new(&gespeicherte_lizenz, &verwendete_lizenz, "\n");
-        if !changeset.diffs.is_empty() {
-            let _ = unterschiede.insert(name, changeset);
+        match std::fs::read_to_string(lizenz_pfad.clone()) {
+            Ok(gespeicherte_lizenz) => {
+                let changeset = Changeset::new(&gespeicherte_lizenz, &verwendete_lizenz, "\n");
+                if !changeset.diffs.is_empty() {
+                    let _ = unterschiede.insert(name, Either::Left(changeset));
+                }
+            },
+            Err(lese_fehler) => {
+                let _ = unterschiede.insert(name, Either::Right((lizenz_pfad, lese_fehler)));
+            },
         }
     }
 
@@ -765,13 +789,21 @@ fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
         Ok(())
     } else {
         let mut not_first = false;
-        for (name, changeset) in unterschiede.iter() {
+        for (name, changeset_oder_fehler) in unterschiede.iter() {
             if not_first {
                 eprintln!("---------------------------------");
             } else {
                 not_first = true;
             }
-            eprintln!("{name}\n{changeset}")
+            eprintln!("{name}");
+            match changeset_oder_fehler {
+                Either::Left(changeset) => {
+                    eprintln!("{changeset}")
+                },
+                Either::Right((lizenz_pfad, lese_fehler)) => {
+                    eprintln!("Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":\n{lese_fehler}")
+                },
+            }
         }
         Err(unterschiede.into_keys().collect())
     }
