@@ -98,6 +98,7 @@ impl<R> Debug for Lizenzen<'_, R> {
 }
 
 const PADDING: u16 = 5;
+const TRENNLINIE_BREITE: u16 = 1;
 
 impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     /// Erstelle ein neues [Lizenzen]-Widget.
@@ -131,6 +132,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
         }
         let column = Column::new()
             .push(buttons)
+            .push(Space::with_height(Length::Units(PADDING)))
             .push(
                 Button::new(schließen, Text::new("Schließen"))
                     .on_press(InterneNachricht::Schließen),
@@ -158,7 +160,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
         let container = Container::new(
             Row::new()
                 .push(column)
-                .push(Rule::vertical(1).style(TRENNLINIE))
+                .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
                 .push(scrollable_aktuell),
         )
         .style(hintergrund::WEIß);
