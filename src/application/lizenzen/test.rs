@@ -102,6 +102,15 @@ fn passende_lizenzen() -> Result<(), BTreeSet<&'static str>> {
         ("aho-corasick-0.7.18", "LICENSE-MIT"),
         ("riscv-0.7.0", "LICENSE-README"),
         ("riscv-target-0.1.2", "LICENSE-MIT"),
+        ("windows-sys-0.36.1", "LICENSE-MIT"),
+        ("windows_i686_aarch64-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
+        ("windows_i686_gnu-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
+        ("windows_i686_msvc-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
+        ("windows_x86_64_gnu-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
+        ("windows_x86_64_msvc-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
+        ("x11-dl-2.19.1", "LICENSE-MIT"),
+        ("x11rb-0.8.1", "LICENSE-MIT"),
+        ("xi-unicode-0.3.0", "LICENSE-GITHUB"),
     ]);
 
     let mut unterschiede = BTreeMap::new();
