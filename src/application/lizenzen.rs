@@ -18,14 +18,13 @@ use iced_native::{
 };
 
 use crate::application::{
-    fonts,
     macros::reexport_no_event_methods,
     style::{hintergrund, linie::TRENNLINIE},
 };
 
 pub mod texte;
 use texte::{
-    apache_2_0, apache_2_0_plain, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0, zlib,
+    apache_2_0, apache_2_0_plain, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0, ofl_1_1, zlib,
 };
 
 #[derive(Debug, Clone)]
@@ -214,16 +213,30 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     }
 }
 
-// FIXME MIT AND OFL-1.1 (1): iced_glow
-// die Schriftart mit entsprechender Lizenz-Datei ist in iced_graphics enthalten,
-// aber die Lizenz wird in iced_glow (und iced_wgpu) angegeben
-
 // TODO Lizenzen anpassen, so dass passende_Lizenzen nicht mehr fehlschlägt.
 // TODO abweichende Dateinamen in passende_Lizenzen eintragen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
     vec![
-        ("SourceSerif4-Regular", || Cow::Borrowed(fonts::LICENSE)),
+        ("SourceSerif4-Regular", || {
+            ofl_1_1("2014-2021",
+            "Adobe (http://www.adobe.com/),",
+            "'Source'.",
+            " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
+            true,
+            false)
+        }),
+        // Über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
+        ("Lato", || {
+            ofl_1_1(
+                "2010-2014",
+                "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
+                r#""Lato""#,
+                "",
+                false,
+                true,
+            )
+        }),
         ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
         ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
         ("aho-corasick-0.7.18", || mit("The ", "2015", "Andrew Gallant")),
@@ -509,6 +522,8 @@ fn passende_lizenzen() -> Result<(), std::collections::BTreeSet<&'static str>> {
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
     let lizenz_dateien = BTreeMap::from([
+        ("SourceSerif4-Regular", "../../fonts/source-serif/LICENSE.md"),
+        ("Lato", "../iced_graphics-0.3.0/fonts/OFL.txt"),
         ("aho-corasick-0.7.18", "LICENSE-MIT"),
         ("riscv-0.7.0", "LICENSE-README"),
         ("riscv-target-0.1.2", "LICENSE-MIT"),

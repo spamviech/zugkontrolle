@@ -122,6 +122,7 @@ def dowload_licenses(repository, dst_dir):
 copy_filenames = license_files | cargo_toml | readme
 def copy_licenses(src_dir, dst_dir):
     global copy_filenames
+    # kopiere gefundene Dateien und überprüfe, ob eine Lizenz-Datei gefunden wurde
     os.makedirs(dst_dir, exist_ok=True)
     found = False
     for filename in copy_filenames:
@@ -131,10 +132,19 @@ def copy_licenses(src_dir, dst_dir):
                 found = True
             dst = os.path.join(dst_dir, filename)
             shutil.copy(src, dst)
+    # suche OFL-Lizenz-Datei in einem fonts-Unterordner
+    ofl_font_license = "fonts/OFL.txt"
+    src = os.path.join(src_dir, ofl_font_license)
+    if os.path.isfile(src):
+        os.makedirs(os.path.join(dst_dir, "fonts"), exist_ok=True)
+        dst = os.path.join(dst_dir, ofl_font_license)
+        shutil.copy(src, dst)
+    # suche github, sofern keine Lizenz-Datei gefunden wurde
     if not found:
         cargo_toml_path = os.path.join(src_dir, "Cargo.toml")
         repository, license = extract_repository_and_license(cargo_toml_path)
         found = dowload_licenses(repository, dst_dir)
+    # Rückmeldung, falls auch im github-Repository keine Lizenz-Datei gefunden wurde
     if not found:
         print(f"Missing License: {dst_dir}")
         print(f"\tRepository: {repository}")
@@ -159,7 +169,7 @@ def copy_or_download_licenses(show_percent = 5):
             copy_licenses(os.path.join(crates_io_dir, name_and_version), name_and_version)
         i += 1
         if i % step == 0:
-            print(f"{i} / {l}")
+            print(f"{i} / {l}: {name_and_version}")
 
 if __name__ == "__main__":
     copy_or_download_licenses()
