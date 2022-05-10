@@ -2,8 +2,6 @@
 
 use std::borrow::Cow;
 
-// TODO Argumente auf deutsch übersetzen
-
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
@@ -11,9 +9,9 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
-pub fn mit<'t>(prefix: &str, year: &str, full_name: &str) -> Cow<'t, str> {
+pub fn mit<'t>(präfix: &str, jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
-        r#"{prefix}Copyright (c) {year} {full_name}
+        r#"{präfix}Copyright (c) {jahr} {voller_name}
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +40,7 @@ pub fn apache_2_0_plain<'t>() -> Cow<'t, str> {
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
-pub fn apache_2_0<'t>(year: &str, full_name: &str) -> Cow<'t, str> {
+pub fn apache_2_0<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
         r#"        Apache License
         Version 2.0, January 2004
@@ -232,7 +230,7 @@ file or class name and description of purpose be included on the
 same "printed page" as the copyright notice for easier
 identification within third-party archives.
 
-Copyright {year} {full_name}
+Copyright {jahr} {voller_name}
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -250,9 +248,9 @@ limitations under the License.
 }
 
 /// Erzeuge den Lizenztext für die BSD-3-Lizenz.
-pub fn bsd_3<'t>(year: &str, full_name: &str) -> Cow<'t, str> {
+pub fn bsd_3<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
-        r#"Copyright (c) {year}, {full_name}
+        r#"Copyright (c) {jahr}, {voller_name}
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -349,9 +347,9 @@ DEALINGS IN THE SOFTWARE.
 }
 
 /// Erzeuge den Lizenztext für die ISC-Lizenz.
-pub fn isc<'t>(year: &str, full_name: &str) -> Cow<'t, str> {
+pub fn isc<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
-        r#"Copyright © {year}, {full_name}
+        r#"Copyright © {jahr}, {voller_name}
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without
 fee is hereby granted, provided that the above copyright notice and this permission notice appear
@@ -748,9 +746,9 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 }
 
 /// Erzeuge den Lizenztext für die ZLIB-Lizenz
-pub fn zlib<'t>(year: &str, full_name: &str) -> Cow<'t, str> {
+pub fn zlib<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
-        r#"Copyright (c) {year} {full_name}
+        r#"Copyright (c) {jahr} {voller_name}
 
 This software is provided 'as-is', without any express or implied warranty. In
 no event will the authors be held liable for any damages arising from the use of
@@ -775,20 +773,20 @@ the following restrictions:
 
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
 pub fn ofl_1_1<'t>(
-    year: &str,
-    full_name: &str,
+    jahr: &str,
+    voller_name: &str,
     font_name: &str,
     extra_notice: &str,
-    empty_line: bool,
-    new_line_before_url: bool,
+    leerzeile: bool,
+    neue_zeile_vor_url: bool,
 ) -> Cow<'t, str> {
-    let empty_line_str = if empty_line { "\n" } else { "" };
-    let new_line_before_url_str = if new_line_before_url { "\n" } else { " " };
+    let leerzeile_str = if leerzeile { "\n" } else { "" };
+    let neue_zeile_vor_url_str = if neue_zeile_vor_url { "\n" } else { " " };
     Cow::Owned(format!(
-        r#"Copyright {year} {full_name} with Reserved Font Name {font_name}.{extra_notice}
+        r#"Copyright {jahr} {voller_name} with Reserved Font Name {font_name}.{extra_notice}
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
-{empty_line_str}This license is copied below, and is also available with a FAQ at:{new_line_before_url_str}http://scripts.sil.org/OFL
+{leerzeile_str}This license is copied below, and is also available with a FAQ at:{neue_zeile_vor_url_str}http://scripts.sil.org/OFL
 
 
 -----------------------------------------------------------
