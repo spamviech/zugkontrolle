@@ -239,7 +239,9 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
         ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
-        ("aho-corasick-0.7.18", || mit("The ", "2015", "Andrew Gallant")),
+        ("aho-corasick-0.7.18", || {
+            mit("The MIT License (MIT)\n\n", "2015", "Andrew Gallant", false)
+        }),
         ("android_glue-0.2.3", mit_plain),
         ("ansi_term-0.12.1", mit_plain),
         ("approx-0.5.1", apache_2_0_plain),
@@ -427,7 +429,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("regex-1.5.5", mit_plain),
         ("regex-syntax-0.6.25", mit_plain),
         ("riscv-0.7.0", || isc("2019-2020", "[RISC-V team][team]")),
-        ("riscv-target-0.1.2", || mit("", "2020", "Ilya Epifanov")),
+        ("riscv-target-0.1.2", || mit("MIT License (MIT)\n\n", "2020", "Ilya Epifanov", false)),
         ("rppal-0.13.1", mit_plain),
         ("rstar-0.9.3", mit_plain),
         ("rustc-hash-1.1.0", mit_plain),
@@ -510,154 +512,9 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("x11rb-0.8.1", mit_plain),
         ("xcursor-0.3.4", mit_plain),
         ("xi-unicode-0.3.0", apache_2_0_plain),
-        ("xml-rs-0.8.4", mit_plain),
+        ("xml-rs-0.8.4", || mit("The MIT License (MIT)\n\n", "2014", "Vladimir Matveev", true)),
     ]
 }
 
 #[cfg(test)]
-mod test {
-    use std::{
-        collections::{BTreeMap, BTreeSet},
-        str::Split,
-    };
-
-    use difference::{Changeset, Difference};
-    use either::Either;
-
-    use crate::application::lizenzen::verwendete_lizenzen;
-
-    fn push_letzte_same(
-        string: &mut String,
-        letzte_same: &mut Option<Split<'_, &String>>,
-        split: &str,
-    ) {
-        match letzte_same.take() {
-            Some(iter) => {
-                let mut ellipsis = false;
-                let mut vorletztes = None;
-                let mut letztes = None;
-                for s in iter {
-                    ellipsis = vorletztes.is_some();
-                    vorletztes = letztes;
-                    letztes = Some(s);
-                }
-                if let Some(letztes) = letztes {
-                    if ellipsis {
-                        string.push_str("...");
-                        string.push_str(split);
-                    }
-                    if let Some(vorletztes) = vorletztes {
-                        string.push_str(vorletztes);
-                        string.push_str(split);
-                    }
-                    string.push_str(letztes);
-                    string.push_str(split);
-                }
-            },
-            None => {},
-        }
-    }
-
-    fn changeset_als_string(changeset: &Changeset) -> String {
-        let mut string = String::new();
-        let mut letzte_same = None;
-        let mut letzte_diff = false;
-        let split = &changeset.split;
-        for diff in &changeset.diffs {
-            match diff {
-                Difference::Same(x) => {
-                    let mut iter = x.split(split);
-                    if letzte_diff {
-                        if let Some(nächstes) = iter.next() {
-                            string.push_str(nächstes);
-                            string.push_str(split);
-                        }
-                        if let Some(nächstes) = iter.next() {
-                            string.push_str(nächstes);
-                            string.push_str(split);
-                        }
-                    }
-                    letzte_same = Some(iter);
-                    letzte_diff = false;
-                },
-                Difference::Add(x) => {
-                    push_letzte_same(&mut string, &mut letzte_same, split);
-                    letzte_diff = true;
-                    string.push_str("\x1b[92m");
-                    string.push_str(x);
-                    string.push_str("\x1b[0m");
-                    string.push_str(split);
-                },
-                Difference::Rem(x) => {
-                    push_letzte_same(&mut string, &mut letzte_same, split);
-                    letzte_diff = true;
-                    string.push_str("\x1b[91m");
-                    string.push_str(x);
-                    string.push_str("\x1b[0m");
-                    string.push_str(split);
-                },
-            }
-        }
-        if let Some(iter) = letzte_same {
-            if iter.count() > 1 {
-                string.push_str("...");
-                string.push_str(split);
-            }
-        }
-        string
-    }
-
-    #[test]
-    fn passende_lizenzen() -> Result<(), BTreeSet<&'static str>> {
-        let lizenzen = verwendete_lizenzen();
-        // Lizenz-Dateien, die nicht "LICENSE" heißen.
-        let lizenz_dateien = BTreeMap::from([
-            ("SourceSerif4-Regular", "../../fonts/source-serif/LICENSE.md"),
-            ("Lato", "../iced_graphics-0.3.0/fonts/OFL.txt"),
-            ("aho-corasick-0.7.18", "LICENSE-MIT"),
-            ("riscv-0.7.0", "LICENSE-README"),
-            ("riscv-target-0.1.2", "LICENSE-MIT"),
-        ]);
-
-        let mut unterschiede = BTreeMap::new();
-        for (name, f) in lizenzen {
-            let datei = lizenz_dateien.get(name).unwrap_or(&"LICENSE");
-            let verwendete_lizenz = f();
-            let lizenz_pfad = format!("licenses/{name}/{datei}");
-            match std::fs::read_to_string(lizenz_pfad.clone()) {
-                Ok(gespeicherte_lizenz) => {
-                    let changeset = Changeset::new(&gespeicherte_lizenz, &verwendete_lizenz, "\n");
-                    if !changeset.diffs.is_empty() {
-                        let _ = unterschiede.insert(name, Either::Left(changeset));
-                    }
-                },
-                Err(lese_fehler) => {
-                    let _ = unterschiede.insert(name, Either::Right((lizenz_pfad, lese_fehler)));
-                },
-            }
-        }
-
-        if unterschiede.is_empty() {
-            Ok(())
-        } else {
-            let mut not_first = false;
-            for (name, changeset_oder_fehler) in unterschiede.iter() {
-                if not_first {
-                    eprintln!("---------------------------------");
-                } else {
-                    not_first = true;
-                }
-                eprintln!("{name}");
-                match changeset_oder_fehler {
-                    Either::Left(changeset) => {
-                        eprintln!("{}", changeset_als_string(changeset))
-                    },
-                    Either::Right((lizenz_pfad, lese_fehler)) => {
-                        eprintln!("Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":\n{lese_fehler}")
-                    },
-                }
-            }
-            Err(unterschiede.into_keys().collect())
-        }
-    }
-}
+mod test;

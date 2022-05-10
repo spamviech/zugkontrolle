@@ -5,11 +5,14 @@ use std::borrow::Cow;
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
-    mit("MIT License\n\n", "[year]", "[full_name]")
+    mit("MIT License\n\n", "[year]", "[full_name]", false)
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
-pub fn mit<'t>(präfix: &str, jahr: &str, voller_name: &str) -> Cow<'t, str> {
+pub fn mit<'t>(
+    präfix: &str, jahr: &str, voller_name: &str, ende_neue_zeile: bool
+) -> Cow<'t, str> {
+    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
     Cow::Owned(format!(
         r#"{präfix}Copyright (c) {jahr} {voller_name}
 
@@ -29,7 +32,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE."#
+SOFTWARE.{ende_neue_zeile_str}"#
     ))
 }
 
