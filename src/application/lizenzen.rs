@@ -225,7 +225,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("SourceSerif4-Regular", || {
             ofl_1_1("2014-2021",
             "Adobe (http://www.adobe.com/),",
-            "'Source'.",
+            "'Source'",true,
             " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
             true,
             false)
@@ -236,6 +236,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 "2010-2014",
                 "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
                 r#""Lato""#,
+                false,
                 "",
                 false,
                 true,
@@ -394,6 +395,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("miow-0.3.7", mit_plain),
         ("nb-0.1.3", mit_plain),
         ("nb-1.0.0", mit_plain),
+        ("newline-converter-0.2.0", mit_plain),
         ("ndk-0.5.0", mit_plain),
         ("ndk-context-0.1.1", mit_plain),
         ("ndk-glue-0.5.2", mit_plain),

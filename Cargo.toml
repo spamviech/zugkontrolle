@@ -91,3 +91,4 @@ embed-resource = "1.7.1"
 [dev-dependencies]
 difference = "2.0.0"
 either = "1.6.1"
+newline-converter = "0.2.0"

@@ -1461,6 +1461,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1bcdd74c20ad5d95aacd60ef9ba40fdf77f767051040541df557b7a9b2a2121"
 
 [[package]]
+name = "newline-converter"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6f81c2b19eebbc4249b3ca6aff70ae05bf18d6a99b7cc63cf0248774e640565"
+
+[[package]]
 name = "nix"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2626,6 +2632,7 @@ dependencies = [
  "itertools",
  "kommandozeilen_argumente",
  "log",
+ "newline-converter",
  "nonempty",
  "num-traits",
  "parking_lot 0.12.0",

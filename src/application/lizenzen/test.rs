@@ -7,6 +7,7 @@ use std::{
 
 use difference::{Changeset, Difference};
 use either::Either;
+use newline_converter::dos2unix;
 
 use crate::application::lizenzen::verwendete_lizenzen;
 
@@ -334,7 +335,8 @@ fn passende_lizenzen() -> Result<(), BTreeSet<&'static str>> {
         let lizenz_pfad = format!("licenses/{name}/{datei}");
         match std::fs::read_to_string(lizenz_pfad.clone()) {
             Ok(gespeicherte_lizenz) => {
-                let changeset = Changeset::new(&gespeicherte_lizenz, &verwendete_lizenz, "\n");
+                let gespeicherte_lizenz_unix = dos2unix(&gespeicherte_lizenz);
+                let changeset = Changeset::new(&gespeicherte_lizenz_unix, &verwendete_lizenz, "\n");
                 let is_diff = |diff: &Difference| {
                     if let Difference::Same(_) = diff {
                         false

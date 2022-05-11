@@ -872,14 +872,16 @@ pub fn ofl_1_1<'t>(
     jahr: &str,
     voller_name: &str,
     font_name: &str,
+    punkt_nach_font_name: bool,
     extra_notice: &str,
     leerzeile: bool,
     neue_zeile_vor_url: bool,
 ) -> Cow<'t, str> {
+    let punkt_nach_font_name_str = if punkt_nach_font_name { "." } else { "" };
     let leerzeile_str = if leerzeile { "\n" } else { "" };
     let neue_zeile_vor_url_str = if neue_zeile_vor_url { "\n" } else { " " };
     Cow::Owned(format!(
-        r#"Copyright {jahr} {voller_name} with Reserved Font Name {font_name}.{extra_notice}
+        r#"Copyright {jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 {leerzeile_str}This license is copied below, and is also available with a FAQ at:{neue_zeile_vor_url_str}http://scripts.sil.org/OFL
