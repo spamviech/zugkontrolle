@@ -23,8 +23,12 @@ use crate::application::{
 };
 
 pub mod texte;
+// FIXME entferne unbenutzte imports
+#[allow(unused_imports)]
 use texte::{
-    apache_2_0, apache_2_0_plain, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0, ofl_1_1, zlib,
+    apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
+    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0,
+    ofl_1_1, zlib,
 };
 
 #[derive(Debug, Clone)]
@@ -237,14 +241,16 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 true,
             )
         }),
-        ("ab_glyph-0.2.15", || apache_2_0("2020", "Alex Butler")),
-        ("ab_glyph_rasterizer-0.1.5", || apache_2_0("2020", "Alex Butler")),
+        ("ab_glyph-0.2.15", || apache_2_0_nicht_eingerückt(false, "2020", "Alex Butler")),
+        ("ab_glyph_rasterizer-0.1.5", || {
+            apache_2_0_nicht_eingerückt(false, "2020", "Alex Butler")
+        }),
         ("aho-corasick-0.7.18", || {
             mit("The MIT License (MIT)\n\n", "2015", "Andrew Gallant", false)
         }),
         ("android_glue-0.2.3", mit_plain),
         ("ansi_term-0.12.1", mit_plain),
-        ("approx-0.5.1", apache_2_0_plain),
+        ("approx-0.5.1", apache_2_0_standard_nicht_eingerückt),
         ("arrayvec-0.5.2", mit_plain),
         ("atomic-polyfill-0.1.8", mit_plain),
         ("atty-0.2.14", mit_plain),
@@ -268,8 +274,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("cfg_aliases-0.1.1", mit_plain),
         ("cgl-0.3.2", mit_plain),
         ("clipboard-win-4.4.1", bsl_1_0),
-        ("clipboard_macos-0.1.0", apache_2_0_plain),
-        ("clipboard_wayland-0.2.0", apache_2_0_plain),
+        ("clipboard_macos-0.1.0", apache_2_0_standard_nicht_eingerückt),
+        ("clipboard_wayland-0.2.0", apache_2_0_standard_nicht_eingerückt),
         ("clipboard_x11-0.3.1", mit_plain),
         ("cocoa-0.24.0", mit_plain),
         ("cocoa-foundation-0.1.0", mit_plain),
@@ -317,22 +323,22 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("futures-task-0.3.21", mit_plain),
         ("futures-util-0.3.21", mit_plain),
         ("fxhash-0.2.1", mit_plain),
-        ("gethostname-0.2.3", apache_2_0_plain),
+        ("gethostname-0.2.3", apache_2_0_standard_nicht_eingerückt),
         ("getrandom-0.2.6", mit_plain),
         ("glam-0.10.2", mit_plain),
         ("glob-0.3.0", mit_plain),
         ("glow-0.11.2", mit_plain),
         ("glow_glyph-0.5.0", mit_plain),
-        ("glutin-0.28.0", apache_2_0_plain),
-        ("glutin_egl_sys-0.1.5", apache_2_0_plain),
-        ("glutin_emscripten_sys-0.1.1", apache_2_0_plain),
-        ("glutin_gles2_sys-0.1.5", apache_2_0_plain),
-        ("glutin_glx_sys-0.1.7", apache_2_0_plain),
-        ("glutin_wgl_sys-0.1.5", apache_2_0_plain),
-        ("glyph_brush-0.7.4", apache_2_0_plain),
-        ("glyph_brush_draw_cache-0.1.5", apache_2_0_plain),
-        ("glyph_brush_layout-0.2.3", apache_2_0_plain),
-        ("gl_generator-0.14.0", apache_2_0_plain),
+        ("glutin-0.28.0", apache_2_0_standard_nicht_eingerückt),
+        ("glutin_egl_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
+        ("glutin_emscripten_sys-0.1.1", apache_2_0_standard_nicht_eingerückt),
+        ("glutin_gles2_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
+        ("glutin_glx_sys-0.1.7", apache_2_0_standard_nicht_eingerückt),
+        ("glutin_wgl_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
+        ("glyph_brush-0.7.4", apache_2_0_standard_nicht_eingerückt),
+        ("glyph_brush_draw_cache-0.1.5", apache_2_0_standard_nicht_eingerückt),
+        ("glyph_brush_layout-0.2.3", apache_2_0_standard_nicht_eingerückt),
+        ("gl_generator-0.14.0", apache_2_0_standard_nicht_eingerückt),
         ("hash32-0.2.1", mit_plain),
         ("heapless-0.7.10", mit_plain),
         ("heck-0.4.0", mit_plain),
@@ -358,7 +364,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("itoa-1.0.1", mit_plain),
         ("jni-sys-0.3.0", mit_plain),
         ("js-sys-0.3.57", mit_plain),
-        ("khronos_api-3.1.0", apache_2_0_plain),
+        ("khronos_api-3.1.0", apache_2_0_standard_nicht_eingerückt),
         ("kommandozeilen_argumente-0.2.0", mit_plain),
         ("kommandozeilen_argumente_derive-0.2.0", mit_plain),
         ("lazy_static-1.4.0", mit_plain),
@@ -405,7 +411,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("once_cell-1.10.0", mit_plain),
         ("ordered-float-3.0.0", mit_plain),
         ("osmesa-sys-0.1.2", cc_0),
-        ("owned_ttf_parser-0.15.0", apache_2_0_plain),
+        ("owned_ttf_parser-0.15.0", apache_2_0_standard_nicht_eingerückt),
         ("parking_lot-0.11.2", mit_plain),
         ("parking_lot-0.12.0", mit_plain),
         ("parking_lot_core-0.8.5", mit_plain),
@@ -506,12 +512,12 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("windows_x86_64_gnu-0.36.1", mit_plain),
         ("windows_x86_64_msvc-0.36.1", mit_plain),
         ("window_clipboard-0.2.2", mit_plain),
-        ("winit-0.26.1", apache_2_0_plain),
+        ("winit-0.26.1", apache_2_0_standard_nicht_eingerückt),
         ("winreg-0.10.1", mit_plain),
         ("x11-dl-2.19.1", mit_plain),
         ("x11rb-0.8.1", mit_plain),
         ("xcursor-0.3.4", mit_plain),
-        ("xi-unicode-0.3.0", apache_2_0_plain),
+        ("xi-unicode-0.3.0", apache_2_0_standard_eingerückt),
         ("xml-rs-0.8.4", || mit("The MIT License (MIT)\n\n", "2014", "Vladimir Matveev", true)),
     ]
 }
