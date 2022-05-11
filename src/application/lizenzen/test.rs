@@ -68,7 +68,11 @@ fn changeset_als_string(changeset: &Changeset) -> String {
                 push_letzte_same(&mut string, &mut letzte_same, split);
                 letzte_diff = true;
                 string.push_str("\x1b[92m");
-                string.push_str(x);
+                if x.is_empty() {
+                    string.push_str("<Leerer String>");
+                } else {
+                    string.push_str(x);
+                }
                 string.push_str("\x1b[0m");
                 string.push_str(split);
             },
@@ -76,7 +80,11 @@ fn changeset_als_string(changeset: &Changeset) -> String {
                 push_letzte_same(&mut string, &mut letzte_same, split);
                 letzte_diff = true;
                 string.push_str("\x1b[91m");
-                string.push_str(x);
+                if x.is_empty() {
+                    string.push_str("<Leerer String>");
+                } else {
+                    string.push_str(x);
+                }
                 string.push_str("\x1b[0m");
                 string.push_str(split);
             },
