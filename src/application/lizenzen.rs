@@ -28,7 +28,7 @@ pub mod texte;
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
     apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0,
-    ofl_1_1, zlib,
+    ofl_1_1, zlib, MITCopyright,
 };
 
 #[derive(Debug, Clone)]
@@ -246,7 +246,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             apache_2_0_nicht_eingerückt(false, "2020", "Alex Butler")
         }),
         ("aho-corasick-0.7.18", || {
-            mit("The MIT License (MIT)\n\n", "2015", "Andrew Gallant", false)
+            mit(
+                "The MIT License (MIT)\n\n",
+                Some(MITCopyright::neu(true, "2015", "Andrew Gallant")),
+                false,
+            )
         }),
         ("android_glue-0.2.3", mit_plain),
         ("ansi_term-0.12.1", mit_plain),
@@ -435,7 +439,13 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("regex-1.5.5", mit_plain),
         ("regex-syntax-0.6.25", mit_plain),
         ("riscv-0.7.0", || isc("2019-2020", "[RISC-V team][team]")),
-        ("riscv-target-0.1.2", || mit("MIT License (MIT)\n\n", "2020", "Ilya Epifanov", false)),
+        ("riscv-target-0.1.2", || {
+            mit(
+                "MIT License (MIT)\n\n",
+                Some(MITCopyright::neu(true, "2020", "Ilya Epifanov")),
+                false,
+            )
+        }),
         ("rppal-0.13.1", mit_plain),
         ("rstar-0.9.3", mit_plain),
         ("rustc-hash-1.1.0", mit_plain),
@@ -514,11 +524,21 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("window_clipboard-0.2.2", mit_plain),
         ("winit-0.26.1", apache_2_0_standard_nicht_eingerückt),
         ("winreg-0.10.1", mit_plain),
-        ("x11-dl-2.19.1", mit_plain),
-        ("x11rb-0.8.1", mit_plain),
-        ("xcursor-0.3.4", mit_plain),
+        ("x11-dl-2.19.1", || mit("", None, false)),
+        ("x11rb-0.8.1", || {
+            mit("", Some(MITCopyright::neu(false, "2019", "x11rb Contributers")), false)
+        }),
+        ("xcursor-0.3.4", || {
+            mit("MIT License\n\n", Some(MITCopyright::neu(true, "2020", "Samuele Esposito")), true)
+        }),
         ("xi-unicode-0.3.0", apache_2_0_standard_eingerückt),
-        ("xml-rs-0.8.4", || mit("The MIT License (MIT)\n\n", "2014", "Vladimir Matveev", true)),
+        ("xml-rs-0.8.4", || {
+            mit(
+                "The MIT License (MIT)\n\n",
+                Some(MITCopyright::neu(true, "2014", "Vladimir Matveev")),
+                true,
+            )
+        }),
     ]
 }
 

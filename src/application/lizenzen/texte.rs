@@ -1,22 +1,64 @@
 //! Funktionen zum erzeugen Verwendeter Lizenz-Texte.
 
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    fmt::{self, Display, Formatter},
+};
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
-    mit("MIT License\n\n", "[year]", "[full_name]", false)
+    mit("MIT License\n\n", Some(MITCopyright::neu(true, "[year]", "[full_name]")), false)
+}
+
+/// Anzeige der Copyright-Informationen bei einer MIT-Lizenz.
+#[derive(Debug)]
+pub struct MITCopyright<'t> {
+    /// Wird "(c)" nach Copyright angezeigt.
+    pub c_in_klammern: bool,
+    /// Das Jahr in der Copyright-Information.
+    pub jahr: &'t str,
+    /// Der vollständige Name in der Copyright-Information.
+    pub voller_name: &'t str,
+}
+
+impl<'t> MITCopyright<'t> {
+    /// Erstelle ein neues [MITCopyright] struct.
+    pub fn neu(c_in_klammern: bool, jahr: &'t str, voller_name: &'t str) -> Self {
+        MITCopyright { c_in_klammern, jahr, voller_name }
+    }
+}
+
+struct OptionD<T>(Option<T>);
+
+impl Display for MITCopyright<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let MITCopyright { c_in_klammern, jahr, voller_name } = self;
+        let c_in_klammern_str = if *c_in_klammern { " (c)" } else { "" };
+        write!(f, "Copyright{c_in_klammern_str} {jahr} {voller_name}")
+    }
+}
+
+impl Display for OptionD<MITCopyright<'_>> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(Some(copyright)) = self {
+            write!(f, "{copyright}\n\n")
+        } else {
+            Ok(())
+        }
+    }
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t>(
-    präfix: &str, jahr: &str, voller_name: &str, ende_neue_zeile: bool
+    präfix: &str,
+    copyright: Option<MITCopyright<'_>>,
+    ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
+    let copyright_d = OptionD(copyright);
     let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
     Cow::Owned(format!(
-        r#"{präfix}Copyright (c) {jahr} {voller_name}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
+        r#"{präfix}{copyright_d}Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
