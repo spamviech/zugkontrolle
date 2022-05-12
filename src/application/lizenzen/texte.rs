@@ -12,7 +12,8 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
         "MIT License\n\n",
         Some(MITCopyright::neu(true, "[year]", "[full_name]")),
         MITZeilenumbruch::Standard,
-        false,
+        "",
+        MITEnde { punkt: true, neue_zeile: false },
     )
 }
 
@@ -22,32 +23,40 @@ pub struct MITCopyright<'t> {
     /// Wird "(c)" nach Copyright angezeigt.
     pub c_in_klammern: bool,
     /// Das Jahr in der Copyright-Information.
-    pub jahr: &'t str,
+    pub jahr: Option<&'t str>,
     /// Der vollständige Name in der Copyright-Information.
     pub voller_name: &'t str,
 }
 
 impl<'t> MITCopyright<'t> {
     /// Erstelle ein neues [MITCopyright] struct.
-    pub fn neu(c_in_klammern: bool, jahr: &'t str, voller_name: &'t str) -> Self {
-        MITCopyright { c_in_klammern, jahr, voller_name }
+    pub fn neu(
+        c_in_klammern: bool,
+        jahr: impl Into<Option<&'t str>>,
+        voller_name: &'t str,
+    ) -> Self {
+        MITCopyright { c_in_klammern, jahr: jahr.into(), voller_name }
     }
 }
 
-struct OptionD<T>(Option<T>);
+struct OptionD<'t, T>(Option<T>, &'t str);
 
 impl Display for MITCopyright<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let MITCopyright { c_in_klammern, jahr, voller_name } = self;
         let c_in_klammern_str = if *c_in_klammern { " (c)" } else { "" };
-        write!(f, "Copyright{c_in_klammern_str} {jahr} {voller_name}")
+        write!(f, "Copyright{c_in_klammern_str} ")?;
+        if let Some(jahr) = jahr {
+            write!(f, "{jahr} ")?;
+        }
+        write!(f, "{voller_name}")
     }
 }
 
-impl Display for OptionD<MITCopyright<'_>> {
+impl Display for OptionD<'_, MITCopyright<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let OptionD(Some(copyright)) = self {
-            write!(f, "{copyright}\n\n")
+        if let OptionD(Some(copyright), einrückung) = self {
+            write!(f, "{copyright}\n\n{einrückung}")
         } else {
             Ok(())
         }
@@ -65,25 +74,36 @@ pub enum MITZeilenumbruch {
     X11,
 }
 
+/// Das Ende einer MIT-Lizenz.
+#[derive(Debug, Clone, Copy)]
+pub struct MITEnde {
+    /// Beende den letzten Satz mit einem '.'.
+    pub punkt: bool,
+    /// Beende die Lizenz mit einer neuen Zeile.
+    pub neue_zeile: bool,
+}
+
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t>(
     präfix: &str,
     copyright: Option<MITCopyright<'_>>,
     zeilenumbrüche: MITZeilenumbruch,
-    ende_neue_zeile: bool,
+    einrückung: &str,
+    ende: MITEnde,
 ) -> Cow<'t, str> {
-    let copyright_d = OptionD(copyright).to_string();
+    let copyright_d = OptionD(copyright, einrückung);
+    let neue_zeile = format!("\n{einrückung}");
     let (
         standard_oder_winreg_zeilenumbruch_str,
         standard_zeilenumbruch_str,
         winreg_zeilenumbruch_str,
         x11_zeilenumbruch_str,
     ) = match zeilenumbrüche {
-        MITZeilenumbruch::Standard => ("\n", "\n", " ", " "),
-        MITZeilenumbruch::Winreg => ("\n", " ", "\n", " "),
-        MITZeilenumbruch::X11 => (" ", " ", " ", "\n"),
+        MITZeilenumbruch::Standard => (neue_zeile.as_str(), neue_zeile.as_str(), " ", " "),
+        MITZeilenumbruch::Winreg => (neue_zeile.as_str(), " ", neue_zeile.as_str(), " "),
+        MITZeilenumbruch::X11 => (" ", " ", " ", neue_zeile.as_str()),
     };
-    let mut string = format!("{präfix}{copyright_d}");
+    let mut string = format!("{präfix}{einrückung}{copyright_d}");
     macro_rules! push_string {
         (StandardWinreg, $($t: tt),* $(,)?) => {
             string.push_str(standard_oder_winreg_zeilenumbruch_str);
@@ -134,7 +154,9 @@ pub fn mit<'t>(
         StandardWinreg,
         "furnished to do so, subject to the following",
         X11,
-        "conditions:\n\nThe above copyright notice and this permission notice",
+        "conditions:\n\n",
+        einrückung,
+        "The above copyright notice and this permission notice",
         X11,
         "shall be included in",
         Winreg,
@@ -142,7 +164,9 @@ pub fn mit<'t>(
         Standard,
         "copies or substantial portions",
         X11,
-        "of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
+        "of the Software.\n\n",
+        einrückung,
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         X11,
         "ANY KIND, EXPRESS OR",
         StandardWinreg,
@@ -172,9 +196,12 @@ pub fn mit<'t>(
         Winreg,
         "THE",
         Standard,
-        "SOFTWARE.",
+        "SOFTWARE",
     );
-    if ende_neue_zeile {
+    if ende.punkt {
+        string.push_str(".");
+    }
+    if ende.neue_zeile {
         string.push_str("\n");
     }
     Cow::Owned(string)
