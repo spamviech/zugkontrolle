@@ -184,61 +184,120 @@ pub fn mit<'t>(
 /// ohne Einrückung und ohne Leerzeile am Anfang.
 #[inline(always)]
 pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_nicht_eingerückt(false, "[yyyy]", "[name of copyright owner]")
+    apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
 #[inline(always)]
 pub fn apache_2_0_nicht_eingerückt<'t>(
     beginn_leerzeile: bool,
-    jahr: &str,
-    voller_name: &str,
+    copyright: ApacheCopyright<'_>,
+    ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
-    apache_2_0(beginn_leerzeile, jahr, voller_name, "        ", "        ", "     ", "", "", "", "")
+    apache_2_0(beginn_leerzeile, copyright, ApacheEinrückung::nicht_eingerückt(), ende_neue_zeile)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten, eingerücktem Text
 /// und Leerzeile am Anfang.
 #[inline(always)]
 pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_eingerückt(true, "[yyyy]", "[name of copyright owner]")
+    apache_2_0_eingerückt(true, ApacheCopyright::standard(), true)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit eingerücktem Text.
 #[inline(always)]
 pub fn apache_2_0_eingerückt<'t>(
     beginn_leerzeile: bool,
-    jahr: &str,
-    voller_name: &str,
+    copyright: ApacheCopyright<'_>,
+    ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
-    apache_2_0(
-        beginn_leerzeile,
-        jahr,
-        voller_name,
-        "                                 ",
-        "                           ",
-        "                        ",
-        "   ",
-        "      ",
-        "          ",
-        "       ",
-    )
+    apache_2_0(beginn_leerzeile, copyright, ApacheEinrückung::eingerückt(), ende_neue_zeile)
+}
+
+/// Einrückung im Lizenztext einer Apache-2.0 Lizenz.
+#[derive(Debug)]
+pub struct ApacheEinrückung<'t> {
+    /// Einrückung des Titels (Apache License).
+    pub titel: &'t str,
+    /// Einrückung der Lizenz-Version.
+    pub version: &'t str,
+    /// Einrückung der URL zur Apache-Lizenz-Website
+    pub url: &'t str,
+    /// Einrückung für Header.
+    pub header: &'t str,
+    /// Einrückung für Text und Sub-Header.
+    pub text: &'t str,
+    /// Einrückung für Text von Sub-Headern.
+    pub sub_text: &'t str,
+    /// Einrückung für die Url mit einer Kopie des Lizenztextes.
+    pub finale_url: &'t str,
+}
+
+impl ApacheEinrückung<'_> {
+    /// [ApacheEinrückung] für die nicht eingerückte Version des Lizenz-Textes.
+    pub fn nicht_eingerückt() -> Self {
+        ApacheEinrückung {
+            titel: "        ",
+            version: "        ",
+            url: "     ",
+            header: "",
+            text: "",
+            sub_text: "",
+            finale_url: "",
+        }
+    }
+
+    /// [ApacheEinrückung] für die eingerückte Version des Lizenz-Textes.
+    pub fn eingerückt() -> Self {
+        ApacheEinrückung {
+            titel: "                                 ",
+            version: "                           ",
+            url: "                        ",
+            header: "   ",
+            text: "      ",
+            sub_text: "          ",
+            finale_url: "       ",
+        }
+    }
+}
+
+/// Anzeige der Copyright-Informationen bei einer Apache-2.0-Lizenz.
+#[derive(Debug)]
+pub struct ApacheCopyright<'t> {
+    /// Die verwendeten Klammern für Meta-Variablen.
+    pub brackets: &'t str,
+    /// Das Jahr.
+    pub jahr: &'t str,
+    /// Der volle Name.
+    pub voller_name: &'t str,
+}
+
+impl ApacheCopyright<'_> {
+    /// Standard-Werte für Copyright-Informationen in einer Apache-2.0-Lizenz.
+    pub fn standard() -> Self {
+        ApacheCopyright { brackets: "[]", jahr: "[yyyy]", voller_name: "[name of copyright owner]" }
+    }
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
 pub fn apache_2_0<'t>(
     beginn_leerzeile: bool,
-    jahr: &str,
-    voller_name: &str,
-    indent_titel: &str,
-    indent_version: &str,
-    indent_url: &str,
-    indent_header: &str,
-    indent_text: &str,
-    indent_sub_text: &str,
-    indent_final_url: &str,
+    copyright: ApacheCopyright<'_>,
+    einrückung: ApacheEinrückung<'_>,
+    ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
     let beginn_leerzeile_str = if beginn_leerzeile { "\n" } else { "" };
+    let ApacheCopyright { brackets, jahr, voller_name } = copyright;
+    let ApacheEinrückung {
+        titel: indent_titel,
+        version: indent_version,
+        url: indent_url,
+        header: indent_header,
+        text: indent_text,
+        sub_text: indent_sub_text,
+        finale_url: indent_finale_url,
+    } = einrückung;
+    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
     Cow::Owned(format!(
         r#"{beginn_leerzeile_str}{indent_titel}Apache License
 {indent_version}Version 2.0, January 2004
@@ -420,7 +479,7 @@ pub fn apache_2_0<'t>(
 {indent_header}APPENDIX: How to apply the Apache License to your work.
 
 {indent_text}To apply the Apache License to your work, attach the following
-{indent_text}boilerplate notice, with the fields enclosed by brackets "[]"
+{indent_text}boilerplate notice, with the fields enclosed by brackets "{brackets}"
 {indent_text}replaced with your own identifying information. (Don't include
 {indent_text}the brackets!)  The text should be enclosed in the appropriate
 {indent_text}comment syntax for the file format. We also recommend that a
@@ -434,14 +493,13 @@ pub fn apache_2_0<'t>(
 {indent_header}you may not use this file except in compliance with the License.
 {indent_header}You may obtain a copy of the License at
 
-{indent_final_url}http://www.apache.org/licenses/LICENSE-2.0
+{indent_finale_url}http://www.apache.org/licenses/LICENSE-2.0
 
 {indent_header}Unless required by applicable law or agreed to in writing, software
 {indent_header}distributed under the License is distributed on an "AS IS" BASIS,
 {indent_header}WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 {indent_header}See the License for the specific language governing permissions and
-{indent_header}limitations under the License.
-"#,
+{indent_header}limitations under the License.{ende_neue_zeile_str}"#,
     ))
 }
 

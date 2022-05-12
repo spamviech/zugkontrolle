@@ -28,7 +28,7 @@ pub mod texte;
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
     apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0,
-    ofl_1_1, zlib, MITCopyright, MITZeilenumbruch,
+    ofl_1_1, zlib, ApacheCopyright, ApacheEinrückung, MITCopyright, MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
@@ -242,9 +242,19 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 true,
             )
         }),
-        ("ab_glyph-0.2.15", || apache_2_0_nicht_eingerückt(false, "2020", "Alex Butler")),
+        ("ab_glyph-0.2.15", || {
+            apache_2_0_nicht_eingerückt(
+                false,
+                ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
+                true,
+            )
+        }),
         ("ab_glyph_rasterizer-0.1.5", || {
-            apache_2_0_nicht_eingerückt(false, "2020", "Alex Butler")
+            apache_2_0_nicht_eingerückt(
+                false,
+                ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
+                true,
+            )
         }),
         ("aho-corasick-0.7.18", || {
             mit(
@@ -526,7 +536,18 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("windows_x86_64_gnu-0.36.1", mit_plain),
         ("windows_x86_64_msvc-0.36.1", mit_plain),
         ("window_clipboard-0.2.2", mit_plain),
-        ("winit-0.26.1", apache_2_0_standard_eingerückt),
+        ("winit-0.26.1", || {
+            apache_2_0(
+                false,
+                ApacheCopyright {
+                    brackets: "{}",
+                    jahr: "{yyyy}",
+                    voller_name: "{name of copyright owner}",
+                },
+                ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+                false,
+            )
+        }),
         ("winreg-0.10.1", || {
             mit(
                 "",
