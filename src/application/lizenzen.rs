@@ -221,6 +221,24 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 // TODO abweichende Dateinamen in passende_Lizenzen eintragen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
+    let wayland_lizenz = || {
+        mit(
+            "",
+            Some(MITCopyright::neu(true, "2015", "Victor Berger")),
+            MITZeilenumbruch::Winreg,
+            "",
+            MITEnde { punkt: true, neue_zeile: false },
+        )
+    };
+    let winapi_lizenz = || {
+        mit(
+            "",
+            Some(MITCopyright::neu(true, "2015-2018", "The winapi-rs Developers")),
+            MITZeilenumbruch::Standard,
+            "",
+            MITEnde { punkt: true, neue_zeile: true },
+        )
+    };
     let widows_sys_lizenz = || {
         mit(
             "    MIT License\n\n",
@@ -528,18 +546,26 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("wasm-bindgen-macro-support-0.2.80", mit_plain),
         ("wasm-bindgen-shared-0.2.80", mit_plain),
         ("wasm-timer-0.2.5", mit_plain),
-        ("wayland-client-0.29.4", mit_plain),
-        ("wayland-commons-0.29.4", mit_plain),
-        ("wayland-cursor-0.29.4", mit_plain),
-        ("wayland-egl-0.29.4", mit_plain),
-        ("wayland-protocols-0.29.4", mit_plain),
-        ("wayland-scanner-0.29.4", mit_plain),
-        ("wayland-sys-0.29.4", mit_plain),
-        ("web-sys-0.3.57", mit_plain),
-        ("winapi-0.3.9", mit_plain),
-        ("winapi-i686-pc-windows-gnu-0.4.0", mit_plain),
+        ("wayland-client-0.29.4", wayland_lizenz),
+        ("wayland-commons-0.29.4", wayland_lizenz),
+        ("wayland-cursor-0.29.4", wayland_lizenz),
+        ("wayland-egl-0.29.4", wayland_lizenz),
+        ("wayland-protocols-0.29.4", wayland_lizenz),
+        ("wayland-scanner-0.29.4", wayland_lizenz),
+        ("wayland-sys-0.29.4", wayland_lizenz),
+        ("web-sys-0.3.57", || {
+            mit(
+                "",
+                Some(MITCopyright::neu(true, "2014", "Alex Crichton")),
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde { punkt: true, neue_zeile: true },
+            )
+        }),
+        ("winapi-0.3.9", winapi_lizenz),
+        ("winapi-i686-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("winapi-wsapoll-0.1.1", mit_plain),
-        ("winapi-x86_64-pc-windows-gnu-0.4.0", mit_plain),
+        ("winapi-x86_64-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("windows-sys-0.36.1", widows_sys_lizenz),
         ("windows_aarch64_msvc-0.36.1", widows_sys_lizenz),
         ("windows_i686_gnu-0.36.1", widows_sys_lizenz),

@@ -68,9 +68,9 @@ impl Display for OptionD<'_, MITCopyright<'_>> {
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
-    /// Zeilenumbrüche, wie sie im winreg-crate verwendet werden.
+    /// Zeilenumbrüche, wie sie im winreg- und wayland-*-crates verwendet werden.
     Winreg,
-    /// Zeilenumbrüche, wie sie in x11*-crates verwendet werden.
+    /// Zeilenumbrüche, wie sie in x11*- und web-sys-crates verwendet werden.
     X11,
     /// Zeilenumbrüche, wie sie bei iced*- und window_clipboard-crates verwendet werden.
     Iced,
