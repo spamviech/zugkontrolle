@@ -66,12 +66,14 @@ impl Display for OptionD<'_, MITCopyright<'_>> {
 /// Wo sind Zeilenumbrüche im MIT-Lizenztext.
 #[derive(Debug, Clone, Copy)]
 pub enum MITZeilenumbruch {
-    /// Zeilenumbrüche wie sie bei den meisten crates verwendet werden.
+    /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
-    /// Zeilenumbrüche wie sie im winreg-crate verwendet werden.
+    /// Zeilenumbrüche, wie sie im winreg-crate verwendet werden.
     Winreg,
-    /// Zeilenumbrüche wie sie in x11*-crates verwendet werden.
+    /// Zeilenumbrüche, wie sie in x11*-crates verwendet werden.
     X11,
+    /// Zeilenumbrüche, wie sie bei iced*- und window_clipboard-crates verwendet werden.
+    Iced,
 }
 
 /// Das Ende einer MIT-Lizenz.
@@ -93,109 +95,131 @@ pub fn mit<'t>(
 ) -> Cow<'t, str> {
     let copyright_d = OptionD(copyright, einrückung);
     let neue_zeile = format!("\n{einrückung}");
-    let (
-        standard_oder_winreg_zeilenumbruch_str,
-        standard_zeilenumbruch_str,
-        winreg_zeilenumbruch_str,
-        x11_zeilenumbruch_str,
-    ) = match zeilenumbrüche {
-        MITZeilenumbruch::Standard => (neue_zeile.as_str(), neue_zeile.as_str(), " ", " "),
-        MITZeilenumbruch::Winreg => (neue_zeile.as_str(), " ", neue_zeile.as_str(), " "),
-        MITZeilenumbruch::X11 => (" ", " ", " ", neue_zeile.as_str()),
-    };
+    let neue_zeile_str = neue_zeile.as_str();
+    let mut standard = " ";
+    let mut winreg = " ";
+    let mut standard_winreg = " ";
+    let mut x11 = " ";
+    let mut iced = " ";
+    let mut standard_iced = " ";
+    let mut standard_winreg_iced = " ";
+    let mut x11_iced = " ";
+    match zeilenumbrüche {
+        MITZeilenumbruch::Standard => {
+            standard = neue_zeile_str;
+            standard_winreg = neue_zeile_str;
+            standard_iced = neue_zeile_str;
+            standard_winreg_iced = neue_zeile_str;
+        },
+        MITZeilenumbruch::Winreg => {
+            winreg = neue_zeile_str;
+            standard_winreg = neue_zeile_str;
+            standard_winreg_iced = neue_zeile_str;
+        },
+        MITZeilenumbruch::X11 => {
+            x11 = neue_zeile_str;
+            x11_iced = neue_zeile_str;
+        },
+        MITZeilenumbruch::Iced => {
+            iced = neue_zeile_str;
+            standard_iced = neue_zeile_str;
+            standard_winreg_iced = neue_zeile_str;
+            x11_iced = neue_zeile_str;
+        },
+    }
     let mut string = format!("{präfix}{einrückung}{copyright_d}");
     macro_rules! push_string {
-        (StandardWinreg, $($t: tt),* $(,)?) => {
-            string.push_str(standard_oder_winreg_zeilenumbruch_str);
-            push_string!($($t),* ,);
-        };
-        (Standard, $($t: tt),* $(,)?) => {
-            string.push_str(standard_zeilenumbruch_str);
-            push_string!($($t),* ,);
-        };
-        (Winreg, $($t: tt),* $(,)?) => {
-            string.push_str(winreg_zeilenumbruch_str);
-            push_string!($($t),* ,);
-        };
-        (X11, $($t: tt),* $(,)?) => {
-            string.push_str(x11_zeilenumbruch_str);
-            push_string!($($t),* ,);
-        };
-        ($s: tt, $($t: tt),* $(,)?) => {
-            string.push_str($s);
+        ($h: expr, $($t: expr),* $(,)?) => {
+            string.push_str($h);
             push_string!($($t),* ,);
         };
         ($(,)?) => {};
     }
     push_string!(
         "Permission is hereby granted, free of charge, to any",
-        X11,
+        x11,
         "person obtaining a copy",
-        StandardWinreg,
-        "of this software and associated",
-        X11,
+        standard_winreg,
+        "of",
+        iced,
+        "this software and associated",
+        x11,
         "documentation files (the \"Software\"), to deal",
-        StandardWinreg,
-        "in the",
-        X11,
+        standard_winreg,
+        "in",
+        iced,
+        "the",
+        x11,
         "Software without restriction, including without",
-        X11,
+        x11,
         "limitation the rights",
-        StandardWinreg,
-        "to use, copy, modify, merge,",
-        X11,
+        standard_winreg,
+        "to",
+        iced,
+        "use, copy, modify, merge,",
+        x11,
         "publish, distribute, sublicense, and/or sell",
-        StandardWinreg,
+        standard_winreg,
         "copies of",
-        X11,
+        x11_iced,
         "the Software, and to permit persons to whom the Software",
-        X11,
+        x11,
         "is",
-        StandardWinreg,
-        "furnished to do so, subject to the following",
-        X11,
+        standard_winreg,
+        "furnished to do so,",
+        iced,
+        "subject to the following",
+        x11,
         "conditions:\n\n",
         einrückung,
         "The above copyright notice and this permission notice",
-        X11,
+        x11,
         "shall be included in",
-        Winreg,
+        winreg,
         "all",
-        Standard,
+        standard_iced,
         "copies or substantial portions",
-        X11,
+        x11,
         "of the Software.\n\n",
         einrückung,
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
-        X11,
+        x11,
         "ANY KIND, EXPRESS OR",
-        StandardWinreg,
+        standard_winreg_iced,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
-        X11,
+        x11,
         "TO THE WARRANTIES OF MERCHANTABILITY,",
-        StandardWinreg,
-        "FITNESS FOR A",
-        X11,
+        standard_winreg,
+        "FITNESS",
+        iced,
+        "FOR A",
+        x11,
         "PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT",
-        X11,
+        x11,
         "SHALL THE",
-        StandardWinreg,
-        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY",
-        X11,
+        standard_winreg,
+        "AUTHORS OR",
+        iced,
+        "COPYRIGHT HOLDERS BE LIABLE FOR ANY",
+        x11,
         "CLAIM, DAMAGES OR OTHER",
-        StandardWinreg,
-        "LIABILITY, WHETHER IN AN ACTION",
-        X11,
+        standard_winreg,
+        "LIABILITY, WHETHER",
+        iced,
+        "IN AN ACTION",
+        x11,
         "OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
-        StandardWinreg,
+        standard_winreg,
         "OUT OF OR",
-        X11,
-        "IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER",
-        X11,
+        x11,
+        "IN",
+        iced,
+        "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER",
+        x11,
         "DEALINGS IN",
-        Winreg,
+        winreg,
         "THE",
-        Standard,
+        standard,
         "SOFTWARE",
     );
     if ende.punkt {

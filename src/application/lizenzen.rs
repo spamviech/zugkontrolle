@@ -546,7 +546,19 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("windows_i686_msvc-0.36.1", widows_sys_lizenz),
         ("windows_x86_64_gnu-0.36.1", widows_sys_lizenz),
         ("windows_x86_64_msvc-0.36.1", widows_sys_lizenz),
-        ("window_clipboard-0.2.2", mit_plain),
+        ("window_clipboard-0.2.2", || {
+            mit(
+                "",
+                Some(MITCopyright::neu(
+                    false,
+                    "2019",
+                    "Héctor Ramón, window_clipboard contributors",
+                )),
+                MITZeilenumbruch::Iced,
+                "",
+                MITEnde { punkt: true, neue_zeile: true },
+            )
+        }),
         ("winit-0.26.1", || {
             apache_2_0(
                 false,
