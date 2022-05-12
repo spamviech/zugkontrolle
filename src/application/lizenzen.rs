@@ -27,8 +27,8 @@ pub mod texte;
 #[allow(unused_imports)]
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
-    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_kurze_zeilenlänge,
-    mit_plain, mpl_2_0, ofl_1_1, zlib, MITCopyright,
+    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0,
+    ofl_1_1, zlib, MITCopyright, MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
@@ -250,7 +250,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n\n",
                 Some(MITCopyright::neu(true, "2015", "Andrew Gallant")),
-                false,
+                MITZeilenumbruch::Standard,
                 false,
             )
         }),
@@ -446,7 +446,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "MIT License (MIT)\n\n",
                 Some(MITCopyright::neu(true, "2020", "Ilya Epifanov")),
-                false,
+                MITZeilenumbruch::Standard,
                 false,
             )
         }),
@@ -528,13 +528,19 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("window_clipboard-0.2.2", mit_plain),
         ("winit-0.26.1", apache_2_0_standard_eingerückt),
         ("winreg-0.10.1", || {
-            mit("", Some(MITCopyright::neu(true, "2015", "Igor Shaula")), true, true)
+            mit(
+                "",
+                Some(MITCopyright::neu(true, "2015", "Igor Shaula")),
+                MITZeilenumbruch::Winreg,
+                true,
+            )
         }),
-        ("x11-dl-2.19.1", || mit_kurze_zeilenlänge("", None, true)),
+        ("x11-dl-2.19.1", || mit("", None, MITZeilenumbruch::X11, true)),
         ("x11rb-0.8.1", || {
-            mit_kurze_zeilenlänge(
+            mit(
                 "",
                 Some(MITCopyright::neu(false, "2019", "x11rb Contributers")),
+                MITZeilenumbruch::X11,
                 true,
             )
         }),
@@ -542,7 +548,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "MIT License\n\n",
                 Some(MITCopyright::neu(true, "2020", "Samuele Esposito")),
-                false,
+                MITZeilenumbruch::Standard,
                 true,
             )
         }),
@@ -551,7 +557,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n\n",
                 Some(MITCopyright::neu(true, "2014", "Vladimir Matveev")),
-                false,
+                MITZeilenumbruch::Standard,
                 true,
             )
         }),

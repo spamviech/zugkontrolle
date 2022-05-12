@@ -8,7 +8,12 @@ use std::{
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
-    mit("MIT License\n\n", Some(MITCopyright::neu(true, "[year]", "[full_name]")), false, false)
+    mit(
+        "MIT License\n\n",
+        Some(MITCopyright::neu(true, "[year]", "[full_name]")),
+        MITZeilenumbruch::Standard,
+        false,
+    )
 }
 
 /// Anzeige der Copyright-Informationen bei einer MIT-Lizenz.
@@ -49,72 +54,130 @@ impl Display for OptionD<MITCopyright<'_>> {
     }
 }
 
+/// Wo sind Zeilenumbrüche im MIT-Lizenztext.
+#[derive(Debug, Clone, Copy)]
+pub enum MITZeilenumbruch {
+    /// Zeilenumbrüche wie sie bei den meisten crates verwendet werden.
+    Standard,
+    /// Zeilenumbrüche wie sie im winreg-crate verwendet werden.
+    Winreg,
+    /// Zeilenumbrüche wie sie in x11*-crates verwendet werden.
+    X11,
+}
+
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t>(
     präfix: &str,
     copyright: Option<MITCopyright<'_>>,
-    alternative_zeilenumbrüche: bool,
+    zeilenumbrüche: MITZeilenumbruch,
     ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
-    let copyright_d = OptionD(copyright);
-    let (normaler_zeilenumbruch_str, alternativer_zeilenumbruch_str) =
-        if alternative_zeilenumbrüche { (" ", "\n") } else { ("\n", " ") };
-    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
-    Cow::Owned(format!(
-        r#"{präfix}{copyright_d}Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in{alternativer_zeilenumbruch_str}all{normaler_zeilenumbruch_str}copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN{alternativer_zeilenumbruch_str}THE{normaler_zeilenumbruch_str}SOFTWARE.{ende_neue_zeile_str}"#
-    ))
-}
-
-// TODO Zeilenumbrüche automatisiert vom Text-Widget erzeugen lassen, nur Leerzeilen behalten?
-// TODO dementsprechend im Text ignorieren
-// TODO z.B. möglich über .replace("\n\n", "#nl#");.replace("\n", "");.replace("#nl#", "\n\n")
-/// Erzeuge den Lizenztext für die MIT-Lizenz.
-pub fn mit_kurze_zeilenlänge<'t>(
-    präfix: &str,
-    copyright: Option<MITCopyright<'_>>,
-    ende_neue_zeile: bool,
-) -> Cow<'t, str> {
-    let copyright_d = OptionD(copyright);
-    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
-    Cow::Owned(format!(
-        r#"{präfix}{copyright_d}Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.{ende_neue_zeile_str}"#
-    ))
+    let copyright_d = OptionD(copyright).to_string();
+    let (
+        standard_oder_winreg_zeilenumbruch_str,
+        standard_zeilenumbruch_str,
+        winreg_zeilenumbruch_str,
+        x11_zeilenumbruch_str,
+    ) = match zeilenumbrüche {
+        MITZeilenumbruch::Standard => ("\n", "\n", " ", " "),
+        MITZeilenumbruch::Winreg => ("\n", " ", "\n", " "),
+        MITZeilenumbruch::X11 => (" ", " ", " ", "\n"),
+    };
+    let mut string = format!("{präfix}{copyright_d}");
+    macro_rules! push_string {
+        (StandardWinreg, $($t: tt),* $(,)?) => {
+            string.push_str(standard_oder_winreg_zeilenumbruch_str);
+            push_string!($($t),* ,);
+        };
+        (Standard, $($t: tt),* $(,)?) => {
+            string.push_str(standard_zeilenumbruch_str);
+            push_string!($($t),* ,);
+        };
+        (Winreg, $($t: tt),* $(,)?) => {
+            string.push_str(winreg_zeilenumbruch_str);
+            push_string!($($t),* ,);
+        };
+        (X11, $($t: tt),* $(,)?) => {
+            string.push_str(x11_zeilenumbruch_str);
+            push_string!($($t),* ,);
+        };
+        ($s: tt, $($t: tt),* $(,)?) => {
+            string.push_str($s);
+            push_string!($($t),* ,);
+        };
+        ($(,)?) => {};
+    }
+    push_string!(
+        "Permission is hereby granted, free of charge, to any",
+        X11,
+        "person obtaining a copy",
+        StandardWinreg,
+        "of this software and associated",
+        X11,
+        "documentation files (the \"Software\"), to deal",
+        StandardWinreg,
+        "in the",
+        X11,
+        "Software without restriction, including without",
+        X11,
+        "limitation the rights",
+        StandardWinreg,
+        "to use, copy, modify, merge,",
+        X11,
+        "publish, distribute, sublicense, and/or sell",
+        StandardWinreg,
+        "copies of",
+        X11,
+        "the Software, and to permit persons to whom the Software",
+        X11,
+        "is",
+        StandardWinreg,
+        "furnished to do so, subject to the following",
+        X11,
+        "conditions:\n\nThe above copyright notice and this permission notice",
+        X11,
+        "shall be included in",
+        Winreg,
+        "all",
+        Standard,
+        "copies or substantial portions",
+        X11,
+        "of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
+        X11,
+        "ANY KIND, EXPRESS OR",
+        StandardWinreg,
+        "IMPLIED, INCLUDING BUT NOT LIMITED",
+        X11,
+        "TO THE WARRANTIES OF MERCHANTABILITY,",
+        StandardWinreg,
+        "FITNESS FOR A",
+        X11,
+        "PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT",
+        X11,
+        "SHALL THE",
+        StandardWinreg,
+        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY",
+        X11,
+        "CLAIM, DAMAGES OR OTHER",
+        StandardWinreg,
+        "LIABILITY, WHETHER IN AN ACTION",
+        X11,
+        "OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+        StandardWinreg,
+        "OUT OF OR",
+        X11,
+        "IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER",
+        X11,
+        "DEALINGS IN",
+        Winreg,
+        "THE",
+        Standard,
+        "SOFTWARE.",
+    );
+    if ende_neue_zeile {
+        string.push_str("\n");
+    }
+    Cow::Owned(string)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten
