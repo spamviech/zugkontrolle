@@ -8,7 +8,7 @@ use std::{
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
-    mit("MIT License\n\n", Some(MITCopyright::neu(true, "[year]", "[full_name]")), false)
+    mit("MIT License\n\n", Some(MITCopyright::neu(true, "[year]", "[full_name]")), false, false)
 }
 
 /// Anzeige der Copyright-Informationen bei einer MIT-Lizenz.
@@ -53,9 +53,12 @@ impl Display for OptionD<MITCopyright<'_>> {
 pub fn mit<'t>(
     präfix: &str,
     copyright: Option<MITCopyright<'_>>,
+    alternative_zeilenumbrüche: bool,
     ende_neue_zeile: bool,
 ) -> Cow<'t, str> {
     let copyright_d = OptionD(copyright);
+    let (normaler_zeilenumbruch_str, alternativer_zeilenumbruch_str) =
+        if alternative_zeilenumbrüche { (" ", "\n") } else { ("\n", " ") };
     let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
     Cow::Owned(format!(
         r#"{präfix}{copyright_d}Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -65,16 +68,52 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in{alternativer_zeilenumbruch_str}all{normaler_zeilenumbruch_str}copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.{ende_neue_zeile_str}"#
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN{alternativer_zeilenumbruch_str}THE{normaler_zeilenumbruch_str}SOFTWARE.{ende_neue_zeile_str}"#
+    ))
+}
+
+// TODO Zeilenumbrüche automatisiert vom Text-Widget erzeugen lassen, nur Leerzeilen behalten?
+// TODO dementsprechend im Text ignorieren
+// TODO z.B. möglich über .replace("\n\n", "#nl#");.replace("\n", "");.replace("#nl#", "\n\n")
+/// Erzeuge den Lizenztext für die MIT-Lizenz.
+pub fn mit_kurze_zeilenlänge<'t>(
+    präfix: &str,
+    copyright: Option<MITCopyright<'_>>,
+    ende_neue_zeile: bool,
+) -> Cow<'t, str> {
+    let copyright_d = OptionD(copyright);
+    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
+    Cow::Owned(format!(
+        r#"{präfix}{copyright_d}Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.{ende_neue_zeile_str}"#
     ))
 }
 
