@@ -79,7 +79,10 @@ pub enum MITZeilenumbruch {
     Standard,
     /// Zeilenumbrüche, wie sie im winreg- und wayland-*-crates verwendet werden.
     Winreg,
-    /// Zeilenumbrüche, wie sie in x11*- und web-sys-crates verwendet werden.
+    /// Zeilenumbrüche, wie sie bei folgenden crates verwendet werden:
+    /// - wasm-bingen*
+    /// - x11*
+    /// - web-sys
     X11,
     /// Zeilenumbrüche, wie sie bei iced*- und window_clipboard-crates verwendet werden.
     Iced,
@@ -94,6 +97,13 @@ pub struct MITEnde {
     pub punkt: bool,
     /// Beende die Lizenz mit einer neuen Zeile.
     pub neue_zeile: bool,
+}
+
+impl MITEnde {
+    /// Ende des MIT-Lizenztextes mit Punkt und finaler neuer Zeile.
+    pub fn standard() -> Self {
+        MITEnde { punkt: true, neue_zeile: true }
+    }
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.

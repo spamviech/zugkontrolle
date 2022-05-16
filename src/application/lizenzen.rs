@@ -221,6 +221,22 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 // TODO abweichende Dateinamen in passende_Lizenzen eintragen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
+    let ab_lizenz = || {
+        apache_2_0_nicht_eingerückt(
+            false,
+            ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
+            true,
+        )
+    };
+    let wasm_bindgen_lizenz = || {
+        mit(
+            "",
+            vec![MITCopyright::neu(true, "2014", "Alex Crichton")],
+            MITZeilenumbruch::X11,
+            "",
+            MITEnde::standard(),
+        )
+    };
     let wayland_lizenz = || {
         mit(
             "",
@@ -236,7 +252,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             vec![MITCopyright::neu(true, "2015-2018", "The winapi-rs Developers")],
             MITZeilenumbruch::Standard,
             "",
-            MITEnde { punkt: true, neue_zeile: true },
+            MITEnde::standard(),
         )
     };
     let widows_sys_lizenz = || {
@@ -269,20 +285,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 true,
             )
         }),
-        ("ab_glyph-0.2.15", || {
-            apache_2_0_nicht_eingerückt(
-                false,
-                ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
-                true,
-            )
-        }),
-        ("ab_glyph_rasterizer-0.1.5", || {
-            apache_2_0_nicht_eingerückt(
-                false,
-                ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
-                true,
-            )
-        }),
+        ("ab_glyph-0.2.15", ab_lizenz),
+        ("ab_glyph_rasterizer-0.1.5", ab_lizenz),
         ("aho-corasick-0.7.18", || {
             mit(
                 "The MIT License (MIT)\n\n",
@@ -539,12 +543,12 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("vswhom-sys-0.1.1", mit_plain),
         ("wasi-0.10.2+wasi-snapshot-preview1", mit_plain),
         ("wasi-0.11.0+wasi-snapshot-preview1", mit_plain),
-        ("wasm-bindgen-0.2.80", mit_plain),
-        ("wasm-bindgen-backend-0.2.80", mit_plain),
-        ("wasm-bindgen-futures-0.4.30", mit_plain),
-        ("wasm-bindgen-macro-0.2.80", mit_plain),
-        ("wasm-bindgen-macro-support-0.2.80", mit_plain),
-        ("wasm-bindgen-shared-0.2.80", mit_plain),
+        ("wasm-bindgen-0.2.80", wasm_bindgen_lizenz),
+        ("wasm-bindgen-backend-0.2.80", wasm_bindgen_lizenz),
+        ("wasm-bindgen-futures-0.4.30", wasm_bindgen_lizenz),
+        ("wasm-bindgen-macro-0.2.80", wasm_bindgen_lizenz),
+        ("wasm-bindgen-macro-support-0.2.80", wasm_bindgen_lizenz),
+        ("wasm-bindgen-shared-0.2.80", wasm_bindgen_lizenz),
         ("wasm-timer-0.2.5", || {
             mit(
                 "",
@@ -554,7 +558,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 ],
                 MITZeilenumbruch::WasmTimer,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
         ("wayland-client-0.29.4", wayland_lizenz),
@@ -564,18 +568,10 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("wayland-protocols-0.29.4", wayland_lizenz),
         ("wayland-scanner-0.29.4", wayland_lizenz),
         ("wayland-sys-0.29.4", wayland_lizenz),
-        ("web-sys-0.3.57", || {
-            mit(
-                "",
-                vec![MITCopyright::neu(true, "2014", "Alex Crichton")],
-                MITZeilenumbruch::X11,
-                "",
-                MITEnde { punkt: true, neue_zeile: true },
-            )
-        }),
+        ("web-sys-0.3.57", wasm_bindgen_lizenz),
         ("winapi-0.3.9", winapi_lizenz),
         ("winapi-i686-pc-windows-gnu-0.4.0", winapi_lizenz),
-        // ("winapi-wsapoll-0.1.1", mit_plain),    // TODO
+        ("winapi-wsapoll-0.1.1", mit_plain), // TODO
         ("winapi-x86_64-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("windows-sys-0.36.1", widows_sys_lizenz),
         ("windows_aarch64_msvc-0.36.1", widows_sys_lizenz),
@@ -593,7 +589,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 )],
                 MITZeilenumbruch::Iced,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
         ("winit-0.26.1", || {
@@ -614,25 +610,17 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 vec![MITCopyright::neu(true, "2015", "Igor Shaula")],
                 MITZeilenumbruch::Winreg,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
-        ("x11-dl-2.19.1", || {
-            mit(
-                "",
-                Vec::new(),
-                MITZeilenumbruch::X11,
-                "",
-                MITEnde { punkt: true, neue_zeile: true },
-            )
-        }),
+        ("x11-dl-2.19.1", || mit("", Vec::new(), MITZeilenumbruch::X11, "", MITEnde::standard())),
         ("x11rb-0.8.1", || {
             mit(
                 "",
                 vec![MITCopyright::neu(false, "2019", "x11rb Contributers")],
                 MITZeilenumbruch::X11,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
         ("xcursor-0.3.4", || {
@@ -641,7 +629,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 vec![MITCopyright::neu(true, "2020", "Samuele Esposito")],
                 MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
         ("xi-unicode-0.3.0", apache_2_0_standard_eingerückt),
@@ -651,7 +639,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 vec![MITCopyright::neu(true, "2014", "Vladimir Matveev")],
                 MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: true },
+                MITEnde::standard(),
             )
         }),
     ]
