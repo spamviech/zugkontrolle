@@ -43,6 +43,21 @@ fn push_letzte_same(
     }
 }
 
+fn push_diff(string: &mut String, diff: &str, farbe_str: &str, split: &str) {
+    string.push_str(farbe_str);
+    if diff.is_empty() {
+        string.push_str("<Leerer String>");
+    } else if diff.trim().is_empty() {
+        string.push('"');
+        string.push_str(diff);
+        string.push('"');
+    } else {
+        string.push_str(diff);
+    }
+    string.push_str("\x1b[0m");
+    string.push_str(split);
+}
+
 fn changeset_als_string(changeset: &Changeset) -> String {
     let mut string = String::new();
     let mut letzte_same = None;
@@ -68,26 +83,12 @@ fn changeset_als_string(changeset: &Changeset) -> String {
             Difference::Add(x) => {
                 push_letzte_same(&mut string, &mut letzte_same, split);
                 letzte_diff = true;
-                string.push_str("\x1b[92m");
-                if x.is_empty() {
-                    string.push_str("<Leerer String>");
-                } else {
-                    string.push_str(x);
-                }
-                string.push_str("\x1b[0m");
-                string.push_str(split);
+                push_diff(&mut string, x, "\x1b[92m", split);
             },
             Difference::Rem(x) => {
                 push_letzte_same(&mut string, &mut letzte_same, split);
                 letzte_diff = true;
-                string.push_str("\x1b[91m");
-                if x.is_empty() {
-                    string.push_str("<Leerer String>");
-                } else {
-                    string.push_str(x);
-                }
-                string.push_str("\x1b[0m");
-                string.push_str(split);
+                push_diff(&mut string, x, "\x1b[91m", split);
             },
         }
     }
