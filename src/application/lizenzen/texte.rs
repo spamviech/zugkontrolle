@@ -80,11 +80,16 @@ pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie im winreg- und wayland-*-crates verwendet werden.
     Winreg,
     /// Zeilenumbrüche, wie sie bei folgenden crates verwendet werden:
+    /// - vcell
+    /// - volatile-register
     /// - wasm-bingen*
     /// - x11*
     /// - web-sys
     X11,
-    /// Zeilenumbrüche, wie sie bei iced*- und window_clipboard-crates verwendet werden.
+    /// Zeilenumbrüche, wie sie bei folgenden crates verwendet werden:
+    /// - iced*
+    /// - version_check
+    /// - window_clipboard
     Iced,
     /// Zeilenumbrüche, wie sie beim wasm-timer-crate verwendet werden.
     WasmTimer,

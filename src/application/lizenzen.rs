@@ -545,10 +545,42 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("unicode-segmentation-1.9.0", mit_plain),
         ("unicode-xid-0.2.3", mit_plain),
         ("url-2.2.2", mit_plain),
-        ("vcell-0.1.3", mit_plain),
-        ("version_check-0.9.4", mit_plain),
-        ("void-1.0.2", mit_plain),
-        ("volatile-register-0.2.1", mit_plain),
+        ("vcell-0.1.3", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2017", "Jorge Aparicio")],
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("version_check-0.9.4", || {
+            mit(
+                "The MIT License (MIT)\n",
+                vec![MITCopyright::neu(true, "2017-2018", "Sergio Benitez")],
+                MITZeilenumbruch::Iced,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("void-1.0.2", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2015", "The rust-void Developers")],
+                MITZeilenumbruch::Standard,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("volatile-register-0.2.1", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
         ("vswhom-0.1.0", vswwhom_lizenz),
         ("vswhom-sys-0.1.1", vswwhom_lizenz),
         ("wasi-0.10.2+wasi-snapshot-preview1", wasi_lizenz),
