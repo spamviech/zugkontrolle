@@ -45,14 +45,22 @@ fn push_letzte_same(
 
 fn push_diff(string: &mut String, diff: &str, farbe_str: &str, split: &str) {
     string.push_str(farbe_str);
-    if diff.is_empty() {
-        string.push_str("<Leerer String>");
-    } else if diff.trim().is_empty() {
-        string.push('"');
-        string.push_str(diff);
-        string.push('"');
-    } else {
-        string.push_str(diff);
+    let mut erstes = true;
+    for teil_string in diff.split(split) {
+        if erstes {
+            erstes = false;
+        } else {
+            string.push_str(split);
+        }
+        if teil_string.is_empty() {
+            string.push_str("<Leerer String>");
+        } else if teil_string.trim().is_empty() {
+            string.push('"');
+            string.push_str(teil_string);
+            string.push('"');
+        } else {
+            string.push_str(teil_string);
+        }
     }
     string.push_str("\x1b[0m");
     string.push_str(split);
