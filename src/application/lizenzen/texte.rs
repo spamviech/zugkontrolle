@@ -10,7 +10,7 @@ use std::{
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
     mit(
         "MIT License\n\n",
-        Some(MITCopyright::neu(true, "[year]", "[full_name]")),
+        vec![MITCopyright::neu(true, "[year]", "[full_name]")],
         MITZeilenumbruch::Standard,
         "",
         MITEnde { punkt: true, neue_zeile: false },
@@ -39,7 +39,7 @@ impl<'t> MITCopyright<'t> {
     }
 }
 
-struct OptionD<'t, T>(Option<T>, &'t str);
+struct VecD<'t, T>(Vec<T>, &'t str);
 
 impl Display for MITCopyright<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -53,13 +53,22 @@ impl Display for MITCopyright<'_> {
     }
 }
 
-impl Display for OptionD<'_, MITCopyright<'_>> {
+impl Display for VecD<'_, MITCopyright<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let OptionD(Some(copyright), einrückung) = self {
-            write!(f, "{copyright}\n\n{einrückung}")
-        } else {
-            Ok(())
+        let VecD(vec, einrückung) = self;
+        let mut erstes = true;
+        for copyright in vec {
+            if erstes {
+                erstes = false;
+            } else {
+                write!(f, "\n")?;
+            }
+            write!(f, "{einrückung}{copyright}")?;
         }
+        if !erstes {
+            write!(f, "\n\n{einrückung}")?;
+        }
+        Ok(())
     }
 }
 
@@ -74,6 +83,8 @@ pub enum MITZeilenumbruch {
     X11,
     /// Zeilenumbrüche, wie sie bei iced*- und window_clipboard-crates verwendet werden.
     Iced,
+    /// Zeilenumbrüche, wie sie beim wasm-timer-crate verwendet werden.
+    WasmTimer,
 }
 
 /// Das Ende einer MIT-Lizenz.
@@ -88,12 +99,12 @@ pub struct MITEnde {
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t>(
     präfix: &str,
-    copyright: Option<MITCopyright<'_>>,
+    copyright: Vec<MITCopyright<'_>>,
     zeilenumbrüche: MITZeilenumbruch,
     einrückung: &str,
     ende: MITEnde,
 ) -> Cow<'t, str> {
-    let copyright_d = OptionD(copyright, einrückung);
+    let copyright_d = VecD(copyright, einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
     let mut standard = " ";
@@ -101,33 +112,43 @@ pub fn mit<'t>(
     let mut standard_winreg = " ";
     let mut x11 = " ";
     let mut iced = " ";
-    let mut standard_iced = " ";
-    let mut standard_winreg_iced = " ";
-    let mut x11_iced = " ";
+    let mut wasm = " ";
+    let mut iced_wasm = " ";
+    let mut standard_iced_wasm = " ";
+    let mut standard_winreg_iced_wasm = " ";
+    let mut x11_iced_wasm = " ";
     match zeilenumbrüche {
         MITZeilenumbruch::Standard => {
             standard = neue_zeile_str;
             standard_winreg = neue_zeile_str;
-            standard_iced = neue_zeile_str;
-            standard_winreg_iced = neue_zeile_str;
+            standard_iced_wasm = neue_zeile_str;
+            standard_winreg_iced_wasm = neue_zeile_str;
         },
         MITZeilenumbruch::Winreg => {
             winreg = neue_zeile_str;
             standard_winreg = neue_zeile_str;
-            standard_winreg_iced = neue_zeile_str;
+            standard_winreg_iced_wasm = neue_zeile_str;
         },
         MITZeilenumbruch::X11 => {
             x11 = neue_zeile_str;
-            x11_iced = neue_zeile_str;
+            x11_iced_wasm = neue_zeile_str;
         },
         MITZeilenumbruch::Iced => {
             iced = neue_zeile_str;
-            standard_iced = neue_zeile_str;
-            standard_winreg_iced = neue_zeile_str;
-            x11_iced = neue_zeile_str;
+            iced_wasm = neue_zeile_str;
+            standard_iced_wasm = neue_zeile_str;
+            standard_winreg_iced_wasm = neue_zeile_str;
+            x11_iced_wasm = neue_zeile_str;
+        },
+        MITZeilenumbruch::WasmTimer => {
+            wasm = neue_zeile_str;
+            iced_wasm = neue_zeile_str;
+            standard_iced_wasm = neue_zeile_str;
+            standard_winreg_iced_wasm = neue_zeile_str;
+            x11_iced_wasm = neue_zeile_str;
         },
     }
-    let mut string = format!("{präfix}{einrückung}{copyright_d}");
+    let mut string = format!("{präfix}{copyright_d}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
             string.push_str($h);
@@ -141,13 +162,13 @@ pub fn mit<'t>(
         "person obtaining a copy",
         standard_winreg,
         "of",
-        iced,
+        iced_wasm,
         "this software and associated",
         x11,
         "documentation files (the \"Software\"), to deal",
         standard_winreg,
         "in",
-        iced,
+        iced_wasm,
         "the",
         x11,
         "Software without restriction, including without",
@@ -155,19 +176,19 @@ pub fn mit<'t>(
         "limitation the rights",
         standard_winreg,
         "to",
-        iced,
+        iced_wasm,
         "use, copy, modify, merge,",
         x11,
         "publish, distribute, sublicense, and/or sell",
         standard_winreg,
         "copies of",
-        x11_iced,
+        x11_iced_wasm,
         "the Software, and to permit persons to whom the Software",
         x11,
         "is",
         standard_winreg,
         "furnished to do so,",
-        iced,
+        iced_wasm,
         "subject to the following",
         x11,
         "conditions:\n\n",
@@ -177,7 +198,7 @@ pub fn mit<'t>(
         "shall be included in",
         winreg,
         "all",
-        standard_iced,
+        standard_iced_wasm,
         "copies or substantial portions",
         x11,
         "of the Software.\n\n",
@@ -185,26 +206,30 @@ pub fn mit<'t>(
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         x11,
         "ANY KIND, EXPRESS OR",
-        standard_winreg_iced,
+        standard_winreg_iced_wasm,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
         "TO THE WARRANTIES OF MERCHANTABILITY,",
         standard_winreg,
         "FITNESS",
-        iced,
+        iced_wasm,
         "FOR A",
         x11,
         "PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT",
         x11,
         "SHALL THE",
         standard_winreg,
-        "AUTHORS OR",
+        "AUTHORS",
+        wasm,
+        "OR",
         iced,
         "COPYRIGHT HOLDERS BE LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
         standard_winreg,
-        "LIABILITY, WHETHER",
+        "LIABILITY,",
+        wasm,
+        "WHETHER",
         iced,
         "IN AN ACTION",
         x11,
@@ -213,7 +238,7 @@ pub fn mit<'t>(
         "OUT OF OR",
         x11,
         "IN",
-        iced,
+        iced_wasm,
         "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER",
         x11,
         "DEALINGS IN",
