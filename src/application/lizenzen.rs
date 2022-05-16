@@ -228,6 +228,16 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
+    let vswwhom_lizenz = || {
+        mit(
+            "The MIT License (MIT)\n\n",
+            vec![MITCopyright::neu(true, "2019", "nabijaczleweli")],
+            MITZeilenumbruch::Standard,
+            "",
+            MITEnde { punkt: true, neue_zeile: 2 },
+        )
+    };
+    let wasi_lizenz = || mit("", Vec::new(), MITZeilenumbruch::X11, "", MITEnde::standard());
     let wasm_bindgen_lizenz = || {
         mit(
             "",
@@ -243,7 +253,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             vec![MITCopyright::neu(true, "2015", "Victor Berger")],
             MITZeilenumbruch::Winreg,
             "",
-            MITEnde { punkt: true, neue_zeile: false },
+            MITEnde { punkt: true, neue_zeile: 0 },
         )
     };
     let winapi_lizenz = || {
@@ -261,7 +271,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
             MITZeilenumbruch::Standard,
             "    ",
-            MITEnde { punkt: false, neue_zeile: true },
+            MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
     vec![
@@ -293,7 +303,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
                 MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: false },
+                MITEnde { punkt: true, neue_zeile: 0 },
             )
         }),
         ("android_glue-0.2.3", mit_plain),
@@ -490,7 +500,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
                 MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: false },
+                MITEnde { punkt: true, neue_zeile: 0 },
             )
         }),
         ("rppal-0.13.1", mit_plain),
@@ -539,10 +549,10 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("version_check-0.9.4", mit_plain),
         ("void-1.0.2", mit_plain),
         ("volatile-register-0.2.1", mit_plain),
-        ("vswhom-0.1.0", mit_plain),
-        ("vswhom-sys-0.1.1", mit_plain),
-        ("wasi-0.10.2+wasi-snapshot-preview1", mit_plain),
-        ("wasi-0.11.0+wasi-snapshot-preview1", mit_plain),
+        ("vswhom-0.1.0", vswwhom_lizenz),
+        ("vswhom-sys-0.1.1", vswwhom_lizenz),
+        ("wasi-0.10.2+wasi-snapshot-preview1", wasi_lizenz),
+        ("wasi-0.11.0+wasi-snapshot-preview1", wasi_lizenz),
         ("wasm-bindgen-0.2.80", wasm_bindgen_lizenz),
         ("wasm-bindgen-backend-0.2.80", wasm_bindgen_lizenz),
         ("wasm-bindgen-futures-0.4.30", wasm_bindgen_lizenz),

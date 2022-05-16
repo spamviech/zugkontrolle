@@ -13,7 +13,7 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
         MITZeilenumbruch::Standard,
         "",
-        MITEnde { punkt: true, neue_zeile: false },
+        MITEnde { punkt: true, neue_zeile: 0 },
     )
 }
 
@@ -95,14 +95,14 @@ pub enum MITZeilenumbruch {
 pub struct MITEnde {
     /// Beende den letzten Satz mit einem '.'.
     pub punkt: bool,
-    /// Beende die Lizenz mit einer neuen Zeile.
-    pub neue_zeile: bool,
+    /// Beende die Lizenz mit neuen Zeilen.
+    pub neue_zeile: u8,
 }
 
 impl MITEnde {
     /// Ende des MIT-Lizenztextes mit Punkt und finaler neuer Zeile.
     pub fn standard() -> Self {
-        MITEnde { punkt: true, neue_zeile: true }
+        MITEnde { punkt: true, neue_zeile: 1 }
     }
 }
 
@@ -260,7 +260,7 @@ pub fn mit<'t>(
     if ende.punkt {
         string.push_str(".");
     }
-    if ende.neue_zeile {
+    for _ in 0..ende.neue_zeile {
         string.push_str("\n");
     }
     Cow::Owned(string)
