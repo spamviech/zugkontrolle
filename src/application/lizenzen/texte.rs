@@ -56,17 +56,11 @@ impl Display for MITCopyright<'_> {
 impl Display for VecD<'_, MITCopyright<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let VecD(vec, einrückung) = self;
-        let mut erstes = true;
-        for copyright in vec {
-            if erstes {
-                erstes = false;
-            } else {
-                write!(f, "\n")?;
+        if !vec.is_empty() {
+            for copyright in vec {
+                write!(f, "{einrückung}{copyright}\n")?;
             }
-            write!(f, "{einrückung}{copyright}")?;
-        }
-        if !erstes {
-            write!(f, "\n\n{einrückung}")?;
+            write!(f, "\n{einrückung}")?;
         }
         Ok(())
     }
@@ -77,19 +71,11 @@ impl Display for VecD<'_, MITCopyright<'_>> {
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
-    /// Zeilenumbrüche, wie sie im winreg- und wayland-*-crates verwendet werden.
+    /// Zeilenumbrüche, wie sie bei winreg- und wayland-*-crates verwendet werden.
     Winreg,
-    /// Zeilenumbrüche, wie sie bei folgenden crates verwendet werden:
-    /// - vcell
-    /// - volatile-register
-    /// - wasm-bingen*
-    /// - x11*
-    /// - web-sys
+    /// Zeilenumbrüche, wie sie u.a. bei x11*-crates verwendet werden.
     X11,
-    /// Zeilenumbrüche, wie sie bei folgenden crates verwendet werden:
-    /// - iced*
-    /// - version_check
-    /// - window_clipboard
+    /// Zeilenumbrüche, wie sie u.a. bei iced*-crates verwendet werden.
     Iced,
     /// Zeilenumbrüche, wie sie beim wasm-timer-crate verwendet werden.
     WasmTimer,
