@@ -23,6 +23,12 @@ pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str>
     mit("", Vec::new(), zeilenumbrüche, "", MITEnde::standard())
 }
 
+/// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
+#[inline(always)]
+pub fn mit_ohne_copyright_x11<'t>() -> Cow<'t, str> {
+    mit_ohne_copyright(MITZeilenumbruch::X11)
+}
+
 /// Anzeige der Copyright-Informationen bei einer MIT-Lizenz.
 #[derive(Debug)]
 pub struct MITCopyright<'t> {

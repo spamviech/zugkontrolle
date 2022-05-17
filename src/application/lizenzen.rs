@@ -27,11 +27,10 @@ pub mod texte;
 #[allow(unused_imports)]
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
-    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_plain, mpl_2_0,
-    ofl_1_1, zlib, ApacheCopyright, ApacheEinrückung, MITCopyright, MITEnde, MITZeilenumbruch,
+    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_ohne_copyright,
+    mit_ohne_copyright_x11, mit_plain, mpl_2_0, ofl_1_1, zlib, ApacheCopyright, ApacheEinrückung,
+    MITCopyright, MITEnde, MITZeilenumbruch,
 };
-
-use self::texte::mit_ohne_copyright;
 
 #[derive(Debug, Clone)]
 enum InterneNachricht {
@@ -230,7 +229,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
-    let thiserror_lizenz = || mit_ohne_copyright(MITZeilenumbruch::X11);
     let time_lizenz = || {
         mit(
             "",
@@ -258,7 +256,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             MITEnde { punkt: true, neue_zeile: 2 },
         )
     };
-    let wasi_lizenz = || mit_ohne_copyright(MITZeilenumbruch::X11);
     let wasm_bindgen_lizenz = || {
         mit(
             "",
@@ -559,8 +556,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde { punkt: true, neue_zeile: 2 },
             )
         }),
-        ("thiserror-1.0.31", thiserror_lizenz),
-        ("thiserror-impl-1.0.31", thiserror_lizenz),
+        ("thiserror-1.0.31", mit_ohne_copyright_x11),
+        ("thiserror-impl-1.0.31", mit_ohne_copyright_x11),
         ("time-0.3.9", time_lizenz),
         ("time-macros-0.2.4", time_lizenz),
         ("tinyvec-1.6.0", || mit_ohne_copyright(MITZeilenumbruch::Keine)),
@@ -652,8 +649,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("vswhom-0.1.0", vswwhom_lizenz),
         ("vswhom-sys-0.1.1", vswwhom_lizenz),
-        ("wasi-0.10.2+wasi-snapshot-preview1", wasi_lizenz),
-        ("wasi-0.11.0+wasi-snapshot-preview1", wasi_lizenz),
+        ("wasi-0.10.2+wasi-snapshot-preview1", mit_ohne_copyright_x11),
+        ("wasi-0.11.0+wasi-snapshot-preview1", mit_ohne_copyright_x11),
         ("wasm-bindgen-0.2.80", wasm_bindgen_lizenz),
         ("wasm-bindgen-backend-0.2.80", wasm_bindgen_lizenz),
         ("wasm-bindgen-futures-0.4.30", wasm_bindgen_lizenz),
@@ -724,7 +721,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("x11-dl-2.19.1", || mit_ohne_copyright(MITZeilenumbruch::X11)),
+        ("x11-dl-2.19.1", mit_ohne_copyright_x11),
         ("x11rb-0.8.1", || {
             mit(
                 "",
