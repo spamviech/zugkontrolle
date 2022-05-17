@@ -17,6 +17,12 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
     )
 }
 
+/// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
+#[inline(always)]
+pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
+    mit("", Vec::new(), zeilenumbrüche, "", MITEnde::standard())
+}
+
 /// Anzeige der Copyright-Informationen bei einer MIT-Lizenz.
 #[derive(Debug)]
 pub struct MITCopyright<'t> {
@@ -79,6 +85,8 @@ pub enum MITZeilenumbruch {
     Iced,
     /// Zeilenumbrüche, wie sie beim wasm-timer-crate verwendet werden.
     WasmTimer,
+    /// Keine Zeilenumbrüche, außer den Leerzeilen.
+    Keine,
 }
 
 /// Das Ende einer MIT-Lizenz.
@@ -148,6 +156,7 @@ pub fn mit<'t>(
             standard_winreg_iced_wasm = neue_zeile_str;
             x11_iced_wasm = neue_zeile_str;
         },
+        MITZeilenumbruch::Keine => {},
     }
     let mut string = format!("{präfix}{copyright_d}");
     macro_rules! push_string {
