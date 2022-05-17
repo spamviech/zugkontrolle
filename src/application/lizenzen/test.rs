@@ -111,7 +111,7 @@ fn changeset_als_string(changeset: &Changeset) -> String {
 
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
-fn passende_lizenzen() -> Result<(), BTreeSet<&'static str>> {
+fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
     let lizenz_dateien = BTreeMap::from([
@@ -386,6 +386,8 @@ fn passende_lizenzen() -> Result<(), BTreeSet<&'static str>> {
         if not_first {
             eprintln!("---------------------------------");
         }
-        Err(unterschiede.into_keys().collect())
+        let set: BTreeSet<_> = unterschiede.into_keys().collect();
+        let anzahl = set.len();
+        Err((set, anzahl))
     }
 }
