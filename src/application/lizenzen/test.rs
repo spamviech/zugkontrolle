@@ -9,7 +9,10 @@ use difference::{Changeset, Difference};
 use either::Either;
 use newline_converter::dos2unix;
 
-use crate::application::lizenzen::verwendete_lizenzen;
+use crate::application::lizenzen::{
+    texte::{mit_ohne_copyright, MITZeilenumbruch},
+    verwendete_lizenzen,
+};
 
 fn push_letzte_same(
     string: &mut String,
@@ -354,7 +357,19 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                     }
                 };
                 if changeset.diffs.iter().any(is_diff) {
-                    let _ = unterschiede.insert(name, Either::Left(changeset));
+                    let mit_changesets: Vec<_> = MITZeilenumbruch::alle()
+                        .map(|zeilenumbrüche| {
+                            (
+                                zeilenumbrüche,
+                                Changeset::new(
+                                    &gespeicherte_lizenz_unix,
+                                    &mit_ohne_copyright(zeilenumbrüche),
+                                    "\n",
+                                ),
+                            )
+                        })
+                        .collect();
+                    let _ = unterschiede.insert(name, Either::Left((changeset, mit_changesets)));
                 }
             },
             Err(lese_fehler) => {
@@ -375,11 +390,18 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
             }
             eprintln!("{name}");
             match changeset_oder_fehler {
-                Either::Left(changeset) => {
-                    eprintln!("{}", changeset_als_string(changeset))
+                Either::Left((changeset, mit_changesets)) => {
+                    eprintln!("{}", changeset_als_string(changeset));
+                    if let Some((zeilenumbrüche, mit_changeset)) =
+                        mit_changesets.iter().min_by_key(|(_z, c)| c.distance)
+                    {
+                        eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
+                        eprintln!("{}", changeset_als_string(mit_changeset));
+                    }
                 },
                 Either::Right((lizenz_pfad, lese_fehler)) => {
-                    eprintln!("Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":\n{lese_fehler}")
+                    eprintln!("Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":");
+                    eprintln!("{lese_fehler}");
                 },
             }
         }

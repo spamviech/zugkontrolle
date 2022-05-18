@@ -95,6 +95,13 @@ pub enum MITZeilenumbruch {
     Keine,
 }
 
+impl MITZeilenumbruch {
+    pub(crate) fn alle() -> impl Iterator<Item = Self> {
+        use MITZeilenumbruch::*;
+        [Standard, Winreg, X11, Iced, WasmTimer, Keine].into_iter()
+    }
+}
+
 /// Das Ende einer MIT-Lizenz.
 #[derive(Debug, Clone, Copy)]
 pub struct MITEnde {
