@@ -11,16 +11,17 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
     mit(
         "MIT License\n\n",
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
+        "",
         MITZeilenumbruch::Standard,
         "",
-        MITEnde { punkt: true, neue_zeile: 0 },
+        MITEnde::ohne_neue_zeile(),
     )
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
 #[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
-    mit("", Vec::new(), zeilenumbrüche, "", MITEnde::standard())
+    mit("", Vec::new(), "", zeilenumbrüche, "", MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
@@ -91,6 +92,10 @@ pub enum MITZeilenumbruch {
     Iced,
     /// Zeilenumbrüche, wie sie beim wasm-timer-crate verwendet werden.
     WasmTimer,
+    /// Zeilenumbrüche, wie sie beim rppal-crate verwendet werden.
+    RPPal,
+    /// Zeilenumbrüche, wie sie beim redox_syscall-crate verwendet werden.
+    Redox,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
 }
@@ -109,12 +114,18 @@ impl MITEnde {
     pub fn standard() -> Self {
         MITEnde { punkt: true, neue_zeile: 1 }
     }
+
+    /// Ende des MIT-Lizenztextes mit Punkt, ohne finaler neuer Zeile.
+    pub fn ohne_neue_zeile() -> Self {
+        MITEnde { punkt: true, neue_zeile: 0 }
+    }
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t>(
     präfix: &str,
     copyright: Vec<MITCopyright<'_>>,
+    infix: &str,
     zeilenumbrüche: MITZeilenumbruch,
     einrückung: &str,
     ende: MITEnde,
@@ -133,11 +144,19 @@ pub fn mit<'t>(
     let iced_wasm = neue_zeile_oder_leerzeichen([Iced, WasmTimer].contains(&zeilenumbrüche));
     let standard_iced_wasm =
         neue_zeile_oder_leerzeichen([Standard, Iced, WasmTimer].contains(&zeilenumbrüche));
-    let standard_winreg_iced_wasm =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, Iced, WasmTimer].contains(&zeilenumbrüche));
     let x11_iced_wasm =
         neue_zeile_oder_leerzeichen([X11, Iced, WasmTimer].contains(&zeilenumbrüche));
-    let mut string = format!("{präfix}{copyright_d}");
+    let rppal = neue_zeile_oder_leerzeichen(zeilenumbrüche == RPPal);
+    let winreg_rppal = neue_zeile_oder_leerzeichen([Winreg, RPPal].contains(&zeilenumbrüche));
+    let standard_winreg_rppal =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, RPPal].contains(&zeilenumbrüche));
+    let standard_winreg_iced_wasm_rppal = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Iced, WasmTimer, RPPal].contains(&zeilenumbrüche),
+    );
+    let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
+    let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
+    let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
+    let mut string = format!("{präfix}{copyright_d}{infix}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
             string.push_str($h);
@@ -148,44 +167,68 @@ pub fn mit<'t>(
     push_string!(
         "Permission is hereby granted, free of charge, to any",
         x11,
-        "person obtaining a copy",
+        "person obtaining",
+        redox,
+        "a",
+        rppal,
+        "copy",
         standard_winreg,
         "of",
         iced_wasm,
         "this software and associated",
         x11,
-        "documentation files (the \"Software\"), to deal",
+        "documentation files (the",
+        redox,
+        "\"Software\"),",
+        rppal,
+        "to deal",
         standard_winreg,
         "in",
         iced_wasm,
         "the",
         x11,
-        "Software without restriction, including without",
+        "Software without restriction, including",
+        redox,
+        "without",
         x11,
-        "limitation the rights",
+        "limitation",
+        rppal,
+        "the rights",
         standard_winreg,
         "to",
         iced_wasm,
         "use, copy, modify, merge,",
         x11,
-        "publish, distribute, sublicense, and/or sell",
+        "publish,",
+        redox,
+        "distribute, sublicense,",
+        rppal,
+        "and/or sell",
         standard_winreg,
         "copies of",
         x11_iced_wasm,
-        "the Software, and to permit persons to whom the Software",
+        "the Software, and to",
+        redox,
+        "permit persons to whom the",
+        rppal,
+        "Software",
         x11,
         "is",
         standard_winreg,
         "furnished to do so,",
         iced_wasm,
-        "subject to the following",
+        "subject to",
+        redox,
+        "the following",
         x11,
         "conditions:\n\n",
         einrückung,
         "The above copyright notice and this permission notice",
         x11,
-        "shall be included in",
-        winreg,
+        "shall be",
+        redox,
+        "included in",
+        winreg_rppal,
         "all",
         standard_iced_wasm,
         "copies or substantial portions",
@@ -194,42 +237,56 @@ pub fn mit<'t>(
         einrückung,
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         x11,
-        "ANY KIND, EXPRESS OR",
-        standard_winreg_iced_wasm,
+        "ANY KIND,",
+        redox,
+        "EXPRESS OR",
+        standard_winreg_iced_wasm_rppal,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
-        "TO THE WARRANTIES OF MERCHANTABILITY,",
-        standard_winreg,
+        "TO THE WARRANTIES OF",
+        redox,
+        "MERCHANTABILITY,",
+        standard_winreg_rppal,
         "FITNESS",
         iced_wasm,
         "FOR A",
         x11,
-        "PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT",
+        "PARTICULAR PURPOSE AND",
+        redox,
+        "NONINFRINGEMENT. IN NO EVENT",
         x11,
-        "SHALL THE",
+        "SHALL",
+        rppal,
+        "THE",
         standard_winreg,
         "AUTHORS",
         wasm,
         "OR",
         iced,
-        "COPYRIGHT HOLDERS BE LIABLE FOR ANY",
+        "COPYRIGHT HOLDERS BE",
+        redox,
+        "LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
-        standard_winreg,
+        standard_winreg_rppal,
         "LIABILITY,",
         wasm,
         "WHETHER",
         iced,
         "IN AN ACTION",
-        x11,
-        "OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+        x11_redox,
+        "OF CONTRACT, TORT OR OTHERWISE, ARISING",
+        rppal,
+        "FROM,",
         standard_winreg,
         "OUT OF OR",
         x11,
         "IN",
         iced_wasm,
-        "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER",
-        x11,
+        "CONNECTION",
+        redox,
+        "WITH THE SOFTWARE OR THE USE OR OTHER",
+        x11_rppal,
         "DEALINGS IN",
         winreg,
         "THE",
@@ -667,23 +724,72 @@ DEALINGS IN THE SOFTWARE.
     )
 }
 
+/// Wo sind Zeilenumbrüche im ISC-Lizenztext.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ISCZeilenumbruch {
+    /// Zeilenumbrüche, wie sie im libloading-crate verwendet werden.
+    Libloading,
+    /// Zeilenumbrüche, wie sie im riscv-crate verwendet werden.
+    Riscv,
+}
+
 /// Erzeuge den Lizenztext für die ISC-Lizenz.
-pub fn isc<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
-    Cow::Owned(format!(
-        r#"Copyright © {jahr}, {voller_name}
-
-Permission to use, copy, modify, and/or distribute this software for any purpose with or without
-fee is hereby granted, provided that the above copyright notice and this permission notice appear
-in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
-SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
-NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-THIS SOFTWARE.
-"#
-    ))
+pub fn isc<'t>(
+    copyright_c_und_komma: bool,
+    jahr: &str,
+    voller_name: &str,
+    zeilenumbrüche: ISCZeilenumbruch,
+) -> Cow<'t, str> {
+    let (copyright_c_str, copyright_komma_str) =
+        if copyright_c_und_komma { ("© ", ",") } else { ("", "") };
+    let mut string =
+        format!("Copyright {copyright_c_str}{jahr}{copyright_komma_str} {voller_name}\n\n");
+    let neue_zeile_oder_leerzeichen = |b| if b { "\n" } else { " " };
+    use ISCZeilenumbruch::*;
+    let libloading = neue_zeile_oder_leerzeichen(zeilenumbrüche == Libloading);
+    let riscv = neue_zeile_oder_leerzeichen(zeilenumbrüche == Riscv);
+    let libloading_riscv =
+        neue_zeile_oder_leerzeichen([Libloading, Riscv].contains(&zeilenumbrüche));
+    macro_rules! push_string {
+        ($h: expr, $($t: expr),* $(,)?) => {
+            string.push_str($h);
+            push_string!($($t),* ,);
+        };
+        ($(,)?) => {};
+    }
+    push_string!(
+        "Permission to use, copy, modify, and/or distribute this software for any purpose",
+        riscv,
+        "with or without",
+        libloading,
+        "fee is hereby granted, provided that the above copyright notice",
+        riscv,
+        "and this permission notice appear",
+        libloading,
+        "in all copies.\n\n",
+        "THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH",
+        riscv,
+        "REGARD TO THIS",
+        libloading,
+        "SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND",
+        riscv,
+        "FITNESS. IN NO EVENT SHALL THE",
+        libloading,
+        "AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,",
+        riscv,
+        "INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES",
+        libloading,
+        "WHATSOEVER RESULTING FROM LOSS",
+        riscv,
+        "OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,",
+        libloading,
+        "NEGLIGENCE OR OTHER",
+        riscv,
+        "TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF",
+        libloading_riscv,
+        "THIS SOFTWARE.\n",
+    );
+    Cow::Owned(string)
 }
 
 /// Erzeuge den Lizenztext für die MPL-2.0 Lizenz.

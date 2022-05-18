@@ -115,7 +115,7 @@ fn changeset_als_string(changeset: &Changeset) -> String {
 impl MITZeilenumbruch {
     fn alle() -> impl Iterator<Item = Self> {
         use MITZeilenumbruch::*;
-        [Standard, Winreg, X11, Iced, WasmTimer, Keine].into_iter()
+        [Standard, Winreg, X11, Iced, WasmTimer, RPPal, Keine].into_iter()
     }
 }
 

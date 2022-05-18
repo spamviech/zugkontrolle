@@ -29,7 +29,7 @@ use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
     apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_ohne_copyright,
     mit_ohne_copyright_x11, mit_plain, mpl_2_0, ofl_1_1, zlib, ApacheCopyright, ApacheEinrückung,
-    MITCopyright, MITEnde, MITZeilenumbruch,
+    ISCZeilenumbruch, MITCopyright, MITEnde, MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
@@ -218,6 +218,18 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     }
 }
 
+#[inline(always)]
+fn rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
+    mit(
+        "",
+        vec![MITCopyright::neu(true, jahr, "The Rust Project Developers")],
+        "",
+        MITZeilenumbruch::X11,
+        "",
+        MITEnde::standard(),
+    )
+}
+
 // TODO Lizenzen anpassen, so dass passende_Lizenzen nicht mehr fehlschlägt.
 // TODO abweichende Dateinamen in passende_Lizenzen eintragen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
@@ -229,28 +241,49 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
-    let time_lizenz = || {
+    let rand_lizenz = || {
         mit(
             "",
-            vec![MITCopyright::neu(true, "2022", "Jacob Pratt et al.")],
-            MITZeilenumbruch::Standard,
+            vec![
+                MITCopyright::neu(false, "2018", "Developers of the Rand project"),
+                MITCopyright::neu(true, "2014", "The Rust Project Developers"),
+            ],
             "",
-            MITEnde::standard(),
-        )
-    };
-    let unicode_lizenz = || {
-        mit(
-            "",
-            vec![MITCopyright::neu(true, "2015", "The Rust Project Developers")],
             MITZeilenumbruch::X11,
             "",
             MITEnde::standard(),
         )
     };
+    let raw_window_handle_lizenz = || {
+        mit(
+            "MIT License\n\n",
+            vec![MITCopyright::neu(true, "2019", "Osspial")],
+            "",
+            MITZeilenumbruch::Standard,
+            "",
+            MITEnde::standard(),
+        )
+    };
+    let rayon_lizenz = || rust_project_developers_lizenz("2010");
+    let rustc_version_lizenz = || rust_project_developers_lizenz("2016");
+    let semver_0_9_lizenz = || rust_project_developers_lizenz("2014");
+    let serde_lizenz = || mit("", Vec::new(), "", MITZeilenumbruch::X11, "", MITEnde::standard());
+    let time_lizenz = || {
+        mit(
+            "",
+            vec![MITCopyright::neu(true, "2022", "Jacob Pratt et al.")],
+            "",
+            MITZeilenumbruch::Standard,
+            "",
+            MITEnde::standard(),
+        )
+    };
+    let unicode_lizenz = || rust_project_developers_lizenz("2015");
     let vswwhom_lizenz = || {
         mit(
             "The MIT License (MIT)\n\n",
             vec![MITCopyright::neu(true, "2019", "nabijaczleweli")],
+            "",
             MITZeilenumbruch::Standard,
             "",
             MITEnde { punkt: true, neue_zeile: 2 },
@@ -260,6 +293,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         mit(
             "",
             vec![MITCopyright::neu(true, "2014", "Alex Crichton")],
+            "",
             MITZeilenumbruch::X11,
             "",
             MITEnde::standard(),
@@ -269,15 +303,17 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         mit(
             "",
             vec![MITCopyright::neu(true, "2015", "Victor Berger")],
+            "",
             MITZeilenumbruch::Winreg,
             "",
-            MITEnde { punkt: true, neue_zeile: 0 },
+            MITEnde::ohne_neue_zeile(),
         )
     };
     let winapi_lizenz = || {
         mit(
             "",
             vec![MITCopyright::neu(true, "2015-2018", "The winapi-rs Developers")],
+            "",
             MITZeilenumbruch::Standard,
             "",
             MITEnde::standard(),
@@ -287,6 +323,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         mit(
             "    MIT License\n\n",
             vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
+            "",
             MITZeilenumbruch::Standard,
             "    ",
             MITEnde { punkt: false, neue_zeile: 1 },
@@ -319,9 +356,10 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n\n",
                 vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: 0 },
+                MITEnde::ohne_neue_zeile(),
             )
         }),
         ("android_glue-0.2.3", mit_plain),
@@ -445,7 +483,9 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("kommandozeilen_argumente_derive-0.2.0", mit_plain),
         ("lazy_static-1.4.0", mit_plain),
         ("libc-0.2.125", mit_plain),
-        ("libloading-0.7.3", || isc("2015", "Simonas Kazlauskas")),
+        ("libloading-0.7.3", || {
+            isc(false, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)
+        }),
         ("libm-0.2.2", mit_plain),
         ("linked-hash-map-0.5.4", mit_plain),
         ("lock_api-0.4.7", mit_plain),
@@ -501,56 +541,192 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("proc-macro-crate-1.1.3", mit_plain),
         ("proc-macro2-1.0.38", mit_plain),
         ("quote-1.0.18", mit_plain),
-        ("rand-0.8.5", mit_plain),
-        ("rand_chacha-0.3.1", mit_plain),
-        ("rand_core-0.6.3", mit_plain),
-        ("raw-window-handle-0.3.4", mit_plain),
-        ("raw-window-handle-0.4.3", mit_plain),
-        ("rayon-1.5.2", mit_plain),
-        ("rayon-core-1.9.2", mit_plain),
-        ("redox_syscall-0.2.13", mit_plain),
-        ("regex-1.5.5", mit_plain),
-        ("regex-syntax-0.6.25", mit_plain),
-        ("riscv-0.7.0", || isc("2019-2020", "[RISC-V team][team]")),
-        ("riscv-target-0.1.2", || {
+        ("rand-0.8.5", rand_lizenz),
+        ("rand_chacha-0.3.1", rand_lizenz),
+        ("rand_core-0.6.3", rand_lizenz),
+        ("raw-window-handle-0.3.4", raw_window_handle_lizenz),
+        ("raw-window-handle-0.4.3", raw_window_handle_lizenz),
+        ("rayon-1.5.2", rayon_lizenz),
+        ("rayon-core-1.9.2", rayon_lizenz),
+        ("redox_syscall-0.2.13", || {
             mit(
-                "MIT License (MIT)\n\n",
-                vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
-                MITZeilenumbruch::Standard,
                 "",
-                MITEnde { punkt: true, neue_zeile: 0 },
+                vec![MITCopyright::neu(true, "2017", "Redox OS Developers")],
+                "MIT License\n\n",
+                MITZeilenumbruch::Redox,
+                "",
+                MITEnde::standard(),
             )
         }),
-        ("rppal-0.13.1", mit_plain),
-        ("rstar-0.9.3", mit_plain),
-        ("rustc-hash-1.1.0", mit_plain),
-        ("rustc_version-0.2.3", mit_plain),
-        ("rustc_version-0.4.0", mit_plain),
-        ("rustversion-1.0.6", mit_plain),
-        ("scoped-tls-1.0.0", mit_plain),
-        ("scopeguard-1.1.0", mit_plain),
-        ("semver-0.9.0", mit_plain),
-        ("semver-1.0.9", mit_plain),
-        ("semver-parser-0.7.0", mit_plain),
-        ("serde-1.0.137", mit_plain),
-        ("serde_derive-1.0.137", mit_plain),
-        ("shared_library-0.1.9", mit_plain),
-        ("sid-0.6.1", mit_plain),
-        ("slab-0.4.6", mit_plain),
+        ("regex-1.5.5", semver_0_9_lizenz),
+        ("regex-syntax-0.6.25", semver_0_9_lizenz),
+        ("riscv-0.7.0", || isc(false, "2019-2020", "[RISC-V team][team]", ISCZeilenumbruch::Riscv)),
+        ("riscv-target-0.1.2", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("rppal-0.13.1", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2017-2021", "Rene van der Meer")],
+                "",
+                MITZeilenumbruch::RPPal,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("rstar-0.9.3", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2018", "The rstar project developers")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("rustc-hash-1.1.0", mit_ohne_copyright_x11),
+        ("rustc_version-0.2.3", rustc_version_lizenz),
+        ("rustc_version-0.4.0", rustc_version_lizenz),
+        ("rustversion-1.0.6", mit_ohne_copyright_x11),
+        ("scoped-tls-1.0.0", wasm_bindgen_lizenz),
+        ("scopeguard-1.1.0", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(
+                    true,
+                    "2016-2019",
+                    "Ulrik Sverdrup \"bluss\" and scopeguard developers",
+                )],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("semver-0.9.0", semver_0_9_lizenz),
+        ("semver-1.0.9", mit_ohne_copyright_x11),
+        ("semver-parser-0.7.0", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2016", "Steve Klabnik")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("serde-1.0.137", serde_lizenz),
+        ("serde_derive-1.0.137", serde_lizenz),
+        ("shared_library-0.1.9", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2017", "Pierre Krieger")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("sid-0.6.1", mit_plain), // TODO
+        ("slab-0.4.6", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2019", "Carl Lerche")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
         ("slotmap-1.0.6", || zlib("2021", "Orson Peters <orsonpeters@gmail.com>")),
-        ("smallvec-1.8.0", mit_plain),
-        ("smithay-client-toolkit-0.15.4", mit_plain),
-        ("smithay-clipboard-0.6.5", mit_plain),
-        ("spin-0.9.3", mit_plain),
-        ("stable_deref_trait-1.2.0", mit_plain),
-        ("static_assertions-1.1.0", mit_plain),
+        ("smallvec-1.8.0", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2018", "The Servo Project Developers")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("smithay-client-toolkit-0.15.4", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2018", "Victor Berger")],
+                "",
+                MITZeilenumbruch::Winreg,
+                "",
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("smithay-clipboard-0.6.5", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2018", "Lucas Timmins & Victor Berger")],
+                "",
+                MITZeilenumbruch::Winreg,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("spin-0.9.3", || {
+            mit(
+                "The MIT License (MIT)\n\n",
+                vec![MITCopyright::neu(true, "2014", "Mathijs van de Nes")],
+                "",
+                MITZeilenumbruch::Standard,
+                "",
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("stable_deref_trait-1.2.0", || {
+            mit(
+                "",
+                vec![MITCopyright::neu(true, "2017", "Robert Grosse")],
+                "",
+                MITZeilenumbruch::X11,
+                "",
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("static_assertions-1.1.0", || {
+            mit(
+                "MIT License\n\n",
+                vec![MITCopyright::neu(true, "2017", "Nikolai Vazquez")],
+                "",
+                MITZeilenumbruch::Standard,
+                "",
+                MITEnde::standard(),
+            )
+        }),
         ("str-buf-1.0.5", bsl_1_0),
-        ("strsim-0.10.0", mit_plain),
-        ("syn-1.0.92", mit_plain),
+        ("strsim-0.10.0", || {
+            mit(
+                "The MIT License (MIT)\n\n",
+                vec![
+                    MITCopyright::neu(true, "2015", "Danny Guo"),
+                    MITCopyright::neu(true, "2016", "Titus Wormer <tituswormer@gmail.com>"),
+                    MITCopyright::neu(true, "2018", "Akash Kurdekar"),
+                ],
+                "",
+                MITZeilenumbruch::Standard,
+                "",
+                MITEnde::standard(),
+            )
+        }),
+        ("syn-1.0.92", mit_ohne_copyright_x11),
         ("take_mut-0.2.2", || {
             mit(
                 "The MIT License (MIT)\n\n",
                 vec![MITCopyright::neu(true, "2016", "Sgeo")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde { punkt: true, neue_zeile: 2 },
@@ -565,6 +741,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "MIT License\n\n",
                 vec![MITCopyright::neu(true, "2020", "Soveu")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde::standard(),
@@ -575,6 +752,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2018", "Yevhenii Reizner")],
+                "",
                 MITZeilenumbruch::Winreg,
                 "",
                 MITEnde { punkt: true, neue_zeile: 2 },
@@ -584,6 +762,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n\n",
                 vec![MITCopyright::neu(true, "2015", "Jake Goulding")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde::standard(),
@@ -593,6 +772,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2014-2017", "Sean McArthur")],
+                "",
                 MITZeilenumbruch::Winreg,
                 "",
                 MITEnde { punkt: true, neue_zeile: 2 },
@@ -606,6 +786,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
+                "",
                 MITZeilenumbruch::X11,
                 "",
                 MITEnde::standard(),
@@ -615,6 +796,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2017", "Jorge Aparicio")],
+                "",
                 MITZeilenumbruch::X11,
                 "",
                 MITEnde::standard(),
@@ -624,6 +806,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n",
                 vec![MITCopyright::neu(true, "2017-2018", "Sergio Benitez")],
+                "",
                 MITZeilenumbruch::Iced,
                 "",
                 MITEnde::standard(),
@@ -633,6 +816,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2015", "The rust-void Developers")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde::standard(),
@@ -642,6 +826,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
+                "",
                 MITZeilenumbruch::X11,
                 "",
                 MITEnde::standard(),
@@ -664,6 +849,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                     MITCopyright::neu(false, "2019", "Pierre Krieger"),
                     MITCopyright::neu(true, "2019", "Tokio Contributors"),
                 ],
+                "",
                 MITZeilenumbruch::WasmTimer,
                 "",
                 MITEnde::standard(),
@@ -695,6 +881,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                     "2019",
                     "Héctor Ramón, window_clipboard contributors",
                 )],
+                "",
                 MITZeilenumbruch::Iced,
                 "",
                 MITEnde::standard(),
@@ -716,6 +903,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(true, "2015", "Igor Shaula")],
+                "",
                 MITZeilenumbruch::Winreg,
                 "",
                 MITEnde::standard(),
@@ -726,6 +914,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "",
                 vec![MITCopyright::neu(false, "2019", "x11rb Contributers")],
+                "",
                 MITZeilenumbruch::X11,
                 "",
                 MITEnde::standard(),
@@ -735,6 +924,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "MIT License\n\n",
                 vec![MITCopyright::neu(true, "2020", "Samuele Esposito")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde::standard(),
@@ -745,6 +935,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             mit(
                 "The MIT License (MIT)\n\n",
                 vec![MITCopyright::neu(true, "2014", "Vladimir Matveev")],
+                "",
                 MITZeilenumbruch::Standard,
                 "",
                 MITEnde::standard(),
