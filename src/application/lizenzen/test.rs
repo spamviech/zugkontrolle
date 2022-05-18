@@ -112,6 +112,13 @@ fn changeset_als_string(changeset: &Changeset) -> String {
     string
 }
 
+impl MITZeilenumbruch {
+    fn alle() -> impl Iterator<Item = Self> {
+        use MITZeilenumbruch::*;
+        [Standard, Winreg, X11, Iced, WasmTimer, Keine].into_iter()
+    }
+}
+
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
