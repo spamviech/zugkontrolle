@@ -79,7 +79,7 @@ impl Display for VecD<'_, MITCopyright<'_>> {
 }
 
 /// Wo sind Zeilenumbrüche im MIT-Lizenztext.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
@@ -122,48 +122,21 @@ pub fn mit<'t>(
     let copyright_d = VecD(copyright, einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
-    let mut standard = " ";
-    let mut winreg = " ";
-    let mut standard_winreg = " ";
-    let mut x11 = " ";
-    let mut iced = " ";
-    let mut wasm = " ";
-    let mut iced_wasm = " ";
-    let mut standard_iced_wasm = " ";
-    let mut standard_winreg_iced_wasm = " ";
-    let mut x11_iced_wasm = " ";
-    match zeilenumbrüche {
-        MITZeilenumbruch::Standard => {
-            standard = neue_zeile_str;
-            standard_winreg = neue_zeile_str;
-            standard_iced_wasm = neue_zeile_str;
-            standard_winreg_iced_wasm = neue_zeile_str;
-        },
-        MITZeilenumbruch::Winreg => {
-            winreg = neue_zeile_str;
-            standard_winreg = neue_zeile_str;
-            standard_winreg_iced_wasm = neue_zeile_str;
-        },
-        MITZeilenumbruch::X11 => {
-            x11 = neue_zeile_str;
-            x11_iced_wasm = neue_zeile_str;
-        },
-        MITZeilenumbruch::Iced => {
-            iced = neue_zeile_str;
-            iced_wasm = neue_zeile_str;
-            standard_iced_wasm = neue_zeile_str;
-            standard_winreg_iced_wasm = neue_zeile_str;
-            x11_iced_wasm = neue_zeile_str;
-        },
-        MITZeilenumbruch::WasmTimer => {
-            wasm = neue_zeile_str;
-            iced_wasm = neue_zeile_str;
-            standard_iced_wasm = neue_zeile_str;
-            standard_winreg_iced_wasm = neue_zeile_str;
-            x11_iced_wasm = neue_zeile_str;
-        },
-        MITZeilenumbruch::Keine => {},
-    }
+    let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
+    use MITZeilenumbruch::*;
+    let standard = neue_zeile_oder_leerzeichen(zeilenumbrüche == Standard);
+    let winreg = neue_zeile_oder_leerzeichen(zeilenumbrüche == Winreg);
+    let standard_winreg = neue_zeile_oder_leerzeichen([Standard, Winreg].contains(&zeilenumbrüche));
+    let x11 = neue_zeile_oder_leerzeichen(zeilenumbrüche == X11);
+    let iced = neue_zeile_oder_leerzeichen(zeilenumbrüche == Iced);
+    let wasm = neue_zeile_oder_leerzeichen(zeilenumbrüche == WasmTimer);
+    let iced_wasm = neue_zeile_oder_leerzeichen([Iced, WasmTimer].contains(&zeilenumbrüche));
+    let standard_iced_wasm =
+        neue_zeile_oder_leerzeichen([Standard, Iced, WasmTimer].contains(&zeilenumbrüche));
+    let standard_winreg_iced_wasm =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, Iced, WasmTimer].contains(&zeilenumbrüche));
+    let x11_iced_wasm =
+        neue_zeile_oder_leerzeichen([X11, Iced, WasmTimer].contains(&zeilenumbrüche));
     let mut string = format!("{präfix}{copyright_d}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
