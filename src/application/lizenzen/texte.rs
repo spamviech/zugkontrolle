@@ -9,9 +9,9 @@ use std::{
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
     mit(
-        "MIT License\n\n",
+        ("MIT License", 2),
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
-        "",
+        None,
         MITZeilenumbruch::Standard,
         "",
         MITEnde::ohne_neue_zeile(),
@@ -21,7 +21,7 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
 #[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
-    mit("", Vec::new(), "", zeilenumbrüche, "", MITEnde::standard())
+    mit(None, Vec::new(), None, zeilenumbrüche, "", MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
@@ -73,7 +73,21 @@ impl Display for VecD<'_, MITCopyright<'_>> {
             for copyright in vec {
                 write!(f, "{einrückung}{copyright}\n")?;
             }
-            write!(f, "\n{einrückung}")?;
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
+struct OptionD<'t, T>(Option<T>, &'t str);
+
+impl Display for OptionD<'_, (&'_ str, u8)> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(Some((s, neue_zeilen)), einrückung) = self {
+            write!(f, "{einrückung}{s}")?;
+            for _ in 0..*neue_zeilen {
+                write!(f, "\n")?;
+            }
         }
         Ok(())
     }
@@ -122,15 +136,18 @@ impl MITEnde {
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
-pub fn mit<'t>(
-    präfix: &str,
+#[allow(single_use_lifetimes)]
+pub fn mit<'t, 'p, 'i>(
+    präfix: impl Into<Option<(&'p str, u8)>>,
     copyright: Vec<MITCopyright<'_>>,
-    infix: &str,
+    infix: impl Into<Option<(&'i str, u8)>>,
     zeilenumbrüche: MITZeilenumbruch,
     einrückung: &str,
     ende: MITEnde,
 ) -> Cow<'t, str> {
+    let präfix_d = OptionD(präfix.into(), einrückung);
     let copyright_d = VecD(copyright, einrückung);
+    let infix_d = OptionD(infix.into(), einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
@@ -156,7 +173,7 @@ pub fn mit<'t>(
     let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
     let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
     let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
-    let mut string = format!("{präfix}{copyright_d}{infix}");
+    let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
             string.push_str($h);
