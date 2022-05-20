@@ -9,11 +9,11 @@ use std::{
 #[inline(always)]
 pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
     mit(
-        ("MIT License", 2),
+        MITPräfix("MIT License", 2),
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
         None,
         MITZeilenumbruch::Standard,
-        "",
+        MITEinrückung::keine(),
         MITEnde::ohne_neue_zeile(),
     )
 }
@@ -21,7 +21,7 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
 #[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
-    mit(None, Vec::new(), None, zeilenumbrüche, "", MITEnde::standard())
+    mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
@@ -52,7 +52,7 @@ impl<'t> MITCopyright<'t> {
     }
 }
 
-struct VecD<'t, T>(Vec<T>, &'t str);
+struct VecD<'t, T>(Vec<T>, MITEinrückung<'t>);
 
 impl Display for MITCopyright<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -79,7 +79,7 @@ impl Display for VecD<'_, MITCopyright<'_>> {
     }
 }
 
-struct OptionD<'t, T>(Option<T>, &'t str);
+struct OptionD<'t, T>(Option<T>, MITEinrückung<'t>);
 
 impl Display for OptionD<'_, (&'_ str, u8)> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -90,6 +90,49 @@ impl Display for OptionD<'_, (&'_ str, u8)> {
             }
         }
         Ok(())
+    }
+}
+
+/// Der Präfix eines MIT-Lizenztextes, gefolgt von einer beliebigen Anzahl neuer Zeilen.
+#[derive(Debug, Clone, Copy)]
+pub struct MITPräfix<'t>(pub &'t str, pub u8);
+
+impl<'t> From<MITPräfix<'t>> for (&'t str, u8) {
+    fn from(MITPräfix(präfix, neue_zeilen): MITPräfix<'t>) -> Self {
+        (präfix, neue_zeilen)
+    }
+}
+
+/// Der Infix nach der Copyright-Information eines MIT-Lizenztextes,
+/// gefolgt von einer beliebigen Anzahl neuer Zeilen.
+#[derive(Debug, Clone, Copy)]
+pub struct MITInfix<'t>(pub &'t str, pub u8);
+
+impl<'t> From<MITInfix<'t>> for (&'t str, u8) {
+    fn from(MITInfix(infix, neue_zeilen): MITInfix<'t>) -> Self {
+        (infix, neue_zeilen)
+    }
+}
+
+/// Die Einrückung eines MIT-Lizenztextes.
+#[derive(Debug, Clone, Copy)]
+pub struct MITEinrückung<'t>(&'t str);
+
+impl Display for MITEinrückung<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
+impl MITEinrückung<'_> {
+    /// Keine Einrückung.
+    pub const fn keine() -> Self {
+        MITEinrückung("")
+    }
+
+    /// Einrückung mit 4 Leerzeichen.
+    pub const fn leerzeichen_4() -> Self {
+        MITEinrückung("    ")
     }
 }
 
@@ -138,16 +181,16 @@ impl MITEnde {
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
 #[allow(single_use_lifetimes)]
 pub fn mit<'t, 'p, 'i>(
-    präfix: impl Into<Option<(&'p str, u8)>>,
+    präfix: impl Into<Option<MITPräfix<'p>>>,
     copyright: Vec<MITCopyright<'_>>,
-    infix: impl Into<Option<(&'i str, u8)>>,
+    infix: impl Into<Option<MITInfix<'i>>>,
     zeilenumbrüche: MITZeilenumbruch,
-    einrückung: &str,
+    einrückung: MITEinrückung<'_>,
     ende: MITEnde,
 ) -> Cow<'t, str> {
-    let präfix_d = OptionD(präfix.into(), einrückung);
+    let präfix_d = OptionD(präfix.into().map(MITPräfix::into), einrückung);
     let copyright_d = VecD(copyright, einrückung);
-    let infix_d = OptionD(infix.into(), einrückung);
+    let infix_d = OptionD(infix.into().map(MITInfix::into), einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
@@ -239,7 +282,7 @@ pub fn mit<'t, 'p, 'i>(
         "the following",
         x11,
         "conditions:\n\n",
-        einrückung,
+        einrückung.0,
         "The above copyright notice and this permission notice",
         x11,
         "shall be",
@@ -251,7 +294,7 @@ pub fn mit<'t, 'p, 'i>(
         "copies or substantial portions",
         x11,
         "of the Software.\n\n",
-        einrückung,
+        einrückung.0,
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         x11,
         "ANY KIND,",
@@ -374,7 +417,7 @@ pub struct ApacheEinrückung<'t> {
 
 impl ApacheEinrückung<'_> {
     /// [ApacheEinrückung] für die nicht eingerückte Version des Lizenz-Textes.
-    pub fn nicht_eingerückt() -> Self {
+    pub const fn nicht_eingerückt() -> Self {
         ApacheEinrückung {
             titel: "        ",
             version: "        ",
@@ -387,7 +430,7 @@ impl ApacheEinrückung<'_> {
     }
 
     /// [ApacheEinrückung] für die eingerückte Version des Lizenz-Textes.
-    pub fn eingerückt() -> Self {
+    pub const fn eingerückt() -> Self {
         ApacheEinrückung {
             titel: "                                 ",
             version: "                           ",
