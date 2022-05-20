@@ -531,25 +531,76 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("num_enum-0.5.7", mit_plain),
         ("num_enum_derive-0.5.7", mit_plain),
         ("num_threads-0.1.6", mit_plain),
-        ("objc-0.2.7", mit_plain),
-        ("objc-foundation-0.1.1", mit_plain),
-        ("objc_id-0.1.1", mit_plain),
-        ("once_cell-1.10.0", mit_plain),
-        ("ordered-float-3.0.0", mit_plain),
-        ("osmesa-sys-0.1.2", cc_0),
-        ("owned_ttf_parser-0.15.0", apache_2_0_standard_nicht_eingerückt),
-        ("parking_lot-0.11.2", mit_plain),
-        ("parking_lot-0.12.0", mit_plain),
-        ("parking_lot_core-0.8.5", mit_plain),
-        ("parking_lot_core-0.9.3", mit_plain),
-        ("percent-encoding-2.1.0", mit_plain),
-        ("pin-project-lite-0.2.9", mit_plain),
-        ("pin-utils-0.1.0", mit_plain),
-        ("pkg-config-0.3.25", mit_plain),
-        ("ppv-lite86-0.2.16", mit_plain),
-        ("proc-macro-crate-1.1.3", mit_plain),
-        ("proc-macro2-1.0.38", mit_plain),
-        ("quote-1.0.18", mit_plain),
+        ("objc-0.2.7", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, None, "Steven Sheldon")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("objc-foundation-0.1.1", mit_plain), // TODO
+        ("objc_id-0.1.1", mit_plain),         // TODO
+        ("once_cell-1.10.0", mit_ohne_copyright_x11),
+        ("ordered-float-3.0.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015", "Jonathan Reem")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("osmesa-sys-0.1.2", cc_0), // TODO
+        ("owned_ttf_parser-0.15.0", || {
+            apache_2_0_eingerückt(
+                false,
+                ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
+                true,
+            )
+        }),
+        ("parking_lot-0.11.2", rustc_version_lizenz),
+        ("parking_lot-0.12.0", rustc_version_lizenz),
+        ("parking_lot_core-0.8.5", rustc_version_lizenz),
+        ("parking_lot_core-0.9.3", rustc_version_lizenz),
+        ("percent-encoding-2.1.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("pin-project-lite-0.2.9", mit_ohne_copyright_x11),
+        ("pin-utils-0.1.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2018", "The pin-utils authors")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("pkg-config-0.3.25", wasm_bindgen_lizenz),
+        ("ppv-lite86-0.2.16", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2019", "The CryptoCorrosion Contributors")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("proc-macro-crate-1.1.3", mit_ohne_copyright_x11),
+        ("proc-macro2-1.0.38", wasm_bindgen_lizenz),
+        ("quote-1.0.18", rustc_version_lizenz),
         ("rand-0.8.5", rand_lizenz),
         ("rand_chacha-0.3.1", rand_lizenz),
         ("rand_core-0.6.3", rand_lizenz),
