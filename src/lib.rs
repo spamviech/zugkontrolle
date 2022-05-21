@@ -33,6 +33,8 @@
     unused_results,
     variant_size_differences
 )]
+// Erlaube mehr rekursive Aufrufe von Macros.
+#![recursion_limit = "256"]
 
 pub mod anschluss;
 pub mod application;

@@ -38,7 +38,7 @@ pub struct MITCopyright<'t> {
     /// Das Jahr in der Copyright-Information.
     pub jahr: Option<&'t str>,
     /// Der vollständige Name in der Copyright-Information.
-    pub voller_name: &'t str,
+    pub voller_name: Option<&'t str>,
 }
 
 impl<'t> MITCopyright<'t> {
@@ -46,9 +46,9 @@ impl<'t> MITCopyright<'t> {
     pub fn neu(
         c_in_klammern: bool,
         jahr: impl Into<Option<&'t str>>,
-        voller_name: &'t str,
+        voller_name: impl Into<Option<&'t str>>,
     ) -> Self {
-        MITCopyright { c_in_klammern, jahr: jahr.into(), voller_name }
+        MITCopyright { c_in_klammern, jahr: jahr.into(), voller_name: voller_name.into() }
     }
 }
 
@@ -60,9 +60,15 @@ impl Display for MITCopyright<'_> {
         let c_in_klammern_str = if *c_in_klammern { " (c)" } else { "" };
         write!(f, "Copyright{c_in_klammern_str} ")?;
         if let Some(jahr) = jahr {
-            write!(f, "{jahr} ")?;
+            write!(f, "{jahr}")?;
+            if voller_name.is_some() {
+                f.write_str(" ")?;
+            }
         }
-        write!(f, "{voller_name}")
+        if let Some(voller_name) = voller_name {
+            write!(f, "{voller_name}")?;
+        }
+        Ok(())
     }
 }
 
@@ -153,6 +159,10 @@ pub enum MITZeilenumbruch {
     RPPal,
     /// Zeilenumbrüche, wie sie beim redox_syscall-crate verwendet werden.
     Redox,
+    /// Zeilenumbrüche, wie sie beim ntapi-crate verwendet werden.
+    Ntapi,
+    /// Zeilenumbrüche, wie sie beim nonempty-crate verwendet werden.
+    NonEmpty,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
 }
@@ -191,31 +201,53 @@ pub fn mit<'t, 'p, 'i>(
     let präfix_d = OptionD(präfix.into().map(MITPräfix::into), einrückung);
     let copyright_d = VecD(copyright, einrückung);
     let infix_d = OptionD(infix.into().map(MITInfix::into), einrückung);
+    let leerzeichen_neue_zeile = format!(" \n{einrückung}");
+    let leerzeichen_neue_zeile_str = leerzeichen_neue_zeile.as_str();
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
     use MITZeilenumbruch::*;
-    let standard = neue_zeile_oder_leerzeichen(zeilenumbrüche == Standard);
     let winreg = neue_zeile_oder_leerzeichen(zeilenumbrüche == Winreg);
-    let standard_winreg = neue_zeile_oder_leerzeichen([Standard, Winreg].contains(&zeilenumbrüche));
     let x11 = neue_zeile_oder_leerzeichen(zeilenumbrüche == X11);
     let iced = neue_zeile_oder_leerzeichen(zeilenumbrüche == Iced);
     let wasm = neue_zeile_oder_leerzeichen(zeilenumbrüche == WasmTimer);
     let iced_wasm = neue_zeile_oder_leerzeichen([Iced, WasmTimer].contains(&zeilenumbrüche));
-    let standard_iced_wasm =
-        neue_zeile_oder_leerzeichen([Standard, Iced, WasmTimer].contains(&zeilenumbrüche));
     let x11_iced_wasm =
         neue_zeile_oder_leerzeichen([X11, Iced, WasmTimer].contains(&zeilenumbrüche));
     let rppal = neue_zeile_oder_leerzeichen(zeilenumbrüche == RPPal);
     let winreg_rppal = neue_zeile_oder_leerzeichen([Winreg, RPPal].contains(&zeilenumbrüche));
-    let standard_winreg_rppal =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, RPPal].contains(&zeilenumbrüche));
-    let standard_winreg_iced_wasm_rppal = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, Iced, WasmTimer, RPPal].contains(&zeilenumbrüche),
-    );
     let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
     let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
     let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
+    let standard_winreg_ntapi =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, Ntapi].contains(&zeilenumbrüche));
+    let rppal_ntapi = neue_zeile_oder_leerzeichen([RPPal, Ntapi].contains(&zeilenumbrüche));
+    let rppal_besonders_ntapi_kein_leerzeichen = match zeilenumbrüche {
+        RPPal => neue_zeile_str,
+        Ntapi => "",
+        _ => " ",
+    };
+    let nonempty = neue_zeile_oder_leerzeichen(zeilenumbrüche == NonEmpty);
+    let standard_winreg_nonempty =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, NonEmpty].contains(&zeilenumbrüche));
+    let standard_winreg_ntapi_nonempty =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, Ntapi, NonEmpty].contains(&zeilenumbrüche));
+    let standard_iced_wasm_ntapi_nonempty = neue_zeile_oder_leerzeichen(
+        [Standard, Iced, WasmTimer, Ntapi, NonEmpty].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_rppal_ntapi_nonempty = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, RPPal, Ntapi, NonEmpty].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_iced_wasm_rppal_ntapi_nonempty = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Iced, WasmTimer, RPPal, Ntapi, NonEmpty].contains(&zeilenumbrüche),
+    );
+    let standard_nonempty_besonders_ntapi_leerzeichen = match zeilenumbrüche {
+        Standard | NonEmpty => neue_zeile_str,
+        Ntapi => leerzeichen_neue_zeile_str,
+        _ => " ",
+    };
+    let iced_wasm_nonempty =
+        neue_zeile_oder_leerzeichen([Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche));
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
@@ -232,19 +264,19 @@ pub fn mit<'t, 'p, 'i>(
         "a",
         rppal,
         "copy",
-        standard_winreg,
+        standard_winreg_ntapi,
         "of",
-        iced_wasm,
+        iced_wasm_nonempty,
         "this software and associated",
         x11,
         "documentation files (the",
         redox,
         "\"Software\"),",
-        rppal,
+        rppal_besonders_ntapi_kein_leerzeichen,
         "to deal",
-        standard_winreg,
+        standard_winreg_ntapi,
         "in",
-        iced_wasm,
+        iced_wasm_nonempty,
         "the",
         x11,
         "Software without restriction, including",
@@ -254,9 +286,9 @@ pub fn mit<'t, 'p, 'i>(
         "limitation",
         rppal,
         "the rights",
-        standard_winreg,
+        standard_winreg_ntapi,
         "to",
-        iced_wasm,
+        iced_wasm_nonempty,
         "use, copy, modify, merge,",
         x11,
         "publish,",
@@ -264,8 +296,10 @@ pub fn mit<'t, 'p, 'i>(
         "distribute, sublicense,",
         rppal,
         "and/or sell",
-        standard_winreg,
-        "copies of",
+        standard_winreg_ntapi,
+        "copies",
+        nonempty,
+        "of",
         x11_iced_wasm,
         "the Software, and to",
         redox,
@@ -274,8 +308,10 @@ pub fn mit<'t, 'p, 'i>(
         "Software",
         x11,
         "is",
-        standard_winreg,
-        "furnished to do so,",
+        standard_winreg_ntapi,
+        "furnished to do",
+        nonempty,
+        "so,",
         iced_wasm,
         "subject to",
         redox,
@@ -290,7 +326,7 @@ pub fn mit<'t, 'p, 'i>(
         "included in",
         winreg_rppal,
         "all",
-        standard_iced_wasm,
+        standard_iced_wasm_ntapi_nonempty,
         "copies or substantial portions",
         x11,
         "of the Software.\n\n",
@@ -300,13 +336,13 @@ pub fn mit<'t, 'p, 'i>(
         "ANY KIND,",
         redox,
         "EXPRESS OR",
-        standard_winreg_iced_wasm_rppal,
+        standard_winreg_iced_wasm_rppal_ntapi_nonempty,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
         "TO THE WARRANTIES OF",
         redox,
         "MERCHANTABILITY,",
-        standard_winreg_rppal,
+        standard_winreg_rppal_ntapi_nonempty,
         "FITNESS",
         iced_wasm,
         "FOR A",
@@ -316,9 +352,9 @@ pub fn mit<'t, 'p, 'i>(
         "NONINFRINGEMENT. IN NO EVENT",
         x11,
         "SHALL",
-        rppal,
+        rppal_ntapi,
         "THE",
-        standard_winreg,
+        standard_winreg_nonempty,
         "AUTHORS",
         wasm,
         "OR",
@@ -328,7 +364,7 @@ pub fn mit<'t, 'p, 'i>(
         "LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
-        standard_winreg_rppal,
+        standard_winreg_rppal_ntapi_nonempty,
         "LIABILITY,",
         wasm,
         "WHETHER",
@@ -338,7 +374,7 @@ pub fn mit<'t, 'p, 'i>(
         "OF CONTRACT, TORT OR OTHERWISE, ARISING",
         rppal,
         "FROM,",
-        standard_winreg,
+        standard_winreg_ntapi_nonempty,
         "OUT OF OR",
         x11,
         "IN",
@@ -350,7 +386,7 @@ pub fn mit<'t, 'p, 'i>(
         "DEALINGS IN",
         winreg,
         "THE",
-        standard,
+        standard_nonempty_besonders_ntapi_leerzeichen,
         "SOFTWARE",
     );
     if ende.punkt {

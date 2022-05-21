@@ -241,6 +241,26 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
+    let ndk_lizenz = || {
+        mit(
+            MITPräfix("MIT License", 2),
+            Vec::new(),
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
+    let nix_lizenz = || {
+        mit(
+            MITPräfix("The MIT License (MIT)", 2),
+            vec![MITCopyright::neu(true, "2015", "Carl Lerche + nix-rust Authors")],
+            None,
+            MITZeilenumbruch::Winreg,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
     let rand_lizenz = || {
         mit(
             None,
@@ -288,6 +308,16 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         )
     };
     let unicode_lizenz = || rust_project_developers_lizenz("2015");
+    let vcell_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2017", "Jorge Aparicio")],
+            None,
+            MITZeilenumbruch::X11,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
     let vswwhom_lizenz = || {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
@@ -513,24 +543,60 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("minimal-lexical-0.2.1", mit_plain),
         ("mio-0.8.2", mit_plain),
         ("miow-0.3.7", mit_plain),
-        ("nb-0.1.3", mit_plain),
-        ("nb-1.0.0", mit_plain),
+        ("nb-0.1.3", vcell_lizenz),
+        ("nb-1.0.0", vcell_lizenz),
         ("newline-converter-0.2.0", mit_plain),
-        ("ndk-0.5.0", mit_plain),
-        ("ndk-context-0.1.1", mit_plain),
-        ("ndk-glue-0.5.2", mit_plain),
-        ("ndk-macro-0.3.0", mit_plain),
-        ("ndk-sys-0.2.2", mit_plain),
-        ("nix-0.20.0", mit_plain),
-        ("nix-0.22.3", mit_plain),
-        ("nom-7.1.1", mit_plain),
-        ("nonempty-0.7.0", mit_plain),
-        ("ntapi-0.3.7", mit_plain),
-        ("num-traits-0.2.15", mit_plain),
-        ("num_cpus-1.13.1", mit_plain),
-        ("num_enum-0.5.7", mit_plain),
-        ("num_enum_derive-0.5.7", mit_plain),
-        ("num_threads-0.1.6", mit_plain),
+        ("ndk-0.5.0", ndk_lizenz),
+        ("ndk-context-0.1.1", ndk_lizenz),
+        ("ndk-glue-0.5.2", ndk_lizenz),
+        ("ndk-macro-0.3.0", ndk_lizenz),
+        ("ndk-sys-0.2.2", ndk_lizenz),
+        ("nix-0.20.0", nix_lizenz),
+        ("nix-0.22.3", nix_lizenz),
+        ("nom-7.1.1", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2014-2019", "Geoffroy Couprie")],
+                None,
+                MITZeilenumbruch::Redox,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("nonempty-0.7.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2019", "Alexis Sellier")],
+                None,
+                MITZeilenumbruch::NonEmpty,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("ntapi-0.3.7", || mit_ohne_copyright(MITZeilenumbruch::Ntapi)),
+        ("num-traits-0.2.15", semver_0_9_lizenz),
+        ("num_cpus-1.13.1", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015", None)],
+                None,
+                MITZeilenumbruch::Winreg,
+                MITEinrückung::keine(),
+                MITEnde { punkt: true, neue_zeile: 2 },
+            )
+        }),
+        ("num_enum-0.5.7", mit_ohne_copyright_x11),
+        ("num_enum_derive-0.5.7", mit_ohne_copyright_x11),
+        ("num_threads-0.1.6", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2021", "Jacob Pratt")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
         ("objc-0.2.7", || {
             mit(
                 MITPräfix("MIT License", 2),
@@ -852,16 +918,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("vcell-0.1.3", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2017", "Jorge Aparicio")],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                MITEnde::standard(),
-            )
-        }),
+        ("vcell-0.1.3", vcell_lizenz),
         ("version_check-0.9.4", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 1),
