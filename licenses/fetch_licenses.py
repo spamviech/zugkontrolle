@@ -98,14 +98,33 @@ def extract_repository_and_license(cargo_toml_path):
         print(f"Cargo.toml not found in \"{cargo_toml_path}\"")
     return repository, license
 
-def dowload_licenses(repository, dst_dir):
+def make_https(url):
+    http = "http://"
+    if url is not None and url.startswith(http):
+        return "https://" + url.removeprefix(http)
+    else:
+        return url
+
+def download_licenses(repository, dst_dir):
     github_prefix = "https://github.com"
     raw_prefix = "https://raw.githubusercontent.com"
+    https_repository = make_https(repository)
     found = False
-    if repository is not None and repository.startswith(github_prefix):
-        raw_repository = raw_prefix + repository.removeprefix(github_prefix)
+    if https_repository is not None and https_repository.startswith(github_prefix):
+        tree_start = https_repository.find("/tree/")
+        if tree_start > -1:
+            base_repository = https_repository[:tree_start]
+        else:
+            base_repository = https_repository
+        raw_repository = raw_prefix + base_repository.removeprefix(github_prefix)
         for branch in ["master", "main"]:
-            raw_branch_repository = raw_repository + "/" + branch
+            branch_url = f"{base_repository}/tree/{branch}"
+            try:
+                urllib.request.urlopen(branch_url)
+            except urllib.error.URLError:
+                # branch existiert nicht
+                continue
+            raw_branch_repository = f"{raw_repository}/{branch}"
             for license in license_files:
                 url = raw_branch_repository + "/" + license
                 try:
@@ -115,8 +134,10 @@ def dowload_licenses(repository, dst_dir):
                         with open(file_path, 'wb') as f:
                             f.write(remote.read())
                         found = True
-                except urllib.error.URLError as e:
+                except urllib.error.URLError:
                     pass
+    else:
+        print(f"Non-GitHub-Repository: {repository}")
     return found
 
 copy_filenames = license_files | cargo_toml | readme
@@ -143,7 +164,7 @@ def copy_licenses(src_dir, dst_dir):
     if not found:
         cargo_toml_path = os.path.join(src_dir, "Cargo.toml")
         repository, license = extract_repository_and_license(cargo_toml_path)
-        found = dowload_licenses(repository, dst_dir)
+        found = download_licenses(repository, dst_dir)
     # Rückmeldung, falls auch im github-Repository keine Lizenz-Datei gefunden wurde
     if not found:
         print(f"Missing License: {dst_dir}")

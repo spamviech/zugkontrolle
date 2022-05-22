@@ -23,7 +23,8 @@ use crate::application::{
 };
 
 pub mod texte;
-// FIXME entferne unbenutzte imports
+
+//FIXME entferne unbenutzte imports
 #[allow(unused_imports)]
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
@@ -429,7 +430,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("clipboard-win-4.4.1", bsl_1_0),
         ("clipboard_macos-0.1.0", apache_2_0_standard_nicht_eingerückt),
         ("clipboard_wayland-0.2.0", apache_2_0_standard_nicht_eingerückt),
-        ("clipboard_x11-0.3.1", mit_plain),
+        ("clipboard_x11-0.4.0", mit_plain),
         ("cocoa-0.24.0", mit_plain),
         ("cocoa-foundation-0.1.0", mit_plain),
         ("core-foundation-0.7.0", mit_plain),
@@ -481,7 +482,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("glam-0.10.2", mit_plain),
         ("glob-0.3.0", mit_plain),
         ("glow-0.11.2", mit_plain),
-        ("glow_glyph-0.5.0", mit_plain),
+        ("glow_glyph-0.5.1", mit_plain),
         ("glutin-0.28.0", apache_2_0_standard_nicht_eingerückt),
         ("glutin_egl_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
         ("glutin_emscripten_sys-0.1.1", apache_2_0_standard_nicht_eingerückt),
@@ -493,7 +494,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("glyph_brush_layout-0.2.3", apache_2_0_standard_nicht_eingerückt),
         ("gl_generator-0.14.0", apache_2_0_standard_nicht_eingerückt),
         ("hash32-0.2.1", mit_plain),
-        ("heapless-0.7.10", mit_plain),
+        ("heapless-0.7.13", mit_plain),
         ("heck-0.4.0", mit_plain),
         ("hermit-abi-0.1.19", mit_plain),
         ("iced-0.4.2", mit_plain),
@@ -514,14 +515,14 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("idna-0.2.3", mit_plain),
         ("instant-0.1.12", || bsd_3("2019", "Sébastien Crozet")),
         ("itertools-0.10.3", mit_plain),
-        ("itoa-1.0.1", mit_plain),
+        ("itoa-1.0.2", mit_plain),
         ("jni-sys-0.3.0", mit_plain),
         ("js-sys-0.3.57", mit_plain),
         ("khronos_api-3.1.0", apache_2_0_standard_nicht_eingerückt),
         ("kommandozeilen_argumente-0.2.0", mit_plain),
         ("kommandozeilen_argumente_derive-0.2.0", mit_plain),
         ("lazy_static-1.4.0", mit_plain),
-        ("libc-0.2.125", mit_plain),
+        ("libc-0.2.126", mit_plain),
         ("libloading-0.7.3", || {
             isc(false, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)
         }),
@@ -541,8 +542,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("memmap2-0.3.1", mit_plain),
         ("memoffset-0.6.5", mit_plain),
         ("minimal-lexical-0.2.1", mit_plain),
-        ("mio-0.8.2", mit_plain),
-        ("miow-0.3.7", mit_plain),
+        ("mio-0.8.3", mit_plain),
         ("nb-0.1.3", vcell_lizenz),
         ("nb-1.0.0", vcell_lizenz),
         ("newline-converter-0.2.0", mit_plain),
@@ -551,7 +551,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("ndk-glue-0.5.2", ndk_lizenz),
         ("ndk-macro-0.3.0", ndk_lizenz),
         ("ndk-sys-0.2.2", ndk_lizenz),
-        ("nix-0.20.0", nix_lizenz),
         ("nix-0.22.3", nix_lizenz),
         ("nom-7.1.1", || {
             mit(
@@ -573,7 +572,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("ntapi-0.3.7", || mit_ohne_copyright(MITZeilenumbruch::Ntapi)),
         ("num-traits-0.2.15", semver_0_9_lizenz),
         ("num_cpus-1.13.1", || {
             mit(
@@ -609,7 +607,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("objc-foundation-0.1.1", mit_plain), // TODO
         ("objc_id-0.1.1", mit_plain),         // TODO
-        ("once_cell-1.10.0", mit_ohne_copyright_x11),
+        ("once_cell-1.11.0", mit_ohne_copyright_x11),
         ("ordered-float-3.0.0", || {
             mit(
                 None,
@@ -665,15 +663,15 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             )
         }),
         ("proc-macro-crate-1.1.3", mit_ohne_copyright_x11),
-        ("proc-macro2-1.0.38", wasm_bindgen_lizenz),
+        ("proc-macro2-1.0.39", wasm_bindgen_lizenz),
         ("quote-1.0.18", rustc_version_lizenz),
         ("rand-0.8.5", rand_lizenz),
         ("rand_chacha-0.3.1", rand_lizenz),
         ("rand_core-0.6.3", rand_lizenz),
         ("raw-window-handle-0.3.4", raw_window_handle_lizenz),
         ("raw-window-handle-0.4.3", raw_window_handle_lizenz),
-        ("rayon-1.5.2", rayon_lizenz),
-        ("rayon-core-1.9.2", rayon_lizenz),
+        ("rayon-1.5.3", rayon_lizenz),
+        ("rayon-core-1.9.3", rayon_lizenz),
         ("redox_syscall-0.2.13", || {
             mit(
                 None,
@@ -684,8 +682,8 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("regex-1.5.5", semver_0_9_lizenz),
-        ("regex-syntax-0.6.25", semver_0_9_lizenz),
+        ("regex-1.5.6", semver_0_9_lizenz),
+        ("regex-syntax-0.6.26", semver_0_9_lizenz),
         ("riscv-0.7.0", || isc(false, "2019-2020", "[RISC-V team][team]", ISCZeilenumbruch::Riscv)),
         ("riscv-target-0.1.2", || {
             mit(
@@ -847,7 +845,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("syn-1.0.92", mit_ohne_copyright_x11),
+        ("syn-1.0.95", mit_ohne_copyright_x11),
         ("take_mut-0.2.2", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 2),
@@ -905,9 +903,9 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             )
         }),
         ("unicode-bidi-0.3.8", unicode_lizenz),
+        ("unicode-ident-1.0.0", unicode_lizenz),
         ("unicode-normalization-0.1.19", unicode_lizenz),
         ("unicode-segmentation-1.9.0", unicode_lizenz),
-        ("unicode-xid-0.2.3", unicode_lizenz),
         ("url-2.2.2", || {
             mit(
                 None,
@@ -990,7 +988,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("windows_i686_msvc-0.36.1", widows_sys_lizenz),
         ("windows_x86_64_gnu-0.36.1", widows_sys_lizenz),
         ("windows_x86_64_msvc-0.36.1", widows_sys_lizenz),
-        ("window_clipboard-0.2.2", || {
+        ("window_clipboard-0.2.3", || {
             mit(
                 None,
                 vec![MITCopyright::neu(
@@ -1027,7 +1025,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             )
         }),
         ("x11-dl-2.19.1", mit_ohne_copyright_x11),
-        ("x11rb-0.8.1", || {
+        ("x11rb-0.9.0", || {
             mit(
                 None,
                 vec![MITCopyright::neu(false, "2019", "x11rb Contributers")],

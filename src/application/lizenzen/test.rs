@@ -2,6 +2,8 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    ffi::OsStr,
+    fs,
     str::Split,
 };
 
@@ -115,7 +117,42 @@ fn changeset_als_string(changeset: &Changeset) -> String {
 impl MITZeilenumbruch {
     fn alle() -> impl Iterator<Item = Self> {
         use MITZeilenumbruch::*;
-        [Standard, Winreg, X11, Iced, WasmTimer, RPPal, Redox, Ntapi, NonEmpty, Keine].into_iter()
+        [Standard, Winreg, X11, Iced, WasmTimer, RPPal, Redox, NonEmpty, Keine].into_iter()
+    }
+}
+
+#[test]
+/// Test ob alle Lizenzen angezeigt werden.
+/// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
+fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
+    // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
+
+    let lizenzen: BTreeSet<_> = verwendete_lizenzen().into_iter().map(|(name, _f)| name).collect();
+    let mut fehlend = BTreeSet::new();
+    for entry_res in fs::read_dir("licenses").expect("In git-repository eingecheckt.") {
+        match entry_res {
+            Ok(entry) => {
+                let pfad = entry.path();
+                if pfad.is_dir() {
+                    if let Some(pfad_str) = pfad.file_name().and_then(OsStr::to_str) {
+                        if !lizenzen.contains(pfad_str) {
+                            let _ = fehlend.insert(pfad_str.to_owned());
+                        }
+                    } else {
+                        eprintln!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
+                    }
+                }
+            },
+            Err(fehler) => {
+                eprintln!("{fehler:?}");
+            },
+        }
+    }
+    if fehlend.is_empty() {
+        Ok(())
+    } else {
+        let anzahl = fehlend.len();
+        Err((fehlend, anzahl))
     }
 }
 
@@ -197,7 +234,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("glow_glyph-0.5.0", "TODO"), // TODO
         ("glutin_emscripten_sys-0.1.1", "LICENSE-GITHUB"),
         ("hash32-0.2.1", "LICENSE-MIT"),
-        ("heapless-0.7.10", "LICENSE-MIT"),
+        ("heapless-0.7.13", "LICENSE-MIT"),
         ("heck-0.4.0", "LICENSE-MIT"),
         ("hermit-abi-0.1.19", "LICENSE-MIT"),
         ("iced_aw-0.1.0", "9a99d5b/LICENSE"),
@@ -215,12 +252,12 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("iced_winit-0.4.0", "LICENSE-GITHUB"),
         ("idna-0.2.3", "LICENSE-MIT"),
         ("itertools-0.10.3", "LICENSE-MIT"),
-        ("itoa-1.0.1", "LICENSE-MIT"),
+        ("itoa-1.0.2", "LICENSE-MIT"),
         ("jni-sys-0.3.0", "LICENSE-MIT"),
         ("js-sys-0.3.57", "LICENSE-MIT"),
         ("khronos_api-3.1.0", "LICENSE-GITHUB"),
         ("lazy_static-1.4.0", "LICENSE-MIT"),
-        ("libc-0.2.125", "LICENSE-MIT"),
+        ("libc-0.2.126", "LICENSE-MIT"),
         ("libm-0.2.2", "LICENSE-MIT"),
         ("linked-hash-map-0.5.4", "LICENSE-MIT"),
         ("lock_api-0.4.7", "LICENSE-MIT"),
@@ -235,7 +272,6 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("memchr-2.5.0", "LICENSE-MIT"),
         ("memmap2-0.3.1", "LICENSE-MIT"),
         ("minimal-lexical-0.2.1", "LICENSE-MIT"),
-        ("miow-0.3.7", "LICENSE-MIT"),
         ("nb-0.1.3", "LICENSE-MIT"),
         ("nb-1.0.0", "LICENSE-MIT"),
         ("ndk-0.5.0", "LICENSE-MIT-GITHUB"),
@@ -243,6 +279,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("ndk-glue-0.5.2", "LICENSE-MIT-GITHUB"),
         ("ndk-macro-0.3.0", "LICENSE-MIT-GITHUB"),
         ("ndk-sys-0.2.2", "LICENSE-MIT-GITHUB"),
+        ("newline-converter-0.2.0", "LICENSE-GITHUB"),
         ("ntapi-0.3.7", "LICENSE-MIT"),
         ("num-traits-0.2.15", "LICENSE-MIT"),
         ("num_cpus-1.13.1", "LICENSE-MIT"),
@@ -252,7 +289,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("objc-0.2.7", "LICENSE.txt"),
         ("objc-foundation-0.1.1", "TODO"), // TODO
         ("objc_id-0.1.1", "TODO"),         // TODO
-        ("once_cell-1.10.0", "LICENSE-MIT"),
+        ("once_cell-1.11.0", "LICENSE-MIT"),
         ("ordered-float-3.0.0", "LICENSE-MIT"),
         ("osmesa-sys-0.1.2", "TODO"), // TODO
         ("parking_lot-0.11.2", "LICENSE-MIT"),
@@ -265,16 +302,16 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("pkg-config-0.3.25", "LICENSE-MIT"),
         ("ppv-lite86-0.2.16", "LICENSE-MIT"),
         ("proc-macro-crate-1.1.3", "LICENSE-MIT"),
-        ("proc-macro2-1.0.38", "LICENSE-MIT"),
+        ("proc-macro2-1.0.39", "LICENSE-MIT"),
         ("quote-1.0.18", "LICENSE-MIT"),
         ("rand-0.8.5", "LICENSE-MIT"),
         ("rand_chacha-0.3.1", "LICENSE-MIT"),
         ("rand_core-0.6.3", "LICENSE-MIT"),
         ("raw-window-handle-0.4.3", "LICENSE-MIT.md"),
-        ("rayon-1.5.2", "LICENSE-MIT"),
-        ("rayon-core-1.9.2", "LICENSE-MIT"),
-        ("regex-1.5.5", "LICENSE-MIT"),
-        ("regex-syntax-0.6.25", "LICENSE-MIT"),
+        ("rayon-1.5.3", "LICENSE-MIT"),
+        ("rayon-core-1.9.3", "LICENSE-MIT"),
+        ("regex-1.5.6", "LICENSE-MIT"),
+        ("regex-syntax-0.6.26", "LICENSE-MIT"),
         ("riscv-0.7.0", "LICENSE-README.md"),
         ("riscv-target-0.1.2", "LICENSE-MIT"),
         ("rstar-0.9.3", "LICENSE-MIT-GITHUB"),
@@ -296,7 +333,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("stable_deref_trait-1.2.0", "LICENSE-MIT"),
         ("static_assertions-1.1.0", "LICENSE-MIT"),
         ("str-buf-1.0.5", "LICENSE-GITHUB"),
-        ("syn-1.0.92", "LICENSE-MIT"),
+        ("syn-1.0.95", "LICENSE-MIT"),
         ("thiserror-1.0.31", "LICENSE-MIT"),
         ("thiserror-impl-1.0.31", "LICENSE-MIT"),
         ("time-0.3.9", "LICENSE-MIT"),
@@ -307,9 +344,9 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("twox-hash-1.6.3", "LICENSE.txt"),
         ("unicase-2.6.0", "LICENSE-MIT"),
         ("unicode-bidi-0.3.8", "LICENSE-MIT"),
+        ("unicode-ident-1.0.0", "LICENSE-MIT"),
         ("unicode-normalization-0.1.19", "LICENSE-MIT"),
         ("unicode-segmentation-1.9.0", "LICENSE-MIT"),
-        ("unicode-xid-0.2.3", "LICENSE-MIT"),
         ("url-2.2.2", "LICENSE-MIT"),
         ("vcell-0.1.3", "LICENSE-MIT"),
         ("version_check-0.9.4", "LICENSE-MIT"),
@@ -343,7 +380,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("windows_x86_64_gnu-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
         ("windows_x86_64_msvc-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
         ("x11-dl-2.19.1", "LICENSE-MIT"),
-        ("x11rb-0.8.1", "LICENSE-MIT"),
+        ("x11rb-0.9.0", "LICENSE-MIT"),
         ("xi-unicode-0.3.0", "LICENSE-GITHUB"),
     ]);
 
