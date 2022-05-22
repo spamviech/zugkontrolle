@@ -326,7 +326,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
-            MITEnde { punkt: true, neue_zeile: 2 },
+            MITEnde::zwei_neue_zeilen(),
         )
     };
     let wasm_bindgen_lizenz = || {
@@ -536,16 +536,82 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("lyon_geom-0.17.6", mit_plain),
         ("lyon_path-0.17.7", mit_plain),
         ("lyon_tessellation-0.17.10", mit_plain),
-        ("malloc_buf-0.0.6", mit_plain),
-        ("matches-0.1.9", mit_plain),
-        ("memchr-2.5.0", mit_plain),
-        ("memmap2-0.3.1", mit_plain),
-        ("memoffset-0.6.5", mit_plain),
-        ("minimal-lexical-0.2.1", mit_plain),
-        ("mio-0.8.3", mit_plain),
+        ("malloc_buf-0.0.6", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2020", "Steven Sheldon")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("matches-0.1.9", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2014-2016", "Simon Sapin")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("memchr-2.5.0", || {
+            mit(
+                MITPräfix("The MIT License (MIT)", 2),
+                vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
+                None,
+                MITZeilenumbruch::Winreg,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("memmap2-0.3.1", || {
+            mit(
+                None,
+                vec![
+                    MITCopyright::neu(true, "2020", "Yevhenii Reizner"),
+                    MITCopyright::neu(true, "2015", "Dan Burkert"),
+                ],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("memoffset-0.6.5", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2017", "Gilad Naaman")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("minimal-lexical-0.2.1", mit_ohne_copyright_x11),
+        ("mio-0.8.3", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2014", "Carl Lerche and other MIO contributors")],
+                None,
+                MITZeilenumbruch::Winreg,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
         ("nb-0.1.3", vcell_lizenz),
         ("nb-1.0.0", vcell_lizenz),
-        ("newline-converter-0.2.0", mit_plain),
+        ("newline-converter-0.2.0", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2020", "Michał Borejszo")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
         ("ndk-0.5.0", ndk_lizenz),
         ("ndk-context-0.1.1", ndk_lizenz),
         ("ndk-glue-0.5.2", ndk_lizenz),
@@ -580,7 +646,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
-                MITEnde { punkt: true, neue_zeile: 2 },
+                MITEnde::zwei_neue_zeilen(),
             )
         }),
         ("num_enum-0.5.7", mit_ohne_copyright_x11),
@@ -853,7 +919,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
-                MITEnde { punkt: true, neue_zeile: 2 },
+                MITEnde::zwei_neue_zeilen(),
             )
         }),
         ("thiserror-1.0.31", mit_ohne_copyright_x11),
@@ -879,7 +945,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
-                MITEnde { punkt: true, neue_zeile: 2 },
+                MITEnde::zwei_neue_zeilen(),
             )
         }),
         ("twox-hash-1.6.3", || {
@@ -899,11 +965,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
-                MITEnde { punkt: true, neue_zeile: 2 },
+                MITEnde::zwei_neue_zeilen(),
             )
         }),
         ("unicode-bidi-0.3.8", unicode_lizenz),
-        ("unicode-ident-1.0.0", unicode_lizenz),
+        ("unicode-ident-1.0.0", mit_ohne_copyright_x11),
         ("unicode-normalization-0.1.19", unicode_lizenz),
         ("unicode-segmentation-1.9.0", unicode_lizenz),
         ("url-2.2.2", || {

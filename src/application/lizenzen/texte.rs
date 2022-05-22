@@ -184,6 +184,11 @@ impl MITEnde {
     pub fn ohne_neue_zeile() -> Self {
         MITEnde { punkt: true, neue_zeile: 0 }
     }
+
+    /// Ende des MIT-Lizenztextes mit Punkt und zwei finalen Leerzeilen.
+    pub fn zwei_neue_zeilen() -> Self {
+        MITEnde { punkt: true, neue_zeile: 2 }
+    }
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
