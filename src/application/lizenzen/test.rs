@@ -9,7 +9,6 @@ use std::{
 
 use difference::{Changeset, Difference};
 use either::Either;
-use newline_converter::dos2unix;
 
 use crate::application::lizenzen::{
     texte::{mit_ohne_copyright, MITZeilenumbruch},
@@ -402,7 +401,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         let lizenz_pfad = format!("licenses/{name}/{datei}");
         match std::fs::read_to_string(lizenz_pfad.clone()) {
             Ok(gespeicherte_lizenz) => {
-                let gespeicherte_lizenz_unix = dos2unix(&gespeicherte_lizenz);
+                let gespeicherte_lizenz_unix = gespeicherte_lizenz.replace("\r\n", "\n");
                 let changeset = Changeset::new(&gespeicherte_lizenz_unix, &verwendete_lizenz, "\n");
                 if changeset.diffs.iter().any(is_diff) {
                     let mit_changesets: Vec<_> = MITZeilenumbruch::alle()
@@ -453,7 +452,9 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                         // Zeige nur Changesets mit mindestens einer Übereinstimmung.
                         // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
                         if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
-                            eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
+                            eprintln!(
+                                "\nNächste MIT-Zeilenumbrüche für {name}: {zeilenumbrüche:?}"
+                            );
                             eprintln!("{}", changeset_als_string(mit_changeset));
                         }
                     }
