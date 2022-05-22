@@ -385,6 +385,13 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
     ]);
 
     let mut unterschiede = BTreeMap::new();
+    let is_diff = |diff: &Difference| {
+        if let Difference::Same(_) = diff {
+            false
+        } else {
+            true
+        }
+    };
     for (name, f) in lizenzen {
         let datei = lizenz_dateien.get(name).unwrap_or(&"LICENSE");
         let verwendete_lizenz = f();
@@ -393,13 +400,6 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
             Ok(gespeicherte_lizenz) => {
                 let gespeicherte_lizenz_unix = dos2unix(&gespeicherte_lizenz);
                 let changeset = Changeset::new(&gespeicherte_lizenz_unix, &verwendete_lizenz, "\n");
-                let is_diff = |diff: &Difference| {
-                    if let Difference::Same(_) = diff {
-                        false
-                    } else {
-                        true
-                    }
-                };
                 if changeset.diffs.iter().any(is_diff) {
                     let mit_changesets: Vec<_> = MITZeilenumbruch::alle()
                         .map(|zeilenumbrüche| {
@@ -439,8 +439,12 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                     if let Some((zeilenumbrüche, mit_changeset)) =
                         mit_changesets.iter().min_by_key(|(_z, c)| c.distance)
                     {
-                        eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
-                        eprintln!("{}", changeset_als_string(mit_changeset));
+                        // Zeige nur Changesets mit mindestens einer Übereinstimmung.
+                        // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
+                        if !mit_changeset.diffs.iter().all(is_diff) {
+                            eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
+                            eprintln!("{}", changeset_als_string(mit_changeset));
+                        }
                     }
                 },
                 Either::Right((lizenz_pfad, lese_fehler)) => {
