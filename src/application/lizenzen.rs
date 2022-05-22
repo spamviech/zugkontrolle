@@ -258,6 +258,25 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
+    let glutin_lizenz = || {
+        apache_2_0(
+            false,
+            ApacheCopyright {
+                brackets: "{}",
+                jahr: "2020",
+                voller_name: "The glutin contributors",
+            },
+            ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+            true,
+        )
+    };
+    let glyph_brush_lizenz = || {
+        apache_2_0_eingerückt(
+            false,
+            ApacheCopyright { brackets: "{}", jahr: "2017", voller_name: "Alex Butler" },
+            true,
+        )
+    };
     let iced_lizenz = || {
         mit(
             None,
@@ -509,23 +528,59 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("futures-sink-0.3.21", mit_plain),
         ("futures-task-0.3.21", mit_plain),
         ("futures-util-0.3.21", mit_plain),
-        ("fxhash-0.2.1", mit_plain),
-        ("gethostname-0.2.3", apache_2_0_standard_nicht_eingerückt),
-        ("getrandom-0.2.6", mit_plain),
-        ("glam-0.10.2", mit_plain),
-        ("glob-0.3.0", mit_plain),
-        ("glow-0.11.2", mit_plain),
-        ("glow_glyph-0.5.1", mit_plain),
-        ("glutin-0.28.0", apache_2_0_standard_nicht_eingerückt),
-        ("glutin_egl_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
-        ("glutin_emscripten_sys-0.1.1", apache_2_0_standard_nicht_eingerückt),
-        ("glutin_gles2_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
-        ("glutin_glx_sys-0.1.7", apache_2_0_standard_nicht_eingerückt),
-        ("glutin_wgl_sys-0.1.5", apache_2_0_standard_nicht_eingerückt),
-        ("glyph_brush-0.7.4", apache_2_0_standard_nicht_eingerückt),
-        ("glyph_brush_draw_cache-0.1.5", apache_2_0_standard_nicht_eingerückt),
-        ("glyph_brush_layout-0.2.3", apache_2_0_standard_nicht_eingerückt),
-        ("gl_generator-0.14.0", apache_2_0_standard_nicht_eingerückt),
+        ("fxhash-0.2.1", mit_plain), // TODO
+        ("gethostname-0.2.3", || {
+            apache_2_0(
+                false,
+                ApacheCopyright::standard(),
+                ApacheEinrückung {
+                    titel: "                              ",
+                    version: "                        ",
+                    url: "                     ",
+                    header: "",
+                    text: "   ",
+                    sub_text: "       ",
+                    finale_url: "\t",
+                },
+                true,
+            )
+        }),
+        ("getrandom-0.2.6", || {
+            mit(
+                None,
+                vec![
+                    MITCopyright::neu(false, "2018", "Developers of the Rand project"),
+                    MITCopyright::neu(true, "2014", "The Rust Project Developers"),
+                ],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("glam-0.10.2", mit_ohne_copyright_x11),
+        ("glob-0.3.0", rust_project_developers_lizenz_2014),
+        ("glow-0.11.2", || {
+            mit(
+                None,
+                Vec::new(),
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::ohne_neue_zeile(),
+            )
+        }),
+        ("glow_glyph-0.5.1", mit_plain), // TODO
+        ("glutin-0.28.0", glutin_lizenz),
+        ("glutin_egl_sys-0.1.5", glutin_lizenz),
+        ("glutin_emscripten_sys-0.1.1", glutin_lizenz),
+        ("glutin_gles2_sys-0.1.5", glutin_lizenz),
+        ("glutin_glx_sys-0.1.7", glutin_lizenz),
+        ("glutin_wgl_sys-0.1.5", glutin_lizenz),
+        ("glyph_brush-0.7.4", glyph_brush_lizenz),
+        ("glyph_brush_draw_cache-0.1.5", glyph_brush_lizenz),
+        ("glyph_brush_layout-0.2.3", glyph_brush_lizenz),
+        ("gl_generator-0.14.0", apache_2_0_standard_eingerückt),
         ("hash32-0.2.1", || mit_lizenz_aparicio("2018")),
         ("heapless-0.7.13", || mit_lizenz_aparicio("2017")),
         ("heck-0.4.0", rust_project_developers_lizenz_2015),

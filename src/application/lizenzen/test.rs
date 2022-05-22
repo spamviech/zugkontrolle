@@ -234,7 +234,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("glam-0.10.2", "LICENSE-MIT"),
         ("glob-0.3.0", "LICENSE-MIT"),
         ("glow-0.11.2", "LICENSE-MIT"),
-        ("glow_glyph-0.5.0", "TODO"), // TODO
+        ("glow_glyph-0.5.1", "TODO"), // TODO
         ("glutin_emscripten_sys-0.1.1", "LICENSE-GITHUB"),
         ("hash32-0.2.1", "LICENSE-MIT"),
         ("heapless-0.7.13", "LICENSE-MIT"),
@@ -452,11 +452,10 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                         // Zeige nur Changesets mit mindestens einer Übereinstimmung.
                         // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
                         if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
-                            eprintln!(
-                                "\nNächste MIT-Zeilenumbrüche für {name}: {zeilenumbrüche:?}"
-                            );
+                            eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
                             eprintln!("{}", changeset_als_string(mit_changeset));
                         }
+                        eprintln!("\n{name}");
                     }
                 },
                 Either::Right((lizenz_pfad, lese_fehler)) => {
