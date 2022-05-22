@@ -258,6 +258,26 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
+    let iced_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(false, "2019", "Héctor Ramón, Iced contributors")],
+            None,
+            MITZeilenumbruch::Iced,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
+    let kommandozeilen_argumente_lizenz = || {
+        mit(
+            MITPräfix("MIT License", 2),
+            vec![MITCopyright::neu(true, "2022", "spamviech")],
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
     let lyon_lizenz = || {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
@@ -506,34 +526,79 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("glyph_brush_draw_cache-0.1.5", apache_2_0_standard_nicht_eingerückt),
         ("glyph_brush_layout-0.2.3", apache_2_0_standard_nicht_eingerückt),
         ("gl_generator-0.14.0", apache_2_0_standard_nicht_eingerückt),
-        ("hash32-0.2.1", mit_plain),
-        ("heapless-0.7.13", mit_plain),
-        ("heck-0.4.0", mit_plain),
-        ("hermit-abi-0.1.19", mit_plain),
-        ("iced-0.4.2", mit_plain),
-        ("iced_aw-0.1.0", mit_plain),
-        ("iced_core-0.4.0", mit_plain),
-        ("iced_core-0.5.0", mit_plain),
-        ("iced_futures-0.3.0", mit_plain),
-        ("iced_futures-0.4.0", mit_plain),
-        ("iced_glow-0.3.0", mit_plain),
-        ("iced_glutin-0.3.0", mit_plain),
-        ("iced_graphics-0.3.0", mit_plain),
-        ("iced_native-0.5.0", mit_plain),
-        ("iced_style-0.3.0", mit_plain),
-        ("iced_style-0.4.0", mit_plain),
-        ("iced_web-0.4.0", mit_plain),
-        ("iced_winit-0.4.0", mit_plain),
-        ("ident_case-1.0.1", mit_plain),
-        ("idna-0.2.3", mit_plain),
+        ("hash32-0.2.1", || mit_lizenz_aparicio("2018")),
+        ("heapless-0.7.13", || mit_lizenz_aparicio("2017")),
+        ("heck-0.4.0", rust_project_developers_lizenz_2015),
+        ("hermit-abi-0.1.19", mit_ohne_copyright_x11),
+        ("iced-0.4.2", iced_lizenz),
+        ("iced_aw-0.1.0", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2020", "Kaiden42")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("iced_core-0.4.0", iced_lizenz),
+        ("iced_core-0.5.0", iced_lizenz),
+        ("iced_futures-0.3.0", iced_lizenz),
+        ("iced_futures-0.4.0", iced_lizenz),
+        ("iced_glow-0.3.0", iced_lizenz),
+        ("iced_glutin-0.3.0", iced_lizenz),
+        ("iced_graphics-0.3.0", iced_lizenz),
+        ("iced_native-0.5.0", iced_lizenz),
+        ("iced_style-0.3.0", iced_lizenz),
+        ("iced_style-0.4.0", iced_lizenz),
+        ("iced_web-0.4.0", iced_lizenz),
+        ("iced_winit-0.4.0", iced_lizenz),
+        ("ident_case-1.0.1", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                Vec::new(),
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("idna-0.2.3", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
         ("instant-0.1.12", || bsd_3("2019", "Sébastien Crozet")),
-        ("itertools-0.10.3", mit_plain),
-        ("itoa-1.0.2", mit_plain),
-        ("jni-sys-0.3.0", mit_plain),
-        ("js-sys-0.3.57", mit_plain),
-        ("khronos_api-3.1.0", apache_2_0_standard_nicht_eingerückt),
-        ("kommandozeilen_argumente-0.2.0", mit_plain),
-        ("kommandozeilen_argumente_derive-0.2.0", mit_plain),
+        ("itertools-0.10.3", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015", None)],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("itoa-1.0.2", mit_ohne_copyright_x11),
+        ("jni-sys-0.3.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015", "The rust-jni-sys Developers")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("js-sys-0.3.57", wasm_bindgen_lizenz),
+        ("khronos_api-3.1.0", apache_2_0_standard_eingerückt),
+        ("kommandozeilen_argumente-0.2.0", kommandozeilen_argumente_lizenz),
+        ("kommandozeilen_argumente_derive-0.2.0", kommandozeilen_argumente_lizenz),
         ("lazy_static-1.4.0", rust_project_developers_lizenz_2010),
         ("libc-0.2.126", || rust_project_developers_lizenz("2014-2020")),
         ("libloading-0.7.3", || {
@@ -615,16 +680,6 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("nb-0.1.3", vcell_lizenz),
         ("nb-1.0.0", vcell_lizenz),
-        ("newline-converter-0.2.0", || {
-            mit(
-                MITPräfix("MIT License", 2),
-                vec![MITCopyright::neu(true, "2020", "Michał Borejszo")],
-                None,
-                MITZeilenumbruch::Standard,
-                MITEinrückung::keine(),
-                MITEnde::standard(),
-            )
-        }),
         ("ndk-0.5.0", ndk_lizenz),
         ("ndk-context-0.1.1", ndk_lizenz),
         ("ndk-glue-0.5.2", ndk_lizenz),
