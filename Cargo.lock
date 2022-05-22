@@ -2605,6 +2605,7 @@ dependencies = [
  "nonempty",
  "num-traits",
  "parking_lot 0.12.0",
+ "regex",
  "rppal",
  "rstar",
  "serde",

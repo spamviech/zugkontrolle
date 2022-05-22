@@ -92,3 +92,6 @@ embed-resource = "1.7.1"
 difference = "2.0.0"
 either = "1.6.1"
 newline-converter = "0.2.0"
+# only in the dependency tree on targets I don't use (riscv)
+# added here, so it is downloaded and available to fetch its license
+regex = "1.5.6"
