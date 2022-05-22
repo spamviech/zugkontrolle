@@ -443,9 +443,16 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                     if let Some((zeilenumbrüche, mit_changeset)) =
                         mit_changesets.iter().min_by_key(|(_z, c)| c.distance)
                     {
+                        let is_non_whitespace_same = |diff: &Difference| {
+                            if let Difference::Same(t) = diff {
+                                !t.trim().is_empty()
+                            } else {
+                                false
+                            }
+                        };
                         // Zeige nur Changesets mit mindestens einer Übereinstimmung.
                         // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
-                        if !mit_changeset.diffs.iter().all(is_diff) {
+                        if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
                             eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
                             eprintln!("{}", changeset_als_string(mit_changeset));
                         }
