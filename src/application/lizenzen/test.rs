@@ -121,6 +121,10 @@ impl MITZeilenumbruch {
     }
 }
 
+// regex ist nur eine dev-dependency, damit es heruntergeladen wird.
+// Es ist Teil des dependency trees für riscv targets.
+use regex as _;
+
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
