@@ -258,6 +258,29 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             true,
         )
     };
+    let foreign_types_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2017", "The foreign-types Developers")],
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
+    let futures_lizenz = || {
+        mit(
+            None,
+            vec![
+                MITCopyright::neu(true, "2016", "Alex Crichton"),
+                MITCopyright::neu(true, "2017", "The Tokio Authors"),
+            ],
+            None,
+            MITZeilenumbruch::X11,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
     let glutin_lizenz = || {
         apache_2_0(
             false,
@@ -283,6 +306,16 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             vec![MITCopyright::neu(false, "2019", "Héctor Ramón, Iced contributors")],
             None,
             MITZeilenumbruch::Iced,
+            MITEinrückung::keine(),
+            MITEnde::standard(),
+        )
+    };
+    let idna_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
+            None,
+            MITZeilenumbruch::X11,
             MITEinrückung::keine(),
             MITEnde::standard(),
         )
@@ -508,26 +541,80 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("dlib-0.5.0", mit_plain),
         ("dodrio-0.2.0", mpl_2_0),
         ("downcast-rs-1.2.0", mit_plain),
-        ("either-1.6.1", mit_plain),
-        ("embed-resource-1.7.2", mit_plain),
-        ("embedded-hal-0.2.7", mit_plain),
+        ("either-1.6.1", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015", None)],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("embed-resource-1.7.2", || {
+            mit(
+                MITPräfix("The MIT License (MIT)", 2),
+                vec![MITCopyright::neu(true, "2017", "nabijaczleweli")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("embedded-hal-0.2.7", || mit_lizenz_aparicio("2017-2018")),
         ("error-code-2.3.1", bsl_1_0),
-        ("euclid-0.22.7", mit_plain),
-        ("flexi_logger-0.22.3", mit_plain),
-        ("float_next_after-0.1.5", mit_plain),
-        ("fnv-1.0.7", mit_plain),
-        ("foreign-types-0.3.2", mit_plain),
-        ("foreign-types-shared-0.1.1", mit_plain),
-        ("form_urlencoded-1.0.1", mit_plain),
-        ("futures-0.3.21", mit_plain),
-        ("futures-channel-0.3.21", mit_plain),
-        ("futures-core-0.3.21", mit_plain),
-        ("futures-executor-0.3.21", mit_plain),
-        ("futures-io-0.3.21", mit_plain),
-        ("futures-macro-0.3.21", mit_plain),
-        ("futures-sink-0.3.21", mit_plain),
-        ("futures-task-0.3.21", mit_plain),
-        ("futures-util-0.3.21", mit_plain),
+        ("euclid-0.22.7", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2012-2013", "Mozilla Foundation")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("flexi_logger-0.22.3", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2018", "The AUTHORS")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("float_next_after-0.1.5", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2020", "Scripta Qumranica Electronica")],
+                MITInfix("Created by Bronson Brown-deVost", 2),
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("fnv-1.0.7", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2017", "Contributors")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                MITEnde::standard(),
+            )
+        }),
+        ("foreign-types-0.3.2", foreign_types_lizenz),
+        ("foreign-types-shared-0.1.1", foreign_types_lizenz),
+        ("form_urlencoded-1.0.1", idna_lizenz),
+        ("futures-0.3.21", futures_lizenz),
+        ("futures-channel-0.3.21", futures_lizenz),
+        ("futures-core-0.3.21", futures_lizenz),
+        ("futures-executor-0.3.21", futures_lizenz),
+        ("futures-io-0.3.21", futures_lizenz),
+        ("futures-macro-0.3.21", futures_lizenz),
+        ("futures-sink-0.3.21", futures_lizenz),
+        ("futures-task-0.3.21", futures_lizenz),
+        ("futures-util-0.3.21", futures_lizenz),
         ("fxhash-0.2.1", mit_plain), // TODO
         ("gethostname-0.2.3", || {
             apache_2_0(
@@ -618,16 +705,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("idna-0.2.3", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                MITEnde::standard(),
-            )
-        }),
+        ("idna-0.2.3", idna_lizenz),
         ("instant-0.1.12", || bsd_3("2019", "Sébastien Crozet")),
         ("itertools-0.10.3", || {
             mit(

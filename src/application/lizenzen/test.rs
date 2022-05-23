@@ -129,6 +129,8 @@ use regex as _;
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
 fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
     // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
+    // alternative direkt in rust, z.B. mit dev-dependency
+    // cargo-lock = "8.0.1"
 
     let lizenzen: BTreeSet<_> = verwendete_lizenzen().into_iter().map(|(name, _f)| name).collect();
     let mut fehlend = BTreeSet::new();
