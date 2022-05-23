@@ -25,12 +25,11 @@ use crate::application::{
 pub mod texte;
 
 //FIXME entferne unbenutzte imports
-#[allow(unused_imports)]
 use texte::{
-    apache_2_0, apache_2_0_eingerückt, apache_2_0_nicht_eingerückt, apache_2_0_standard_eingerückt,
-    apache_2_0_standard_nicht_eingerückt, bsd_3, bsl_1_0, cc_0, isc, mit, mit_ohne_copyright,
-    mit_ohne_copyright_x11, mit_plain, mpl_2_0, ofl_1_1, zlib, ApacheCopyright, ApacheEinrückung,
-    ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix, MITZeilenumbruch,
+    apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_3, bsl_1_0, cc_0, isc,
+    mit, mit_ohne_copyright, mit_ohne_copyright_x11, mit_plain, mpl_2_0, ofl_1_1, zlib,
+    ApacheCopyright, ApacheEinrückung, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde,
+    MITInfix, MITPräfix, MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
