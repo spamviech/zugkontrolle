@@ -220,13 +220,14 @@ impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
 }
 
 #[inline(always)]
-fn rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
+fn mit_rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
     mit(
         None,
         vec![MITCopyright::neu(true, jahr, "The Rust Project Developers")],
         None,
         MITZeilenumbruch::X11,
         MITEinrückung::keine(),
+        false,
         MITEnde::standard(),
     )
 }
@@ -239,23 +240,75 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
         None,
         MITZeilenumbruch::X11,
         MITEinrückung::keine(),
+        false,
         MITEnde::standard(),
     )
 }
 
-// TODO Lizenzen anpassen, so dass passende_Lizenzen nicht mehr fehlschlägt.
-// TODO abweichende Dateinamen in passende_Lizenzen eintragen.
+// TODO Fehlende Lizenztexte suchen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
 pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
-    let rust_project_developers_lizenz_2010 = || rust_project_developers_lizenz("2010");
-    let rust_project_developers_lizenz_2014 = || rust_project_developers_lizenz("2014");
-    let rust_project_developers_lizenz_2015 = || rust_project_developers_lizenz("2015");
-    let rust_project_developers_lizenz_2016 = || rust_project_developers_lizenz("2016");
-    let ab_lizenz = || {
-        apache_2_0_nicht_eingerückt(
+    let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
+    let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
+    let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
+    let mit_rust_project_developers_lizenz_2016 = || mit_rust_project_developers_lizenz("2016");
+    let mozilla_foundation_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2012-2013", "Mozilla Foundation")],
+            None,
+            MITZeilenumbruch::X11,
+            MITEinrückung::keine(),
             false,
-            ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "Alex Butler" },
+            MITEnde::standard(),
+        )
+    };
+    let ab_glyph_lizenz = || {
+        apache_2_0_eingerückt(
+            false,
+            ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
             true,
+        )
+    };
+    let bytemuck_lizenz = || {
+        mit(
+            MITPräfix("MIT License", 2),
+            vec![MITCopyright::neu(true, "2019", "Daniel \"Lokathor\" Gee.")],
+            None,
+            MITZeilenumbruch::Keine,
+            MITEinrückung::keine(),
+            true,
+            MITEnde::standard(),
+        )
+    };
+    let clipboard_apache_lizenz = || {
+        apache_2_0(
+            false,
+            ApacheCopyright::braces(),
+            ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+            true,
+        )
+    };
+    let crossbeam_lizenz = || {
+        mit(
+            MITPräfix("The MIT License (MIT)", 2),
+            vec![MITCopyright::neu(true, "2019", "The Crossbeam Project Developers")],
+            None,
+            MITZeilenumbruch::X11,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    };
+    let darling_lizenz = || {
+        mit(
+            MITPräfix("MIT License", 2),
+            vec![MITCopyright::neu(true, "2017", "Ted Driggs")],
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
         )
     };
     let foreign_types_lizenz = || {
@@ -265,6 +318,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -278,6 +332,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::X11,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -307,6 +362,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Iced,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -317,6 +373,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::X11,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -327,6 +384,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -337,6 +395,18 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Iced,
             MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    };
+    let memchr_lizenz = || {
+        mit(
+            MITPräfix("The MIT License (MIT)", 2),
+            vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
+            None,
+            MITZeilenumbruch::Winreg,
+            MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -347,6 +417,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -357,6 +428,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Winreg,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -370,6 +442,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::X11,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -380,6 +453,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -390,6 +464,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::X11,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -400,6 +475,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -411,6 +487,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::zwei_neue_zeilen(),
         )
     };
@@ -421,6 +498,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::X11,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -431,6 +509,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Winreg,
             MITEinrückung::keine(),
+            false,
             MITEnde::ohne_neue_zeile(),
         )
     };
@@ -441,6 +520,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::keine(),
+            false,
             MITEnde::standard(),
         )
     };
@@ -451,21 +531,29 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             None,
             MITZeilenumbruch::Standard,
             MITEinrückung::leerzeichen_4(),
+            false,
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
     vec![
         ("SourceSerif4-Regular", || {
-            ofl_1_1("2014-2021",
-            "Adobe (http://www.adobe.com/),",
-            "'Source'",true,
-            " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
-            true,
-            false)
+            let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
+            ofl_1_1(
+                false,
+                "2014-2021",
+                "Adobe (http://www.adobe.com/),",
+                "'Source'",
+                true,
+                extra_notice,
+                true,
+                false,
+                false,
+            )
         }),
         // Über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
         ("Lato", || {
             ofl_1_1(
+                true,
                 "2010-2014",
                 "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
                 "\"Lato\"",
@@ -473,74 +561,237 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 "",
                 false,
                 true,
+                true,
             )
         }),
-        ("ab_glyph-0.2.15", ab_lizenz),
-        ("ab_glyph_rasterizer-0.1.5", ab_lizenz),
-        ("aho-corasick-0.7.18", || {
+        ("ab_glyph-0.2.15", ab_glyph_lizenz),
+        ("ab_glyph_rasterizer-0.1.5", ab_glyph_lizenz),
+        ("aho-corasick-0.7.18", memchr_lizenz),
+        ("android_glue-0.2.3", || {
+            apache_2_0(
+                false,
+                ApacheCopyright::braces(),
+                ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+                true,
+            )
+        }), // TODO Cargo.toml nennt MIT license
+        ("ansi_term-0.12.1", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 2),
-                vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
+                vec![MITCopyright::neu(true, "2014", "Benjamin Sago")],
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
-                MITEnde::ohne_neue_zeile(),
+                false,
+                MITEnde::standard(),
             )
         }),
-        ("android_glue-0.2.3", mit_plain),
-        ("ansi_term-0.12.1", mit_plain),
-        ("approx-0.5.1", apache_2_0_standard_nicht_eingerückt),
-        ("arrayvec-0.5.2", mit_plain),
-        ("atomic-polyfill-0.1.8", mit_plain),
-        ("atty-0.2.14", mit_plain),
-        ("autocfg-1.1.0", mit_plain),
-        ("bare-metal-0.2.5", mit_plain),
-        ("bare-metal-1.0.0", mit_plain),
-        ("bincode-1.3.3", mit_plain),
-        ("bitfield-0.13.2", mit_plain),
-        ("bitflags-1.3.2", mit_plain),
-        ("bit_field-0.10.1", mit_plain),
-        ("block-0.1.6", mit_plain),
-        ("bumpalo-2.6.0", mit_plain),
-        ("bumpalo-3.9.1", mit_plain),
-        ("bytemuck-1.9.1", mit_plain),
-        ("bytemuck_derive-1.1.0", mit_plain),
-        ("byteorder-1.4.3", mit_plain),
-        ("calloop-0.9.3", mit_plain),
-        ("cc-1.0.73", mit_plain),
-        ("cfg-if-0.1.10", mit_plain),
-        ("cfg-if-1.0.0", mit_plain),
-        ("cfg_aliases-0.1.1", mit_plain),
-        ("cgl-0.3.2", mit_plain),
+        ("approx-0.5.1", apache_2_0_standard_eingerückt),
+        ("arrayvec-0.5.2", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "Ulrik Sverdrup \"bluss\"", "2015-2017")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("atomic-polyfill-0.1.8", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2020", "Dario Nieuwenhuis")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("atty-0.2.14", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2015-2019", "Doug Tangren")],
+                None,
+                MITZeilenumbruch::Redox,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("autocfg-1.1.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2018", "Josh Stone")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("bare-metal-0.2.5", || mit_lizenz_aparicio("2017")),
+        ("bare-metal-1.0.0", || mit_lizenz_aparicio("2017")),
+        ("bincode-1.3.3", || {
+            mit(
+                MITPräfix("The MIT License (MIT)", 2),
+                vec![MITCopyright::neu(true, "2014", "Ty Overby")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("bitfield-0.13.2", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2017", "Loïc Damien")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("bitflags-1.3.2", mit_rust_project_developers_lizenz_2014),
+        ("bit_field-0.10.1", || {
+            mit(
+                MITPräfix("The MIT License (MIT)", 2),
+                vec![MITCopyright::neu(true, "2016", "Philipp Oppermann")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("block-0.1.6", mit_plain), // TODO
+        ("bumpalo-2.6.0", wasm_bindgen_lizenz),
+        ("bumpalo-3.9.1", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2019", "Nick Fitzgerald")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("bytemuck-1.9.1", bytemuck_lizenz),
+        ("bytemuck_derive-1.1.0", bytemuck_lizenz),
+        ("byteorder-1.4.3", memchr_lizenz),
+        ("calloop-0.9.3", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2018", "Victor Berger")],
+                None,
+                MITZeilenumbruch::Winreg,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("cc-1.0.73", wasm_bindgen_lizenz),
+        ("cfg-if-0.1.10", wasm_bindgen_lizenz),
+        ("cfg-if-1.0.0", wasm_bindgen_lizenz),
+        ("cfg_aliases-0.1.1", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2020", "Katharos Technology")],
+                None,
+                MITZeilenumbruch::Keine,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("cgl-0.3.2", mozilla_foundation_lizenz),
         ("clipboard-win-4.4.1", bsl_1_0),
-        ("clipboard_macos-0.1.0", apache_2_0_standard_nicht_eingerückt),
-        ("clipboard_wayland-0.2.0", apache_2_0_standard_nicht_eingerückt),
-        ("clipboard_x11-0.4.0", mit_plain),
-        ("cocoa-0.24.0", mit_plain),
-        ("cocoa-foundation-0.1.0", mit_plain),
-        ("core-foundation-0.7.0", mit_plain),
-        ("core-foundation-0.9.3", mit_plain),
-        ("core-foundation-sys-0.7.0", mit_plain),
-        ("core-foundation-sys-0.8.3", mit_plain),
-        ("core-graphics-0.19.2", mit_plain),
-        ("core-graphics-0.22.3", mit_plain),
-        ("core-graphics-types-0.1.1", mit_plain),
-        ("core-video-sys-0.1.4", mit_plain),
-        ("cortex-m-0.7.4", mit_plain),
-        ("critical-section-0.2.7", mit_plain),
-        ("crossbeam-channel-0.5.4", mit_plain),
-        ("crossbeam-deque-0.8.1", mit_plain),
-        ("crossbeam-epoch-0.9.8", mit_plain),
-        ("crossbeam-utils-0.8.8", mit_plain),
-        ("cty-0.2.2", mit_plain),
-        ("darling-0.13.4", mit_plain),
-        ("darling_core-0.13.4", mit_plain),
-        ("darling_macro-0.13.4", mit_plain),
-        ("difference-2.0.0", mit_plain),
+        ("clipboard_macos-0.1.0", clipboard_apache_lizenz),
+        ("clipboard_wayland-0.2.0", clipboard_apache_lizenz),
+        ("clipboard_x11-0.4.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(
+                    true,
+                    "2019",
+                    "quininer@live.com, Héctor Ramón, window_clipboard_x11 contributors",
+                )],
+                None,
+                MITZeilenumbruch::Keine,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("cocoa-0.24.0", mozilla_foundation_lizenz),
+        ("cocoa-foundation-0.1.0", mozilla_foundation_lizenz),
+        ("core-foundation-0.7.0", mozilla_foundation_lizenz),
+        ("core-foundation-0.9.3", mozilla_foundation_lizenz),
+        ("core-foundation-sys-0.7.0", mozilla_foundation_lizenz),
+        ("core-foundation-sys-0.8.3", mozilla_foundation_lizenz),
+        ("core-graphics-0.19.2", mozilla_foundation_lizenz),
+        ("core-graphics-0.22.3", mozilla_foundation_lizenz),
+        ("core-graphics-types-0.1.1", mozilla_foundation_lizenz),
+        ("core-video-sys-0.1.4", || {
+            mit(
+                MITPräfix("MIT License", 2),
+                vec![MITCopyright::neu(true, "2018", "寧靜")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("cortex-m-0.7.4", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
+        ("critical-section-0.2.7", mit_plain), // TODO
+        ("crossbeam-channel-0.5.4", crossbeam_lizenz),
+        ("crossbeam-deque-0.8.1", crossbeam_lizenz),
+        ("crossbeam-epoch-0.9.8", crossbeam_lizenz),
+        ("crossbeam-utils-0.8.8", crossbeam_lizenz),
+        ("cty-0.2.2", || mit_lizenz_aparicio("2017")),
+        ("darling-0.13.4", darling_lizenz),
+        ("darling_core-0.13.4", darling_lizenz),
+        ("darling_macro-0.13.4", darling_lizenz),
+        ("difference-2.0.0", || {
+            mit(
+                MITPräfix("The MIT License (MIT)", 2),
+                vec![MITCopyright::neu(true, "2015", "Johann Hofmann")],
+                None,
+                MITZeilenumbruch::Standard,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::zwei_neue_zeilen(),
+            )
+        }),
         ("dispatch-0.2.0", mit_plain),
-        ("dlib-0.5.0", mit_plain),
+        ("dlib-0.5.0", wayland_lizenz),
         ("dodrio-0.2.0", mpl_2_0),
-        ("downcast-rs-1.2.0", mit_plain),
+        ("downcast-rs-1.2.0", || {
+            mit(
+                None,
+                vec![MITCopyright::neu(true, "2020", "Ashish Myles and contributors")],
+                None,
+                MITZeilenumbruch::X11,
+                MITEinrückung::keine(),
+                false,
+                MITEnde::standard(),
+            )
+        }),
         ("either-1.6.1", || {
             mit(
                 None,
@@ -548,6 +799,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -558,21 +810,13 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
         ("embedded-hal-0.2.7", || mit_lizenz_aparicio("2017-2018")),
         ("error-code-2.3.1", bsl_1_0),
-        ("euclid-0.22.7", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2012-2013", "Mozilla Foundation")],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                MITEnde::standard(),
-            )
-        }),
+        ("euclid-0.22.7", mozilla_foundation_lizenz),
         ("flexi_logger-0.22.3", || {
             mit(
                 None,
@@ -580,6 +824,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -590,6 +835,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITInfix("Created by Bronson Brown-deVost", 2),
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -600,6 +846,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -642,11 +889,12 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
         ("glam-0.10.2", mit_ohne_copyright_x11),
-        ("glob-0.3.0", rust_project_developers_lizenz_2014),
+        ("glob-0.3.0", mit_rust_project_developers_lizenz_2014),
         ("glow-0.11.2", || {
             mit(
                 None,
@@ -654,6 +902,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -670,7 +919,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("gl_generator-0.14.0", apache_2_0_standard_eingerückt),
         ("hash32-0.2.1", || mit_lizenz_aparicio("2018")),
         ("heapless-0.7.13", || mit_lizenz_aparicio("2017")),
-        ("heck-0.4.0", rust_project_developers_lizenz_2015),
+        ("heck-0.4.0", mit_rust_project_developers_lizenz_2015),
         ("hermit-abi-0.1.19", mit_ohne_copyright_x11),
         ("iced-0.4.2", iced_lizenz),
         ("iced_aw-0.1.0", || {
@@ -680,6 +929,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -702,6 +952,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -714,6 +965,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -725,6 +977,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -732,15 +985,15 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("khronos_api-3.1.0", apache_2_0_standard_eingerückt),
         ("kommandozeilen_argumente-0.2.0", kommandozeilen_argumente_lizenz),
         ("kommandozeilen_argumente_derive-0.2.0", kommandozeilen_argumente_lizenz),
-        ("lazy_static-1.4.0", rust_project_developers_lizenz_2010),
-        ("libc-0.2.126", || rust_project_developers_lizenz("2014-2020")),
+        ("lazy_static-1.4.0", mit_rust_project_developers_lizenz_2010),
+        ("libc-0.2.126", || mit_rust_project_developers_lizenz("2014-2020")),
         ("libloading-0.7.3", || {
             isc(true, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)
         }),
         ("libm-0.2.2", || mit_lizenz_aparicio("2018")),
-        ("linked-hash-map-0.5.4", rust_project_developers_lizenz_2015),
-        ("lock_api-0.4.7", rust_project_developers_lizenz_2016),
-        ("log-0.4.17", rust_project_developers_lizenz_2014),
+        ("linked-hash-map-0.5.4", mit_rust_project_developers_lizenz_2015),
+        ("lock_api-0.4.7", mit_rust_project_developers_lizenz_2016),
+        ("log-0.4.17", mit_rust_project_developers_lizenz_2014),
         ("longest-increasing-subsequence-0.1.0", wasm_bindgen_lizenz),
         ("lyon-0.17.10", lyon_lizenz),
         ("lyon_algorithms-0.17.7", lyon_lizenz),
@@ -754,6 +1007,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -764,19 +1018,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
-        ("memchr-2.5.0", || {
-            mit(
-                MITPräfix("The MIT License (MIT)", 2),
-                vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
-                None,
-                MITZeilenumbruch::Winreg,
-                MITEinrückung::keine(),
-                MITEnde::standard(),
-            )
-        }),
+        ("memchr-2.5.0", memchr_lizenz),
         ("memmap2-0.3.1", || {
             mit(
                 None,
@@ -787,6 +1033,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -797,6 +1044,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -808,6 +1056,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -826,6 +1075,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Redox,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -836,10 +1086,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::NonEmpty,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
-        ("num-traits-0.2.15", rust_project_developers_lizenz_2014),
+        ("num-traits-0.2.15", mit_rust_project_developers_lizenz_2014),
         ("num_cpus-1.13.1", || {
             mit(
                 None,
@@ -847,6 +1098,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
@@ -859,6 +1111,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -869,6 +1122,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -882,6 +1136,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -893,10 +1148,10 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 true,
             )
         }),
-        ("parking_lot-0.11.2", rust_project_developers_lizenz_2016),
-        ("parking_lot-0.12.0", rust_project_developers_lizenz_2016),
-        ("parking_lot_core-0.8.5", rust_project_developers_lizenz_2016),
-        ("parking_lot_core-0.9.3", rust_project_developers_lizenz_2016),
+        ("parking_lot-0.11.2", mit_rust_project_developers_lizenz_2016),
+        ("parking_lot-0.12.0", mit_rust_project_developers_lizenz_2016),
+        ("parking_lot_core-0.8.5", mit_rust_project_developers_lizenz_2016),
+        ("parking_lot_core-0.9.3", mit_rust_project_developers_lizenz_2016),
         ("percent-encoding-2.1.0", || {
             mit(
                 None,
@@ -904,6 +1159,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -915,6 +1171,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -926,19 +1183,20 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
         ("proc-macro-crate-1.1.3", mit_ohne_copyright_x11),
         ("proc-macro2-1.0.39", wasm_bindgen_lizenz),
-        ("quote-1.0.18", rust_project_developers_lizenz_2016),
+        ("quote-1.0.18", mit_rust_project_developers_lizenz_2016),
         ("rand-0.8.5", rand_lizenz),
         ("rand_chacha-0.3.1", rand_lizenz),
         ("rand_core-0.6.3", rand_lizenz),
         ("raw-window-handle-0.3.4", raw_window_handle_lizenz),
         ("raw-window-handle-0.4.3", raw_window_handle_lizenz),
-        ("rayon-1.5.3", rust_project_developers_lizenz_2010),
-        ("rayon-core-1.9.3", rust_project_developers_lizenz_2010),
+        ("rayon-1.5.3", mit_rust_project_developers_lizenz_2010),
+        ("rayon-core-1.9.3", mit_rust_project_developers_lizenz_2010),
         ("redox_syscall-0.2.13", || {
             mit(
                 None,
@@ -946,11 +1204,12 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITInfix("MIT License", 2),
                 MITZeilenumbruch::Redox,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
-        ("regex-1.5.6", rust_project_developers_lizenz_2014),
-        ("regex-syntax-0.6.26", rust_project_developers_lizenz_2014),
+        ("regex-1.5.6", mit_rust_project_developers_lizenz_2014),
+        ("regex-syntax-0.6.26", mit_rust_project_developers_lizenz_2014),
         ("riscv-0.7.0", || isc(false, "2019-2020", "[RISC-V team][team]", ISCZeilenumbruch::Riscv)),
         ("riscv-target-0.1.2", || {
             mit(
@@ -959,6 +1218,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -969,6 +1229,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::RPPal,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -979,12 +1240,13 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
         ("rustc-hash-1.1.0", mit_ohne_copyright_x11),
-        ("rustc_version-0.2.3", rust_project_developers_lizenz_2016),
-        ("rustc_version-0.4.0", rust_project_developers_lizenz_2016),
+        ("rustc_version-0.2.3", mit_rust_project_developers_lizenz_2016),
+        ("rustc_version-0.4.0", mit_rust_project_developers_lizenz_2016),
         ("rustversion-1.0.6", mit_ohne_copyright_x11),
         ("scoped-tls-1.0.0", wasm_bindgen_lizenz),
         ("scopeguard-1.1.0", || {
@@ -998,10 +1260,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
-        ("semver-0.9.0", rust_project_developers_lizenz_2014),
+        ("semver-0.9.0", mit_rust_project_developers_lizenz_2014),
         ("semver-1.0.9", mit_ohne_copyright_x11),
         ("semver-parser-0.7.0", || {
             mit(
@@ -1010,6 +1273,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1022,6 +1286,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -1033,6 +1298,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1044,6 +1310,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1054,6 +1321,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -1064,6 +1332,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1074,6 +1343,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -1084,6 +1354,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::ohne_neue_zeile(),
             )
         }),
@@ -1094,6 +1365,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1109,6 +1381,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1120,6 +1393,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
@@ -1135,6 +1409,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1146,6 +1421,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
@@ -1156,6 +1432,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1166,13 +1443,14 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
-        ("unicode-bidi-0.3.8", rust_project_developers_lizenz_2015),
+        ("unicode-bidi-0.3.8", mit_rust_project_developers_lizenz_2015),
         ("unicode-ident-1.0.0", mit_ohne_copyright_x11),
-        ("unicode-normalization-0.1.19", rust_project_developers_lizenz_2015),
-        ("unicode-segmentation-1.9.0", rust_project_developers_lizenz_2015),
+        ("unicode-normalization-0.1.19", mit_rust_project_developers_lizenz_2015),
+        ("unicode-segmentation-1.9.0", mit_rust_project_developers_lizenz_2015),
         ("url-2.2.2", || {
             mit(
                 None,
@@ -1180,6 +1458,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1191,6 +1470,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Iced,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1201,6 +1481,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1225,6 +1506,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::WasmTimer,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1257,17 +1539,14 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Iced,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
         ("winit-0.26.1", || {
             apache_2_0(
                 false,
-                ApacheCopyright {
-                    brackets: "{}",
-                    jahr: "{yyyy}",
-                    voller_name: "{name of copyright owner}",
-                },
+                ApacheCopyright::braces(),
                 ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
                 false,
             )
@@ -1279,6 +1558,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Winreg,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1290,6 +1570,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::X11,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1300,6 +1581,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),
@@ -1311,6 +1593,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 None,
                 MITZeilenumbruch::Standard,
                 MITEinrückung::keine(),
+                false,
                 MITEnde::standard(),
             )
         }),

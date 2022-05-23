@@ -15,6 +15,47 @@ use crate::application::lizenzen::{
     verwendete_lizenzen,
 };
 
+// regex ist nur eine dev-dependency, damit es heruntergeladen wird.
+// Es ist Teil des dependency trees für riscv targets.
+use regex as _;
+
+#[test]
+/// Test ob alle Lizenzen angezeigt werden.
+/// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
+fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
+    // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
+    // alternative direkt in rust, z.B. mit dev-dependency
+    // cargo-lock = "8.0.1"
+
+    let lizenzen: BTreeSet<_> = verwendete_lizenzen().into_iter().map(|(name, _f)| name).collect();
+    let mut fehlend = BTreeSet::new();
+    for entry_res in fs::read_dir("licenses").expect("In git-repository eingecheckt.") {
+        match entry_res {
+            Ok(entry) => {
+                let pfad = entry.path();
+                if pfad.is_dir() {
+                    if let Some(pfad_str) = pfad.file_name().and_then(OsStr::to_str) {
+                        if !lizenzen.contains(pfad_str) {
+                            let _ = fehlend.insert(pfad_str.to_owned());
+                        }
+                    } else {
+                        eprintln!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
+                    }
+                }
+            },
+            Err(fehler) => {
+                eprintln!("{fehler:?}");
+            },
+        }
+    }
+    if fehlend.is_empty() {
+        Ok(())
+    } else {
+        let anzahl = fehlend.len();
+        Err((fehlend, anzahl))
+    }
+}
+
 fn push_letzte_same(
     string: &mut String,
     letzte_same: &mut Option<Split<'_, &String>>,
@@ -120,47 +161,6 @@ impl MITZeilenumbruch {
     }
 }
 
-// regex ist nur eine dev-dependency, damit es heruntergeladen wird.
-// Es ist Teil des dependency trees für riscv targets.
-use regex as _;
-
-#[test]
-/// Test ob alle Lizenzen angezeigt werden.
-/// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
-fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
-    // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
-    // alternative direkt in rust, z.B. mit dev-dependency
-    // cargo-lock = "8.0.1"
-
-    let lizenzen: BTreeSet<_> = verwendete_lizenzen().into_iter().map(|(name, _f)| name).collect();
-    let mut fehlend = BTreeSet::new();
-    for entry_res in fs::read_dir("licenses").expect("In git-repository eingecheckt.") {
-        match entry_res {
-            Ok(entry) => {
-                let pfad = entry.path();
-                if pfad.is_dir() {
-                    if let Some(pfad_str) = pfad.file_name().and_then(OsStr::to_str) {
-                        if !lizenzen.contains(pfad_str) {
-                            let _ = fehlend.insert(pfad_str.to_owned());
-                        }
-                    } else {
-                        eprintln!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
-                    }
-                }
-            },
-            Err(fehler) => {
-                eprintln!("{fehler:?}");
-            },
-        }
-    }
-    if fehlend.is_empty() {
-        Ok(())
-    } else {
-        let anzahl = fehlend.len();
-        Err((fehlend, anzahl))
-    }
-}
-
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
@@ -185,7 +185,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("bumpalo-2.6.0", "LICENSE-MIT"),
         ("bumpalo-3.9.1", "LICENSE-MIT"),
         ("bytemuck-1.9.1", "LICENSE-MIT"),
-        ("bytemuck_derive-1.1.0", "LICENSE-MIT"),
+        ("bytemuck_derive-1.1.0", "../bytemuck-1.9.1/LICENSE-MIT"),
         ("byteorder-1.4.3", "LICENSE-MIT"),
         ("calloop-0.9.3", "LICENSE.txt"),
         ("cc-1.0.73", "LICENSE-MIT"),

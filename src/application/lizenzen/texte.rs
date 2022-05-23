@@ -14,6 +14,7 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
         None,
         MITZeilenumbruch::Standard,
         MITEinrückung::keine(),
+        false,
         MITEnde::ohne_neue_zeile(),
     )
 }
@@ -21,7 +22,7 @@ pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
 #[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
-    mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), MITEnde::standard())
+    mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), false, MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
@@ -199,6 +200,7 @@ pub fn mit<'t, 'p, 'i>(
     infix: impl Into<Option<MITInfix<'i>>>,
     zeilenumbrüche: MITZeilenumbruch,
     einrückung: MITEinrückung<'_>,
+    including_next_paragraph: bool,
     ende: MITEnde,
 ) -> Cow<'t, str> {
     let präfix_d = OptionD(präfix.into().map(MITPräfix::into), einrückung);
@@ -236,6 +238,8 @@ pub fn mit<'t, 'p, 'i>(
     );
     let iced_wasm_nonempty =
         neue_zeile_oder_leerzeichen([Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche));
+    let including_next_paragraph_str =
+        if including_next_paragraph { " (including the next paragraph)" } else { "" };
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
@@ -308,6 +312,7 @@ pub fn mit<'t, 'p, 'i>(
         "conditions:\n\n",
         einrückung.0,
         "The above copyright notice and this permission notice",
+        including_next_paragraph_str,
         x11,
         "shall be",
         redox,
@@ -482,6 +487,11 @@ impl ApacheCopyright<'_> {
     /// Standard-Werte für Copyright-Informationen in einer Apache-2.0-Lizenz.
     pub fn standard() -> Self {
         ApacheCopyright { brackets: "[]", jahr: "[yyyy]", voller_name: "[name of copyright owner]" }
+    }
+
+    /// Standard-Werte für Copyright-Informationen in einer Apache-2.0-Lizenz mit geschweiften Klammern.
+    pub fn braces() -> Self {
+        ApacheCopyright { brackets: "{}", jahr: "{yyyy}", voller_name: "{name of copyright owner}" }
     }
 }
 
@@ -1236,9 +1246,9 @@ notice described in Exhibit B of this License must be attached.
 Exhibit A - Source Code Form License Notice
 -------------------------------------------
 
-    This Source Code Form is subject to the terms of the Mozilla Public
-    License, v. 2.0. If a copy of the MPL was not distributed with this
-    file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 If it is not possible or desirable to put the notice in a particular
 file, then You may include the notice in a location (such as a LICENSE
@@ -1250,8 +1260,8 @@ You may add additional accurate notices of copyright ownership.
 Exhibit B - "Incompatible With Secondary Licenses" Notice
 ---------------------------------------------------------
 
-    This Source Code Form is "Incompatible With Secondary Licenses", as
-    defined by the Mozilla Public License, v. 2.0.
+  This Source Code Form is "Incompatible With Secondary Licenses", as
+  defined by the Mozilla Public License, v. 2.0.
 "#,
     )
 }
@@ -1284,6 +1294,7 @@ the following restrictions:
 
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
 pub fn ofl_1_1<'t>(
+    copyright_c: bool,
     jahr: &str,
     voller_name: &str,
     font_name: &str,
@@ -1291,12 +1302,15 @@ pub fn ofl_1_1<'t>(
     extra_notice: &str,
     leerzeile: bool,
     neue_zeile_vor_url: bool,
+    extra_leerzeichen: bool,
 ) -> Cow<'t, str> {
+    let copyright_c_str = if copyright_c { "(c) " } else { "" };
     let punkt_nach_font_name_str = if punkt_nach_font_name { "." } else { "" };
     let leerzeile_str = if leerzeile { "\n" } else { "" };
     let neue_zeile_vor_url_str = if neue_zeile_vor_url { "\n" } else { " " };
+    let extra_leerzeichen_str = if extra_leerzeichen { " " } else { "" };
     Cow::Owned(format!(
-        r#"Copyright {jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}
+        r#"Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 {leerzeile_str}This license is copied below, and is also available with a FAQ at:{neue_zeile_vor_url_str}http://scripts.sil.org/OFL
@@ -1315,7 +1329,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
+fonts, including any derivative works, can be bundled, embedded,{extra_leerzeichen_str}
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
