@@ -1,6 +1,9 @@
 //! Ein [Streckenabschnitt] regelt die Stromzufuhr.
 
-use std::sync::Arc;
+use std::{
+    fmt::{self, Display, Formatter},
+    sync::Arc,
+};
 
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -19,6 +22,18 @@ use crate::{
 /// Name eines [Streckenabschnittes](Streckenabschnitt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl Display for Name {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
 
 /// Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, Serialize, Deserialize)]

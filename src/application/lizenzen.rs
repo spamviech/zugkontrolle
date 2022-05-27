@@ -16,11 +16,13 @@ use iced_native::{
     },
     Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
 };
-use unicase::UniCase;
 
-use crate::application::{
-    macros::reexport_no_event_methods,
-    style::{hintergrund, linie::TRENNLINIE},
+use crate::{
+    application::{
+        macros::reexport_no_event_methods,
+        style::{hintergrund, linie::TRENNLINIE},
+    },
+    unicase_ord::UniCaseOrd,
 };
 
 pub mod texte;
@@ -34,7 +36,7 @@ use texte::{
 
 #[derive(Debug, Clone)]
 enum InterneNachricht {
-    Aktuell(UniCase<&'static str>, fn() -> Cow<'static, str>),
+    Aktuell(UniCaseOrd<&'static str>, fn() -> Cow<'static, str>),
     Schließen,
 }
 
@@ -49,12 +51,12 @@ pub enum Nachricht {
 #[derive(Debug)]
 pub struct Zustand {
     lizenzen_und_button_states:
-        BTreeMap<UniCase<&'static str>, (button::State, fn() -> Cow<'static, str>)>,
+        BTreeMap<UniCaseOrd<&'static str>, (button::State, fn() -> Cow<'static, str>)>,
     scrollable_buttons: scrollable::State,
     scrollable_text: scrollable::State,
     scrollable_text_zurücksetzen: bool,
     schließen: button::State,
-    aktuell: Option<(UniCase<&'static str>, Cow<'static, str>)>,
+    aktuell: Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
 }
 
 impl Zustand {
@@ -66,7 +68,7 @@ impl Zustand {
         let lizenzen_und_button_states = lizenzen
             .into_iter()
             .map(|(name, f)| {
-                let unicase_name = UniCase::new(name);
+                let unicase_name = UniCaseOrd::neu(name);
                 if aktuell.is_none() {
                     aktuell = Some((unicase_name, f()));
                 }
@@ -93,7 +95,7 @@ impl Zustand {
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
 pub struct Lizenzen<'a, R> {
     container: Container<'a, InterneNachricht, R>,
-    aktuell: &'a mut Option<(UniCase<&'static str>, Cow<'static, str>)>,
+    aktuell: &'a mut Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
     scrollable_text_zurücksetzen: &'a mut bool,
 }
 

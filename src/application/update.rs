@@ -300,23 +300,9 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
             self.streckenabschnitt_aktuell.entferne_aktuell()
         }
 
-        let nicht_gefunden_nachricht = format!(
-            "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
-            streckenabschnitt_id
-        );
-        let name_clone = streckenabschnitt_id.name.clone();
-        match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
-            Ok(None) => error!("{}", nicht_gefunden_nachricht),
-            Ok(Some(_)) => {},
-            Err(fehler) => self.zeige_message_box(
-                "Fehler bei Streckenabschnitt löschen!".to_string(),
-                format!("{:?}", fehler),
-            ),
-        }
-
         match self.auswahl.overlay_mut() {
             Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
-                streckenabschnitt_auswahl.entfernen(&name_clone);
+                streckenabschnitt_auswahl.entfernen(&streckenabschnitt_id.name);
             },
             modal => {
                 error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
@@ -324,6 +310,19 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                     streckenabschnitt::AuswahlZustand::neu(&self.gleise),
                 ))
             },
+        }
+
+        let nicht_gefunden_nachricht = format!(
+            "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
+            streckenabschnitt_id
+        );
+        match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
+            Ok(None) => error!("{nicht_gefunden_nachricht}"),
+            Ok(Some(_)) => {},
+            Err(fehler) => self.zeige_message_box(
+                "Fehler bei Streckenabschnitt löschen!".to_string(),
+                format!("{:?}", fehler),
+            ),
         }
     }
 

@@ -23,6 +23,7 @@ use crate::{
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
+    unicase_ord::UniCaseOrd,
 };
 pub use crate::{
     application::style::streckenabschnitt as style,
@@ -155,7 +156,7 @@ pub struct AuswahlZustand {
     neu_anschluss_zustand: anschluss::Zustand<anschluss::Output>,
     neu_button_zustand: button::State,
     none_button_zustand: button::State,
-    streckenabschnitte: BTreeMap<Name, (String, Farbe, button::State, button::State)>,
+    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, button::State, button::State)>,
     scrollable_zustand: scrollable::State,
 }
 
@@ -183,9 +184,9 @@ impl AuswahlZustand {
 
     fn iter_map<'t>(
         (name, streckenabschnitt): (&'t Name, &'t Streckenabschnitt),
-    ) -> (Name, (String, Farbe, button::State, button::State)) {
+    ) -> (UniCaseOrd<Name>, (String, Farbe, button::State, button::State)) {
         (
-            name.clone(),
+            UniCaseOrd::neu(name.clone()),
             (
                 streckenabschnitt.lock_anschluss().to_string(),
                 streckenabschnitt.farbe.clone(),
@@ -206,7 +207,7 @@ impl AuswahlZustand {
 
     /// Entferne den Streckenabschnitt mit übergebenen Namen.
     pub fn entfernen(&mut self, name: &Name) {
-        let _ = self.streckenabschnitte.remove(name);
+        let _ = self.streckenabschnitte.remove(&UniCaseOrd::neu(name.clone()));
     }
 
     /// Füge einen neuen Streckenabschnitt hinzu.
@@ -319,21 +320,24 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, R> {
                 )
                 .width(Length::Shrink);
             for (name, (anschluss, farbe, button_zustand, delete_zustand)) in streckenabschnitte {
-                scrollable = scrollable.push(
-                    Row::new()
-                        .push(
-                            Button::new(
-                                button_zustand,
-                                Text::new(&format!("{}: {:?}", name.0, anschluss)),
+                scrollable =
+                    scrollable.push(
+                        Row::new()
+                            .push(
+                                Button::new(
+                                    button_zustand,
+                                    Text::new(&format!("{name}: {anschluss:?}")),
+                                )
+                                .on_press(InterneAuswahlNachricht::Wähle(Some((
+                                    name.clone().into_inner(),
+                                    *farbe,
+                                ))))
+                                .style(style::Auswahl(*farbe)),
                             )
-                            .on_press(InterneAuswahlNachricht::Wähle(Some((name.clone(), *farbe))))
-                            .style(style::Auswahl(*farbe)),
-                        )
-                        .push(
-                            Button::new(delete_zustand, Text::new("X"))
-                                .on_press(InterneAuswahlNachricht::Lösche(name.clone())),
-                        ),
-                );
+                            .push(Button::new(delete_zustand, Text::new("X")).on_press(
+                                InterneAuswahlNachricht::Lösche(name.clone().into_inner()),
+                            )),
+                    );
             }
             scrollable
         })

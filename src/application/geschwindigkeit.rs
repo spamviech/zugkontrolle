@@ -36,6 +36,7 @@ use crate::{
         },
         plan::AktionGeschwindigkeit,
     },
+    unicase_ord::UniCaseOrd,
 };
 
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
@@ -394,7 +395,7 @@ pub struct AuswahlZustand {
         NonEmpty<(OutputSerialisiert, anschluss::Zustand<anschluss::Output>, button::State)>,
     ks_scrollable_zustand: scrollable::State,
     hinzufügen_button_zustand: button::State,
-    geschwindigkeiten: BTreeMap<Name, (String, button::State)>,
+    geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, (String, button::State)>,
     scrollable_zustand: scrollable::State,
 }
 
@@ -427,8 +428,8 @@ impl AuswahlZustand {
 
     fn iter_map<'t, Leiter: 't + Display>(
         (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
-    ) -> (Name, (String, button::State)) {
-        (name.clone(), (geschwindigkeit.to_string(), button::State::new()))
+    ) -> (UniCaseOrd<Name>, (String, button::State)) {
+        (UniCaseOrd::neu(name.clone()), (geschwindigkeit.to_string(), button::State::new()))
     }
 
     /// Füge eine neue [Geschwindigkeit] hinzu.
@@ -443,7 +444,7 @@ impl AuswahlZustand {
 
     /// Entferne eine [Geschwindigkeit].
     pub fn entfernen(&mut self, name: &Name) {
-        let _ = self.geschwindigkeiten.remove(name);
+        let _ = self.geschwindigkeiten.remove(&UniCaseOrd::neu(name.clone()));
     }
 }
 
@@ -665,9 +666,12 @@ where
         );
         for (name, (anschlüsse, button_zustand)) in geschwindigkeiten.iter_mut() {
             let button = Button::new(button_zustand, Text::new("X"))
-                .on_press(InterneAuswahlNachricht::Löschen(name.clone()));
+                .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
             scrollable = scrollable.push(
-                Column::new().push(Text::new(&name.0)).push(Text::new(&*anschlüsse)).push(button),
+                Column::new()
+                    .push(Text::new(name.to_string()))
+                    .push(Text::new(&*anschlüsse))
+                    .push(button),
             );
         }
         let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
