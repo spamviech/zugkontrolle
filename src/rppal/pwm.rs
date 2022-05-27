@@ -45,7 +45,8 @@ impl PwmStore {
 }
 
 #[cfg(raspi)]
-pub type Pwm = rppal::pwm::Pwm;
+#[doc(inline)]
+pub use rppal::pwm::Pwm;
 #[cfg(not(raspi))]
 /// Provides access to the Raspberry Pi’s PWM peripherals.
 #[derive(Debug)]
@@ -285,7 +286,8 @@ impl Pwm {
 }
 
 #[cfg(raspi)]
-pub type Channel = rppal::pwm::Channel;
+#[doc(inline)]
+pub use rppal::pwm::Channel;
 #[cfg(not(raspi))]
 /// Pwm channels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -303,7 +305,8 @@ impl Display for Channel {
 }
 
 #[cfg(raspi)]
-pub type Polarity = rppal::pwm::Polarity;
+#[doc(inline)]
+pub use rppal::pwm::Polarity;
 #[cfg(not(raspi))]
 /// Polarity of a pwm pulse.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -317,7 +320,8 @@ pub enum Polarity {
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(raspi)]
-pub type Error = rppal::pwm::Error;
+#[doc(inline)]
+pub use rppal::pwm::Error;
 #[cfg(not(raspi))]
 /// Errors that can occur when accessing the PWM peripheral.
 #[derive(Debug)]

@@ -35,7 +35,8 @@ impl GpioStore {
 }
 
 #[cfg(raspi)]
-pub type Gpio = rppal::gpio::Gpio;
+#[doc(inline)]
+pub use rppal::gpio::Gpio;
 #[cfg(not(raspi))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
@@ -71,7 +72,8 @@ impl Gpio {
 }
 
 #[cfg(raspi)]
-pub type Pin = rppal::gpio::Pin;
+#[doc(inline)]
+pub use rppal::gpio::Pin;
 #[cfg(not(raspi))]
 /// Unconfigured GPIO pin.
 #[derive(Debug, PartialEq, Eq)]
@@ -150,7 +152,8 @@ impl Pin {
 }
 
 #[cfg(raspi)]
-pub type InputPin = rppal::gpio::InputPin;
+#[doc(inline)]
+pub use rppal::gpio::InputPin;
 #[cfg(not(raspi))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
@@ -224,7 +227,8 @@ impl InputPin {
 }
 
 #[cfg(raspi)]
-pub type OutputPin = rppal::gpio::OutputPin;
+#[doc(inline)]
+pub use rppal::gpio::OutputPin;
 #[cfg(not(raspi))]
 #[derive(Debug, PartialEq, Eq)]
 /// GPIO pin configured as output.
@@ -289,7 +293,8 @@ impl OutputPin {
 }
 
 #[cfg(raspi)]
-pub type Level = rppal::gpio::Level;
+#[doc(inline)]
+pub use rppal::gpio::Level;
 #[cfg(not(raspi))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -312,7 +317,8 @@ impl Not for Level {
 }
 
 #[cfg(raspi)]
-pub type PullUpDown = rppal::gpio::PullUpDown;
+#[doc(inline)]
+pub use rppal::gpio::PullUpDown;
 #[cfg(not(raspi))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
@@ -324,7 +330,8 @@ pub enum PullUpDown {
 }
 
 #[cfg(raspi)]
-pub type Trigger = rppal::gpio::Trigger;
+#[doc(inline)]
+pub use rppal::gpio::Trigger;
 #[cfg(not(raspi))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -340,7 +347,8 @@ pub enum Trigger {
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(raspi)]
-pub type Error = rppal::gpio::Error;
+#[doc(inline)]
+pub use rppal::gpio::Error;
 #[cfg(not(raspi))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
