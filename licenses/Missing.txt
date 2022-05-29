@@ -2,6 +2,8 @@ block-0.1.6: MIT
     http://github.com/SSheldon/rust-block
     None in repository
     objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-block/issues/13
 
 critical-section-0.2.7: Apache-2.0 or MIT
     https://github.com/embassy-rs/critical-section
@@ -13,10 +15,13 @@ dispatch-0.2.0: MIT
     None in repository
     http://github.com/SSheldon/rust-dispatch
     objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-dispatch/issues/18
 
 fxhash-0.2.1: Apache-2.0/MIT
     https://github.com/cbreeden/fxhash
-    None in repository
+    None in repository (Issue already open)
+    https://github.com/cbreeden/fxhash/issues/9
 
 glow_glyph-0.4.0: MIT
     https://github.com/hecrj/glow_glyph
@@ -27,11 +32,14 @@ objc-foundation-0.1.1: MIT
     http://github.com/SSheldon/rust-objc-foundation
     None in repository
     objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc-foundation/issues/12
 
 objc_id-0.1.1: MIT
     http://github.com/SSheldon/rust-objc-id
     None in repository
     objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-objc-id/issues/6
 
 osmesa-sys-0.1.2: CC0-1.0
     https://github.com/Daggerbot/osmesa-rs.git
@@ -46,6 +54,7 @@ sid-0.6.1: MIT/Apache-2.0
     https://github.com/nical/sid
     None in repository
     Author of (among others) lyon
+    https://github.com/nical/lyon
 
 winapi-wsapoll-0.1.1: MIT OR Apache-2.0
     https://github.com/psychon/winapi-wsapoll
