@@ -208,20 +208,9 @@ impl MITZeilenumbruch {
     }
 }
 
-#[test]
-/// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
-fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
-    let mut log_spec_builder = LogSpecBuilder::new();
-    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
-    let log_spec = log_spec_builder.finalize();
-    let _log_handle = Logger::with(log_spec)
-        .log_to_stderr()
-        .start()
-        .expect("Logging initialisieren fehlgeschlagen!");
-
-    let lizenzen = verwendete_lizenzen();
-    // Lizenz-Dateien, die nicht "LICENSE" heißen.
-    let lizenz_dateien = BTreeMap::from([
+/// Lizenz-Dateien, die nicht "LICENSE" heißen.
+fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
+    BTreeMap::from([
         ("Lato", "../iced_graphics-0.3.0/fonts/OFL.txt"),
         ("SourceSerif4-Regular", "../../fonts/source-serif/LICENSE.md"),
         ("aho-corasick-0.7.18", "LICENSE-MIT"),
@@ -447,7 +436,22 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("x11-dl-2.19.1", "LICENSE-MIT"),
         ("x11rb-0.9.0", "LICENSE-MIT"),
         ("xi-unicode-0.3.0", "LICENSE-GITHUB"),
-    ]);
+    ])
+}
+
+#[test]
+/// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
+fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
+    let mut log_spec_builder = LogSpecBuilder::new();
+    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
+    let log_spec = log_spec_builder.finalize();
+    let _log_handle = Logger::with(log_spec)
+        .log_to_stderr()
+        .start()
+        .expect("Logging initialisieren fehlgeschlagen!");
+
+    let lizenzen = verwendete_lizenzen();
+    let lizenz_dateien = lizenz_dateien();
 
     let mut unterschiede = BTreeMap::new();
     let is_diff = |diff: &Difference| {
