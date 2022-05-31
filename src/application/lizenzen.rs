@@ -248,9 +248,9 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
-// TODO Fehlende Lizenztexte suchen.
+// TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken.
-pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
+pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -538,7 +538,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
-    vec![
+    [
         ("SourceSerif4-Regular", || {
             let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
             ofl_1_1(

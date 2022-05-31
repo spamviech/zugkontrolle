@@ -31,6 +31,10 @@ impl<T: Display> Display for OptionD<'_, T> {
     }
 }
 
+// TODO für verwendete Lizenzen verwenden
+// current_platform = "0.2.0", zum herausfinden der aktuellen target-platform
+// alle_lizenzen testet für alle Release-Plattformen, passende_lizenzen wie bisher
+// evtl. fallen dadurch einige crates mit fehlender Lizenz weg?
 #[test]
 fn metadata() -> Result<(), cargo_metadata::Error> {
     for platform in ["x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"] {
