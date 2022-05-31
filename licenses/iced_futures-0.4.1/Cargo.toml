@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "iced_futures"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 description = "Commands, subscriptions, and runtimes for Iced"
 documentation = "https://docs.rs/iced_futures"

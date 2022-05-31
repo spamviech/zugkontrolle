@@ -697,6 +697,9 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
+        ("camino-1.0.9", mit_ohne_copyright_x11),
+        ("cargo_metadata-0.14.2", mit_ohne_copyright_x11),
+        ("cargo-platform-0.1.2", mit_ohne_copyright_x11),
         ("cc-1.0.73", wasm_bindgen_lizenz),
         ("cfg-if-0.1.10", wasm_bindgen_lizenz),
         ("cfg-if-1.0.0", wasm_bindgen_lizenz),
@@ -939,11 +942,11 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("iced_core-0.4.0", iced_lizenz),
         ("iced_core-0.5.0", iced_lizenz),
         ("iced_futures-0.3.0", iced_lizenz),
-        ("iced_futures-0.4.0", iced_lizenz),
+        ("iced_futures-0.4.1", iced_lizenz),
         ("iced_glow-0.3.0", iced_lizenz),
         ("iced_glutin-0.3.0", iced_lizenz),
         ("iced_graphics-0.3.0", iced_lizenz),
-        ("iced_native-0.5.0", iced_lizenz),
+        ("iced_native-0.5.1", iced_lizenz),
         ("iced_style-0.3.0", iced_lizenz),
         ("iced_style-0.4.0", iced_lizenz),
         ("iced_web-0.4.0", iced_lizenz),
@@ -1131,7 +1134,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("objc-foundation-0.1.1", mit_plain), // TODO
         ("objc_id-0.1.1", mit_plain),         // TODO
-        ("once_cell-1.11.0", mit_ohne_copyright_x11),
+        ("once_cell-1.12.0", mit_ohne_copyright_x11),
         ("ordered-float-3.0.0", || {
             mit(
                 None,
@@ -1152,7 +1155,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
             )
         }),
         ("parking_lot-0.11.2", mit_rust_project_developers_lizenz_2016),
-        ("parking_lot-0.12.0", mit_rust_project_developers_lizenz_2016),
+        ("parking_lot-0.12.1", mit_rust_project_developers_lizenz_2016),
         ("parking_lot_core-0.8.5", mit_rust_project_developers_lizenz_2016),
         ("parking_lot_core-0.9.3", mit_rust_project_developers_lizenz_2016),
         ("percent-encoding-2.1.0", || {
@@ -1251,6 +1254,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         ("rustc_version-0.2.3", mit_rust_project_developers_lizenz_2016),
         ("rustc_version-0.4.0", mit_rust_project_developers_lizenz_2016),
         ("rustversion-1.0.6", mit_ohne_copyright_x11),
+        ("ryu-1.0.10", || apache_2_0_eingerückt(false, ApacheCopyright::standard(), true)),
         ("scoped-tls-1.0.0", wasm_bindgen_lizenz),
         ("scopeguard-1.1.0", || {
             mit(
@@ -1282,6 +1286,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
         }),
         ("serde-1.0.137", serde_lizenz),
         ("serde_derive-1.0.137", serde_lizenz),
+        ("serde_json-1.0.81", serde_lizenz),
         ("shared_library-0.1.9", || {
             mit(
                 None,
@@ -1372,7 +1377,7 @@ pub fn verwendete_lizenzen() -> Vec<(&'static str, fn() -> Cow<'static, str>)> {
                 MITEnde::standard(),
             )
         }),
-        ("str-buf-1.0.5", bsl_1_0),
+        ("str-buf-1.0.6", bsl_1_0),
         ("strsim-0.10.0", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 2),

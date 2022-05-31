@@ -3,11 +3,12 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     ffi::OsStr,
-    fmt::Write,
+    fmt::{self, Display, Formatter, Write},
     fs,
     str::Split,
 };
 
+use cargo_metadata::MetadataCommand;
 use difference::{Changeset, Difference};
 use either::Either;
 use flexi_logger::{LogSpecBuilder, Logger};
@@ -18,12 +19,44 @@ use crate::application::lizenzen::{
     verwendete_lizenzen,
 };
 
-// regex ist nur eine dev-dependency, damit es heruntergeladen wird.
-// Es ist Teil des dependency trees für riscv targets.
-use regex as _;
+struct OptionD<'t, T>(&'t str, Option<T>);
+
+impl<T: Display> Display for OptionD<'_, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(präfix, Some(t)) = self {
+            write!(f, "{präfix}{t}")
+        } else {
+            Ok(())
+        }
+    }
+}
 
 #[test]
-fn metadata() {}
+fn metadata() -> Result<(), cargo_metadata::Error> {
+    for platform in ["x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"] {
+        println!("-------------------------\n{platform}",);
+        let metadata = MetadataCommand::new()
+            .other_options(["--filter-platform".into(), platform.into()])
+            .exec()?;
+        let packages: Vec<_> = metadata
+            .packages
+            .iter()
+            .map(|package| {
+                format!(
+                    "{}-{}{}",
+                    package.name,
+                    package.version,
+                    OptionD(": ", package.repository.as_ref())
+                )
+            })
+            .collect();
+        for package in packages {
+            println!("{package}");
+        }
+        println!("-> {}", metadata.packages.len());
+    }
+    Ok(())
+}
 
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
@@ -210,6 +243,9 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("bytemuck_derive-1.1.0", "../bytemuck-1.9.1/LICENSE-MIT"),
         ("byteorder-1.4.3", "LICENSE-MIT"),
         ("calloop-0.9.3", "LICENSE.txt"),
+        ("camino-1.0.9", "LICENSE-MIT"),
+        ("cargo_metadata-0.14.2", "LICENSE-MIT"),
+        ("cargo-platform-0.1.2", "LICENSE-MIT"),
         ("cc-1.0.73", "LICENSE-MIT"),
         ("cfg-if-0.1.10", "LICENSE-MIT"),
         ("cfg-if-1.0.0", "LICENSE-MIT"),
@@ -268,11 +304,11 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("iced_core-0.4.0", "LICENSE-GITHUB"),
         ("iced_core-0.5.0", "LICENSE-GITHUB"),
         ("iced_futures-0.3.0", "LICENSE-GITHUB"),
-        ("iced_futures-0.4.0", "LICENSE-GITHUB"),
+        ("iced_futures-0.4.1", "LICENSE-GITHUB"),
         ("iced_glow-0.3.0", "LICENSE-GITHUB"),
         ("iced_glutin-0.3.0", "LICENSE-GITHUB"),
         ("iced_graphics-0.3.0", "LICENSE-GITHUB"),
-        ("iced_native-0.5.0", "LICENSE-GITHUB"),
+        ("iced_native-0.5.1", "LICENSE-GITHUB"),
         ("iced_style-0.3.0", "LICENSE-GITHUB"),
         ("iced_style-0.4.0", "LICENSE-GITHUB"),
         ("iced_web-0.4.0", "LICENSE-GITHUB"),
@@ -316,11 +352,11 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("objc-0.2.7", "LICENSE.txt"),
         ("objc-foundation-0.1.1", "TODO"), // TODO
         ("objc_id-0.1.1", "TODO"),         // TODO
-        ("once_cell-1.11.0", "LICENSE-MIT"),
+        ("once_cell-1.12.0", "LICENSE-MIT"),
         ("ordered-float-3.0.0", "LICENSE-MIT"),
         ("osmesa-sys-0.1.2", "TODO"), // TODO
         ("parking_lot-0.11.2", "LICENSE-MIT"),
-        ("parking_lot-0.12.0", "LICENSE-MIT"),
+        ("parking_lot-0.12.1", "LICENSE-MIT"),
         ("parking_lot_core-0.8.5", "LICENSE-MIT"),
         ("parking_lot_core-0.9.3", "LICENSE-MIT"),
         ("percent-encoding-2.1.0", "LICENSE-MIT"),
@@ -346,6 +382,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("rustc_version-0.2.3", "LICENSE-MIT"),
         ("rustc_version-0.4.0", "LICENSE-MIT"),
         ("rustversion-1.0.6", "LICENSE-MIT"),
+        ("ryu-1.0.10", "LICENSE-APACHE"),
         ("scoped-tls-1.0.0", "LICENSE-MIT"),
         ("scopeguard-1.1.0", "LICENSE-MIT"),
         ("semver-0.9.0", "LICENSE-MIT"),
@@ -353,13 +390,14 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         ("semver-parser-0.7.0", "LICENSE-MIT"),
         ("serde-1.0.137", "LICENSE-MIT"),
         ("serde_derive-1.0.137", "LICENSE-MIT"),
+        ("serde_json-1.0.81", "LICENSE-MIT"),
         ("shared_library-0.1.9", "LICENSE-MIT"),
         ("sid-0.6.1", "TODO"), // TODO
         ("smallvec-1.8.0", "LICENSE-MIT"),
         ("smithay-client-toolkit-0.15.4", "LICENSE.txt"),
         ("stable_deref_trait-1.2.0", "LICENSE-MIT"),
         ("static_assertions-1.1.0", "LICENSE-MIT"),
-        ("str-buf-1.0.5", "LICENSE-GITHUB"),
+        ("str-buf-1.0.6", "LICENSE-GITHUB"),
         ("syn-1.0.95", "LICENSE-MIT"),
         ("thiserror-1.0.31", "LICENSE-MIT"),
         ("thiserror-impl-1.0.31", "LICENSE-MIT"),
@@ -479,6 +517,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                         }
                         fehlermeldung.push('\n');
                         fehlermeldung.push_str(name);
+                        fehlermeldung.push('\n');
                     }
                 },
                 Either::Right((lizenz_pfad, lese_fehler)) => {

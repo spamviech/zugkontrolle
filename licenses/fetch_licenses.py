@@ -95,7 +95,8 @@ def extract_repository_and_license(cargo_toml_path):
                     elif line.startswith("["):
                         break
     else:
-        print(f"Cargo.toml not found in \"{cargo_toml_path}\"")
+        print("Missing Cargo.toml")
+        print(f"\t{cargo_toml_path}")
     return repository, license
 
 def make_https(url):
