@@ -3,12 +3,15 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     ffi::OsStr,
+    fmt::Write,
     fs,
     str::Split,
 };
 
 use difference::{Changeset, Difference};
 use either::Either;
+use flexi_logger::{LogSpecBuilder, Logger};
+use log::{error, LevelFilter};
 
 use crate::application::lizenzen::{
     texte::{mit_ohne_copyright, MITZeilenumbruch},
@@ -20,9 +23,20 @@ use crate::application::lizenzen::{
 use regex as _;
 
 #[test]
+fn metadata() {}
+
+#[test]
 /// Test ob alle Lizenzen angezeigt werden.
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
 fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
+    let mut log_spec_builder = LogSpecBuilder::new();
+    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
+    let log_spec = log_spec_builder.finalize();
+    let _log_handle = Logger::with(log_spec)
+        .log_to_stderr()
+        .start()
+        .expect("Logging initialisieren fehlgeschlagen!");
+
     // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
     // alternative direkt in rust, z.B. mit dev-dependency
     // cargo-lock = "8.0.1"
@@ -39,12 +53,12 @@ fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
                             let _ = fehlend.insert(pfad_str.to_owned());
                         }
                     } else {
-                        eprintln!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
+                        error!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
                     }
                 }
             },
             Err(fehler) => {
-                eprintln!("{fehler:?}");
+                error!("{fehler:?}");
             },
         }
     }
@@ -164,6 +178,14 @@ impl MITZeilenumbruch {
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
+    let mut log_spec_builder = LogSpecBuilder::new();
+    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
+    let log_spec = log_spec_builder.finalize();
+    let _log_handle = Logger::with(log_spec)
+        .log_to_stderr()
+        .start()
+        .expect("Logging initialisieren fehlgeschlagen!");
+
     let lizenzen = verwendete_lizenzen();
     // Lizenz-Dateien, die nicht "LICENSE" heißen.
     let lizenz_dateien = BTreeMap::from([
@@ -430,17 +452,11 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
     if unterschiede.is_empty() {
         Ok(())
     } else {
-        let mut not_first = false;
         for (name, changeset_oder_fehler) in unterschiede.iter() {
-            if not_first {
-                eprintln!("---------------------------------");
-            } else {
-                not_first = true;
-            }
-            eprintln!("{name}");
+            let mut fehlermeldung = format!("{name}\x1b[0m\n");
             match changeset_oder_fehler {
                 Either::Left((changeset, mit_changesets)) => {
-                    eprintln!("{}", changeset_als_string(changeset));
+                    fehlermeldung.push_str(&changeset_als_string(changeset));
                     if let Some((zeilenumbrüche, mit_changeset)) =
                         mit_changesets.iter().min_by_key(|(_z, c)| c.distance)
                     {
@@ -454,20 +470,26 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                         // Zeige nur Changesets mit mindestens einer Übereinstimmung.
                         // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
                         if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
-                            eprintln!("\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}");
-                            eprintln!("{}", changeset_als_string(mit_changeset));
+                            writeln!(
+                                fehlermeldung,
+                                "\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}\n{}",
+                                changeset_als_string(mit_changeset)
+                            )
+                            .unwrap();
                         }
-                        eprintln!("\n{name}");
+                        fehlermeldung.push('\n');
+                        fehlermeldung.push_str(name);
                     }
                 },
                 Either::Right((lizenz_pfad, lese_fehler)) => {
-                    eprintln!("Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":");
-                    eprintln!("{lese_fehler}");
+                    writeln!(
+                        fehlermeldung,
+                        "Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":\n{lese_fehler}"
+                    )
+                    .unwrap();
                 },
             }
-        }
-        if not_first {
-            eprintln!("---------------------------------");
+            error!("{fehlermeldung}")
         }
         let set: BTreeSet<_> = unterschiede.into_keys().collect();
         let anzahl = set.len();

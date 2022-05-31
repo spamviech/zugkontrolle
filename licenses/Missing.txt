@@ -1,3 +1,9 @@
+android-glue-0.2.3: MIT
+    https://github.com/tomaka/android-rs-glue
+    https://github.com/rust-windowing/android-rs-glue
+    Cargo.toml sagt MIT, enthaltene Lizenz ist Apache-2.0
+    https://github.com/rust-windowing/android-rs-glue/issues/179
+
 block-0.1.6: MIT
     http://github.com/SSheldon/rust-block
     None in repository

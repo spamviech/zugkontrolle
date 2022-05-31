@@ -18,7 +18,7 @@ fn drop_semantics() {
         .default(log::LevelFilter::Error)
         .module("zugkontrolle", log::LevelFilter::Debug);
     let log_spec = log_spec_builder.finalize();
-    let log_handle = Logger::with(log_spec)
+    let _log_handle = Logger::with(log_spec)
         .log_to_stderr()
         .start()
         .expect("Logging initialisieren fehlgeschlagen!");
@@ -71,8 +71,6 @@ fn drop_semantics() {
         port0,
         "Aufruf von llln nach erneutem drop.",
     );
-
-    drop(log_handle);
 }
 
 impl Lager {
