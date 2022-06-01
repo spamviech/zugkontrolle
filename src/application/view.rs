@@ -249,7 +249,7 @@ where
                 NachrichtClone::Skalieren(Skalar(exponent.exp()))
             })
             .step(0.01)
-            .width(Length::Units(100)),
+            .width(Length::Units(75)),
         )
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
@@ -261,31 +261,17 @@ where
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
-        row = row
-            .push(
-                Element::from(streckenabschnitt::Anzeige::neu(
-                    streckenabschnitt,
-                    *streckenabschnitt_festlegen,
-                ))
-                .map(|message| match message {
-                    streckenabschnitt::AnzeigeNachricht::Auswählen => {
-                        Nachricht::ZeigeAuswahlStreckenabschnitt
-                    },
-                    streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
-                        Nachricht::StreckenabschnittFestlegen(festlegen)
-                    },
-                }),
-            )
-            .push(
-                Element::new(
-                    iced::Button::new(
-                        geschwindigkeit_button_zustand,
-                        Text::new("Geschwindigkeiten"),
-                    )
-                    .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
-                )
-                .map(Nachricht::from),
-            );
+        let geschwindigkeit = Element::new(
+            iced::Button::new(geschwindigkeit_button_zustand, Text::new("Geschwindigkeiten"))
+                .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
+        )
+        .map(Nachricht::from);
+        let streckenabschnitt = Element::new(streckenabschnitt::Anzeige::neu(
+            streckenabschnitt,
+            *streckenabschnitt_festlegen,
+        ))
+        .map(Nachricht::from);
+        row = row.push(Column::new().push(geschwindigkeit).push(streckenabschnitt).spacing(1));
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))

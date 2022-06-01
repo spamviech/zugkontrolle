@@ -252,6 +252,19 @@ impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
     }
 }
 
+impl<L: Leiter + Serialisiere> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L> {
+    fn from(nachricht: streckenabschnitt::AnzeigeNachricht) -> Self {
+        match nachricht {
+            streckenabschnitt::AnzeigeNachricht::Auswählen => {
+                Nachricht::ZeigeAuswahlStreckenabschnitt
+            },
+            streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
+                Nachricht::StreckenabschnittFestlegen(festlegen)
+            },
+        }
+    }
+}
+
 impl<T, Leiter> KnopfNachricht<NachrichtClone<Leiter>> for T
 where
     T: Clone + Into<AnyGleisUnit>,
