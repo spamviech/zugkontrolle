@@ -78,7 +78,8 @@ fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
     // alternative direkt in rust, z.B. mit dev-dependency
     // cargo-lock = "8.0.1"
 
-    let lizenzen: BTreeSet<_> = verwendete_lizenzen().into_iter().map(|(name, _f)| name).collect();
+    let lizenzen: BTreeSet<_> =
+        verwendete_lizenzen(todo!("platform")).into_iter().map(|(name, _f)| name).collect();
     let mut fehlend = BTreeSet::new();
     for entry_res in fs::read_dir("licenses").expect("In git-repository eingecheckt.") {
         match entry_res {
@@ -454,7 +455,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         .start()
         .expect("Logging initialisieren fehlgeschlagen!");
 
-    let lizenzen = verwendete_lizenzen();
+    let lizenzen = verwendete_lizenzen(todo!("platform"));
     let lizenz_dateien = lizenz_dateien();
 
     let mut unterschiede = BTreeMap::new();

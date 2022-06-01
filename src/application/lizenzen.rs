@@ -2,10 +2,12 @@
 
 use std::{
     borrow::Cow,
-    collections::BTreeMap,
+    collections::{hash_map::Entry, BTreeMap, HashMap, HashSet},
     fmt::{self, Debug, Formatter},
 };
 
+use cargo_metadata::MetadataCommand;
+use current_platform::CURRENT_PLATFORM;
 use iced_native::{
     event::{self, Event},
     text,
@@ -16,6 +18,8 @@ use iced_native::{
     },
     Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
 };
+use log::error;
+use parking_lot::{const_mutex, Mutex};
 
 use crate::{
     application::{
@@ -88,7 +92,7 @@ impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
     pub fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(verwendete_lizenzen())
+        Self::neu(verwendete_lizenzen(CURRENT_PLATFORM))
     }
 }
 
@@ -248,9 +252,25 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
+/// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
+fn target_crates(target: &str) -> Result<HashSet<String>, cargo_metadata::Error> {
+    let metadata =
+        MetadataCommand::new().other_options(["--filter-platform".into(), target.into()]).exec()?;
+    let packages = metadata
+        .packages
+        .iter()
+        .map(|package| format!("{}-{}", package.name, package.version))
+        .collect();
+    Ok(packages)
+}
+
+static TARGET_CRATES: Mutex<Option<HashMap<&'static str, HashSet<String>>>> = const_mutex(None);
+
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
-/// Die Lizenzen der verwendeter Open-Source Bibliotheken.
-pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278] {
+/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
+pub fn verwendete_lizenzen(
+    target: &'static str,
+) -> BTreeMap<&'static str, fn() -> Cow<'static, str>> {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -538,7 +558,16 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
-    [
+    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 269] = [
+        // ("block-0.1.6", mit_plain), // TODO
+        // ("critical-section-0.2.7", mit_plain), // TODO
+        // ("fxhash-0.2.1", mit_plain), // TODO
+        // ("glow_glyph-0.5.1", mit_plain), // TODO
+        // ("objc-foundation-0.1.1", mit_plain), // TODO
+        // ("objc_id-0.1.1", mit_plain),         // TODO
+        // ("osmesa-sys-0.1.2", cc_0), // TODO
+        // ("sid-0.6.1", mit_plain), // TODO
+        // ("winapi-wsapoll-0.1.1", mit_plain), // TODO
         ("SourceSerif4-Regular", || {
             let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
             ofl_1_1(
@@ -577,7 +606,7 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
                 true,
             )
-        }), // TODO Cargo.toml nennt MIT license
+        }),
         ("ansi_term-0.12.1", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 2),
@@ -670,7 +699,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::standard(),
             )
         }),
-        ("block-0.1.6", mit_plain), // TODO
         ("bumpalo-2.6.0", wasm_bindgen_lizenz),
         ("bumpalo-3.9.1", || {
             mit(
@@ -764,7 +792,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::standard(),
             )
         }),
-        ("critical-section-0.2.7", mit_plain), // TODO
         ("crossbeam-channel-0.5.4", crossbeam_lizenz),
         ("crossbeam-deque-0.8.1", crossbeam_lizenz),
         ("crossbeam-epoch-0.9.8", crossbeam_lizenz),
@@ -868,7 +895,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
         ("futures-sink-0.3.21", futures_lizenz),
         ("futures-task-0.3.21", futures_lizenz),
         ("futures-util-0.3.21", futures_lizenz),
-        ("fxhash-0.2.1", mit_plain), // TODO
         ("gethostname-0.2.3", || {
             apache_2_0(
                 false,
@@ -912,7 +938,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::ohne_neue_zeile(),
             )
         }),
-        ("glow_glyph-0.5.1", mit_plain), // TODO
         ("glutin-0.28.0", glutin_lizenz),
         ("glutin_egl_sys-0.1.5", glutin_lizenz),
         ("glutin_emscripten_sys-0.1.1", glutin_lizenz),
@@ -1132,8 +1157,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::standard(),
             )
         }),
-        ("objc-foundation-0.1.1", mit_plain), // TODO
-        ("objc_id-0.1.1", mit_plain),         // TODO
         ("once_cell-1.12.0", mit_ohne_copyright_x11),
         ("ordered-float-3.0.0", || {
             mit(
@@ -1146,7 +1169,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::standard(),
             )
         }),
-        ("osmesa-sys-0.1.2", cc_0), // TODO
         ("owned_ttf_parser-0.15.0", || {
             apache_2_0_eingerückt(
                 false,
@@ -1298,7 +1320,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::ohne_neue_zeile(),
             )
         }),
-        ("sid-0.6.1", mit_plain), // TODO
         ("slab-0.4.6", || {
             mit(
                 None,
@@ -1528,7 +1549,6 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
         ("web-sys-0.3.57", wasm_bindgen_lizenz),
         ("winapi-0.3.9", winapi_lizenz),
         ("winapi-i686-pc-windows-gnu-0.4.0", winapi_lizenz),
-        ("winapi-wsapoll-0.1.1", mit_plain), // TODO
         ("winapi-x86_64-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("windows-sys-0.36.1", widows_sys_lizenz),
         ("windows_aarch64_msvc-0.36.1", widows_sys_lizenz),
@@ -1605,7 +1625,22 @@ pub fn verwendete_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 278]
                 MITEnde::standard(),
             )
         }),
-    ]
+    ];
+    let target_crates_cache = &mut *TARGET_CRATES.lock();
+    let target_crates_map = target_crates_cache.get_or_insert_with(HashMap::new);
+    let filter_lizenzen = |target_crates: &HashSet<String>| {
+        alle_lizenzen.into_iter().filter(|(k, _v)| target_crates.contains(*k)).collect()
+    };
+    match target_crates_map.entry(target) {
+        Entry::Occupied(occupied_entry) => filter_lizenzen(occupied_entry.get()),
+        Entry::Vacant(vacant_entry) => match target_crates(target) {
+            Ok(crates) => filter_lizenzen(vacant_entry.insert(crates)),
+            Err(fehler) => {
+                error!("{fehler}");
+                alle_lizenzen.into()
+            },
+        },
+    }
 }
 
 #[cfg(test)]
