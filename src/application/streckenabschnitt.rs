@@ -97,18 +97,18 @@ impl<'a, R: 'a + text::Renderer> Anzeige<'a, R> {
     /// Erstelle eine neue [Anzeige].
     pub fn neu(zustand: &'a mut AnzeigeZustand, festlegen: bool) -> Self {
         let mut children = Vec::new();
-        let column = Column::new()
-            .push(Container::new(Text::new("Streckenabschnitt")).style(style::Beschreibung));
         // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_id, farbe)) = &zustand.aktuell {
-            children.push(column.push(Text::new(&streckenabschnitt_id.name.0)).into());
+            children.push(Text::new(&streckenabschnitt_id.name.0).into());
             style::Anzeige::Farbe(*farbe)
         } else {
-            children.push(column.push(Text::new("<Name>")).into());
+            children.push(
+                Container::new(Text::new("<Streckenabschnitt>")).style(style::Beschreibung).into(),
+            );
             style::Anzeige::Deaktiviert
         };
         children.push(
-            Column::new()
+            Row::new()
                 .push(
                     Button::new(&mut zustand.auswählen, Text::new("Auswählen"))
                         .on_press(AnzeigeNachricht::Auswählen),
@@ -117,9 +117,11 @@ impl<'a, R: 'a + text::Renderer> Anzeige<'a, R> {
                 .spacing(1)
                 .into(),
         );
-        let container =
-            Container::new(Row::with_children(children).spacing(1).align_items(Alignment::Center))
-                .style(style);
+        let container = Container::new(
+            Column::with_children(children).spacing(1).align_items(Alignment::Center),
+        )
+        .padding(1)
+        .style(style);
         Anzeige { container }
     }
 }
