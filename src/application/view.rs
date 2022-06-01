@@ -201,14 +201,17 @@ where
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
-        Modal::neu(message_box, modal, |MessageBox { titel, nachricht, button_zustand }| {
+        Modal::neu(message_box, modal, |message_box| {
+            let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
             Element::from(
                 iced_aw::Card::new(
                     Text::new(&*titel),
-                    Column::new().push(Text::new(&*nachricht)).push(
-                        iced::Button::new(button_zustand, Text::new("Ok"))
-                            .on_press(NachrichtClone::SchließeMessageBox),
-                    ),
+                    Column::new()
+                        .push(Scrollable::new(scrollable_zustand).push(Text::new(&*nachricht)))
+                        .push(
+                            iced::Button::new(button_zustand, Text::new("Ok"))
+                                .on_press(NachrichtClone::SchließeMessageBox),
+                        ),
                 )
                 .width(Length::Shrink),
             )

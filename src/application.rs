@@ -370,6 +370,7 @@ struct MessageBox {
     titel: String,
     nachricht: String,
     button_zustand: iced::button::State,
+    scrollable_zustand: iced::scrollable::State,
 }
 
 /// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.

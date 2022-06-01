@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use iced::{button, Command};
+use iced::{button, scrollable, Command};
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
@@ -65,6 +65,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
             titel,
             nachricht,
             button_zustand: button::State::new(),
+            scrollable_zustand: scrollable::State::new(),
         })
     }
 
