@@ -36,7 +36,7 @@ static RELEASE_TARGETS: [&'static str; 2] =
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
-fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
+fn alle_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
     let mut log_spec_builder = LogSpecBuilder::new();
     let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
     let log_spec = log_spec_builder.finalize();
@@ -45,17 +45,13 @@ fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
         .start()
         .expect("Logging initialisieren fehlgeschlagen!");
 
-    // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
-    // alternative direkt in rust, z.B. mit dev-dependency
-    // cargo-lock = "8.0.1"
-
     let mut fehlend = BTreeSet::new();
     for target in RELEASE_TARGETS {
         let target_crates = target_crates(target).expect("cargo metadata failed!");
         let lizenzen: HashSet<_> =
             verwendete_lizenzen(target).into_iter().map(|(name, _f)| name).collect();
         fehlend.extend(target_crates.into_iter().filter(|crate_name| {
-            !lizenzen.contains(crate_name.as_str()) && !crate_name.starts_with("zugkontrolle")
+            !lizenzen.contains(crate_name) && !crate_name.starts_with("zugkontrolle")
         }));
     }
     if fehlend.is_empty() {
@@ -173,6 +169,10 @@ impl MITZeilenumbruch {
 
 /// Lizenz-Dateien, die nicht "LICENSE" heißen.
 fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
+    // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
+    // alternative direkt in rust, z.B. mit dev-dependency
+    // cargo-lock = "8.0.1"
+
     BTreeMap::from([
         ("block-0.1.6", "TODO"),           // TODO Missing
         ("dispatch-0.2.0", "TODO"),        // TODO Missing

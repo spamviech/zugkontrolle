@@ -2639,7 +2639,6 @@ name = "zugkontrolle"
 version = "3.0.0"
 dependencies = [
  "bincode",
- "cargo_metadata",
  "cfg_aliases",
  "current_platform",
  "difference",
@@ -2669,6 +2668,7 @@ dependencies = [
 name = "zugkontrolle-macros"
 version = "3.0.0"
 dependencies = [
+ "cargo_metadata",
  "heck",
  "proc-macro-crate",
  "proc-macro2",

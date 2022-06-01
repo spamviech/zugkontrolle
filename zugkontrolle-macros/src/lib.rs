@@ -147,3 +147,12 @@ pub fn derive_from(input: TokenStream) -> TokenStream {
 
     sum_type_from::impl_from(ast).into()
 }
+
+mod metadata;
+#[proc_macro]
+/// Parse `cargo metadata` um verwendete crates für ein target zu erhalten.
+pub fn verwendete_crates(input: TokenStream) -> TokenStream {
+    let target = parse_macro_input!(input);
+
+    metadata::verwendete_crates(target).into()
+}

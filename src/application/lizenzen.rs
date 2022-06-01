@@ -2,11 +2,10 @@
 
 use std::{
     borrow::Cow,
-    collections::{hash_map::Entry, BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     fmt::{self, Debug, Formatter},
 };
 
-use cargo_metadata::MetadataCommand;
 use current_platform::CURRENT_PLATFORM;
 use iced_native::{
     event::{self, Event},
@@ -19,7 +18,6 @@ use iced_native::{
     Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
 };
 use log::error;
-use parking_lot::{const_mutex, Mutex};
 
 use crate::{
     application::{
@@ -252,19 +250,22 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
-/// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
-fn target_crates(target: &str) -> Result<HashSet<String>, cargo_metadata::Error> {
-    let metadata =
-        MetadataCommand::new().other_options(["--filter-platform".into(), target.into()]).exec()?;
-    let packages = metadata
-        .packages
-        .iter()
-        .map(|package| format!("{}-{}", package.name, package.version))
-        .collect();
-    Ok(packages)
-}
+#[derive(Debug)]
+/// Das verwendete Target wird nicht unterstützt.
+struct UnbekanntesTarget<'t>(&'t str);
 
-static TARGET_CRATES: Mutex<Option<HashMap<&'static str, HashSet<String>>>> = const_mutex(None);
+/// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
+fn target_crates(target: &str) -> Result<HashSet<&'static str>, UnbekanntesTarget<'_>> {
+    macro_rules! match_target {
+        ($($target: literal),*) => {
+            match target {
+                $($target => Ok(zugkontrolle_macros::verwendete_crates!($target).into()),)*
+                _ => Err(UnbekanntesTarget(target)),
+            }
+        }
+    }
+    match_target!("x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf")
+}
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
@@ -558,14 +559,14 @@ pub fn verwendete_lizenzen(
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
-    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 274] = [
-        // ("block-0.1.6", mit_missing_note), // TODO
-        // ("dispatch-0.2.0", mit_missing_note),  // TODO
-        // ("fxhash-0.2.1", mit_missing_note), // TODO
-        ("glow_glyph-0.5.1", mit_missing_note), // TODO
-        // ("objc-foundation-0.1.1", mit_missing_note), // TODO
-        // ("objc_id-0.1.1", mit_missing_note),         // TODO
-        ("sid-0.6.1", mit_missing_note), // TODO
+    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 279] = [
+        ("block-0.1.6", mit_missing_note),           // TODO
+        ("dispatch-0.2.0", mit_missing_note),        // TODO
+        ("fxhash-0.2.1", mit_missing_note),          // TODO
+        ("glow_glyph-0.5.1", mit_missing_note),      // TODO
+        ("objc-foundation-0.1.1", mit_missing_note), // TODO
+        ("objc_id-0.1.1", mit_missing_note),         // TODO
+        ("sid-0.6.1", mit_missing_note),             // TODO
         ("SourceSerif4-Regular", || {
             let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
             ofl_1_1(
@@ -1627,19 +1628,11 @@ pub fn verwendete_lizenzen(
             )
         }),
     ];
-    let target_crates_cache = &mut *TARGET_CRATES.lock();
-    let target_crates_map = target_crates_cache.get_or_insert_with(HashMap::new);
-    let filter_lizenzen = |target_crates: &HashSet<String>| {
-        alle_lizenzen.into_iter().filter(|(k, _v)| target_crates.contains(*k)).collect()
-    };
-    match target_crates_map.entry(target) {
-        Entry::Occupied(occupied_entry) => filter_lizenzen(occupied_entry.get()),
-        Entry::Vacant(vacant_entry) => match target_crates(target) {
-            Ok(crates) => filter_lizenzen(vacant_entry.insert(crates)),
-            Err(fehler) => {
-                error!("{fehler}");
-                alle_lizenzen.into()
-            },
+    match target_crates(target) {
+        Ok(crates) => alle_lizenzen.into_iter().filter(|(k, _v)| crates.contains(*k)).collect(),
+        Err(fehler) => {
+            error!("{fehler:?}");
+            alle_lizenzen.into()
         },
     }
 }
