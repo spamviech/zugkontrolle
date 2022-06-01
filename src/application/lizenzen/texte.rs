@@ -7,9 +7,15 @@ use std::{
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten.
 #[inline(always)]
-pub(crate) fn mit_plain<'t>() -> Cow<'t, str> {
+pub(crate) fn mit_missing_note<'t>() -> Cow<'t, str> {
     mit(
-        MITPräfix("MIT License", 2),
+        MITPräfix(
+            r#"Note: No License file was provided with the crate, but the intend to use a MIT license was specified in the `Cargo.toml` file.
+The following shows a template for the MIT license with meta variables not replaced.
+
+MIT License"#,
+            2,
+        ),
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
         None,
         MITZeilenumbruch::Standard,

@@ -1,20 +1,18 @@
 //! Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
-    ffi::OsStr,
+    collections::{BTreeMap, BTreeSet, HashSet},
     fmt::{self, Display, Formatter, Write},
-    fs,
     str::Split,
 };
 
-use cargo_metadata::MetadataCommand;
 use difference::{Changeset, Difference};
 use either::Either;
 use flexi_logger::{LogSpecBuilder, Logger};
 use log::{error, LevelFilter};
 
 use crate::application::lizenzen::{
+    target_crates,
     texte::{mit_ohne_copyright, MITZeilenumbruch},
     verwendete_lizenzen,
 };
@@ -31,36 +29,9 @@ impl<T: Display> Display for OptionD<'_, T> {
     }
 }
 
-// TODO für verwendete Lizenzen verwenden
-// current_platform = "0.2.0", zum herausfinden der aktuellen target-platform
-// alle_lizenzen testet für alle Release-Plattformen, passende_lizenzen wie bisher
-// evtl. fallen dadurch einige crates mit fehlender Lizenz weg?
-#[test]
-fn metadata() -> Result<(), cargo_metadata::Error> {
-    for platform in ["x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"] {
-        println!("-------------------------\n{platform}",);
-        let metadata = MetadataCommand::new()
-            .other_options(["--filter-platform".into(), platform.into()])
-            .exec()?;
-        let packages: Vec<_> = metadata
-            .packages
-            .iter()
-            .map(|package| {
-                format!(
-                    "{}-{}{}",
-                    package.name,
-                    package.version,
-                    OptionD(": ", package.repository.as_ref())
-                )
-            })
-            .collect();
-        for package in packages {
-            println!("{package}");
-        }
-        println!("-> {}", metadata.packages.len());
-    }
-    Ok(())
-}
+/// Targets, für die bei einem Release binaries bereitgestellt werden.
+static RELEASE_TARGETS: [&'static str; 2] =
+    ["x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"];
 
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
@@ -78,27 +49,14 @@ fn alle_lizenzen() -> Result<(), (BTreeSet<String>, usize)> {
     // alternative direkt in rust, z.B. mit dev-dependency
     // cargo-lock = "8.0.1"
 
-    let lizenzen: BTreeSet<_> =
-        verwendete_lizenzen(todo!("platform")).into_iter().map(|(name, _f)| name).collect();
     let mut fehlend = BTreeSet::new();
-    for entry_res in fs::read_dir("licenses").expect("In git-repository eingecheckt.") {
-        match entry_res {
-            Ok(entry) => {
-                let pfad = entry.path();
-                if pfad.is_dir() {
-                    if let Some(pfad_str) = pfad.file_name().and_then(OsStr::to_str) {
-                        if !lizenzen.contains(pfad_str) {
-                            let _ = fehlend.insert(pfad_str.to_owned());
-                        }
-                    } else {
-                        error!("Pfad konnte nicht nach str konvertiert werden: {pfad:?}");
-                    }
-                }
-            },
-            Err(fehler) => {
-                error!("{fehler:?}");
-            },
-        }
+    for target in RELEASE_TARGETS {
+        let target_crates = target_crates(target).expect("cargo metadata failed!");
+        let lizenzen: HashSet<_> =
+            verwendete_lizenzen(target).into_iter().map(|(name, _f)| name).collect();
+        fehlend.extend(target_crates.into_iter().filter(|crate_name| {
+            !lizenzen.contains(crate_name.as_str()) && !crate_name.starts_with("zugkontrolle")
+        }));
     }
     if fehlend.is_empty() {
         Ok(())
@@ -216,6 +174,13 @@ impl MITZeilenumbruch {
 /// Lizenz-Dateien, die nicht "LICENSE" heißen.
 fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     BTreeMap::from([
+        ("block-0.1.6", "TODO"),           // TODO Missing
+        ("dispatch-0.2.0", "TODO"),        // TODO Missing
+        ("fxhash-0.2.1", "TODO"),          // TODO Missing
+        ("glow_glyph-0.5.1", "TODO"),      // TODO Missing
+        ("objc-foundation-0.1.1", "TODO"), // TODO Missing
+        ("objc_id-0.1.1", "TODO"),         // TODO Missing
+        ("sid-0.6.1", "TODO"),             // TODO Missing
         ("Lato", "../iced_graphics-0.3.0/fonts/OFL.txt"),
         ("SourceSerif4-Regular", "../../fonts/source-serif/LICENSE.md"),
         ("aho-corasick-0.7.18", "LICENSE-MIT"),
@@ -230,7 +195,6 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("bit_field-0.10.1", "LICENSE-MIT"),
         ("bitfield-0.13.2", "LICENSE-MIT"),
         ("bitflags-1.3.2", "LICENSE-MIT"),
-        ("block-0.1.6", "TODO"), // TODO
         ("bumpalo-2.6.0", "LICENSE-MIT"),
         ("bumpalo-3.9.1", "LICENSE-MIT"),
         ("bytemuck-1.9.1", "LICENSE-MIT"),
@@ -255,13 +219,13 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("core-graphics-0.22.3", "LICENSE-MIT"),
         ("core-graphics-types-0.1.1", "LICENSE-MIT-GITHUB"),
         ("cortex-m-0.7.4", "LICENSE-MIT"),
-        ("critical-section-0.2.7", "TODO"), // TODO
+        ("critical-section-0.2.7", "../LICENSE-APACHE-2.0.txt"),
         ("crossbeam-channel-0.5.4", "LICENSE-MIT"),
         ("crossbeam-deque-0.8.1", "LICENSE-MIT"),
         ("crossbeam-epoch-0.9.8", "LICENSE-MIT"),
         ("crossbeam-utils-0.8.8", "LICENSE-MIT"),
         ("cty-0.2.2", "LICENSE-MIT"),
-        ("dispatch-0.2.0", "TODO"), // TODO
+        ("current_platform-0.2.0", "LICENSE-MIT.md"),
         ("dlib-0.5.0", "LICENSE.txt"),
         ("downcast-rs-1.2.0", "LICENSE-MIT"),
         ("either-1.6.1", "LICENSE-MIT"),
@@ -282,13 +246,11 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("futures-sink-0.3.21", "LICENSE-MIT"),
         ("futures-task-0.3.21", "LICENSE-MIT"),
         ("futures-util-0.3.21", "LICENSE-MIT"),
-        ("fxhash-0.2.1", "TODO"), // TODO
         ("getrandom-0.2.6", "LICENSE-MIT"),
         ("gl_generator-0.14.0", "LICENSE-GITHUB"),
         ("glam-0.10.2", "LICENSE-MIT"),
         ("glob-0.3.0", "LICENSE-MIT"),
         ("glow-0.11.2", "LICENSE-MIT"),
-        ("glow_glyph-0.5.1", "TODO"), // TODO
         ("glutin_emscripten_sys-0.1.1", "LICENSE-GITHUB"),
         ("hash32-0.2.1", "LICENSE-MIT"),
         ("heapless-0.7.13", "LICENSE-MIT"),
@@ -344,11 +306,8 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("num_enum_derive-0.5.7", "LICENSE-MIT"),
         ("num_threads-0.1.6", "LICENSE-MIT"),
         ("objc-0.2.7", "LICENSE.txt"),
-        ("objc-foundation-0.1.1", "TODO"), // TODO
-        ("objc_id-0.1.1", "TODO"),         // TODO
         ("once_cell-1.12.0", "LICENSE-MIT"),
         ("ordered-float-3.0.0", "LICENSE-MIT"),
-        ("osmesa-sys-0.1.2", "TODO"), // TODO
         ("parking_lot-0.11.2", "LICENSE-MIT"),
         ("parking_lot-0.12.1", "LICENSE-MIT"),
         ("parking_lot_core-0.8.5", "LICENSE-MIT"),
@@ -386,7 +345,6 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("serde_derive-1.0.137", "LICENSE-MIT"),
         ("serde_json-1.0.81", "LICENSE-MIT"),
         ("shared_library-0.1.9", "LICENSE-MIT"),
-        ("sid-0.6.1", "TODO"), // TODO
         ("smallvec-1.8.0", "LICENSE-MIT"),
         ("smithay-client-toolkit-0.15.4", "LICENSE.txt"),
         ("stable_deref_trait-1.2.0", "LICENSE-MIT"),
@@ -401,6 +359,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("toml-0.5.9", "LICENSE-MIT"),
         ("ttf-parser-0.15.0", "LICENSE-MIT"),
         ("twox-hash-1.6.3", "LICENSE.txt"),
+        ("osmesa-sys-0.1.2", "../CC0.txt"),
         ("unicase-2.6.0", "LICENSE-MIT"),
         ("unicode-bidi-0.3.8", "LICENSE-MIT"),
         ("unicode-ident-1.0.0", "LICENSE-MIT"),
@@ -429,7 +388,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("web-sys-0.3.57", "LICENSE-MIT"),
         ("winapi-0.3.9", "LICENSE-MIT"),
         ("winapi-i686-pc-windows-gnu-0.4.0", "LICENSE-MIT-GITHUB"),
-        ("winapi-wsapoll-0.1.1", "TODO"), // TODO
+        ("winapi-wsapoll-0.1.1", "../LICENSE-APACHE-2.0.txt"),
         ("winapi-x86_64-pc-windows-gnu-0.4.0", "LICENSE-MIT-GITHUB"),
         ("windows-sys-0.36.1", "LICENSE-MIT"),
         ("windows_aarch64_msvc-0.36.1", "../windows-sys-0.36.1/LICENSE-MIT"),
@@ -455,7 +414,8 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         .start()
         .expect("Logging initialisieren fehlgeschlagen!");
 
-    let lizenzen = verwendete_lizenzen(todo!("platform"));
+    let lizenzen: BTreeMap<_, _> =
+        RELEASE_TARGETS.into_iter().flat_map(verwendete_lizenzen).collect();
     let lizenz_dateien = lizenz_dateien();
 
     let mut unterschiede = BTreeMap::new();

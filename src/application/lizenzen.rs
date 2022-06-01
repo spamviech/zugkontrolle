@@ -33,7 +33,7 @@ pub mod texte;
 
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_3, bsl_1_0, cc_0, isc,
-    mit, mit_ohne_copyright, mit_ohne_copyright_x11, mit_plain, mpl_2_0, ofl_1_1, zlib,
+    mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, mpl_2_0, ofl_1_1, zlib,
     ApacheCopyright, ApacheEinrückung, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde,
     MITInfix, MITPräfix, MITZeilenumbruch,
 };
@@ -558,16 +558,14 @@ pub fn verwendete_lizenzen(
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
-    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 269] = [
-        // ("block-0.1.6", mit_plain), // TODO
-        // ("critical-section-0.2.7", mit_plain), // TODO
-        // ("fxhash-0.2.1", mit_plain), // TODO
-        // ("glow_glyph-0.5.1", mit_plain), // TODO
-        // ("objc-foundation-0.1.1", mit_plain), // TODO
-        // ("objc_id-0.1.1", mit_plain),         // TODO
-        // ("osmesa-sys-0.1.2", cc_0), // TODO
-        // ("sid-0.6.1", mit_plain), // TODO
-        // ("winapi-wsapoll-0.1.1", mit_plain), // TODO
+    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 274] = [
+        // ("block-0.1.6", mit_missing_note), // TODO
+        // ("dispatch-0.2.0", mit_missing_note),  // TODO
+        // ("fxhash-0.2.1", mit_missing_note), // TODO
+        ("glow_glyph-0.5.1", mit_missing_note), // TODO
+        // ("objc-foundation-0.1.1", mit_missing_note), // TODO
+        // ("objc_id-0.1.1", mit_missing_note),         // TODO
+        ("sid-0.6.1", mit_missing_note), // TODO
         ("SourceSerif4-Regular", || {
             let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
             ofl_1_1(
@@ -727,7 +725,7 @@ pub fn verwendete_lizenzen(
         }),
         ("camino-1.0.9", mit_ohne_copyright_x11),
         ("cargo_metadata-0.14.2", mit_ohne_copyright_x11),
-        ("cargo-platform-0.1.2", mit_ohne_copyright_x11),
+        ("cargo-platform-0.1.2", || mit_ohne_copyright(MITZeilenumbruch::Keine)),
         ("cc-1.0.73", wasm_bindgen_lizenz),
         ("cfg-if-0.1.10", wasm_bindgen_lizenz),
         ("cfg-if-1.0.0", wasm_bindgen_lizenz),
@@ -792,11 +790,13 @@ pub fn verwendete_lizenzen(
                 MITEnde::standard(),
             )
         }),
+        ("critical-section-0.2.7", apache_2_0_standard_eingerückt),
         ("crossbeam-channel-0.5.4", crossbeam_lizenz),
         ("crossbeam-deque-0.8.1", crossbeam_lizenz),
         ("crossbeam-epoch-0.9.8", crossbeam_lizenz),
         ("crossbeam-utils-0.8.8", crossbeam_lizenz),
         ("cty-0.2.2", || mit_lizenz_aparicio("2017")),
+        ("current_platform-0.2.0", mit_ohne_copyright_x11),
         ("darling-0.13.4", darling_lizenz),
         ("darling_core-0.13.4", darling_lizenz),
         ("darling_macro-0.13.4", darling_lizenz),
@@ -811,7 +811,6 @@ pub fn verwendete_lizenzen(
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
-        ("dispatch-0.2.0", mit_plain),
         ("dlib-0.5.0", wayland_lizenz),
         ("dodrio-0.2.0", mpl_2_0),
         ("downcast-rs-1.2.0", || {
@@ -1169,6 +1168,7 @@ pub fn verwendete_lizenzen(
                 MITEnde::standard(),
             )
         }),
+        ("osmesa-sys-0.1.2", cc_0),
         ("owned_ttf_parser-0.15.0", || {
             apache_2_0_eingerückt(
                 false,
@@ -1549,6 +1549,7 @@ pub fn verwendete_lizenzen(
         ("web-sys-0.3.57", wasm_bindgen_lizenz),
         ("winapi-0.3.9", winapi_lizenz),
         ("winapi-i686-pc-windows-gnu-0.4.0", winapi_lizenz),
+        ("winapi-wsapoll-0.1.1", apache_2_0_standard_eingerückt),
         ("winapi-x86_64-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("windows-sys-0.36.1", widows_sys_lizenz),
         ("windows_aarch64_msvc-0.36.1", widows_sys_lizenz),
