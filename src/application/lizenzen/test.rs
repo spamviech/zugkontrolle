@@ -12,7 +12,7 @@ use flexi_logger::{LogSpecBuilder, Logger};
 use log::{error, LevelFilter};
 
 use crate::application::lizenzen::{
-    target_crates,
+    cargo_lock_lizenzen,
     texte::{mit_ohne_copyright, MITZeilenumbruch},
     verwendete_lizenzen,
 };
@@ -29,9 +29,30 @@ impl<T: Display> Display for OptionD<'_, T> {
     }
 }
 
-/// Targets, für die bei einem Release binaries bereitgestellt werden.
-static RELEASE_TARGETS: [&'static str; 2] =
-    ["x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"];
+#[derive(Debug)]
+/// Das verwendete Target wird nicht unterstützt.
+struct UnbekanntesTarget<'t>(&'t str);
+
+macro_rules! release_targets {
+    ($($target: literal),*) => {
+        /// Targets, für die bei einem Release binaries bereitgestellt werden.
+        static RELEASE_TARGETS: [&'static str; 2] = [$($target),*];
+
+        /// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
+        fn target_crates(target: &str) -> Result<HashSet<&'static str>, UnbekanntesTarget<'_>> {
+            match target {
+                $($target => Ok(zugkontrolle_macros::verwendete_crates!($target).into()),)*
+                _ => Err(UnbekanntesTarget(target)),
+            }
+        }
+    }
+}
+
+release_targets! {"x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"}
+
+fn cargo_lock_crates() -> HashSet<&'static str> {
+    cargo_lock_lizenzen().into_iter().map(|(name, _f)| name).collect()
+}
 
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
@@ -48,8 +69,7 @@ fn alle_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
     let mut fehlend = BTreeSet::new();
     for target in RELEASE_TARGETS {
         let target_crates = target_crates(target).expect("cargo metadata failed!");
-        let lizenzen: HashSet<_> =
-            verwendete_lizenzen(target).into_iter().map(|(name, _f)| name).collect();
+        let lizenzen: HashSet<_> = cargo_lock_crates();
         fehlend.extend(target_crates.into_iter().filter(|crate_name| {
             !lizenzen.contains(crate_name) && !crate_name.starts_with("zugkontrolle")
         }));
@@ -414,8 +434,16 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         .start()
         .expect("Logging initialisieren fehlgeschlagen!");
 
-    let lizenzen: BTreeMap<_, _> =
-        RELEASE_TARGETS.into_iter().flat_map(verwendete_lizenzen).collect();
+    let release_target_crates = RELEASE_TARGETS
+        .into_iter()
+        .flat_map(|target| {
+            target_crates(target).unwrap_or_else(|fehler| {
+                error!("{fehler:?}");
+                cargo_lock_crates()
+            })
+        })
+        .collect();
+    let lizenzen: BTreeMap<_, _> = verwendete_lizenzen(release_target_crates);
     let lizenz_dateien = lizenz_dateien();
 
     let mut unterschiede = BTreeMap::new();

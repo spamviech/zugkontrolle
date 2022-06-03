@@ -6,7 +6,6 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use current_platform::CURRENT_PLATFORM;
 use iced_native::{
     event::{self, Event},
     text,
@@ -17,7 +16,6 @@ use iced_native::{
     },
     Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
 };
-use log::error;
 
 use crate::{
     application::{
@@ -90,7 +88,7 @@ impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
     pub fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(verwendete_lizenzen(CURRENT_PLATFORM))
+        Self::neu(verwendete_lizenzen(target_crates()))
     }
 }
 
@@ -250,28 +248,14 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
-#[derive(Debug)]
-/// Das verwendete Target wird nicht unterstützt.
-struct UnbekanntesTarget<'t>(&'t str);
-
-/// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
-fn target_crates(target: &str) -> Result<HashSet<&'static str>, UnbekanntesTarget<'_>> {
-    macro_rules! match_target {
-        ($($target: literal),*) => {
-            match target {
-                $($target => Ok(zugkontrolle_macros::verwendete_crates!($target).into()),)*
-                _ => Err(UnbekanntesTarget(target)),
-            }
-        }
-    }
-    match_target!("x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf")
+/// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
+fn target_crates() -> HashSet<&'static str> {
+    zugkontrolle_macros::target_crates!()
 }
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
-/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
-pub fn verwendete_lizenzen(
-    target: &'static str,
-) -> BTreeMap<&'static str, fn() -> Cow<'static, str>> {
+/// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
+fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -559,7 +543,7 @@ pub fn verwendete_lizenzen(
             MITEnde { punkt: false, neue_zeile: 1 },
         )
     };
-    let alle_lizenzen: [(&'static str, fn() -> Cow<'static, str>); 279] = [
+    [
         ("block-0.1.6", mit_missing_note),           // TODO
         ("dispatch-0.2.0", mit_missing_note),        // TODO
         ("fxhash-0.2.1", mit_missing_note),          // TODO
@@ -1627,14 +1611,15 @@ pub fn verwendete_lizenzen(
                 MITEnde::standard(),
             )
         }),
-    ];
-    match target_crates(target) {
-        Ok(crates) => alle_lizenzen.into_iter().filter(|(k, _v)| crates.contains(*k)).collect(),
-        Err(fehler) => {
-            error!("{fehler:?}");
-            alle_lizenzen.into()
-        },
-    }
+    ]
+}
+
+/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
+pub fn verwendete_lizenzen(
+    target_crates: HashSet<&'static str>,
+) -> BTreeMap<&'static str, fn() -> Cow<'static, str>> {
+    let alle_lizenzen = cargo_lock_lizenzen();
+    alle_lizenzen.into_iter().filter(|(k, _v)| target_crates.contains(*k)).collect()
 }
 
 #[cfg(test)]

@@ -74,33 +74,33 @@ windows_*-0.36.1: MIT OR Apache-2.0
     https://github.com/microsoft/windows-rs/pull/1602
 
 ------------------------------------------------------------------
-13 / 279: bincode-1.3.3
+13 / 278: bincode-1.3.3
 Missing License: block-0.1.6
         Repository: http://github.com/SSheldon/rust-block
         Announced License: MIT
-26 / 279: cargo_metadata-0.14.2
-39 / 279: core-foundation-0.9.3
+26 / 278: cargo_metadata-0.14.2
+39 / 278: core-foundation-0.9.3
 Missing License: critical-section-0.2.7
         Repository: https://github.com/embassy-rs/critical-section
         Announced License: MIT OR Apache-2.0
-52 / 279: cty-0.2.2
+52 / 278: cty-0.2.2
 Missing License: dispatch-0.2.0
         Repository: http://github.com/SSheldon/rust-dispatch
         Announced License: MIT
-65 / 279: error-code-2.3.1
-78 / 279: futures-macro-0.3.21
+65 / 278: euclid-0.22.7
+78 / 278: futures-sink-0.3.21
 Missing License: fxhash-0.2.1
         Repository: https://github.com/cbreeden/fxhash
         Announced License: Apache-2.0/MIT
 Missing License: glow_glyph-0.5.1
         Repository: https://github.com/hecrj/glow_glyph
         Announced License: MIT
-91 / 279: glutin_egl_sys-0.1.5
-104 / 279: iced_aw-0.1.0
-117 / 279: ident_case-1.0.1
-130 / 279: libm-0.2.2
-143 / 279: memmap2-0.3.1
-156 / 279: nonempty-0.7.0
+91 / 278: glutin_emscripten_sys-0.1.1
+104 / 278: iced_core-0.4.0
+117 / 278: idna-0.2.3
+130 / 278: linked-hash-map-0.5.4
+143 / 278: memoffset-0.6.5
+156 / 278: num-traits-0.2.15
 Missing License: objc-foundation-0.1.1
         Repository: http://github.com/SSheldon/rust-objc-foundation
         Announced License: MIT
@@ -110,20 +110,20 @@ Missing License: objc_id-0.1.1
 Missing License: osmesa-sys-0.1.2
         Repository: https://github.com/Daggerbot/osmesa-rs
         Announced License: CC0-1.0
-169 / 279: parking_lot-0.11.2
-182 / 279: rand_chacha-0.3.1
+169 / 278: parking_lot-0.12.1
+182 / 278: rand_core-0.6.3
 Missing License: riscv-0.7.0
         Repository: https://github.com/rust-embedded/riscv
         Announced License: ISC
-195 / 279: rustc-hash-1.1.0
-208 / 279: shared_library-0.1.9
+195 / 278: rustc_version-0.2.3
 Missing License: sid-0.6.1
         Repository: https://github.com/nical/sid
         Announced License: MIT/Apache-2.0
-221 / 279: take_mut-0.2.2
-234 / 279: unicode-normalization-0.1.19
-247 / 279: wasm-bindgen-futures-0.4.30
-260 / 279: winapi-0.3.9
+208 / 278: sid-0.6.1
+221 / 278: thiserror-1.0.31
+234 / 278: unicode-segmentation-1.9.0
+247 / 278: wasm-bindgen-macro-0.2.80
+260 / 278: winapi-i686-pc-windows-gnu-0.4.0
 Missing License: winapi-wsapoll-0.1.1
         Repository: https://github.com/psychon/winapi-wsapoll
         Announced License: MIT OR Apache-2.0
@@ -142,6 +142,6 @@ Missing License: windows_x86_64_gnu-0.36.1
 Missing License: windows_x86_64_msvc-0.36.1
         Repository: https://github.com/microsoft/windows-rs
         Announced License: MIT OR Apache-2.0
-273 / 279: x11-dl-2.19.1
+273 / 278: x11rb-0.9.0
 Skip zugkontrolle-3.0.0
 Skip zugkontrolle-macros-3.0.0
