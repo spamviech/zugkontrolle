@@ -112,10 +112,8 @@ where
             gleise,
         );
 
-        let column: Element<'_, Nachricht<L>> = Column::new()
-            .push(top_row)
-            .push(Rule::horizontal(1).style(TRENNLINIE))
-            .push(
+        let column = Element::new(
+            Column::new().push(top_row).push(Rule::horizontal(1).style(TRENNLINIE)).push(
                 row_with_scrollable.push(
                     Container::new(
                         Element::from(
@@ -123,13 +121,13 @@ where
                                 .width(Length::Fill)
                                 .height(Length::Fill),
                         )
-                        .map(Into::into),
+                        .map(Nachricht::from),
                     )
                     .width(Length::Fill)
                     .height(Length::Fill),
                 ),
-            )
-            .into();
+            ),
+        );
 
         let modal = Modal::neu(auswahl, column, |modal| match modal {
             AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
