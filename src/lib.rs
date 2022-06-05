@@ -51,7 +51,7 @@ pub mod void;
 pub mod zugtyp;
 
 pub use crate::{
-    application::{ausführen, ausführen_aus_env, Zugkontrolle},
+    application::{ausführen, ausführen_aus_env, Fehler, Zugkontrolle},
     argumente::Argumente,
     gleis::gleise::Gleise,
     zugtyp::Zugtyp,
