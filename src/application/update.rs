@@ -718,37 +718,36 @@ where
 {
     /// Lade einen neuen Zustand aus einer Datei.
     pub fn laden(&mut self, pfad: String) {
-        match self.gleise.laden(&mut self.lager, &pfad) {
-            Ok(()) => {
-                let Zugtyp {
-                    pwm_frequenz,
-                    verhältnis_fahrspannung_überspannung,
-                    stopp_zeit,
-                    umdrehen_zeit,
-                    ..
-                } = self.gleise.zugtyp();
-                self.geschwindigkeiten = self
-                    .gleise
-                    .geschwindigkeiten()
-                    .map(|(name, _geschwindigkeit)| {
-                        (
-                            name.clone(),
-                            L::anzeige_zustand_neu(
-                                name.clone(),
-                                *pwm_frequenz,
-                                verhältnis_fahrspannung_überspannung.clone(),
-                                *stopp_zeit,
-                                umdrehen_zeit.clone(),
-                            ),
-                        )
-                    })
-                    .collect();
-                self.streckenabschnitt_aktuell.entferne_aktuell();
-            },
-            Err(fehler) => self.zeige_message_box(
+        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
+        let Zugtyp {
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            ..
+        } = self.gleise.zugtyp();
+        self.geschwindigkeiten = self
+            .gleise
+            .geschwindigkeiten()
+            .map(|(name, _geschwindigkeit)| {
+                (
+                    name.clone(),
+                    L::anzeige_zustand_neu(
+                        name.clone(),
+                        *pwm_frequenz,
+                        verhältnis_fahrspannung_überspannung.clone(),
+                        *stopp_zeit,
+                        umdrehen_zeit.clone(),
+                    ),
+                )
+            })
+            .collect();
+        self.streckenabschnitt_aktuell.entferne_aktuell();
+        if let Err(fehler) = lade_ergebnis {
+            self.zeige_message_box(
                 format!("Fehler beim Laden von {}", pfad),
                 format!("{:?}", fehler),
-            ),
+            )
         }
     }
 }
