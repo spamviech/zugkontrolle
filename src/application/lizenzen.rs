@@ -29,7 +29,7 @@ pub mod texte;
 
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_3, bsl_1_0, cc_0, isc,
-    mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, mpl_2_0, ofl_1_1, zlib,
+    mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1, zlib,
     ApacheCopyright, ApacheEinrückung, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde,
     MITInfix, MITPräfix, MITZeilenumbruch,
 };
@@ -255,7 +255,7 @@ fn target_crates() -> HashSet<&'static str> {
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
+fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -374,17 +374,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             MITEnde::standard(),
         )
     };
-    let idna_lizenz = || {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    };
     let kommandozeilen_argumente_lizenz = || {
         mit(
             MITPräfix("MIT License", 2),
@@ -413,6 +402,20 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
             None,
             MITZeilenumbruch::Winreg,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    };
+    let memmap2_lizenz = || {
+        mit(
+            None,
+            vec![
+                MITCopyright::neu(true, "2020", "Yevhenii Reizner"),
+                MITCopyright::neu(true, "2015", "Dan Burkert"),
+            ],
+            None,
+            MITZeilenumbruch::X11,
             MITEinrückung::keine(),
             false,
             MITEnde::standard(),
@@ -474,6 +477,17 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             MITEinrückung::keine(),
             false,
             MITEnde::standard(),
+        )
+    };
+    let smithay_client_toolkit_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2018", "Victor Berger")],
+            None,
+            MITZeilenumbruch::Winreg,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::ohne_neue_zeile(),
         )
     };
     let time_lizenz = || {
@@ -546,7 +560,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
     [
         ("block-0.1.6", mit_missing_note),           // TODO
         ("dispatch-0.2.0", mit_missing_note),        // TODO
-        ("fxhash-0.2.1", mit_missing_note),          // TODO
         ("glow_glyph-0.5.1", mit_missing_note),      // TODO
         ("objc-foundation-0.1.1", mit_missing_note), // TODO
         ("objc_id-0.1.1", mit_missing_note),         // TODO
@@ -682,8 +695,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("bumpalo-2.6.0", wasm_bindgen_lizenz),
-        ("bumpalo-3.9.1", || {
+        ("bumpalo-3.10.0", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2019", "Nick Fitzgerald")],
@@ -764,7 +776,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("cortex-m-0.7.4", || {
+        ("cortex-m-0.7.5", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
@@ -776,10 +788,10 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("critical-section-0.2.7", apache_2_0_standard_eingerückt),
-        ("crossbeam-channel-0.5.4", crossbeam_lizenz),
+        ("crossbeam-channel-0.5.5", crossbeam_lizenz),
         ("crossbeam-deque-0.8.1", crossbeam_lizenz),
-        ("crossbeam-epoch-0.9.8", crossbeam_lizenz),
-        ("crossbeam-utils-0.8.8", crossbeam_lizenz),
+        ("crossbeam-epoch-0.9.9", crossbeam_lizenz),
+        ("crossbeam-utils-0.8.9", crossbeam_lizenz),
         ("cty-0.2.2", || mit_lizenz_aparicio("2017")),
         ("current_platform-0.2.0", || mit_ohne_copyright(MITZeilenumbruch::Keine)),
         ("darling-0.13.4", darling_lizenz),
@@ -797,7 +809,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("dlib-0.5.0", wayland_lizenz),
-        ("dodrio-0.2.0", mpl_2_0),
         ("downcast-rs-1.2.0", || {
             mit(
                 None,
@@ -834,7 +845,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("embedded-hal-0.2.7", || mit_lizenz_aparicio("2017-2018")),
         ("error-code-2.3.1", bsl_1_0),
         ("euclid-0.22.7", mozilla_foundation_lizenz),
-        ("flexi_logger-0.22.3", || {
+        ("flexi_logger-0.22.5", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2018", "The AUTHORS")],
@@ -869,7 +880,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         }),
         ("foreign-types-0.3.2", foreign_types_lizenz),
         ("foreign-types-shared-0.1.1", foreign_types_lizenz),
-        ("form_urlencoded-1.0.1", idna_lizenz),
         ("futures-0.3.21", futures_lizenz),
         ("futures-channel-0.3.21", futures_lizenz),
         ("futures-core-0.3.21", futures_lizenz),
@@ -895,7 +905,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 true,
             )
         }),
-        ("getrandom-0.2.6", || {
+        ("getrandom-0.2.7", || {
             mit(
                 None,
                 vec![
@@ -933,11 +943,11 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("glyph_brush_layout-0.2.3", glyph_brush_lizenz),
         ("gl_generator-0.14.0", apache_2_0_standard_eingerückt),
         ("hash32-0.2.1", || mit_lizenz_aparicio("2018")),
-        ("heapless-0.7.13", || mit_lizenz_aparicio("2017")),
+        ("heapless-0.7.14", || mit_lizenz_aparicio("2017")),
         ("heck-0.4.0", mit_rust_project_developers_lizenz_2015),
         ("hermit-abi-0.1.19", mit_ohne_copyright_x11),
         ("iced-0.4.2", iced_lizenz),
-        ("iced_aw-0.1.0", || {
+        ("iced_aw-0.2.0", || {
             mit(
                 MITPräfix("MIT License", 2),
                 vec![MITCopyright::neu(true, "2020", "Kaiden42")],
@@ -948,17 +958,13 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("iced_core-0.4.0", iced_lizenz),
         ("iced_core-0.5.0", iced_lizenz),
-        ("iced_futures-0.3.0", iced_lizenz),
         ("iced_futures-0.4.1", iced_lizenz),
         ("iced_glow-0.3.0", iced_lizenz),
         ("iced_glutin-0.3.0", iced_lizenz),
         ("iced_graphics-0.3.0", iced_lizenz),
         ("iced_native-0.5.1", iced_lizenz),
-        ("iced_style-0.3.0", iced_lizenz),
         ("iced_style-0.4.0", iced_lizenz),
-        ("iced_web-0.4.0", iced_lizenz),
         ("iced_winit-0.4.0", iced_lizenz),
         ("ident_case-1.0.1", || {
             mit(
@@ -971,7 +977,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("idna-0.2.3", idna_lizenz),
         ("instant-0.1.12", || bsd_3("2019", "Sébastien Crozet")),
         ("itertools-0.10.3", || {
             mit(
@@ -996,7 +1001,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("js-sys-0.3.57", wasm_bindgen_lizenz),
+        ("js-sys-0.3.58", wasm_bindgen_lizenz),
         ("khronos_api-3.1.0", apache_2_0_standard_eingerückt),
         ("kommandozeilen_argumente-0.2.0", kommandozeilen_argumente_lizenz),
         ("kommandozeilen_argumente_derive-0.2.0", kommandozeilen_argumente_lizenz),
@@ -1009,10 +1014,9 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("linked-hash-map-0.5.4", mit_rust_project_developers_lizenz_2015),
         ("lock_api-0.4.7", mit_rust_project_developers_lizenz_2016),
         ("log-0.4.17", mit_rust_project_developers_lizenz_2014),
-        ("longest-increasing-subsequence-0.1.0", wasm_bindgen_lizenz),
         ("lyon-0.17.10", lyon_lizenz),
         ("lyon_algorithms-0.17.7", lyon_lizenz),
-        ("lyon_geom-0.17.6", lyon_lizenz),
+        ("lyon_geom-0.17.7", lyon_lizenz),
         ("lyon_path-0.17.7", lyon_lizenz),
         ("lyon_tessellation-0.17.10", lyon_lizenz),
         ("malloc_buf-0.0.6", || {
@@ -1026,32 +1030,9 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("matches-0.1.9", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2014-2016", "Simon Sapin")],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                false,
-                MITEnde::standard(),
-            )
-        }),
         ("memchr-2.5.0", memchr_lizenz),
-        ("memmap2-0.3.1", || {
-            mit(
-                None,
-                vec![
-                    MITCopyright::neu(true, "2020", "Yevhenii Reizner"),
-                    MITCopyright::neu(true, "2015", "Dan Burkert"),
-                ],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                false,
-                MITEnde::standard(),
-            )
-        }),
+        ("memmap2-0.3.1", memmap2_lizenz),
+        ("memmap2-0.5.4", memmap2_lizenz),
         ("memoffset-0.6.5", || {
             mit(
                 None,
@@ -1064,7 +1045,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("minimal-lexical-0.2.1", mit_ohne_copyright_x11),
-        ("mio-0.8.3", || {
+        ("mio-0.8.4", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2014", "Carl Lerche and other MIO contributors")],
@@ -1083,6 +1064,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("ndk-macro-0.3.0", ndk_lizenz),
         ("ndk-sys-0.2.2", ndk_lizenz),
         ("nix-0.22.3", nix_lizenz),
+        ("nix-0.24.1", nix_lizenz),
         ("nom-7.1.1", || {
             mit(
                 None,
@@ -1201,8 +1183,8 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("proc-macro-crate-1.1.3", mit_ohne_copyright_x11),
-        ("proc-macro2-1.0.39", wasm_bindgen_lizenz),
-        ("quote-1.0.18", mit_rust_project_developers_lizenz_2016),
+        ("proc-macro2-1.0.40", wasm_bindgen_lizenz),
+        ("quote-1.0.20", mit_rust_project_developers_lizenz_2016),
         ("rand-0.8.5", rand_lizenz),
         ("rand_chacha-0.3.1", rand_lizenz),
         ("rand_core-0.6.3", rand_lizenz),
@@ -1260,7 +1242,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("rustc-hash-1.1.0", mit_ohne_copyright_x11),
         ("rustc_version-0.2.3", mit_rust_project_developers_lizenz_2016),
         ("rustc_version-0.4.0", mit_rust_project_developers_lizenz_2016),
-        ("rustversion-1.0.6", mit_ohne_copyright_x11),
+        ("rustversion-1.0.7", mit_ohne_copyright_x11),
         ("ryu-1.0.10", || apache_2_0_eingerückt(false, ApacheCopyright::standard(), true)),
         ("scoped-tls-1.0.0", wasm_bindgen_lizenz),
         ("scopeguard-1.1.0", || {
@@ -1279,7 +1261,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("semver-0.9.0", mit_rust_project_developers_lizenz_2014),
-        ("semver-1.0.9", mit_ohne_copyright_x11),
+        ("semver-1.0.10", mit_ohne_copyright_x11),
         ("semver-parser-0.7.0", || {
             mit(
                 None,
@@ -1328,18 +1310,9 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("smithay-client-toolkit-0.15.4", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2018", "Victor Berger")],
-                None,
-                MITZeilenumbruch::Winreg,
-                MITEinrückung::keine(),
-                false,
-                MITEnde::ohne_neue_zeile(),
-            )
-        }),
-        ("smithay-clipboard-0.6.5", || {
+        ("smithay-client-toolkit-0.15.4", smithay_client_toolkit_lizenz),
+        ("smithay-client-toolkit-0.16.0", smithay_client_toolkit_lizenz),
+        ("smithay-clipboard-0.6.6", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2018", "Lucas Timmins & Victor Berger")],
@@ -1399,7 +1372,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::standard(),
             )
         }),
-        ("syn-1.0.95", mit_ohne_copyright_x11),
+        ("syn-1.0.98", mit_ohne_copyright_x11),
         ("take_mut-0.2.2", || {
             mit(
                 MITPräfix("The MIT License (MIT)", 2),
@@ -1413,7 +1386,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         }),
         ("thiserror-1.0.31", mit_ohne_copyright_x11),
         ("thiserror-impl-1.0.31", mit_ohne_copyright_x11),
-        ("time-0.3.9", time_lizenz),
+        ("time-0.3.10", time_lizenz),
         ("time-macros-0.2.4", time_lizenz),
         ("tinyvec-1.6.0", || mit_ohne_copyright(MITZeilenumbruch::Keine)),
         ("tinyvec_macros-0.1.0", || {
@@ -1428,7 +1401,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
             )
         }),
         ("toml-0.5.9", wasm_bindgen_lizenz),
-        ("ttf-parser-0.15.0", || {
+        ("ttf-parser-0.15.2", || {
             mit(
                 None,
                 vec![MITCopyright::neu(true, "2018", "Yevhenii Reizner")],
@@ -1461,21 +1434,9 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
                 MITEnde::zwei_neue_zeilen(),
             )
         }),
-        ("unicode-bidi-0.3.8", mit_rust_project_developers_lizenz_2015),
-        ("unicode-ident-1.0.0", mit_ohne_copyright_x11),
+        ("unicode-ident-1.0.1", mit_ohne_copyright_x11),
         ("unicode-normalization-0.1.19", mit_rust_project_developers_lizenz_2015),
         ("unicode-segmentation-1.9.0", mit_rust_project_developers_lizenz_2015),
-        ("url-2.2.2", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2013-2016", "The rust-url developers")],
-                None,
-                MITZeilenumbruch::X11,
-                MITEinrückung::keine(),
-                false,
-                MITEnde::standard(),
-            )
-        }),
         ("vcell-0.1.3", vcell_lizenz),
         ("version_check-0.9.4", || {
             mit(
@@ -1502,14 +1463,13 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("volatile-register-0.2.1", || mit_lizenz_aparicio("2016")),
         ("vswhom-0.1.0", vswwhom_lizenz),
         ("vswhom-sys-0.1.1", vswwhom_lizenz),
-        ("wasi-0.10.2+wasi-snapshot-preview1", mit_ohne_copyright_x11),
         ("wasi-0.11.0+wasi-snapshot-preview1", mit_ohne_copyright_x11),
-        ("wasm-bindgen-0.2.80", wasm_bindgen_lizenz),
-        ("wasm-bindgen-backend-0.2.80", wasm_bindgen_lizenz),
-        ("wasm-bindgen-futures-0.4.30", wasm_bindgen_lizenz),
-        ("wasm-bindgen-macro-0.2.80", wasm_bindgen_lizenz),
-        ("wasm-bindgen-macro-support-0.2.80", wasm_bindgen_lizenz),
-        ("wasm-bindgen-shared-0.2.80", wasm_bindgen_lizenz),
+        ("wasm-bindgen-0.2.81", wasm_bindgen_lizenz),
+        ("wasm-bindgen-backend-0.2.81", wasm_bindgen_lizenz),
+        ("wasm-bindgen-futures-0.4.31", wasm_bindgen_lizenz),
+        ("wasm-bindgen-macro-0.2.81", wasm_bindgen_lizenz),
+        ("wasm-bindgen-macro-support-0.2.81", wasm_bindgen_lizenz),
+        ("wasm-bindgen-shared-0.2.81", wasm_bindgen_lizenz),
         ("wasm-timer-0.2.5", || {
             mit(
                 None,
@@ -1531,7 +1491,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 279] {
         ("wayland-protocols-0.29.4", wayland_lizenz),
         ("wayland-scanner-0.29.4", wayland_lizenz),
         ("wayland-sys-0.29.4", wayland_lizenz),
-        ("web-sys-0.3.57", wasm_bindgen_lizenz),
+        ("web-sys-0.3.58", wasm_bindgen_lizenz),
         ("winapi-0.3.9", winapi_lizenz),
         ("winapi-i686-pc-windows-gnu-0.4.0", winapi_lizenz),
         ("winapi-wsapoll-0.1.1", apache_2_0_standard_eingerückt),
