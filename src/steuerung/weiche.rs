@@ -111,8 +111,8 @@ where
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
         Self::schalten_aux(
-            &mut self.richtung,
-            &mut self.anschlüsse,
+            &self.richtung,
+            &self.anschlüsse,
             richtung,
             schalten_zeit,
             None::<fn()>,
@@ -186,15 +186,25 @@ where
                 }
             });
         let name_clone = self.name.clone();
-        let schalten_aux = Self::schalten_aux;
+        let schalten_aux = |(richtung, anschlüsse): &mut _,
+                            neue_richtung,
+                            schalten_zeit,
+                            sende_aktualisieren_nachricht| {
+            Self::schalten_aux(
+                richtung,
+                anschlüsse,
+                neue_richtung,
+                schalten_zeit,
+                sende_aktualisieren_nachricht,
+            )
+        };
         async_ausführen!(
             sender,
             erzeuge_aktualisieren_nachricht,
             |_mutex_clone, fehler| erzeuge_fehler_nachricht(fehler),
             format!("für Schalten der Weiche {}", name_clone.0),
             schalten_aux(
-                self.richtung,
-                &self.anschlüsse,
+                (self.richtung.clone(), self.anschlüsse.clone()),
                 richtung,
                 schalten_zeit,
                 sende_aktualisieren_nachricht
