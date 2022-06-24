@@ -3,6 +3,7 @@
 use std::{
     fmt::Debug,
     hash::Hash,
+    mem,
     sync::{mpsc::Sender, Arc},
     thread::{sleep, JoinHandle},
     time::Duration,
@@ -33,101 +34,102 @@ pub struct Name(pub String);
 // inklusive Kreuzung
 /// Die [Steuerung](WeicheSteuerung) und der [Name] einer [Weiche].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BenannteWeiche<Steuerung> {
+pub struct BenannteWeiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
-    /// Die Steuerung der Weiche.
-    steuerung: Steuerung,
-}
-
-/// Die Steuerung einer [Weiche].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct WeicheSteuerung<Richtung, Anschlüsse> {
-    /// Die aktuelle Richtung der Weiche.
-    pub aktuelle_richtung: Richtung,
-    /// Die Richtung vor der aktuellen Richtung.
-    pub letzte_richtung: Richtung,
+    /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+    pub richtung: Richtung,
     /// Die Anschlüsse der Weiche.
     pub anschlüsse: Anschlüsse,
 }
 
+// TODO nach dreiwege verschieben?
+/// Die aktuelle und letzte Richtung einer [Weiche].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct WeicheRichtung<Richtung> {
+    /// Die aktuelle Richtung der Weiche.
+    pub aktuelle_richtung: Richtung,
+    /// Die Richtung vor der aktuellen Richtung.
+    pub letzte_richtung: Richtung,
+}
+
 /// Steuerung und Name eines Schaltbaren Gleises.
 pub type Weiche<Richtung, Anschlüsse> =
-    BenannteWeiche<Arc<Mutex<Steuerung<WeicheSteuerung<Richtung, Anschlüsse>>>>>;
+    BenannteWeiche<Arc<Mutex<Steuerung<Richtung>>>, Arc<Mutex<Anschlüsse>>>;
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     /// Erstelle eine neue [Weichen-Steuerung](Weiche).
     pub fn neu(
         name: Name,
-        aktuelle_richtung: Richtung,
-        letzte_richtung: Richtung,
+        richtung: Richtung,
         anschlüsse: Anschlüsse,
         cache: Arc<Mutex<Cache>>,
     ) -> Self {
         Weiche {
             name,
-            steuerung: Arc::new(Mutex::new(Steuerung::neu(
-                WeicheSteuerung { aktuelle_richtung, letzte_richtung, anschlüsse },
-                cache,
-            ))),
+            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, cache))),
+            anschlüsse: Arc::new(Mutex::new(anschlüsse)),
         }
     }
 }
 
 impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     /// Erhalte die aktuelle Richtung einer [Weiche].
-    pub fn aktuelle_richtung(&self) -> Richtung {
-        self.steuerung.lock().as_ref().aktuelle_richtung.clone()
+    pub fn richtung(&self) -> Richtung {
+        self.richtung.lock().as_ref().clone()
     }
+}
 
-    /// Erhalte die aktuelle und letzte Richtung einer [Weiche].
-    pub fn aktuelle_und_letzte_richtung(&self) -> (Richtung, Richtung) {
-        let guard = self.steuerung.lock();
-        let WeicheSteuerung { aktuelle_richtung, letzte_richtung, .. } = guard.as_ref();
-        (aktuelle_richtung.clone(), letzte_richtung.clone())
+impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+    /// Erhalte einen Teil der aktuellen Richtung einer [Weiche].
+    pub fn richtung_ausschnitt<T: Clone>(&self, f: impl FnOnce(&Richtung) -> &T) -> T {
+        f(self.richtung.lock().as_ref()).clone()
     }
 }
 
 /// Serialisierbare Repräsentation der Steuerung einer [Weiche].
-pub type WeicheSerialisiert<Richtung, Anschlüsse> =
-    BenannteWeiche<WeicheSteuerung<Richtung, Anschlüsse>>;
+pub type WeicheSerialisiert<Richtung, Anschlüsse> = BenannteWeiche<Richtung, Anschlüsse>;
 
 impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
     /// Erstelle eine neue [WeicheSerialisiert].
-    pub fn neu(name: Name, steuerung: WeicheSteuerung<Richtung, Anschlüsse>) -> Self {
-        WeicheSerialisiert { name, steuerung }
+    pub fn neu_serialisiert(name: Name, richtung: Richtung, anschlüsse: Anschlüsse) -> Self {
+        WeicheSerialisiert { name, richtung, anschlüsse }
     }
 
-    /// Erhalte [Name] und [Steuerung](WeicheSteuerung) einer [WeicheSerialisiert].
-    pub fn name_und_steuerung(self) -> (Name, WeicheSteuerung<Richtung, Anschlüsse>) {
-        let WeicheSerialisiert { name, steuerung } = self;
-        (name, steuerung)
+    /// Erhalte [Name] und Richtung und Anschlüsse einer [WeicheSerialisiert].
+    pub fn name_und_steuerung(self) -> (Name, Richtung, Anschlüsse) {
+        let WeicheSerialisiert { name, richtung, anschlüsse } = self;
+        (name, richtung, anschlüsse)
     }
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
 where
     Richtung: Clone,
-    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send,
+    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
 {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
     pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
-        Self::schalten_aux(&mut self.steuerung, richtung, schalten_zeit, None::<fn()>)?;
+        Self::schalten_aux(
+            &mut self.richtung,
+            &mut self.anschlüsse,
+            richtung,
+            schalten_zeit,
+            None::<fn()>,
+        )?;
         Ok(())
     }
 
     fn schalten_aux(
-        mutex: &mut Arc<Mutex<Steuerung<WeicheSteuerung<Richtung, Anschlüsse>>>>,
-        richtung: Richtung,
+        richtung: &Arc<Mutex<Steuerung<Richtung>>>,
+        anschlüsse: &Arc<Mutex<Anschlüsse>>,
+        neue_richtung: Richtung,
         schalten_zeit: Duration,
         aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        let mut guard = mutex.lock();
-        let weiche_steuerung = guard.as_mut();
-        let letzte_richtung = weiche_steuerung.letzte_richtung.clone();
-        let aktuelle_richtung = weiche_steuerung.aktuelle_richtung.clone();
-        weiche_steuerung.letzte_richtung = aktuelle_richtung.clone();
-        weiche_steuerung.aktuelle_richtung = richtung.clone();
+        let mut guard = richtung.lock();
+        let weiche_richtung = guard.as_mut();
+        let bisherige_richtung = mem::replace(weiche_richtung, neue_richtung.clone());
         drop(guard);
         if let Some(aktualisieren) = aktualisieren {
             aktualisieren()
@@ -135,26 +137,19 @@ where
         macro_rules! bei_fehler_zurücksetzen {
             ($result: expr) => {
                 if let Err(fehler) = $result {
-                    let mut guard = mutex.lock();
-                    let mut_ref = guard.as_mut();
-                    mut_ref.aktuelle_richtung = aktuelle_richtung;
-                    mut_ref.letzte_richtung = letzte_richtung;
+                    let _ = mem::replace(weiche_richtung, bisherige_richtung);
                     return Err(fehler);
                 }
             };
         }
-        bei_fehler_zurücksetzen!(mutex
+        bei_fehler_zurücksetzen!(anschlüsse
             .lock()
-            .as_mut()
-            .anschlüsse
-            .erhalte_mut(&richtung)
+            .erhalte_mut(&neue_richtung)
             .einstellen(Fließend::Fließend));
         sleep(schalten_zeit);
-        bei_fehler_zurücksetzen!(mutex
+        bei_fehler_zurücksetzen!(anschlüsse
             .lock()
-            .as_mut()
-            .anschlüsse
-            .erhalte_mut(&richtung)
+            .erhalte_mut(&neue_richtung)
             .einstellen(Fließend::Gesperrt));
         Ok(())
     }
@@ -197,7 +192,13 @@ where
             erzeuge_aktualisieren_nachricht,
             |_mutex_clone, fehler| erzeuge_fehler_nachricht(fehler),
             format!("für Schalten der Weiche {}", name_clone.0),
-            schalten_aux(self.steuerung, richtung, schalten_zeit, sende_aktualisieren_nachricht)
+            schalten_aux(
+                self.richtung,
+                &self.anschlüsse,
+                richtung,
+                schalten_zeit,
+                sende_aktualisieren_nachricht
+            )
         )
     }
 }
@@ -214,23 +215,14 @@ where
     fn serialisiere(&self) -> WeicheSerialisiert<Richtung, T::Serialisiert> {
         WeicheSerialisiert {
             name: self.name.clone(),
-            steuerung: {
-                let guard = self.steuerung.lock();
-                let weiche_steuerung = guard.as_ref();
-                WeicheSteuerung {
-                    aktuelle_richtung: weiche_steuerung.aktuelle_richtung.clone(),
-                    letzte_richtung: weiche_steuerung.letzte_richtung.clone(),
-                    anschlüsse: weiche_steuerung.anschlüsse.serialisiere(),
-                }
-            },
+            richtung: self.richtung.lock().as_ref().clone(),
+            anschlüsse: self.anschlüsse.lock().serialisiere(),
         }
     }
 
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        match Arc::try_unwrap(self.steuerung) {
-            Ok(mutex) => mutex
-                .into_inner()
-                .konsumiere(|weiche_steuerung| weiche_steuerung.anschlüsse.anschlüsse()),
+        match Arc::try_unwrap(self.anschlüsse) {
+            Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
@@ -257,15 +249,10 @@ where
         input_anschlüsse: Vec<InputAnschluss>,
         canvas: Arc<Mutex<Cache>>,
     ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
-        let BenannteWeiche {
-            name,
-            steuerung: WeicheSteuerung { aktuelle_richtung, letzte_richtung, anschlüsse },
-        } = self;
+        let BenannteWeiche { name, richtung, anschlüsse } = self;
         let reserviert = anschlüsse
             .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, ())?
-            .konvertiere(|anschlüsse| {
-                Weiche::neu(name, aktuelle_richtung, letzte_richtung, anschlüsse, canvas)
-            });
+            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas));
         Ok(reserviert)
     }
 }
