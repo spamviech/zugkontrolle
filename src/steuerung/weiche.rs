@@ -32,15 +32,15 @@ use crate::{
 pub struct Name(pub String);
 
 // inklusive Kreuzung
-/// Die [Steuerung](WeicheSteuerung) und der [Name] einer [Weiche].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BenannteWeiche<Richtung, Anschlüsse> {
+/// [Name], aktuelle Richtung und Anschlüsse einer Weiche.
+#[derive(Debug, zugkontrolle_macros::Clone)]
+pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
     /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
-    pub richtung: Richtung,
+    richtung: Arc<Mutex<Steuerung<Richtung>>>,
     /// Die Anschlüsse der Weiche.
-    pub anschlüsse: Anschlüsse,
+    anschlüsse: Arc<Mutex<Anschlüsse>>,
 }
 
 // TODO nach dreiwege verschieben?
@@ -52,10 +52,6 @@ pub struct WeicheRichtung<Richtung> {
     /// Die Richtung vor der aktuellen Richtung.
     pub letzte_richtung: Richtung,
 }
-
-/// Steuerung und Name eines Schaltbaren Gleises.
-pub type Weiche<Richtung, Anschlüsse> =
-    BenannteWeiche<Arc<Mutex<Steuerung<Richtung>>>, Arc<Mutex<Anschlüsse>>>;
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     /// Erstelle eine neue [Weichen-Steuerung](Weiche).
@@ -84,22 +80,6 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     /// Erhalte einen Teil der aktuellen Richtung einer [Weiche].
     pub fn richtung_ausschnitt<T: Clone>(&self, f: impl FnOnce(&Richtung) -> &T) -> T {
         f(self.richtung.lock().as_ref()).clone()
-    }
-}
-
-/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
-pub type WeicheSerialisiert<Richtung, Anschlüsse> = BenannteWeiche<Richtung, Anschlüsse>;
-
-impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
-    /// Erstelle eine neue [WeicheSerialisiert].
-    pub fn neu_serialisiert(name: Name, richtung: Richtung, anschlüsse: Anschlüsse) -> Self {
-        WeicheSerialisiert { name, richtung, anschlüsse }
-    }
-
-    /// Erhalte [Name] und Richtung und Anschlüsse einer [WeicheSerialisiert].
-    pub fn name_und_steuerung(self) -> (Name, Richtung, Anschlüsse) {
-        let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        (name, richtung, anschlüsse)
     }
 }
 
@@ -213,6 +193,24 @@ where
     }
 }
 
+/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
+    /// Der Name der Weiche.
+    pub name: Name,
+    /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+    pub richtung: Richtung,
+    /// Die Anschlüsse der Weiche.
+    pub anschlüsse: Anschlüsse,
+}
+
+impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
+    /// Erstelle eine neue [WeicheSerialisiert].
+    pub fn neu(name: Name, richtung: Richtung, anschlüsse: Anschlüsse) -> Self {
+        WeicheSerialisiert { name, richtung, anschlüsse }
+    }
+}
+
 #[allow(single_use_lifetimes)]
 impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
 where
@@ -259,7 +257,7 @@ where
         input_anschlüsse: Vec<InputAnschluss>,
         canvas: Arc<Mutex<Cache>>,
     ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
-        let BenannteWeiche { name, richtung, anschlüsse } = self;
+        let WeicheSerialisiert { name, richtung, anschlüsse } = self;
         let reserviert = anschlüsse
             .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, ())?
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas));
