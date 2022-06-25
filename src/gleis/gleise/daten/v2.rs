@@ -183,17 +183,22 @@ struct WeicheSteuerungSerialisiert<Richtung, Anschlüsse> {
     anschlüsse: Anschlüsse,
 }
 
+// FIXME Instanzen für Richtung erstellen
+struct AktuellUndBisher<R> {
+    aktuelle_richtung: R,
+    letzte_richtung: R,
+}
+
 impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
-    fn konvertiere<R2: From<R1>, A2: From<A1>>(self) -> weiche::WeicheSerialisiert<R2, A2> {
+    fn konvertiere<R2: From<AktuellUndBisher<R1>>, A2: From<A1>>(
+        self,
+    ) -> weiche::WeicheSerialisiert<R2, A2> {
         let WeicheSteuerungSerialisiert { name, aktuelle_richtung, letzte_richtung, anschlüsse } =
             self;
         weiche::WeicheSerialisiert::neu(
             name,
-            weiche::WeicheSteuerung {
-                aktuelle_richtung: aktuelle_richtung.into(),
-                letzte_richtung: letzte_richtung.into(),
-                anschlüsse: anschlüsse.into(),
-            },
+            AktuellUndBisher { aktuelle_richtung, letzte_richtung }.into(),
+            anschlüsse.into(),
         )
     }
 }

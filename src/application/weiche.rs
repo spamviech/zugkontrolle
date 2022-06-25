@@ -17,7 +17,7 @@ use crate::{
     anschluss::OutputSerialisiert,
     application::{anschluss, macros::reexport_no_event_methods},
     nachschlagen::Nachschlagen,
-    steuerung::weiche::{Name, WeicheSerialisiert, WeicheSteuerung},
+    steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
 /// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
@@ -42,9 +42,7 @@ where
         option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
         let (name, anschlüsse_save, hat_steuerung) =
-            if let Some((name, WeicheSteuerung { anschlüsse, .. })) =
-                option_weiche.map(WeicheSerialisiert::name_und_steuerung)
-            {
+            if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
                 (name.0, anschlüsse, true)
             } else {
                 (String::new(), Default::default(), false)
@@ -202,14 +200,10 @@ where
                     *self.anschlüsse.erhalte_mut(&richtung) = anschluss
                 },
                 InterneNachricht::Festlegen => {
-                    let weiche_steuerung = WeicheSteuerung {
-                        aktuelle_richtung: Richtung::default(),
-                        letzte_richtung: Richtung::default(),
-                        anschlüsse: self.anschlüsse.clone(),
-                    };
                     let nachricht = Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(self.name.clone()),
-                        weiche_steuerung,
+                        Richtung::default(),
+                        self.anschlüsse.clone(),
                     )));
                     shell.publish(nachricht)
                 },
