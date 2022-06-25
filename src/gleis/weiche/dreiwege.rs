@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer [DreiwegeWeiche].
 
-use std::fmt::Debug;
+use std::{fmt::Debug, mem};
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
@@ -8,7 +8,7 @@ use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
     nachschlagen::impl_nachschlagen,
-    steuerung,
+    steuerung::{self, weiche::WeicheSteuerung},
     typen::{
         canvas::{
             pfad::{self, Pfad, Transformation},
@@ -23,9 +23,9 @@ use crate::{
     },
 };
 
+type Anschlüsse = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
 type AnschlüsseSerialisiert =
-    steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
-type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+    steuerung::weiche::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Dreiwege-Weiche.
 ///
@@ -87,6 +87,37 @@ pub enum VerbindungName {
     Links,
     /// Das andere Ende der rechten Kurve.
     Rechts,
+}
+
+/// Die aktuelle und letzte Richtung einer [DreiwegeWeiche].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RichtungInformation {
+    /// Die aktuelle Richtung der Weiche.
+    pub aktuelle_richtung: Richtung,
+    /// Die Richtung vor der aktuellen Richtung.
+    pub letzte_richtung: Richtung,
+}
+
+impl MitRichtung<Richtung> for RichtungInformation {
+    fn aktuelle_richtung(&self) -> Option<Richtung> {
+        Some(self.aktuelle_richtung)
+    }
+}
+
+impl WeicheSteuerung<Richtung> for RichtungInformation {
+    type Zurücksetzen = Richtung;
+
+    fn einstellen(&mut self, neue_richtung: Richtung) -> Self::Zurücksetzen {
+        let RichtungInformation { aktuelle_richtung, letzte_richtung } = self;
+        mem::swap(aktuelle_richtung, letzte_richtung);
+        mem::replace(aktuelle_richtung, neue_richtung)
+    }
+
+    fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen) {
+        let RichtungInformation { aktuelle_richtung, letzte_richtung } = self;
+        mem::swap(aktuelle_richtung, letzte_richtung);
+        mem::replace(letzte_richtung, zurücksetzen);
+    }
 }
 
 impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<Anschlüsse> {

@@ -134,6 +134,88 @@ where
     None
 }
 
+/// Aktion für ein im Modus "Fahren" angeklicktes Gleis.
+fn aktion_fahren(
+    gleis_steuerung: GleisSteuerung<'_>,
+    streckenabschnitt: Option<&Streckenabschnitt>,
+    canvas: &Arc<Mutex<Cache>>,
+) -> Option<Nachricht> {
+    use GleisSteuerung::*;
+    match gleis_steuerung {
+        Gerade(_) | Kurve(_) => streckenabschnitt.map(|streckenabschnitt| {
+            let fließend = !streckenabschnitt.fließend();
+            Nachricht::StreckenabschnittUmschalten(AktionStreckenabschnitt::Strom {
+                streckenabschnitt: Steuerung::neu(streckenabschnitt.clone(), canvas.clone()),
+                fließend,
+            })
+        }),
+        Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+            use weiche::gerade::Richtung::*;
+            let richtung = match steuerung.as_ref().richtung() {
+                Gerade => Kurve,
+                Kurve => Gerade,
+            };
+            Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(AktionSchalten {
+                weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                richtung,
+            }))
+        }),
+        KurvenWeiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+            use weiche::kurve::Richtung::*;
+            let richtung = match steuerung.as_ref().richtung() {
+                Innen => Außen,
+                Außen => Innen,
+            };
+            Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(AktionSchalten {
+                weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                richtung,
+            }))
+        }),
+        DreiwegeWeiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+            use weiche::dreiwege::{Richtung::*, RichtungInformation};
+            let weiche = steuerung.as_ref();
+            let richtung = match weiche.richtung() {
+                RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Links } => Rechts,
+                RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Rechts } => Links,
+                RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Gerade } => {
+                    error!(
+                        "Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!",
+                        weiche.name.0
+                    );
+                    Links
+                },
+                RichtungInformation { aktuelle_richtung: Links | Rechts, .. } => Gerade,
+            };
+            Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(AktionSchalten {
+                weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                richtung,
+            }))
+        }),
+        SKurvenWeiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+            use weiche::gerade::Richtung::*;
+            let richtung = match steuerung.as_ref().richtung() {
+                Gerade => Kurve,
+                Kurve => Gerade,
+            };
+            Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(AktionSchalten {
+                weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                richtung,
+            }))
+        }),
+        Kreuzung((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
+            use weiche::gerade::Richtung::*;
+            let richtung = match steuerung.as_ref().richtung() {
+                Gerade => Kurve,
+                Kurve => Gerade,
+            };
+            Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(AktionSchalten {
+                weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
+                richtung,
+            }))
+        }),
+    }
+}
+
 fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
@@ -226,99 +308,7 @@ fn aktion_gleis_an_position<'t>(
                     if let Some((gleis_steuerung, _halte_position, _winkel, streckenabschnitt)) =
                         gleis_an_position
                     {
-                        use GleisSteuerung::*;
-                        message = match gleis_steuerung {
-                            Gerade(_) | Kurve(_) => streckenabschnitt.map(|streckenabschnitt| {
-                                let fließend = !streckenabschnitt.fließend();
-                                Nachricht::StreckenabschnittUmschalten(
-                                    AktionStreckenabschnitt::Strom {
-                                        streckenabschnitt: Steuerung::neu(
-                                            streckenabschnitt.clone(),
-                                            canvas.clone(),
-                                        ),
-                                        fließend,
-                                    },
-                                )
-                            }),
-                            Weiche((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().richtung() {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                    AktionSchalten {
-                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                        richtung,
-                                    }
-                                ))
-                            }),
-                            KurvenWeiche((_id, steuerung)) => {
-                                steuerung.nur_some().map(|steuerung| {
-                                    use weiche::kurve::Richtung::*;
-                                    let richtung = match steuerung.as_ref().richtung() {
-                                        Innen => Außen,
-                                        Außen => Innen,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteKurve(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
-                                    ))
-                                })
-                            },
-                            DreiwegeWeiche((_id, steuerung)) => {
-                                steuerung.nur_some().map(|steuerung| {
-                                    use weiche::dreiwege::Richtung::*;
-                                    let weiche = steuerung.as_ref();
-                                    let richtung =
-                                        match weiche.richtung() {
-                                            (Gerade, Links) => Rechts,
-                                            (Gerade, Rechts) => Links,
-                                            (Gerade, Gerade) => {
-                                                error!("Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!", weiche.name.0);
-                                                Links
-                                            },
-                                            (Links | Rechts, _letzte) => Gerade,
-                                        };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
-                                    ))
-                                })
-                            },
-                            SKurvenWeiche((_id, steuerung)) => {
-                                steuerung.nur_some().map(|steuerung| {
-                                    use weiche::gerade::Richtung::*;
-                                    let richtung = match steuerung.as_ref().richtung() {
-                                        Gerade => Kurve,
-                                        Kurve => Gerade,
-                                    };
-                                    Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                        AktionSchalten {
-                                            weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                            richtung,
-                                        },
-                                    ))
-                                })
-                            },
-                            Kreuzung((_id, steuerung)) => steuerung.nur_some().map(|steuerung| {
-                                use weiche::gerade::Richtung::*;
-                                let richtung = match steuerung.as_ref().richtung() {
-                                    Gerade => Kurve,
-                                    Kurve => Gerade,
-                                };
-                                Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteGerade(
-                                    AktionSchalten {
-                                        weiche: steuerung.konvertiere(|&weiche| weiche.clone()),
-                                        richtung,
-                                    },
-                                ))
-                            }),
-                        };
+                        message = aktion_fahren(gleis_steuerung, streckenabschnitt, canvas);
 
                         if message.is_some() {
                             status = event::Status::Captured

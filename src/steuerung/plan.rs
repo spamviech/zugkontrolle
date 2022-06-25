@@ -27,7 +27,7 @@ use crate::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
-        weiche::{Weiche, WeicheSerialisiert},
+        weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
     typen::canvas::Cache,
     zugtyp::Zugtyp,
@@ -751,9 +751,9 @@ pub(crate) type KurvenWeiche = Weiche<weiche::kurve::Richtung, weiche::kurve::Ri
 pub(crate) type KurvenWeicheSerialisiert =
     WeicheSerialisiert<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsseSerialisiert>;
 pub(crate) type DreiwegeWeiche =
-    Weiche<weiche::dreiwege::Richtung, weiche::dreiwege::RichtungAnschlüsse>;
+    Weiche<weiche::dreiwege::RichtungInformation, weiche::dreiwege::RichtungAnschlüsse>;
 pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
-    weiche::dreiwege::Richtung,
+    weiche::dreiwege::RichtungInformation,
     weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
@@ -874,10 +874,11 @@ pub struct AktionSchalten<Weiche, Richtung> {
     pub richtung: Richtung,
 }
 
-impl<L, Anschlüsse, Richtung> Ausführen<L>
-    for AktionSchalten<Steuerung<Weiche<Richtung, Anschlüsse>>, Richtung>
+impl<L, Anschlüsse, T, Richtung> Ausführen<L>
+    for AktionSchalten<Steuerung<Weiche<T, Anschlüsse>>, Richtung>
 where
     L: Leiter,
+    T: 'static + Debug + Clone + WeicheSteuerung<Richtung> + Send,
     Richtung: 'static + Debug + Clone + Send,
     Anschlüsse: 'static + Debug + Nachschlagen<Richtung, OutputAnschluss> + Send,
 {

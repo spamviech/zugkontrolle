@@ -67,6 +67,11 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     )
                 }
             }
+            impl crate::typen::MitRichtung<Richtung> for Richtung {
+                fn aktuelle_richtung(&self) -> Option<Richtung> {
+                    Some(*self)
+                }
+            }
             impl #base_ident::anschluss::de_serialisieren::Serialisiere for RichtungAnschlüsse {
                 type Serialisiert = RichtungAnschlüsseSerialisiert;
                 fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {

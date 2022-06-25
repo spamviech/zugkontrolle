@@ -772,7 +772,7 @@ type WeicheSerialisiert = weiche::WeicheSerialisiert<
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 type DreiwegeWeicheSerialisiert = weiche::WeicheSerialisiert<
-    gleis::weiche::dreiwege::Richtung,
+    gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 type KurvenWeicheSerialisiert = weiche::WeicheSerialisiert<

@@ -173,7 +173,7 @@ impl<L: Leiter> Gleise<L> {
 }
 
 macro_rules! impl_mit_steuerung {
-    ($type: ty, $steuerung: ty, $ident: ident) => {
+    ($type: ty, $steuerung: ty, $ident: ident $(,)?) => {
         impl<'t> MitSteuerung<'t> for $type {
             type Steuerung = $steuerung;
             #[inline(always)]
@@ -198,7 +198,7 @@ macro_rules! impl_mit_steuerung_weiche {
         impl_mit_steuerung! {
             gleis $(:: $pfad)* :: $type,
             OptionWeiche<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsse>,
-            steuerung
+            steuerung,
         }
     }
 }
@@ -206,7 +206,11 @@ macro_rules! impl_mit_steuerung_weiche {
 impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, kontakt}
 impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, kontakt}
 impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
-impl_mit_steuerung_weiche! {gleis::weiche::dreiwege, DreiwegeWeiche}
+impl_mit_steuerung! {
+    gleis::weiche::dreiwege::DreiwegeWeiche,
+    OptionWeiche<gleis::weiche::dreiwege::RichtungInformation, gleis::weiche::dreiwege::RichtungAnschlüsse>,
+    steuerung,
+}
 impl_mit_steuerung_weiche! {gleis::weiche::kurve, KurvenWeiche}
 impl_mit_steuerung_weiche! {gleis::weiche::s_kurve, SKurvenWeiche}
 impl_mit_steuerung_weiche! {gleis::kreuzung, Kreuzung}

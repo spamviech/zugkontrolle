@@ -176,12 +176,12 @@ impl<R> MitRichtung<R> for () {
 
 impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
     fn aktuelle_richtung(&self) -> Option<R> {
-        self.as_ref().and_then(|t| t.aktuelle_richtung())
+        self.as_ref().and_then(MitRichtung::aktuelle_richtung)
     }
 }
 
-impl<R: Clone, A> MitRichtung<R> for Weiche<R, A> {
+impl<R, T: Clone + MitRichtung<R>, A> MitRichtung<R> for Weiche<T, A> {
     fn aktuelle_richtung(&self) -> Option<R> {
-        Some(self.richtung())
+        self.richtung().aktuelle_richtung()
     }
 }

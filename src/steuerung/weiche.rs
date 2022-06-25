@@ -24,7 +24,7 @@ use crate::{
     gleis::gleise::steuerung::Steuerung,
     nachschlagen::Nachschlagen,
     steuerung::plan::async_ausführen,
-    typen::canvas::Cache,
+    typen::{canvas::Cache, MitRichtung},
 };
 
 /// Name einer [Weiche].
@@ -41,16 +41,6 @@ pub struct Weiche<Richtung, Anschlüsse> {
     richtung: Arc<Mutex<Steuerung<Richtung>>>,
     /// Die Anschlüsse der Weiche.
     anschlüsse: Arc<Mutex<Anschlüsse>>,
-}
-
-// TODO nach dreiwege verschieben?
-/// Die aktuelle und letzte Richtung einer [Weiche].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct WeicheRichtung<Richtung> {
-    /// Die aktuelle Richtung der Weiche.
-    pub aktuelle_richtung: Richtung,
-    /// Die Richtung vor der aktuellen Richtung.
-    pub letzte_richtung: Richtung,
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
@@ -83,13 +73,38 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
-impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
-where
-    Richtung: Clone,
-    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
-{
+pub trait WeicheSteuerung<R>: MitRichtung<R> {
+    type Zurücksetzen;
+
+    fn einstellen(&mut self, neue_richtung: R) -> Self::Zurücksetzen;
+
+    fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen);
+}
+
+impl<R: MitRichtung<R>> WeicheSteuerung<R> for R {
+    type Zurücksetzen = R;
+
+    fn einstellen(&mut self, neue_richtung: R) -> Self::Zurücksetzen {
+        mem::replace(self, neue_richtung)
+    }
+
+    fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen) {
+        *self = zurücksetzen
+    }
+}
+
+impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
     /// Schalte eine `Weiche` auf die übergebene `Richtung`.
-    pub fn schalten(&mut self, richtung: Richtung, schalten_zeit: Duration) -> Result<(), Fehler> {
+    pub fn schalten<Richtung>(
+        &mut self,
+        richtung: Richtung,
+        schalten_zeit: Duration,
+    ) -> Result<(), Fehler>
+    where
+        T: WeicheSteuerung<Richtung>,
+        Richtung: Clone,
+        Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
+    {
         Self::schalten_aux(
             &self.richtung,
             &self.anschlüsse,
@@ -100,48 +115,52 @@ where
         Ok(())
     }
 
-    fn schalten_aux(
-        richtung: &Arc<Mutex<Steuerung<Richtung>>>,
+    fn schalten_aux<Richtung>(
+        richtung: &Arc<Mutex<Steuerung<T>>>,
         anschlüsse: &Arc<Mutex<Anschlüsse>>,
         neue_richtung: Richtung,
         schalten_zeit: Duration,
         aktualisieren: Option<impl FnOnce()>,
-    ) -> Result<(), Fehler> {
-        let mut guard = richtung.lock();
-        let weiche_richtung = guard.as_mut();
-        let bisherige_richtung = mem::replace(weiche_richtung, neue_richtung.clone());
-        drop(guard);
+    ) -> Result<(), Fehler>
+    where
+        T: WeicheSteuerung<Richtung>,
+        Richtung: Clone,
+        Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
+    {
+        let mut richtung_guard = richtung.lock();
+        let weiche_richtung = richtung_guard.as_mut();
+        let richtung_zurücksetzen = weiche_richtung.einstellen(neue_richtung.clone());
+        // richtung_guard freigeben, damit Zeichnen nicht blockiert wird.
+        drop(richtung_guard);
         if let Some(aktualisieren) = aktualisieren {
             aktualisieren()
         }
         macro_rules! bei_fehler_zurücksetzen {
             ($result: expr) => {
                 if let Err(fehler) = $result {
-                    let _ = mem::replace(weiche_richtung, bisherige_richtung);
+                    let mut richtung_guard = richtung.lock();
+                    let weiche_richtung = richtung_guard.as_mut();
+                    weiche_richtung.zurücksetzen(richtung_zurücksetzen);
                     return Err(fehler);
                 }
             };
         }
-        bei_fehler_zurücksetzen!(anschlüsse
-            .lock()
+        // Reserviere die Anschlüsse bis der gesamte Schaltvorgang abgeschlossen ist.
+        let mut anschlüsse_guard = anschlüsse.lock();
+        bei_fehler_zurücksetzen!(anschlüsse_guard
             .erhalte_mut(&neue_richtung)
             .einstellen(Fließend::Fließend));
         sleep(schalten_zeit);
-        bei_fehler_zurücksetzen!(anschlüsse
-            .lock()
+        bei_fehler_zurücksetzen!(anschlüsse_guard
             .erhalte_mut(&neue_richtung)
             .einstellen(Fließend::Gesperrt));
         Ok(())
     }
 }
 
-impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse>
-where
-    Richtung: Clone + Send + 'static,
-    Anschlüsse: Nachschlagen<Richtung, OutputAnschluss> + Send + 'static,
-{
+impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
     /// Schalte eine [Weiche] auf die übergebene `Richtung`.
-    pub fn async_schalten<Nachricht: Send + 'static>(
+    pub fn async_schalten<Richtung, Nachricht>(
         &mut self,
         richtung: Richtung,
         schalten_zeit: Duration,
@@ -150,7 +169,13 @@ where
             impl 'static + FnOnce() -> Nachricht + Clone + Send,
         >,
         erzeuge_fehler_nachricht: impl 'static + FnOnce(Fehler) -> Nachricht + Send,
-    ) -> JoinHandle<()> {
+    ) -> JoinHandle<()>
+    where
+        T: 'static + WeicheSteuerung<Richtung> + Send,
+        Richtung: 'static + Clone + Send,
+        Anschlüsse: 'static + Nachschlagen<Richtung, OutputAnschluss> + Send,
+        Nachricht: 'static + Send,
+    {
         let name_clone = self.name.clone();
         let sender_clone = sender.clone();
         let erzeuge_aktualisieren_nachricht_clone = erzeuge_aktualisieren_nachricht.clone();
