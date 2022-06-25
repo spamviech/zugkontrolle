@@ -73,11 +73,15 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
+/// Notwendige Information zum ermitteln der nächsten Richtung einer Weiche.
 pub trait WeicheSteuerung<R>: MitRichtung<R> {
+    /// Notwendige Information zum zurücksetzen bei Schalt-Fehler.
     type Zurücksetzen;
 
+    /// Einstellen einer neuen Richtung.
     fn einstellen(&mut self, neue_richtung: R) -> Self::Zurücksetzen;
 
+    /// Zurücksetzen nach einem Schalt-Fehler.
     fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen);
 }
 

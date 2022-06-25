@@ -1,6 +1,6 @@
 //! Definition und zeichnen einer [DreiwegeWeiche].
 
-use std::{fmt::Debug, mem};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
@@ -89,12 +89,12 @@ pub enum VerbindungName {
     Rechts,
 }
 
-/// Die aktuelle und letzte Richtung einer [DreiwegeWeiche].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Die aktuelle und letzte [Richtung] einer [DreiwegeWeiche].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungInformation {
-    /// Die aktuelle Richtung der Weiche.
+    /// Die aktuelle [Richtung] der [DreiwegeWeiche].
     pub aktuelle_richtung: Richtung,
-    /// Die Richtung vor der aktuellen Richtung.
+    /// Die [Richtung] vor der aktuellen [Richtung].
     pub letzte_richtung: Richtung,
 }
 
@@ -117,15 +117,15 @@ impl WeicheSteuerung<Richtung> for RichtungInformation {
     type Zurücksetzen = Richtung;
 
     fn einstellen(&mut self, neue_richtung: Richtung) -> Self::Zurücksetzen {
-        let RichtungInformation { aktuelle_richtung, letzte_richtung } = self;
-        mem::swap(aktuelle_richtung, letzte_richtung);
-        mem::replace(aktuelle_richtung, neue_richtung)
+        let zurücksetzen = self.letzte_richtung;
+        self.letzte_richtung = self.aktuelle_richtung;
+        self.aktuelle_richtung = neue_richtung;
+        zurücksetzen
     }
 
     fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen) {
-        let RichtungInformation { aktuelle_richtung, letzte_richtung } = self;
-        mem::swap(aktuelle_richtung, letzte_richtung);
-        mem::replace(letzte_richtung, zurücksetzen);
+        self.aktuelle_richtung = self.letzte_richtung;
+        self.letzte_richtung = zurücksetzen;
     }
 }
 
