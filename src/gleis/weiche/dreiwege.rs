@@ -98,6 +98,15 @@ pub struct RichtungInformation {
     pub letzte_richtung: Richtung,
 }
 
+impl Default for RichtungInformation {
+    fn default() -> Self {
+        RichtungInformation {
+            aktuelle_richtung: Richtung::Gerade,
+            letzte_richtung: Richtung::Rechts,
+        }
+    }
+}
+
 impl MitRichtung<Richtung> for RichtungInformation {
     fn aktuelle_richtung(&self) -> Option<Richtung> {
         Some(self.aktuelle_richtung)

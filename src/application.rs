@@ -305,7 +305,7 @@ type DreiwegeWeicheZustand = weiche::Zustand<
     gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlZustand,
 >;
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::dreiwege::Richtung,
+    gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 

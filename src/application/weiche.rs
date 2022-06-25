@@ -154,10 +154,11 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Widget<Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, T, AnschlüsseSerialisiert, R> Widget<Nachricht<T, AnschlüsseSerialisiert>, R>
     for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
-    Richtung: Clone + Default,
+    Richtung: Clone,
+    T: Default,
     AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: text::Renderer<Font = Font>,
 {
@@ -175,7 +176,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Nachricht<Richtung, AnschlüsseSerialisiert>>,
+        shell: &mut Shell<'_, Nachricht<T, AnschlüsseSerialisiert>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
         let mut card_shell = Shell::new(&mut card_messages);
@@ -202,7 +203,7 @@ where
                 InterneNachricht::Festlegen => {
                     let nachricht = Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(self.name.clone()),
-                        Richtung::default(),
+                        T::default(),
                         self.anschlüsse.clone(),
                     )));
                     shell.publish(nachricht)
@@ -215,10 +216,12 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
-    for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, T, AnschlüsseSerialisiert, R>
+    From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
+    for Element<'t, Nachricht<T, AnschlüsseSerialisiert>, R>
 where
-    Richtung: 't + Clone + Default,
+    Richtung: 't + Clone,
+    T: Default,
     AnschlüsseSerialisiert: 't + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't + text::Renderer<Font = Font>,
 {
