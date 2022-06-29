@@ -18,41 +18,6 @@ pub trait Serialisiere: Sized {
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>);
 }
 
-/// Erfolgreiches Ergebnis von [reserviere](Reserviere::reserviere) inklusive aller
-/// nicht benötigten [Anschlüsse](crate::anschluss::Anschluss).
-#[derive(Debug)]
-pub struct Reserviert<R> {
-    /// Das Ergebnis.
-    pub anschluss: R,
-    /// Nicht benötigte Pwm-Pins.
-    pub pwm_pins: Vec<pwm::Pin>,
-    /// Nicht benötigte Output-Anschlüsse.
-    pub output_anschlüsse: Vec<OutputAnschluss>,
-    /// Nicht benötigte Input-Anschlüsse.
-    pub input_anschlüsse: Vec<InputAnschluss>,
-}
-
-impl<R> Reserviert<R> {
-    /// Konvertiere den `anschluss` mit der übergebenen Funktion.
-    pub fn konvertiere<T>(self, f: impl FnOnce(R) -> T) -> Reserviert<T> {
-        let Reserviert { anschluss, pwm_pins, output_anschlüsse, input_anschlüsse } = self;
-        Reserviert { anschluss: f(anschluss), pwm_pins, output_anschlüsse, input_anschlüsse }
-    }
-}
-
-/// Fehler der bei [reserviere](Reserviere::reserviere) auftreten kann.
-#[derive(Debug)]
-pub struct Fehler {
-    /// Der aufgetretene Fehler.
-    pub fehler: Vec<anschluss::Fehler>,
-    /// Reservierte Pwm-Pins.
-    pub pwm_pins: Vec<pwm::Pin>,
-    /// Reservierte Output-Anschlüsse.
-    pub output_anschlüsse: Vec<OutputAnschluss>,
-    /// Reservierte Input-Anschlüsse.
-    pub input_anschlüsse: Vec<InputAnschluss>,
-}
-
 /// Ergebnis von [reserviere](Reserviere::reserviere).
 pub struct Ergebnis<R> {
     /// Das Ergebnis.
