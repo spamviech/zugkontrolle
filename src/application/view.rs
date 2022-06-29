@@ -204,12 +204,13 @@ where
             Element::from(
                 iced_aw::Card::new(
                     Text::new(&*titel),
-                    Column::new()
-                        .push(Scrollable::new(scrollable_zustand).push(Text::new(&*nachricht)))
-                        .push(
-                            iced::Button::new(button_zustand, Text::new("Ok"))
-                                .on_press(NachrichtClone::SchließeMessageBox),
-                        ),
+                    Scrollable::new(scrollable_zustand)
+                        .push(Text::new(&*nachricht))
+                        .height(Length::Units(300)),
+                )
+                .foot(
+                    iced::Button::new(button_zustand, Text::new("Ok"))
+                        .on_press(NachrichtClone::SchließeMessageBox),
                 )
                 .width(Length::Shrink),
             )
