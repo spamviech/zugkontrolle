@@ -2,15 +2,10 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use log::error;
+use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::{eingeschränkt::kleiner_8, rppal, zugtyp::FalscherLeiter};
-
-pub use self::{
-    de_serialisieren::{Reserviere, Reserviert, Serialisiere},
-    pcf8574::I2cBus,
-};
 
 pub mod level;
 pub use level::Level;
@@ -26,9 +21,10 @@ pub mod pin;
 pub use pin::{input, output, pwm, Pin};
 
 pub mod pcf8574;
-pub use pcf8574::Pcf8574;
+pub use pcf8574::{I2cBus, Pcf8574};
 
 pub mod de_serialisieren;
+pub use de_serialisieren::{Ergebnis, Reserviere, Serialisiere};
 
 /// Verwalten nicht verwendeter [Pin]s und [Pcf8574-Ports](pcf8574::Port).
 #[derive(Debug)]
@@ -283,37 +279,21 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
         _arg: (),
-    ) -> de_serialisieren::Result<OutputAnschluss> {
-        let polarität = match self {
+    ) -> Ergebnis<OutputAnschluss> {
+        let neue_polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
             OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
         };
-        let (mut gesucht, output_nicht_benötigt): (Vec<_>, Vec<_>) = output_anschlüsse
+        let (mut gesucht, andere): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
             .partition(|anschluss| self.selber_anschluss(&anschluss.serialisiere()));
-        let anschluss = if let Some(anschluss) = gesucht.pop() {
-            match anschluss {
-                OutputAnschluss::Pin { pin, .. } => OutputAnschluss::Pin { pin, polarität },
-                OutputAnschluss::Pcf8574Port { port, .. } => {
-                    OutputAnschluss::Pcf8574Port { port, polarität }
-                },
+        let (anschluss, fehler) = if let Some(anschluss) = gesucht.pop() {
+            match &mut anschluss {
+                OutputAnschluss::Pin { polarität, .. } => *polarität = neue_polarität,
+                OutputAnschluss::Pcf8574Port { polarität, .. } => *polarität = neue_polarität,
             }
+            (Some(anschluss), None)
         } else {
-            macro_rules! unwrap_return {
-                ($result:expr) => {
-                    match $result {
-                        Ok(anschluss) => anschluss,
-                        Err(fehler) => {
-                            return Err(de_serialisieren::Fehler {
-                                fehler: fehler.into(),
-                                pwm_pins,
-                                output_anschlüsse: output_nicht_benötigt,
-                                input_anschlüsse,
-                            })
-                        },
-                    }
-                };
-            }
             let (anschluss_res, polarität) = match self {
                 OutputSerialisiert::Pin { pin, polarität } => {
                     (lager.reserviere_pin(pin), polarität)
@@ -322,15 +302,16 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                     (lager.reserviere_pcf8574_port(beschreibung, port), polarität)
                 },
             };
-            let anschluss = unwrap_return!(anschluss_res);
-            unwrap_return!(anschluss.als_output(polarität))
+            match anschluss_res {
+                Ok(anschluss) => match anschluss.als_output(polarität) {
+                    Ok(output_anschluss) => (Some(output_anschluss), None),
+                    Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+                },
+                Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+            }
         };
-        Ok(Reserviert {
-            anschluss,
-            pwm_nicht_benötigt: pwm_pins,
-            output_nicht_benötigt,
-            input_nicht_benötigt: input_anschlüsse,
-        })
+        gesucht.extend(andere);
+        Ergebnis { anschluss, fehler, pwm_pins, output_anschlüsse: gesucht, input_anschlüsse }
     }
 }
 
@@ -483,81 +464,84 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
         _arg: (),
-    ) -> de_serialisieren::Result<InputAnschluss> {
-        let (gesuchter_anschluss, input_nicht_benötigt) =
-            input_anschlüsse.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
-                if self.selber_anschluss(&anschluss.serialisiere()) {
-                    acc.0 = Some(anschluss)
-                } else {
-                    acc.1.push(anschluss)
-                }
-                acc
-            });
+    ) -> Ergebnis<InputAnschluss> {
+        let mut gesuchter_anschluss = None;
+        let mut gesuchter_interrupt = None;
+        let mut verbleibende_input_anschlüsse = Vec::with_capacity(input_anschlüsse.len());
         let self_interrupt = self.interrupt();
-        let (gesuchter_interrupt, input_nicht_benötigt) =
-            input_nicht_benötigt.into_iter().fold((None, Vec::new()), |mut acc, anschluss| {
-                match (anschluss, self_interrupt) {
-                    (InputAnschluss::Pin(pin), Some(save)) if pin.pin() == save => {
-                        acc.0 = Some(pin)
-                    },
-                    (anschluss, _self_interrupt) => acc.1.push(anschluss),
-                }
-                acc
-            });
-        let interrupt_konfigurieren = |mut anschluss| -> Result<_, Fehler> {
-            if let InputAnschluss::Pcf8574Port(port) = &mut anschluss {
-                if let Some(interrupt) = gesuchter_interrupt {
-                    let _ = port.setze_interrupt_pin(interrupt)?;
-                } else if let Some(pin) = self_interrupt {
-                    if Some(pin) != port.interrupt_pin()? {
-                        let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
-                        let _ = port.setze_interrupt_pin(interrupt)?;
+        let mut anschluss_suchen: Box<dyn FnMut(InputAnschluss)> = if let Some(interrupt) =
+            self_interrupt
+        {
+            Box::new(|anschluss| {
+                if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
+                {
+                    gesuchter_anschluss = Some(anschluss)
+                } else {
+                    match anschluss {
+                        InputAnschluss::Pin(pin)
+                            if gesuchter_interrupt.is_none() && pin.pin() == interrupt =>
+                        {
+                            gesuchter_interrupt = Some(pin)
+                        },
+                        _ => verbleibende_input_anschlüsse.push(anschluss),
                     }
                 }
-            } else if let Some(interrupt) = self_interrupt {
-                error!(
-                    "Interrupt Pin {} für einen InputPin {:?} konfiguriert.",
-                    interrupt, anschluss
-                )
-            }
-            Ok(anschluss)
-        };
-        macro_rules! unwrap_return {
-            ($result:expr) => {
-                match $result {
-                    Ok(anschluss) => anschluss,
-                    Err(fehler) => {
-                        return Err(de_serialisieren::Fehler {
-                            fehler: fehler.into(),
-                            pwm_pins,
-                            output_anschlüsse,
-                            input_anschlüsse: input_nicht_benötigt,
-                        })
-                    },
+            })
+        } else {
+            Box::new(|anschluss| {
+                if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
+                {
+                    gesuchter_anschluss = Some(anschluss)
+                } else {
+                    verbleibende_input_anschlüsse.push(anschluss)
                 }
-            };
+            })
+        };
+        for anschluss in input_anschlüsse {
+            anschluss_suchen(anschluss)
         }
-        let anschluss = if let Some(anschluss) = gesuchter_anschluss {
-            unwrap_return!(interrupt_konfigurieren(anschluss))
+        let interrupt_konfigurieren = |mut port: pcf8574::InputPort| -> Result<_, Fehler> {
+            if let Some(interrupt) = gesuchter_interrupt {
+                let _ = port.setze_interrupt_pin(interrupt)?;
+            } else if let Some(pin) = self_interrupt {
+                if Some(pin) != port.interrupt_pin()? {
+                    let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
+                    let _ = port.setze_interrupt_pin(interrupt)?;
+                }
+            }
+            Ok(port)
+        };
+        let (anschluss, fehler) = if let Some(anschluss) = gesuchter_anschluss {
+            (gesuchter_anschluss, None)
         } else {
             match self {
-                InputSerialisiert::Pin { pin } => {
-                    InputAnschluss::Pin(unwrap_return!(lager.pin.reserviere_pin(pin)).als_input())
+                InputSerialisiert::Pin { pin } => match lager.pin.reserviere_pin(pin) {
+                    Ok(pin) => (Some(InputAnschluss::Pin(pin.als_input())), None),
+                    Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
                 },
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    let port =
-                        unwrap_return!(lager.pcf8574.reserviere_pcf8574_port(beschreibung, port));
-                    let input_port = unwrap_return!(port.als_input());
-                    unwrap_return!(interrupt_konfigurieren(InputAnschluss::Pcf8574Port(input_port)))
+                    match lager.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
+                        Ok(port) => match port.als_input() {
+                            Ok(input_port) => match interrupt_konfigurieren(input_port) {
+                                Ok(konfigurierter_port) => {
+                                    (Some(InputAnschluss::Pcf8574Port(konfigurierter_port)), None)
+                                },
+                                Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+                            },
+                            Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+                        },
+                        Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+                    }
                 },
             }
         };
-        Ok(Reserviert {
+        Ergebnis {
             anschluss,
-            pwm_nicht_benötigt: pwm_pins,
-            output_nicht_benötigt: output_anschlüsse,
-            input_nicht_benötigt,
-        })
+            fehler,
+            output_anschlüsse,
+            input_anschlüsse: verbleibende_input_anschlüsse,
+            pwm_pins,
+        }
     }
 }
 

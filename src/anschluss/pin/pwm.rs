@@ -1,11 +1,13 @@
 //! Gpio [Pins](Pin) für Pwm konfiguriert.
 
+use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{Ergebnis, Reserviere, Serialisiere},
+        pin::Pin as EinPin,
         polarität::Polarität,
         InputAnschluss, OutputAnschluss,
     },
@@ -192,34 +194,22 @@ impl Reserviere<Pin> for Serialisiert {
         self,
         lager: &mut anschluss::Lager,
         pwm_pins: Vec<Pin>,
-        output_nicht_benötigt: Vec<OutputAnschluss>,
-        input_nicht_benötigt: Vec<InputAnschluss>,
+        output_anschlüsse: Vec<OutputAnschluss>,
+        input_anschlüsse: Vec<InputAnschluss>,
         _arg: (),
-    ) -> de_serialisieren::Result<Pin> {
-        let (mut gesucht, pwm_nicht_benötigt): (Vec<_>, Vec<_>) =
+    ) -> Ergebnis<Pin> {
+        let (mut gesucht, andere): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);
-        if let Some(anschluss) = gesucht.pop() {
-            Ok(Reserviert {
-                anschluss,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            })
+        let anschluss = gesucht.pop();
+        let (anschluss, fehler) = if anschluss.is_some() {
+            (anschluss, None)
         } else {
-            match lager.pin.reserviere_pin(self.0).map(super::Pin::als_pwm) {
-                Ok(anschluss) => Ok(Reserviert {
-                    anschluss,
-                    pwm_nicht_benötigt,
-                    output_nicht_benötigt,
-                    input_nicht_benötigt,
-                }),
-                Err(error) => Err(de_serialisieren::Fehler {
-                    fehler: error.into(),
-                    pwm_pins: pwm_nicht_benötigt,
-                    output_anschlüsse: output_nicht_benötigt,
-                    input_anschlüsse: input_nicht_benötigt,
-                }),
+            match lager.pin.reserviere_pin(self.0).map(EinPin::als_pwm) {
+                Ok(anschluss) => (Some(anschluss), None),
+                Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
             }
-        }
+        };
+        gesucht.extend(andere);
+        Ergebnis { anschluss, fehler, pwm_pins: gesucht, output_anschlüsse, input_anschlüsse }
     }
 }
