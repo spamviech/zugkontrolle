@@ -86,7 +86,7 @@ impl<T: Serialisiere> Ergebnis<T> {
         let kombiniert = t.and_then(|t| r.map(|r| kombiniere(t, r)));
         let fehler_kombiniert = if let Some(mut fehler_t) = fehler_t {
             if let Some(fehler_r) = fehler_r {
-                fehler_t.tail.extend(fehler_r);
+                fehler_t.extend(fehler_r);
             }
             Some(fehler_t)
         } else {

@@ -74,52 +74,52 @@ windows_*-0.36.1: MIT OR Apache-2.0
     https://github.com/microsoft/windows-rs/pull/1602
 
 ------------------------------------------------------------------
-13 / 267: bincode-1.3.3
+13 / 268: bincode-1.3.3
 Missing License: block-0.1.6
         Repository: http://github.com/SSheldon/rust-block
         Announced License: MIT
-26 / 267: cc-1.0.73
-39 / 267: core-foundation-sys-0.7.0
+26 / 268: cc-1.0.73
+39 / 268: core-foundation-sys-0.7.0
 Missing License: critical-section-0.2.7
         Repository: https://github.com/embassy-rs/critical-section
         Announced License: MIT OR Apache-2.0
-52 / 267: darling-0.13.4
+52 / 268: darling-0.13.4
 Missing License: dispatch-0.2.0
         Repository: http://github.com/SSheldon/rust-dispatch
         Announced License: MIT
-65 / 267: float_next_after-0.1.5
-78 / 267: gethostname-0.2.3
+65 / 268: float_next_after-0.1.5
+78 / 268: gethostname-0.2.3
 Missing License: glow_glyph-0.5.1
         Repository: https://github.com/hecrj/glow_glyph
         Announced License: MIT
-91 / 267: glyph_brush-0.7.4
-104 / 267: iced_graphics-0.3.0
-117 / 267: lazy_static-1.4.0
-130 / 267: memchr-2.5.0
-143 / 267: nix-0.22.3
+91 / 268: glyph_brush-0.7.4
+104 / 268: iced_graphics-0.3.0
+117 / 268: lazy_static-1.4.0
+130 / 268: memchr-2.5.0
+143 / 268: nix-0.22.3
 Missing License: objc-foundation-0.1.1
         Repository: http://github.com/SSheldon/rust-objc-foundation
         Announced License: MIT
 Missing License: objc_id-0.1.1
         Repository: http://github.com/SSheldon/rust-objc-id
         Announced License: MIT
-156 / 267: ordered-float-3.0.0
+156 / 268: once_cell-1.12.0
 Missing License: osmesa-sys-0.1.2
         Repository: https://github.com/Daggerbot/osmesa-rs
         Announced License: CC0-1.0
-169 / 267: proc-macro2-1.0.40
+169 / 268: proc-macro-crate-1.1.3
 Missing License: riscv-0.7.0
         Repository: https://github.com/rust-embedded/riscv
         Announced License: ISC
-182 / 267: riscv-target-0.1.2
-195 / 267: serde-1.0.137
+182 / 268: riscv-0.7.0
+195 / 268: semver-parser-0.7.0
 Missing License: sid-0.6.1
         Repository: https://github.com/nical/sid
         Announced License: MIT/Apache-2.0
-208 / 267: static_assertions-1.1.0
-221 / 267: twox-hash-1.6.3
-234 / 267: wasm-bindgen-backend-0.2.81
-247 / 267: web-sys-0.3.58
+208 / 268: stable_deref_trait-1.2.0
+221 / 268: ttf-parser-0.15.2
+234 / 268: wasm-bindgen-0.2.81
+247 / 268: wayland-sys-0.29.4
 Missing License: winapi-wsapoll-0.1.1
         Repository: https://github.com/psychon/winapi-wsapoll
         Announced License: MIT OR Apache-2.0
@@ -138,6 +138,6 @@ Missing License: windows_x86_64_gnu-0.36.1
 Missing License: windows_x86_64_msvc-0.36.1
         Repository: https://github.com/microsoft/windows-rs
         Announced License: MIT OR Apache-2.0
-260 / 267: winreg-0.10.1
+260 / 268: winit-0.26.1
 Skip zugkontrolle-3.0.0
 Skip zugkontrolle-macros-3.0.0

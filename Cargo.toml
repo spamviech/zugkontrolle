@@ -32,7 +32,7 @@ version = "0.2.0"
 features = ["derive"]
 
 [dependencies.nonempty]
-version = "0.7.0"
+version = "0.8.0"
 features = ["serialize"]
 
 [dependencies.serde]

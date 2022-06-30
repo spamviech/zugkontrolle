@@ -255,7 +255,7 @@ fn target_crates() -> HashSet<&'static str> {
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
+fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 269] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -438,6 +438,17 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
             vec![MITCopyright::neu(true, "2015", "Carl Lerche + nix-rust Authors")],
             None,
             MITZeilenumbruch::Winreg,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    };
+    let nonempty_lizenz = || {
+        mit(
+            None,
+            vec![MITCopyright::neu(true, "2019", "Alexis Sellier")],
+            None,
+            MITZeilenumbruch::NonEmpty,
             MITEinrückung::keine(),
             false,
             MITEnde::standard(),
@@ -1076,17 +1087,8 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
                 MITEnde::standard(),
             )
         }),
-        ("nonempty-0.7.0", || {
-            mit(
-                None,
-                vec![MITCopyright::neu(true, "2019", "Alexis Sellier")],
-                None,
-                MITZeilenumbruch::NonEmpty,
-                MITEinrückung::keine(),
-                false,
-                MITEnde::standard(),
-            )
-        }),
+        ("nonempty-0.7.0", nonempty_lizenz),
+        ("nonempty-0.8.0", nonempty_lizenz),
         ("num-traits-0.2.15", mit_rust_project_developers_lizenz_2014),
         ("num_cpus-1.13.1", || {
             mit(
