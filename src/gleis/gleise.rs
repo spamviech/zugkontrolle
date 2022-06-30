@@ -10,6 +10,7 @@ use iced::{
     mouse, Rectangle,
 };
 use log::error;
+use nonempty::NonEmpty;
 use parking_lot::Mutex;
 
 pub use self::{
@@ -801,10 +802,10 @@ pub enum AnschlüsseAnpassenFehler {
     /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
-        fehler: anschluss::Fehler,
+        fehler: NonEmpty<anschluss::Fehler>,
         /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
-        wiederherstellen_fehler: Option<(anschluss::Fehler, String)>,
+        wiederherstellen_fehler: Option<(NonEmpty<anschluss::Fehler>, String)>,
     },
     /// Das betroffene Gleis wurde entfernt.
     GleisEntfernt(GleisIdFehler),

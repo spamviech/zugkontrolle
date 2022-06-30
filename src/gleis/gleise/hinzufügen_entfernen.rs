@@ -7,7 +7,7 @@ use rstar::RTreeObject;
 
 use crate::{
     anschluss::{
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{Ergebnis, Reserviere, Serialisiere},
         Lager,
     },
     gleis::{
@@ -263,45 +263,38 @@ impl<L: Leiter> Gleise<L> {
                 } else {
                     (None, (Vec::new(), Vec::new(), Vec::new()))
                 };
-            match anschlüsse_serialisiert.reserviere(
-                lager,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-                arg.clone(),
-            ) {
-                Ok(Reserviert { anschluss, .. }) => {
-                    let _ = steuerung.insert(anschluss);
-                },
-                Err(de_serialisieren::Fehler {
-                    fehler,
+            let Ergebnis { anschluss, fehler, pwm_pins, output_anschlüsse, input_anschlüsse } =
+                anschlüsse_serialisiert.reserviere(
+                    lager,
                     pwm_pins,
                     output_anschlüsse,
                     input_anschlüsse,
-                }) => {
-                    let mut wiederherstellen_fehler = None;
-                    if let Some(steuerung_serialisiert) = steuerung_serialisiert {
-                        let serialisiert_string = format!("{steuerung_serialisiert:?}");
-                        match steuerung_serialisiert.reserviere(
-                            lager,
-                            pwm_pins,
-                            output_anschlüsse,
-                            input_anschlüsse,
-                            arg,
-                        ) {
-                            Ok(Reserviert { anschluss, .. }) => {
-                                let _ = steuerung.insert(anschluss);
-                            },
-                            Err(de_serialisieren::Fehler { fehler, .. }) => {
-                                wiederherstellen_fehler = Some((fehler, serialisiert_string));
-                            },
-                        };
+                    arg.clone(),
+                );
+            if let Some(fehler) = fehler {
+                let mut wiederherstellen_fehler = None;
+                if let Some(steuerung_serialisiert) = steuerung_serialisiert {
+                    let serialisiert_string = format!("{steuerung_serialisiert:?}");
+                    let Ergebnis { anschluss, fehler, .. } = steuerung_serialisiert.reserviere(
+                        lager,
+                        pwm_pins,
+                        output_anschlüsse,
+                        input_anschlüsse,
+                        arg,
+                    );
+                    if let Some(fehler) = fehler {
+                        wiederherstellen_fehler = Some((fehler, serialisiert_string));
                     }
-                    return Err(AnschlüsseAnpassenFehler::Deserialisieren {
-                        fehler,
-                        wiederherstellen_fehler,
-                    });
-                },
+                    if let Some(anschluss) = anschluss {
+                        let _ = steuerung.insert(anschluss);
+                    }
+                }
+                return Err(AnschlüsseAnpassenFehler::Deserialisieren {
+                    fehler,
+                    wiederherstellen_fehler,
+                });
+            } else if let Some(anschluss) = anschluss {
+                let _ = steuerung.insert(anschluss);
             }
         } else {
             let _ = steuerung.take();

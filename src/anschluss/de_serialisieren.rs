@@ -18,6 +18,7 @@ pub trait Serialisiere: Sized {
     fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>);
 }
 
+// FIXME anschluss==None && fehler==None sollte nicht möglich sein!
 /// Ergebnis von [reserviere](Reserviere::reserviere).
 pub struct Ergebnis<R> {
     /// Das Ergebnis.
