@@ -104,13 +104,12 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
                     input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
                     _arg: (),
-                ) -> #base_ident::anschluss::de_serialisieren::Result<RichtungAnschlüsse> {
+                ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
                     #[allow(unused_parens)]
-                    let reserviert = (#(#struct_fields),*)
-                        .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, (#(#unit_args),*))?
-                        .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* });
-                    Ok(reserviert)
+                    (#(#struct_fields),*)
+                        .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, (#(#unit_args),*))
+                        .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
                 }
             }
             impl Default for RichtungAnschlüsseSerialisiert {

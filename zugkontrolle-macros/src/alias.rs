@@ -94,14 +94,13 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
                             input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
                             arg: Self::Arg,
-                        ) -> #base_ident::anschluss::de_serialisieren::Result<#ident<#(#params),*>> {
+                        ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            let reserviert = (#(#param_fields),*)
-                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
+                            (#(#param_fields),*)
+                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)
                                 .konvertiere(|(#(#param_fields),*)| {
                                     #ident { #(#other_fields),*, #(#param_fields),* }
-                                });
-                            Ok(reserviert)
+                                })
                         }
                     }
                     impl<#(#params),*> #ident<#(#params),*> {
