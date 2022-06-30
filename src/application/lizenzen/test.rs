@@ -8,13 +8,15 @@ use std::{
 
 use difference::{Changeset, Difference};
 use either::Either;
-use flexi_logger::{LogSpecBuilder, Logger};
-use log::{error, LevelFilter};
+use log::error;
 
-use crate::application::lizenzen::{
-    cargo_lock_lizenzen,
-    texte::{mit_ohne_copyright, MITZeilenumbruch},
-    verwendete_lizenzen,
+use crate::{
+    application::lizenzen::{
+        cargo_lock_lizenzen,
+        texte::{mit_ohne_copyright, MITZeilenumbruch},
+        verwendete_lizenzen,
+    },
+    init_test_logging,
 };
 
 struct OptionD<'t, T>(&'t str, Option<T>);
@@ -58,13 +60,7 @@ fn cargo_lock_crates() -> HashSet<&'static str> {
 /// Test ob alle Lizenzen angezeigt werden.
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
 fn alle_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
-    let mut log_spec_builder = LogSpecBuilder::new();
-    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
-    let log_spec = log_spec_builder.finalize();
-    let _log_handle = Logger::with(log_spec)
-        .log_to_stderr()
-        .start()
-        .expect("Logging initialisieren fehlgeschlagen!");
+    init_test_logging();
 
     let mut fehlend = BTreeSet::new();
     for target in RELEASE_TARGETS {
@@ -416,13 +412,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
-    let mut log_spec_builder = LogSpecBuilder::new();
-    let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", LevelFilter::Debug);
-    let log_spec = log_spec_builder.finalize();
-    let _log_handle = Logger::with(log_spec)
-        .log_to_stderr()
-        .start()
-        .expect("Logging initialisieren fehlgeschlagen!");
+    init_test_logging();
 
     let release_target_crates = RELEASE_TARGETS
         .into_iter()

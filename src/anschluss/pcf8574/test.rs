@@ -1,6 +1,4 @@
-//! Unit tests für das anschluss-Modul
-
-use flexi_logger::{LogSpecBuilder, Logger};
+//! Unit tests für das anschluss-Modul.
 
 use crate::{
     anschluss::{
@@ -9,19 +7,12 @@ use crate::{
         pin,
     },
     eingeschränkt::kleiner_8,
+    init_test_logging,
 };
 
 #[test]
 fn drop_semantics() {
-    let mut log_spec_builder = LogSpecBuilder::new();
-    let _ = log_spec_builder
-        .default(log::LevelFilter::Error)
-        .module("zugkontrolle", log::LevelFilter::Debug);
-    let log_spec = log_spec_builder.finalize();
-    let _log_handle = Logger::with(log_spec)
-        .log_to_stderr()
-        .start()
-        .expect("Logging initialisieren fehlgeschlagen!");
+    init_test_logging();
 
     let llln_beschreibung = Beschreibung {
         i2c_bus: I2cBus::I2c0_1,
