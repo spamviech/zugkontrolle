@@ -278,6 +278,7 @@ where
     T: Reserviere<R, Arg = ()>,
 {
     type Arg = Arc<Mutex<Cache>>;
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
@@ -285,11 +286,10 @@ where
         output_anschlüsse: Vec<OutputAnschluss>,
         input_anschlüsse: Vec<InputAnschluss>,
         canvas: Arc<Mutex<Cache>>,
-    ) -> de_serialisieren::Result<Weiche<Richtung, R>> {
+    ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        let reserviert = anschlüsse
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, ())?
-            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas));
-        Ok(reserviert)
+        anschlüsse
+            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, ())
+            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas))
     }
 }
