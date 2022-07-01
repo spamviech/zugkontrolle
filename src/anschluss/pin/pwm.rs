@@ -6,10 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{Ergebnis, Reserviere, Serialisiere},
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         pin::Pin as EinPin,
         polarität::Polarität,
-        InputAnschluss, OutputAnschluss,
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     rppal::{gpio, pwm},
@@ -175,6 +174,7 @@ pub enum Fehler {
 #[allow(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
+
 impl Serialisiere for Pin {
     type Serialisiert = Serialisiert;
 
@@ -182,8 +182,12 @@ impl Serialisiere for Pin {
         Serialisiert(self.pin())
     }
 
-    fn anschlüsse(self) -> (Vec<Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        (vec![self], Vec::new(), Vec::new())
+    fn anschlüsse(self) -> Anschlüsse {
+        Anschlüsse {
+            pwm_pins: vec![self],
+            output_anschlüsse: Vec::new(),
+            input_anschlüsse: Vec::new(),
+        }
     }
 }
 
@@ -193,23 +197,23 @@ impl Reserviere<Pin> for Serialisiert {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
         _arg: (),
     ) -> Ergebnis<Pin> {
         let (mut gesucht, andere): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);
         let anschluss = gesucht.pop();
-        let (anschluss, fehler) = if anschluss.is_some() {
-            (anschluss, None)
+        gesucht.extend(andere);
+        let anschlüsse = Anschlüsse { pwm_pins: gesucht, output_anschlüsse, input_anschlüsse };
+        if let Some(anschluss) = anschluss {
+            Ergebnis::Wert { anschluss, anschlüsse }
         } else {
             match lager.pin.reserviere_pin(self.0).map(EinPin::als_pwm) {
-                Ok(anschluss) => (Some(anschluss), None),
-                Err(fehler) => (None, Some(NonEmpty::singleton(fehler.into()))),
+                Ok(anschluss) => Ergebnis::Wert { anschluss, anschlüsse },
+                Err(fehler) => {
+                    Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
+                },
             }
-        };
-        gesucht.extend(andere);
-        Ergebnis { anschluss, fehler, pwm_pins: gesucht, output_anschlüsse, input_anschlüsse }
+        }
     }
 }
