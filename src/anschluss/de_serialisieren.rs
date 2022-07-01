@@ -1,9 +1,32 @@
 //! Traits zum serialisieren und reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
 
+use either::Either;
+use log::error;
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
+
+/// Alle [Anschlüsse](anschluss::Anschluss).
+#[derive(Default)]
+pub struct Anschlüsse {
+    /// Pwm-Pins.
+    pub pwm_pins: Vec<pwm::Pin>,
+    /// Output-Anschlüsse.
+    pub output_anschlüsse: Vec<OutputAnschluss>,
+    /// Input-Anschlüsse.
+    pub input_anschlüsse: Vec<InputAnschluss>,
+}
+
+impl Anschlüsse {
+    /// Füge weitere Anschlüsse zu den jeweiligen [Vec] hinzu.
+    pub fn anhängen(&mut self, andere: Anschlüsse) {
+        let Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse } = andere;
+        self.pwm_pins.extend(pwm_pins);
+        self.output_anschlüsse.extend(output_anschlüsse);
+        self.input_anschlüsse.extend(input_anschlüsse);
+    }
+}
 
 /// Es existiert einer serialisierbare Repräsentation.
 pub trait Serialisiere: Sized {
@@ -15,90 +38,43 @@ pub trait Serialisiere: Sized {
     fn serialisiere(&self) -> Self::Serialisiert;
 
     /// Erhalte alle Anschlüsse.
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>);
+    fn anschlüsse(self) -> Anschlüsse;
 }
 
-// FIXME anschluss==None && fehler==None sollte nicht möglich sein!
 /// Ergebnis von [reserviere](Reserviere::reserviere).
-pub struct Ergebnis<R> {
-    /// Das Ergebnis.
-    pub anschluss: Option<R>,
-    /// Beim reservieren aufgetretene Fehler.
-    pub fehler: Option<NonEmpty<anschluss::Fehler>>,
-    /// Nicht verwendete Pwm-Pins.
-    pub pwm_pins: Vec<pwm::Pin>,
-    /// Nicht verwendete Output-Anschlüsse.
-    pub output_anschlüsse: Vec<OutputAnschluss>,
-    /// Nicht verwendete Input-Anschlüsse.
-    pub input_anschlüsse: Vec<InputAnschluss>,
+pub enum Ergebnis<R> {
+    Wert {
+        /// Das Ergebnis.
+        anschluss: R,
+        /// Nicht verwendete anschlüsse.
+        anschlüsse: Anschlüsse,
+    },
+    FehlerMitErsatzwert {
+        /// Der Ersatzwert
+        anschluss: R,
+        /// Beim reservieren aufgetretene Fehler.
+        fehler: NonEmpty<anschluss::Fehler>,
+        /// Nicht verwendete anschlüsse.
+        anschlüsse: Anschlüsse,
+    },
+    Fehler {
+        /// Beim reservieren aufgetretene Fehler.
+        fehler: NonEmpty<anschluss::Fehler>,
+        /// Nicht verwendete anschlüsse.
+        anschlüsse: Anschlüsse,
+    },
 }
 
 impl<R> Ergebnis<R> {
     /// Konvertiere den `anschluss` mit der übergebenen Funktion.
     pub fn konvertiere<T>(self, f: impl FnOnce(R) -> T) -> Ergebnis<T> {
-        let Ergebnis { anschluss, fehler, pwm_pins, output_anschlüsse, input_anschlüsse } = self;
-        Ergebnis {
-            anschluss: anschluss.map(f),
-            fehler,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        }
-    }
-}
-
-impl<T: Serialisiere> Ergebnis<T> {
-    /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs.
-    #[inline(always)]
-    pub fn reserviere_ebenfalls<S: Reserviere<R>, R>(
-        self,
-        lager: &mut anschluss::Lager,
-        serialisiert: S,
-        arg: <S as Reserviere<R>>::Arg,
-    ) -> Ergebnis<(T, R)> {
-        self.reserviere_ebenfalls_mit(lager, serialisiert, arg, |t, r| (t, r))
-    }
-
-    /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
-    /// übergebenen Funktion.
-    pub fn reserviere_ebenfalls_mit<S: Reserviere<R>, R, U>(
-        self,
-        lager: &mut anschluss::Lager,
-        serialisiert: S,
-        arg: <S as Reserviere<R>>::Arg,
-        kombiniere: impl FnOnce(T, R) -> U,
-    ) -> Ergebnis<U> {
-        let Ergebnis {
-            anschluss: t,
-            fehler: fehler_t,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        } = self;
-        let Ergebnis {
-            anschluss: r,
-            fehler: fehler_r,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-        } = serialisiert.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg);
-        let kombiniert = t.and_then(|t| r.map(|r| kombiniere(t, r)));
-        let fehler_kombiniert = if let Some(mut fehler_t) = fehler_t {
-            if let Some(fehler_r) = fehler_r {
-                fehler_t.extend(fehler_r);
-            }
-            Some(fehler_t)
-        } else {
-            fehler_r
-        };
-        Ergebnis {
-            anschluss: kombiniert,
-            fehler: fehler_kombiniert,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
+        use Ergebnis::*;
+        match self {
+            Wert { anschluss, anschlüsse } => Wert { anschluss: f(anschluss), anschlüsse },
+            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                FehlerMitErsatzwert { anschluss: f(anschluss), fehler, anschlüsse }
+            },
+            Fehler { fehler, anschlüsse } => Fehler { fehler, anschlüsse },
         }
     }
 }
@@ -114,11 +90,74 @@ pub trait Reserviere<R> {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<R>;
+}
+
+impl<T: Serialisiere> Ergebnis<T> {
+    /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
+    /// [reserviere](Reserviere::reserviere)-Aufrufs.
+    #[inline(always)]
+    pub fn reserviere_ebenfalls<S: Reserviere<R>, R>(
+        self,
+        lager: &mut anschluss::Lager,
+        serialisiert: S,
+        arg: <S as Reserviere<R>>::Arg,
+    ) -> Ergebnis<(T, R)> {
+        self.reserviere_ebenfalls_mit(lager, serialisiert, arg, |t, r| (t, r), |_| None)
+    }
+
+    /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
+    /// [reserviere](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
+    /// übergebenen Funktion.
+    /// Wenn mindestens ein Wert nicht vorhanden ist ([Ergebnis::Fehler]) wird stattdessen
+    /// mit `fehlerbehandlung` versucht ein Ersatzergebnis zu erzeugen.
+    pub fn reserviere_ebenfalls_mit<S: Reserviere<R>, R, U>(
+        self,
+        lager: &mut anschluss::Lager,
+        serialisiert: S,
+        arg: <S as Reserviere<R>>::Arg,
+        kombiniere: impl FnOnce(T, R) -> U,
+        fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
+    ) -> Ergebnis<U> {
+        use Ergebnis::*;
+        let (t, fehler_t, anschlüsse) = match self {
+            Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
+            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                (Some(anschluss), Some(fehler), anschlüsse)
+            },
+            Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
+        };
+        let (r, fehler_r, anschlüsse) = match serialisiert.reserviere(lager, anschlüsse, arg) {
+            Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
+            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                (Some(anschluss), Some(fehler), anschlüsse)
+            },
+            Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
+        };
+        let kombiniert = match (t, r) {
+            (Some(t), Some(r)) => Some(kombiniere(t, r)),
+            (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
+            (_, None) => fehlerbehandlung(Either::Left(t)),
+        };
+        let fehler_kombiniert = if let Some(mut fehler_t) = fehler_t {
+            if let Some(fehler_r) = fehler_r {
+                fehler_t.extend(fehler_r);
+            }
+            Some(fehler_t)
+        } else {
+            fehler_r
+        };
+        match (kombiniert, fehler_kombiniert) {
+            (None, None) => unreachable!("Wert und Fehler können nicht gleichzeitig None sein!"),
+            (None, Some(fehler)) => Fehler { fehler, anschlüsse },
+            (Some(anschluss), None) => Wert { anschluss, anschlüsse },
+            (Some(anschluss), Some(fehler)) => {
+                FehlerMitErsatzwert { anschluss, fehler, anschlüsse }
+            },
+        }
+    }
 }
 
 #[allow(single_use_lifetimes)]
@@ -133,15 +172,12 @@ where
         self.as_ref().map(Serialisiere::serialisiere)
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let mut acc = (Vec::new(), Vec::new(), Vec::new());
+    fn anschlüsse(self) -> Anschlüsse {
         if let Some(r) = self {
-            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
-            acc.0.extend(pwm_pins);
-            acc.1.extend(output_anschlüsse);
-            acc.2.extend(input_anschlüsse);
+            r.anschlüsse()
+        } else {
+            Anschlüsse::default()
         }
-        acc
     }
 }
 
@@ -156,22 +192,13 @@ where
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<Option<R>> {
         if let Some(s) = self {
-            s.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)
-                .konvertiere(Some)
+            s.reserviere(lager, anschlüsse, arg).konvertiere(Some)
         } else {
-            Ergebnis {
-                anschluss: None,
-                fehler: None,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-            }
+            Ergebnis::Wert { anschluss: None, anschlüsse }
         }
     }
 }
@@ -189,14 +216,12 @@ where
         self.iter().map(Serialisiere::serialisiere).collect()
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        self.into_iter().fold((Vec::new(), Vec::new(), Vec::new()), |mut acc, r| {
-            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
-            acc.0.extend(pwm_pins);
-            acc.1.extend(output_anschlüsse);
-            acc.2.extend(input_anschlüsse);
-            acc
-        })
+    fn anschlüsse(self) -> Anschlüsse {
+        let mut anschlüsse = Anschlüsse::default();
+        for r in self {
+            anschlüsse.anhängen(r.anschlüsse());
+        }
+        anschlüsse
     }
 }
 
@@ -212,24 +237,29 @@ where
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<Vec<R>> {
+        let len = self.len();
         self.into_iter().fold(
-            Ergebnis {
-                anschluss: Some(Vec::new()),
-                fehler: None,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-            },
+            Ergebnis::Wert { anschluss: Vec::with_capacity(len), anschlüsse },
             |acc, serialisiert| {
-                acc.reserviere_ebenfalls_mit(lager, serialisiert, arg.clone(), |mut vec, r| {
-                    vec.push(r);
-                    vec
-                })
+                acc.reserviere_ebenfalls_mit(
+                    lager,
+                    serialisiert,
+                    arg.clone(),
+                    |mut vec, r| {
+                        vec.push(r);
+                        vec
+                    },
+                    |either| match either {
+                        Either::Left(vec) => vec,
+                        Either::Right(anschluss) => {
+                            error!("Leerer Akkumulator in Reserviere-Implementierung von Vec<T>!");
+                            Some(vec![anschluss])
+                        },
+                    },
+                )
             },
         )
     }
@@ -250,14 +280,12 @@ where
         NonEmpty { head, tail }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        self.into_iter().fold((Vec::new(), Vec::new(), Vec::new()), |mut acc, r| {
-            let (pwm_pins, output_anschlüsse, input_anschlüsse) = r.anschlüsse();
-            acc.0.extend(pwm_pins);
-            acc.1.extend(output_anschlüsse);
-            acc.2.extend(input_anschlüsse);
-            acc
-        })
+    fn anschlüsse(self) -> Anschlüsse {
+        let mut anschlüsse = Anschlüsse::default();
+        for r in self {
+            anschlüsse.anhängen(r.anschlüsse());
+        }
+        anschlüsse
     }
 }
 
@@ -272,14 +300,21 @@ where
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<NonEmpty<R>> {
-        let head =
-            self.head.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg.clone());
-        head.reserviere_ebenfalls_mit(lager, self.tail, arg, |head, tail| NonEmpty { head, tail })
+        let head = self.head.reserviere(lager, anschlüsse, arg.clone());
+        head.reserviere_ebenfalls_mit(
+            lager,
+            self.tail,
+            arg,
+            |head, tail| NonEmpty { head, tail },
+            |either| match either {
+                Either::Left(None) => None,
+                Either::Left(Some(head)) => Some(NonEmpty::singleton(head)),
+                Either::Right(tail) => NonEmpty::from_vec(tail),
+            },
+        )
     }
 }
 
@@ -304,14 +339,11 @@ macro_rules! impl_serialisiere_tuple {
                 )+
                 (s0, $($name),+)
             }
-            fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+            fn anschlüsse(self) -> Anschlüsse {
                 let (a0, $($name),+) = self;
                 let mut acc = a0.anschlüsse();
                 $(
-                    let (pwm_pins, output_anschlüsse, input_anschlüsse) = $name.anschlüsse();
-                    acc.0.extend(pwm_pins);
-                    acc.1.extend(output_anschlüsse);
-                    acc.2.extend(input_anschlüsse);
+                    acc.anhängen($name.anschlüsse());
                 )+
                 acc
             }
@@ -330,21 +362,19 @@ macro_rules! impl_serialisiere_tuple {
             fn reserviere(
                 self,
                 lager: &mut anschluss::Lager,
-                pwm_pins: Vec<pwm::Pin>,
-                output_anschlüsse: Vec<OutputAnschluss>,
-                input_anschlüsse: Vec<InputAnschluss>,
+                anschlüsse: Anschlüsse,
                 arg: Self::Arg,
             ) -> Ergebnis<(A0, $($type),+)> {
                 let (a0, $($name),+) = self;
                 let (arg_0, $($arg_name),+) = arg;
-                let reserviert
-                    = a0.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg_0);
+                let reserviert = a0.reserviere(lager, anschlüsse, arg_0);
                 reserviert.reserviere_ebenfalls_mit(
                     lager,
                     ($($name),+),
                     ($($arg_name),+),
                     #[allow(unused_parens)]
-                    |a0, ($($name),+)| (a0, $($name),+)
+                    |a0, ($($name),+)| (a0, $($name),+),
+                    |_| None,
                 )
             }
         }
