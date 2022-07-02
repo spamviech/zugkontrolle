@@ -11,10 +11,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Serialisiere},
-        pin::pwm,
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         polarität::Fließend,
-        Fehler, InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        Fehler, OutputAnschluss, OutputSerialisiert,
     },
     typen::farbe::Farbe,
 };
@@ -107,14 +106,14 @@ impl Serialisiere for Streckenabschnitt {
         }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         match Arc::try_unwrap(self.anschluss) {
             Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
                 // Gebe stattdessen keine Anschlüsse zurück
-                (Vec::new(), Vec::new(), Vec::new())
+                Anschlüsse::default()
             },
         }
     }
@@ -126,15 +125,12 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: (),
-    ) -> de_serialisieren::Result<Streckenabschnitt> {
+    ) -> Ergebnis<Streckenabschnitt> {
         let Streckenabschnitt { anschluss, farbe } = self;
-        let reserviert = anschluss
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
-            .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss));
-        Ok(reserviert)
+        anschluss
+            .reserviere(lager, anschlüsse, arg)
+            .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss))
     }
 }
