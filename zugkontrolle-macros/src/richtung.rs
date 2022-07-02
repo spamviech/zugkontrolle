@@ -78,21 +78,12 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSerialisiert { #(#struct_fields: #struct_fields.serialisiere()),* }
                 }
-                fn anschlüsse(self) -> (
-                    Vec<#base_ident::anschluss::pin::pwm::Pin>,
-                    Vec<#base_ident::anschluss::OutputAnschluss>,
-                    Vec<#base_ident::anschluss::InputAnschluss>
-                ) {
-                    let mut pwm0 = Vec::new();
-                    let mut output0 = Vec::new();
-                    let mut input0 = Vec::new();
+                fn anschlüsse(self) -> #base_ident::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = #base_ident::anschluss::de_serialisieren::Anschlüsse::default();
                     #(
-                        let (pwm1, output1, input1) = self.#struct_fields.anschlüsse();
-                        pwm0.extend(pwm1);
-                        output0.extend(output1);
-                        input0.extend(input1);
+                        anschlüsse.anhängen(self.#struct_fields.anschlüsse());
                     )*
-                    (pwm0, output0, input0)
+                    anschlüsse
                 }
             }
             impl #base_ident::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
@@ -100,15 +91,13 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                 fn reserviere(
                     self,
                     lager: &mut #base_ident::anschluss::Lager,
-                    pwm_pins: Vec<#base_ident::anschluss::pin::pwm::Pin>,
-                    output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
-                    input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
+                    anschlüsse: #base_ident::anschluss::de_serialisieren::Anschlüsse,
                     _arg: (),
                 ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
                     #[allow(unused_parens)]
                     (#(#struct_fields),*)
-                        .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, (#(#unit_args),*))
+                        .reserviere(lager, anschlüsse, (#(#unit_args),*))
                         .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
                 }
             }

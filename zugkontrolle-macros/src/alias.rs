@@ -64,23 +64,14 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                                 ),*
                             }
                         }
-                        fn anschlüsse(self) -> (
-                            Vec<#base_ident::anschluss::pin::pwm::Pin>,
-                            Vec<#base_ident::anschluss::OutputAnschluss>,
-                            Vec<#base_ident::anschluss::InputAnschluss>
-                        ) {
-                            let mut pwm0 = Vec::new();
-                            let mut output0 = Vec::new();
-                            let mut input0 = Vec::new();
+                        fn anschlüsse(self) -> #base_ident::anschluss::de_serialisieren::Anschlüsse {
+                            let mut anschlüsse = #base_ident::anschluss::de_serialisieren::Anschlüsse::default();
                             #(
                                 if let Some(steuerung) = self.#param_fields {
-                                    let (pwm1, output1, input1) = steuerung.anschlüsse();
-                                    pwm0.extend(pwm1);
-                                    output0.extend(output1);
-                                    input0.extend(input1);
+                                    anschlüsse.anhängen(steuerung.anschlüsse());
                                 }
                             )*
-                            (pwm0, output0, input0)
+                            anschlüsse
                         }
                     }
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
@@ -90,14 +81,12 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                         fn reserviere(
                             self,
                             lager: &mut #base_ident::anschluss::Lager,
-                            pwm_pins: Vec<#base_ident::anschluss::pin::pwm::Pin>,
-                            output_anschlüsse: Vec<#base_ident::anschluss::OutputAnschluss>,
-                            input_anschlüsse: Vec<#base_ident::anschluss::InputAnschluss>,
+                            anschlüsse: #base_ident::anschluss::de_serialisieren::Anschlüsse,
                             arg: Self::Arg,
                         ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             (#(#param_fields),*)
-                                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)
+                                .reserviere(lager, anschlüsse, arg)
                                 .konvertiere(|(#(#param_fields),*)| {
                                     #ident { #(#other_fields),*, #(#param_fields),* }
                                 })

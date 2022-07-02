@@ -28,6 +28,7 @@ impl Anschlüsse {
     }
 }
 
+// TODO Serialisiere/Reserviere-Zusammenhang umdrehen?
 /// Es existiert einer serialisierbare Repräsentation.
 pub trait Serialisiere: Sized {
     /// Die serialisierbare Repräsentation.
