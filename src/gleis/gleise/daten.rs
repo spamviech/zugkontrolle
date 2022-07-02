@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{Reserviere, Serialisiere},
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     },
     gleis::{
         gerade::Gerade,
@@ -66,13 +66,7 @@ impl<T: Serialisiere> Serialisiere for Gleis<T> {
         Gleis { definition: self.definition.serialisiere(), position: self.position.clone() }
     }
 
-    fn anschlüsse(
-        self,
-    ) -> (
-        Vec<crate::anschluss::pin::pwm::Pin>,
-        Vec<crate::anschluss::OutputAnschluss>,
-        Vec<crate::anschluss::InputAnschluss>,
-    ) {
+    fn anschlüsse(self) -> Anschlüsse {
         self.definition.anschlüsse()
     }
 }
@@ -83,16 +77,13 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<crate::anschluss::pin::pwm::Pin>,
-        output_anschlüsse: Vec<crate::anschluss::OutputAnschluss>,
-        input_anschlüsse: Vec<crate::anschluss::InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
-    ) -> anschluss::de_serialisieren::Result<Gleis<R>> {
+    ) -> Ergebnis<Gleis<R>> {
         let Gleis { definition, position } = self;
-        let reserviert = definition
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
-            .konvertiere(|definition| Gleis { definition, position });
-        Ok(reserviert)
+        definition
+            .reserviere(lager, anschlüsse, arg)
+            .konvertiere(|definition| Gleis { definition, position })
     }
 }
 

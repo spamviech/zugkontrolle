@@ -20,9 +20,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        pin::pwm,
-        InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        OutputSerialisiert,
     },
     gleis::{
         gerade::{Gerade, GeradeSerialisiert},
