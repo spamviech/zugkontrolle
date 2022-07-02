@@ -19,10 +19,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Serialisiere},
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         pin::pwm,
         polarität::{Fließend, Polarität},
-        InputAnschluss, OutputAnschluss, OutputSerialisiert,
+        OutputAnschluss, OutputSerialisiert,
     },
     eingeschränkt::{NichtNegativ, NullBisEins},
     steuerung::plan::async_ausführen,
@@ -351,14 +351,14 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
         GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         match Arc::try_unwrap(self.leiter) {
             Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
                 // Gebe stattdessen keine Anschlüsse zurück
-                (Vec::new(), Vec::new(), Vec::new())
+                Anschlüsse::default()
             },
         }
     }
@@ -370,16 +370,10 @@ impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialis
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: Self::Arg,
-    ) -> de_serialisieren::Result<Geschwindigkeit<T>> {
-        let reserviert = self
-            .leiter
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
-            .konvertiere(Geschwindigkeit::neu);
-        Ok(reserviert)
+    ) -> Ergebnis<Geschwindigkeit<T>> {
+        self.leiter.reserviere(lager, anschlüsse, arg).konvertiere(Geschwindigkeit::neu)
     }
 }
 
@@ -518,16 +512,13 @@ impl Serialisiere for Mittelleiter {
         }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         match self {
             Mittelleiter::Pwm { pin, letzter_wert: _, polarität: _ } => pin.anschlüsse(),
             Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen } => {
-                let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
-                let (pwm1, output1, input1) = umdrehen.anschlüsse();
-                pwm0.extend(pwm1);
-                output0.extend(output1);
-                input0.extend(input1);
-                (pwm0, output0, input0)
+                let mut anschlüsse = geschwindigkeit.anschlüsse();
+                anschlüsse.anhängen(umdrehen.anschlüsse());
+                anschlüsse
             },
         }
     }
@@ -539,23 +530,15 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: (),
-    ) -> de_serialisieren::Result<Mittelleiter> {
-        let reserviert = match self {
+    ) -> Ergebnis<Mittelleiter> {
+        match self {
             MittelleiterSerialisiert::Pwm { pin, polarität } => pin
-                .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?
+                .reserviere(lager, anschlüsse, arg)
                 .konvertiere(|pin| Mittelleiter::Pwm { pin, letzter_wert: 0, polarität }),
             MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
-                let geschwindigkeit = geschwindigkeit.reserviere(
-                    lager,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                    arg,
-                )?;
+                let geschwindigkeit = geschwindigkeit.reserviere(lager, anschlüsse, arg);
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     umdrehen,
@@ -565,10 +548,10 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                         letzter_wert: 0,
                         umdrehen,
                     },
-                )?
+                    |_| None,
+                )
             },
-        };
-        Ok(reserviert)
+        }
     }
 }
 
@@ -1132,23 +1115,17 @@ impl Serialisiere for Zweileiter {
         }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         match self {
             Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität: _, fahrtrichtung } => {
-                let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
-                let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
-                pwm0.extend(pwm1);
-                output0.extend(output1);
-                input0.extend(input1);
-                (pwm0, output0, input0)
+                let mut anschlüsse = geschwindigkeit.anschlüsse();
+                anschlüsse.anhängen(fahrtrichtung.anschlüsse());
+                anschlüsse
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
-                let (mut pwm0, mut output0, mut input0) = geschwindigkeit.anschlüsse();
-                let (pwm1, output1, input1) = fahrtrichtung.anschlüsse();
-                pwm0.extend(pwm1);
-                output0.extend(output1);
-                input0.extend(input1);
-                (pwm0, output0, input0)
+                let mut anschlüsse = geschwindigkeit.anschlüsse();
+                anschlüsse.extend(fahrtrichtung.anschlüsse());
+                anschlüsse
             },
         }
     }
@@ -1160,20 +1137,12 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: (),
-    ) -> de_serialisieren::Result<Zweileiter> {
+    ) -> Ergebnis<Zweileiter> {
         match self {
             ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
-                let geschwindigkeit = geschwindigkeit.reserviere(
-                    lager,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                    arg,
-                )?;
+                let geschwindigkeit = geschwindigkeit.reserviere(lager, anschlüsse, arg);
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     fahrtrichtung,
@@ -1184,16 +1153,11 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                         polarität,
                         fahrtrichtung,
                     },
+                    |_| None,
                 )
             },
             ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
-                let geschwindigkeit = geschwindigkeit.reserviere(
-                    lager,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                    arg,
-                )?;
+                let geschwindigkeit = geschwindigkeit.reserviere(lager, anschlüsse, arg);
                 geschwindigkeit.reserviere_ebenfalls_mit(
                     lager,
                     fahrtrichtung,
@@ -1203,6 +1167,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                         letzter_wert: 0,
                         fahrtrichtung,
                     },
+                    |_| None,
                 )
             },
         }
