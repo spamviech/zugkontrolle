@@ -1124,7 +1124,7 @@ impl Serialisiere for Zweileiter {
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 let mut anschlüsse = geschwindigkeit.anschlüsse();
-                anschlüsse.extend(fahrtrichtung.anschlüsse());
+                anschlüsse.anhängen(fahrtrichtung.anschlüsse());
                 anschlüsse
             },
         }
