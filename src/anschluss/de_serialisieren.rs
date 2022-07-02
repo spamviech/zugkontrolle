@@ -196,10 +196,19 @@ where
         anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<Option<R>> {
+        use Ergebnis::*;
         if let Some(s) = self {
-            s.reserviere(lager, anschlüsse, arg).konvertiere(Some)
+            match s.reserviere(lager, anschlüsse, arg) {
+                Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
+                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                    FehlerMitErsatzwert { anschluss: Some(anschluss), fehler, anschlüsse }
+                },
+                Fehler { fehler, anschlüsse } => {
+                    FehlerMitErsatzwert { anschluss: None, fehler, anschlüsse }
+                },
+            }
         } else {
-            Ergebnis::Wert { anschluss: None, anschlüsse }
+            Wert { anschluss: None, anschlüsse }
         }
     }
 }
