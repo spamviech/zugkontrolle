@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{self, Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         pin::pwm,
         InputAnschluss, OutputAnschluss, OutputSerialisiert,
     },
@@ -137,19 +137,12 @@ fn reserviere_anschlüsse<T, S, L>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     serialisiert: Vec<Gleis<<T as Serialisiere>::Serialisiert>>,
-    pwm_pins: Vec<pwm::Pin>,
-    output_anschlüsse: Vec<OutputAnschluss>,
-    input_anschlüsse: Vec<InputAnschluss>,
+    anschlüsse: Anschlüsse,
     steuerung: impl Fn(&T) -> &Option<S>,
     map: &mut HashMap<S::Serialisiert, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
     arg: &<<T as Serialisiere>::Serialisiert as Reserviere<T>>::Arg,
-) -> (
-    Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>,
-    Vec<pwm::Pin>,
-    Vec<OutputAnschluss>,
-    Vec<InputAnschluss>,
-)
+) -> (Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>, Anschlüsse)
 where
     T: Zeichnen + Serialisiere,
     <<T as Serialisiere>::Serialisiert as Reserviere<T>>::Arg: Clone,
@@ -157,39 +150,36 @@ where
     <S as Serialisiere>::Serialisiert: Eq + Hash,
     L: Serialisiere,
 {
-    serialisiert.into_iter().fold(
-        (Vec::new(), pwm_pins, output_anschlüsse, input_anschlüsse),
-        |acc, gleis_serialisiert| {
-            let mut gleise = acc.0;
-            let Reserviert {
-                anschluss: gleis,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            } = match gleis_serialisiert.reserviere(lager, acc.1, acc.2, acc.3, arg.clone()) {
-                Ok(reserviert) => reserviert,
-                Err(de_serialisieren::Fehler {
-                    fehler,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                }) => {
-                    laden_fehler.push(fehler.into());
-                    return (gleise, pwm_pins, output_anschlüsse, input_anschlüsse);
-                },
-            };
-            // Bekannte Steuerung sichern
-            if let Some(steuerung) = steuerung(&gleis.definition) {
-                let serialisiert = steuerung.serialisiere();
-                let _ = map.insert(serialisiert, steuerung.clone());
-            }
-            // Gleis mit BoundingBox speichern
-            let rectangle =
-                Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
-            gleise.push(GeomWithData::new(rectangle, gleis));
-            (gleise, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
-        },
-    )
+    serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
+        let mut gleise = acc.0;
+        let Reserviert {
+            anschluss: gleis,
+            pwm_nicht_benötigt,
+            output_nicht_benötigt,
+            input_nicht_benötigt,
+        } = match gleis_serialisiert.reserviere(lager, acc.1, arg.clone()) {
+            Ok(reserviert) => reserviert,
+            Err(de_serialisieren::Fehler {
+                fehler,
+                pwm_pins,
+                output_anschlüsse,
+                input_anschlüsse,
+            }) => {
+                laden_fehler.push(fehler.into());
+                return (gleise, pwm_pins, output_anschlüsse, input_anschlüsse);
+            },
+        };
+        // Bekannte Steuerung sichern
+        if let Some(steuerung) = steuerung(&gleis.definition) {
+            let serialisiert = steuerung.serialisiere();
+            let _ = map.insert(serialisiert, steuerung.clone());
+        }
+        // Gleis mit BoundingBox speichern
+        let rectangle =
+            Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
+        gleise.push(GeomWithData::new(rectangle, gleis));
+        (gleise, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
+    })
 }
 
 impl GleiseDatenSerialisiert {
@@ -315,54 +305,22 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
         }
     }
 
-    fn anschlüsse_ausgeben(
-        &mut self,
-    ) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
-        let mut pwm_pins = Vec::new();
-        let mut output_anschlüsse = Vec::new();
-        let mut input_anschlüsse = Vec::new();
-        fn collect_anschlüsse<S: Serialisiere>(
-            struktur: S,
-            pwm_pins: &mut Vec<pwm::Pin>,
-            output_anschlüsse: &mut Vec<OutputAnschluss>,
-            input_anschlüsse: &mut Vec<InputAnschluss>,
-        ) {
-            let (pwm, output, input) = struktur.anschlüsse();
-            pwm_pins.extend(pwm.into_iter());
-            output_anschlüsse.extend(output.into_iter());
-            input_anschlüsse.extend(input.into_iter());
-        }
+    fn anschlüsse_ausgeben(&mut self) -> Anschlüsse {
+        let mut anschlüsse = Anschlüsse::default();
         fn collect_gleis_anschlüsse<T: DatenAuswahl + Serialisiere>(
             daten: &mut GleiseDaten,
-            pwm_pins: &mut Vec<pwm::Pin>,
-            output_anschlüsse: &mut Vec<OutputAnschluss>,
-            input_anschlüsse: &mut Vec<InputAnschluss>,
+            anschlüsse: &mut Anschlüsse,
         ) {
             while let Some(geom_with_data) =
                 daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
             {
-                collect_anschlüsse(
-                    geom_with_data.data.definition,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                )
+                anschlüsse.anhängen(geom_with_data.data.definition.anschlüsse())
             }
         }
-        fn collect_daten_anschlüsse(
-            daten: &mut GleiseDaten,
-            pwm_pins: &mut Vec<pwm::Pin>,
-            output_anschlüsse: &mut Vec<OutputAnschluss>,
-            input_anschlüsse: &mut Vec<InputAnschluss>,
-        ) {
+        fn collect_daten_anschlüsse(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse) {
             macro_rules! collect_gleis_anschlüsse {
                 ($($typ: ident),* $(,)?) => {$(
-                    collect_gleis_anschlüsse::<$typ>(
-                        daten,
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                    )
+                    collect_gleis_anschlüsse::<$typ>(daten, anschlüsse)
                 );*}
             }
             collect_gleis_anschlüsse! {
@@ -375,55 +333,23 @@ impl<L: Serialisiere + BekannterLeiter> Zustand<L> {
                 Kreuzung
             }
         }
-        collect_daten_anschlüsse(
-            &mut self.ohne_streckenabschnitt,
-            &mut pwm_pins,
-            &mut output_anschlüsse,
-            &mut input_anschlüsse,
-        );
+        collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
         fn collect_streckenabschnitt_map_anschlüsse(
             streckenabschnitt_map: &mut StreckenabschnittMap,
-            pwm_pins: &mut Vec<pwm::Pin>,
-            output_anschlüsse: &mut Vec<OutputAnschluss>,
-            input_anschlüsse: &mut Vec<InputAnschluss>,
+            anschlüsse: &mut Anschlüsse,
         ) {
             for (_name, (streckenabschnitt, mut daten)) in streckenabschnitt_map.drain() {
-                collect_anschlüsse(
-                    streckenabschnitt,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                );
-                collect_daten_anschlüsse(
-                    &mut daten,
-                    pwm_pins,
-                    output_anschlüsse,
-                    input_anschlüsse,
-                );
+                anschlüsse.anhängen(streckenabschnitt.anschlüsse());
+                collect_daten_anschlüsse(&mut daten, anschlüsse);
             }
         }
-        collect_streckenabschnitt_map_anschlüsse(
-            &mut self.ohne_geschwindigkeit,
-            &mut pwm_pins,
-            &mut output_anschlüsse,
-            &mut input_anschlüsse,
-        );
+        collect_streckenabschnitt_map_anschlüsse(&mut self.ohne_geschwindigkeit, &mut anschlüsse);
         for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
         {
-            collect_anschlüsse(
-                geschwindigkeit,
-                &mut pwm_pins,
-                &mut output_anschlüsse,
-                &mut input_anschlüsse,
-            );
-            collect_streckenabschnitt_map_anschlüsse(
-                &mut streckenabschnitt_map,
-                &mut pwm_pins,
-                &mut output_anschlüsse,
-                &mut input_anschlüsse,
-            );
+            anschlüsse.anhängen(geschwindigkeit.anschlüsse());
+            collect_streckenabschnitt_map_anschlüsse(&mut streckenabschnitt_map, &mut anschlüsse);
         }
-        (pwm_pins, output_anschlüsse, input_anschlüsse)
+        anschlüsse
     }
 }
 
@@ -437,9 +363,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     streckenabschnitt_map: StreckenabschnittMapSerialisiert,
-    pwm_pins: Vec<pwm::Pin>,
-    output_anschlüsse: Vec<OutputAnschluss>,
-    input_anschlüsse: Vec<InputAnschluss>,
+    anschlüsse: Anschlüsse,
     streckenabschnitte: &mut HashMap<OutputSerialisiert, Streckenabschnitt>,
     gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
     kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
@@ -469,13 +393,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
                 fehler_daten,
             ) = acc;
             let leiter_serialisiert = streckenabschnitt.anschluss_ref().clone();
-            let streckenabschnitt_result = streckenabschnitt.reserviere(
-                lager,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-                (),
-            );
+            let streckenabschnitt_result = streckenabschnitt.reserviere(lager, anschlüsse, ());
             match streckenabschnitt_result {
                 Ok(Reserviert {
                     anschluss: streckenabschnitt,
@@ -786,9 +704,7 @@ where
             zugtyp.spurweite,
             lager,
             ohne_geschwindigkeit,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
+            anschlüsse,
             &mut bekannte_streckenabschnitte,
             &mut bekannte_gerade_weichen,
             &mut bekannte_kurven_weichen,
@@ -813,9 +729,7 @@ where
             zugtyp.spurweite,
             lager,
             geschwindigkeiten,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
+            anschlüsse,
             &mut ohne_streckenabschnitt,
             &mut bekannte_geschwindigkeiten,
             &mut bekannte_streckenabschnitte,

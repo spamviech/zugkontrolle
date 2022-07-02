@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+        de_serialisieren::{self, Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         polarität::Fließend,
         OutputSerialisiert,
     },
@@ -240,13 +240,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
                 // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
                 // beim hinzufügen.
-                match anschluss_definition.reserviere(
-                    &mut self.lager,
-                    Vec::new(),
-                    Vec::new(),
-                    Vec::new(),
-                    (),
-                ) {
+                match anschluss_definition.reserviere(&mut self.lager, Anschlüsse::default(), ()) {
                     Ok(Reserviert { anschluss, .. }) => {
                         self.streckenabschnitt_aktuell.setze_aktuell(
                             StreckenabschnittId {
@@ -467,7 +461,7 @@ where
         geschwindigkeit_save: GeschwindigkeitSerialisiert<Leiter>,
     ) {
         let Zugkontrolle { gleise, auswahl, geschwindigkeiten, .. } = self;
-        let (alt_serialisiert_und_map, (pwm_pins, output_anschlüsse, input_anschlüsse)) =
+        let (alt_serialisiert_und_map, anschlüsse) =
             if let Some((geschwindigkeit, streckenabschnitt_map)) =
                 gleise.geschwindigkeit_mit_streckenabschnitten_entfernen(&name)
             {
@@ -475,15 +469,9 @@ where
                 let anschlüsse = geschwindigkeit.anschlüsse();
                 (Some((serialisiert, streckenabschnitt_map)), anschlüsse)
             } else {
-                (None, (Vec::new(), Vec::new(), Vec::new()))
+                (None, Anschlüsse::default())
             };
-        match geschwindigkeit_save.reserviere(
-            &mut self.lager,
-            pwm_pins,
-            output_anschlüsse,
-            input_anschlüsse,
-            (),
-        ) {
+        match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
             Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
                 match auswahl.overlay_mut() {
                     Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
