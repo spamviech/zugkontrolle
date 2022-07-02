@@ -16,10 +16,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::{self, Reserviere, Serialisiere},
-        pin::pwm,
+        de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
         polarität::Fließend,
-        Fehler, InputAnschluss, OutputAnschluss,
+        Fehler, OutputAnschluss,
     },
     gleis::gleise::steuerung::Steuerung,
     nachschlagen::Nachschlagen,
@@ -257,14 +256,14 @@ where
         }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         match Arc::try_unwrap(self.anschlüsse) {
             Ok(mutex) => mutex.into_inner().anschlüsse(),
             Err(_arc) => {
                 // while-Schleife (mit thread::yield bei Err) bis nur noch eine Arc-Referenz besteht
                 // (Ok wird zurückgegeben) wäre möglich, kann aber zur nicht-Terminierung führen
                 // Gebe stattdessen keine Anschlüsse zurück
-                (Vec::new(), Vec::new(), Vec::new())
+                Anschlüsse::default()
             },
         }
     }
@@ -282,14 +281,12 @@ where
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        bekannte_anschlüsse: Anschlüsse,
         canvas: Arc<Mutex<Cache>>,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
         anschlüsse
-            .reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, ())
+            .reserviere(lager, bekannte_anschlüsse, ())
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas))
     }
 }
