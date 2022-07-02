@@ -6,16 +6,16 @@ use std::sync::{
 };
 
 use log::error;
+use nonempty::NonEmpty;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{
     self,
-    de_serialisieren::{self, Reserviere, Reserviert, Serialisiere},
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     level::Level,
-    pin::pwm,
     trigger::Trigger,
-    Fehler, InputAnschluss, InputSerialisiert, OutputAnschluss,
+    Fehler, InputAnschluss, InputSerialisiert,
 };
 
 /// Name eines [Kontaktes](Kontakt).
@@ -150,7 +150,7 @@ impl Serialisiere for Kontakt {
         }
     }
 
-    fn anschlüsse(self) -> (Vec<pwm::Pin>, Vec<OutputAnschluss>, Vec<InputAnschluss>) {
+    fn anschlüsse(self) -> Anschlüsse {
         let mut kontakt_anschluss = self.anschluss.lock();
         if let AnschlussOderSerialisiert::Anschluss(mut anschluss) =
             kontakt_anschluss.entferne_anschluss()
@@ -158,7 +158,7 @@ impl Serialisiere for Kontakt {
             interrupt_zurücksetzen(&mut anschluss, &self.name);
             anschluss.anschlüsse()
         } else {
-            (Vec::new(), Vec::new(), Vec::new())
+            Anschlüsse::default()
         }
     }
 }
@@ -169,32 +169,30 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         arg: (),
-    ) -> de_serialisieren::Result<Kontakt> {
-        let Reserviert {
-            anschluss,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            mut input_nicht_benötigt,
-        } = self.anschluss.reserviere(lager, pwm_pins, output_anschlüsse, input_anschlüsse, arg)?;
-        match Kontakt::neu(self.name, anschluss, self.trigger) {
-            Ok(anschluss) => Ok(Reserviert {
-                anschluss,
-                pwm_nicht_benötigt,
-                output_nicht_benötigt,
-                input_nicht_benötigt,
-            }),
-            Err((fehler, anschluss)) => {
-                input_nicht_benötigt.push(anschluss);
-                Err(de_serialisieren::Fehler {
-                    fehler,
-                    pwm_pins: pwm_nicht_benötigt,
-                    output_anschlüsse: output_nicht_benötigt,
-                    input_anschlüsse: input_nicht_benötigt,
-                })
+    ) -> Ergebnis<Kontakt> {
+        use Ergebnis::*;
+        let (anschluss, fehler, mut anschlüsse) =
+            match self.anschluss.reserviere(lager, anschlüsse, arg) {
+                Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
+                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                    (anschluss, Some(fehler), anschlüsse)
+                },
+                Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
+            };
+        match (Kontakt::neu(self.name, anschluss, self.trigger), fehler) {
+            (Ok(anschluss), None) => Wert { anschluss, anschlüsse },
+            (Ok(anschluss), Some(fehler)) => FehlerMitErsatzwert { anschluss, fehler, anschlüsse },
+            (Err((kontakt_fehler, anschluss)), fehler) => {
+                anschlüsse.input_anschlüsse.push(anschluss);
+                let fehler = if let Some(mut fehler) = fehler {
+                    fehler.push(kontakt_fehler);
+                    fehler
+                } else {
+                    NonEmpty::singleton(kontakt_fehler)
+                };
+                Fehler { fehler, anschlüsse }
             },
         }
     }
