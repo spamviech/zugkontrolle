@@ -232,55 +232,70 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 self.zeige_message_box(
                     format!("Streckenabschnitt {:?} anpassen", id_ref),
                     fehlermeldung,
-                )
+                );
+                return;
             },
-            _fehler => {
-                // Streckenabschnitt hat nur einen Anschluss,
-                // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
-                // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
-                // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
-                // beim hinzufügen.
-                match anschluss_definition.reserviere(&mut self.lager, Anschlüsse::default(), ()) {
-                    Ok(Reserviert { anschluss, .. }) => {
-                        self.streckenabschnitt_aktuell.setze_aktuell(
-                            StreckenabschnittId {
-                                geschwindigkeit: geschwindigkeit.cloned(),
-                                name: name.clone(),
-                            },
-                            farbe,
-                        );
-                        let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
-                        match self.auswahl.overlay_mut() {
-                            Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
-                                streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
-                            },
-                            modal => {
-                                error!(
-                                    "Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}",
-                                    modal
-                                );
-                                self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
-                                    streckenabschnitt::AuswahlZustand::neu(&self.gleise),
-                                ))
-                            },
-                        }
-                        if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
-                            geschwindigkeit,
-                            name,
-                            streckenabschnitt,
-                        ) {
-                            self.zeige_message_box(
-                                format!("Streckenabschnitt {:?} anpassen", id),
-                                format!("Streckenabschnitt {:?} angepasst: {:?}", id, ersetzt),
-                            )
-                        }
+            _fehler => {},
+        }
+        // Streckenabschnitt hat nur einen Anschluss,
+        // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
+        // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
+        // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
+        // beim hinzufügen.
+        use Ergebnis::*;
+        let (streckenabschnitt, fehler) =
+            match anschluss_definition.reserviere(&mut self.lager, Anschlüsse::default(), ()) {
+                Wert { anschluss, .. } => (Some(anschluss), None),
+                FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
+                Fehler { fehler, .. } => (None, Some(fehler)),
+            };
+        let mut fehlermeldung = fehler.map(|fehler| {
+            (format!("Hinzufügen Streckenabschnitt {:?}", id_ref), format!("{:?}", fehler))
+        });
+        if let Some(streckenabschnitt) = streckenabschnitt {
+            {
+                self.streckenabschnitt_aktuell.setze_aktuell(
+                    StreckenabschnittId {
+                        geschwindigkeit: geschwindigkeit.cloned(),
+                        name: name.clone(),
                     },
-                    Err(fehler) => self.zeige_message_box(
-                        format!("Hinzufügen Streckenabschnitt {:?}", id_ref),
-                        format!("Fehler beim Hinzufügen: {:?}", fehler),
-                    ),
+                    farbe,
+                );
+                let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
+                match self.auswahl.overlay_mut() {
+                    Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
+                        streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
+                    },
+                    modal => {
+                        error!("Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}", modal);
+                        self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
+                            streckenabschnitt::AuswahlZustand::neu(&self.gleise),
+                        ))
+                    },
                 }
-            },
+                if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
+                    geschwindigkeit,
+                    name,
+                    streckenabschnitt,
+                ) {
+                    let bisherige_nachricht = if let Some((_titel, mut nachricht)) = fehlermeldung {
+                        nachricht.push('\n');
+                        nachricht
+                    } else {
+                        String::new()
+                    };
+                    fehlermeldung = Some((
+                        format!("Streckenabschnitt {:?} anpassen", id),
+                        format!(
+                            "{}Streckenabschnitt {:?} angepasst: {:?}",
+                            bisherige_nachricht, id, ersetzt
+                        ),
+                    ));
+                }
+            }
+        }
+        if let Some((titel, nachricht)) = fehlermeldung {
+            self.zeige_message_box(titel, nachricht)
         }
     }
 
