@@ -150,23 +150,18 @@ where
     <S as Serialisiere>::Serialisiert: Eq + Hash,
     L: Serialisiere,
 {
+    use Ergebnis::*;
     serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
         let mut gleise = acc.0;
-        let Reserviert {
-            anschluss: gleis,
-            pwm_nicht_benötigt,
-            output_nicht_benötigt,
-            input_nicht_benötigt,
-        } = match gleis_serialisiert.reserviere(lager, acc.1, arg.clone()) {
-            Ok(reserviert) => reserviert,
-            Err(de_serialisieren::Fehler {
-                fehler,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-            }) => {
-                laden_fehler.push(fehler.into());
-                return (gleise, pwm_pins, output_anschlüsse, input_anschlüsse);
+        let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(lager, acc.1, arg.clone()) {
+            Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
+            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
+                (anschluss, anschlüsse)
+            },
+            Fehler { fehler, anschlüsse } => {
+                laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
+                return (gleise, anschlüsse);
             },
         };
         // Bekannte Steuerung sichern
@@ -178,7 +173,7 @@ where
         let rectangle =
             Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
         gleise.push(GeomWithData::new(rectangle, gleis));
-        (gleise, pwm_nicht_benötigt, output_nicht_benötigt, input_nicht_benötigt)
+        (gleise, anschlüsse)
     })
 }
 
@@ -188,41 +183,35 @@ impl GleiseDatenSerialisiert {
         self,
         spurweite: Spurweite,
         lager: &mut anschluss::Lager,
-        pwm_pins: Vec<pwm::Pin>,
-        output_anschlüsse: Vec<OutputAnschluss>,
-        input_anschlüsse: Vec<InputAnschluss>,
+        anschlüsse: Anschlüsse,
         gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
         kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
         dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
         kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
         fehler: &mut Vec<LadenFehler<L>>,
         canvas: &Arc<Mutex<Cache>>,
-    ) -> Reserviert<GleiseDaten> {
+    ) -> (GleiseDaten, Anschlüsse) {
         macro_rules! reserviere_anschlüsse {
             ($($rstern: ident: $ty: ty: $steuerung: ident: $map: ident: $arg: expr),* $(,)?) => {
                 $(
-                    let ($rstern, pwm_pins, output_anschlüsse, input_anschlüsse) =
+                    let ($rstern, anschlüsse) =
                         reserviere_anschlüsse(
                             spurweite,
                             lager,
                             self.$rstern,
-                            pwm_pins,
-                            output_anschlüsse,
-                            input_anschlüsse,
+                            anschlüsse,
                             |gleis: &$ty| &gleis.$steuerung,
                             $map,
                             fehler,
                             $arg,
                         );
                 )*
-                Reserviert {
-                    anschluss: GleiseDaten {
+                (
+                    GleiseDaten {
                         $($rstern: RTree::bulk_load($rstern)),*
                     },
-                    pwm_nicht_benötigt: pwm_pins,
-                    output_nicht_benötigt: output_anschlüsse,
-                    input_nicht_benötigt: input_anschlüsse,
-                }
+                    anschlüsse,
+                )
             };
         }
         reserviere_anschlüsse! {
