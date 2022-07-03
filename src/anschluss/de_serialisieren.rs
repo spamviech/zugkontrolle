@@ -28,15 +28,30 @@ impl Anschlüsse {
     }
 }
 
-// TODO Serialisiere/Reserviere-Zusammenhang umdrehen?
 /// Es existiert einer serialisierbare Repräsentation.
-pub trait Serialisiere: Sized {
-    /// Die serialisierbare Repräsentation.
-    #[allow(single_use_lifetimes)]
-    type Serialisiert: Serialize + for<'de> Deserialize<'de> + Reserviere<Self>;
-
+///
+/// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
+/// (angenommen `r: R`, `s: S`, `lager: Lager` und `arg: <R as Reserviere<S>>::Arg`):
+///
+/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
+/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// ```
+/// let clone = s.clone();
+/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, Anschlüsse::default(), arg) {
+///     assert_eq!(anschluss.serialisiere(), clone)
+/// }
+/// ```
+/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
+/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// ```
+/// let s = r.serialisiere();
+/// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
+///     && anschluss == r
+/// ```
+#[allow(single_use_lifetimes)]
+pub trait Serialisiere<S: Serialize + for<'de> Deserialize<'de>>: Sized {
     /// Erstelle eine serialisierbare Repräsentation.
-    fn serialisiere(&self) -> Self::Serialisiert;
+    fn serialisiere(&self) -> S;
 
     /// Erhalte alle Anschlüsse.
     fn anschlüsse(self) -> Anschlüsse;
@@ -85,6 +100,27 @@ impl<R> Ergebnis<R> {
 }
 
 /// Erlaube reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
+///
+/// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
+/// (angenommen `r: R`, `s: S`, `lager: Lager` und `arg: <R as Reserviere<S>>::Arg`):
+///
+/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
+/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// ```
+/// let clone = s.clone();
+/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, Anschlüsse::default(), arg) {
+///     assert_eq!(anschluss.serialisiere(), clone)
+/// }
+/// ```
+/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
+/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// ```
+/// let s = r.serialisiere();
+/// let r2 = s.reserviere(lager, r.anschlüsse(), arg);
+/// // `anschluss == r` kann wegen move in `r.anschlüsse()` nicht direkt überprüft werden.
+/// // (Anschlüsse sind in der Regel einzigartig)
+/// assert!(match r {Ergebnis::Wert {anschluss, ..} => true /* anschluss == r */, _ => false});
+/// ```
 pub trait Reserviere<R> {
     /// Extra-Argument zum reservieren der Anschlüsse.
     type Arg;
@@ -100,7 +136,7 @@ pub trait Reserviere<R> {
     ) -> Ergebnis<R>;
 }
 
-impl<T: Serialisiere> Ergebnis<T> {
+impl<T: Serialisiere<TS>, TS> Ergebnis<T> {
     /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
     /// [reserviere](Reserviere::reserviere)-Aufrufs.
     #[inline(always)]
@@ -166,14 +202,12 @@ impl<T: Serialisiere> Ergebnis<T> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<S, R> Serialisiere for Option<R>
+impl<S, R> Serialisiere<Option<S>> for Option<R>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
 {
-    type Serialisiert = Option<S>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    fn serialisiere(&self) -> Option<S> {
         self.as_ref().map(Serialisiere::serialisiere)
     }
 
@@ -190,7 +224,7 @@ where
 impl<S, R> Reserviere<Option<R>> for Option<S>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
 {
     type Arg = <S as Reserviere<R>>::Arg;
 
@@ -218,15 +252,13 @@ where
 }
 
 #[allow(single_use_lifetimes)]
-impl<S, R> Serialisiere for Vec<R>
+impl<S, R> Serialisiere<Vec<S>> for Vec<R>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
     <S as Reserviere<R>>::Arg: Clone,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
 {
-    type Serialisiert = Vec<S>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    fn serialisiere(&self) -> S {
         self.iter().map(Serialisiere::serialisiere).collect()
     }
 
@@ -243,7 +275,7 @@ where
 impl<S, R> Reserviere<Vec<R>> for Vec<S>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
     <S as Reserviere<R>>::Arg: Clone,
 {
     type Arg = <S as Reserviere<R>>::Arg;
@@ -280,15 +312,13 @@ where
 }
 
 #[allow(single_use_lifetimes)]
-impl<S, R> Serialisiere for NonEmpty<R>
+impl<S, R> Serialisiere<NonEmpty<S>> for NonEmpty<R>
 where
     S: Clone + Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
     <S as Reserviere<R>>::Arg: Clone,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
 {
-    type Serialisiert = NonEmpty<S>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+    fn serialisiere(&self) -> S {
         let head = self.head.serialisiere();
         let tail = self.tail.serialisiere();
         NonEmpty { head, tail }
@@ -308,9 +338,10 @@ impl<S, R> Reserviere<NonEmpty<R>> for NonEmpty<S>
 where
     S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
     <S as Reserviere<R>>::Arg: Clone,
-    R: Serialisiere<Serialisiert = S>,
+    R: Serialisiere<S>,
 {
     type Arg = <S as Reserviere<R>>::Arg;
+
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
@@ -335,17 +366,16 @@ where
 macro_rules! impl_serialisiere_tuple {
     ($($name: ident - $arg_name: ident : $type: ident - $serialisiert: ident),+) => {
         #[allow(single_use_lifetimes)]
-        impl<A0, S0, $($type, $serialisiert),+> Serialisiere for (A0, $($type),+)
+        impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
-            A0: Serialisiere<Serialisiert=S0>,
+            A0: Serialisiere<S0>,
             S0: Reserviere<A0> + Serialize + for<'de> Deserialize<'de>,
             $(
-                $type: Serialisiere<Serialisiert=$serialisiert>,
+                $type: Serialisiere<$serialisiert>,
                 $serialisiert: Reserviere<$type> + Serialize + for<'de> Deserialize<'de>,
             )+
         {
-            type Serialisiert = (S0, $($serialisiert),+);
-            fn serialisiere(&self) -> Self::Serialisiert {
+            fn serialisiere(&self) -> (S0, $($serialisiert),+) {
                 let (a0, $($name),+) = self;
                 let s0 = a0.serialisiere();
                 $(
@@ -364,10 +394,10 @@ macro_rules! impl_serialisiere_tuple {
         }
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
-            A0: Serialisiere,
+            A0: Serialisiere<S0>,
             S0: Reserviere<A0>,
             $(
-                $type: Serialisiere,
+                $type: Serialisiere<$serialisiert>,
                 $serialisiert: Reserviere<$type>,
             )+
         {
