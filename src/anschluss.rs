@@ -289,9 +289,10 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         let (mut gesucht, andere): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
             .partition(|anschluss| self.selber_anschluss(&anschluss.serialisiere()));
+        let ein_gesuchter = gesucht.pop();
         gesucht.extend(andere);
         let anschlüsse = Anschlüsse { pwm_pins, output_anschlüsse: gesucht, input_anschlüsse };
-        if let Some(anschluss) = gesucht.pop() {
+        if let Some(mut anschluss) = ein_gesuchter {
             match &mut anschluss {
                 OutputAnschluss::Pin { polarität, .. } => *polarität = neue_polarität,
                 OutputAnschluss::Pcf8574Port { polarität, .. } => *polarität = neue_polarität,
@@ -308,13 +309,8 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
             };
             match anschluss_res {
                 Ok(anschluss) => match anschluss.als_output(polarität) {
-                    Ok(output_anschluss) => Ergebnis::Wert {
-                        anschluss: output_anschluss,
-                        anschlüsse: Anschlüsse {
-                            pwm_pins,
-                            output_anschlüsse: gesucht,
-                            input_anschlüsse,
-                        },
+                    Ok(output_anschluss) => {
+                        Ergebnis::Wert { anschluss: output_anschluss, anschlüsse }
                     },
                     Err(fehler) => {
                         Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
@@ -485,7 +481,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         let mut verbleibende_input_anschlüsse = Vec::with_capacity(input_anschlüsse.len());
         let self_interrupt = self.interrupt();
         let mut anschluss_suchen: Box<dyn FnMut(InputAnschluss)> = if let Some(interrupt) =
-            self_interrupt
+            &self_interrupt
         {
             Box::new(|anschluss| {
                 if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
@@ -494,7 +490,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 } else {
                     match anschluss {
                         InputAnschluss::Pin(pin)
-                            if gesuchter_interrupt.is_none() && pin.pin() == interrupt =>
+                            if gesuchter_interrupt.is_none() && pin.pin() == *interrupt =>
                         {
                             gesuchter_interrupt = Some(pin)
                         },
@@ -515,6 +511,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         for anschluss in input_anschlüsse {
             anschluss_suchen(anschluss)
         }
+        drop(anschluss_suchen);
         let interrupt_konfigurieren = |mut port: pcf8574::InputPort| -> Result<_, Fehler> {
             if let Some(interrupt) = gesuchter_interrupt {
                 let _ = port.setze_interrupt_pin(interrupt)?;

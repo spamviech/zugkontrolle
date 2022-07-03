@@ -271,7 +271,7 @@ impl<L: Leiter> Gleise<L> {
         };
         let (fehler, anschlüsse) =
             match anschlüsse_serialisiert.reserviere(lager, anschlüsse, arg.clone()) {
-                Wert { anschluss, anschlüsse } => {
+                Wert { anschluss, .. } => {
                     let _ = steuerung.insert(anschluss);
                     return Ok(());
                 },

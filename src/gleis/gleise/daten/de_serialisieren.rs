@@ -464,7 +464,7 @@ where
                     geschwindigkeiten.insert(geschwindigkeit_serialisiert, geschwindigkeit.clone());
                 let _ = map.insert(name, (geschwindigkeit, streckenabschnitt_map));
             } else {
-                if let Some(mut fehler_streckenabschnitte) = fehler_streckenabschnitte.as_mut() {
+                if let Some(fehler_streckenabschnitte) = fehler_streckenabschnitte.as_mut() {
                     fehler_streckenabschnitte.extend(streckenabschnitt_map)
                 } else {
                     fehler_streckenabschnitte = Some(streckenabschnitt_map)

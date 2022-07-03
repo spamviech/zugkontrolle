@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
 /// Alle [Anschlüsse](anschluss::Anschluss).
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Anschlüsse {
     /// Pwm-Pins.
     pub pwm_pins: Vec<pwm::Pin>,
@@ -43,13 +43,16 @@ pub trait Serialisiere: Sized {
 }
 
 /// Ergebnis von [reserviere](Reserviere::reserviere).
+#[derive(Debug)]
 pub enum Ergebnis<R> {
+    /// Keine Probleme beim Reservieren.
     Wert {
         /// Das Ergebnis.
         anschluss: R,
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
+    /// Es sind Probleme aufgetreten, aber es kann ein Ersatzwert bereitgestellt werden.
     FehlerMitErsatzwert {
         /// Der Ersatzwert
         anschluss: R,
@@ -58,6 +61,7 @@ pub enum Ergebnis<R> {
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
+    /// Es sind Probleme aufgetreten. Es ist nicht möglich einen Ersatzwert zu erzeugen.
     Fehler {
         /// Beim reservieren aufgetretene Fehler.
         fehler: NonEmpty<anschluss::Fehler>,
@@ -140,7 +144,7 @@ impl<T: Serialisiere> Ergebnis<T> {
         let kombiniert = match (t, r) {
             (Some(t), Some(r)) => Some(kombiniere(t, r)),
             (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
-            (_, None) => fehlerbehandlung(Either::Left(t)),
+            (t, None) => fehlerbehandlung(Either::Left(t)),
         };
         let fehler_kombiniert = if let Some(mut fehler_t) = fehler_t {
             if let Some(fehler_r) = fehler_r {

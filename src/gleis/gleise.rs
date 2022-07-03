@@ -798,6 +798,7 @@ pub enum AnschlüsseAnpassen {
 
 /// Fehler, die beim Anpassen der Anschlüsse eines Gleises auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
+#[allow(variant_size_differences)]
 pub enum AnschlüsseAnpassenFehler {
     /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
     Deserialisieren {
