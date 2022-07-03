@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     anschluss::{
-        de_serialisieren::{self, Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         polarität::Fließend,
         OutputSerialisiert,
     },
@@ -249,9 +249,11 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
                 Fehler { fehler, .. } => (None, Some(fehler)),
             };
+
         let mut fehlermeldung = fehler.map(|fehler| {
             (format!("Hinzufügen Streckenabschnitt {:?}", id_ref), format!("{:?}", fehler))
         });
+
         if let Some(streckenabschnitt) = streckenabschnitt {
             {
                 self.streckenabschnitt_aktuell.setze_aktuell(
@@ -294,6 +296,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
                 }
             }
         }
+
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht)
         }
@@ -486,38 +489,46 @@ where
             } else {
                 (None, Anschlüsse::default())
             };
-        match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
-            Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                match auswahl.overlay_mut() {
-                    Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-                        geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
-                    },
-                    modal => {
-                        error!("Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}", modal);
-                        self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-                            geschwindigkeit::AuswahlZustand::neu(self.gleise.geschwindigkeiten()),
-                        ))
-                    },
-                }
-                let Zugtyp {
-                    pwm_frequenz,
-                    verhältnis_fahrspannung_überspannung,
-                    stopp_zeit,
-                    umdrehen_zeit,
-                    ..
-                } = self.gleise.zugtyp();
-                let _ = geschwindigkeiten.insert(
-                    name.clone(),
-                    <Leiter as LeiterAnzeige>::anzeige_zustand_neu(
+        use Ergebnis::*;
+        let (fehler, anschlüsse) =
+            match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
+                Wert { anschluss: geschwindigkeit, .. } => {
+                    match auswahl.overlay_mut() {
+                        Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
+                            geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
+                        },
+                        modal => {
+                            error!(
+                                "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
+                                modal
+                            );
+                            self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
+                                geschwindigkeit::AuswahlZustand::neu(
+                                    self.gleise.geschwindigkeiten(),
+                                ),
+                            ))
+                        },
+                    }
+                    let Zugtyp {
+                        pwm_frequenz,
+                        verhältnis_fahrspannung_überspannung,
+                        stopp_zeit,
+                        umdrehen_zeit,
+                        ..
+                    } = self.gleise.zugtyp();
+                    let _ = geschwindigkeiten.insert(
                         name.clone(),
-                        *pwm_frequenz,
-                        verhältnis_fahrspannung_überspannung.clone(),
-                        *stopp_zeit,
-                        umdrehen_zeit.clone(),
-                    ),
-                );
-                let streckenabschnitt_map =
-                    if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
+                        <Leiter as LeiterAnzeige>::anzeige_zustand_neu(
+                            name.clone(),
+                            *pwm_frequenz,
+                            verhältnis_fahrspannung_überspannung.clone(),
+                            *stopp_zeit,
+                            umdrehen_zeit.clone(),
+                        ),
+                    );
+                    let streckenabschnitt_map = if let Some((serialisiert, streckenabschnitt_map)) =
+                        alt_serialisiert_und_map
+                    {
                         self.zeige_message_box(
                             format!("Geschwindigkeit {} anpassen", name.0),
                             format!("Geschwindigkeit {} angepasst: {:?}", name.0, serialisiert),
@@ -526,65 +537,61 @@ where
                     } else {
                         StreckenabschnittMap::new()
                     };
-                let _ = self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                    name,
+                    let _ = self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
+                        name,
+                        geschwindigkeit,
+                        streckenabschnitt_map,
+                    );
+                    return;
+                },
+                FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                    anschlüsse.anhängen(anschluss.anschlüsse());
+                    (fehler, anschlüsse)
+                },
+                Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+            };
+
+        let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
+        if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
+            let serialisiert_clone = serialisiert.clone();
+            let (geschwindigkeit, fehler) =
+                match serialisiert.reserviere(&mut self.lager, anschlüsse, ()) {
+                    Wert { anschluss, .. } => (Some(anschluss), None),
+                    FehlerMitErsatzwert { anschluss, fehler, .. } => {
+                        (Some(anschluss), Some(fehler))
+                    },
+                    Fehler { fehler, .. } => (None, Some(fehler)),
+                };
+            if let Some(geschwindigkeit) = geschwindigkeit {
+                // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
+                // nachdem nur wiederhergestellt wird
+                let _ = gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
+                    name.clone(),
                     geschwindigkeit,
                     streckenabschnitt_map,
                 );
-            },
-            Err(de_serialisieren::Fehler {
-                fehler,
-                pwm_pins,
-                output_anschlüsse,
-                input_anschlüsse,
-            }) => {
-                let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
-                if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
-                    let serialisiert_clone = serialisiert.clone();
-                    match serialisiert.reserviere(
-                        &mut self.lager,
-                        pwm_pins,
-                        output_anschlüsse,
-                        input_anschlüsse,
-                        (),
-                    ) {
-                        Ok(Reserviert { anschluss: geschwindigkeit, .. }) => {
-                            // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
-                            // nachdem nur wiederhergestellt wird
-                            let _ = gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                                name.clone(),
-                                geschwindigkeit,
-                                streckenabschnitt_map,
-                            );
-                        },
-                        Err(de_serialisieren::Fehler { fehler, .. }) => {
-                            match auswahl.overlay_mut() {
-                                Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-                                    geschwindigkeit_auswahl.entfernen(&name)
-                                },
-                                modal => {
-                                    error!(
-                                        "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
-                                        modal
-                                    );
-                                    auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-                                        geschwindigkeit::AuswahlZustand::neu(
-                                            gleise.geschwindigkeiten(),
-                                        ),
-                                    ))
-                                },
-                            }
-                            let _ = geschwindigkeiten.remove(&name);
-                            fehlermeldung.push_str(&format!(
-                                "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
-                                fehler, serialisiert_clone
-                            ));
-                        },
-                    }
+            }
+            if let Some(fehler) = fehler {
+                match auswahl.overlay_mut() {
+                    Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
+                        geschwindigkeit_auswahl.entfernen(&name)
+                    },
+                    modal => {
+                        error!("Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}", modal);
+                        auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
+                            geschwindigkeit::AuswahlZustand::neu(gleise.geschwindigkeiten()),
+                        ))
+                    },
                 }
-                self.zeige_message_box("Hinzufügen Geschwindigkeit".to_string(), fehlermeldung);
-            },
+                let _ = geschwindigkeiten.remove(&name);
+                fehlermeldung.push_str(&format!(
+                    "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
+                    fehler, serialisiert_clone
+                ));
+            }
         }
+
+        self.zeige_message_box(format!("Hinzufügen Geschwindigkeit {}", name.0), fehlermeldung);
     }
 }
 
