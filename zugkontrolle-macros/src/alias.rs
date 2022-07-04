@@ -51,8 +51,10 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                     #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     /// Eine serialisierbare Repräsentation.
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
-                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere for #ident<#(#params),*> {
-                        type Serialisiert = #save_ident<#(#params),*>;
+                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere<
+                        #save_ident<#(#params),*>
+                    > for #ident<#(#params),*>
+                    {
                         fn serialisiere(&self) -> #save_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             #save_ident {

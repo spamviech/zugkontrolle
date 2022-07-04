@@ -312,41 +312,13 @@ impl<L: Leiter> Geschwindigkeit<L> {
 }
 
 /// Serialisierbare Repräsentation einer [Geschwindigkeit].
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
-#[zugkontrolle_debug(Leiter: Serialisiere, Leiter::Serialisiert: Debug)]
-#[zugkontrolle_clone(Leiter: Serialisiere, Leiter::Serialisiert: Clone)]
-#[serde(bound = "")]
-pub struct GeschwindigkeitSerialisiert<Leiter: Serialisiere> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
     /// Der Leiter der Geschwindigkeit.
-    pub leiter: <Leiter as Serialisiere>::Serialisiert,
+    pub leiter: LeiterSerialisiert,
 }
 
-impl<Leiter: Serialisiere> PartialEq for GeschwindigkeitSerialisiert<Leiter>
-where
-    <Leiter as Serialisiere>::Serialisiert: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.leiter == other.leiter
-    }
-}
-
-impl<Leiter: Serialisiere> Eq for GeschwindigkeitSerialisiert<Leiter> where
-    <Leiter as Serialisiere>::Serialisiert: Eq
-{
-}
-
-impl<Leiter: Serialisiere> Hash for GeschwindigkeitSerialisiert<Leiter>
-where
-    <Leiter as Serialisiere>::Serialisiert: Hash,
-{
-    fn hash<H: Hasher>(&self, zustand: &mut H) {
-        self.leiter.hash(zustand);
-    }
-}
-
-impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
-    type Serialisiert = GeschwindigkeitSerialisiert<T>;
-
+impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Geschwindigkeit<T> {
     fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T> {
         GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
@@ -364,8 +336,8 @@ impl<T: Serialisiere> Serialisiere for Geschwindigkeit<T> {
     }
 }
 
-impl<T: Serialisiere> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<T> {
-    type Arg = <<T as Serialisiere>::Serialisiert as Reserviere<T>>::Arg;
+impl<T: Serialisiere<S>, S> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<S> {
+    type Arg = <S as Reserviere<T>>::Arg;
 
     fn reserviere(
         self,
@@ -495,9 +467,7 @@ pub enum MittelleiterSerialisiert {
     },
 }
 
-impl Serialisiere for Mittelleiter {
-    type Serialisiert = MittelleiterSerialisiert;
-
+impl Serialisiere<MittelleiterSerialisiert> for Mittelleiter {
     fn serialisiere(&self) -> MittelleiterSerialisiert {
         match self {
             Mittelleiter::Pwm { pin, letzter_wert: _, polarität } => {
@@ -1094,9 +1064,7 @@ pub enum ZweileiterSerialisiert {
     },
 }
 
-impl Serialisiere for Zweileiter {
-    type Serialisiert = ZweileiterSerialisiert;
-
+impl Serialisiere<ZweileiterSerialisiert> for Zweileiter {
     fn serialisiere(&self) -> ZweileiterSerialisiert {
         match self {
             Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität, fahrtrichtung } => {

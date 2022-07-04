@@ -175,9 +175,7 @@ pub enum Fehler {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 
-impl Serialisiere for Pin {
-    type Serialisiert = Serialisiert;
-
+impl Serialisiere<Serialisiert> for Pin {
     fn serialisiere(&self) -> Serialisiert {
         Serialisiert(self.pin())
     }

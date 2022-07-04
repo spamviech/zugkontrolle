@@ -72,8 +72,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     Some(*self)
                 }
             }
-            impl #base_ident::anschluss::de_serialisieren::Serialisiere for RichtungAnschlüsse {
-                type Serialisiert = RichtungAnschlüsseSerialisiert;
+            impl #base_ident::anschluss::de_serialisieren::Serialisiere<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsse {
                 fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {
                     let RichtungAnschlüsse { #(#struct_fields),* } = self;
                     RichtungAnschlüsseSerialisiert { #(#struct_fields: #struct_fields.serialisiere()),* }

@@ -244,9 +244,7 @@ impl OutputSerialisiert {
     }
 }
 
-impl Serialisiere for OutputAnschluss {
-    type Serialisiert = OutputSerialisiert;
-
+impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
     fn serialisiere(&self) -> OutputSerialisiert {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
@@ -444,9 +442,7 @@ impl InputSerialisiert {
     }
 }
 
-impl Serialisiere for InputAnschluss {
-    type Serialisiert = InputSerialisiert;
-
+impl Serialisiere<InputSerialisiert> for InputAnschluss {
     fn serialisiere(&self) -> InputSerialisiert {
         match self {
             InputAnschluss::Pin(pin) => InputSerialisiert::Pin { pin: pin.pin() },
