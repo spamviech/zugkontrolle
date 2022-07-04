@@ -12,10 +12,11 @@
 [package]
 edition = "2021"
 name = "kommandozeilen_argumente"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["spamviech <spamviech@web.de>"]
 publish = true
 description = "Parser für Kommandozeilen-Argumente mit optionaler, automatischer Hilfe-Generierung."
+readme = "README.md"
 license = "MIT"
 repository = "https://github.com/spamviech/kommandozeilen_argumente"
 resolver = "2"
@@ -27,6 +28,7 @@ required-features = ["derive"]
 [[test]]
 name = "derive"
 required-features = ["derive"]
+
 [dependencies.either]
 version = "1.6.1"
 
@@ -38,7 +40,7 @@ version = "0.2.0"
 optional = true
 
 [dependencies.nonempty]
-version = "0.7.0"
+version = "0.8.0"
 
 [dependencies.unicase]
 version = "2.6.0"

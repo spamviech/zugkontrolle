@@ -29,7 +29,7 @@ take_mut = "0.2.2"
 unicase = "2.6.0"
 
 [dependencies.kommandozeilen_argumente]
-version = "0.2.0"
+version = "0.2.1"
 features = ["derive"]
 
 [dependencies.nonempty]

@@ -255,7 +255,7 @@ fn target_crates() -> HashSet<&'static str> {
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 269] {
+fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
@@ -1014,7 +1014,7 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 269] {
         }),
         ("js-sys-0.3.58", wasm_bindgen_lizenz),
         ("khronos_api-3.1.0", apache_2_0_standard_eingerückt),
-        ("kommandozeilen_argumente-0.2.0", kommandozeilen_argumente_lizenz),
+        ("kommandozeilen_argumente-0.2.1", kommandozeilen_argumente_lizenz),
         ("kommandozeilen_argumente_derive-0.2.0", kommandozeilen_argumente_lizenz),
         ("lazy_static-1.4.0", mit_rust_project_developers_lizenz_2010),
         ("libc-0.2.126", || mit_rust_project_developers_lizenz("2014-2020")),
@@ -1087,7 +1087,6 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 269] {
                 MITEnde::standard(),
             )
         }),
-        ("nonempty-0.7.0", nonempty_lizenz),
         ("nonempty-0.8.0", nonempty_lizenz),
         ("num-traits-0.2.15", mit_rust_project_developers_lizenz_2014),
         ("num_cpus-1.13.1", || {
