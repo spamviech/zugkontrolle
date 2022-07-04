@@ -31,13 +31,14 @@ impl Anschlüsse {
 /// Es existiert einer serialisierbare Repräsentation.
 ///
 /// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
-/// (angenommen `r: R`, `s: S`, `lager: Lager` und `arg: <R as Reserviere<S>>::Arg`):
+/// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
+/// und `arg: <R as Reserviere<S>>::Arg`):
 ///
 /// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
 /// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
-/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, Anschlüsse::default(), arg) {
+/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
@@ -102,13 +103,14 @@ impl<R> Ergebnis<R> {
 /// Erlaube reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
 ///
 /// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
-/// (angenommen `r: R`, `s: S`, `lager: Lager` und `arg: <R as Reserviere<S>>::Arg`):
+/// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
+/// und `arg: <R as Reserviere<S>>::Arg`):
 ///
 /// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
 /// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
-/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, Anschlüsse::default(), arg) {
+/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
@@ -116,10 +118,8 @@ impl<R> Ergebnis<R> {
 /// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
 /// ```
 /// let s = r.serialisiere();
-/// let r2 = s.reserviere(lager, r.anschlüsse(), arg);
-/// // `anschluss == r` kann wegen move in `r.anschlüsse()` nicht direkt überprüft werden.
-/// // (Anschlüsse sind in der Regel einzigartig)
-/// assert!(match r {Ergebnis::Wert {anschluss, ..} => true /* anschluss == r */, _ => false});
+/// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
+///     && anschluss == r
 /// ```
 pub trait Reserviere<R> {
     /// Extra-Argument zum reservieren der Anschlüsse.
