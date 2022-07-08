@@ -240,15 +240,13 @@ impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<Richtung, T> Serialisiere for Weiche<Richtung, T>
+impl<Richtung, T, S> Serialisiere<WeicheSerialisiert<Richtung, S>> for Weiche<Richtung, T>
 where
     Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
-    T: Serialisiere,
-    <T as Serialisiere>::Serialisiert: Reserviere<T, Arg = ()>,
+    T: Serialisiere<S>,
+    S: Reserviere<T, Arg = ()>,
 {
-    type Serialisiert = WeicheSerialisiert<Richtung, T::Serialisiert>;
-
-    fn serialisiere(&self) -> WeicheSerialisiert<Richtung, T::Serialisiert> {
+    fn serialisiere(&self) -> WeicheSerialisiert<Richtung, S> {
         WeicheSerialisiert {
             name: self.name.clone(),
             richtung: self.richtung.lock().as_ref().clone(),
@@ -269,12 +267,10 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
-impl<Richtung, T, R> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, T>
+impl<Richtung, R, S> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, S>
 where
-    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
-    R: Serialisiere,
-    T: Reserviere<R, Arg = ()>,
+    R: Serialisiere<S>,
+    S: Reserviere<R, Arg = ()>,
 {
     type Arg = Arc<Mutex<Cache>>;
 

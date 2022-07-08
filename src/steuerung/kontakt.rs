@@ -5,6 +5,7 @@ use std::sync::{
     Arc,
 };
 
+use either::Either;
 use log::error;
 use nonempty::NonEmpty;
 use parking_lot::Mutex;
@@ -30,31 +31,21 @@ pub struct Kontakt {
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
     /// Der Anschluss des Kontaktes.
-    anschluss: Arc<Mutex<AnschlussOderSerialisiert<InputAnschluss>>>,
+    anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
 }
 
-#[derive(Debug)]
-enum AnschlussOderSerialisiert<T: Serialisiere> {
-    Anschluss(T),
-    Serialisiert(T::Serialisiert),
-}
-
-impl<T> AnschlussOderSerialisiert<T>
-where
-    T: Serialisiere,
-    <T as Serialisiere>::Serialisiert: Clone,
-{
-    fn entferne_anschluss(&mut self) -> AnschlussOderSerialisiert<T> {
+impl<T: Serialisiere<S>, S> Either<T, S> {
+    fn entferne_anschluss(&mut self) -> Either<T, S> {
         let serialisiert = self.serialisiere();
-        std::mem::replace(self, AnschlussOderSerialisiert::Serialisiert(serialisiert))
+        std::mem::replace(self, Either::Right(serialisiert))
     }
 
-    fn serialisiere(&self) -> T::Serialisiert {
+    fn serialisiere(&self) -> S {
         match self {
-            AnschlussOderSerialisiert::Anschluss(anschluss) => anschluss.serialisiere(),
-            AnschlussOderSerialisiert::Serialisiert(serialisiert) => serialisiert.clone(),
+            Either::Left(anschluss) => anschluss.serialisiere(),
+            Either::Right(serialisiert) => serialisiert.clone(),
         }
     }
 }
@@ -71,7 +62,7 @@ fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) 
 impl Drop for Kontakt {
     fn drop(&mut self) {
         let mut kontakt_anschluss = self.anschluss.lock();
-        if let AnschlussOderSerialisiert::Anschluss(anschluss) = &mut *kontakt_anschluss {
+        if let Either::Left(anschluss) = &mut *kontakt_anschluss {
             interrupt_zurücksetzen(anschluss, &self.name)
         }
     }
@@ -104,7 +95,7 @@ impl Kontakt {
         match set_async_interrupt_result {
             Ok(()) => Ok(Kontakt {
                 name,
-                anschluss: Arc::new(Mutex::new(AnschlussOderSerialisiert::Anschluss(anschluss))),
+                anschluss: Arc::new(Mutex::new(Either::Left(anschluss))),
                 trigger,
                 senders,
             }),
@@ -139,9 +130,7 @@ pub struct KontaktSerialisiert {
     pub trigger: Trigger,
 }
 
-impl Serialisiere for Kontakt {
-    type Serialisiert = KontaktSerialisiert;
-
+impl Serialisiere<KontaktSerialisiert> for Kontakt {
     fn serialisiere(&self) -> KontaktSerialisiert {
         KontaktSerialisiert {
             name: self.name.clone(),
@@ -152,9 +141,7 @@ impl Serialisiere for Kontakt {
 
     fn anschlüsse(self) -> Anschlüsse {
         let mut kontakt_anschluss = self.anschluss.lock();
-        if let AnschlussOderSerialisiert::Anschluss(mut anschluss) =
-            kontakt_anschluss.entferne_anschluss()
-        {
+        if let Either::Left(mut anschluss) = kontakt_anschluss.entferne_anschluss() {
             interrupt_zurücksetzen(&mut anschluss, &self.name);
             anschluss.anschlüsse()
         } else {

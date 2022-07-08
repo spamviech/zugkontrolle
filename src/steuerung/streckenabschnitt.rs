@@ -96,9 +96,7 @@ impl StreckenabschnittSerialisiert {
     }
 }
 
-impl Serialisiere for Streckenabschnitt {
-    type Serialisiert = StreckenabschnittSerialisiert;
-
+impl Serialisiere<StreckenabschnittSerialisiert> for Streckenabschnitt {
     fn serialisiere(&self) -> StreckenabschnittSerialisiert {
         StreckenabschnittSerialisiert {
             farbe: self.farbe,

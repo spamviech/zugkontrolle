@@ -59,10 +59,8 @@ pub struct Gleis<T> {
     pub position: Position,
 }
 
-impl<T: Serialisiere> Serialisiere for Gleis<T> {
-    type Serialisiert = Gleis<T::Serialisiert>;
-
-    fn serialisiere(&self) -> Self::Serialisiert {
+impl<T: Serialisiere<S>, S> Serialisiere<S> for Gleis<T> {
+    fn serialisiere(&self) -> Gleis<S> {
         Gleis { definition: self.definition.serialisiere(), position: self.position.clone() }
     }
 
