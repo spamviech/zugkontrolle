@@ -7,7 +7,6 @@ use serde::Deserialize;
 use crate::{
     anschluss::{
         self,
-        de_serialisieren::Serialisiere,
         level::Level,
         pcf8574::{self, I2cBus},
         pin::pwm,
@@ -22,11 +21,12 @@ use crate::{
         weiche::{dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, s_kurve},
     },
     steuerung::{
-        geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
+        geschwindigkeit::{self, Leiter},
         kontakt, plan, streckenabschnitt, weiche,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     void::Void,
+    zugtyp::{Zugtyp, ZugtypSerialisiert},
 };
 
 /// Beschreibung eines [anschluss::pcf85747::Pcf8574].
@@ -441,11 +441,13 @@ impl From<StreckenabschnittSerialisiert> for streckenabschnitt::Streckenabschnit
 type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
-/// Erlaube Deserialisieren einer geänderten Repräsentation des Leiters.
-#[allow(single_use_lifetimes)]
-pub trait Kompatibel: Serialisiere {
-    /// Alte Serialisierbare Repräsentation des Leiters.
-    type Kompatibel: Into<Self::Serialisiert> + for<'de> Deserialize<'de>;
+/// Serialisierbare Repräsentation eines unterstützten Leiters,
+/// mit über Namen identifizierten Zugtypen. Aktuell:
+/// - [Mittelleiter] mit "Märklin".
+/// - [Zweileiter] mit "Lego".
+pub trait BekannterZugtyp: Sized {
+    /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
+    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>>;
 }
 
 #[derive(Deserialize)]
@@ -482,6 +484,16 @@ enum MittelleiterSerialisiertEnum {
     },
 }
 
+impl BekannterZugtyp for MittelleiterSerialisiert {
+    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>> {
+        if name == "Märklin" {
+            Some(Zugtyp::märklin().into())
+        } else {
+            None
+        }
+    }
+}
+
 impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisiert {
     fn from(input: MittelleiterSerialisiert) -> Self {
         match input.0 {
@@ -501,10 +513,6 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
             },
         }
     }
-}
-
-impl Kompatibel for Mittelleiter {
-    type Kompatibel = MittelleiterSerialisiert;
 }
 
 /// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
@@ -537,6 +545,16 @@ enum ZweileiterSerialisiertEnum {
     },
 }
 
+impl BekannterZugtyp for ZweileiterSerialisiert {
+    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>> {
+        if name == "Lego" {
+            Some(Zugtyp::lego().into())
+        } else {
+            None
+        }
+    }
+}
+
 impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
     fn from(input: ZweileiterSerialisiert) -> Self {
         match input.0 {
@@ -562,28 +580,25 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
     }
 }
 
-impl Kompatibel for Zweileiter {
-    type Kompatibel = ZweileiterSerialisiert;
-}
-
 /// Serialisierbare Repräsentation einer [Geschwindigkeit](geschwindigkeit::Geschwindigkeit).
 #[derive(Deserialize)]
-#[serde(bound = "")]
-struct GeschwindigkeitSerialisiert<Leiter: Kompatibel> {
+struct GeschwindigkeitSerialisiert<LeiterV2> {
     /// Der Leiter der Geschwindigkeit.
-    leiter: Leiter::Kompatibel,
+    leiter: LeiterV2,
 }
 
-impl<Leiter: Kompatibel> From<GeschwindigkeitSerialisiert<Leiter>>
-    for geschwindigkeit::GeschwindigkeitSerialisiert<Leiter>
+impl<LeiterV2, LeiterSerialisiert> From<GeschwindigkeitSerialisiert<LeiterV2>>
+    for geschwindigkeit::GeschwindigkeitSerialisiert<LeiterSerialisiert>
+where
+    LeiterV2: Into<LeiterSerialisiert>,
 {
-    fn from(input: GeschwindigkeitSerialisiert<Leiter>) -> Self {
+    fn from(input: GeschwindigkeitSerialisiert<LeiterV2>) -> Self {
         geschwindigkeit::GeschwindigkeitSerialisiert { leiter: input.leiter.into() }
     }
 }
 
-type GeschwindigkeitMapSerialisiert<Leiter> =
-    HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<Leiter>>;
+type GeschwindigkeitMapSerialisiert<LeiterV2> =
+    HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterV2>>;
 
 /// Darstellung eines [Gleises](aktuell::Gleis) bei Version 2.
 #[derive(Deserialize)]
@@ -594,8 +609,7 @@ struct Gleis<T> {
 }
 
 #[derive(Deserialize)]
-#[serde(bound = "Leiter: Kompatibel")]
-pub(crate) struct GleiseVecs<Leiter: Kompatibel> {
+pub(crate) struct GleiseVecs<LeiterV2> {
     /// Der Name des gespeicherten Zugtyps.
     name: String,
     geraden: Vec<Gleis<GeradeSerialisiert>>,
@@ -606,18 +620,18 @@ pub(crate) struct GleiseVecs<Leiter: Kompatibel> {
     s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
     kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
     streckenabschnitte: StreckenabschnittMapSerialisiert,
-    geschwindigkeiten: GeschwindigkeitMapSerialisiert<Leiter>,
+    geschwindigkeiten: GeschwindigkeitMapSerialisiert<LeiterV2>,
     pläne: HashMap<plan::Name, Void>,
 }
 
-impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Leiter>>
-    for aktuell::de_serialisieren::ZustandSerialisiert<Leiter>
+impl<LeiterV2: BekannterZugtyp, LeiterSerialisiert> TryFrom<GleiseVecs<LeiterV2>>
+    for aktuell::de_serialisieren::ZustandSerialisiert<LeiterSerialisiert>
 {
     type Error = anschluss::Fehler;
 
     fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, Self::Error> {
         let leiter = Leiter::NAME;
-        let zugtyp = match Leiter::bekannter_zugtyp(&v2.name) {
+        let zugtyp = match LeiterSerialisiert::bekannter_zugtyp(&v2.name) {
             Some(zugtyp) => zugtyp,
             None => return Err(anschluss::Fehler::UnbekannterZugtyp { zugtyp: v2.name, leiter }),
         };
@@ -673,7 +687,7 @@ impl<Leiter: Serialisiere + BekannterLeiter + Kompatibel> TryFrom<GleiseVecs<Lei
             })
             .collect();
         Ok(aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp: zugtyp.into(),
+            zugtyp,
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,
