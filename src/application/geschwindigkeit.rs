@@ -2,7 +2,7 @@
 
 use std::{
     collections::BTreeMap,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display, Formatter},
     num::NonZeroUsize,
     time::Duration,
 };
@@ -50,27 +50,27 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
 }
 
 /// Sortierte Map aller Widget zur Anzeige der [Geschwindigkeiten](Geschwindigkeit).
-pub type Map<Leiter> = BTreeMap<Name, AnzeigeZustand<Leiter>>;
+pub type Map<L, S> = BTreeMap<Name, AnzeigeZustand<L, S>>;
 
 /// Zustand des Widgets zur Anzeige einer [Geschwindigkeit].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-pub struct AnzeigeZustand<L: LeiterAnzeige> {
+pub struct AnzeigeZustand<L: LeiterAnzeige<S>, S> {
     name: Name,
     pwm_slider_zustand: slider::State,
-    fahrtrichtung: <L as LeiterAnzeige>::FahrtrichtungZustand,
+    fahrtrichtung: <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
     pwm_frequenz: NichtNegativ,
     verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
     stopp_zeit: Duration,
     umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
 }
 
-impl<L: LeiterAnzeige> AnzeigeZustand<L> {
+impl<L: LeiterAnzeige<S>, S> AnzeigeZustand<L, S> {
     /// Erstelle einen neuen [AnzeigeZustand].
     pub fn neu(
         name: Name,
-        fahrtrichtung: <L as LeiterAnzeige>::FahrtrichtungZustand,
+        fahrtrichtung: <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
@@ -89,7 +89,7 @@ impl<L: LeiterAnzeige> AnzeigeZustand<L> {
 }
 
 /// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
-pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
+pub trait LeiterAnzeige<S>: Leiter + Sized {
     /// Zustand für anpassen der [Fahrtrichtung](Leiter::Fahrtrichtung).
     type FahrtrichtungZustand: Debug;
 
@@ -100,12 +100,12 @@ pub trait LeiterAnzeige: Serialisiere + Leiter + Sized {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self>;
+    ) -> AnzeigeZustand<Self, S>;
 
     /// Erstelle eine neue [Anzeige].
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Self>,
-        zustand: &'t mut AnzeigeZustand<Self>,
+        zustand: &'t mut AnzeigeZustand<Self, S>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
     /// Erstelle eine neue [Auswahl].
@@ -121,16 +121,17 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl LeiterAnzeige for Mittelleiter {
+impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
     type FahrtrichtungZustand = button::State;
 
+    #[inline(always)]
     fn anzeige_zustand_neu(
         name: Name,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self> {
+    ) -> AnzeigeZustand<Self, MittelleiterSerialisiert> {
         AnzeigeZustand::neu(
             name,
             button::State::new(),
@@ -143,7 +144,7 @@ impl LeiterAnzeige for Mittelleiter {
 
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
-        zustand: &'t mut AnzeigeZustand<Mittelleiter>,
+        zustand: &'t mut AnzeigeZustand<Mittelleiter, MittelleiterSerialisiert>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let zeige_fahrtrichtung = |button_zustand: &'t mut button::State, _none| {
             Button::new(button_zustand, Text::new("Umdrehen"))
@@ -165,6 +166,7 @@ impl LeiterAnzeige for Mittelleiter {
         )
     }
 
+    #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zustand: &'t mut AuswahlZustand,
     ) -> Auswahl<'t, Self, R> {
@@ -190,16 +192,17 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl LeiterAnzeige for Zweileiter {
+impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
     type FahrtrichtungZustand = ();
 
+    #[inline(always)]
     fn anzeige_zustand_neu(
         name: Name,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self> {
+    ) -> AnzeigeZustand<Self, ZweileiterSerialisiert> {
         AnzeigeZustand::neu(
             name,
             (),
@@ -212,7 +215,7 @@ impl LeiterAnzeige for Zweileiter {
 
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
-        zustand: &'t mut AnzeigeZustand<Zweileiter>,
+        zustand: &'t mut AnzeigeZustand<Zweileiter, ZweileiterSerialisiert>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
@@ -246,6 +249,7 @@ impl LeiterAnzeige for Zweileiter {
         )
     }
 
+    #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zustand: &'t mut AuswahlZustand,
     ) -> Auswahl<'t, Self, R> {
@@ -272,7 +276,7 @@ pub struct Anzeige<'t, M, R> {
 }
 
 impl<M, R> Debug for Anzeige<'_, M, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Anzeige").field("column", &"<Column>").finish()
     }
 }
@@ -283,13 +287,13 @@ where
     R: 't + text::Renderer,
 {
     /// Erstelle eine neue [Anzeige] für eine [LeiterAnzeige].
-    pub fn neu_mit_leiter<'s, L: LeiterAnzeige>(
+    pub fn neu_mit_leiter<'s, L: LeiterAnzeige<S>, S>(
         geschwindigkeit: &'s Geschwindigkeit<L>,
-        zustand: &'t mut AnzeigeZustand<L>,
+        zustand: &'t mut AnzeigeZustand<L, S>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
         zeige_fahrtrichtung: impl FnOnce(
-            &'t mut <L as LeiterAnzeige>::FahrtrichtungZustand,
+            &'t mut <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
             Option<<L as Leiter>::Fahrtrichtung>,
         ) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
@@ -464,26 +468,18 @@ enum InterneAuswahlNachricht {
 }
 
 /// Nachricht eines [Auswahl]-Widgets.
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_debug(Leiter::Serialisiert: Debug)]
-#[zugkontrolle_debug( <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Debug)]
-#[zugkontrolle_clone(Leiter: Serialisiere)]
-#[zugkontrolle_clone(<Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert: Clone)]
-pub enum AuswahlNachricht<Leiter: Serialisiere> {
+#[derive(Debug, Clone)]
+pub enum AuswahlNachricht<LeiterSerialisiert> {
     /// Schließe das Auswahl-Fenster.
     Schließen,
     /// Füge eine neue [Geschwindigkeit] hinzu.
-    Hinzufügen(Name, <Geschwindigkeit<Leiter> as Serialisiere>::Serialisiert),
+    Hinzufügen(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>),
     /// Lösche eine [Geschwindigkeit].
     Löschen(Name),
 }
 
 /// Hinzufügen und Anpassen einer [Geschwindigkeit].
-pub struct Auswahl<'t, Leiter, R>
-where
-    Leiter: Serialisiere,
-    <Leiter as Serialisiere>::Serialisiert: 't,
-{
+pub struct Auswahl<'t, LeiterSerialisiert, R> {
     card: Card<'t, InterneAuswahlNachricht, R>,
     neu_name: &'t mut String,
     aktueller_tab: &'t mut usize,
@@ -492,23 +488,14 @@ where
     pwm_polarität: &'t mut Polarität,
     ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<&'t mut OutputSerialisiert>,
-    pwm_nachricht: &'t dyn Fn(
-        OutputSerialisiert,
-        pwm::Serialisiert,
-        Polarität,
-    ) -> <Leiter as Serialisiere>::Serialisiert,
-    ks_nachricht: &'t dyn Fn(
-        OutputSerialisiert,
-        NonEmpty<OutputSerialisiert>,
-    ) -> <Leiter as Serialisiere>::Serialisiert,
+    pwm_nachricht:
+        &'t dyn Fn(OutputSerialisiert, pwm::Serialisiert, Polarität) -> LeiterSerialisiert,
+    ks_nachricht:
+        &'t dyn Fn(OutputSerialisiert, NonEmpty<OutputSerialisiert>) -> LeiterSerialisiert,
 }
 
-impl<'t, Leiter, R> Debug for Auswahl<'t, Leiter, R>
-where
-    Leiter: Serialisiere,
-    <Leiter as Serialisiere>::Serialisiert: 't,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<LeiterSerialisiert, R> Debug for Auswahl<'_, LeiterSerialisiert, R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("card", &"<Card>")
             .field("neu_name", &self.neu_name)
@@ -536,10 +523,9 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
-impl<'t, Leiter, R> Auswahl<'t, Leiter, R>
+impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
 where
     R: 't + text::Renderer<Font = Font>,
-    Leiter: Serialisiere,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
@@ -550,11 +536,11 @@ where
             OutputSerialisiert,
             pwm::Serialisiert,
             Polarität,
-        ) -> <Leiter as Serialisiere>::Serialisiert,
+        ) -> LeiterSerialisiert,
         ks_nachricht: &'t impl Fn(
             OutputSerialisiert,
             NonEmpty<OutputSerialisiert>,
-        ) -> <Leiter as Serialisiere>::Serialisiert,
+        ) -> LeiterSerialisiert,
     ) -> Self {
         let AuswahlZustand {
             neu_name,
@@ -692,9 +678,9 @@ where
     }
 }
 
-impl<'t, Leiter, R> Widget<AuswahlNachricht<Leiter>, R> for Auswahl<'t, Leiter, R>
+impl<'t, LeiterSerialisiert, R> Widget<AuswahlNachricht<LeiterSerialisiert>, R>
+    for Auswahl<'t, LeiterSerialisiert, R>
 where
-    Leiter: Serialisiere,
     R: text::Renderer<Font = Font>,
 {
     reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
@@ -706,7 +692,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, AuswahlNachricht<Leiter>>,
+        shell: &mut Shell<'_, AuswahlNachricht<LeiterSerialisiert>>,
     ) -> event::Status {
         let mut column_messages = Vec::new();
         let mut column_shell = Shell::new(&mut column_messages);
@@ -786,12 +772,12 @@ where
     }
 }
 
-impl<'t, Leiter, R> From<Auswahl<'t, Leiter, R>> for Element<'t, AuswahlNachricht<Leiter>, R>
+impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
+    for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
 where
-    Leiter: 't + Serialisiere,
     R: 't + text::Renderer<Font = Font>,
 {
-    fn from(anzeige: Auswahl<'t, Leiter, R>) -> Self {
+    fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
         Element::new(anzeige)
     }
 }

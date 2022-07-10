@@ -105,7 +105,7 @@ impl Modus {
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
-enum NachrichtClone<L: LeiterAnzeige> {
+enum NachrichtClone<L: LeiterAnzeige<S>, S> {
     Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
     SchließeMessageBox,
@@ -114,8 +114,8 @@ enum NachrichtClone<L: LeiterAnzeige> {
     ZeigeLizenzen,
 }
 
-impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
-    fn from(nachricht_clone: NachrichtClone<Leiter>) -> Self {
+impl<L: LeiterAnzeige<S>, S> From<NachrichtClone<L, S>> for Nachricht<L, S> {
+    fn from(nachricht_clone: NachrichtClone<L, S>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
@@ -131,14 +131,11 @@ impl<Leiter: LeiterAnzeige> From<NachrichtClone<Leiter>> for Nachricht<Leiter> {
 
 /// Eine Nachricht, die beim [Ausführen](ausführen) der Anwendung auftreten kann.
 #[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug + Serialisiere)]
+#[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-#[zugkontrolle_debug(<L as Serialisiere>::Serialisiert: Debug)]
+#[zugkontrolle_debug(S: Debug)]
 #[non_exhaustive]
-pub enum Nachricht<L>
-where
-    L: Leiter + Serialisiere,
-{
+pub enum Nachricht<L: Leiter, S> {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -199,7 +196,7 @@ where
     /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
     ZeigeAuswahlGeschwindigkeit,
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
-    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<L>),
+    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
@@ -224,7 +221,7 @@ where
     },
 }
 
-impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
+impl<L: LeiterAnzeige<S>, S> From<gleise::Nachricht> for Nachricht<L, S> {
     fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
@@ -241,7 +238,7 @@ impl<Leiter: LeiterAnzeige> From<gleise::Nachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
+impl<L: LeiterAnzeige<S>, S> From<AsyncNachricht> for Nachricht<L, S> {
     fn from(fehler: AsyncNachricht) -> Self {
         match fehler {
             AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
@@ -252,7 +249,7 @@ impl<Leiter: LeiterAnzeige> From<AsyncNachricht> for Nachricht<Leiter> {
     }
 }
 
-impl<L: Leiter + Serialisiere> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L> {
+impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S> {
     fn from(nachricht: streckenabschnitt::AnzeigeNachricht) -> Self {
         match nachricht {
             streckenabschnitt::AnzeigeNachricht::Auswählen => {
@@ -265,12 +262,12 @@ impl<L: Leiter + Serialisiere> From<streckenabschnitt::AnzeigeNachricht> for Nac
     }
 }
 
-impl<T, Leiter> KnopfNachricht<NachrichtClone<Leiter>> for T
+impl<T, L, S> KnopfNachricht<NachrichtClone<L, S>> for T
 where
     T: Clone + Into<AnyGleisUnit>,
-    Leiter: LeiterAnzeige,
+    L: LeiterAnzeige<S>,
 {
-    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<Leiter> {
+    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L, S> {
         NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
     }
 }
@@ -279,13 +276,13 @@ async fn async_identity<T>(t: T) -> T {
     t
 }
 
-impl<L> Nachricht<L>
+impl<L, S> Nachricht<L, S>
 where
-    L: 'static + LeiterAnzeige + Serialisiere + Send,
+    L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    <L as Serialisiere>::Serialisiert: Debug + Send,
+    S: Debug + Send,
 {
-    fn als_command(self) -> Command<Nachricht<L>> {
+    fn als_command(self) -> Command<Nachricht<L, S>> {
         Command::perform(async_identity(self), identity)
     }
 }
@@ -317,28 +314,28 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
-type ErstelleAnschlussNachricht<T, Leiter> = Arc<dyn Fn(Option<T>) -> Nachricht<Leiter>>;
+type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
 
 /// Zustand des Auswahl-Fensters.
-pub enum AuswahlZustand<Leiter: LeiterAnzeige> {
+pub enum AuswahlZustand<L: LeiterAnzeige<S>, S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt(streckenabschnitt::AuswahlZustand),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     Geschwindigkeit(geschwindigkeit::AuswahlZustand),
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(WeicheZustand, ErstelleAnschlussNachricht<WeicheSerialisiert, Leiter>),
+    Weiche(WeicheZustand, ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
     DreiwegeWeiche(
         DreiwegeWeicheZustand,
-        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, Leiter>,
+        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>,
     ),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, Leiter>),
+    KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen(lizenzen::Zustand),
 }
 
-impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
+impl<L: LeiterAnzeige<S>, S> Debug for AuswahlZustand<L, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AuswahlZustand::Streckenabschnitt(arg0) => {
@@ -348,7 +345,7 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
                 f.debug_tuple("Geschwindigkeit").field(arg0).finish()
             },
             AuswahlZustand::Weiche(arg0, _arg1) => {
-                f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_string()).finish()
+                f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_owned()).finish()
             },
             AuswahlZustand::DreiwegeWeiche(arg0, _arg1) => f
                 .debug_tuple("DreiwegeWeiche")
@@ -356,7 +353,7 @@ impl<Leiter: LeiterAnzeige> Debug for AuswahlZustand<Leiter> {
                 .field(&"<function>".to_string())
                 .finish(),
             AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
-                f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_string()).finish()
+                f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_owned()).finish()
             },
             AuswahlZustand::ZeigeLizenzen(arg0) => {
                 f.debug_tuple("ZeigeLizenzen").field(arg0).finish()
@@ -449,7 +446,8 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub struct Zugkontrolle<L: LeiterAnzeige> {
+#[zugkontrolle_debug(S: Debug)]
+pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
     gleise: Gleise<L>,
     lager: Lager,
     scrollable_zustand: iced::scrollable::State,
@@ -461,8 +459,8 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: geschwindigkeit::Map<L>,
-    auswahl: modal::Zustand<AuswahlZustand<L>>,
+    geschwindigkeiten: geschwindigkeit::Map<L, S>,
+    auswahl: modal::Zustand<AuswahlZustand<L, S>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_aktuell_festlegen: bool,
     geschwindigkeit_button_zustand: iced::button::State,
@@ -473,33 +471,25 @@ pub struct Zugkontrolle<L: LeiterAnzeige> {
     speichern_laden: speichern_laden::Zustand,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
-    sender: Sender<Nachricht<L>>,
-    empfänger: Empfänger<Nachricht<L>>,
+    sender: Sender<Nachricht<L, S>>,
+    empfänger: Empfänger<Nachricht<L, S>>,
     zeige_lizenzen: iced::button::State,
     // TODO Plan
 }
 
 #[allow(single_use_lifetimes)]
-impl<L> Application for Zugkontrolle<L>
+impl<L, S> Application for Zugkontrolle<L, S>
 where
-    L: 'static
-        + Debug
-        + Display
-        + LeiterAnzeige
-        + BekannterLeiter
-        + Serialisiere
-        + v2::Kompatibel
-        + Send,
-    <L as Serialisiere>::Serialisiert: Debug + Clone + Unpin + Send,
+    L: 'static + Debug + Display + LeiterAnzeige<S> + BekannterLeiter + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
-    <L as Serialisiere>::Serialisiert: Eq + Hash + Reserviere<L, Arg = ()>,
+    S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + Unpin + Send,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);
-    type Message = Nachricht<L>;
+    type Message = Nachricht<L, S>;
 
     fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;

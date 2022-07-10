@@ -242,18 +242,18 @@ impl<L: Leiter> Gleise<L> {
         }
     }
     #[allow(single_use_lifetimes)]
-    fn gleis_anschlüsse_anpassen<T, W>(
+    fn gleis_anschlüsse_anpassen<T, W, S>(
         &mut self,
         id: GleisId<T>,
-        anschlüsse_serialisiert: Option<<W as Serialisiere>::Serialisiert>,
+        anschlüsse_serialisiert: Option<S>,
         lager: &mut Lager,
-        arg: <<W as Serialisiere>::Serialisiert as Reserviere<W>>::Arg,
+        arg: <S as Reserviere<W>>::Arg,
     ) -> Result<(), AnschlüsseAnpassenFehler>
     where
         T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
-        <W as Serialisiere>::Serialisiert: Debug,
-        <<W as Serialisiere>::Serialisiert as Reserviere<W>>::Arg: Clone,
+        W: Serialisiere<S>,
+        S: Reserviere<W> + Debug,
+        <S as Reserviere<W>>::Arg: Clone,
     {
         use Ergebnis::*;
         let mut steuerung = self.erhalte_steuerung_mut(&id)?;

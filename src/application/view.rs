@@ -37,23 +37,23 @@ use crate::{
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
-    fn mit_teil_nachricht<Leiter: 'static + LeiterAnzeige>(
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S>, S>(
         self,
-        konstruktor: impl Fn(Msg) -> Nachricht<Leiter> + 'static,
-    ) -> Element<'t, Nachricht<Leiter>> {
+        konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
+    ) -> Element<'t, Nachricht<L, S>> {
         self.into().map(konstruktor)
     }
 }
 
 impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<L> Zugkontrolle<L>
+impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige,
+    L: 'static + Debug + LeiterAnzeige<S>,
     <L as Leiter>::Fahrtrichtung: Clone,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
-    pub fn view(&mut self) -> Element<'_, Nachricht<L>> {
+    pub fn view(&mut self) -> Element<'_, Nachricht<L, S>> {
         let Zugkontrolle {
             gleise,
             scrollable_zustand,
@@ -221,7 +221,7 @@ where
     }
 }
 
-fn top_row<'t, L>(
+fn top_row<'t, L, S>(
     aktueller_modus: Modus,
     streckenabschnitt: &'t mut streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_festlegen: &'t mut bool,
@@ -232,9 +232,9 @@ fn top_row<'t, L>(
     aktueller_zoom: Skalar,
     speichern_laden: &'t mut speichern_laden::Zustand,
     zeige_lizenzen: &'t mut iced::button::State,
-) -> Row<'t, Nachricht<L>>
+) -> Row<'t, Nachricht<L, S>>
 where
-    L: 'static + Debug + LeiterAnzeige,
+    L: 'static + Debug + LeiterAnzeige<S>,
     <L as Leiter>::Fahrtrichtung: Clone,
 {
     let modus_radios = Column::new()
@@ -294,7 +294,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
+fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S>(
     aktueller_modus: Modus,
     scrollable_zustand: &'t mut iced::scrollable::State,
     scrollable_style: Sammlung,
@@ -305,9 +305,9 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
     kurven_weichen: &'t mut Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: &'t mut Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t mut Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: &'t mut geschwindigkeit::Map<Leiter>,
-    gleise: &Gleise<Leiter>,
-) -> Row<'t, Nachricht<Leiter>> {
+    geschwindigkeiten: &'t mut geschwindigkeit::Map<L, S>,
+    gleise: &Gleise<L>,
+) -> Row<'t, Nachricht<L, S>> {
     let mut scrollable = Scrollable::new(scrollable_zustand);
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
@@ -325,12 +325,12 @@ fn row_with_scrollable<'t, Leiter: 'static + LeiterAnzeige>(
                     )*
                 }
             }
-            fn knöpfe_hinzufügen<'t, Leiter, T>(
+            fn knöpfe_hinzufügen<'t, L, S, T>(
                 max_breite: &mut Option<u16>,
-                scrollable: &mut Scrollable<'t, NachrichtClone<Leiter>>,
+                scrollable: &mut Scrollable<'t, NachrichtClone<L, S>>,
                 buttons: &'t mut Vec<Knopf<T>>,
             ) where
-                Leiter: 'static + LeiterAnzeige,
+                L: 'static + LeiterAnzeige<S>,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
             {
                 take_mut::take(scrollable, |mut scrollable| {

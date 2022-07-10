@@ -40,23 +40,23 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-impl<L> Nachricht<L>
+impl<L, S> Nachricht<L, S>
 where
-    L: 'static + LeiterAnzeige + Send,
+    L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    <L as Serialisiere>::Serialisiert: Send,
+    S: Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
         sleep(dauer);
         self
     }
 
-    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<L>> {
+    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<L, S>> {
         Command::perform(self.nach_sleep(dauer), identity)
     }
 }
 
-impl<L: LeiterAnzeige> Zugkontrolle<L> {
+impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -89,11 +89,11 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
-        aktualisieren: Option<Nachricht<L>>,
+        aktualisieren: Option<Nachricht<L, S>>,
     ) where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
-        <L as Serialisiere>::Serialisiert: Send,
+        S: Send,
     {
         let join_handle = aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
@@ -108,20 +108,19 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     }
 
     #[allow(single_use_lifetimes)]
-    fn zeige_anschlüsse_anpassen_aux<T, W, Zustand>(
+    fn zeige_anschlüsse_anpassen_aux<T, W, WS, Zustand>(
         &mut self,
         gleis_art: &str,
         id: GleisId<T>,
-        erzeuge_modal_zustand: impl Fn(Option<<W as Serialisiere>::Serialisiert>) -> Zustand,
+        erzeuge_modal_zustand: impl Fn(Option<WS>) -> Zustand,
         erzeuge_modal: impl Fn(
             Zustand,
-            Arc<dyn Fn(Option<<W as Serialisiere>::Serialisiert>) -> Nachricht<L>>,
-        ) -> AuswahlZustand<L>,
-        als_nachricht: impl 'static
-            + Fn(GleisId<T>, Option<<W as Serialisiere>::Serialisiert>) -> AnschlüsseAnpassen,
+            Arc<dyn Fn(Option<WS>) -> Nachricht<L, S>>,
+        ) -> AuswahlZustand<L, S>,
+        als_nachricht: impl 'static + Fn(GleisId<T>, Option<WS>) -> AnschlüsseAnpassen,
     ) where
         T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere,
+        W: Serialisiere<WS>,
     {
         let steuerung_res = self.gleise.erhalte_steuerung(&id);
         if let Ok(steuerung) = steuerung_res {
@@ -385,7 +384,7 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     pub fn anschlüsse_anpassen(
         &mut self,
         anschlüsse_anpassen: AnschlüsseAnpassen,
-    ) -> Option<Nachricht<L>> {
+    ) -> Option<Nachricht<L, S>> {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
@@ -435,9 +434,10 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     }
 }
 
-impl<Leiter: LeiterAnzeige + Display> Zugkontrolle<Leiter> {
+impl<L: LeiterAnzeige<S> + Display, S> Zugkontrolle<L, S> {
     /// Zeige das Auswahl-Fenster zum Einstellen einer
     /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
+    #[inline(always)]
     pub fn zeige_auswahl_geschwindigkeit(&mut self) {
         self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
             geschwindigkeit::AuswahlZustand::neu(self.gleise.geschwindigkeiten()),
@@ -467,16 +467,16 @@ impl<Leiter: LeiterAnzeige + Display> Zugkontrolle<Leiter> {
     }
 }
 
-impl<Leiter> Zugkontrolle<Leiter>
+impl<L, S> Zugkontrolle<L, S>
 where
-    Leiter: LeiterAnzeige + Display,
-    <Leiter as Serialisiere>::Serialisiert: Debug + Clone + Reserviere<Leiter, Arg = ()>,
+    L: LeiterAnzeige<S> + Display,
+    S: Debug + Clone + Reserviere<L, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: GeschwindigkeitSerialisiert<Leiter>,
+        geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
     ) {
         let Zugkontrolle { gleise, auswahl, geschwindigkeiten, .. } = self;
         let (alt_serialisiert_und_map, anschlüsse) =
@@ -595,7 +595,7 @@ where
     }
 }
 
-impl<L: LeiterAnzeige> Zugkontrolle<L> {
+impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
     #[inline(always)]
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
@@ -603,21 +603,21 @@ impl<L: LeiterAnzeige> Zugkontrolle<L> {
     }
 }
 
-impl<L> Zugkontrolle<L>
+impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige + Send,
+    L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    <L as Serialisiere>::Serialisiert: Send,
+    S: Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     #[inline(always)]
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
     }
 
     /// Tick für eine Bewegung des Pivot-Punktes.
-    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L, S>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -632,11 +632,11 @@ where
     }
 }
 
-impl<L> Zugkontrolle<L>
+impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige + Send,
+    L: 'static + Debug + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Debug + Send,
-    <L as Serialisiere>::Serialisiert: Send,
+    S: Send,
 {
     /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
     pub fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
@@ -687,16 +687,16 @@ where
 }
 
 #[allow(single_use_lifetimes)]
-impl<L> Zugkontrolle<L>
+impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige + BekannterLeiter + Send,
-    <L as Serialisiere>::Serialisiert: Send,
+    L: 'static + LeiterAnzeige<S> + BekannterLeiter + Send,
+    S: Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de> + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L, S>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
@@ -719,12 +719,12 @@ where
 }
 
 #[allow(single_use_lifetimes)]
-impl<L: LeiterAnzeige + BekannterLeiter + v2::Kompatibel> Zugkontrolle<L>
+impl<L: LeiterAnzeige<S> + BekannterLeiter, S> Zugkontrolle<L, S>
 where
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
     <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
     <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-    <L as Serialisiere>::Serialisiert: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()>,
+    S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()>,
 {
     /// Lade einen neuen Zustand aus einer Datei.
     pub fn laden(&mut self, pfad: String) {

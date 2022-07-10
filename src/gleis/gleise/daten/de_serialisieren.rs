@@ -179,7 +179,7 @@ where
 
 impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<L: Serialisiere>(
+    fn reserviere<S>(
         self,
         spurweite: Spurweite,
         lager: &mut anschluss::Lager,
@@ -188,7 +188,7 @@ impl GleiseDatenSerialisiert {
         kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
         dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
         kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-        fehler: &mut Vec<LadenFehler<L>>,
+        fehler: &mut Vec<LadenFehler<S>>,
         canvas: &Arc<Mutex<Cache>>,
     ) -> (GleiseDaten, Anschlüsse) {
         macro_rules! reserviere_anschlüsse {
@@ -293,7 +293,7 @@ impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
 
     fn anschlüsse_ausgeben(&mut self) -> Anschlüsse {
         let mut anschlüsse = Anschlüsse::default();
-        fn collect_gleis_anschlüsse<T: DatenAuswahl + Serialisiere>(
+        fn collect_gleis_anschlüsse<T: DatenAuswahl + Serialisiere<S>, S>(
             daten: &mut GleiseDaten,
             anschlüsse: &mut Anschlüsse,
         ) {
@@ -339,13 +339,13 @@ impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
     }
 }
 
-impl<L: Serialisiere> From<FalscherLeiter> for LadenFehler<L> {
+impl<S> From<FalscherLeiter> for LadenFehler<S> {
     fn from(fehler: FalscherLeiter) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
 
-fn reserviere_streckenabschnitt_map<L: Serialisiere>(
+fn reserviere_streckenabschnitt_map<S>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     streckenabschnitt_map: StreckenabschnittMapSerialisiert,
@@ -355,7 +355,7 @@ fn reserviere_streckenabschnitt_map<L: Serialisiere>(
     kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
     dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-    laden_fehler: &mut Vec<LadenFehler<L>>,
+    laden_fehler: &mut Vec<LadenFehler<S>>,
     canvas: &Arc<Mutex<Cache>>,
 ) -> (StreckenabschnittMap, Anschlüsse, Option<GleiseDaten>) {
     streckenabschnitt_map.into_iter().fold(
@@ -478,7 +478,7 @@ where
     )
 }
 
-impl<L, S> ZustandSerialisiert<L>
+impl<L, S> ZustandSerialisiert<L, S>
 where
     L: Serialisiere<S> + BekannterLeiter,
     S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
