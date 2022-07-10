@@ -445,6 +445,9 @@ type StreckenabschnittMapSerialisiert =
 /// - [Mittelleiter] mit "Märklin".
 /// - [Zweileiter] mit "Lego".
 pub trait BekannterZugtyp: BekannterLeiter {
+    /// Serialisierbare Repräsentation in v2.*
+    type V2;
+
     /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
     fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
@@ -484,6 +487,8 @@ enum MittelleiterSerialisiertEnum {
 }
 
 impl BekannterZugtyp for Mittelleiter {
+    type V2 = MittelleiterSerialisiert;
+
     fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
         if name == "Märklin" {
             Some(Zugtyp::märklin())
@@ -545,6 +550,8 @@ enum ZweileiterSerialisiertEnum {
 }
 
 impl BekannterZugtyp for Zweileiter {
+    type V2 = ZweileiterSerialisiert;
+
     fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
         if name == "Lego" {
             Some(Zugtyp::lego())
@@ -623,12 +630,13 @@ pub(crate) struct GleiseVecs<LeiterV2> {
     pläne: HashMap<plan::Name, Void>,
 }
 
-impl<V2, L: BekannterZugtyp, S: From<V2>> TryFrom<GleiseVecs<V2>>
+impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
+    TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>>
     for aktuell::de_serialisieren::ZustandSerialisiert<L, S>
 {
     type Error = anschluss::Fehler;
 
-    fn try_from(v2: GleiseVecs<V2>) -> Result<Self, Self::Error> {
+    fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
         let leiter = L::NAME;
         let zugtyp = match L::bekannter_zugtyp(&v2.name) {
             Some(zugtyp) => zugtyp,

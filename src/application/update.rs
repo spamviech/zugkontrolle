@@ -721,7 +721,7 @@ where
 impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     /// Lade einen neuen Zustand aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn laden<V2>(&mut self, pfad: String)
+    pub fn laden(&mut self, pfad: String)
     where
         L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
@@ -730,8 +730,8 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
         S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
-        S: From<V2>,
-        V2: for<'de> Deserialize<'de>,
+        S: From<<L as BekannterZugtyp>::V2>,
+        <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
         let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
         let Zugtyp {

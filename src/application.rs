@@ -489,6 +489,8 @@ where
     S: Reserviere<L, Arg = ()> + Serialize + for<'de> Deserialize<'de>,
     // zusätzlicher Constraint für v2-Kompatibilität
     L: BekannterZugtyp,
+    S: From<<L as BekannterZugtyp>::V2>,
+    for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

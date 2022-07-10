@@ -621,7 +621,7 @@ impl<L: Leiter> Gleise<L> {
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn laden<S, V2>(
+    pub fn laden<S>(
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
@@ -634,8 +634,8 @@ impl<L: Leiter> Gleise<L> {
         S: Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
-        S: From<V2>,
-        V2: for<'de> Deserialize<'de>,
+        S: From<<L as BekannterZugtyp>::V2>,
+        <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.lock().leeren();
@@ -651,9 +651,11 @@ impl<L: Leiter> Gleise<L> {
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
         let zustand_serialisiert: ZustandSerialisiert<L, S> = bincode::deserialize(slice)
-            .or_else(|aktuell| match bincode::deserialize::<v2::GleiseVecs<V2>>(slice) {
-                Ok(v2) => v2.try_into().map_err(LadenFehler::from),
-                Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
+            .or_else(|aktuell| {
+                match bincode::deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                    Ok(v2) => v2.try_into().map_err(LadenFehler::from),
+                    Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
+                }
             })
             .map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
 
