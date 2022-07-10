@@ -5,7 +5,7 @@ use std::{
     fmt::{Debug, Display},
     hash::Hash,
     sync::Arc,
-    thread::sleep,
+    thread::{self, sleep},
     time::{Duration, Instant},
 };
 
@@ -26,7 +26,7 @@ use crate::{
         MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
-        daten::{v2, DatenAuswahl, StreckenabschnittMap},
+        daten::{v2::BekannterZugtyp, DatenAuswahl, StreckenabschnittMap},
         id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
         steuerung::MitSteuerung,
         AnschlüsseAnpassenFehler, Gleise,
@@ -44,7 +44,7 @@ impl<L, S> Nachricht<L, S>
 where
     L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    S: Send,
+    S: 'static + Send,
 {
     async fn nach_sleep(self, dauer: Duration) -> Self {
         sleep(dauer);
@@ -93,12 +93,12 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     ) where
         L: 'static + Send,
         <L as Leiter>::Fahrtrichtung: Send,
-        S: Send,
+        S: 'static + Send,
     {
         let join_handle = aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
-            let _join_handle = std::thread::spawn(move || {
+            let _join_handle = thread::spawn(move || {
                 // Warte darauf, dass die Aktion beendet wurde
                 let _panic = join_handle.join();
                 // Initialisiere ein Update des Widgets.
@@ -121,6 +121,7 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     ) where
         T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere<WS>,
+        WS:,
     {
         let steuerung_res = self.gleise.erhalte_steuerung(&id);
         if let Ok(steuerung) = steuerung_res {
@@ -469,7 +470,7 @@ impl<L: LeiterAnzeige<S> + Display, S> Zugkontrolle<L, S> {
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: LeiterAnzeige<S> + Display,
+    L: LeiterAnzeige<S> + Serialisiere<S> + Display,
     S: Debug + Clone + Reserviere<L, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
@@ -518,7 +519,7 @@ where
                     } = self.gleise.zugtyp();
                     let _ = geschwindigkeiten.insert(
                         name.clone(),
-                        <Leiter as LeiterAnzeige>::anzeige_zustand_neu(
+                        <L as LeiterAnzeige<S>>::anzeige_zustand_neu(
                             name.clone(),
                             *pwm_frequenz,
                             verhältnis_fahrspannung_überspannung.clone(),
@@ -607,7 +608,7 @@ impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    S: Send,
+    S: 'static + Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     #[inline(always)]
@@ -686,14 +687,13 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<S> + BekannterLeiter + Send,
-    S: Send,
+    L: 'static + LeiterAnzeige<S> + BekannterLeiter + Serialisiere<S> + Send,
+    S: 'static + Serialize + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de> + Send,
+    <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
     pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L, S>>> {
@@ -718,16 +718,21 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
-impl<L: LeiterAnzeige<S> + BekannterLeiter, S> Zugkontrolle<L, S>
-where
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
-    <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
-    <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-    S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()>,
-{
+impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     /// Lade einen neuen Zustand aus einer Datei.
-    pub fn laden(&mut self, pfad: String) {
+    #[allow(single_use_lifetimes)]
+    pub fn laden<V2>(&mut self, pfad: String)
+    where
+        L: BekannterLeiter + Serialisiere<S>,
+        <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
+        <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
+        <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
+        S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
+        // zusätzliche Constraints für v2-Kompatibilität
+        L: BekannterZugtyp,
+        S: From<V2>,
+        V2: for<'de> Deserialize<'de>,
+    {
         let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
         let Zugtyp {
             pwm_frequenz,

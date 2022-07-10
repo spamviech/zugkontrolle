@@ -21,12 +21,12 @@ use crate::{
         weiche::{dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, s_kurve},
     },
     steuerung::{
-        geschwindigkeit::{self, Leiter},
+        geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
         kontakt, plan, streckenabschnitt, weiche,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     void::Void,
-    zugtyp::{Zugtyp, ZugtypSerialisiert},
+    zugtyp::Zugtyp,
 };
 
 /// Beschreibung eines [anschluss::pcf85747::Pcf8574].
@@ -441,13 +441,12 @@ impl From<StreckenabschnittSerialisiert> for streckenabschnitt::Streckenabschnit
 type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
-/// Serialisierbare Repräsentation eines unterstützten Leiters,
-/// mit über Namen identifizierten Zugtypen. Aktuell:
+/// Ein unterstützten Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
 /// - [Mittelleiter] mit "Märklin".
 /// - [Zweileiter] mit "Lego".
-pub trait BekannterZugtyp: Sized {
+pub trait BekannterZugtyp: BekannterLeiter {
     /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
-    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>>;
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
 
 #[derive(Deserialize)]
@@ -484,10 +483,10 @@ enum MittelleiterSerialisiertEnum {
     },
 }
 
-impl BekannterZugtyp for MittelleiterSerialisiert {
-    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>> {
+impl BekannterZugtyp for Mittelleiter {
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
         if name == "Märklin" {
-            Some(Zugtyp::märklin().into())
+            Some(Zugtyp::märklin())
         } else {
             None
         }
@@ -545,10 +544,10 @@ enum ZweileiterSerialisiertEnum {
     },
 }
 
-impl BekannterZugtyp for ZweileiterSerialisiert {
-    fn bekannter_zugtyp(name: &str) -> Option<ZugtypSerialisiert<Self>> {
+impl BekannterZugtyp for Zweileiter {
+    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
         if name == "Lego" {
-            Some(Zugtyp::lego().into())
+            Some(Zugtyp::lego())
         } else {
             None
         }
@@ -624,14 +623,14 @@ pub(crate) struct GleiseVecs<LeiterV2> {
     pläne: HashMap<plan::Name, Void>,
 }
 
-impl<LeiterV2: BekannterZugtyp, LeiterSerialisiert> TryFrom<GleiseVecs<LeiterV2>>
-    for aktuell::de_serialisieren::ZustandSerialisiert<LeiterSerialisiert>
+impl<V2, L: BekannterZugtyp, S: From<V2>> TryFrom<GleiseVecs<V2>>
+    for aktuell::de_serialisieren::ZustandSerialisiert<L, S>
 {
     type Error = anschluss::Fehler;
 
-    fn try_from(v2: GleiseVecs<Leiter>) -> Result<Self, Self::Error> {
-        let leiter = Leiter::NAME;
-        let zugtyp = match LeiterSerialisiert::bekannter_zugtyp(&v2.name) {
+    fn try_from(v2: GleiseVecs<V2>) -> Result<Self, Self::Error> {
+        let leiter = L::NAME;
+        let zugtyp = match L::bekannter_zugtyp(&v2.name) {
             Some(zugtyp) => zugtyp,
             None => return Err(anschluss::Fehler::UnbekannterZugtyp { zugtyp: v2.name, leiter }),
         };
@@ -687,7 +686,7 @@ impl<LeiterV2: BekannterZugtyp, LeiterSerialisiert> TryFrom<GleiseVecs<LeiterV2>
             })
             .collect();
         Ok(aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp,
+            zugtyp: zugtyp.into(),
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,

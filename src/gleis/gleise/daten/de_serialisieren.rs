@@ -132,7 +132,8 @@ impl GleiseDaten {
     }
 }
 
-fn reserviere_anschlüsse<T, Ts, S, Ss, L, Ls>(
+#[allow(single_use_lifetimes)]
+fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     serialisiert: Vec<Gleis<Ts>>,
@@ -143,12 +144,11 @@ fn reserviere_anschlüsse<T, Ts, S, Ss, L, Ls>(
     arg: &<Ts as Reserviere<T>>::Arg,
 ) -> (Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>, Anschlüsse)
 where
-    T: Zeichnen + Serialisiere<Ts>,
+    T: Zeichnen,
     Ts: Reserviere<T>,
     <Ts as Reserviere<T>>::Arg: Clone,
     S: Clone + Serialisiere<Ss>,
     Ss: Eq + Hash,
-    L: Serialisiere<Ls>,
 {
     use Ergebnis::*;
     serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
@@ -228,10 +228,11 @@ impl GleiseDatenSerialisiert {
 
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert)>;
-pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> = HashMap<
-    geschwindigkeit::Name,
-    (GeschwindigkeitSerialisiert<Leiter>, StreckenabschnittMapSerialisiert),
->;
+pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
+    HashMap<
+        geschwindigkeit::Name,
+        (GeschwindigkeitSerialisiert<LeiterSerialisiert>, StreckenabschnittMapSerialisiert),
+    >;
 
 #[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
 #[zugkontrolle_debug(L: Debug)]
@@ -240,23 +241,23 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<Leiter> 
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[serde(bound(
-    serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize",
-    deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>",
+    serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
+    deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
-    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<S>>,
+    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
-impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
+impl<L: Leiter> Zustand<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
-    #[allow(single_use_lifetimes)]
-    pub(in crate::gleis::gleise) fn serialisiere(&self) -> ZustandSerialisiert<L, S>
+    pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
     where
-        <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+        L: Serialisiere<S> + BekannterLeiter,
+        <L as Leiter>::Fahrtrichtung: Clone,
     {
         let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
             map.iter()
@@ -291,12 +292,15 @@ impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
         }
     }
 
-    fn anschlüsse_ausgeben(&mut self) -> Anschlüsse {
-        let mut anschlüsse = Anschlüsse::default();
-        fn collect_gleis_anschlüsse<T: DatenAuswahl + Serialisiere<S>, S>(
-            daten: &mut GleiseDaten,
-            anschlüsse: &mut Anschlüsse,
-        ) {
+    fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
+    where
+        L: Serialisiere<S>,
+    {
+        #[allow(single_use_lifetimes)]
+        fn collect_gleis_anschlüsse<T, S>(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse)
+        where
+            T: DatenAuswahl + Serialisiere<S>,
+        {
             while let Some(geom_with_data) =
                 daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
             {
@@ -305,21 +309,20 @@ impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
         }
         fn collect_daten_anschlüsse(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse) {
             macro_rules! collect_gleis_anschlüsse {
-                ($($typ: ident),* $(,)?) => {$(
-                    collect_gleis_anschlüsse::<$typ>(daten, anschlüsse)
+                ($($typ: ident - $serialisiert: ident),* $(,)?) => {$(
+                    collect_gleis_anschlüsse::<$typ, $serialisiert>(daten, anschlüsse)
                 );*}
             }
             collect_gleis_anschlüsse! {
-                Gerade,
-                Kurve,
-                Weiche,
-                DreiwegeWeiche,
-                KurvenWeiche,
-                SKurvenWeiche,
-                Kreuzung
+                Gerade - GeradeSerialisiert,
+                Kurve - KurveSerialisiert,
+                Weiche - WeicheSerialisiert,
+                DreiwegeWeiche - DreiwegeWeicheSerialisiert,
+                KurvenWeiche - KurvenWeicheSerialisiert,
+                SKurvenWeiche - SKurvenWeicheSerialisiert,
+                Kreuzung - KreuzungSerialisiert,
             }
         }
-        collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
         fn collect_streckenabschnitt_map_anschlüsse(
             streckenabschnitt_map: &mut StreckenabschnittMap,
             anschlüsse: &mut Anschlüsse,
@@ -329,6 +332,9 @@ impl<L: Serialisiere<S> + BekannterLeiter, S> Zustand<L> {
                 collect_daten_anschlüsse(&mut daten, anschlüsse);
             }
         }
+
+        let mut anschlüsse = Anschlüsse::default();
+        collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
         collect_streckenabschnitt_map_anschlüsse(&mut self.ohne_geschwindigkeit, &mut anschlüsse);
         for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
         {
@@ -404,19 +410,20 @@ fn reserviere_streckenabschnitt_map<S>(
     )
 }
 
+#[allow(single_use_lifetimes)]
 fn reserviere_geschwindigkeit_map<L, S>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
-    geschwindigkeiten_map: GeschwindigkeitMapSerialisiert<L>,
+    geschwindigkeiten_map: GeschwindigkeitMapSerialisiert<S>,
     anschlüsse: Anschlüsse,
     ohne_streckenabschnitt: &mut GleiseDaten,
-    geschwindigkeiten: &mut HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+    geschwindigkeiten: &mut HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
     streckenabschnitte: &mut HashMap<OutputSerialisiert, Streckenabschnitt>,
     gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
     kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
     dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-    laden_fehler: &mut Vec<LadenFehler<L>>,
+    laden_fehler: &mut Vec<LadenFehler<S>>,
     canvas: &Arc<Mutex<Cache>>,
 ) -> (GeschwindigkeitMap<L>, Anschlüsse, Option<StreckenabschnittMap>)
 where
@@ -478,6 +485,7 @@ where
     )
 }
 
+#[allow(single_use_lifetimes)]
 impl<L, S> ZustandSerialisiert<L, S>
 where
     L: Serialisiere<S> + BekannterLeiter,
@@ -489,7 +497,7 @@ where
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         canvas: &Arc<Mutex<Cache>>,
-    ) -> Result<(Zustand<L>, Vec<LadenFehler<L>>), FalscherLeiter> {
+    ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
         let mut bekannte_gerade_weichen = HashMap::new();
@@ -591,18 +599,20 @@ where
     }
 }
 
-impl<L, S> Gleise<L> {
+impl<L: Leiter> Gleise<L> {
     /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// in einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
+    pub fn speichern<S>(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
     where
-        L::VerhältnisFahrspannungÜberspannung: Serialize,
-        L::UmdrehenZeit: Serialize,
-        L::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
+        L: Serialisiere<S> + BekannterLeiter,
+        <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
+        <L as Leiter>::UmdrehenZeit: Serialize,
+        <L as Leiter>::Fahrtrichtung: Clone + Serialize,
+        S: Serialize,
     {
-        let serialisiert = self.zustand.serialisiere();
+        let serialisiert: ZustandSerialisiert<L, S> = self.zustand.serialisiere();
         let file = fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
@@ -611,17 +621,21 @@ impl<L, S> Gleise<L> {
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn laden<V2>(
+    pub fn laden<S, V2>(
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
-    ) -> Result<(), NonEmpty<LadenFehler<L>>>
+    ) -> Result<(), NonEmpty<LadenFehler<S>>>
     where
+        L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
-        V2: BekannterZugtyp,
+        S: Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
+        // zusätzliche Constraints für v2-Kompatibilität
+        L: BekannterZugtyp,
+        S: From<V2>,
+        V2: for<'de> Deserialize<'de>,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.lock().leeren();
@@ -636,7 +650,7 @@ impl<L, S> Gleise<L> {
         let _ =
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
-        let zustand_serialisiert: ZustandSerialisiert<S> = bincode::deserialize(slice)
+        let zustand_serialisiert: ZustandSerialisiert<L, S> = bincode::deserialize(slice)
             .or_else(|aktuell| {
                 bincode::deserialize(slice)
                     .map_err(|v2| LadenFehler::BincodeDeserialisieren { aktuell, v2 })

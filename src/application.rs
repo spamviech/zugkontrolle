@@ -35,7 +35,7 @@ use crate::{
         gerade::GeradeUnit,
         gleise::{
             self,
-            daten::v2,
+            daten::v2::BekannterZugtyp,
             id::{AnyId, StreckenabschnittId},
             AnschlüsseAnpassen, Gleise, Modus,
         },
@@ -105,7 +105,7 @@ impl Modus {
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
-enum NachrichtClone<L: LeiterAnzeige<S>, S> {
+enum NachrichtClone<L: Leiter> {
     Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
     SchließeMessageBox,
@@ -114,8 +114,8 @@ enum NachrichtClone<L: LeiterAnzeige<S>, S> {
     ZeigeLizenzen,
 }
 
-impl<L: LeiterAnzeige<S>, S> From<NachrichtClone<L, S>> for Nachricht<L, S> {
-    fn from(nachricht_clone: NachrichtClone<L, S>) -> Self {
+impl<L: LeiterAnzeige<S>, S> From<NachrichtClone<L>> for Nachricht<L, S> {
+    fn from(nachricht_clone: NachrichtClone<L>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
@@ -262,12 +262,12 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
     }
 }
 
-impl<T, L, S> KnopfNachricht<NachrichtClone<L, S>> for T
+impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
 where
     T: Clone + Into<AnyGleisUnit>,
-    L: LeiterAnzeige<S>,
+    L: Leiter,
 {
-    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L, S> {
+    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L> {
         NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
     }
 }
@@ -280,7 +280,7 @@ impl<L, S> Nachricht<L, S>
 where
     L: 'static + LeiterAnzeige<S> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
-    S: Debug + Send,
+    S: 'static + Send,
 {
     fn als_command(self) -> Command<Nachricht<L, S>> {
         Command::perform(async_identity(self), identity)
@@ -480,12 +480,15 @@ pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
 #[allow(single_use_lifetimes)]
 impl<L, S> Application for Zugkontrolle<L, S>
 where
-    L: 'static + Debug + Display + LeiterAnzeige<S> + BekannterLeiter + Send,
+    L: 'static + Debug + Display + LeiterAnzeige<S> + Serialisiere<S> + BekannterLeiter + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
-    S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + Unpin + Send,
+    S: 'static + Debug + Clone + Eq + Hash + Unpin + Send,
+    S: Reserviere<L, Arg = ()> + Serialize + for<'de> Deserialize<'de>,
+    // zusätzlicher Constraint für v2-Kompatibilität
+    L: BekannterZugtyp,
 {
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);

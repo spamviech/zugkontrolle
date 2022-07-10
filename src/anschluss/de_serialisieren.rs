@@ -3,7 +3,6 @@
 use either::Either;
 use log::error;
 use nonempty::NonEmpty;
-use serde::{Deserialize, Serialize};
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
@@ -50,7 +49,7 @@ impl Anschlüsse {
 ///     && anschluss == r
 /// ```
 #[allow(single_use_lifetimes)]
-pub trait Serialisiere<S: Serialize + for<'de> Deserialize<'de>>: Sized {
+pub trait Serialisiere<S>: Sized {
     /// Erstelle eine serialisierbare Repräsentation.
     fn serialisiere(&self) -> S;
 
@@ -136,7 +135,7 @@ pub trait Reserviere<R> {
     ) -> Ergebnis<R>;
 }
 
-impl<T: Serialisiere<TS>, TS> Ergebnis<T> {
+impl<T> Ergebnis<T> {
     /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
     /// [reserviere](Reserviere::reserviere)-Aufrufs.
     #[inline(always)]
@@ -204,7 +203,7 @@ impl<T: Serialisiere<TS>, TS> Ergebnis<T> {
 #[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<Option<S>> for Option<R>
 where
-    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<R>,
     R: Serialisiere<S>,
 {
     fn serialisiere(&self) -> Option<S> {
@@ -223,7 +222,7 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<Option<R>> for Option<S>
 where
-    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<R>,
     R: Serialisiere<S>,
 {
     type Arg = <S as Reserviere<R>>::Arg;
@@ -254,11 +253,11 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<Vec<S>> for Vec<R>
 where
-    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<R>,
     <S as Reserviere<R>>::Arg: Clone,
     R: Serialisiere<S>,
 {
-    fn serialisiere(&self) -> S {
+    fn serialisiere(&self) -> Vec<S> {
         self.iter().map(Serialisiere::serialisiere).collect()
     }
 
@@ -274,7 +273,7 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<Vec<R>> for Vec<S>
 where
-    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<R>,
     R: Serialisiere<S>,
     <S as Reserviere<R>>::Arg: Clone,
 {
@@ -314,11 +313,11 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<NonEmpty<S>> for NonEmpty<R>
 where
-    S: Clone + Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Clone + Reserviere<R>,
     <S as Reserviere<R>>::Arg: Clone,
     R: Serialisiere<S>,
 {
-    fn serialisiere(&self) -> S {
+    fn serialisiere(&self) -> NonEmpty<S> {
         let head = self.head.serialisiere();
         let tail = self.tail.serialisiere();
         NonEmpty { head, tail }
@@ -336,7 +335,7 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<NonEmpty<R>> for NonEmpty<S>
 where
-    S: Reserviere<R> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<R>,
     <S as Reserviere<R>>::Arg: Clone,
     R: Serialisiere<S>,
 {
@@ -369,10 +368,10 @@ macro_rules! impl_serialisiere_tuple {
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
-            S0: Reserviere<A0> + Serialize + for<'de> Deserialize<'de>,
+            S0: Reserviere<A0> + ,
             $(
                 $type: Serialisiere<$serialisiert>,
-                $serialisiert: Reserviere<$type> + Serialize + for<'de> Deserialize<'de>,
+                $serialisiert: Reserviere<$type> + ,
             )+
         {
             fn serialisiere(&self) -> (S0, $($serialisiert),+) {
@@ -392,13 +391,14 @@ macro_rules! impl_serialisiere_tuple {
                 acc
             }
         }
+        #[allow(single_use_lifetimes)]
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,
-            S0: Reserviere<A0>,
+            S0: Reserviere<A0> + ,
             $(
                 $type: Serialisiere<$serialisiert>,
-                $serialisiert: Reserviere<$type>,
+                $serialisiert: Reserviere<$type> + ,
             )+
         {
             #[allow(unused_parens)]

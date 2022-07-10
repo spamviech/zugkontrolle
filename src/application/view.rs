@@ -37,7 +37,7 @@ use crate::{
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S>, S>(
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S>, S: 'static>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
     ) -> Element<'t, Nachricht<L, S>> {
@@ -51,6 +51,7 @@ impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static + Debug + LeiterAnzeige<S>,
     <L as Leiter>::Fahrtrichtung: Clone,
+    S: 'static,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
     pub fn view(&mut self) -> Element<'_, Nachricht<L, S>> {
@@ -150,7 +151,7 @@ where
                 }
             }),
             AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::from(
-                <L as LeiterAnzeige>::auswahl_neu(geschwindigkeit_auswahl),
+                <L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl),
             )
             .map(|message| {
                 use geschwindigkeit::AuswahlNachricht::*;
@@ -236,6 +237,7 @@ fn top_row<'t, L, S>(
 where
     L: 'static + Debug + LeiterAnzeige<S>,
     <L as Leiter>::Fahrtrichtung: Clone,
+    S: 'static,
 {
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
@@ -294,7 +296,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S>(
+fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_zustand: &'t mut iced::scrollable::State,
     scrollable_style: Sammlung,
@@ -327,7 +329,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S>(
             }
             fn knöpfe_hinzufügen<'t, L, S, T>(
                 max_breite: &mut Option<u16>,
-                scrollable: &mut Scrollable<'t, NachrichtClone<L, S>>,
+                scrollable: &mut Scrollable<'t, NachrichtClone<L>>,
                 buttons: &'t mut Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<S>,
@@ -369,7 +371,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S>(
                     continue;
                 };
                 scrollable = scrollable.push(
-                    Element::from(Leiter::anzeige_neu(geschwindigkeit, anzeige_zustand))
+                    Element::from(L::anzeige_neu(geschwindigkeit, anzeige_zustand))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }

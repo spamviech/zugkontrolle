@@ -59,7 +59,12 @@ pub struct Gleis<T> {
     pub position: Position,
 }
 
-impl<T: Serialisiere<S>, S> Serialisiere<S> for Gleis<T> {
+#[allow(single_use_lifetimes)]
+impl<T, S> Serialisiere<Gleis<S>> for Gleis<T>
+where
+    T: Serialisiere<S>,
+    S:,
+{
     fn serialisiere(&self) -> Gleis<S> {
         Gleis { definition: self.definition.serialisiere(), position: self.position.clone() }
     }

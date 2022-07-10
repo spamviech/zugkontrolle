@@ -261,16 +261,17 @@ where
 }
 
 /// Serialisierbare Repräsentation eines Fahrplans.
-pub type PlanSerialisiert<L> = PlanEnum<AktionSerialisiert<L>>;
+pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 
 #[allow(single_use_lifetimes)]
-impl<L, S> Plan<L>
-where
-    L: Leiter + Serialisiere<S>,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
-{
+impl<L: Leiter> Plan<L> {
     /// Serialisiere einen [Plan]
-    pub fn serialisiere(&self) -> PlanSerialisiert<L> {
+    pub fn serialisiere<S>(&self) -> PlanSerialisiert<L, S>
+    where
+        L: Serialisiere<S>,
+        <L as Leiter>::Fahrtrichtung: Clone,
+        S:,
+    {
         let Plan { aktionen, endlosschleife } = self;
         PlanSerialisiert {
             aktionen: aktionen.into_iter().map(Aktion::serialisiere).collect(),
@@ -292,18 +293,18 @@ pub enum UnbekannteAnschlüsse<S> {
     Kontakt(UnbekannterKontakt),
 }
 
-impl<L: Leiter + Serialisiere<S>, S: PartialEq + Eq + Hash> PlanSerialisiert<L> {
+impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
     /// Deserialisiere einen [Plan].
     pub fn deserialisiere(
         self,
-        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<L>, Geschwindigkeit<L>>,
+        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
         streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
         canvas: &Arc<Mutex<Cache>>,
-    ) -> Result<Plan<L>, UnbekannteAnschlüsse<L>> {
+    ) -> Result<Plan<L>, UnbekannteAnschlüsse<S>> {
         let PlanSerialisiert { aktionen: aktionen_serialisiert, endlosschleife } = self;
         let mut aktionen = Vec::new();
         for aktion in aktionen_serialisiert {
@@ -399,21 +400,22 @@ where
 }
 
 /// Serialisierbare Repräsentation einer Aktion in einem Fahrplan.
-pub type AktionSerialisiert<L> = AktionEnum<
-    AktionGeschwindigkeitSerialisiert<L>,
+pub type AktionSerialisiert<L, S> = AktionEnum<
+    AktionGeschwindigkeitSerialisiert<L, S>,
     AktionStreckenabschnittSerialisiert,
     AnyAktionSchaltenSerialisiert,
     AktionWartenSerialisiert,
 >;
 
-#[allow(single_use_lifetimes)]
-impl<L, S> Aktion<L>
-where
-    L: Leiter + Serialisiere<S>,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
-{
+impl<L: Leiter> Aktion<L> {
     /// Serialisiere eine [Aktion].
-    pub fn serialisiere(&self) -> AktionSerialisiert<L> {
+    #[allow(single_use_lifetimes)]
+    pub fn serialisiere<S>(&self) -> AktionSerialisiert<L, S>
+    where
+        L: Serialisiere<S>,
+        <L as Leiter>::Fahrtrichtung: Clone,
+        S:,
+    {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
                 AktionSerialisiert::Geschwindigkeit(aktion.serialisiere())
@@ -428,7 +430,7 @@ where
     }
 }
 
-impl<L: Leiter + Serialisiere<S>, S: PartialEq + Eq + Hash> AktionSerialisiert<L> {
+impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
     /// Deserialisiere eine [Aktion] mithilfe bekannter Anschlüsse.
     pub fn deserialisiere(
         self,
@@ -439,7 +441,7 @@ impl<L: Leiter + Serialisiere<S>, S: PartialEq + Eq + Hash> AktionSerialisiert<L
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
         canvas: Arc<Mutex<Cache>>,
-    ) -> Result<Aktion<L>, UnbekannteAnschlüsse<L>> {
+    ) -> Result<Aktion<L>, UnbekannteAnschlüsse<S>> {
         let reserviert = match self {
             AktionSerialisiert::Geschwindigkeit(aktion) => {
                 Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
@@ -470,33 +472,61 @@ impl<L: Leiter + Serialisiere<S>, S: PartialEq + Eq + Hash> AktionSerialisiert<L
     }
 }
 
-/// Eine Aktion mit einer [Geschwindigkeit].
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AktionGeschwindigkeitEnum<Geschwindigkeit, Fahrtrichtung> {
-    /// Einstellen der Fahrgeschwindigkeit.
-    Geschwindigkeit {
-        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        geschwindigkeit: Geschwindigkeit,
-        /// Die neue Geschwindigkeit.
-        wert: u8,
-    },
-    /// Umdrehen der Fahrtrichtung.
-    Umdrehen {
-        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        geschwindigkeit: Geschwindigkeit,
-    },
-    /// Einstellen der Fahrtrichtung.
-    Fahrtrichtung {
-        /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
-        geschwindigkeit: Geschwindigkeit,
-        /// Die neue Fahrtrichtung.
-        fahrtrichtung: Fahrtrichtung,
-    },
+macro_rules! erstelle_aktion_geschwindigkeit {
+    (
+        $docstring: expr,
+        $type: ident < $($par: ident $(: $con0: ident $(+ $con: ident)*)?),* >,
+        $geschwindigkeit: ty,
+        $fahrtrichtung: ty;
+        Debug => $($debug: ty),*;
+        Clone => $($clone: ty),*;
+        $(
+            [$serialize: ident, $deserialize: ident]
+            $ser: expr;
+            $de: expr;
+        )?
+    ) => {
+        #[doc = $docstring]
+        #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone $(, $serialize, $deserialize)?)]
+        $(
+            #[zugkontrolle_debug($debug: Debug)]
+        )*
+        $(
+            #[zugkontrolle_clone($clone: Clone)]
+        )*
+        $(#[serde(bound(serialize = $ser, deserialize = $de))])?
+        pub enum $type < $($par $(: $con0 $(+ $con)*)? ),* > {
+            /// Einstellen der Fahrgeschwindigkeit.
+            Geschwindigkeit {
+                /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+                geschwindigkeit: $geschwindigkeit,
+                /// Die neue Geschwindigkeit.
+                wert: u8,
+            },
+            /// Umdrehen der Fahrtrichtung.
+            Umdrehen {
+                /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+                geschwindigkeit: $geschwindigkeit,
+            },
+            /// Einstellen der Fahrtrichtung.
+            Fahrtrichtung {
+                /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
+                geschwindigkeit: $geschwindigkeit,
+                /// Die neue Fahrtrichtung.
+                fahrtrichtung: $fahrtrichtung,
+            },
+        }
+    };
 }
 
-/// Eine Aktion mit einer [Geschwindigkeit].
-pub type AktionGeschwindigkeit<L> =
-    AktionGeschwindigkeitEnum<Geschwindigkeit<L>, <L as Leiter>::Fahrtrichtung>;
+erstelle_aktion_geschwindigkeit! {
+    "Eine Aktion mit einer [Geschwindigkeit].",
+    AktionGeschwindigkeit<L: Leiter>,
+    Geschwindigkeit<L>,
+    <L as Leiter>::Fahrtrichtung;
+    Debug => L, <L as Leiter>::Fahrtrichtung;
+    Clone => <L as Leiter>::Fahrtrichtung;
+}
 
 impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
 where
@@ -509,20 +539,20 @@ where
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
+            AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
                 .geschwindigkeit(
                     *wert,
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                 ),
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
+            AktionGeschwindigkeit::Umdrehen { geschwindigkeit } => geschwindigkeit
                 .umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
                 ),
-            AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
+            AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
@@ -544,7 +574,7 @@ where
         let erzeuge_fehler_nachricht =
             |fehler| AsyncNachricht::Fehler { titel, nachricht: format!("{fehler:?}") }.into();
         match self {
-            AktionGeschwindigkeitEnum::Geschwindigkeit { geschwindigkeit, wert } => {
+            AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 let wert = *wert;
                 let pwm_frequenz = einstellungen.pwm_frequenz;
                 let verhältnis_fahrspannung_überspannung =
@@ -563,7 +593,7 @@ where
                     )
                 )
             },
-            AktionGeschwindigkeitEnum::Umdrehen { geschwindigkeit } => geschwindigkeit
+            AktionGeschwindigkeit::Umdrehen { geschwindigkeit } => geschwindigkeit
                 .async_umdrehen_allgemein(
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
@@ -573,7 +603,7 @@ where
                     Some(erzeuge_aktualisieren_nachricht),
                     |_clone, fehler| erzeuge_fehler_nachricht(fehler),
                 ),
-            AktionGeschwindigkeitEnum::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
+            AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.async_fahrtrichtung_allgemein(
                     fahrtrichtung.clone(),
                     einstellungen.pwm_frequenz,
@@ -589,18 +619,27 @@ where
     }
 }
 
-/// Serialisierbare Repräsentation für eine Aktion mit einer [Geschwindigkeit].
-pub type AktionGeschwindigkeitSerialisiert<L> =
-    AktionGeschwindigkeitEnum<GeschwindigkeitSerialisiert<L>, <L as Leiter>::Fahrtrichtung>;
+erstelle_aktion_geschwindigkeit! {
+    "Serialisierbare Repräsentation für eine Aktion mit einer [Geschwindigkeit].",
+    AktionGeschwindigkeitSerialisiert<L: Leiter, S>,
+    GeschwindigkeitSerialisiert<S>,
+    <L as Leiter>::Fahrtrichtung;
+    Debug => S, <L as Leiter>::Fahrtrichtung;
+    Clone => S, <L as Leiter>::Fahrtrichtung;
+    [Serialize, Deserialize]
+    "S: Serialize, <L as Leiter>::Fahrtrichtung: Serialize";
+    "S: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>";
+}
 
 #[allow(single_use_lifetimes)]
-impl<L, S> AktionGeschwindigkeit<L>
-where
-    L: Leiter + Serialisiere<S>,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + for<'de> Deserialize<'de>,
-{
+impl<L: Leiter> AktionGeschwindigkeit<L> {
     /// Serialisiere eine Aktion mit einer [Geschwindigkeit].
-    fn serialisiere(&self) -> AktionGeschwindigkeitSerialisiert<S> {
+    fn serialisiere<S>(&self) -> AktionGeschwindigkeitSerialisiert<L, S>
+    where
+        L: Serialisiere<S>,
+        <L as Leiter>::Fahrtrichtung: Clone,
+        S:,
+    {
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
@@ -629,12 +668,12 @@ pub struct UnbekannteGeschwindigkeit<LeiterSerialisiert>(
     pub GeschwindigkeitSerialisiert<LeiterSerialisiert>,
 );
 
-impl<S: PartialEq + Eq + Hash> AktionGeschwindigkeitSerialisiert<S> {
+impl<L: Leiter, S: Eq + Hash> AktionGeschwindigkeitSerialisiert<L, S> {
     /// Deserialisiere eine Aktion mit einer [Geschwindigkeit] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere<L: Leiter>(
+    pub fn deserialisiere(
         self,
         geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
-    ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<L>> {
+    ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<S>> {
         let aktion = match self {
             AktionGeschwindigkeitSerialisiert::Geschwindigkeit { geschwindigkeit, wert } => {
                 let geschwindigkeit = geschwindigkeiten
@@ -897,13 +936,14 @@ where
     }
 }
 
-impl<Weiche, WeicheSerialisiert, Richtung> AktionSchalten<Steuerung<Weiche>, Richtung>
-where
-    Weiche: Serialisiere<WeicheSerialisiert>,
-    Richtung: Clone,
-{
+impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
     /// Serialisiere eine Aktion mit einer [Weiche].
-    pub fn serialisiere(&self) -> AktionSchalten<WeicheSerialisiert, Richtung> {
+    #[allow(single_use_lifetimes)]
+    pub fn serialisiere<WeicheSerialisiert>(&self) -> AktionSchalten<WeicheSerialisiert, Richtung>
+    where
+        Weiche: Serialisiere<WeicheSerialisiert>,
+        WeicheSerialisiert:,
+    {
         let AktionSchalten { weiche, richtung } = self;
         AktionSchalten { weiche: weiche.as_ref().serialisiere(), richtung: richtung.clone() }
     }

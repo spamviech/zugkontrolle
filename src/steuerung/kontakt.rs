@@ -36,17 +36,15 @@ pub struct Kontakt {
     senders: Arc<Mutex<Vec<Sender<Level>>>>,
 }
 
-impl<T: Serialisiere<S>, S> Either<T, S> {
-    fn entferne_anschluss(&mut self) -> Either<T, S> {
-        let serialisiert = self.serialisiere();
-        std::mem::replace(self, Either::Right(serialisiert))
-    }
+fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
+    let serialisiert = serialisiere_anschluss(either);
+    std::mem::replace(either, Either::Right(serialisiert))
+}
 
-    fn serialisiere(&self) -> S {
-        match self {
-            Either::Left(anschluss) => anschluss.serialisiere(),
-            Either::Right(serialisiert) => serialisiert.clone(),
-        }
+fn serialisiere_anschluss<T: Serialisiere<S>, S: Clone>(either: &Either<T, S>) -> S {
+    match either {
+        Either::Left(anschluss) => anschluss.serialisiere(),
+        Either::Right(serialisiert) => serialisiert.clone(),
     }
 }
 
@@ -134,14 +132,13 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
     fn serialisiere(&self) -> KontaktSerialisiert {
         KontaktSerialisiert {
             name: self.name.clone(),
-            anschluss: self.anschluss.lock().serialisiere(),
+            anschluss: serialisiere_anschluss(&*self.anschluss.lock()),
             trigger: self.trigger,
         }
     }
 
     fn anschlüsse(self) -> Anschlüsse {
-        let mut kontakt_anschluss = self.anschluss.lock();
-        if let Either::Left(mut anschluss) = kontakt_anschluss.entferne_anschluss() {
+        if let Either::Left(mut anschluss) = entferne_anschluss(&mut *self.anschluss.lock()) {
             interrupt_zurücksetzen(&mut anschluss, &self.name);
             anschluss.anschlüsse()
         } else {

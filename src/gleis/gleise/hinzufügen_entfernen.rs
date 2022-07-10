@@ -252,7 +252,7 @@ impl<L: Leiter> Gleise<L> {
     where
         T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere<S>,
-        S: Reserviere<W> + Debug,
+        S: Debug + Reserviere<W>,
         <S as Reserviere<W>>::Arg: Clone,
     {
         use Ergebnis::*;

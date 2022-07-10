@@ -24,9 +24,7 @@ use nonempty::NonEmpty;
 
 pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
 use crate::{
-    anschluss::{
-        de_serialisieren::Serialisiere, pin::pwm, polarität::Polarität, OutputSerialisiert,
-    },
+    anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert},
     application::{anschluss, macros::reexport_no_event_methods, style::tab_bar::TabBar},
     eingeschränkt::NichtNegativ,
     steuerung::{
@@ -111,7 +109,7 @@ pub trait LeiterAnzeige<S>: Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zustand: &'t mut AuswahlZustand,
-    ) -> Auswahl<'t, Self, R>;
+    ) -> Auswahl<'t, S, R>;
 }
 
 /// Zurücksetzen des Zustands des [Anzeige]-Widgets.
@@ -169,7 +167,7 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zustand: &'t mut AuswahlZustand,
-    ) -> Auswahl<'t, Self, R> {
+    ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -252,7 +250,7 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zustand: &'t mut AuswahlZustand,
-    ) -> Auswahl<'t, Self, R> {
+    ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::Immer,

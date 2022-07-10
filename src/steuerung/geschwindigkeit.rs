@@ -2,7 +2,7 @@
 
 use std::{
     fmt::{self, Debug, Display, Formatter},
-    hash::{Hash, Hasher},
+    hash::Hash,
     marker::PhantomData,
     ops::DerefMut,
     sync::{mpsc::Sender, Arc},
@@ -27,7 +27,6 @@ use crate::{
     eingeschränkt::{NichtNegativ, NullBisEins},
     steuerung::plan::async_ausführen,
     void::Void,
-    zugtyp::Zugtyp,
 };
 
 /// Name einer [Geschwindigkeit].
@@ -121,15 +120,10 @@ pub trait Leiter {
     fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung>;
 }
 
-/// Ein unterstützter Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
-/// - [Mittelleiter] mit "Märklin".
-/// - [Zweileiter] mit "Lego".
+/// Ein unterstützter Leiter, mit bekannten Namen.
 pub trait BekannterLeiter: Leiter + Sized {
     /// Der Name des Leiters.
     const NAME: &'static str;
-
-    /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
 }
 
 /// Einstellen der Fahrgeschwindigkeit und Fahrtrichtung.
@@ -318,8 +312,9 @@ pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
     pub leiter: LeiterSerialisiert,
 }
 
+#[allow(single_use_lifetimes)]
 impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Geschwindigkeit<T> {
-    fn serialisiere(&self) -> GeschwindigkeitSerialisiert<T> {
+    fn serialisiere(&self) -> GeschwindigkeitSerialisiert<S> {
         GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
     }
 
@@ -336,7 +331,12 @@ impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Ges
     }
 }
 
-impl<T: Serialisiere<S>, S> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<S> {
+#[allow(single_use_lifetimes)]
+impl<T, S> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<S>
+where
+    T: Serialisiere<S>,
+    S: Reserviere<T>,
+{
     type Arg = <S as Reserviere<T>>::Arg;
 
     fn reserviere(
@@ -527,14 +527,6 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
 
 impl BekannterLeiter for Mittelleiter {
     const NAME: &'static str = "Mittelleiter";
-
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
-        if name == "Märklin" {
-            Some(Zugtyp::märklin())
-        } else {
-            None
-        }
-    }
 }
 
 macro_rules! umdrehen_mittelleiter {
@@ -768,14 +760,6 @@ impl Display for Zweileiter {
 
 impl BekannterLeiter for Zweileiter {
     const NAME: &'static str = "Zweileiter";
-
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
-        if name == "Lego" {
-            Some(Zugtyp::lego())
-        } else {
-            None
-        }
-    }
 }
 
 impl Leiter for Zweileiter {

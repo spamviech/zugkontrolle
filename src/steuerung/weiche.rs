@@ -242,7 +242,7 @@ impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
 #[allow(single_use_lifetimes)]
 impl<Richtung, T, S> Serialisiere<WeicheSerialisiert<Richtung, S>> for Weiche<Richtung, T>
 where
-    Richtung: Clone + Serialize + for<'de> Deserialize<'de>,
+    Richtung: Clone,
     T: Serialisiere<S>,
     S: Reserviere<T, Arg = ()>,
 {
@@ -267,6 +267,7 @@ where
     }
 }
 
+#[allow(single_use_lifetimes)]
 impl<Richtung, R, S> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, S>
 where
     R: Serialisiere<S>,
