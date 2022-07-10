@@ -651,10 +651,9 @@ impl<L: Leiter> Gleise<L> {
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
         let zustand_serialisiert: ZustandSerialisiert<L, S> = bincode::deserialize(slice)
-            .or_else(|aktuell| {
-                bincode::deserialize(slice)
-                    .map_err(|v2| LadenFehler::BincodeDeserialisieren { aktuell, v2 })
-                    .and_then(|v2: v2::GleiseVecs<V2>| v2.try_into().map_err(LadenFehler::from))
+            .or_else(|aktuell| match bincode::deserialize::<v2::GleiseVecs<V2>>(slice) {
+                Ok(v2) => v2.try_into().map_err(LadenFehler::from),
+                Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
             })
             .map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
 
