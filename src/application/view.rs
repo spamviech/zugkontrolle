@@ -3,8 +3,11 @@
 use std::fmt::Debug;
 
 use iced::{
-    Alignment, Button, Column, Container, Element, Length, Row, Rule, Scrollable, Slider, Space,
-    Text,
+    pure::{
+        widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
+        Element,
+    },
+    Alignment, Length,
 };
 use log::error;
 use num_traits::NumCast;
@@ -54,7 +57,7 @@ where
     S: 'static,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
-    pub fn view(&mut self) -> Element<'_, Nachricht<L, S>> {
+    pub fn view(&self) -> Element<'_, Nachricht<L, S>> {
         let Zugkontrolle {
             gleise,
             scrollable_zustand,
@@ -90,17 +93,13 @@ where
             aktueller_modus,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
-            geschwindigkeit_button_zustand,
             bewegen,
             drehen,
-            zoom,
             aktueller_zoom,
             speichern_laden,
-            zeige_lizenzen,
         );
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
-            scrollable_zustand,
             *scrollable_style,
             geraden,
             kurven,
@@ -117,7 +116,7 @@ where
             Column::new().push(top_row).push(Rule::horizontal(1).style(TRENNLINIE)).push(
                 row_with_scrollable.push(
                     Container::new(
-                        Element::from(
+                        Element::new(
                             touch_canvas::Canvas::new(gleise)
                                 .width(Length::Fill)
                                 .height(Length::Fill),
@@ -131,7 +130,7 @@ where
         );
 
         let modal = Modal::neu(auswahl, column, |modal| match modal {
-            AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::from(
+            AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::new(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
             .map(|message| {
@@ -150,7 +149,7 @@ where
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
-            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::from(
+            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::new(
                 <L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl),
             )
             .map(|message| {
@@ -165,7 +164,7 @@ where
             }),
             AuswahlZustand::Weiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
+                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -175,7 +174,7 @@ where
             },
             AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
+                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -185,7 +184,7 @@ where
             },
             AuswahlZustand::KurvenWeiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
-                Element::from(weiche::Auswahl::neu(zustand)).map(move |message| {
+                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => als_message_clone(steuerung),
@@ -194,7 +193,7 @@ where
                 })
             },
             AuswahlZustand::ZeigeLizenzen(zustand) => {
-                Element::from(Lizenzen::neu(zustand, *scrollable_style))
+                Element::new(Lizenzen::neu(zustand, *scrollable_style))
                     .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
             },
         })
@@ -202,7 +201,7 @@ where
 
         Modal::neu(message_box, modal, |message_box| {
             let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
-            Element::from(
+            Element::new(
                 iced_aw::Card::new(
                     Text::new(&*titel),
                     Scrollable::new(scrollable_zustand)
@@ -224,15 +223,12 @@ where
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
-    streckenabschnitt: &'t mut streckenabschnitt::AnzeigeZustand,
-    streckenabschnitt_festlegen: &'t mut bool,
-    geschwindigkeit_button_zustand: &'t mut iced::button::State,
-    bewegen: &'t mut Bewegen,
-    drehen: &'t mut Drehen,
-    zoom: &'t mut iced::slider::State,
+    streckenabschnitt: &'t streckenabschnitt::AnzeigeZustand,
+    streckenabschnitt_festlegen: &'t bool,
+    bewegen: &'t Bewegen,
+    drehen: &'t Drehen,
     aktueller_zoom: Skalar,
-    speichern_laden: &'t mut speichern_laden::Zustand,
-    zeige_lizenzen: &'t mut iced::button::State,
+    speichern_laden: &'t speichern_laden::Zustand,
 ) -> Row<'t, Nachricht<L, S>>
 where
     L: 'static + Debug + LeiterAnzeige<S>,
@@ -249,7 +245,7 @@ where
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
-            Slider::new(zoom, -2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
+            Slider::new(-2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
                 NachrichtClone::Skalieren(Skalar(exponent.exp()))
             })
             .step(0.01)
@@ -266,7 +262,7 @@ where
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
         let geschwindigkeit = Element::new(
-            iced::Button::new(geschwindigkeit_button_zustand, Text::new("Geschwindigkeiten"))
+            Button::new(Text::new("Geschwindigkeiten"))
                 .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
         )
         .map(Nachricht::from);
@@ -279,14 +275,13 @@ where
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))
-        .push(Element::from(speichern_laden).map(|message| match message {
+        .push(Element::new(speichern_laden).map(|message| match message {
             speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
             speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
         }))
         .push(
-            Element::from(
-                Button::new(zeige_lizenzen, Text::new("Lizenzen"))
-                    .on_press(NachrichtClone::ZeigeLizenzen),
+            Element::new(
+                Button::new(Text::new("Lizenzen")).on_press(NachrichtClone::ZeigeLizenzen),
             )
             .map(Nachricht::from),
         )
@@ -298,19 +293,18 @@ where
 
 fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
     aktueller_modus: Modus,
-    scrollable_zustand: &'t mut iced::scrollable::State,
     scrollable_style: Sammlung,
-    geraden: &'t mut Vec<Knopf<GeradeUnit>>,
-    kurven: &'t mut Vec<Knopf<KurveUnit>>,
-    weichen: &'t mut Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: &'t mut Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: &'t mut Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: &'t mut Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: &'t mut Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: &'t mut geschwindigkeit::Map<L, S>,
+    geraden: &'t Vec<Knopf<GeradeUnit>>,
+    kurven: &'t Vec<Knopf<KurveUnit>>,
+    weichen: &'t Vec<Knopf<WeicheUnit>>,
+    dreiwege_weichen: &'t Vec<Knopf<DreiwegeWeicheUnit>>,
+    kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
+    s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
+    kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
+    geschwindigkeiten: &'t geschwindigkeit::Map<L, S>,
     gleise: &Gleise<L>,
 ) -> Row<'t, Nachricht<L, S>> {
-    let mut scrollable = Scrollable::new(scrollable_zustand);
+    let mut scrollable_row = Row::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
     match aktueller_modus {
@@ -329,23 +323,23 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
             }
             fn knöpfe_hinzufügen<'t, L, S, T>(
                 max_breite: &mut Option<u16>,
-                scrollable: &mut Scrollable<'t, NachrichtClone<L>>,
-                buttons: &'t mut Vec<Knopf<T>>,
+                scrollable_row: &mut Row<'t, NachrichtClone<L>>,
+                buttons: &'t Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<S>,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
             {
-                take_mut::take(scrollable, |mut scrollable| {
+                take_mut::take(scrollable_row, |mut scrollable_row| {
                     for button in buttons {
-                        scrollable = scrollable.push(button.als_iced_widget(*max_breite))
+                        scrollable_row = scrollable_row.push(button.als_iced_widget(*max_breite))
                     }
-                    scrollable
+                    scrollable_row
                 })
             }
             macro_rules! knöpfe_hinzufügen {
                 ($($vec: expr),* $(,)?) => {
                     max_breite_berechnen!($($vec),*);
-                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable, $vec);)*
+                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable_row, $vec);)*
                 }
             }
             knöpfe_hinzufügen!(
@@ -358,11 +352,11 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                 kreuzungen
             );
             if let Some(max) = max_breite {
-                width = Length::Units(max + scroller_width);
+                width = Length::Units(max);
             }
         },
         Modus::Fahren => {
-            scrollable = scrollable.push(Text::new("Geschwindigkeiten")).spacing(1);
+            scrollable_row = scrollable_row.push(Text::new("Geschwindigkeiten")).spacing(1);
             for (name, anzeige_zustand) in geschwindigkeiten {
                 let geschwindigkeit = if let Some(geschwindigkeit) = gleise.geschwindigkeit(name) {
                     geschwindigkeit
@@ -370,21 +364,21 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                     error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
                     continue;
                 };
-                scrollable = scrollable.push(
-                    Element::from(L::anzeige_neu(geschwindigkeit, anzeige_zustand))
+                scrollable_row = scrollable_row.push(
+                    Element::new(L::anzeige_neu(geschwindigkeit, anzeige_zustand))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
+    let scrollable = Scrollable::new(scrollable_row);
     Row::new()
         .push(
             Container::new(
                 Element::new(
                     scrollable
                         .scroller_width(scroller_width)
-                        .width(Length::Shrink)
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )

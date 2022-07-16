@@ -12,7 +12,10 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{Application, Command, Element, Radio, Settings, Subscription};
+use iced::{
+    pure::{widget::Radio, Application, Element},
+    Command, Settings, Subscription,
+};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -641,7 +644,7 @@ where
         command
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.view()
     }
 
