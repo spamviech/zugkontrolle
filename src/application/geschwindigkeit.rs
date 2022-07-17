@@ -7,9 +7,10 @@ use std::{
     time::Duration,
 };
 
-use iced_aw::native::{Card, TabLabel, Tabs};
-use iced_native::{
-    event, overlay, text,
+use iced_aw::pure::{Card, TabLabel, Tabs};
+use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Renderer, Shell};
+use iced_pure::{
+    overlay,
     widget::{
         button::{self, Button},
         scrollable::{self, Scrollable},
@@ -17,7 +18,7 @@ use iced_native::{
         text_input::{self, TextInput},
         Column, Radio, Row, Text,
     },
-    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
+    Element, Widget,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -48,27 +49,24 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
 }
 
 /// Sortierte Map aller Widget zur Anzeige der [Geschwindigkeiten](Geschwindigkeit).
-pub type Map<L, S> = BTreeMap<Name, AnzeigeZustand<L, S>>;
+pub type Map<L> = BTreeMap<Name, AnzeigeZustand<L>>;
 
 /// Zustand des Widgets zur Anzeige einer [Geschwindigkeit].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-pub struct AnzeigeZustand<L: LeiterAnzeige<S>, S> {
+pub struct AnzeigeZustand<L: Leiter> {
     name: Name,
-    pwm_slider_zustand: slider::State,
-    fahrtrichtung: <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
     pwm_frequenz: NichtNegativ,
     verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
     stopp_zeit: Duration,
     umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
 }
 
-impl<L: LeiterAnzeige<S>, S> AnzeigeZustand<L, S> {
+impl<L: Leiter> AnzeigeZustand<L> {
     /// Erstelle einen neuen [AnzeigeZustand].
     pub fn neu(
         name: Name,
-        fahrtrichtung: <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
         pwm_frequenz: NichtNegativ,
         verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
@@ -76,8 +74,6 @@ impl<L: LeiterAnzeige<S>, S> AnzeigeZustand<L, S> {
     ) -> Self {
         AnzeigeZustand {
             name,
-            pwm_slider_zustand: slider::State::new(),
-            fahrtrichtung,
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
@@ -88,9 +84,6 @@ impl<L: LeiterAnzeige<S>, S> AnzeigeZustand<L, S> {
 
 /// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
 pub trait LeiterAnzeige<S>: Leiter + Sized {
-    /// Zustand für anpassen der [Fahrtrichtung](Leiter::Fahrtrichtung).
-    type FahrtrichtungZustand: Debug;
-
     /// Erstelle einen neuen [AnzeigeZustand].
     fn anzeige_zustand_neu(
         name: Name,
@@ -98,12 +91,12 @@ pub trait LeiterAnzeige<S>: Leiter + Sized {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self, S>;
+    ) -> AnzeigeZustand<Self>;
 
     /// Erstelle eine neue [Anzeige].
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Self>,
-        zustand: &'t mut AnzeigeZustand<Self, S>,
+        zustand: &'t mut AnzeigeZustand<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
     /// Erstelle eine neue [Auswahl].
@@ -120,8 +113,6 @@ pub struct ZustandZurücksetzenMittelleiter {
 }
 
 impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
-    type FahrtrichtungZustand = button::State;
-
     #[inline(always)]
     fn anzeige_zustand_neu(
         name: Name,
@@ -129,10 +120,9 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self, MittelleiterSerialisiert> {
+    ) -> AnzeigeZustand<Self> {
         AnzeigeZustand::neu(
             name,
-            button::State::new(),
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
@@ -142,10 +132,10 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
 
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
-        zustand: &'t mut AnzeigeZustand<Mittelleiter, MittelleiterSerialisiert>,
+        zustand: &'t mut AnzeigeZustand<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
-        let zeige_fahrtrichtung = |button_zustand: &'t mut button::State, _none| {
-            Button::new(button_zustand, Text::new("Umdrehen"))
+        let zeige_fahrtrichtung = |_none| {
+            Button::new(Text::new("Umdrehen"))
                 .on_press(AktionGeschwindigkeit::Umdrehen {
                     geschwindigkeit: geschwindigkeit.clone(),
                 })
@@ -191,8 +181,6 @@ pub struct ZustandZurücksetzenZweileiter {
 }
 
 impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
-    type FahrtrichtungZustand = ();
-
     #[inline(always)]
     fn anzeige_zustand_neu(
         name: Name,
@@ -200,10 +188,9 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
         verhältnis_fahrspannung_überspannung: <Self as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Self as Leiter>::UmdrehenZeit,
-    ) -> AnzeigeZustand<Self, ZweileiterSerialisiert> {
+    ) -> AnzeigeZustand<Self> {
         AnzeigeZustand::neu(
             name,
-            (),
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
@@ -213,7 +200,7 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
 
     fn anzeige_neu<'t, R: 't + text::Renderer>(
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
-        zustand: &'t mut AnzeigeZustand<Zweileiter, ZweileiterSerialisiert>,
+        zustand: &'t mut AnzeigeZustand<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
@@ -227,7 +214,7 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
                 },
             )
         };
-        let zeige_fahrtrichtung = |(): &mut (), fahrtrichtung: Option<Fahrtrichtung>| {
+        let zeige_fahrtrichtung = |fahrtrichtung: Option<Fahrtrichtung>| {
             let fahrtrichtung = fahrtrichtung.unwrap_or(Fahrtrichtung::Vorwärts);
             Row::new()
                 .push((fahrtrichtung_radio.clone())(Fahrtrichtung::Vorwärts, &fahrtrichtung))
@@ -287,13 +274,10 @@ where
     /// Erstelle eine neue [Anzeige] für eine [LeiterAnzeige].
     pub fn neu_mit_leiter<'s, L: LeiterAnzeige<S>, S>(
         geschwindigkeit: &'s Geschwindigkeit<L>,
-        zustand: &'t mut AnzeigeZustand<L, S>,
+        zustand: &'t mut AnzeigeZustand<L>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
-        zeige_fahrtrichtung: impl FnOnce(
-            &'t mut <L as LeiterAnzeige<S>>::FahrtrichtungZustand,
-            Option<<L as Leiter>::Fahrtrichtung>,
-        ) -> Element<'t, M, R>,
+        zeige_fahrtrichtung: impl FnOnce(Option<<L as Leiter>::Fahrtrichtung>) -> Element<'t, M, R>,
         // TODO overlay mit Anschlüssen?
     ) -> Self {
         let AnzeigeZustand {
@@ -330,13 +314,8 @@ where
             )
         } else {
             column.push(
-                Slider::new(
-                    pwm_slider_zustand,
-                    0..=u8::MAX,
-                    aktuelle_geschwindigkeit,
-                    geschwindigkeit_nachricht,
-                )
-                .width(Length::Units(100)),
+                Slider::new(0..=u8::MAX, aktuelle_geschwindigkeit, geschwindigkeit_nachricht)
+                    .width(Length::Units(100)),
             )
         };
         column = column.push(zeige_fahrtrichtung(fahrtrichtung, aktuelle_fahrtrichtung));
@@ -356,7 +335,15 @@ impl<'t, M, R: Renderer> Widget<M, R> for Anzeige<'t, M, R> {
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, M>,
     ) -> event::Status {
-        self.column.on_event(event, layout, cursor_position, renderer, clipboard, shell)
+        self.column.on_event(
+            todo!("state: Tree"),
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
     }
 
     fn overlay(
@@ -385,7 +372,6 @@ enum KonstanteSpannungAnpassen {
 #[derive(Debug)]
 pub struct AuswahlZustand {
     neu_name: String,
-    neu_name_zustand: text_input::State,
     aktueller_tab: usize,
     umdrehen_anschluss: OutputSerialisiert,
     umdrehen_zustand: anschluss::Zustand<anschluss::Output>,
@@ -393,12 +379,8 @@ pub struct AuswahlZustand {
     pwm_polarität: Polarität,
     pwm_zustand: anschluss::PwmZustand,
     ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
-    ks_anschlüsse:
-        NonEmpty<(OutputSerialisiert, anschluss::Zustand<anschluss::Output>, button::State)>,
-    ks_scrollable_zustand: scrollable::State,
-    hinzufügen_button_zustand: button::State,
-    geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, (String, button::State)>,
-    scrollable_zustand: scrollable::State,
+    ks_anschlüsse: NonEmpty<(OutputSerialisiert, anschluss::Zustand<anschluss::Output>)>,
+    geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, String>,
 }
 
 impl AuswahlZustand {
@@ -408,7 +390,6 @@ impl AuswahlZustand {
     ) -> Self {
         AuswahlZustand {
             neu_name: String::new(),
-            neu_name_zustand: text_input::State::new(),
             aktueller_tab: 0,
             umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             umdrehen_zustand: anschluss::Zustand::neu_output(),
@@ -419,19 +400,15 @@ impl AuswahlZustand {
             ks_anschlüsse: NonEmpty::singleton((
                 OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
                 anschluss::Zustand::neu_output(),
-                button::State::new(),
             )),
-            ks_scrollable_zustand: scrollable::State::new(),
-            hinzufügen_button_zustand: button::State::new(),
             geschwindigkeiten: geschwindigkeiten.map(Self::iter_map).collect(),
-            scrollable_zustand: scrollable::State::new(),
         }
     }
 
     fn iter_map<'t, Leiter: 't + Display>(
         (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
-    ) -> (UniCaseOrd<Name>, (String, button::State)) {
-        (UniCaseOrd::neu(name.clone()), (geschwindigkeit.to_string(), button::State::new()))
+    ) -> (UniCaseOrd<Name>, String) {
+        (UniCaseOrd::neu(name.clone()), geschwindigkeit.to_string())
     }
 
     /// Füge eine neue [Geschwindigkeit] hinzu.
@@ -561,7 +538,6 @@ where
                 KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse.push((
                     OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
                     anschluss::Zustand::neu_output(),
-                    button::State::new(),
                 )),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
                     let _ = remove_from_nonempty_tail(ks_anschlüsse, *ix);
@@ -580,10 +556,8 @@ where
             NonEmpty { head: anschlüsse_zustand_head, tail: anschlüsse_zustand_tail };
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         let width = Length::Units(950);
-        let mut neu = Column::new().push(
-            TextInput::new(neu_name_zustand, "<Name>", neu_name, InterneAuswahlNachricht::Name)
-                .width(width),
-        );
+        let mut neu = Column::new()
+            .push(TextInput::new("<Name>", neu_name, InterneAuswahlNachricht::Name).width(width));
         let umdrehen_auswahl = Column::new().push(Text::new(fahrtrichtung_beschreibung)).push(
             Element::from(anschluss::Auswahl::neu_output(umdrehen_zustand))
                 .map(InterneAuswahlNachricht::UmdrehenAnschluss),
@@ -625,12 +599,12 @@ where
             );
             row = row.push(if let Some(ix) = NonZeroUsize::new(i) {
                 Element::from(
-                    Button::new(button_zustand, Text::new("X"))
+                    Button::new(Text::new("X"))
                         .on_press(InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix)),
                 )
             } else {
                 Element::from(
-                    Button::new(button_zustand, Text::new("+"))
+                    Button::new(Text::new("+"))
                         .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
                 )
             });
@@ -645,11 +619,10 @@ where
             .tab_bar_style(TabBar);
         let neu = neu.push(tabs);
         let mut scrollable = Scrollable::new(scrollable_zustand).push(neu).push(
-            Button::new(hinzufügen_button_zustand, Text::new("Hinzufügen"))
-                .on_press(InterneAuswahlNachricht::Hinzufügen),
+            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
         );
         for (name, (anschlüsse, button_zustand)) in geschwindigkeiten.iter_mut() {
-            let button = Button::new(button_zustand, Text::new("X"))
+            let button = Button::new(Text::new("X"))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
             scrollable = scrollable.push(
                 Column::new()
@@ -695,6 +668,7 @@ where
         let mut column_messages = Vec::new();
         let mut column_shell = Shell::new(&mut column_messages);
         let mut status = self.card.on_event(
+            todo!("state: Tree"),
             event,
             layout,
             cursor_position,

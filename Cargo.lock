@@ -2561,6 +2561,7 @@ dependencies = [
  "iced_futures",
  "iced_graphics",
  "iced_native",
+ "iced_pure",
  "itertools",
  "kommandozeilen_argumente",
  "log",

@@ -462,7 +462,7 @@ pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
     kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: geschwindigkeit::Map<L, S>,
+    geschwindigkeiten: geschwindigkeit::Map<L>,
     auswahl: modal::Zustand<AuswahlZustand<L, S>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_aktuell_festlegen: bool,

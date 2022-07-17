@@ -129,7 +129,7 @@ where
             ),
         );
 
-        let modal = Modal::neu(auswahl, column, |modal| match modal {
+        let modal = Modal::neu(todo!("{:?}", auswahl), column, |modal| match modal {
             AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::new(
                 streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
             )
@@ -199,7 +199,7 @@ where
         })
         .on_esc(&|| Nachricht::SchließeAuswahl);
 
-        Modal::neu(message_box, modal, |message_box| {
+        Modal::neu(todo!("{:?}", message_box), modal, |message_box| {
             let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
             Element::new(
                 iced_aw::Card::new(
@@ -252,7 +252,7 @@ where
             .width(Length::Units(75)),
         )
         .align_items(Alignment::Center);
-    let speichern_laden = speichern_laden::SpeichernLaden::neu(speichern_laden);
+    let speichern_laden = speichern_laden::SpeichernLaden::neu(todo!("{:?}", speichern_laden));
     let mut row = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
@@ -267,7 +267,7 @@ where
         )
         .map(Nachricht::from);
         let streckenabschnitt = Element::new(streckenabschnitt::Anzeige::neu(
-            streckenabschnitt,
+            todo!("{:?}", streckenabschnitt),
             *streckenabschnitt_festlegen,
         ))
         .map(Nachricht::from);
@@ -301,7 +301,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
     kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: &'t geschwindigkeit::Map<L, S>,
+    geschwindigkeiten: &'t geschwindigkeit::Map<L>,
     gleise: &Gleise<L>,
 ) -> Row<'t, Nachricht<L, S>> {
     let mut scrollable_row = Row::new();
@@ -365,7 +365,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                     continue;
                 };
                 scrollable_row = scrollable_row.push(
-                    Element::new(L::anzeige_neu(geschwindigkeit, anzeige_zustand))
+                    Element::new(L::anzeige_neu(geschwindigkeit, todo!("{:?}", anzeige_zustand)))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
