@@ -1,19 +1,19 @@
 //! Macros zur einfacheren Implementierung des Widget-Traits.
 
-/// Implementiere alle benötigten Methoden des [Widget](iced_native::Widget)-Traits für $type,
-/// indem ein Widget unter $record mit identischer $message und $renderer verwendet wird.
+/// Implementiere alle benötigten Methoden des [Widget](iced_pure::Widget)-Traits,
+/// indem ein [Element](iced_pure::widgets::Element) unter $record mit $renderer verwendet wird.
 macro_rules! widget_newtype_methods {
-    ($type:ty, $record:tt, $message:ty, $renderer:ty $(,)?) => {
+    ($record:tt, $renderer:ty $(,)?) => {
         #[inline(always)]
         #[allow(unused_qualifications)]
         fn width(&self) -> iced_native::Length {
-            <$type as iced_pure::Widget<$message, $renderer>>::width(&self.$record)
+            self.$record.as_widget().width()
         }
 
         #[inline(always)]
         #[allow(unused_qualifications)]
         fn height(&self) -> iced_native::Length {
-            <$type as iced_pure::Widget<$message, $renderer>>::height(&self.$record)
+            self.$record.as_widget().height()
         }
 
         #[inline(always)]
@@ -23,11 +23,7 @@ macro_rules! widget_newtype_methods {
             renderer: &$renderer,
             limits: &iced_native::layout::Limits,
         ) -> iced_native::layout::Node {
-            <$type as iced_pure::Widget<$message, $renderer>>::layout(
-                &self.$record,
-                renderer,
-                limits,
-            )
+            self.$record.as_widget().layout(renderer, limits)
         }
 
         #[inline(always)]
@@ -41,15 +37,7 @@ macro_rules! widget_newtype_methods {
             cursor_position: Point,
             viewport: &iced::Rectangle,
         ) {
-            <$type as iced_pure::Widget<$message, $renderer>>::draw(
-                &self.$record,
-                state,
-                renderer,
-                style,
-                layout,
-                cursor_position,
-                viewport,
-            )
+            self.$record.as_widget().draw(state, renderer, style, layout, cursor_position, viewport)
         }
 
         #[inline(always)]

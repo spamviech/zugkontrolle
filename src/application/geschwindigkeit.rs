@@ -151,12 +151,7 @@ impl<'t, L, R: Renderer> Widget<AktionGeschwindigkeit<L>, R>
 where
     L: 'static + Leiter,
 {
-    widget_newtype_methods! {
-        Element<'t, AktionGeschwindigkeit<L>, R>,
-        element,
-        AktionGeschwindigkeit<L>,
-        R,
-    }
+    widget_newtype_methods! {element, R}
 
     #[inline(always)]
     fn on_event(
