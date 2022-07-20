@@ -6,14 +6,11 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::native::{
-    number_input::{self, NumberInput},
-    TabLabel, Tabs,
-};
-use iced_native::{
-    event, text,
-    widget::{Column, Radio, Row, Text},
-    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
+use iced_aw::pure::{NumberInput, TabLabel, Tabs};
+use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Renderer, Shell};
+use iced_pure::{
+    widget::{Column, Radio, Row, Text, Tree},
+    Element, Widget,
 };
 use log::error;
 
@@ -25,7 +22,7 @@ use crate::{
         polarität::Polarität,
         InputSerialisiert, OutputSerialisiert,
     },
-    application::{macros::reexport_no_event_methods, style::tab_bar::TabBar},
+    application::{macros::widget_newtype_methods, style::tab_bar::TabBar},
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
@@ -33,10 +30,8 @@ use crate::{
 #[derive(Debug)]
 pub struct Zustand<T> {
     active_tab: usize,
-    pin_zustand: number_input::State,
     pin: u8,
     beschreibung: Beschreibung,
-    port_zustand: number_input::State,
     port: kleiner_8,
     modus: T,
 }
@@ -44,7 +39,6 @@ pub struct Zustand<T> {
 /// Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
 #[derive(Debug, Clone)]
 pub struct Input<'t> {
-    number_input_zustand: number_input::State,
     pin: u8,
     interrupt_pins: &'t HashMap<Beschreibung, u8>,
 }
@@ -53,11 +47,7 @@ impl<'t> Zustand<Input<'t>> {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     #[inline(always)]
     pub fn neu_input(interrupt_pins: &'t HashMap<Beschreibung, u8>) -> Self {
-        Self::neu_mit_interrupt(Input {
-            number_input_zustand: number_input::State::new(),
-            pin: 0,
-            interrupt_pins,
-        })
+        Self::neu_mit_interrupt(Input { pin: 0, interrupt_pins })
     }
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss)
@@ -67,11 +57,7 @@ impl<'t> Zustand<Input<'t>> {
         initial: InputSerialisiert,
         interrupt_pins: &'t HashMap<Beschreibung, u8>,
     ) -> Self {
-        let make_modus = |pin: u8| Input {
-            number_input_zustand: number_input::State::new(),
-            pin,
-            interrupt_pins,
-        };
+        let make_modus = |pin: u8| Input { pin, interrupt_pins };
         match initial {
             InputSerialisiert::Pin { pin } => Self::neu_mit_initial_pin(pin, make_modus(0)),
             InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt } => {
@@ -109,6 +95,7 @@ impl<'t> Zustand<Input<'t>> {
 pub struct Output {
     polarität: Polarität,
 }
+
 impl Zustand<Output> {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     #[inline(always)]
@@ -174,15 +161,7 @@ impl<T> Zustand<T> {
             },
             kleiner_8::MIN,
         ));
-        Zustand {
-            active_tab,
-            pin_zustand: number_input::State::new(),
-            pin,
-            beschreibung,
-            port_zustand: number_input::State::new(),
-            port,
-            modus,
-        }
+        Zustand { active_tab, pin, beschreibung, port, modus }
     }
 
     #[inline(always)]
@@ -276,11 +255,10 @@ where
         Auswahl::neu_mit_interrupt_view(
             zustand,
             ZeigeModus::Pcf8574,
-            |Input { number_input_zustand, pin, interrupt_pins }, beschreibung| {
+            |Input { pin, interrupt_pins }, beschreibung| {
                 (
                     interrupt_pins.get(&beschreibung).map_or(
-                        NumberInput::new(number_input_zustand, *pin, 32, InputNachricht::interrupt)
-                            .into(),
+                        NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
                         |pin| Text::new(pin.to_string()).into(),
                     ),
                     pin,
@@ -377,8 +355,7 @@ where
         make_pin: &'a impl Fn(u8, &T) -> M,
         make_port: impl 'static + Fn(Beschreibung, kleiner_8, &T) -> M,
     ) -> Self {
-        let Zustand { active_tab, pin_zustand, pin, beschreibung, port_zustand, port, modus } =
-            zustand;
+        let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
         let (view_modus, modus) = view_modus(modus, *beschreibung);
         // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
@@ -399,7 +376,6 @@ where
                 InterneNachricht::Variante,
             ))
             .push(NumberInput::new(
-                port_zustand,
                 u8::from(*port),
                 u8::from(kleiner_8::MAX),
                 InterneNachricht::Port,
@@ -411,7 +387,7 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin_zustand, *pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), {
                         pcf8574_row.push(view_modus_mapped).into()
@@ -427,7 +403,7 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin_zustand, *pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
                 ];
@@ -453,10 +429,11 @@ where
 }
 
 impl<'a, T, I, M, R: Renderer> Widget<M, R> for Auswahl<'a, T, I, M, R> {
-    reexport_no_event_methods! {Row<'a, InterneNachricht<I>, R>, row, InterneNachricht<I>, R}
+    widget_newtype_methods! {Row<'a, InterneNachricht<I>, R>, row, InterneNachricht<I>, R}
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -467,6 +444,7 @@ impl<'a, T, I, M, R: Renderer> Widget<M, R> for Auswahl<'a, T, I, M, R> {
         let mut internal_messages = Vec::new();
         let mut internal_shell = Shell::new(&mut internal_messages);
         let mut status = self.row.on_event(
+            todo!("state"),
             event,
             layout,
             cursor_position,
@@ -527,13 +505,12 @@ impl<'a, T, I, M, R: 'a + Renderer> From<Auswahl<'a, T, I, M, R>> for Element<'a
 #[derive(Debug)]
 pub struct PwmZustand {
     pin: u8,
-    number_input_zustand: number_input::State,
 }
 
 impl PwmZustand {
     /// Erstelle einen neuen [PwmZustand].
     pub fn neu() -> Self {
-        PwmZustand { pin: 0, number_input_zustand: number_input::State::new() }
+        PwmZustand { pin: 0 }
     }
 }
 
@@ -554,16 +531,13 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
 
 impl<'a, R: text::Renderer<Font = Font>> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-    pub fn neu(PwmZustand { pin, number_input_zustand }: &'a mut PwmZustand) -> Self {
-        Pwm {
-            number_input: NumberInput::new(number_input_zustand, *pin, 32, pwm::Serialisiert),
-            pin,
-        }
+    pub fn neu(PwmZustand { pin }: &'a mut PwmZustand) -> Self {
+        Pwm { number_input: NumberInput::new(*pin, 32, pwm::Serialisiert), pin }
     }
 }
 
 impl<'a, R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'a, R> {
-    reexport_no_event_methods! {
+    widget_newtype_methods! {
         NumberInput<'a, u8, pwm::Serialisiert, R>,
         number_input,
         pwm::Serialisiert,
@@ -572,6 +546,7 @@ impl<'a, R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'a
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -582,6 +557,7 @@ impl<'a, R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'a
         let mut internal_messages = Vec::new();
         let mut internal_shell = Shell::new(&mut internal_messages);
         let mut status = self.number_input.on_event(
+            todo!("state"),
             event,
             layout,
             cursor_position,
