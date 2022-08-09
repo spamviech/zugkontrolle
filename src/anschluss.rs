@@ -448,7 +448,7 @@ impl Serialisiere<InputSerialisiert> for InputAnschluss {
             InputAnschluss::Pin(pin) => InputSerialisiert::Pin { pin: pin.pin() },
             InputAnschluss::Pcf8574Port(port) => {
                 let beschreibung = *port.beschreibung();
-                let interrupt = port.interrupt_pin().unwrap_or(None);
+                let interrupt = port.interrupt_pin();
                 let port = port.port();
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }
             },
@@ -512,7 +512,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             if let Some(interrupt) = gesuchter_interrupt {
                 let _ = port.setze_interrupt_pin(interrupt)?;
             } else if let Some(pin) = self_interrupt {
-                if Some(pin) != port.interrupt_pin()? {
+                if Some(pin) != port.interrupt_pin() {
                     let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
                     let _ = port.setze_interrupt_pin(interrupt)?;
                 }

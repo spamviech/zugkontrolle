@@ -622,8 +622,8 @@ impl InputPort {
     }
 
     /// Aktuell konfigurierter Interrupt Pin.
-    pub(super) fn interrupt_pin(&self) -> Result<Option<u8>, Fehler> {
-        Ok(self.0.pcf8574.lock().interrupt.as_ref().map(input::Pin::pin))
+    pub fn interrupt_pin(&self) -> Option<u8> {
+        self.0.pcf8574.lock().interrupt.as_ref().map(input::Pin::pin)
     }
 
     /// Assoziiere den angeschlossenen InterruptPin für den [Pcf8574].
