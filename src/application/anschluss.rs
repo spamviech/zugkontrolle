@@ -19,11 +19,12 @@ use log::error;
 
 use crate::{
     anschluss::{
+        de_serialisieren::Serialisiere,
         level::Level,
-        pcf8574::{self, Beschreibung, Variante},
+        pcf8574::{self, Beschreibung, InputPort, Variante},
         pin::pwm,
         polarität::Polarität,
-        InputSerialisiert, OutputSerialisiert,
+        InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
     application::{macros::widget_newtype_methods, style::tab_bar::TabBar},
     eingeschränkt::{kleiner_8, InvaliderWert},
@@ -220,14 +221,17 @@ impl OutputNachricht {
 }
 
 /// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-pub struct Auswahl<'a, Modus, ModusNachricht, Nachricht, R> {
+pub struct Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R> {
     element: Element<'a, InterneNachricht<ModusNachricht>, R>,
     update_modus: &'a dyn Fn(&mut Modus, ModusNachricht),
-    make_pin: &'a dyn Fn(u8, &Modus) -> Nachricht,
-    make_port: Box<dyn 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Nachricht>,
+    make_pin: &'a dyn Fn(u8, &Modus) -> Serialisiert,
+    make_port: Box<dyn 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert>,
+    start_wert: Option<&'a Anschluss>,
 }
 
-impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
+impl<Modus: Debug, ModusNachricht, Anschluss, Serialisiert, R> Debug
+    for Auswahl<'_, Modus, ModusNachricht, Anschluss, Serialisiert, R>
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("element", &"<Element>")
@@ -238,15 +242,22 @@ impl<T: Debug, I, M, R> Debug for Auswahl<'_, T, I, M, R> {
     }
 }
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
+impl<'a, R> Auswahl<'a, u8, InputNachricht, InputAnschluss, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
-    pub fn neu_input(zustand: &'a mut Zustand<Input<'a>>) -> Self {
-        let interrupt_pins = zustand.modus.interrupt_pins.clone();
+    pub fn neu_input(start_wert: Option<&'a InputAnschluss>) -> Self {
+        // FIXME sollte das von außen kommen?
+        let interrupt_pins = match start_wert.map(InputAnschluss::serialisiere) {
+            Some(InputSerialisiert::Pcf8574Port {
+                beschreibung,
+                port: _,
+                interrupt: Some(pin),
+            }) => HashMap::from([(beschreibung, pin)]),
+            _ => HashMap::new(),
+        };
         Auswahl::neu_mit_interrupt_view(
-            zustand,
             ZeigeModus::Pcf8574,
             |Input { pin, interrupt_pins }, beschreibung| {
                 (
@@ -268,18 +279,18 @@ where
                     Some(*pin)
                 },
             },
+            start_wert,
         )
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputAnschluss, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output(zustand: &'a mut Zustand<Output>) -> Self {
+    pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
         Auswahl::neu_mit_interrupt_view(
-            zustand,
             ZeigeModus::Beide,
             |Output { polarität }, _beschreibung| {
                 (
@@ -307,6 +318,7 @@ where
                 port,
                 polarität: *polarität,
             },
+            start_wert,
         )
     }
 }
@@ -317,7 +329,7 @@ enum ZeigeModus {
 }
 
 fn make_radios<'a, T, M, R>(
-    current: &T,
+    current: T,
     fst: T,
     fst_s: &str,
     snd: T,
@@ -334,31 +346,36 @@ where
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, Modus, ModusNachricht, Nachricht, R> Auswahl<'a, Modus, ModusNachricht, Nachricht, R>
+impl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>
+    Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>
 where
     Modus: Eq + Copy,
     ModusNachricht: 'static + Clone,
-    Nachricht: 'a + Clone,
+    Anschluss: Serialisiere<Serialisiert>,
+    Serialisiert: 'a + Clone,
     R: 'a + text::Renderer<Font = Font>,
 {
     fn neu_mit_interrupt_view<IO: 'a>(
-        zustand: &'a mut Zustand<IO>,
         zeige_modus: ZeigeModus,
         view_modus: impl FnOnce(
             &'a mut IO,
             Beschreibung,
         ) -> (Element<'a, ModusNachricht, R>, &'a mut Modus),
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
-        make_pin: &'a impl Fn(u8, &Modus) -> Nachricht,
-        make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Nachricht,
+        make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
+        make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
+        start_wert: Option<&'a Anschluss>,
     ) -> Self {
-        let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
-        let (view_modus, modus) = view_modus(modus, *beschreibung);
+        let start_serialisiert =
+            start_wert.map(<Anschluss as Serialisiere<Serialisiert>>::serialisiere);
+        let Zustand { active_tab, pin, beschreibung, port, modus } =
+            todo!("erzeuge_zustand(start_serialisiert)");
+        let (view_modus, modus) = view_modus(modus, beschreibung);
         // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = view_modus.map(InterneNachricht::Modus);
         let high_low_column =
-            |level: &Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
+            |level: Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, Level::High, "H", Level::Low, "L", to_message)
             };
         let pcf8574_row = Row::new()
@@ -374,7 +391,7 @@ where
                 InterneNachricht::Variante,
             ))
             .push(NumberInput::new(
-                u8::from(*port),
+                u8::from(port),
                 u8::from(kleiner_8::MAX),
                 InterneNachricht::Port,
             ));
@@ -385,13 +402,13 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), {
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
-                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(active_tab, tabs, InterneNachricht::TabSelected)
                     .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
@@ -401,24 +418,29 @@ where
                 let tabs = vec![
                     (
                         TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
                 ];
-                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(active_tab, tabs, InterneNachricht::TabSelected)
                     .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
             },
         };
-        let unused = (active_tab, pin, beschreibung, port, modus);
-        Auswahl { element: row.into(), update_modus, make_pin, make_port: Box::new(make_port) }
+        Auswahl {
+            element: row.into(),
+            update_modus,
+            make_pin,
+            make_port: Box::new(make_port),
+            start_wert,
+        }
     }
 }
 
-impl<Modus: 'static, ModusNachricht, Nachricht, R: Renderer> Widget<Nachricht, R>
-    for Auswahl<'_, Modus, ModusNachricht, Nachricht, R>
+impl<Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: Renderer> Widget<Serialisiert, R>
+    for Auswahl<'_, Modus, ModusNachricht, Anschluss, Serialisiert, R>
 {
     widget_newtype_methods! {element, R}
 
@@ -436,7 +458,7 @@ impl<Modus: 'static, ModusNachricht, Nachricht, R: Renderer> Widget<Nachricht, R
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Nachricht>,
+        shell: &mut Shell<'_, Serialisiert>,
     ) -> event::Status {
         let mut internal_messages = Vec::new();
         let mut internal_shell = Shell::new(&mut internal_messages);
@@ -493,10 +515,11 @@ impl<Modus: 'static, ModusNachricht, Nachricht, R: Renderer> Widget<Nachricht, R
     }
 }
 
-impl<'a, Modus: 'static, ModusNachricht, Nachricht, R: 'a + Renderer>
-    From<Auswahl<'a, Modus, ModusNachricht, Nachricht, R>> for Element<'a, Nachricht, R>
+impl<'a, Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: 'a + Renderer>
+    From<Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>>
+    for Element<'a, Serialisiert, R>
 {
-    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Nachricht, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>) -> Self {
         Element::new(auswahl)
     }
 }
