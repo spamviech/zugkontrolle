@@ -10,7 +10,7 @@ use iced_aw::pure::{NumberInput, TabLabel, Tabs};
 use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Renderer, Shell};
 use iced_pure::{
     widget::{
-        tree::{State, Tree},
+        tree::{State, Tag, Tree},
         Column, Radio, Row, Text,
     },
     Element, Widget,
@@ -221,28 +221,33 @@ impl OutputNachricht {
 }
 
 /// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-pub struct Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R> {
+pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R> {
     element: Element<'a, InterneNachricht<ModusNachricht>, R>,
+    zeige_modus: ZeigeModus,
+    view_modus: &'a dyn Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
     update_modus: &'a dyn Fn(&mut Modus, ModusNachricht),
     make_pin: &'a dyn Fn(u8, &Modus) -> Serialisiert,
     make_port: Box<dyn 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert>,
-    start_wert: Option<&'a Anschluss>,
+    erzeuge_zustand: &'a dyn Fn() -> Zustand<Modus>,
 }
 
-impl<Modus: Debug, ModusNachricht, Anschluss, Serialisiert, R> Debug
-    for Auswahl<'_, Modus, ModusNachricht, Anschluss, Serialisiert, R>
+impl<Modus: Debug, ModusNachricht, Serialisiert, R> Debug
+    for Auswahl<'_, Modus, ModusNachricht, Serialisiert, R>
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("element", &"<Element>")
+            .field("zeige_modus", &self.zeige_modus)
+            .field("view_modus", &"<closure>")
             .field("update_modus", &"<closure>")
             .field("make_pin", &"<closure>")
             .field("make_port", &"<closure>")
+            .field("erzeuge_zustand", &"<closure>")
             .finish()
     }
 }
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputAnschluss, InputSerialisiert, R>
+impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
 {
@@ -259,14 +264,12 @@ where
         };
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
-            |Input { pin, interrupt_pins }, beschreibung| {
-                (
-                    interrupt_pins.get(&beschreibung).map_or(
-                        NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
-                        |pin| Text::new(pin.to_string()).into(),
-                    ),
-                    pin,
-                )
+            &|pin, beschreibung| {
+                interrupt_pins
+                    .get(&beschreibung)
+                    .map_or(NumberInput::new(*pin, 32, InputNachricht::interrupt).into(), |pin| {
+                        Text::new(pin.to_string()).into()
+                    })
             },
             &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
             &|pin, _input| InputSerialisiert::Pin { pin },
@@ -279,12 +282,12 @@ where
                     Some(*pin)
                 },
             },
-            start_wert,
+            &|| todo!("erzeuge_zustand"),
         )
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputAnschluss, OutputSerialisiert, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
 {
@@ -292,24 +295,21 @@ where
     pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Beide,
-            |Output { polarität }, _beschreibung| {
-                (
-                    Column::new()
-                        .push(Radio::new(
-                            Polarität::Normal,
-                            "Normal",
-                            Some(*polarität),
-                            OutputNachricht::polarität,
-                        ))
-                        .push(Radio::new(
-                            Polarität::Invertiert,
-                            "Invertiert",
-                            Some(*polarität),
-                            OutputNachricht::polarität,
-                        ))
-                        .into(),
-                    polarität,
-                )
+            &|polarität, _beschreibung| {
+                Column::new()
+                    .push(Radio::new(
+                        Polarität::Normal,
+                        "Normal",
+                        Some(*polarität),
+                        OutputNachricht::polarität,
+                    ))
+                    .push(Radio::new(
+                        Polarität::Invertiert,
+                        "Invertiert",
+                        Some(*polarität),
+                        OutputNachricht::polarität,
+                    ))
+                    .into()
             },
             &|modus, OutputNachricht { polarität }| *modus = polarität,
             &|pin, polarität| OutputSerialisiert::Pin { pin, polarität: *polarität },
@@ -318,11 +318,12 @@ where
                 port,
                 polarität: *polarität,
             },
-            start_wert,
+            &|| todo!("erzeuge_zustand"),
         )
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 enum ZeigeModus {
     Beide,
     Pcf8574,
@@ -346,34 +347,26 @@ where
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>
-    Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     Modus: Eq + Copy,
     ModusNachricht: 'static + Clone,
-    Anschluss: Serialisiere<Serialisiert>,
     Serialisiert: 'a + Clone,
     R: 'a + text::Renderer<Font = Font>,
 {
-    fn neu_mit_interrupt_view<IO: 'a>(
+    fn neu_mit_interrupt_view(
         zeige_modus: ZeigeModus,
-        view_modus: impl FnOnce(
-            &'a mut IO,
-            Beschreibung,
-        ) -> (Element<'a, ModusNachricht, R>, &'a mut Modus),
+        view_modus: &'a impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
         make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
-        start_wert: Option<&'a Anschluss>,
+        erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
     ) -> Self {
-        let start_serialisiert =
-            start_wert.map(<Anschluss as Serialisiere<Serialisiert>>::serialisiere);
-        let Zustand { active_tab, pin, beschreibung, port, modus } =
-            todo!("erzeuge_zustand(start_serialisiert)");
-        let (view_modus, modus) = view_modus(modus, beschreibung);
+        let Zustand { active_tab, pin, beschreibung, port, modus } = erzeuge_zustand();
+        let element_modus = view_modus(&modus, beschreibung);
         // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
-        let view_modus_mapped = view_modus.map(InterneNachricht::Modus);
+        let view_modus_mapped = element_modus.map(InterneNachricht::Modus);
         let high_low_column =
             |level: Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, Level::High, "H", Level::Low, "L", to_message)
@@ -431,23 +424,27 @@ where
         };
         Auswahl {
             element: row.into(),
+            zeige_modus,
+            view_modus,
             update_modus,
             make_pin,
             make_port: Box::new(make_port),
-            start_wert,
+            erzeuge_zustand,
         }
     }
 }
 
-impl<Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: Renderer> Widget<Serialisiert, R>
-    for Auswahl<'_, Modus, ModusNachricht, Anschluss, Serialisiert, R>
+impl<Modus: 'static, ModusNachricht, Serialisiert, R: Renderer> Widget<Serialisiert, R>
+    for Auswahl<'_, Modus, ModusNachricht, Serialisiert, R>
 {
     widget_newtype_methods! {element, R}
 
+    fn tag(&self) -> Tag {
+        Tag::of::<Zustand<Modus>>()
+    }
+
     fn state(&self) -> State {
-        // TODO wie kann initial-state gesetzt werden?
-        // über Option-Wert im Widget? Muss aber geklont werden. :(
-        todo!()
+        State::new((self.erzeuge_zustand)())
     }
 
     fn on_event(
@@ -501,6 +498,7 @@ impl<Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: Renderer> Widge
                 },
                 InterneNachricht::Modus(msg) => (self.update_modus)(&mut zustand.modus, msg),
             }
+            todo!("widget aktualisieren");
             status = event::Status::Captured;
         }
         if changed {
@@ -515,11 +513,10 @@ impl<Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: Renderer> Widge
     }
 }
 
-impl<'a, Modus: 'static, ModusNachricht, Anschluss, Serialisiert, R: 'a + Renderer>
-    From<Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>>
-    for Element<'a, Serialisiert, R>
+impl<'a, Modus: 'static, ModusNachricht, Serialisiert, R: 'a + Renderer>
+    From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
 {
-    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Anschluss, Serialisiert, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
         Element::new(auswahl)
     }
 }
