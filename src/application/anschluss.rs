@@ -7,7 +7,7 @@ use std::{
 };
 
 use iced_aw::pure::{NumberInput, TabLabel, Tabs};
-use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Renderer, Shell};
+use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Shell};
 use iced_pure::{
     widget::{
         tree::{State, Tag, Tree},
@@ -21,7 +21,7 @@ use crate::{
     anschluss::{
         de_serialisieren::Serialisiere,
         level::Level,
-        pcf8574::{self, Beschreibung, InputPort, Variante},
+        pcf8574::{self, Beschreibung, Variante},
         pin::pwm,
         polarität::Polarität,
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
@@ -184,6 +184,9 @@ impl<T> Zustand<T> {
     }
 }
 
+const TAB_PIN: usize = 0;
+const TAB_PCF8574: usize = 1;
+
 #[derive(Debug, Clone)]
 enum InterneNachricht<T> {
     TabSelected(usize),
@@ -254,6 +257,7 @@ where
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(start_wert: Option<&'a InputAnschluss>) -> Self {
         // FIXME sollte das von außen kommen?
+        // wird verwendet als bekannte interrupt pins
         let interrupt_pins = match start_wert.map(InputAnschluss::serialisiere) {
             Some(InputSerialisiert::Pcf8574Port {
                 beschreibung,
@@ -282,7 +286,32 @@ where
                     Some(*pin)
                 },
             },
-            &|| todo!("erzeuge_zustand"),
+            &|| {
+                let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+                    Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
+                    Some(InputAnschluss::Pcf8574Port(port)) => (
+                        TAB_PCF8574,
+                        None,
+                        Some(*port.beschreibung()),
+                        Some(port.port()),
+                        port.interrupt_pin(),
+                    ),
+                    None => (TAB_PIN, None, None, None, None),
+                };
+                Zustand {
+                    active_tab,
+                    pin: pin.unwrap_or(0),
+                    beschreibung: beschreibung.unwrap_or(Beschreibung {
+                        i2c_bus: pcf8574::I2cBus::I2c0_1,
+                        a0: Level::Low,
+                        a1: Level::Low,
+                        a2: Level::Low,
+                        variante: Variante::Normal,
+                    }),
+                    port: port.unwrap_or(kleiner_8::MIN),
+                    modus: modus.unwrap_or(0),
+                }
+            },
         )
     }
 }
@@ -318,7 +347,34 @@ where
                 port,
                 polarität: *polarität,
             },
-            &|| todo!("erzeuge_zustand"),
+            &|| {
+                let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+                    Some(OutputAnschluss::Pin { pin, polarität }) => {
+                        (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
+                    },
+                    Some(OutputAnschluss::Pcf8574Port { port, polarität }) => (
+                        TAB_PCF8574,
+                        None,
+                        Some(*port.beschreibung()),
+                        Some(port.port()),
+                        Some(*polarität),
+                    ),
+                    None => (TAB_PIN, None, None, None, None),
+                };
+                Zustand {
+                    active_tab,
+                    pin: pin.unwrap_or(0),
+                    beschreibung: beschreibung.unwrap_or(Beschreibung {
+                        i2c_bus: pcf8574::I2cBus::I2c0_1,
+                        a0: Level::Low,
+                        a1: Level::Low,
+                        a2: Level::Low,
+                        variante: Variante::Normal,
+                    }),
+                    port: port.unwrap_or(kleiner_8::MIN),
+                    modus: modus.unwrap_or(Polarität::Normal),
+                }
+            },
         )
     }
 }
@@ -330,7 +386,7 @@ enum ZeigeModus {
 }
 
 fn make_radios<'a, T, M, R>(
-    current: T,
+    current: &T,
     fst: T,
     fst_s: &str,
     snd: T,
@@ -349,9 +405,8 @@ where
 
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
-    Modus: Eq + Copy,
+    Modus: Copy,
     ModusNachricht: 'static + Clone,
-    Serialisiert: 'a + Clone,
     R: 'a + text::Renderer<Font = Font>,
 {
     fn neu_mit_interrupt_view(
@@ -362,13 +417,35 @@ where
         make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
     ) -> Self {
-        let Zustand { active_tab, pin, beschreibung, port, modus } = erzeuge_zustand();
-        let element_modus = view_modus(&modus, beschreibung);
+        Auswahl {
+            element: Self::erzeuge_element(&erzeuge_zustand(), view_modus, zeige_modus),
+            zeige_modus,
+            view_modus,
+            update_modus,
+            make_pin,
+            make_port: Box::new(make_port),
+            erzeuge_zustand,
+        }
+    }
+}
+
+impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+where
+    ModusNachricht: 'static + Clone,
+    R: 'a + text::Renderer<Font = Font>,
+{
+    fn erzeuge_element(
+        zustand: &Zustand<Modus>,
+        view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
+        zeige_modus: ZeigeModus,
+    ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
+        let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
+        let element_modus = view_modus(&modus, *beschreibung);
         // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = element_modus.map(InterneNachricht::Modus);
         let high_low_column =
-            |level: Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
+            |level: &Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, Level::High, "H", Level::Low, "L", to_message)
             };
         let pcf8574_row = Row::new()
@@ -384,7 +461,7 @@ where
                 InterneNachricht::Variante,
             ))
             .push(NumberInput::new(
-                u8::from(port),
+                u8::from(*port),
                 u8::from(kleiner_8::MAX),
                 InterneNachricht::Port,
             ));
@@ -394,14 +471,14 @@ where
             ZeigeModus::Pcf8574 => {
                 let tabs = vec![
                     (
-                        TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
+                        TabLabel::Text("Pin".to_owned()),
+                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
-                    (TabLabel::Text("Pcf8574-Port".to_string()), {
+                    (TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
-                let tabs = Tabs::with_tabs(active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
                     .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
@@ -410,32 +487,28 @@ where
             ZeigeModus::Beide => {
                 let tabs = vec![
                     (
-                        TabLabel::Text("Pin".to_string()),
-                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
+                        TabLabel::Text("Pin".to_owned()),
+                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
-                    (TabLabel::Text("Pcf8574-Port".to_string()), { pcf8574_row.into() }),
+                    (TabLabel::Text("Pcf8574-Port".to_owned()), { pcf8574_row.into() }),
                 ];
-                let tabs = Tabs::with_tabs(active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
                     .tab_bar_style(TabBar)
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
             },
         };
-        Auswahl {
-            element: row.into(),
-            zeige_modus,
-            view_modus,
-            update_modus,
-            make_pin,
-            make_port: Box::new(make_port),
-            erzeuge_zustand,
-        }
+        row.into()
     }
 }
 
-impl<Modus: 'static, ModusNachricht, Serialisiert, R: Renderer> Widget<Serialisiert, R>
-    for Auswahl<'_, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R> Widget<Serialisiert, R>
+    for Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+where
+    Modus: 'static,
+    ModusNachricht: 'static + Clone,
+    R: 'a + text::Renderer<Font = Font>,
 {
     widget_newtype_methods! {element, R}
 
@@ -485,9 +558,6 @@ impl<Modus: 'static, ModusNachricht, Serialisiert, R: Renderer> Widget<Serialisi
                 InterneNachricht::A2(a2) => zustand.beschreibung.a2 = a2,
                 InterneNachricht::Variante(variante) => zustand.beschreibung.variante = variante,
                 InterneNachricht::Port(port) => {
-                    // kleiner_8: TryFrom<u8> nicht implementiert
-                    // NumCast::from ebenfalls nicht möglich (auch bei aktiviertem "num"-feature)
-                    // daher `kleiner_8::new` mit potentiellem panic notwendig (ausgeschlossen durch if)
                     zustand.port = match kleiner_8::try_from(port) {
                         Ok(port) => port,
                         Err(InvaliderWert(port)) => {
@@ -498,10 +568,10 @@ impl<Modus: 'static, ModusNachricht, Serialisiert, R: Renderer> Widget<Serialisi
                 },
                 InterneNachricht::Modus(msg) => (self.update_modus)(&mut zustand.modus, msg),
             }
-            todo!("widget aktualisieren");
             status = event::Status::Captured;
         }
         if changed {
+            self.element = Self::erzeuge_element(&zustand, &self.view_modus, self.zeige_modus);
             let message = if zustand.active_tab == 0 {
                 (self.make_pin)(zustand.pin, &zustand.modus)
             } else {
@@ -513,8 +583,12 @@ impl<Modus: 'static, ModusNachricht, Serialisiert, R: Renderer> Widget<Serialisi
     }
 }
 
-impl<'a, Modus: 'static, ModusNachricht, Serialisiert, R: 'a + Renderer>
+impl<'a, Modus, ModusNachricht, Serialisiert, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
+where
+    Modus: 'static,
+    ModusNachricht: 'static + Clone,
+    R: 'a + text::Renderer<Font = Font>,
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
         Element::new(auswahl)
