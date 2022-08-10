@@ -6,10 +6,17 @@ use iced::{Rectangle, Size};
 use iced_native::{
     event,
     keyboard::{self, KeyCode},
-    layout, overlay,
+    layout, mouse,
     renderer::{Renderer, Style},
-    widget::container::Container,
-    Clipboard, Element, Event, Layout, Length, Overlay, Point, Shell, Widget,
+    Clipboard, Event, Layout, Length, Point, Shell,
+};
+use iced_pure::{
+    overlay::{self, Overlay},
+    widget::{
+        tree::{self, Tag, Tree},
+        Container,
+    },
+    Element, Widget,
 };
 
 use crate::application::style::hintergrund::Hintergrund;
@@ -26,6 +33,7 @@ impl<Overlay> Zustand<Overlay> {
         Zustand { overlay: None }
     }
 
+    // FIXME funktioniert stateless mit beeinflussen von außen?
     /// Zeige ein Overlay über dem Widget.
     #[inline(always)]
     pub fn zeige_modal(&mut self, overlay: Overlay) {
@@ -94,30 +102,55 @@ impl<'a, Overlay, Nachricht, R> Modal<'a, Overlay, Nachricht, R> {
 
 impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay, Nachricht, R> {
     fn width(&self) -> Length {
-        self.underlay.width()
+        self.underlay.as_widget().width()
     }
 
     fn height(&self) -> Length {
-        self.underlay.height()
+        self.underlay.as_widget().height()
     }
 
     fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.underlay.layout(renderer, limits)
+        self.underlay.as_widget().layout(renderer, limits)
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.underlay)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&[&self.underlay])
+    }
+
+    fn state(&self) -> tree::State {
+        todo!()
+    }
+
+    fn tag(&self) -> Tag {
+        todo!()
     }
 
     fn draw(
         &self,
+        state: &Tree,
         renderer: &mut R,
         style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.underlay.draw(renderer, style, layout, cursor_position, viewport)
+        self.underlay.as_widget().draw(
+            &state.children[0],
+            renderer,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn overlay<'s>(
-        &'s mut self,
+        &'s self,
+        state: &'s mut Tree,
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'s, Nachricht, R>> {
@@ -126,12 +159,30 @@ impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay
             let position = Point::new(bounds.x, bounds.y);
             Some(ModalOverlay::neu((self.zeige_overlay)(overlay)).overlay(position))
         } else {
-            self.underlay.overlay(layout, renderer)
+            self.underlay.as_widget().overlay(&mut state.children[0], layout, renderer)
         }
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &R,
+    ) -> mouse::Interaction {
+        self.underlay.as_widget().mouse_interaction(
+            &state.children[0],
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -140,7 +191,15 @@ impl<Overlay, Nachricht, R: Renderer> Widget<Nachricht, R> for Modal<'_, Overlay
         shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
         if self.zustand.overlay.is_none() {
-            self.underlay.on_event(event, layout, cursor_position, renderer, clipboard, shell)
+            self.underlay.as_widget_mut().on_event(
+                &mut state.children[0],
+                event,
+                layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                shell,
+            )
         } else {
             match (&self.esc_nachricht, event) {
                 (
@@ -194,13 +253,15 @@ impl<'a, Nachricht: 'a, R: 'a + Renderer> ModalOverlay<'a, Nachricht, R> {
 
 impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachricht, R> {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> iced_native::layout::Node {
-        let mut layout = self.0.layout(renderer, &layout::Limits::new(bounds, bounds));
+        let mut layout = self.0.as_widget().layout(renderer, &layout::Limits::new(bounds, bounds));
         layout.move_to(position);
         layout
     }
 
     fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
-        self.0.draw(renderer, style, layout, cursor_position, &layout.bounds())
+        let widget = self.0.as_widget();
+        let tree = Tree::new(widget);
+        widget.draw(&tree, renderer, style, layout, cursor_position, &layout.bounds())
     }
 
     fn on_event(
@@ -212,6 +273,27 @@ impl<Nachricht, R: Renderer> Overlay<Nachricht, R> for ModalOverlay<'_, Nachrich
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Nachricht>,
     ) -> event::Status {
-        self.0.on_event(event, layout, cursor_position, renderer, clipboard, shell)
+        let tree = Tree::new(self.0.as_widget());
+        self.0.as_widget_mut().on_event(
+            &mut tree,
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &R,
+    ) -> mouse::Interaction {
+        let widget = self.0.as_widget();
+        let tree = Tree::new(widget);
+        self.0.as_widget().mouse_interaction(&tree, layout, cursor_position, viewport, renderer)
     }
 }
