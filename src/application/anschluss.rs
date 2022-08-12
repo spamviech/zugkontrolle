@@ -19,7 +19,6 @@ use log::error;
 
 use crate::{
     anschluss::{
-        de_serialisieren::Serialisiere,
         level::Level,
         pcf8574::{self, Beschreibung, Variante},
         pin::pwm,
@@ -32,7 +31,7 @@ use crate::{
 
 /// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 #[derive(Debug)]
-pub struct Zustand<T> {
+struct Zustand<T> {
     active_tab: usize,
     pin: u8,
     beschreibung: Beschreibung,
@@ -42,7 +41,7 @@ pub struct Zustand<T> {
 
 /// Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
 #[derive(Debug, Clone)]
-pub struct Input<'t> {
+struct Input<'t> {
     pin: u8,
     interrupt_pins: &'t HashMap<Beschreibung, u8>,
 }
@@ -50,14 +49,14 @@ pub struct Input<'t> {
 impl<'t> Zustand<Input<'t>> {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     #[inline(always)]
-    pub fn neu_input(interrupt_pins: &'t HashMap<Beschreibung, u8>) -> Self {
+    fn neu_input(interrupt_pins: &'t HashMap<Beschreibung, u8>) -> Self {
         Self::neu_mit_interrupt(Input { pin: 0, interrupt_pins })
     }
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss)
     /// mit gegebenen Start-Einstellungen.
     #[inline(always)]
-    pub fn von_input_serialisiert(
+    fn von_input_serialisiert(
         initial: InputSerialisiert,
         interrupt_pins: &'t HashMap<Beschreibung, u8>,
     ) -> Self {
@@ -76,7 +75,7 @@ impl<'t> Zustand<Input<'t>> {
 
     /// Der aktuell gewählte [InputAnschluss](crate::anschluss::InputAnschluss).
     #[inline(always)]
-    pub fn input_anschluss(&self) -> InputSerialisiert {
+    fn input_anschluss(&self) -> InputSerialisiert {
         self.anschluss(
             |pin, _input| InputSerialisiert::Pin { pin },
             |beschreibung, port, Input { pin, interrupt_pins, .. }| {
@@ -103,14 +102,14 @@ pub struct Output {
 impl Zustand<Output> {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     #[inline(always)]
-    pub fn neu_output() -> Self {
+    fn neu_output() -> Self {
         Self::neu_mit_interrupt(Output { polarität: Polarität::Normal })
     }
 
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss)
     /// mit gegebenen Start-Einstellungen.
     #[inline(always)]
-    pub fn von_output_serialisiert(initial: OutputSerialisiert) -> Self {
+    fn von_output_serialisiert(initial: OutputSerialisiert) -> Self {
         match initial {
             OutputSerialisiert::Pin { pin, polarität } => {
                 Self::neu_mit_initial_pin(pin, Output { polarität })
@@ -123,7 +122,7 @@ impl Zustand<Output> {
 
     /// Der aktuell gewählte [OutputAnschluss](crate::anschluss::OutputAnschluss).
     #[inline(always)]
-    pub fn output_anschluss(&self) -> OutputSerialisiert {
+    fn output_anschluss(&self) -> OutputSerialisiert {
         self.anschluss(
             |pin, Output { polarität }| OutputSerialisiert::Pin { pin, polarität: *polarität },
             |beschreibung, port, Output { polarität }| OutputSerialisiert::Pcf8574Port {
@@ -230,7 +229,7 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R> {
     view_modus: &'a dyn Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
     update_modus: &'a dyn Fn(&mut Modus, ModusNachricht),
     make_pin: &'a dyn Fn(u8, &Modus) -> Serialisiert,
-    make_port: Box<dyn 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert>,
+    make_port: &'a dyn Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
     erzeuge_zustand: &'a dyn Fn() -> Zustand<Modus>,
 }
 
@@ -255,7 +254,11 @@ where
     R: 'a + text::Renderer<Font = Font>,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
-    pub fn neu_input(start_wert: Option<&'a InputAnschluss>) -> Self {
+    pub fn neu_input(
+        start_wert: Option<&'a InputAnschluss>,
+        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+    ) -> Self {
+        /*
         // FIXME sollte das von außen kommen?
         // wird verwendet als bekannte interrupt pins
         let interrupt_pins = match start_wert.map(InputAnschluss::serialisiere) {
@@ -266,6 +269,7 @@ where
             }) => HashMap::from([(beschreibung, pin)]),
             _ => HashMap::new(),
         };
+        */
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             &|pin, beschreibung| {
@@ -277,7 +281,7 @@ where
             },
             &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
             &|pin, _input| InputSerialisiert::Pin { pin },
-            move |beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
+            &|beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
                 interrupt: if interrupt_pins.get(&beschreibung).is_some() {
@@ -342,7 +346,7 @@ where
             },
             &|modus, OutputNachricht { polarität }| *modus = polarität,
             &|pin, polarität| OutputSerialisiert::Pin { pin, polarität: *polarität },
-            |beschreibung, port, polarität| OutputSerialisiert::Pcf8574Port {
+            &|beschreibung, port, polarität| OutputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
                 polarität: *polarität,
@@ -414,7 +418,7 @@ where
         view_modus: &'a impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
-        make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
+        make_port: &'a impl Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
     ) -> Self {
         Auswahl {
@@ -423,7 +427,7 @@ where
             view_modus,
             update_modus,
             make_pin,
-            make_port: Box::new(make_port),
+            make_port,
             erzeuge_zustand,
         }
     }
