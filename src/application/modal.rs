@@ -99,6 +99,38 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
     }
 }
 
+fn synchronisiere_widget_layout_validierung<Overlay, ElementNachricht>(
+    inner_shell: &Shell<'_, Nachricht<Overlay, ElementNachricht>>,
+    shell: &mut Shell<'_, ElementNachricht>,
+) {
+    if inner_shell.are_widgets_invalid() {
+        shell.invalidate_widgets()
+    } else if inner_shell.is_layout_invalid() {
+        shell.invalidate_layout()
+    }
+}
+
+fn bearbeite_modal_nachrichten<Overlay, ElementNachricht>(
+    messages: Vec<Nachricht<Overlay, ElementNachricht>>,
+    shell: &mut Shell<'_, ElementNachricht>,
+    zustand: &mut Zustand<Overlay>,
+    status: &mut event::Status,
+) {
+    for message in messages {
+        match message {
+            Nachricht::Underlay(element_nachricht) => shell.publish(element_nachricht),
+            Nachricht::ZeigeOverlay(overlay) => {
+                *status = event::Status::Captured;
+                zustand.zeige_overlay(overlay)
+            },
+            Nachricht::VersteckeOverlay => {
+                *status = event::Status::Captured;
+                zustand.verstecke_overlay()
+            },
+        }
+    }
+}
+
 impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
     for Modal<'_, Overlay, ElementNachricht, R>
 {
@@ -213,14 +245,8 @@ impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
                 clipboard,
                 &mut inner_shell,
             );
-            if inner_shell.are_widgets_invalid() {
-                shell.invalidate_widgets()
-            } else if inner_shell.is_layout_invalid() {
-                shell.invalidate_layout()
-            }
-            for message in messages {
-                todo!()
-            }
+            synchronisiere_widget_layout_validierung(&inner_shell, shell);
+            bearbeite_modal_nachrichten(messages, shell, zustand, &mut status);
             status
         } else {
             match event {
@@ -351,14 +377,8 @@ impl<Overlay, ElementNachricht, R: Renderer> overlay::Overlay<ElementNachricht, 
                 &mut inner_shell,
             ),
         };
-        if inner_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if inner_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        for message in messages {
-            todo!()
-        }
+        synchronisiere_widget_layout_validierung(&inner_shell, shell);
+        bearbeite_modal_nachrichten(messages, shell, &mut self.zustand, &mut status);
         status
     }
 
