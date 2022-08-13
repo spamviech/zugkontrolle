@@ -51,6 +51,25 @@ macro_rules! widget_newtype_methods {
         fn diff(&self, tree: &mut iced_pure::widget::Tree) {
             tree.diff_children(&[self.$record])
         }
+
+        #[inline(always)]
+        #[allow(unused_qualifications)]
+        fn mouse_interaction(
+            &self,
+            state: &iced_pure::widget::Tree,
+            layout: iced_native::Layout<'_>,
+            cursor_position: iced::Point,
+            viewport: &iced::Rectangle,
+            renderer: &$renderer,
+        ) -> iced_native::mouse::Interaction {
+            self.$record.as_widget().mouse_interaction(
+                state,
+                layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
+        }
     };
 }
 pub(crate) use widget_newtype_methods;
