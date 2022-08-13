@@ -92,7 +92,7 @@ pub struct Anzeige<'t, M, R> {
 
 impl<M, R> Debug for Anzeige<'_, M, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Anzeige").field("column", &"<Column>").finish()
+        f.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
@@ -152,17 +152,8 @@ where
     L: 'static + Leiter,
     R: Renderer,
 {
+    // TODO overlay (Expander-artige Anschlüsse-Anzeige)
     widget_newtype_methods! {element, R, AktionGeschwindigkeit<L>}
-
-    fn overlay<'a>(
-        &'a self,
-        _state: &'a mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &R,
-    ) -> Option<overlay::Element<'a, AktionGeschwindigkeit<L>, R>> {
-        // TODO overlay (Expander-artige Anschlüsse-Anzeige)
-        None
-    }
 }
 
 impl<'t, L, R: 't + Renderer> From<Anzeige<'t, AktionGeschwindigkeit<L>, R>>
