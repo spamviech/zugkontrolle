@@ -1,7 +1,9 @@
 //! Macros zur einfacheren Implementierung des Widget-Traits.
 
 /// Implementiere alle benötigten Methoden des [Widget](iced_pure::Widget)-Traits,
-/// indem ein [Element](iced_pure::widgets::Element) unter $record mit $renderer verwendet wird.
+/// indem ein [Element](iced_pure::Element) unter $record mit $renderer verwendet wird.
+/// Wenn zusätzlich noch ein $message-Typ gegeben ist wird auch die
+/// [on_event](iced_pure::Widget::on_event) implementiert wird.
 macro_rules! widget_newtype_methods {
     ($record:tt, $renderer:ty $(,)?) => {
         #[inline(always)]
@@ -68,6 +70,32 @@ macro_rules! widget_newtype_methods {
                 cursor_position,
                 viewport,
                 renderer,
+            )
+        }
+    };
+    ($record:tt, $renderer:ty, $message: ty $(,)?) => {
+        widget_newtype_methods! {$record, $renderer}
+
+        #[inline(always)]
+        #[allow(unused_qualifications)]
+        fn on_event(
+            &mut self,
+            state: &mut iced_pure::widget::Tree,
+            event: iced_native::Event,
+            layout: iced_native::Layout<'_>,
+            cursor_position: iced::Point,
+            renderer: &$renderer,
+            clipboard: &mut dyn iced_native::Clipboard,
+            shell: &mut iced_native::Shell<'_, $message>,
+        ) -> iced_native::event::Status {
+            self.$record.as_widget_mut().on_event(
+                &mut state.children[0],
+                event,
+                layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                shell,
             )
         }
     };

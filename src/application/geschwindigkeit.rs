@@ -16,7 +16,8 @@ use iced_pure::{
         scrollable::{self, Scrollable},
         slider::{self, Slider},
         text_input::{self, TextInput},
-        Column, Radio, Row, Text, Tree,
+        tree::{self, Tag, Tree},
+        Column, Radio, Row, Text,
     },
     Element, Widget,
 };
@@ -146,34 +147,12 @@ where
     }
 }
 
-impl<'t, L, R: Renderer> Widget<AktionGeschwindigkeit<L>, R>
-    for Anzeige<'t, AktionGeschwindigkeit<L>, R>
+impl<L, R> Widget<AktionGeschwindigkeit<L>, R> for Anzeige<'_, AktionGeschwindigkeit<L>, R>
 where
     L: 'static + Leiter,
+    R: Renderer,
 {
-    widget_newtype_methods! {element, R}
-
-    #[inline(always)]
-    fn on_event(
-        &mut self,
-        state: &mut Tree,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, AktionGeschwindigkeit<L>>,
-    ) -> event::Status {
-        self.element.as_widget_mut().on_event(
-            &mut state.children[0],
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        )
-    }
+    widget_newtype_methods! {element, R, AktionGeschwindigkeit<L>}
 
     fn overlay<'a>(
         &'a self,
@@ -208,12 +187,11 @@ pub struct AuswahlZustand {
     neu_name: String,
     aktueller_tab: usize,
     umdrehen_anschluss: OutputSerialisiert,
-    umdrehen_zustand: anschluss::Zustand<anschluss::Output>,
     pwm_pin: pwm::Serialisiert,
     pwm_polarität: Polarität,
     pwm_zustand: anschluss::PwmZustand,
     ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
-    ks_anschlüsse: NonEmpty<(OutputSerialisiert, anschluss::Zustand<anschluss::Output>)>,
+    ks_anschlüsse: NonEmpty<OutputSerialisiert>,
     geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, String>,
 }
 
@@ -226,15 +204,14 @@ impl AuswahlZustand {
             neu_name: String::new(),
             aktueller_tab: 0,
             umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            umdrehen_zustand: anschluss::Zustand::neu_output(),
             pwm_pin: pwm::Serialisiert(0),
             pwm_polarität: Polarität::Normal,
             pwm_zustand: anschluss::PwmZustand::neu(),
             ks_anschlüsse_anpassen: None,
-            ks_anschlüsse: NonEmpty::singleton((
-                OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-                anschluss::Zustand::neu_output(),
-            )),
+            ks_anschlüsse: NonEmpty::singleton(OutputSerialisiert::Pin {
+                pin: 0,
+                polarität: Polarität::Normal,
+            }),
             geschwindigkeiten: geschwindigkeiten.map(Self::iter_map).collect(),
         }
     }
@@ -290,13 +267,6 @@ pub enum AuswahlNachricht<LeiterSerialisiert> {
 /// Hinzufügen und Anpassen einer [Geschwindigkeit].
 pub struct Auswahl<'t, LeiterSerialisiert, R> {
     card: Card<'t, InterneAuswahlNachricht, R>,
-    neu_name: &'t mut String,
-    aktueller_tab: &'t mut usize,
-    umdrehen_anschluss: &'t mut OutputSerialisiert,
-    pwm_pin: &'t mut pwm::Serialisiert,
-    pwm_polarität: &'t mut Polarität,
-    ks_anschlüsse_anpassen: &'t mut Option<KonstanteSpannungAnpassen>,
-    ks_anschlüsse: NonEmpty<&'t mut OutputSerialisiert>,
     pwm_nachricht:
         &'t dyn Fn(OutputSerialisiert, pwm::Serialisiert, Polarität) -> LeiterSerialisiert,
     ks_nachricht:
@@ -306,14 +276,6 @@ pub struct Auswahl<'t, LeiterSerialisiert, R> {
 impl<LeiterSerialisiert, R> Debug for Auswahl<'_, LeiterSerialisiert, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
-            .field("card", &"<Card>")
-            .field("neu_name", &self.neu_name)
-            .field("aktueller_tab", &self.aktueller_tab)
-            .field("umdrehen_anschluss", &self.umdrehen_anschluss)
-            .field("pwm_pin", &self.pwm_pin)
-            .field("pwm_polarität", &self.pwm_polarität)
-            .field("ks_anschlüsse_anpassen", &self.ks_anschlüsse_anpassen)
-            .field("ks_anschlüsse", &self.ks_anschlüsse)
             .field("pwm_nachricht", &"<closure>")
             .field("ks_nachricht", &"<closure>")
             .finish()
