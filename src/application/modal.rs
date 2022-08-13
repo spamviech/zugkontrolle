@@ -74,6 +74,7 @@ impl<Overlay> Zustand<Overlay> {
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Overlay, ElementNachricht, R> {
     underlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+    initial_overlay: Option<&'a dyn Fn() -> Overlay>,
     zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'_, Nachricht<Overlay, ElementNachricht>, R>,
     schließe_bei_esc: bool,
 }
@@ -82,6 +83,7 @@ impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Modal")
             .field("underlay", &"<Element>")
+            .field("initial_overlay", &"<closure>")
             .field("zeige_overlay", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
             .finish()
@@ -95,7 +97,13 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
         zeige_overlay: &'a impl Fn(&Overlay) -> Element<'_, Nachricht<Overlay, ElementNachricht>, R>,
         schließe_bei_esc: bool,
     ) -> Self {
-        Modal { underlay: underlay.into(), zeige_overlay, schließe_bei_esc }
+        Modal { underlay: underlay.into(), initial_overlay: None, zeige_overlay, schließe_bei_esc }
+    }
+
+    /// Setzte das initial angezeigte Overlay.
+    pub fn initiales_overlay(mut self, initial_overlay: &'a impl Fn() -> Overlay) -> Self {
+        self.initial_overlay = Some(initial_overlay);
+        self
     }
 }
 
@@ -155,7 +163,11 @@ impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(Zustand::<Overlay>::neu())
+        let mut zustand = Zustand::<Overlay>::neu();
+        if let Some(initial_overlay) = &self.initial_overlay {
+            zustand.zeige_overlay(initial_overlay())
+        }
+        tree::State::new(zustand)
     }
 
     fn tag(&self) -> Tag {
