@@ -12,10 +12,10 @@ use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Re
 use iced_pure::{
     overlay,
     widget::{
-        button::{self, Button},
-        scrollable::{self, Scrollable},
-        slider::{self, Slider},
-        text_input::{self, TextInput},
+        button::Button,
+        scrollable::Scrollable,
+        slider::Slider,
+        text_input::TextInput,
         tree::{self, Tag, Tree},
         Column, Radio, Row, Text,
     },
@@ -35,7 +35,6 @@ use crate::{
             MittelleiterSerialisiert, Zweileiter, ZweileiterSerialisiert,
         },
         plan::AktionGeschwindigkeit,
-        Aktion,
     },
     unicase_ord::UniCaseOrd,
     zugtyp::Zugtyp,
@@ -174,21 +173,19 @@ enum KonstanteSpannungAnpassen {
 
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
 #[derive(Debug)]
-pub struct AuswahlZustand {
+struct AuswahlZustand {
     neu_name: String,
     aktueller_tab: usize,
     umdrehen_anschluss: OutputSerialisiert,
     pwm_pin: pwm::Serialisiert,
     pwm_polarität: Polarität,
-    pwm_zustand: anschluss::PwmZustand,
-    ks_anschlüsse_anpassen: Option<KonstanteSpannungAnpassen>,
     ks_anschlüsse: NonEmpty<OutputSerialisiert>,
     geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, String>,
 }
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    pub fn neu<'t, Leiter: 't + Display>(
+    fn neu<'t, Leiter: 't + Display>(
         geschwindigkeiten: impl Iterator<Item = (&'t Name, &'t Geschwindigkeit<Leiter>)>,
     ) -> Self {
         AuswahlZustand {
@@ -197,8 +194,6 @@ impl AuswahlZustand {
             umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             pwm_pin: pwm::Serialisiert(0),
             pwm_polarität: Polarität::Normal,
-            pwm_zustand: anschluss::PwmZustand::neu(),
-            ks_anschlüsse_anpassen: None,
             ks_anschlüsse: NonEmpty::singleton(OutputSerialisiert::Pin {
                 pin: 0,
                 polarität: Polarität::Normal,
@@ -214,7 +209,7 @@ impl AuswahlZustand {
     }
 
     /// Füge eine neue [Geschwindigkeit] hinzu.
-    pub fn hinzufügen<Leiter: Display>(
+    fn hinzufügen<Leiter: Display>(
         &mut self,
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Leiter>,
@@ -224,7 +219,7 @@ impl AuswahlZustand {
     }
 
     /// Entferne eine [Geschwindigkeit].
-    pub fn entfernen(&mut self, name: &Name) {
+    fn entfernen(&mut self, name: &Name) {
         let _ = self.geschwindigkeiten.remove(&UniCaseOrd::neu(name.clone()));
     }
 }
@@ -258,6 +253,8 @@ pub enum AuswahlNachricht<LeiterSerialisiert> {
 /// Hinzufügen und Anpassen einer [Geschwindigkeit].
 pub struct Auswahl<'t, Leiter, LeiterSerialisiert, R> {
     element: Element<'t, InterneAuswahlNachricht, R>,
+    fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+    fahrtrichtung_beschreibung: String,
     geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Leiter>>,
     pwm_nachricht:
         &'t dyn Fn(OutputSerialisiert, pwm::Serialisiert, Polarität) -> LeiterSerialisiert,
@@ -269,6 +266,8 @@ impl<Leiter: Debug, LeiterSerialisiert, R> Debug for Auswahl<'_, Leiter, LeiterS
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
             .field("element", &"<Element>")
+            .field("fahrtrichtung_anschluss", &self.fahrtrichtung_anschluss)
+            .field("fahrtrichtung_beschreibung", &self.fahrtrichtung_beschreibung)
             .field("geschwindigkeiten", &self.geschwindigkeiten)
             .field("pwm_nachricht", &"<closure>")
             .field("ks_nachricht", &"<closure>")
@@ -278,7 +277,7 @@ impl<Leiter: Debug, LeiterSerialisiert, R> Debug for Auswahl<'_, Leiter, LeiterS
 
 /// Wo soll eine Auswahl für einen Anschluss zum Einstellen der Fahrtrichtung angezeigt werden.
 #[derive(Debug, Clone, Copy)]
-pub enum FahrtrichtungAnschluss {
+enum FahrtrichtungAnschluss {
     /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
     Pwm,
     /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über mehrere Anschlüsse
@@ -308,12 +307,20 @@ where
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
     ) -> Self {
+        let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
         let element = Self::erzeuge_element(
             &AuswahlZustand::neu(geschwindigkeiten.iter()),
             fahrtrichtung_anschluss,
-            fahrtrichtung_beschreibung,
+            &fahrtrichtung_beschreibung,
         );
-        Auswahl { element, geschwindigkeiten, pwm_nachricht, ks_nachricht }
+        Auswahl {
+            element,
+            fahrtrichtung_anschluss,
+            fahrtrichtung_beschreibung,
+            geschwindigkeiten,
+            pwm_nachricht,
+            ks_nachricht,
+        }
     }
 }
 
@@ -321,32 +328,20 @@ impl<'t, Leiter, LeiterSerialisiert, R> Auswahl<'t, Leiter, LeiterSerialisiert, 
 where
     R: 't + text::Renderer<Font = Font>,
 {
-    fn erzeuge_element(
-        zustand: &AuswahlZustand,
+    fn erzeuge_element<'s>(
+        zustand: &'s AuswahlZustand,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
-        fahrtrichtung_beschreibung: impl Into<String>,
-    ) -> Element<'_, InterneAuswahlNachricht, R> {
+        fahrtrichtung_beschreibung: &str,
+    ) -> Element<'s, InterneAuswahlNachricht, R> {
         let AuswahlZustand {
             neu_name,
             aktueller_tab,
             umdrehen_anschluss,
             pwm_pin,
             pwm_polarität,
-            pwm_zustand,
-            ks_anschlüsse_anpassen,
             ks_anschlüsse,
             geschwindigkeiten,
         } = zustand;
-        if let Some(anpassen) = ks_anschlüsse_anpassen {
-            match anpassen {
-                KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse
-                    .push(OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal }),
-                KonstanteSpannungAnpassen::Entfernen(ix) => {
-                    let _ = remove_from_nonempty_tail(ks_anschlüsse, *ix);
-                },
-            }
-            *ks_anschlüsse_anpassen = None;
-        }
         let output_save_head = &mut ks_anschlüsse.head;
         let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter_mut().collect();
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
@@ -471,22 +466,35 @@ where
             shell.invalidate_layout()
         }
         let zustand: &mut AuswahlZustand = state.state.downcast_mut();
+        let mut zustand_geändert = false;
         for message in messages {
             status = event::Status::Captured;
             match message {
                 InterneAuswahlNachricht::Schließen => shell.publish(AuswahlNachricht::Schließen),
-                InterneAuswahlNachricht::WähleTab(tab) => zustand.aktueller_tab = tab,
-                InterneAuswahlNachricht::Name(name) => zustand.neu_name = name,
-                InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
-                    zustand.umdrehen_anschluss = anschluss
+                InterneAuswahlNachricht::WähleTab(tab) => {
+                    zustand.aktueller_tab = tab;
+                    zustand_geändert = true;
                 },
-                InterneAuswahlNachricht::PwmPin(pin) => zustand.pwm_pin = pin,
+                InterneAuswahlNachricht::Name(name) => {
+                    zustand.neu_name = name;
+                    zustand_geändert = true;
+                },
+                InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
+                    zustand.umdrehen_anschluss = anschluss;
+                    zustand_geändert = true;
+                },
+                InterneAuswahlNachricht::PwmPin(pin) => {
+                    zustand.pwm_pin = pin;
+                    zustand_geändert = true;
+                },
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
-                    zustand.pwm_polarität = polarität
+                    zustand.pwm_polarität = polarität;
+                    zustand_geändert = true;
                 },
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
                     if let Some(anschluss) = zustand.ks_anschlüsse.get_mut(ix) {
-                        *anschluss = anschluss_neu
+                        *anschluss = anschluss_neu;
+                        zustand_geändert = true;
                     } else {
                         error!(
                             "Update-Nachricht für Anschluss {}, es gibt aber nur {}!",
@@ -496,11 +504,14 @@ where
                     }
                 },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
-                    zustand.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
+                    zustand
+                        .ks_anschlüsse
+                        .push(OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal });
+                    zustand_geändert = true;
                 },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
-                    zustand.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
                     let _ = remove_from_nonempty_tail(&mut zustand.ks_anschlüsse, ix);
+                    zustand_geändert = true;
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
                     let leiter = if zustand.aktueller_tab == 0 {
@@ -530,6 +541,13 @@ where
                 },
             }
         }
+        if zustand_geändert {
+            self.element = Self::erzeuge_element(
+                zustand,
+                self.fahrtrichtung_anschluss,
+                &self.fahrtrichtung_beschreibung,
+            )
+        }
         status
     }
 
@@ -539,7 +557,9 @@ where
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, AuswahlNachricht<LeiterSerialisiert>, R>> {
-        todo!()
+        // TODO overlay von self.element anzeigen?
+        // Problem bei konvertieren der Nachricht (nur Fn erlaubt)
+        None
     }
 }
 
@@ -564,6 +584,7 @@ pub trait LeiterAnzeige<S>: Leiter + Sized {
 
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Self>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, Self, S, R>;
 }
@@ -577,8 +598,8 @@ pub struct ZustandZurücksetzenMittelleiter {
 
 impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
     fn anzeige_neu<'t, R: 't + text::Renderer>(
+        name: &'t Name,
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
-        zugtyp: &'t Zugtyp<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let zeige_fahrtrichtung = |_none| {
             Button::new(Text::new("Umdrehen"))
@@ -588,9 +609,9 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
                 .into()
         };
         let clone = geschwindigkeit.clone();
-        Anzeige::neu_mit_leiter(
+        Anzeige::neu(
+            name,
             geschwindigkeit,
-            zustand,
             Geschwindigkeit::<Mittelleiter>::ks_länge,
             move |wert| AktionGeschwindigkeit::Geschwindigkeit {
                 geschwindigkeit: clone.clone(),
@@ -602,10 +623,11 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
 
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Mittelleiter>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, Mittelleiter, MittelleiterSerialisiert, R> {
         Auswahl::neu(
-            zustand,
+            geschwindigkeiten,
             FahrtrichtungAnschluss::KonstanteSpannung,
             "Umdrehen",
             &|_umdrehen, pin, polarität| MittelleiterSerialisiert::Pwm { pin, polarität },
@@ -628,8 +650,8 @@ pub struct ZustandZurücksetzenZweileiter {
 
 impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
     fn anzeige_neu<'t, R: 't + text::Renderer>(
+        name: &'t Name,
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
-        zugtyp: &'t Zugtyp<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
@@ -651,9 +673,9 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
                 .into()
         };
         let clone = geschwindigkeit.clone();
-        Anzeige::neu_mit_leiter(
+        Anzeige::neu(
+            name,
             geschwindigkeit,
-            zustand,
             Geschwindigkeit::<Zweileiter>::ks_länge,
             move |wert| AktionGeschwindigkeit::Geschwindigkeit {
                 geschwindigkeit: clone.clone(),
@@ -665,10 +687,11 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
 
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
+        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Zweileiter>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, Zweileiter, ZweileiterSerialisiert, R> {
         Auswahl::neu(
-            zustand,
+            geschwindigkeiten,
             FahrtrichtungAnschluss::Immer,
             "Fahrtrichtung",
             &|fahrtrichtung, geschwindigkeit, polarität| ZweileiterSerialisiert::Pwm {
