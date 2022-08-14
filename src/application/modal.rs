@@ -142,6 +142,7 @@ fn bearbeite_modal_nachrichten<Overlay, ElementNachricht>(
 impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
     for Modal<'_, Overlay, ElementNachricht, R>
 {
+    // TODO widget_newtype_methods!-Macro verwenden
     fn width(&self) -> Length {
         self.underlay.as_widget().width()
     }
@@ -155,10 +156,12 @@ impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
     }
 
     fn children(&self) -> Vec<Tree> {
+        // TODO overlay berücksichtigen
         vec![Tree::new(&self.underlay)]
     }
 
     fn diff(&self, tree: &mut Tree) {
+        // TODO overlay berücksichtigen
         tree.diff_children(&[&self.underlay])
     }
 
@@ -369,6 +372,7 @@ impl<Overlay, ElementNachricht, R: Renderer> overlay::Overlay<ElementNachricht, 
         let mut inner_shell = Shell::new(&mut messages);
         let status = match &mut self.element_or_overlay {
             Either::Left(element) => {
+                // FIXME does this work?
                 let tree = Tree::new(element.as_widget());
                 element.as_widget_mut().on_event(
                     &mut tree,
