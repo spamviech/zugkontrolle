@@ -290,11 +290,12 @@ pub enum FahrtrichtungAnschluss {
 
 impl<'t, Leiter, LeiterSerialisiert, R> Auswahl<'t, Leiter, LeiterSerialisiert, R>
 where
+    Leiter: Display,
     R: 't + text::Renderer<Font = Font>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
-        zustand: &'t mut AuswahlZustand,
+        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Leiter>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
         pwm_nachricht: &'t impl Fn(
@@ -307,49 +308,53 @@ where
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
     ) -> Self {
+        let element = Self::erzeuge_element(
+            &AuswahlZustand::neu(geschwindigkeiten.iter()),
+            fahrtrichtung_anschluss,
+            fahrtrichtung_beschreibung,
+        );
+        Auswahl { element, geschwindigkeiten, pwm_nachricht, ks_nachricht }
+    }
+}
+
+impl<'t, Leiter, LeiterSerialisiert, R> Auswahl<'t, Leiter, LeiterSerialisiert, R>
+where
+    R: 't + text::Renderer<Font = Font>,
+{
+    fn erzeuge_element(
+        zustand: &AuswahlZustand,
+        fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+        fahrtrichtung_beschreibung: impl Into<String>,
+    ) -> Element<'_, InterneAuswahlNachricht, R> {
         let AuswahlZustand {
             neu_name,
-            neu_name_zustand,
             aktueller_tab,
             umdrehen_anschluss,
-            umdrehen_zustand,
             pwm_pin,
             pwm_polarität,
             pwm_zustand,
             ks_anschlüsse_anpassen,
             ks_anschlüsse,
-            ks_scrollable_zustand,
-            hinzufügen_button_zustand,
             geschwindigkeiten,
-            scrollable_zustand,
         } = zustand;
         if let Some(anpassen) = ks_anschlüsse_anpassen {
             match anpassen {
-                KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse.push((
-                    OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-                    anschluss::Zustand::neu_output(),
-                )),
+                KonstanteSpannungAnpassen::Hinzufügen => ks_anschlüsse
+                    .push(OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal }),
                 KonstanteSpannungAnpassen::Entfernen(ix) => {
                     let _ = remove_from_nonempty_tail(ks_anschlüsse, *ix);
                 },
             }
             *ks_anschlüsse_anpassen = None;
         }
-        let (output_save_head, zustand_head, button_zustand_head) = &mut ks_anschlüsse.head;
-        let anschlüsse_zustand_head = (zustand_head, button_zustand_head);
-        let (anschlüsse_zustand_tail, anschlüsse_save_tail): (Vec<_>, Vec<_>) = ks_anschlüsse
-            .tail
-            .iter_mut()
-            .map(|(output_save, zustand, button_zustand)| ((zustand, button_zustand), output_save))
-            .unzip();
-        let anschlüsse_zustand =
-            NonEmpty { head: anschlüsse_zustand_head, tail: anschlüsse_zustand_tail };
+        let output_save_head = &mut ks_anschlüsse.head;
+        let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter_mut().collect();
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         let width = Length::Units(950);
         let mut neu = Column::new()
             .push(TextInput::new("<Name>", neu_name, InterneAuswahlNachricht::Name).width(width));
         let umdrehen_auswahl = Column::new().push(Text::new(fahrtrichtung_beschreibung)).push(
-            Element::from(anschluss::Auswahl::neu_output(umdrehen_zustand))
+            Element::from(anschluss::Auswahl::neu_output(None))
                 .map(InterneAuswahlNachricht::UmdrehenAnschluss),
         );
         let make_radio = |polarität: Polarität| {
@@ -370,72 +375,56 @@ where
             FahrtrichtungAnschluss::Immer => neu = neu.push(umdrehen_auswahl),
         }
         let pwm_auswahl = pwm_auswahl
-            .push(
-                Element::from(anschluss::Pwm::neu(pwm_zustand))
-                    .map(InterneAuswahlNachricht::PwmPin),
-            )
+            .push(Element::from(anschluss::Pwm::neu(None)).map(InterneAuswahlNachricht::PwmPin))
             .push(
                 Column::new()
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
-        let mut ks_scrollable = Scrollable::new(ks_scrollable_zustand).height(Length::Units(150));
-        for (i, (zustand, button_zustand)) in anschlüsse_zustand.into_iter().enumerate() {
+        let mut ks_column = Column::new().height(Length::Units(150));
+        for i in 0..anschlüsse_save.len() {
             let ii = i;
-            let mut row = Row::new().push(
-                Element::from(anschluss::Auswahl::neu_output(zustand)).map(move |anschluss| {
-                    InterneAuswahlNachricht::KonstanteSpannungAnschluss(ii, anschluss)
-                }),
-            );
+            let mut row = Row::new().push(Element::from(anschluss::Auswahl::neu_output(None)).map(
+                move |anschluss| InterneAuswahlNachricht::KonstanteSpannungAnschluss(ii, anschluss),
+            ));
             row = row.push(if let Some(ix) = NonZeroUsize::new(i) {
-                Element::from(
+                Element::new(
                     Button::new(Text::new("X"))
                         .on_press(InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix)),
                 )
             } else {
-                Element::from(
+                Element::new(
                     Button::new(Text::new("+"))
                         .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
                 )
             });
-            ks_scrollable = ks_scrollable.push(row)
+            ks_column = ks_column.push(row)
         }
-        let ks_auswahl = ks_auswahl.push(ks_scrollable);
+        let ks_auswahl = ks_auswahl.push(Scrollable::new(ks_column));
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
-            .push(TabLabel::Text("Pwm".to_string()), pwm_auswahl)
-            .push(TabLabel::Text("Konstante Spannung".to_string()), ks_auswahl)
+            .push(TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
+            .push(TabLabel::Text("Konstante Spannung".to_owned()), ks_auswahl)
             .width(width)
             .height(Length::Shrink)
             .tab_bar_style(TabBar);
         let neu = neu.push(tabs);
-        let mut scrollable = Scrollable::new(scrollable_zustand).push(neu).push(
+        let mut column = Column::new().push(neu).push(
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
         );
-        for (name, (anschlüsse, button_zustand)) in geschwindigkeiten.iter_mut() {
+        for (name, anschlüsse) in geschwindigkeiten.iter_mut() {
             let button = Button::new(Text::new("X"))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
-            scrollable = scrollable.push(
+            column = column.push(
                 Column::new()
-                    .push(Text::new(name.to_string()))
+                    .push(Text::new(name.as_ref()))
                     .push(Text::new(&*anschlüsse))
                     .push(button),
             );
         }
-        let card = Card::new(Text::new("Geschwindigkeit"), scrollable)
+        let card = Card::new(Text::new("Geschwindigkeit"), Scrollable::new(column))
             .on_close(InterneAuswahlNachricht::Schließen)
             .width(Length::Shrink);
-        Auswahl {
-            card,
-            neu_name,
-            aktueller_tab,
-            umdrehen_anschluss,
-            pwm_pin,
-            pwm_polarität,
-            ks_anschlüsse_anpassen,
-            ks_anschlüsse: anschlüsse_save,
-            pwm_nachricht,
-            ks_nachricht,
-        }
+        card.into()
     }
 }
 
