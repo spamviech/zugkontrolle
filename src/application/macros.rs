@@ -7,7 +7,7 @@
 macro_rules! widget_newtype_methods {
     ($record:tt, $renderer:ty $(,)?) => {
         widget_newtype_methods! {
-            $record, $renderer, crate::void::Void
+            $record, $renderer
             => [width, height, layout, draw, children, diff, mouse_interaction]
         }
     };
@@ -17,10 +17,10 @@ macro_rules! widget_newtype_methods {
             => [width, height, layout, draw, children, diff, mouse_interaction, overlay, on_event]
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => []) => {
+    ($record:tt, $renderer:ty $(, $message:ty)? => []) => {
     };
-    ($record:tt, $renderer:ty, $message:ty => [width $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [width $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -28,8 +28,8 @@ macro_rules! widget_newtype_methods {
             self.$record.as_widget().width()
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [height $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [height $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -37,8 +37,8 @@ macro_rules! widget_newtype_methods {
             self.$record.as_widget().height()
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [layout $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [layout $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -50,8 +50,8 @@ macro_rules! widget_newtype_methods {
             self.$record.as_widget().layout(renderer, limits)
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [draw $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [draw $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -67,8 +67,8 @@ macro_rules! widget_newtype_methods {
             self.$record.as_widget().draw(state, renderer, style, layout, cursor_position, viewport)
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [children $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [children $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -76,8 +76,8 @@ macro_rules! widget_newtype_methods {
             vec![Tree::new(&self.$record)]
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [diff $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [diff $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -85,8 +85,8 @@ macro_rules! widget_newtype_methods {
             tree.diff_children(&[self.$record])
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [mouse_interaction $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [mouse_interaction $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -107,8 +107,8 @@ macro_rules! widget_newtype_methods {
             )
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [state $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [state $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -116,8 +116,8 @@ macro_rules! widget_newtype_methods {
             iced_pure::widget::tree::State::None
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [tag $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [tag $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -125,8 +125,8 @@ macro_rules! widget_newtype_methods {
             iced_pure::widget::tree::Tag::stateless()
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [overlay $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [overlay $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -135,12 +135,12 @@ macro_rules! widget_newtype_methods {
             state: &'a mut iced_pure::widget::Tree,
             layout: iced_native::Layout<'_>,
             renderer: &$renderer,
-        ) -> Option<iced_native::overlay::Element<'a, $message, $renderer>> {
+        ) -> Option<iced_native::overlay::Element<'a, $($message)?, $renderer>> {
             self.$record.as_widget().overlay(state, layout, renderer)
         }
     };
-    ($record:tt, $renderer:ty, $message:ty => [on_event $(, $($methods: ident),+)?]) => {
-        widget_newtype_methods! {$record, $renderer, $message => [$($($methods),+)?]}
+    ($record:tt, $renderer:ty $(, $message:ty)? => [on_event $(, $($methods: ident),+)?]) => {
+        widget_newtype_methods! {$record, $renderer $(, $message)? => [$($($methods),+)?]}
 
         #[inline(always)]
         #[allow(unused_qualifications)]
@@ -152,7 +152,7 @@ macro_rules! widget_newtype_methods {
             cursor_position: iced::Point,
             renderer: &$renderer,
             clipboard: &mut dyn iced_native::Clipboard,
-            shell: &mut iced_native::Shell<'_, $message>,
+            shell: &mut iced_native::Shell<'_, $($message)?>,
         ) -> iced_native::event::Status {
             self.$record.as_widget_mut().on_event(
                 &mut state.children[0],
