@@ -256,17 +256,20 @@ pub enum AuswahlNachricht<LeiterSerialisiert> {
 }
 
 /// Hinzufügen und Anpassen einer [Geschwindigkeit].
-pub struct Auswahl<'t, LeiterSerialisiert, R> {
-    card: Card<'t, InterneAuswahlNachricht, R>,
+pub struct Auswahl<'t, Leiter, LeiterSerialisiert, R> {
+    element: Element<'t, InterneAuswahlNachricht, R>,
+    geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Leiter>>,
     pwm_nachricht:
         &'t dyn Fn(OutputSerialisiert, pwm::Serialisiert, Polarität) -> LeiterSerialisiert,
     ks_nachricht:
         &'t dyn Fn(OutputSerialisiert, NonEmpty<OutputSerialisiert>) -> LeiterSerialisiert,
 }
 
-impl<LeiterSerialisiert, R> Debug for Auswahl<'_, LeiterSerialisiert, R> {
+impl<Leiter: Debug, LeiterSerialisiert, R> Debug for Auswahl<'_, Leiter, LeiterSerialisiert, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
+            .field("element", &"<Element>")
+            .field("geschwindigkeiten", &self.geschwindigkeiten)
             .field("pwm_nachricht", &"<closure>")
             .field("ks_nachricht", &"<closure>")
             .finish()
@@ -285,7 +288,7 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
-impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
+impl<'t, Leiter, LeiterSerialisiert, R> Auswahl<'t, Leiter, LeiterSerialisiert, R>
 where
     R: 't + text::Renderer<Font = Font>,
 {
@@ -436,15 +439,25 @@ where
     }
 }
 
-impl<'t, LeiterSerialisiert, R> Widget<AuswahlNachricht<LeiterSerialisiert>, R>
-    for Auswahl<'t, LeiterSerialisiert, R>
+impl<Leiter, LeiterSerialisiert, R> Widget<AuswahlNachricht<LeiterSerialisiert>, R>
+    for Auswahl<'_, Leiter, LeiterSerialisiert, R>
 where
+    Leiter: Display,
     R: text::Renderer<Font = Font>,
 {
-    reexport_no_event_methods! {Card<'t, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
+    widget_newtype_methods! {element, R}
+
+    fn state(&self) -> tree::State {
+        tree::State::new(AuswahlZustand::neu(self.geschwindigkeiten.iter()))
+    }
+
+    fn tag(&self) -> Tag {
+        Tag::of::<AuswahlZustand>()
+    }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -452,64 +465,65 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, AuswahlNachricht<LeiterSerialisiert>>,
     ) -> event::Status {
-        let mut column_messages = Vec::new();
-        let mut column_shell = Shell::new(&mut column_messages);
-        let mut status = self.card.on_event(
-            todo!("state: Tree"),
+        let mut messages = Vec::new();
+        let mut inner_shell = Shell::new(&mut messages);
+        let mut status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
             event,
             layout,
             cursor_position,
             renderer,
             clipboard,
-            &mut column_shell,
+            &mut inner_shell,
         );
-        if column_shell.are_widgets_invalid() {
+        if inner_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            column_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if inner_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
-        for message in column_messages {
+        let zustand: &mut AuswahlZustand = state.state.downcast_mut();
+        for message in messages {
             status = event::Status::Captured;
             match message {
                 InterneAuswahlNachricht::Schließen => shell.publish(AuswahlNachricht::Schließen),
-                InterneAuswahlNachricht::WähleTab(tab) => *self.aktueller_tab = tab,
-                InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
+                InterneAuswahlNachricht::WähleTab(tab) => zustand.aktueller_tab = tab,
+                InterneAuswahlNachricht::Name(name) => zustand.neu_name = name,
                 InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
-                    *self.umdrehen_anschluss = anschluss
+                    zustand.umdrehen_anschluss = anschluss
                 },
-                InterneAuswahlNachricht::PwmPin(pin) => *self.pwm_pin = pin,
+                InterneAuswahlNachricht::PwmPin(pin) => zustand.pwm_pin = pin,
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
-                    *self.pwm_polarität = polarität
+                    zustand.pwm_polarität = polarität
                 },
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
-                    if let Some(anschluss) = self.ks_anschlüsse.get_mut(ix) {
-                        **anschluss = anschluss_neu
+                    if let Some(anschluss) = zustand.ks_anschlüsse.get_mut(ix) {
+                        *anschluss = anschluss_neu
                     } else {
                         error!(
                             "Update-Nachricht für Anschluss {}, es gibt aber nur {}!",
                             ix,
-                            self.ks_anschlüsse.len()
+                            zustand.ks_anschlüsse.len()
                         )
                     }
                 },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
-                    *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
+                    zustand.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Hinzufügen)
                 },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
-                    *self.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
-                    let _ = remove_from_nonempty_tail(&mut self.ks_anschlüsse, ix);
+                    zustand.ks_anschlüsse_anpassen = Some(KonstanteSpannungAnpassen::Entfernen(ix));
+                    let _ = remove_from_nonempty_tail(&mut zustand.ks_anschlüsse, ix);
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    let leiter = if self.aktueller_tab == &0 {
+                    let leiter = if zustand.aktueller_tab == 0 {
                         (self.pwm_nachricht)(
-                            self.umdrehen_anschluss.clone(),
-                            self.pwm_pin.clone(),
-                            *self.pwm_polarität,
+                            zustand.umdrehen_anschluss.clone(),
+                            zustand.pwm_pin.clone(),
+                            zustand.pwm_polarität,
                         )
                     } else {
-                        let NonEmpty { head, tail } = &self.ks_anschlüsse;
+                        let NonEmpty { head, tail } = &zustand.ks_anschlüsse;
                         (self.ks_nachricht)(
-                            self.umdrehen_anschluss.clone(),
+                            zustand.umdrehen_anschluss.clone(),
                             NonEmpty {
                                 head: (*head).clone(),
                                 tail: tail.iter().map(|anschluss| (*anschluss).clone()).collect(),
@@ -517,7 +531,7 @@ where
                         )
                     };
                     let nachricht = AuswahlNachricht::Hinzufügen(
-                        Name(self.neu_name.clone()),
+                        Name(zustand.neu_name.clone()),
                         GeschwindigkeitSerialisiert { leiter },
                     );
                     shell.publish(nachricht)
@@ -529,14 +543,24 @@ where
         }
         status
     }
+
+    fn overlay<'a>(
+        &'a self,
+        state: &'a mut Tree,
+        layout: Layout<'_>,
+        renderer: &R,
+    ) -> Option<overlay::Element<'a, AuswahlNachricht<LeiterSerialisiert>, R>> {
+        todo!()
+    }
 }
 
-impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
+impl<'t, Leiter, LeiterSerialisiert, R> From<Auswahl<'t, Leiter, LeiterSerialisiert, R>>
     for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
 where
+    Leiter: Display,
     R: 't + text::Renderer<Font = Font>,
 {
-    fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
+    fn from(anzeige: Auswahl<'t, Leiter, LeiterSerialisiert, R>) -> Self {
         Element::new(anzeige)
     }
 }
@@ -552,7 +576,7 @@ pub trait LeiterAnzeige<S>: Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zugtyp: &'t Zugtyp<Self>,
-    ) -> Auswahl<'t, S, R>;
+    ) -> Auswahl<'t, Self, S, R>;
 }
 
 /// Zurücksetzen des Zustands des [Anzeige]-Widgets.
@@ -590,7 +614,7 @@ impl LeiterAnzeige<MittelleiterSerialisiert> for Mittelleiter {
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zugtyp: &'t Zugtyp<Self>,
-    ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
+    ) -> Auswahl<'t, Mittelleiter, MittelleiterSerialisiert, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -653,7 +677,7 @@ impl LeiterAnzeige<ZweileiterSerialisiert> for Zweileiter {
     #[inline(always)]
     fn auswahl_neu<'t, R: 't + text::Renderer<Font = Font>>(
         zugtyp: &'t Zugtyp<Self>,
-    ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
+    ) -> Auswahl<'t, Zweileiter, ZweileiterSerialisiert, R> {
         Auswahl::neu(
             zustand,
             FahrtrichtungAnschluss::Immer,
