@@ -2,7 +2,6 @@
 
 use std::{
     collections::HashMap,
-    convert::identity,
     fmt::{self, Debug, Formatter},
 };
 
@@ -547,8 +546,8 @@ where
         );
         if internal_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            internal_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if internal_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
         let mut changed = false;
         let zustand: &mut Zustand<Modus> = state.state.downcast_mut();
@@ -601,21 +600,21 @@ where
 
 /// Zustand eines Widgets zur Auswahl eines [Pwm-Pins](pwm::Pin).
 #[derive(Debug)]
-pub struct PwmZustand {
+struct PwmZustand {
     pin: u8,
 }
 
 impl PwmZustand {
     /// Erstelle einen neuen [PwmZustand].
-    pub fn neu() -> Self {
-        PwmZustand { pin: 0 }
+    fn neu(pin: Option<&pwm::Pin>) -> Self {
+        PwmZustand { pin: pin.map(pwm::Pin::pin).unwrap_or(0) }
     }
 }
 
 /// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
 pub struct Pwm<'a, R: 'a + text::Renderer<Font = Font>> {
     element: Element<'a, pwm::Serialisiert, R>,
-    pin: &'a mut u8,
+    pin: Option<&'a pwm::Pin>,
 }
 
 impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
@@ -629,13 +628,25 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
 
 impl<'a, R: text::Renderer<Font = Font>> Pwm<'a, R> {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-    pub fn neu(PwmZustand { pin }: &'a mut PwmZustand) -> Self {
-        Pwm { element: NumberInput::new(*pin, 32, pwm::Serialisiert).into(), pin }
+    pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
+        Pwm { element: Self::erzeuge_element(&PwmZustand::neu(pin)), pin }
+    }
+
+    fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
+        NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
     }
 }
 
 impl<R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'_, R> {
     widget_newtype_methods! {element, R}
+
+    fn tag(&self) -> Tag {
+        Tag::of::<PwmZustand>()
+    }
+
+    fn state(&self) -> State {
+        State::new(PwmZustand::neu(self.pin))
+    }
 
     fn on_event(
         &mut self,
@@ -658,9 +669,15 @@ impl<R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'_, R>
             clipboard,
             &mut internal_shell,
         );
-        shell.merge(internal_shell, identity);
+        if internal_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else if internal_shell.is_layout_invalid() {
+            shell.invalidate_layout()
+        }
+        let zustand: &mut PwmZustand = state.state.downcast_mut();
         if let Some(pwm::Serialisiert(pin)) = internal_messages.last() {
-            *self.pin = *pin;
+            zustand.pin = *pin;
+            self.element = Self::erzeuge_element(zustand);
             status = event::Status::Captured;
         }
         status
