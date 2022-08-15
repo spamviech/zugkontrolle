@@ -7,8 +7,9 @@ use iced_native::{
     layout::{self, Layout},
     mouse,
     renderer::{Quad, Renderer, Style},
-    touch, Background, Clipboard, Color, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    touch, Background, Clipboard, Color, Length, Point, Rectangle, Shell, Size,
 };
+use iced_pure::{widget::tree::Tree, Element, Widget};
 
 use crate::typen::{
     farbe::Farbe,
@@ -112,13 +113,13 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut R,
         _style: &Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // let mut primitives = Vec::new();
         let bounds = layout.bounds();
         let radius = Skalar(0.5 * self.durchmesser as f32);
         let center = Vektor { x: radius, y: radius };
@@ -147,6 +148,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
