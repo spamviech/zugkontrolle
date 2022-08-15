@@ -12,12 +12,8 @@ use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Re
 use iced_pure::{
     overlay,
     widget::{
-        button::Button,
-        scrollable::Scrollable,
-        slider::Slider,
-        text_input::TextInput,
         tree::{self, Tag, Tree},
-        Column, Radio, Row, Text,
+        Button, Column, Radio, Row, Scrollable, Slider, Text, TextInput,
     },
     Element, Widget,
 };
