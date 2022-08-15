@@ -2,25 +2,26 @@
 
 use std::fmt::Debug;
 
-use iced_graphics::{backend::Backend, canvas::Program, Renderer};
+use iced_graphics::{backend::Backend, pure::canvas::Program, Renderer};
 use iced_native::{
     event,
     mouse::{self, Button},
-    touch, Clipboard, Element, Layout, Length, Point, Shell, Widget,
+    touch, Clipboard, Layout, Length, Point, Shell,
 };
+use iced_pure::{widget::tree::Tree, Element, Widget};
 use log::trace;
 
-use crate::application::macros::reexport_no_event_methods;
+use crate::application::macros::widget_newtype_methods;
 
 /// [iced::Canvas]-Wrapper mit Touch-Event.
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(Message: Debug, P: Debug + Program<Message>)]
-pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
+pub struct Canvas<Message, P: Program<Message>>(iced::pure::widget::Canvas<Message, P>);
 
 impl<Message, P: Program<Message>> Canvas<Message, P> {
     /// Erstelle einen neuen [Canvas].
     pub fn new(program: P) -> Self {
-        Canvas(iced::Canvas::new(program))
+        Canvas(iced::pure::widget::Canvas::new(program))
     }
 
     /// Lege die Breite des [Canvas] fest.
@@ -35,10 +36,14 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
 }
 
 impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for Canvas<Message, P> {
-    reexport_no_event_methods! {iced::Canvas<Message, P>, 0, Message, Renderer<B>}
+    widget_newtype_methods! {
+        0, Renderer<B>, Message
+        => [width, height, layout, draw, children, diff, mouse_interaction, overlay]
+    }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         mut event: iced_native::Event,
         layout: Layout<'_>,
         mut cursor_position: Point,
@@ -70,7 +75,16 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
                 },
             }
         }
-        Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, shell)
+        Widget::on_event(
+            &mut self.0,
+            &mut state.children[0],
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
     }
 }
 
