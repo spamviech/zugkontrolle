@@ -8,18 +8,20 @@ use std::{
 
 use iced_native::{
     event::{self, Event},
-    text,
+    overlay, text, Clipboard, Layout, Length, Point, Shell,
+};
+use iced_pure::{
     widget::{
-        button::{self, Button},
         scrollable::{self, Scrollable},
-        Column, Container, Row, Rule, Space, Text,
+        tree::{self, Tag, Tree},
+        Button, Column, Container, Row, Rule, Space, Text,
     },
-    Clipboard, Element, Layout, Length, Point, Renderer, Shell, Widget,
+    Element, Widget,
 };
 
 use crate::{
     application::{
-        macros::reexport_no_event_methods,
+        macros::widget_newtype_methods,
         style::{hintergrund, linie::TRENNLINIE},
     },
     unicase_ord::UniCaseOrd,
@@ -50,58 +52,44 @@ pub enum Nachricht {
 /// Zustand eines [Lizenzen]-Widgets.
 #[derive(Debug)]
 pub struct Zustand {
-    lizenzen_und_button_states:
-        BTreeMap<UniCaseOrd<&'static str>, (button::State, fn() -> Cow<'static, str>)>,
-    scrollable_buttons: scrollable::State,
-    scrollable_text: scrollable::State,
-    scrollable_text_zurücksetzen: bool,
-    schließen: button::State,
     aktuell: Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
 }
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     pub fn neu(
-        lizenzen: impl IntoIterator<Item = (&'static str, fn() -> Cow<'static, str>)>,
+        aktuell_name: Option<UniCaseOrd<&'static str>>,
+        lizenzen: &BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
     ) -> Self {
-        let mut aktuell = None;
-        let lizenzen_und_button_states = lizenzen
-            .into_iter()
-            .map(|(name, f)| {
-                let unicase_name = UniCaseOrd::neu(name);
-                if aktuell.is_none() {
-                    aktuell = Some((unicase_name, f()));
-                }
-                (unicase_name, (button::State::new(), f))
-            })
-            .collect();
-        Zustand {
-            lizenzen_und_button_states,
-            scrollable_buttons: scrollable::State::new(),
-            scrollable_text: scrollable::State::new(),
-            scrollable_text_zurücksetzen: false,
-            schließen: button::State::new(),
-            aktuell,
-        }
+        let aktuell = aktuell_name
+            .and_then(|name| lizenzen.get(&name).map(|f| (name, f())))
+            .or_else(|| lizenzen.iter().next().map(|(name, f)| (*name, f())));
+        Zustand { aktuell }
     }
 
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
     pub fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(verwendete_lizenzen(target_crates()))
+        Self::neu(None, &verwendete_lizenzen(target_crates()))
     }
 }
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
 pub struct Lizenzen<'a, R> {
-    container: Container<'a, InterneNachricht, R>,
-    aktuell: &'a mut Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
-    scrollable_text_zurücksetzen: &'a mut bool,
+    element: Element<'a, InterneNachricht, R>,
+    lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
+    aktuell: &'a Option<UniCaseOrd<&'static str>>,
+    scrollable_style: Box<dyn 'a + scrollable::StyleSheet>,
 }
 
 impl<R> Debug for Lizenzen<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Lizenzen").field("row", &"<Row>").finish()
+        f.debug_struct("Lizenzen")
+            .field("element", &"<Element>")
+            .field("lizenzen", &self.lizenzen)
+            .field("aktuell", &self.aktuell)
+            .field("scrollable_style", &"Box<dyn 'a + scrollable::StyleSheet>")
+            .finish()
     }
 }
 
@@ -111,26 +99,35 @@ const TRENNLINIE_BREITE: u16 = 1;
 impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu(
-        zustand: &'a mut Zustand,
-        scrollable_style: impl Into<Box<dyn scrollable::StyleSheet + 'a>>,
+        lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
+        aktuell: &'a Option<UniCaseOrd<&'static str>>,
+        scrollable_style: impl Into<Box<dyn 'a + scrollable::StyleSheet>>,
     ) -> Self {
-        let Zustand {
-            lizenzen_und_button_states,
-            scrollable_buttons,
-            scrollable_text,
-            scrollable_text_zurücksetzen,
-            schließen,
+        let scrollable_style = scrollable_style.into();
+        Lizenzen {
+            element: Self::erzeuge_element(
+                &Zustand::neu(*aktuell, lizenzen),
+                lizenzen,
+                scrollable_style,
+            ),
+            lizenzen,
             aktuell,
-        } = zustand;
-        let mut buttons = Scrollable::new(scrollable_buttons)
-            .width(Length::Shrink)
-            .height(Length::Fill)
-            .style(scrollable_style);
+            scrollable_style,
+        }
+    }
+
+    fn erzeuge_element(
+        zustand: &'a Zustand,
+        lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
+        scrollable_style: Box<dyn scrollable::StyleSheet + 'a>,
+    ) -> Element<'a, InterneNachricht, R> {
+        let Zustand { aktuell } = zustand;
+        let mut buttons = Column::new().width(Length::Shrink).height(Length::Fill);
         let (aktuell_name, aktuell_text) =
             if let Some((name, text)) = aktuell { (Some(*name), Some(text)) } else { (None, None) };
-        for (&name, (button_state, f)) in lizenzen_und_button_states {
+        for (&name, f) in lizenzen {
             buttons = buttons.push({
-                let button = Button::new(button_state, Text::new(name.as_ref()));
+                let button = Button::new(Text::new(name.as_ref()));
                 if Some(name) == aktuell_name {
                     button
                 } else {
@@ -138,21 +135,14 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
                 }
             });
         }
+        let buttons = Scrollable::new(buttons).style(scrollable_style);
         let column = Column::new()
             .push(buttons)
             .push(Space::with_height(Length::Units(PADDING)))
-            .push(
-                Button::new(schließen, Text::new("Schließen"))
-                    .on_press(InterneNachricht::Schließen),
-            )
+            .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .width(Length::Shrink)
             .height(Length::Fill);
-        if *scrollable_text_zurücksetzen {
-            *scrollable_text = scrollable::State::new();
-            *scrollable_text_zurücksetzen = false;
-        }
-        let mut scrollable_aktuell =
-            Scrollable::new(scrollable_text).width(Length::Fill).height(Length::Fill);
+        let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Fill);
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
                 .push(Space::with_width(Length::Units(PADDING)))
@@ -160,7 +150,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
                 .push(Space::with_width(Length::Units(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
-            scrollable_aktuell = scrollable_aktuell
+            column_aktuell = column_aktuell
                 .push(Space::with_height(Length::Units(PADDING)))
                 .push(text_mit_horizontalem_padding)
                 .push(Space::with_height(Length::Units(PADDING)))
@@ -169,18 +159,27 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
             Row::new()
                 .push(column)
                 .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
-                .push(scrollable_aktuell),
+                .push(Scrollable::new(column_aktuell)),
         )
         .style(hintergrund::WEIß);
-        Lizenzen { container, aktuell, scrollable_text_zurücksetzen }
+        container.into()
     }
 }
 
-impl<'a, R: Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
-    reexport_no_event_methods! {Container<'a, InterneNachricht, R>, container, InterneNachricht, R}
+impl<R: text::Renderer> Widget<Nachricht, R> for Lizenzen<'_, R> {
+    widget_newtype_methods! {element,  R}
+
+    fn tag(&self) -> Tag {
+        Tag::of::<Zustand>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(Zustand::neu(*self.aktuell, &self.lizenzen))
+    }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -190,7 +189,8 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let event_status = self.container.on_event(
+        let event_status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
             event,
             layout,
             cursor_position,
@@ -200,23 +200,36 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for Lizenzen<'a, R> {
         );
         if interne_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            interne_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if interne_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
+        let zustand: &mut Zustand = state.state.downcast_mut();
         for interne_nachricht in interne_nachrichten {
+            event_status = event::Status::Captured;
             match interne_nachricht {
                 InterneNachricht::Aktuell(name, f) => {
-                    *self.aktuell = Some((name, f()));
-                    *self.scrollable_text_zurücksetzen = true;
+                    zustand.aktuell = Some((name, f()));
+                    self.element =
+                        Self::erzeuge_element(zustand, &self.lizenzen, self.scrollable_style);
                 },
                 InterneNachricht::Schließen => shell.publish(Nachricht::Schließen),
             }
         }
         event_status
     }
+
+    fn overlay<'a>(
+        &'a self,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &R,
+    ) -> Option<overlay::Element<'a, Nachricht, R>> {
+        // TODO
+        None
+    }
 }
 
-impl<'a, R: 'a + Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R: 'a + text::Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
         Element::new(lizenzen)
     }
@@ -1578,9 +1591,13 @@ fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
 pub fn verwendete_lizenzen(
     target_crates: HashSet<&'static str>,
-) -> BTreeMap<&'static str, fn() -> Cow<'static, str>> {
+) -> BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>> {
     let alle_lizenzen = cargo_lock_lizenzen();
-    alle_lizenzen.into_iter().filter(|(k, _v)| target_crates.contains(*k)).collect()
+    alle_lizenzen
+        .into_iter()
+        .filter(|(name, _f)| target_crates.contains(*name))
+        .map(|(name, f)| (UniCaseOrd::neu(name), f))
+        .collect()
 }
 
 #[cfg(test)]
