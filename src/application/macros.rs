@@ -73,7 +73,7 @@ macro_rules! widget_newtype_methods {
         #[inline(always)]
         #[allow(unused_qualifications)]
         fn children(&self) -> Vec<iced_pure::widget::Tree> {
-            vec![Tree::new(&self.$record)]
+            vec![iced_pure::widget::Tree::new(&self.$record)]
         }
     };
     ($record:tt, $renderer:ty $(, $message:ty)? => [diff $(, $($methods: ident),+)?]) => {
@@ -130,12 +130,12 @@ macro_rules! widget_newtype_methods {
 
         #[inline(always)]
         #[allow(unused_qualifications)]
-        fn overlay<'a>(
-            &'a self,
-            state: &'a mut iced_pure::widget::Tree,
+        fn overlay<'macro_overlay_lt>(
+            &'macro_overlay_lt self,
+            state: &'macro_overlay_lt mut iced_pure::widget::Tree,
             layout: iced_native::Layout<'_>,
             renderer: &$renderer,
-        ) -> Option<iced_native::overlay::Element<'a, $($message)?, $renderer>> {
+        ) -> Option<iced_native::overlay::Element<'macro_overlay_lt, $($message)?, $renderer>> {
             self.$record.as_widget().overlay(state, layout, renderer)
         }
     };

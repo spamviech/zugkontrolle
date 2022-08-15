@@ -5,21 +5,22 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::native::Card;
+use iced_aw::pure::Card;
 use iced_native::{
-    event, text,
+    event::{self, Event},
+    text, Alignment, Clipboard, Font, Layout, Length, Point, Renderer, Shell,
+};
+use iced_pure::{
     widget::{
-        button::{self, Button},
-        scrollable::{self, Scrollable},
-        text_input::{self, TextInput},
-        Checkbox, Column, Container, Row, Text,
+        tree::{self, Tag, Tree},
+        Button, Checkbox, Column, Container, Row, Scrollable, Text, TextInput,
     },
-    Alignment, Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
+    Element, Widget,
 };
 
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{anschluss, farbwahl::Farbwahl, macros::reexport_no_event_methods},
+    application::{anschluss, farbwahl::Farbwahl, macros::widget_newtype_methods},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
@@ -36,14 +37,12 @@ pub use crate::{
 pub struct AnzeigeZustand {
     /// Der aktuelle Streckenabschnitt.
     aktuell: Option<(StreckenabschnittId, Farbe)>,
-    /// Zustand des Buttons zum Öffnen des Auswahl-Fensters.
-    auswählen: button::State,
 }
 
 impl AnzeigeZustand {
     /// Erstelle einen neuen [AnzeigeZustand].
     pub fn neu() -> Self {
-        AnzeigeZustand { aktuell: None, auswählen: button::State::new() }
+        AnzeigeZustand { aktuell: None }
     }
 
     /// Der aktuelle [Streckenabschnitt].
@@ -84,12 +83,12 @@ pub enum AnzeigeNachricht {
 /// Widget zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
 pub struct Anzeige<'a, R> {
-    container: Container<'a, AnzeigeNachricht, R>,
+    element: Element<'a, AnzeigeNachricht, R>,
 }
 
 impl<R> Debug for Anzeige<'_, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Anzeige").field("container", &"<Container>").finish()
+        f.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
@@ -109,10 +108,7 @@ impl<'a, R: 'a + text::Renderer> Anzeige<'a, R> {
         };
         children.push(
             Row::new()
-                .push(
-                    Button::new(&mut zustand.auswählen, Text::new("Auswählen"))
-                        .on_press(AnzeigeNachricht::Auswählen),
-                )
+                .push(Button::new(Text::new("Auswählen")).on_press(AnzeigeNachricht::Auswählen))
                 .push(Checkbox::new(festlegen, "Festlegen", AnzeigeNachricht::Festlegen).spacing(0))
                 .spacing(1)
                 .into(),
@@ -122,24 +118,12 @@ impl<'a, R: 'a + text::Renderer> Anzeige<'a, R> {
         )
         .padding(1)
         .style(style);
-        Anzeige { container }
+        Anzeige { element: container.into() }
     }
 }
 
-impl<'a, R: Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'a, R> {
-    reexport_no_event_methods! {Container<'a, AnzeigeNachricht, R>, container, AnzeigeNachricht, R}
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, AnzeigeNachricht>,
-    ) -> event::Status {
-        self.container.on_event(event, layout, cursor_position, renderer, clipboard, shell)
-    }
+impl<R: Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'_, R> {
+    widget_newtype_methods! {element, R, AnzeigeNachricht}
 }
 
 impl<'a, R: 'a + Renderer> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
@@ -150,56 +134,41 @@ impl<'a, R: 'a + Renderer> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht
 
 /// Zustand des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
 #[derive(Debug)]
-pub struct AuswahlZustand {
+struct AuswahlZustand {
     neu_name: String,
     neu_farbe: Farbe,
     neu_anschluss: OutputSerialisiert,
-    neu_name_zustand: text_input::State,
-    neu_anschluss_zustand: anschluss::Zustand<anschluss::Output>,
-    neu_button_zustand: button::State,
-    none_button_zustand: button::State,
-    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, button::State, button::State)>,
-    scrollable_zustand: scrollable::State,
+    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe)>,
 }
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
+    fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlZustand {
             neu_name: String::new(),
             neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            neu_name_zustand: text_input::State::new(),
-            neu_anschluss_zustand: anschluss::Zustand::neu_output(),
-            neu_button_zustand: button::State::new(),
-            none_button_zustand: button::State::new(),
             streckenabschnitte: gleise
                 .streckenabschnitte()
                 .map(|(streckenabschnitt_id, streckenabschnitt)| {
                     Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
                 })
                 .collect(),
-            scrollable_zustand: scrollable::State::new(),
         }
     }
 
-    fn iter_map<'t>(
-        (name, streckenabschnitt): (&'t Name, &'t Streckenabschnitt),
-    ) -> (UniCaseOrd<Name>, (String, Farbe, button::State, button::State)) {
+    fn iter_map(
+        (name, streckenabschnitt): (&Name, &Streckenabschnitt),
+    ) -> (UniCaseOrd<Name>, (String, Farbe)) {
         (
             UniCaseOrd::neu(name.clone()),
-            (
-                streckenabschnitt.lock_anschluss().to_string(),
-                streckenabschnitt.farbe.clone(),
-                button::State::new(),
-                button::State::new(),
-            ),
+            (streckenabschnitt.lock_anschluss().to_string(), streckenabschnitt.farbe.clone()),
         )
     }
 
     /// Ersetze die angezeigten Streckenabschnitte mit dem Argument.
-    pub fn update<'t>(
+    fn update<'t>(
         &mut self,
         streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
     ) {
@@ -208,20 +177,20 @@ impl AuswahlZustand {
     }
 
     /// Entferne den Streckenabschnitt mit übergebenen Namen.
-    pub fn entfernen(&mut self, name: &Name) {
+    fn entfernen(&mut self, name: &Name) {
         let _ = self.streckenabschnitte.remove(&UniCaseOrd::neu(name.clone()));
     }
 
     /// Füge einen neuen Streckenabschnitt hinzu.
     /// Falls der Name bereits existiert wird der bisherige ersetzt.
-    pub fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
+    fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
         let (key, value) = Self::iter_map((name, streckenabschnitt));
         let _ = self.streckenabschnitte.insert(key, value);
     }
 
     /// Erhalte den aktuell konfigurierten Streckenabschnitt.
-    pub fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
-        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss_zustand.output_anschluss())
+    fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
+        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss)
     }
 }
 
@@ -250,40 +219,40 @@ pub enum AuswahlNachricht {
 }
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
-pub struct Auswahl<'a, R: Renderer> {
-    card: Card<'a, InterneAuswahlNachricht, R>,
-    neu_name: &'a mut String,
-    neu_farbe: &'a mut Farbe,
-    neu_anschluss: &'a mut OutputSerialisiert,
+pub struct Auswahl<'a, L: Leiter, R: Renderer> {
+    element: Element<'a, InterneAuswahlNachricht, R>,
+    gleise: &'a Gleise<L>,
 }
 
-impl<R: Renderer> Debug for Auswahl<'_, R> {
+impl<L, R> Debug for Auswahl<'_, L, R>
+where
+    L: Debug + Leiter,
+    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug,
+    <L as Leiter>::UmdrehenZeit: Debug,
+    <L as Leiter>::Fahrtrichtung: Debug,
+    R: Renderer,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
-            .field("card", &"<Card>")
-            .field("neu_name", &self.neu_name)
-            .field("neu_farbe", &self.neu_farbe)
-            .field("neu_anschluss", &self.neu_anschluss)
+            .field("element", &"<Element>")
+            .field("gleise", &self.gleise)
             .finish()
     }
 }
 
-impl<'a, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, R> {
+impl<'a, L: Leiter, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, L, R> {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu(auswahl_zustand: &'a mut AuswahlZustand) -> Self {
-        let AuswahlZustand {
-            neu_name,
-            neu_farbe,
-            neu_anschluss,
-            neu_name_zustand,
-            neu_anschluss_zustand,
-            neu_button_zustand,
-            none_button_zustand,
-            streckenabschnitte,
-            scrollable_zustand,
-        } = auswahl_zustand;
+    pub fn neu(gleise: &Gleise<L>) -> Self {
+        Auswahl { element: Self::erzeuge_element(&AuswahlZustand::neu(gleise)), gleise }
+    }
+
+    fn erzeuge_element(
+        auswahl_zustand: &'a AuswahlZustand,
+    ) -> Element<'a, InterneAuswahlNachricht, R> {
+        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
+            auswahl_zustand;
         let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-            let mut scrollable = Scrollable::new(scrollable_zustand)
+            let mut column = Column::new()
                 .push(
                     Container::new(
                         Column::new()
@@ -291,7 +260,6 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, R> {
                                 Row::new()
                                     .push(
                                         TextInput::new(
-                                            neu_name_zustand,
                                             "<Name>",
                                             neu_name,
                                             InterneAuswahlNachricht::Name,
@@ -303,57 +271,61 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, R> {
                                             .durchmesser(50),
                                     )
                                     .push(
-                                        Element::from(anschluss::Auswahl::neu_output(
-                                            neu_anschluss_zustand,
-                                        ))
-                                        .map(InterneAuswahlNachricht::Anschluss),
+                                        Element::from(anschluss::Auswahl::neu_output(None))
+                                            .map(InterneAuswahlNachricht::Anschluss),
                                     ),
                             )
                             .push(
-                                Button::new(neu_button_zustand, Text::new("Hinzufügen"))
+                                Button::new(Text::new("Hinzufügen"))
                                     .on_press(InterneAuswahlNachricht::Hinzufügen),
                             ),
                     )
                     .style(style::Auswahl(*neu_farbe)),
                 )
                 .push(
-                    Button::new(none_button_zustand, Text::new("Keinen"))
+                    Button::new(Text::new("Keinen"))
                         .on_press(InterneAuswahlNachricht::Wähle(None)),
                 )
                 .width(Length::Shrink);
-            for (name, (anschluss, farbe, button_zustand, delete_zustand)) in streckenabschnitte {
-                scrollable =
-                    scrollable.push(
+            for (name, (anschluss, farbe)) in streckenabschnitte {
+                column =
+                    column.push(
                         Row::new()
                             .push(
-                                Button::new(
-                                    button_zustand,
-                                    Text::new(&format!("{name}: {anschluss:?}")),
-                                )
-                                .on_press(InterneAuswahlNachricht::Wähle(Some((
-                                    name.clone().into_inner(),
-                                    *farbe,
-                                ))))
-                                .style(style::Auswahl(*farbe)),
+                                Button::new(Text::new(&format!("{name}: {anschluss:?}")))
+                                    .on_press(InterneAuswahlNachricht::Wähle(Some((
+                                        name.clone().into_inner(),
+                                        *farbe,
+                                    ))))
+                                    .style(style::Auswahl(*farbe)),
                             )
-                            .push(Button::new(delete_zustand, Text::new("X")).on_press(
+                            .push(Button::new(Text::new("X")).on_press(
                                 InterneAuswahlNachricht::Lösche(name.clone().into_inner()),
                             )),
                     );
             }
-            scrollable
+            Scrollable::new(column)
         })
         .on_close(InterneAuswahlNachricht::Schließe)
         .width(Length::Shrink);
-        Auswahl { card, neu_name, neu_farbe, neu_anschluss }
+        card.into()
     }
 }
 
-impl<'a, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl<'a, R> {
-    reexport_no_event_methods! {Card<'a, InterneAuswahlNachricht, R>, card, InterneAuswahlNachricht, R}
+impl<L: Leiter, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl<'_, L, R> {
+    widget_newtype_methods! {element,  R}
+
+    fn tag(&self) -> Tag {
+        Tag::of::<AuswahlZustand>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(AuswahlZustand::neu(&self.gleise))
+    }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -363,7 +335,8 @@ impl<'a, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl
     ) -> event::Status {
         let mut container_messages = Vec::new();
         let mut container_shell = Shell::new(&mut container_messages);
-        let mut status = self.card.on_event(
+        let mut status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
             event,
             layout,
             cursor_position,
@@ -373,9 +346,11 @@ impl<'a, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl
         );
         if container_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            container_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if container_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
+        let zustand: &mut AuswahlZustand = state.state.downcast_mut();
+        let mut zustand_geändert = false;
         for message in container_messages {
             let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match message {
@@ -389,30 +364,53 @@ impl<'a, R: text::Renderer<Font = Font>> Widget<AuswahlNachricht, R> for Auswahl
                 InterneAuswahlNachricht::Hinzufügen => {
                     let nachricht = AuswahlNachricht::Hinzufügen(
                         None,
-                        Name(self.neu_name.clone()),
-                        self.neu_farbe.clone(),
-                        self.neu_anschluss.clone(),
+                        Name(zustand.neu_name.clone()),
+                        zustand.neu_farbe,
+                        zustand.neu_anschluss.clone(),
                     );
                     shell.publish(nachricht);
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
                     shell.publish(AuswahlNachricht::Lösche(erstelle_id(name)))
                 },
-                InterneAuswahlNachricht::Name(name) => *self.neu_name = name,
-                InterneAuswahlNachricht::FarbeBestimmen(farbe) => *self.neu_farbe = farbe,
-                InterneAuswahlNachricht::Anschluss(anschluss) => *self.neu_anschluss = anschluss,
+                InterneAuswahlNachricht::Name(name) => {
+                    zustand.neu_name = name;
+                    zustand_geändert = true;
+                },
+                InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
+                    zustand.neu_farbe = farbe;
+                    zustand_geändert = true;
+                },
+                InterneAuswahlNachricht::Anschluss(anschluss) => {
+                    zustand.neu_anschluss = anschluss;
+                    zustand_geändert = true;
+                },
             }
             status = event::Status::Captured;
         }
+        if zustand_geändert {
+            self.element = Self::erzeuge_element(zustand)
+        }
         status
+    }
+
+    fn overlay<'a>(
+        &'a self,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &R,
+    ) -> Option<iced_native::overlay::Element<'a, AuswahlNachricht, R>> {
+        None
+        // TODO overlay von self.element verwenden?
     }
 }
 
-impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
+impl<'a, L, R> From<Auswahl<'a, L, R>> for Element<'a, AuswahlNachricht, R>
 where
+    L: Leiter,
     R: 'a + text::Renderer<Font = Font>,
 {
-    fn from(auswahl: Auswahl<'a, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, L, R>) -> Self {
         Element::new(auswahl)
     }
 }
