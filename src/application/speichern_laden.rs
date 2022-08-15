@@ -3,41 +3,33 @@
 use std::fmt::Debug;
 
 use iced_native::{
-    event, text,
+    event, overlay, text, Alignment, Clipboard, Event, Layout, Length, Point, Shell,
+};
+use iced_pure::{
     widget::{
-        button::{self, Button},
-        text_input::{self, TextInput},
-        Column, Row, Text,
+        tree::{self, Tag, Tree},
+        Button, Column, Row, Text, TextInput,
     },
-    Alignment, Clipboard, Element, Event, Layout, Length, Point, Renderer, Shell, Widget,
+    Element, Widget,
 };
 
-use crate::application::{macros::reexport_no_event_methods, style::hintergrund};
+use crate::application::{macros::widget_newtype_methods, style::hintergrund};
 
 /// Zustand von [SpeichernLaden].
 #[derive(Debug)]
-pub struct Zustand {
-    speichern: button::State,
+struct Zustand {
     speichern_gefärbt: bool,
-    laden: button::State,
-    pfad: text_input::State,
     aktueller_pfad: String,
 }
 
 impl Zustand {
     /// Erstelle einen neuen Zustand von [SpeichernLaden].
-    pub fn neu(aktueller_pfad: String) -> Self {
-        Zustand {
-            speichern: button::State::new(),
-            speichern_gefärbt: false,
-            laden: button::State::new(),
-            pfad: text_input::State::new(),
-            aktueller_pfad,
-        }
+    fn neu(aktueller_pfad: String) -> Self {
+        Zustand { speichern_gefärbt: false, aktueller_pfad }
     }
 
     /// Bestimme, ob der Speichern-Knopf gefärbt wird.
-    pub fn färbe_speichern(&mut self, färben: bool) {
+    fn färbe_speichern(&mut self, färben: bool) {
         self.speichern_gefärbt = färben;
     }
 }
@@ -60,26 +52,32 @@ pub enum Nachricht {
 
 /// Widget mit Pfadauswahl und Knöpfen zum Speichern und Laden.
 pub struct SpeichernLaden<'a, R> {
-    row: Row<'a, InterneNachricht, R>,
-    aktueller_pfad: &'a mut String,
+    element: Element<'a, InterneNachricht, R>,
+    initialer_pfad: &'a str,
 }
 
 impl<R> Debug for SpeichernLaden<'_, R> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SpeichernLaden")
-            .field("row", &"<Row>")
-            .field("aktueller_pfad", &self.aktueller_pfad)
+            .field("element", &"<Element>")
+            .field("initialer_pfad", &self.initialer_pfad)
             .finish()
     }
 }
 
 impl<'a, R: 'a + text::Renderer> SpeichernLaden<'a, R> {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
-    pub fn neu(zustand: &'a mut Zustand) -> Self {
-        let Zustand { speichern, speichern_gefärbt, laden, pfad, aktueller_pfad } = zustand;
+    pub fn neu(initialer_pfad: &'a str) -> Self {
+        SpeichernLaden {
+            element: Self::erzeuge_element(&Zustand::neu(initialer_pfad.to_owned())),
+            initialer_pfad,
+        }
+    }
+    fn erzeuge_element(zustand: &'a Zustand) -> Element<'a, InterneNachricht, R> {
+        let Zustand { speichern_gefärbt, aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
-            Button::new(speichern, Text::new("Speichern")).on_press(InterneNachricht::Speichern);
+            Button::new(Text::new("Speichern")).on_press(InterneNachricht::Speichern);
         let speichern_style =
             if *speichern_gefärbt { hintergrund::GRÜN } else { hintergrund::STANDARD };
         let row = Row::new()
@@ -87,29 +85,38 @@ impl<'a, R: 'a + text::Renderer> SpeichernLaden<'a, R> {
                 Column::new()
                     .push(speichern_ungefärbt.style(speichern_style))
                     .push(
-                        Button::new(laden, Text::new("Laden"))
+                        Button::new(Text::new("Laden"))
                             .style(hintergrund::STANDARD)
                             .on_press(InterneNachricht::Laden),
                     )
                     .align_items(Alignment::End),
             )
             .push(
-                TextInput::new(pfad, "Pfad", aktueller_pfad, InterneNachricht::Pfad)
+                TextInput::new("Pfad", aktueller_pfad, InterneNachricht::Pfad)
                     .width(Length::Units(150))
                     .padding(1),
             )
             .spacing(5)
             .align_items(Alignment::Center)
             .width(Length::Shrink);
-        SpeichernLaden { row, aktueller_pfad }
+        row.into()
     }
 }
 
-impl<'a, R: Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
-    reexport_no_event_methods! {Row<'a, InterneNachricht, R>, row, InterneNachricht, R}
+impl<R: text::Renderer> Widget<Nachricht, R> for SpeichernLaden<'_, R> {
+    widget_newtype_methods! {element, R}
+
+    fn tag(&self) -> Tag {
+        Tag::of::<Zustand>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(Zustand::neu(self.initialer_pfad.to_owned()))
+    }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -119,33 +126,53 @@ impl<'a, R: Renderer> Widget<Nachricht, R> for SpeichernLaden<'a, R> {
     ) -> event::Status {
         let mut row_messages = Vec::new();
         let mut row_shell = Shell::new(&mut row_messages);
-        let mut status =
-            self.row.on_event(event, layout, cursor_position, renderer, clipboard, &mut row_shell);
+        let mut status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            &mut row_shell,
+        );
         if row_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            row_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if row_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
 
+        let zustand: &mut Zustand = state.state.downcast_mut();
         for message in row_messages {
-            status = event::Status::Captured;
-
             match message {
                 InterneNachricht::Speichern => {
-                    shell.publish(Nachricht::Speichern(self.aktueller_pfad.clone()))
+                    shell.publish(Nachricht::Speichern(zustand.aktueller_pfad.clone()))
                 },
                 InterneNachricht::Laden => {
-                    shell.publish(Nachricht::Laden(self.aktueller_pfad.clone()))
+                    shell.publish(Nachricht::Laden(zustand.aktueller_pfad.clone()))
                 },
-                InterneNachricht::Pfad(pfad) => *self.aktueller_pfad = pfad,
+                InterneNachricht::Pfad(pfad) => {
+                    zustand.aktueller_pfad = pfad;
+                    self.element = Self::erzeuge_element(zustand);
+                },
             }
+            status = event::Status::Captured;
         }
 
         status
     }
+
+    fn overlay<'a>(
+        &'a self,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &R,
+    ) -> Option<overlay::Element<'a, Nachricht, R>> {
+        //TODO
+        None
+    }
 }
 
-impl<'a, R: 'a + Renderer> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R: 'a + text::Renderer> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R> {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
         Element::new(auswahl)
     }
