@@ -51,13 +51,13 @@ pub enum Nachricht {
 
 /// Zustand eines [Lizenzen]-Widgets.
 #[derive(Debug)]
-pub struct Zustand {
+struct Zustand {
     aktuell: Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
 }
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
-    pub fn neu(
+    fn neu(
         aktuell_name: Option<UniCaseOrd<&'static str>>,
         lizenzen: &BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
     ) -> Self {
@@ -69,7 +69,7 @@ impl Zustand {
 
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
     #[inline(always)]
-    pub fn neu_mit_verwendeten_lizenzen() -> Self {
+    fn neu_mit_verwendeten_lizenzen() -> Self {
         Self::neu(None, &verwendete_lizenzen(target_crates()))
     }
 }
