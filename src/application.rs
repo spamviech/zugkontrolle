@@ -291,20 +291,16 @@ where
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-type WeicheZustand = weiche::Zustand<gleis::weiche::gerade::RichtungAnschlüsseSerialisiert>;
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-type DreiwegeWeicheZustand =
-    weiche::Zustand<gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert>;
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-type KurvenWeicheZustand = weiche::Zustand<gleis::weiche::kurve::RichtungAnschlüsseSerialisiert>;
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
@@ -314,45 +310,32 @@ type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L,
 /// Zustand des Auswahl-Fensters.
 pub enum AuswahlZustand<L: LeiterAnzeige<S>, S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
-    Streckenabschnitt(streckenabschnitt::AuswahlZustand),
+    Streckenabschnitt,
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
-    Geschwindigkeit(geschwindigkeit::AuswahlZustand),
+    Geschwindigkeit,
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(WeicheZustand, ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
+    Weiche(ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(
-        DreiwegeWeicheZustand,
-        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>,
-    ),
+    DreiwegeWeiche(ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(KurvenWeicheZustand, ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>),
+    KurvenWeiche(ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
-    ZeigeLizenzen(lizenzen::Zustand),
+    ZeigeLizenzen,
 }
 
 impl<L: LeiterAnzeige<S>, S> Debug for AuswahlZustand<L, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AuswahlZustand::Streckenabschnitt(arg0) => {
-                f.debug_tuple("Streckenabschnitt").field(arg0).finish()
+            AuswahlZustand::Streckenabschnitt => f.debug_tuple("Streckenabschnitt").finish(),
+            AuswahlZustand::Geschwindigkeit => f.debug_tuple("Geschwindigkeit").finish(),
+            AuswahlZustand::Weiche(_arg0) => f.debug_tuple("Weiche").field(&"<function>").finish(),
+            AuswahlZustand::DreiwegeWeiche(_arg0) => {
+                f.debug_tuple("DreiwegeWeiche").field(&"<function>").finish()
             },
-            AuswahlZustand::Geschwindigkeit(arg0) => {
-                f.debug_tuple("Geschwindigkeit").field(arg0).finish()
+            AuswahlZustand::KurvenWeiche(_arg0) => {
+                f.debug_tuple("KurvenWeiche").field(&"<function>").finish()
             },
-            AuswahlZustand::Weiche(arg0, _arg1) => {
-                f.debug_tuple("Weiche").field(arg0).field(&"<function>".to_owned()).finish()
-            },
-            AuswahlZustand::DreiwegeWeiche(arg0, _arg1) => f
-                .debug_tuple("DreiwegeWeiche")
-                .field(arg0)
-                .field(&"<function>".to_string())
-                .finish(),
-            AuswahlZustand::KurvenWeiche(arg0, _arg1) => {
-                f.debug_tuple("KurvenWeiche").field(arg0).field(&"<function>".to_owned()).finish()
-            },
-            AuswahlZustand::ZeigeLizenzen(arg0) => {
-                f.debug_tuple("ZeigeLizenzen").field(arg0).finish()
-            },
+            AuswahlZustand::ZeigeLizenzen => f.debug_tuple("ZeigeLizenzen").finish(),
         }
     }
 }
@@ -445,7 +428,6 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
     gleise: Gleise<L>,
     lager: Lager,
-    scrollable_zustand: iced::scrollable::State,
     scrollable_style: style::sammlung::Sammlung,
     geraden: Vec<Knopf<GeradeUnit>>,
     kurven: Vec<Knopf<KurveUnit>>,
@@ -455,20 +437,15 @@ pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<L>,
-    auswahl: modal::Zustand<AuswahlZustand<L, S>>,
     streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_aktuell_festlegen: bool,
-    geschwindigkeit_button_zustand: iced::button::State,
-    message_box: modal::Zustand<MessageBox>,
     bewegen: Bewegen,
     drehen: Drehen,
-    zoom: iced::slider::State,
-    speichern_laden: speichern_laden::Zustand,
+    initialer_pfad: String,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
     sender: Sender<Nachricht<L, S>>,
     empfänger: Empfänger<Nachricht<L, S>>,
-    zeige_lizenzen: iced::button::State,
     // TODO Plan
 }
 
@@ -495,13 +472,13 @@ where
         let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;
 
         let command: Command<Self::Message>;
-        let aktueller_pfad: String;
+        let initialer_pfad: String;
         if let Some(pfad) = pfad {
             command = Nachricht::Laden(pfad.clone()).als_command();
-            aktueller_pfad = pfad.clone();
+            initialer_pfad = pfad.clone();
         } else {
             command = Command::none();
-            aktueller_pfad = {
+            initialer_pfad = {
                 let mut pfad = zugtyp.name.clone();
                 pfad.push_str(".zug");
                 pfad
@@ -527,7 +504,6 @@ where
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,
-            scrollable_zustand: iced::scrollable::State::new(),
             scrollable_style: style::sammlung::Sammlung::neu(10),
             geraden,
             kurven,
@@ -537,20 +513,15 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten: geschwindigkeit::Map::new(),
-            auswahl: modal::Zustand::neu(),
             streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand::neu(),
             streckenabschnitt_aktuell_festlegen: false,
-            geschwindigkeit_button_zustand: iced::button::State::new(),
-            message_box: modal::Zustand::neu(),
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
-            zoom: iced::slider::State::new(),
-            speichern_laden: speichern_laden::Zustand::neu(aktueller_pfad),
+            initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
             sender,
             empfänger: Empfänger::neu(receiver),
-            zeige_lizenzen: iced::button::State::new(),
         };
 
         (zugkontrolle, command)
