@@ -291,28 +291,20 @@ where
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-type WeicheZustand = weiche::Zustand<
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::gerade::RichtungAnschlüsseAuswahlZustand,
->;
+type WeicheZustand = weiche::Zustand<gleis::weiche::gerade::RichtungAnschlüsseSerialisiert>;
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-type DreiwegeWeicheZustand = weiche::Zustand<
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::dreiwege::RichtungAnschlüsseAuswahlZustand,
->;
+type DreiwegeWeicheZustand =
+    weiche::Zustand<gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert>;
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-type KurvenWeicheZustand = weiche::Zustand<
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
-    gleis::weiche::kurve::RichtungAnschlüsseAuswahlZustand,
->;
+type KurvenWeicheZustand = weiche::Zustand<gleis::weiche::kurve::RichtungAnschlüsseSerialisiert>;
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,

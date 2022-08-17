@@ -117,7 +117,7 @@ where
                 row_with_scrollable.push(
                     Container::new(
                         Element::new(
-                            touch_canvas::Canvas::new(gleise)
+                            touch_canvas::Canvas::new(gleise, todo!(), todo!())
                                 .width(Length::Fill)
                                 .height(Length::Fill),
                         )
@@ -149,19 +149,19 @@ where
                     Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
                 }
             }),
-            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => Element::new(
-                <L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl),
-            )
-            .map(|message| {
-                use geschwindigkeit::AuswahlNachricht::*;
-                match message {
-                    Schließen => Nachricht::SchließeAuswahl,
-                    Hinzufügen(name, geschwindigkeit) => {
-                        Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-                    },
-                    Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
-                }
-            }),
+            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => {
+                Element::new(<L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl, todo!()))
+                    .map(|message| {
+                        use geschwindigkeit::AuswahlNachricht::*;
+                        match message {
+                            Schließen => Nachricht::SchließeAuswahl,
+                            Hinzufügen(name, geschwindigkeit) => {
+                                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+                            },
+                            Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
+                        }
+                    })
+            },
             AuswahlZustand::Weiche(zustand, als_message) => {
                 let als_message_clone = als_message.clone();
                 Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
@@ -209,8 +209,7 @@ where
                         .height(Length::Units(300)),
                 )
                 .foot(
-                    iced::Button::new(button_zustand, Text::new("Ok"))
-                        .on_press(NachrichtClone::SchließeMessageBox),
+                    iced::Button::new(Text::new("Ok")).on_press(NachrichtClone::SchließeMessageBox),
                 )
                 .width(Length::Shrink),
             )
@@ -238,10 +237,12 @@ where
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
-    let bewegen =
-        touch_canvas::Canvas::new(bewegen).width(Length::Units(50)).height(Length::Units(50));
-    let drehen =
-        touch_canvas::Canvas::new(drehen).width(Length::Units(50)).height(Length::Units(50));
+    let bewegen = touch_canvas::Canvas::new(bewegen, todo!(), todo!())
+        .width(Length::Units(50))
+        .height(Length::Units(50));
+    let drehen = touch_canvas::Canvas::new(drehen, todo!(), todo!())
+        .width(Length::Units(50))
+        .height(Length::Units(50));
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
