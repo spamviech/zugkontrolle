@@ -269,6 +269,43 @@ where
             _ => HashMap::new(),
         };
         */
+        let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+            Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
+            Some(InputAnschluss::Pcf8574Port(port)) => (
+                TAB_PCF8574,
+                None,
+                Some(*port.beschreibung()),
+                Some(port.port()),
+                port.interrupt_pin(),
+            ),
+            None => (TAB_PIN, None, None, None, None),
+        };
+        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins)
+    }
+
+    /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
+    pub fn neu_input_s(
+        start_wert: Option<&'a InputSerialisiert>,
+        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+    ) -> Self {
+        let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+            Some(InputSerialisiert::Pin { pin }) => (TAB_PIN, Some(*pin), None, None, None),
+            Some(InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }) => {
+                (TAB_PCF8574, None, Some(*beschreibung), Some(*port), *interrupt)
+            },
+            None => (TAB_PIN, None, None, None, None),
+        };
+        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins)
+    }
+
+    fn neu_input_aux(
+        active_tab: usize,
+        pin: Option<u8>,
+        beschreibung: Option<Beschreibung>,
+        port: Option<kleiner_8>,
+        modus: Option<u8>,
+        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+    ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             &|pin, beschreibung| {
@@ -289,31 +326,18 @@ where
                     Some(*pin)
                 },
             },
-            &|| {
-                let (active_tab, pin, beschreibung, port, modus) = match start_wert {
-                    Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
-                    Some(InputAnschluss::Pcf8574Port(port)) => (
-                        TAB_PCF8574,
-                        None,
-                        Some(*port.beschreibung()),
-                        Some(port.port()),
-                        port.interrupt_pin(),
-                    ),
-                    None => (TAB_PIN, None, None, None, None),
-                };
-                Zustand {
-                    active_tab,
-                    pin: pin.unwrap_or(0),
-                    beschreibung: beschreibung.unwrap_or(Beschreibung {
-                        i2c_bus: pcf8574::I2cBus::I2c0_1,
-                        a0: Level::Low,
-                        a1: Level::Low,
-                        a2: Level::Low,
-                        variante: Variante::Normal,
-                    }),
-                    port: port.unwrap_or(kleiner_8::MIN),
-                    modus: modus.unwrap_or(0),
-                }
+            &|| Zustand {
+                active_tab,
+                pin: pin.unwrap_or(0),
+                beschreibung: beschreibung.unwrap_or(Beschreibung {
+                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    a0: Level::Low,
+                    a1: Level::Low,
+                    a2: Level::Low,
+                    variante: Variante::Normal,
+                }),
+                port: port.unwrap_or(kleiner_8::MIN),
+                modus: modus.unwrap_or(0),
             },
         )
     }
@@ -325,6 +349,39 @@ where
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
+        let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+            Some(OutputAnschluss::Pin { pin, polarität }) => {
+                (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
+            },
+            Some(OutputAnschluss::Pcf8574Port { port, polarität }) => {
+                (TAB_PCF8574, None, Some(*port.beschreibung()), Some(port.port()), Some(*polarität))
+            },
+            None => (TAB_PIN, None, None, None, None),
+        };
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus)
+    }
+
+    /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
+    pub fn neu_output_s(start_wert: Option<&'a OutputSerialisiert>) -> Self {
+        let (active_tab, pin, beschreibung, port, modus) = match start_wert {
+            Some(OutputSerialisiert::Pin { pin, polarität }) => {
+                (TAB_PIN, Some(*pin), None, None, Some(*polarität))
+            },
+            Some(OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität }) => {
+                (TAB_PCF8574, None, Some(*beschreibung), Some(*port), Some(*polarität))
+            },
+            None => (TAB_PIN, None, None, None, None),
+        };
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus)
+    }
+
+    fn neu_output_aux(
+        active_tab: usize,
+        pin: Option<u8>,
+        beschreibung: Option<Beschreibung>,
+        port: Option<kleiner_8>,
+        modus: Option<Polarität>,
+    ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Beide,
             &|polarität, _beschreibung| {
@@ -350,33 +407,18 @@ where
                 port,
                 polarität: *polarität,
             },
-            &|| {
-                let (active_tab, pin, beschreibung, port, modus) = match start_wert {
-                    Some(OutputAnschluss::Pin { pin, polarität }) => {
-                        (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
-                    },
-                    Some(OutputAnschluss::Pcf8574Port { port, polarität }) => (
-                        TAB_PCF8574,
-                        None,
-                        Some(*port.beschreibung()),
-                        Some(port.port()),
-                        Some(*polarität),
-                    ),
-                    None => (TAB_PIN, None, None, None, None),
-                };
-                Zustand {
-                    active_tab,
-                    pin: pin.unwrap_or(0),
-                    beschreibung: beschreibung.unwrap_or(Beschreibung {
-                        i2c_bus: pcf8574::I2cBus::I2c0_1,
-                        a0: Level::Low,
-                        a1: Level::Low,
-                        a2: Level::Low,
-                        variante: Variante::Normal,
-                    }),
-                    port: port.unwrap_or(kleiner_8::MIN),
-                    modus: modus.unwrap_or(Polarität::Normal),
-                }
+            &|| Zustand {
+                active_tab,
+                pin: pin.unwrap_or(0),
+                beschreibung: beschreibung.unwrap_or(Beschreibung {
+                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    a0: Level::Low,
+                    a1: Level::Low,
+                    a2: Level::Low,
+                    variante: Variante::Normal,
+                }),
+                port: port.unwrap_or(kleiner_8::MIN),
+                modus: modus.unwrap_or(Polarität::Normal),
             },
         )
     }
