@@ -41,10 +41,8 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
         let unit_args = enum_variants.iter().map(|_| quote!(()));
 
         enum_definition = Some(quote! {
-            type OutputAuswahl = #base_ident::application::anschluss::Zustand<#base_ident::application::anschluss::Output>;
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputAnschluss, RichtungAnschlüsse, Debug)]
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputSerialisiert, RichtungAnschlüsseSerialisiert, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-            #[zugkontrolle_macros::impl_nachschlagen(OutputAuswahl, RichtungAnschlüsseAuswahlZustand, Debug)]
             /// Mögliche Richtungen zum Schalten.
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
             #vis enum Richtung {
@@ -67,6 +65,7 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                     )
                 }
             }
+            #[allow(unused_qualifications)]
             impl crate::typen::MitRichtung<Richtung> for Richtung {
                 fn aktuelle_richtung(&self) -> Option<Richtung> {
                     Some(*self)
@@ -104,13 +103,6 @@ pub(crate) fn erstelle_richtung(args: Vec<syn::NestedMeta>, item: syn::ItemEnum)
                 fn default() -> Self {
                     RichtungAnschlüsseSerialisiert {
                         #(#struct_fields: #base_ident::anschluss::OutputSerialisiert::Pin {pin:0, polarität: #base_ident::anschluss::polarität::Polarität::Normal}),*
-                    }
-                }
-            }
-            impl From<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsseAuswahlZustand {
-                fn from(anschlüsse_save: RichtungAnschlüsseSerialisiert) -> Self {
-                    RichtungAnschlüsseAuswahlZustand {
-                        #(#struct_fields: #base_ident::application::anschluss::Zustand::von_output_serialisiert(anschlüsse_save.#struct_fields)),*
                     }
                 }
             }
