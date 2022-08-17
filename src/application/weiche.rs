@@ -1,62 +1,44 @@
 //! Einstellen der Steuerung einer [Weiche](crate::steuerung::Weiche).
 
-use std::fmt::{Debug, Display};
+use std::fmt::{self, Debug, Display, Formatter};
 
-use iced_aw::native::Card;
-use iced_native::{
-    event, text,
+use iced_aw::pure::Card;
+use iced_native::{event, overlay, text, Clipboard, Event, Font, Layout, Length, Point, Shell};
+use iced_pure::{
     widget::{
-        button::{self, Button},
-        text_input::{self, TextInput},
-        Column, Row, Text,
+        tree::{self, Tag, Tree},
+        Button, Column, Row, Text, TextInput,
     },
-    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
+    Element, Widget,
 };
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{anschluss, macros::reexport_no_event_methods},
+    application::{anschluss, macros::widget_newtype_methods},
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
 /// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 #[derive(Debug, Clone)]
-pub struct Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand> {
+struct Zustand<AnschlüsseSerialisiert> {
     name: String,
-    name_zustand: text_input::State,
-    anschlüsse_save: AnschlüsseSerialisiert,
-    anschlüsse_zustand: AnschlüsseAuswahlZustand,
-    festlegen_zustand: button::State,
-    entfernen_zustand: button::State,
+    anschlüsse: AnschlüsseSerialisiert,
     hat_steuerung: bool,
 }
 
-impl<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>
-    Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>
-where
-    AnschlüsseSerialisiert: Default + Clone + Into<AnschlüsseAuswahlZustand>,
-{
+impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> {
     /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
-    pub fn neu<Richtung>(
-        option_weiche: Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+    fn neu<Richtung>(
+        option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
     ) -> Self {
-        let (name, anschlüsse_save, hat_steuerung) =
+        let (name, anschlüsse, hat_steuerung) =
             if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
-                (name.0, anschlüsse, true)
+                (name.0.clone(), anschlüsse.clone(), true)
             } else {
-                (String::new(), Default::default(), false)
+                (String::new(), AnschlüsseSerialisiert::default(), false)
             };
-        let anschlüsse_zustand = anschlüsse_save.clone().into();
-        Zustand {
-            name,
-            name_zustand: text_input::State::new(),
-            anschlüsse_save,
-            anschlüsse_zustand,
-            festlegen_zustand: button::State::new(),
-            entfernen_zustand: button::State::new(),
-            hat_steuerung,
-        }
+        Zustand { name, anschlüsse, hat_steuerung }
     }
 }
 
@@ -71,69 +53,60 @@ enum InterneNachricht<Richtung> {
 
 /// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R> {
-    card: Card<'t, InterneNachricht<Richtung>, R>,
-    name: &'t mut String,
-    anschlüsse: &'t mut AnschlüsseSerialisiert,
+    element: Element<'t, InterneNachricht<Richtung>, R>,
+    weiche: &'t Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
 }
 
 impl<Richtung, AnschlüsseSerialisiert, R> Debug for Auswahl<'_, Richtung, AnschlüsseSerialisiert, R>
 where
+    Richtung: Debug,
     AnschlüsseSerialisiert: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Auswahl")
-            .field("card", &"<Card>")
-            .field("name", &self.name)
-            .field("anschlüsse", &self.anschlüsse)
+            .field("element", &"<Element>")
+            .field("weiche", &self.weiche)
             .finish()
     }
 }
 
 impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
+    AnschlüsseSerialisiert: Default + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     R: 't + text::Renderer<Font = Font>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<AnschlüsseAuswahlZustand>(
-        zustand: &'t mut Zustand<AnschlüsseSerialisiert, AnschlüsseAuswahlZustand>,
-    ) -> Self
-    where
-        AnschlüsseAuswahlZustand: Nachschlagen<Richtung, anschluss::Zustand<anschluss::Output>>,
-    {
-        let Zustand {
-            name,
-            name_zustand,
-            anschlüsse_save,
-            anschlüsse_zustand,
-            festlegen_zustand,
-            entfernen_zustand,
-            hat_steuerung,
-        } = zustand;
-        let mut column = Column::new().push(
-            TextInput::new(name_zustand, "<Name>", name, InterneNachricht::Name)
-                .width(Length::Units(200)),
-        );
-        for (richtung, anschluss_zustand) in anschlüsse_zustand.referenzen_mut().into_iter() {
+        weiche: &'t Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+    ) -> Self {
+        Auswahl { element: Self::erzeuge_element(&Zustand::neu(weiche)), weiche }
+    }
+
+    fn erzeuge_element(
+        zustand: &'t Zustand<AnschlüsseSerialisiert>,
+    ) -> Element<'t, InterneNachricht<Richtung>, R> {
+        let Zustand { name, anschlüsse, hat_steuerung } = zustand;
+        let mut column = Column::new()
+            .push(TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Units(200)));
+        for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push(
-                Element::from(anschluss::Auswahl::neu_output(anschluss_zustand)).map(
-                    move |anschluss_save| {
-                        InterneNachricht::Anschluss(richtung.clone(), anschluss_save)
+                Element::from(anschluss::Auswahl::neu_output_s(Some(anschluss))).map(
+                    move |anschluss_serialisiert| {
+                        InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                     },
                 ),
             ))
         }
         column = column.push(
             Row::new()
+                .push(Button::new(Text::new("Festlegen")).on_press(InterneNachricht::Festlegen))
                 .push(
-                    Button::new(festlegen_zustand, Text::new("Festlegen"))
-                        .on_press(InterneNachricht::Festlegen),
-                )
-                .push(
-                    Button::new(
-                        entfernen_zustand,
-                        Text::new(if *hat_steuerung { "Entfernen" } else { "Keine Anschlüsse" }),
-                    )
+                    Button::new(Text::new(if *hat_steuerung {
+                        "Entfernen"
+                    } else {
+                        "Keine Anschlüsse"
+                    }))
                     .on_press(InterneNachricht::Entfernen),
                 ),
         );
@@ -141,7 +114,7 @@ where
             .on_close(InterneNachricht::Schließen)
             .width(Length::Shrink)
             .height(Length::Shrink);
-        Auswahl { card, name, anschlüsse: anschlüsse_save }
+        card.into()
     }
 }
 
@@ -154,33 +127,39 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<'t, Richtung, T, AnschlüsseSerialisiert, R> Widget<Nachricht<T, AnschlüsseSerialisiert>, R>
-    for Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<Richtung, Richtung2, AnschlüsseSerialisiert, R>
+    Widget<Nachricht<Richtung2, AnschlüsseSerialisiert>, R>
+    for Auswahl<'_, Richtung, AnschlüsseSerialisiert, R>
 where
-    Richtung: Clone,
-    T: Default,
-    AnschlüsseSerialisiert: Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    Richtung: Clone + Display,
+    Richtung2: Default,
+    AnschlüsseSerialisiert: Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     R: text::Renderer<Font = Font>,
 {
-    reexport_no_event_methods! {
-        Card<'t, InterneNachricht<Richtung>, R>,
-        card,
-        InterneNachricht<Richtung>,
-        R
+    widget_newtype_methods! {element, R}
+
+    fn tag(&self) -> Tag {
+        Tag::of::<Zustand<AnschlüsseSerialisiert>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(Zustand::neu(&self.weiche))
     }
 
     fn on_event(
         &mut self,
+        state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Nachricht<T, AnschlüsseSerialisiert>>,
+        shell: &mut Shell<'_, Nachricht<Richtung2, AnschlüsseSerialisiert>>,
     ) -> event::Status {
         let mut card_messages = Vec::new();
         let mut card_shell = Shell::new(&mut card_messages);
-        let mut status = self.card.on_event(
+        let mut status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
             event,
             layout,
             cursor_position,
@@ -190,21 +169,27 @@ where
         );
         if card_shell.are_widgets_invalid() {
             shell.invalidate_widgets()
-        } else {
-            card_shell.revalidate_layout(|| shell.invalidate_layout())
+        } else if card_shell.is_layout_invalid() {
+            shell.invalidate_layout()
         }
+        let zustand: &mut Zustand<AnschlüsseSerialisiert> = state.state.downcast_mut();
+        let mut zustand_geändert = false;
         for message in card_messages {
             status = event::Status::Captured;
             match message {
-                InterneNachricht::Name(name) => *self.name = name,
+                InterneNachricht::Name(name) => {
+                    zustand_geändert = true;
+                    zustand.name = name;
+                },
                 InterneNachricht::Anschluss(richtung, anschluss) => {
-                    *self.anschlüsse.erhalte_mut(&richtung) = anschluss
+                    zustand_geändert = true;
+                    *zustand.anschlüsse.erhalte_mut(&richtung) = anschluss;
                 },
                 InterneNachricht::Festlegen => {
                     let nachricht = Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
-                        Name(self.name.clone()),
-                        T::default(),
-                        self.anschlüsse.clone(),
+                        Name(zustand.name.clone()),
+                        Richtung2::default(),
+                        zustand.anschlüsse.clone(),
                     )));
                     shell.publish(nachricht)
                 },
@@ -212,17 +197,30 @@ where
                 InterneNachricht::Schließen => shell.publish(Nachricht::Schließen),
             }
         }
+        if zustand_geändert {
+            self.element = Self::erzeuge_element(zustand)
+        }
         status
+    }
+
+    fn overlay<'a>(
+        &'a self,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &R,
+    ) -> Option<overlay::Element<'a, Nachricht<Richtung2, AnschlüsseSerialisiert>, R>> {
+        // TODO
+        None
     }
 }
 
-impl<'t, Richtung, T, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, Richtung2, AnschlüsseSerialisiert, R>
     From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
-    for Element<'t, Nachricht<T, AnschlüsseSerialisiert>, R>
+    for Element<'t, Nachricht<Richtung2, AnschlüsseSerialisiert>, R>
 where
-    Richtung: 't + Clone,
-    T: Default,
-    AnschlüsseSerialisiert: 't + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    Richtung: 't + Clone + Display,
+    Richtung2: Default,
+    AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     R: 't + text::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
