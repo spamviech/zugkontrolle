@@ -2,12 +2,20 @@
 
 use iced::{
     alignment::{Horizontal, Vertical},
-    canvas::{event, Cursor, Event, Geometry, Program},
-    mouse, Canvas, Container, Element, Length, Point, Rectangle,
+    mouse,
+    pure::{
+        widget::{
+            canvas::{event, Cursor, Event, Geometry, Program},
+            Container,
+        },
+        Element,
+    },
+    Length, Point, Rectangle,
 };
 use num_traits::NumCast;
 
 use crate::{
+    application::touch_canvas::Canvas,
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
@@ -57,9 +65,9 @@ impl<T: Zeichnen> Knopf<T> {
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
-    /// Erstelle ein [Widget](iced_native::Element), dass den [Button] anzeigt.
+    /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
     pub fn als_iced_widget<'t, Nachricht>(
-        &'t mut self,
+        &'t self,
         breite: Option<u16>,
     ) -> impl Into<Element<'t, Nachricht>>
     where
@@ -82,7 +90,9 @@ impl<T: Zeichnen> Knopf<T> {
 }
 
 impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
-    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    type State = ();
+
+    fn draw(&self, _state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         vec![self.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
@@ -142,7 +152,8 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
     }
 
     fn update(
-        &mut self,
+        &self,
+        _state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
