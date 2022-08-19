@@ -1,8 +1,9 @@
 //! Widget zum Einstellen des Anzeigewinkels.
 
 use iced::{
-    canvas::{event, Cursor, Event, Fill, FillRule, Geometry, Program, Stroke},
-    mouse, Color, Rectangle,
+    mouse,
+    pure::widget::canvas::{event, Cursor, Event, Fill, FillRule, Geometry, Program, Stroke},
+    Color, Rectangle,
 };
 
 use crate::typen::{
@@ -32,7 +33,9 @@ impl Drehen {
 }
 
 impl Program<Winkel> for Drehen {
-    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+    type State = ();
+
+    fn draw(&self, _state: &Self::State, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
         let size = bounds.size();
         vec![self.canvas.zeichnen(size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
@@ -83,7 +86,8 @@ impl Program<Winkel> for Drehen {
     }
 
     fn update(
-        &mut self,
+        &self,
+        _state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,

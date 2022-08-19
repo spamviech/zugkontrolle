@@ -1,8 +1,9 @@
 //! Widget zum Anpassen des Pivot Punktes.
 
 use iced::{
-    canvas::{event, Cursor, Event, Geometry, Program},
-    mouse, Rectangle,
+    mouse,
+    pure::widget::canvas::{event, Cursor, Event, Geometry, Program},
+    Rectangle,
 };
 
 use crate::typen::{
@@ -81,7 +82,9 @@ impl Bewegen {
 }
 
 impl Program<Nachricht> for Bewegen {
-    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    type State = ();
+
+    fn draw(&self, _state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let size = bounds.size();
         let width = Skalar(size.width);
         let height = Skalar(size.height);
@@ -129,7 +132,8 @@ impl Program<Nachricht> for Bewegen {
     }
 
     fn update(
-        &mut self,
+        &self,
+        _state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
