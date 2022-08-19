@@ -6,8 +6,9 @@ use std::{
 };
 
 use iced::{
-    canvas::{event, Cursor, Event, Geometry, Program},
-    mouse, Rectangle,
+    mouse,
+    pure::widget::canvas::{event, Cursor, Event, Geometry, Program},
+    Rectangle,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -579,22 +580,30 @@ pub enum Nachricht {
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {
+    type State = ();
+
     #[inline(always)]
-    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
-        self.draw(bounds, cursor)
+    fn draw(&self, state: &Self::State, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        self.draw(state, bounds, cursor)
     }
 
     #[inline(always)]
     fn update(
-        &mut self,
+        &self,
+        state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
-        self.update(event, bounds, cursor)
+        self.update(state, event, bounds, cursor)
     }
 
-    fn mouse_interaction(&self, bounds: Rectangle, cursor: Cursor) -> mouse::Interaction {
+    fn mouse_interaction(
+        &self,
+        state: &Self::State,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> mouse::Interaction {
         match &self.modus {
             ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
                 mouse::Interaction::Pointer

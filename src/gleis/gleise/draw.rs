@@ -231,7 +231,7 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// [draw](iced::Application::draw)-Methode für [Gleise].
-    pub fn draw(&self, bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    pub fn draw(&self, state: &(), bounds: iced::Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)

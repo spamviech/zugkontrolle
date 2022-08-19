@@ -324,7 +324,8 @@ fn aktion_gleis_an_position<'t>(
 impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
-        &mut self,
+        &self,
+        state: &mut (),
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
@@ -340,7 +341,7 @@ impl<L: Leiter> Gleise<L> {
                     &bounds,
                     &cursor,
                     spurweite,
-                    modus,
+                    todo!("modus"),
                     zustand.alle_streckenabschnitte_und_daten(),
                     pivot,
                     skalieren,
@@ -354,8 +355,11 @@ impl<L: Leiter> Gleise<L> {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
                         if bewegt {
                             if !cursor.is_over(&bounds) {
+                                let mut_ref: &mut Gleise<L> = todo!("self");
+                                let _ = ();
+
                                 if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
+                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, mut_ref)
                                 {
                                     error!("Entfernen für entferntes Gleis: {:?}", fehler)
                                 }

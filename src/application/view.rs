@@ -18,7 +18,7 @@ use crate::{
         drehen::Drehen,
         geschwindigkeit::{self, LeiterAnzeige},
         lizenzen::{self, Lizenzen},
-        modal::Modal,
+        modal::{self, Modal},
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung},
         touch_canvas, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht,
@@ -60,7 +60,6 @@ where
     pub fn view(&self) -> Element<'_, Nachricht<L, S>> {
         let Zugkontrolle {
             gleise,
-            scrollable_zustand,
             scrollable_style,
             geraden,
             kurven,
@@ -70,33 +69,27 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten,
-            auswahl,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
-            geschwindigkeit_button_zustand,
-            message_box,
             bewegen,
             drehen,
-            zoom,
-            speichern_laden,
             lager: _,
             speichern_gefärbt: _,
             bewegung: _,
             sender: _,
             empfänger: _,
-            zeige_lizenzen,
+            initialer_pfad,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();
 
         let top_row = top_row(
             aktueller_modus,
-            streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             bewegen,
             drehen,
             aktueller_zoom,
-            speichern_laden,
+            initialer_pfad,
         );
         let row_with_scrollable = row_with_scrollable(
             aktueller_modus,
@@ -117,7 +110,7 @@ where
                 row_with_scrollable.push(
                     Container::new(
                         Element::new(
-                            touch_canvas::Canvas::new(gleise, todo!(), todo!())
+                            touch_canvas::Canvas::new(gleise)
                                 .width(Length::Fill)
                                 .height(Length::Fill),
                         )
@@ -129,105 +122,110 @@ where
             ),
         );
 
-        let modal = Modal::neu(todo!("{:?}", auswahl), column, |modal| match modal {
-            AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::new(
-                streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
-            )
-            .map(|message| {
-                use streckenabschnitt::AuswahlNachricht::*;
-                match message {
-                    Schließe => Nachricht::SchließeAuswahl,
-                    Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
-                    Hinzufügen(geschwindigkeit, name, farbe, output) => {
-                        Nachricht::HinzufügenStreckenabschnitt(
-                            geschwindigkeit,
-                            name,
-                            farbe,
-                            output,
-                        )
-                    },
-                    Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
-                }
-            }),
-            AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => {
-                Element::new(<L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl, todo!()))
-                    .map(|message| {
-                        use geschwindigkeit::AuswahlNachricht::*;
-                        match message {
-                            Schließen => Nachricht::SchließeAuswahl,
-                            Hinzufügen(name, geschwindigkeit) => {
-                                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-                            },
-                            Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
-                        }
-                    })
-            },
-            AuswahlZustand::Weiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
-            },
-            AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
-            },
-            AuswahlZustand::KurvenWeiche(zustand, als_message) => {
-                let als_message_clone = als_message.clone();
-                Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => als_message_clone(steuerung),
-                        Schließen => Nachricht::SchließeAuswahl,
-                    }
-                })
-            },
-            AuswahlZustand::ZeigeLizenzen(zustand) => {
-                Element::new(Lizenzen::neu(zustand, *scrollable_style))
-                    .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
-            },
-        })
-        .on_esc(&|| Nachricht::SchließeAuswahl);
+        // let modal = Modal::neu(todo!("{:?}", auswahl), column, |modal| match modal {
+        //     AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::new(
+        //         streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
+        //     )
+        //     .map(|message| {
+        //         use streckenabschnitt::AuswahlNachricht::*;
+        //         match message {
+        //             Schließe => Nachricht::SchließeAuswahl,
+        //             Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
+        //             Hinzufügen(geschwindigkeit, name, farbe, output) => {
+        //                 Nachricht::HinzufügenStreckenabschnitt(
+        //                     geschwindigkeit,
+        //                     name,
+        //                     farbe,
+        //                     output,
+        //                 )
+        //             },
+        //             Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
+        //         }
+        //     }),
+        //     AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => {
+        //         Element::new(<L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl, todo!()))
+        //             .map(|message| {
+        //                 use geschwindigkeit::AuswahlNachricht::*;
+        //                 match message {
+        //                     Schließen => Nachricht::SchließeAuswahl,
+        //                     Hinzufügen(name, geschwindigkeit) => {
+        //                         Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+        //                     },
+        //                     Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
+        //                 }
+        //             })
+        //     },
+        //     AuswahlZustand::Weiche(zustand, als_message) => {
+        //         let als_message_clone = als_message.clone();
+        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
+        //             use weiche::Nachricht::*;
+        //             match message {
+        //                 Festlegen(steuerung) => als_message_clone(steuerung),
+        //                 Schließen => Nachricht::SchließeAuswahl,
+        //             }
+        //         })
+        //     },
+        //     AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
+        //         let als_message_clone = als_message.clone();
+        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
+        //             use weiche::Nachricht::*;
+        //             match message {
+        //                 Festlegen(steuerung) => als_message_clone(steuerung),
+        //                 Schließen => Nachricht::SchließeAuswahl,
+        //             }
+        //         })
+        //     },
+        //     AuswahlZustand::KurvenWeiche(zustand, als_message) => {
+        //         let als_message_clone = als_message.clone();
+        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
+        //             use weiche::Nachricht::*;
+        //             match message {
+        //                 Festlegen(steuerung) => als_message_clone(steuerung),
+        //                 Schließen => Nachricht::SchließeAuswahl,
+        //             }
+        //         })
+        //     },
+        //     AuswahlZustand::ZeigeLizenzen(zustand) => {
+        //         Element::new(Lizenzen::neu(zustand, *scrollable_style))
+        //             .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
+        //     },
+        // })
+        // .on_esc(&|| Nachricht::SchließeAuswahl);
+        let modal: Element<'_, _> = todo!();
+        let _ = ();
 
-        Modal::neu(todo!("{:?}", message_box), modal, |message_box| {
-            let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
-            Element::new(
-                iced_aw::Card::new(
-                    Text::new(&*titel),
-                    Scrollable::new(scrollable_zustand)
-                        .push(Text::new(&*nachricht))
-                        .height(Length::Units(300)),
+        Modal::neu(
+            modal,
+            &|message_box| {
+                let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } =
+                    message_box;
+                Element::new(
+                    iced_aw::pure::Card::new(
+                        Text::new(&*titel),
+                        Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
+                    )
+                    .foot(
+                        iced::pure::widget::Button::new(Text::new("Ok"))
+                            .on_press(NachrichtClone::SchließeMessageBox),
+                    )
+                    .width(Length::Shrink),
                 )
-                .foot(
-                    iced::Button::new(Text::new("Ok")).on_press(NachrichtClone::SchließeMessageBox),
-                )
-                .width(Length::Shrink),
-            )
-            .map(Nachricht::from)
-        })
-        .on_esc(&|| Nachricht::SchließeMessageBox)
+                .map(Nachricht::from)
+                .map(modal::Nachricht::Underlay)
+            },
+            true,
+        )
         .into()
     }
 }
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
-    streckenabschnitt: &'t streckenabschnitt::AnzeigeZustand,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
-    speichern_laden: &'t speichern_laden::Zustand,
+    initialer_pfad: &str,
 ) -> Row<'t, Nachricht<L, S>>
 where
     L: 'static + Debug + LeiterAnzeige<S>,
@@ -237,12 +235,10 @@ where
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
-    let bewegen = touch_canvas::Canvas::new(bewegen, todo!(), todo!())
-        .width(Length::Units(50))
-        .height(Length::Units(50));
-    let drehen = touch_canvas::Canvas::new(drehen, todo!(), todo!())
-        .width(Length::Units(50))
-        .height(Length::Units(50));
+    let bewegen =
+        touch_canvas::Canvas::new(bewegen).width(Length::Units(50)).height(Length::Units(50));
+    let drehen =
+        touch_canvas::Canvas::new(drehen).width(Length::Units(50)).height(Length::Units(50));
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
@@ -253,7 +249,7 @@ where
             .width(Length::Units(75)),
         )
         .align_items(Alignment::Center);
-    let speichern_laden = speichern_laden::SpeichernLaden::neu(todo!("{:?}", speichern_laden));
+    let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
     let mut row = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
@@ -268,7 +264,7 @@ where
         )
         .map(Nachricht::from);
         let streckenabschnitt = Element::new(streckenabschnitt::Anzeige::neu(
-            todo!("{:?}", streckenabschnitt),
+            todo!("streckenabschnitt"),
             *streckenabschnitt_festlegen,
         ))
         .map(Nachricht::from);
@@ -366,7 +362,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                     continue;
                 };
                 scrollable_row = scrollable_row.push(
-                    Element::new(L::anzeige_neu(geschwindigkeit, todo!("{:?}", anzeige_zustand)))
+                    Element::new(L::anzeige_neu(todo!("name"), geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
