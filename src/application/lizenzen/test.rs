@@ -17,6 +17,7 @@ use crate::{
         verwendete_lizenzen,
     },
     init_test_logging,
+    unicase_ord::UniCaseOrd,
 };
 
 struct OptionD<'t, T>(&'t str, Option<T>);
@@ -184,12 +185,12 @@ impl MITZeilenumbruch {
 }
 
 /// Lizenz-Dateien, die nicht "LICENSE" heißen.
-fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
+fn lizenz_dateien() -> BTreeMap<UniCaseOrd<&'static str>, &'static str> {
     // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
     // alternative direkt in rust, z.B. mit dev-dependency
     // cargo-lock = "8.0.1"
 
-    BTreeMap::from([
+    [
         ("block-0.1.6", "TODO"),           // TODO Missing
         ("dispatch-0.2.0", "TODO"),        // TODO Missing
         ("glow_glyph-0.5.1", "TODO"),      // TODO Missing
@@ -406,12 +407,15 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("x11-dl-2.19.1", "LICENSE-MIT"),
         ("x11rb-0.9.0", "LICENSE-MIT"),
         ("xi-unicode-0.3.0", "LICENSE-GITHUB"),
-    ])
+    ]
+    .into_iter()
+    .map(|(name, pfad)| (UniCaseOrd::neu(name), pfad))
+    .collect()
 }
 
 #[test]
 /// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
-fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
+fn passende_lizenzen() -> Result<(), (BTreeSet<UniCaseOrd<&'static str>>, usize)> {
     init_test_logging();
 
     let release_target_crates = RELEASE_TARGETS
@@ -435,7 +439,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
         }
     };
     for (name, f) in lizenzen {
-        let datei = lizenz_dateien.get(name).unwrap_or(&"LICENSE");
+        let datei = lizenz_dateien.get(&name).unwrap_or(&"LICENSE");
         let verwendete_lizenz = f();
         let lizenz_pfad = format!("licenses/{name}/{datei}");
         match std::fs::read_to_string(lizenz_pfad.clone()) {
@@ -493,7 +497,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
                             .unwrap();
                         }
                         fehlermeldung.push('\n');
-                        fehlermeldung.push_str(name);
+                        fehlermeldung.push_str(name.as_ref());
                         fehlermeldung.push('\n');
                     }
                 },
