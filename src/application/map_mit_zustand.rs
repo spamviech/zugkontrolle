@@ -9,11 +9,12 @@ use std::{
 use iced_native::{
     event::{self, Event},
     layout::{self, Layout},
-    mouse, overlay,
+    mouse,
     renderer::{Quad, Renderer, Style},
-    touch, Background, Clipboard, Color, Length, Point, Rectangle, Shell, Size,
+    touch, Background, Clipboard, Color, Length, Point, Rectangle, Shell, Size, Vector,
 };
 use iced_pure::{
+    overlay::{self, Overlay},
     widget::tree::{State, Tag, Tree},
     Element, Widget,
 };
@@ -187,7 +188,60 @@ where
         state: &'a mut Tree,
         layout: Layout<'_>,
         renderer: &R,
-    ) -> Option<iced_native::overlay::Element<'a, Extern, R>> {
+    ) -> Option<overlay::Element<'a, Extern, R>> {
         todo!()
+    }
+}
+
+// TODO overlay kann zustand, aber nicht widget verändern :(
+struct MapMitZustandOverlay<'a, Intern, Zustand, Extern, R> {
+    element: overlay::Element<'a, Intern, R>,
+    zustand: &'a mut MutTracer<'a, Zustand>,
+    mapper: &'a dyn Fn(Intern, &mut MutTracer<'_, Zustand>, &mut event::Status) -> Option<Extern>,
+}
+
+impl<Intern, Zustand: Debug, Extern, R> Debug
+    for MapMitZustandOverlay<'_, Intern, Zustand, Extern, R>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MapMitZustandOverlay")
+            .field("element", &"<overlay::Element>")
+            .field("zustand", &self.zustand)
+            .field("mapper", &"<closure>")
+            .finish()
+    }
+}
+
+impl<Intern, Zustand, Extern, R: Renderer> Overlay<Extern, R>
+    for MapMitZustandOverlay<'_, Intern, Zustand, Extern, R>
+{
+    fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
+        self.element.layout(renderer, bounds).translate(Vector { x: position.x, y: position.y })
+    }
+
+    fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
+        self.element.draw(renderer, style, layout, cursor_position)
+    }
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &R,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Extern>,
+    ) -> event::Status {
+        todo!()
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &R,
+    ) -> mouse::Interaction {
+        self.element.mouse_interaction(layout, cursor_position, viewport, renderer)
     }
 }
