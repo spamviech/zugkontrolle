@@ -99,7 +99,7 @@ macro_rules! widget_newtype_methods {
             renderer: &$renderer,
         ) -> iced_native::mouse::Interaction {
             self.$record.as_widget().mouse_interaction(
-                state,
+                &state.children[0],
                 layout,
                 cursor_position,
                 viewport,
