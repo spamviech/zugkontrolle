@@ -1,7 +1,10 @@
 //! Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 //! mit potentieller Mutation eines Zustands erlaubt.
 
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    fmt::{self, Debug, Formatter},
+    ops::{Deref, DerefMut},
+};
 
 use iced_native::{
     event::{self, Event},
@@ -15,12 +18,48 @@ use iced_pure::{
     Element, Widget,
 };
 
+/// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
+#[derive(Debug)]
+pub struct MutTracer<'a, T> {
+    mut_ref: &'a mut T,
+    verändert: bool,
+}
+
+impl<'a, T> MutTracer<'a, T> {
+    /// Erzeuge einen neuen [MutTracer].
+    fn neu(mut_ref: &'a mut T) -> Self {
+        MutTracer { mut_ref, verändert: false }
+    }
+
+    /// Hat bereits ein Zugriff über [DerefMut] stattgefunden?
+    #[inline(always)]
+    fn verändert(&self) -> bool {
+        self.verändert
+    }
+}
+
+impl<T> Deref for MutTracer<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.mut_ref
+    }
+}
+
+impl<T> DerefMut for MutTracer<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.verändert = true;
+        self.mut_ref
+    }
+}
+
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
-struct MapMitZustand<'a, Intern, Zustand, Extern, R> {
+pub struct MapMitZustand<'a, Intern, Zustand, Extern, R> {
     element: Element<'a, Intern, R>,
     zustand: &'a dyn Fn() -> Zustand,
-    mapper: &'a dyn Fn(Intern, &mut Zustand) -> Option<Extern>,
+    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+    mapper: &'a dyn Fn(Intern, &mut MutTracer<'_, Zustand>, &mut event::Status) -> Option<Extern>,
 }
 
 impl<Intern, Zustand, Extern, R> Debug for MapMitZustand<'_, Intern, Zustand, Extern, R> {
@@ -28,6 +67,7 @@ impl<Intern, Zustand, Extern, R> Debug for MapMitZustand<'_, Intern, Zustand, Ex
         f.debug_struct("MapMitZustand")
             .field("element", &"<Element>")
             .field("zustand", &"<closure>")
+            .field("erzeuge_element", &"<closure>")
             .field("mapper", &"<closure>")
             .finish()
     }
@@ -94,7 +134,35 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Extern>,
     ) -> event::Status {
-        todo!()
+        let mut interne_nachrichten = Vec::new();
+        let mut interne_shell = Shell::new(&mut interne_nachrichten);
+        let mut event_status = self.element.as_widget_mut().on_event(
+            &mut state.children[0],
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            &mut interne_shell,
+        );
+        if interne_shell.are_widgets_invalid() {
+            shell.invalidate_widgets()
+        } else if interne_shell.is_layout_invalid() {
+            shell.invalidate_layout()
+        }
+        let zustand: &mut Zustand = state.state.downcast_mut();
+        let mut mut_tracer = MutTracer::neu(zustand);
+        for nachricht in interne_nachrichten {
+            if let Some(externe_nachricht) =
+                (self.mapper)(nachricht, &mut mut_tracer, &mut event_status)
+            {
+                shell.publish(externe_nachricht)
+            }
+        }
+        if mut_tracer.verändert() {
+            self.element = (self.erzeuge_element)(zustand)
+        }
+        event_status
     }
 
     fn mouse_interaction(
