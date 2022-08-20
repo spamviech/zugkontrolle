@@ -82,7 +82,7 @@ macro_rules! widget_newtype_methods {
         #[inline(always)]
         #[allow(unused_qualifications)]
         fn diff(&self, tree: &mut iced_pure::widget::Tree) {
-            tree.diff_children(&[self.$record])
+            tree.diff_children(&[&self.$record])
         }
     };
     ($record:tt, $renderer:ty $(, $message:ty)? => [mouse_interaction $(, $($methods: ident),+)?]) => {
