@@ -104,8 +104,9 @@ impl<'t> Frame<'t> {
 ///
 /// Ein Cache wird die [Geometry] nicht neu berechnen, sofern
 /// sich seine Dimensionen nicht verändert haben oder er explizit [geleert](Cache::leeren) wurde.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Cache(iced::canvas::Cache);
+
 impl Cache {
     /// Erstelle einen neuen [Cache].
     pub fn neu() -> Self {

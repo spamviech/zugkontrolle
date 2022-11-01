@@ -46,14 +46,12 @@ const GREY_OUT_OF_BOUNDS: Color =
 pub struct Knopf<T> {
     gleis: T,
     spurweite: Spurweite,
-    canvas: Cache,
-    in_bounds: bool,
 }
 
 impl<T> Knopf<T> {
     /// Erstelle einen neuen [Knopf].
     pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
-        Knopf { gleis, spurweite, canvas: Cache::neu(), in_bounds: false }
+        Knopf { gleis, spurweite }
     }
 }
 
@@ -89,17 +87,23 @@ impl<T: Zeichnen> Knopf<T> {
     }
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
-    type State = ();
+#[derive(Debug, Default)]
+struct Zustand {
+    canvas: Cache,
+    in_bounds: bool,
+}
 
-    fn draw(&self, _state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
-        vec![self.canvas.zeichnen(bounds.size(), |frame| {
+impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
+    type State = Zustand;
+
+    fn draw(&self, state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+        vec![state.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(
                 &border_path,
                 Fill {
-                    color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
+                    color: if state.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
                     rule: FillRule::EvenOdd,
                 },
             );
@@ -153,18 +157,18 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
 
     fn update(
         &self,
-        _state: &mut Self::State,
+        state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
         let in_bounds = cursor.is_over(&bounds);
-        if self.in_bounds != in_bounds {
-            self.canvas.leeren();
-            self.in_bounds = in_bounds;
+        if state.in_bounds != in_bounds {
+            state.canvas.leeren();
+            state.in_bounds = in_bounds;
         }
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if self.in_bounds => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if state.in_bounds => {
                 let Point { x, y } = cursor.position_in(&bounds).unwrap_or(Point { x: 0., y: 0. });
                 (
                     event::Status::Captured,
