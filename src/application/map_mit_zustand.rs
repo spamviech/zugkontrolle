@@ -54,24 +54,53 @@ impl<T> DerefMut for MutTracer<'_, T> {
     }
 }
 
-pub struct Zustand<Allgemein, Overlay> {
-    pub allgemein: Allgemein,
-    pub overlay: Overlay,
+#[derive(Debug)]
+struct Zustand<Allgemein, Overlay> {
+    allgemein: Allgemein,
+    overlay: Overlay,
 }
 
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
 pub struct MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> {
     element: Element<'a, NIntern, R>,
-    zustand: &'a dyn Fn() -> Zustand<ZAllgemein, ZOverlay>,
-    erzeuge_element: &'a dyn Fn(&Zustand<ZAllgemein, ZOverlay>) -> Element<'a, NIntern, R>,
+    erzeuge_zustand: &'a dyn Fn() -> Zustand<ZAllgemein, ZOverlay>,
+    erzeuge_element: &'a dyn Fn(&ZAllgemein, &ZOverlay) -> Element<'a, NIntern, R>,
     mapper: &'a dyn Fn(
         NIntern,
-        &mut MutTracer<'_, Zustand<ZAllgemein, ZOverlay>>,
+        &mut MutTracer<'_, ZAllgemein>,
+        &mut ZOverlay,
         &mut event::Status,
     ) -> Option<NExtern>,
     erzeuge_overlay: &'a dyn Fn(&ZOverlay) -> Option<overlay::Element<'a, NOverlay, R>>,
     mapper_overlay: &'a dyn Fn(NOverlay, &mut ZOverlay, &mut event::Status) -> Option<NExtern>,
+}
+
+impl<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
+    MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
+{
+    pub fn neu(
+        erzeuge_zustand: &'a dyn Fn() -> Zustand<ZAllgemein, ZOverlay>,
+        erzeuge_element: &'a dyn Fn(&ZAllgemein, &ZOverlay) -> Element<'a, NIntern, R>,
+        mapper: &'a dyn Fn(
+            NIntern,
+            &mut MutTracer<'_, ZAllgemein>,
+            &mut ZOverlay,
+            &mut event::Status,
+        ) -> Option<NExtern>,
+        erzeuge_overlay: &'a dyn Fn(&ZOverlay) -> Option<overlay::Element<'a, NOverlay, R>>,
+        mapper_overlay: &'a dyn Fn(NOverlay, &mut ZOverlay, &mut event::Status) -> Option<NExtern>,
+    ) -> MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> {
+        let Zustand { allgemein, overlay } = erzeuge_zustand();
+        MapMitZustand {
+            element: erzeuge_element(&allgemein, &overlay),
+            erzeuge_zustand,
+            erzeuge_element,
+            mapper,
+            erzeuge_overlay,
+            mapper_overlay,
+        }
+    }
 }
 
 impl<ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> Debug
@@ -80,7 +109,7 @@ impl<ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> Debug
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustand")
             .field("element", &"<Element>")
-            .field("zustand", &"<closure>")
+            .field("erzeuge_zustand", &"<closure>")
             .field("erzeuge_element", &"<closure>")
             .field("mapper", &"<closure>")
             .field("erzeuge_overlay", &"<closure>")
@@ -132,7 +161,7 @@ where
     }
 
     fn state(&self) -> State {
-        State::new((self.zustand)())
+        State::new((self.erzeuge_zustand)())
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -169,17 +198,18 @@ where
         } else if interne_shell.is_layout_invalid() {
             shell.invalidate_layout()
         }
-        let zustand: &mut Zustand<ZAllgemein, ZOverlay> = state.state.downcast_mut();
-        let mut mut_tracer = MutTracer::neu(zustand);
+        let Zustand { allgemein, overlay }: &mut Zustand<ZAllgemein, ZOverlay> =
+            state.state.downcast_mut();
+        let mut mut_tracer = MutTracer::neu(allgemein);
         for nachricht in interne_nachrichten {
             if let Some(externe_nachricht) =
-                (self.mapper)(nachricht, &mut mut_tracer, &mut event_status)
+                (self.mapper)(nachricht, &mut mut_tracer, overlay, &mut event_status)
             {
                 shell.publish(externe_nachricht)
             }
         }
         if mut_tracer.verändert() {
-            self.element = (self.erzeuge_element)(zustand)
+            self.element = (self.erzeuge_element)(allgemein, overlay)
         }
         event_status
     }
