@@ -18,10 +18,11 @@ use iced_pure::{
     widget::tree::{State, Tag, Tree},
     Element, Widget,
 };
+use parking_lot::RwLock;
 
 /// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
 #[derive(Debug)]
-pub struct MutTracer<'a, T> {
+struct MutTracer<'a, T> {
     mut_ref: &'a mut T,
     verändert: bool,
 }
@@ -54,87 +55,105 @@ impl<T> DerefMut for MutTracer<'_, T> {
     }
 }
 
-#[derive(Debug)]
-struct Zustand<Allgemein, Overlay> {
-    allgemein: Allgemein,
-    overlay: Overlay,
-}
-
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
-pub struct MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> {
-    element: Element<'a, NIntern, R>,
-    erzeuge_zustand: &'a dyn Fn() -> Zustand<ZAllgemein, ZOverlay>,
-    erzeuge_element: &'a dyn Fn(&ZAllgemein, &ZOverlay) -> Element<'a, NIntern, R>,
+pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
+    element: RwLock<Element<'a, Intern, R>>,
+    erzeuge_zustand: &'a dyn Fn() -> Zustand,
+    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<overlay::Element<'a, Intern, R>>,
     mapper: &'a dyn Fn(
-        NIntern,
-        &mut MutTracer<'_, ZAllgemein>,
-        &mut ZOverlay,
+        Intern,
+        &mut dyn DerefMut<Target = Zustand>,
         &mut event::Status,
-    ) -> Option<NExtern>,
-    erzeuge_overlay: &'a dyn Fn(&ZOverlay) -> Option<overlay::Element<'a, NOverlay, R>>,
-    mapper_overlay: &'a dyn Fn(NOverlay, &mut ZOverlay, &mut event::Status) -> Option<NExtern>,
+    ) -> Option<Extern>,
 }
 
-impl<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
-    MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
-{
-    pub fn neu(
-        erzeuge_zustand: &'a dyn Fn() -> Zustand<ZAllgemein, ZOverlay>,
-        erzeuge_element: &'a dyn Fn(&ZAllgemein, &ZOverlay) -> Element<'a, NIntern, R>,
-        mapper: &'a dyn Fn(
-            NIntern,
-            &mut MutTracer<'_, ZAllgemein>,
-            &mut ZOverlay,
-            &mut event::Status,
-        ) -> Option<NExtern>,
-        erzeuge_overlay: &'a dyn Fn(&ZOverlay) -> Option<overlay::Element<'a, NOverlay, R>>,
-        mapper_overlay: &'a dyn Fn(NOverlay, &mut ZOverlay, &mut event::Status) -> Option<NExtern>,
-    ) -> MapMitZustand<'a, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> {
-        let Zustand { allgemein, overlay } = erzeuge_zustand();
-        MapMitZustand {
-            element: erzeuge_element(&allgemein, &overlay),
-            erzeuge_zustand,
-            erzeuge_element,
-            mapper,
-            erzeuge_overlay,
-            mapper_overlay,
-        }
-    }
-}
-
-impl<ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> Debug
-    for MapMitZustand<'_, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
-{
+impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustand")
-            .field("element", &"<Element>")
+            .field("element", &"<RwLock<Element>>")
             .field("erzeuge_zustand", &"<closure>")
             .field("erzeuge_element", &"<closure>")
-            .field("mapper", &"<closure>")
             .field("erzeuge_overlay", &"<closure>")
-            .field("mapper_overlay", &"<closure>")
+            .field("mapper", &"<closure>")
             .finish()
     }
 }
 
-impl<ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R> Widget<NExtern, R>
-    for MapMitZustand<'_, ZAllgemein, ZOverlay, NIntern, NOverlay, NExtern, R>
+impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, R> {
+    pub fn neu(
+        erzeuge_zustand: &'a dyn Fn() -> Zustand,
+        erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+        erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<overlay::Element<'a, Intern, R>>,
+        mapper: &'a dyn Fn(
+            Intern,
+            &mut dyn DerefMut<Target = Zustand>,
+            &mut event::Status,
+        ) -> Option<Extern>,
+    ) -> Self {
+        let zustand = erzeuge_zustand();
+        let element = erzeuge_element(&zustand);
+        MapMitZustand {
+            element: RwLock::new(element),
+            erzeuge_zustand,
+            erzeuge_element,
+            erzeuge_overlay,
+            mapper,
+        }
+    }
+}
+
+fn synchronisiere_widget_layout_validierung<Intern, Extern>(
+    interne_shell: &Shell<'_, Intern>,
+    shell: &mut Shell<'_, Extern>,
+) {
+    if interne_shell.are_widgets_invalid() {
+        shell.invalidate_widgets()
+    } else if interne_shell.is_layout_invalid() {
+        shell.invalidate_layout()
+    }
+}
+
+fn konvertiere_nachrichten<'a, Zustand, Intern, Extern, R>(
+    interne_nachrichten: Vec<Intern>,
+    shell: &mut Shell<'_, Extern>,
+    zustand: &mut Zustand,
+    event_status: &mut event::Status,
+    mapper: &dyn Fn(
+        Intern,
+        &mut dyn DerefMut<Target = Zustand>,
+        &mut event::Status,
+    ) -> Option<Extern>,
+    element: &RwLock<Element<'a, Intern, R>>,
+    erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+) {
+    let mut mut_tracer = MutTracer::neu(zustand);
+    for nachricht in interne_nachrichten {
+        if let Some(externe_nachricht) = mapper(nachricht, &mut mut_tracer, event_status) {
+            shell.publish(externe_nachricht)
+        }
+    }
+    if mut_tracer.verändert() {
+        *element.write() = erzeuge_element(zustand);
+    }
+}
+
+impl<Zustand, Intern, Extern, R> Widget<Extern, R> for MapMitZustand<'_, Zustand, Intern, Extern, R>
 where
-    ZAllgemein: 'static,
-    ZOverlay: 'static,
+    Zustand: 'static,
     R: Renderer,
 {
     fn width(&self) -> Length {
-        self.element.as_widget().width()
+        self.element.read().as_widget().width()
     }
 
     fn height(&self) -> Length {
-        self.element.as_widget().height()
+        self.element.read().as_widget().height()
     }
 
     fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.as_widget().layout(renderer, limits)
+        self.element.read().as_widget().layout(renderer, limits)
     }
 
     fn draw(
@@ -146,7 +165,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget().draw(
+        self.element.read().as_widget().draw(
             &state.children[0],
             renderer,
             style,
@@ -157,7 +176,7 @@ where
     }
 
     fn tag(&self) -> Tag {
-        Tag::of::<Zustand<ZAllgemein, ZOverlay>>()
+        Tag::of::<Zustand>()
     }
 
     fn state(&self) -> State {
@@ -165,11 +184,11 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.element)]
+        vec![Tree::new(&*self.element.read())]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[&self.element])
+        tree.diff_children(&[&*self.element.read()])
     }
 
     fn on_event(
@@ -180,11 +199,11 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, NExtern>,
+        shell: &mut Shell<'_, Extern>,
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let mut event_status = self.element.as_widget_mut().on_event(
+        let mut event_status = self.element.write().as_widget_mut().on_event(
             &mut state.children[0],
             event,
             layout,
@@ -193,24 +212,17 @@ where
             clipboard,
             &mut interne_shell,
         );
-        if interne_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if interne_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        let Zustand { allgemein, overlay }: &mut Zustand<ZAllgemein, ZOverlay> =
-            state.state.downcast_mut();
-        let mut mut_tracer = MutTracer::neu(allgemein);
-        for nachricht in interne_nachrichten {
-            if let Some(externe_nachricht) =
-                (self.mapper)(nachricht, &mut mut_tracer, overlay, &mut event_status)
-            {
-                shell.publish(externe_nachricht)
-            }
-        }
-        if mut_tracer.verändert() {
-            self.element = (self.erzeuge_element)(allgemein, overlay)
-        }
+        let zustand: &mut Zustand = state.state.downcast_mut();
+        synchronisiere_widget_layout_validierung(&interne_shell, shell);
+        konvertiere_nachrichten(
+            interne_nachrichten,
+            shell,
+            zustand,
+            &mut event_status,
+            self.mapper,
+            &self.element,
+            self.erzeuge_element,
+        );
         event_status
     }
 
@@ -222,7 +234,7 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
+        self.element.read().as_widget().mouse_interaction(
             &state.children[0],
             layout,
             cursor_position,
@@ -235,45 +247,49 @@ where
         &'a self,
         state: &'a mut Tree,
         layout: Layout<'_>,
-        _renderer: &R,
-    ) -> Option<overlay::Element<'a, NExtern, R>> {
-        let zustand: &mut Zustand<ZAllgemein, ZOverlay> = state.state.downcast_mut();
-        (self.erzeuge_overlay)(&zustand.overlay).map(|overlay| {
-            let position = layout.position();
-            overlay::Element::new(
-                position,
-                Box::new(MapMitZustandOverlay {
-                    overlay,
-                    zustand: &mut zustand.overlay,
-                    mapper: &self.mapper_overlay,
-                }),
-            )
-        })
+        renderer: &R,
+    ) -> Option<overlay::Element<'a, Extern, R>> {
+        let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
+        let zustand: &mut Zustand = state.state.downcast_mut();
+        let overlay = (self.erzeuge_overlay)(zustand)?;
+        // let guard = element.read();
+        // let overlay = (self.erzeuge_overlay)(zustand)
+        //     .or_else(|| guard.as_widget().overlay(state, layout, renderer))?;
+        let map_mit_zustand_overlay =
+            MapMitZustandOverlay { element, erzeuge_element, overlay, zustand, mapper };
+        Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
     }
 }
 
-struct MapMitZustandOverlay<'a, ZOverlay, NOverlay, NExtern, R> {
-    overlay: overlay::Element<'a, NOverlay, R>,
-    zustand: &'a mut ZOverlay,
-    mapper: &'a dyn Fn(NOverlay, &mut ZOverlay, &mut event::Status) -> Option<NExtern>,
+struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
+    element: &'a RwLock<Element<'e, Intern, R>>,
+    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
+    overlay: overlay::Element<'a, Intern, R>,
+    zustand: &'a mut Zustand,
+    mapper: &'a dyn Fn(
+        Intern,
+        &mut dyn DerefMut<Target = Zustand>,
+        &mut event::Status,
+    ) -> Option<Extern>,
 }
 
-impl<ZOverlay, NOverlay, NExtern, R> Debug
-    for MapMitZustandOverlay<'_, ZOverlay, NOverlay, NExtern, R>
+impl<Zustand, Intern, Extern, R> Debug for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
 where
-    ZOverlay: Debug,
+    Zustand: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustandOverlay")
-            .field("element", &"<overlay::Element>")
+            .field("element", &"<RwLock<Element>>")
+            .field("erzeuge_element", &"<closure>")
+            .field("overlay", &"<overlay::Element>")
             .field("zustand", &self.zustand)
             .field("mapper", &"<closure>")
             .finish()
     }
 }
 
-impl<ZOverlay, NOverlay, NExtern, R> Overlay<NExtern, R>
-    for MapMitZustandOverlay<'_, ZOverlay, NOverlay, NExtern, R>
+impl<Zustand, Intern, Extern, R> Overlay<Extern, R>
+    for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
 where
     R: Renderer,
 {
@@ -292,7 +308,7 @@ where
         cursor_position: Point,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, NExtern>,
+        shell: &mut Shell<'_, Extern>,
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
@@ -304,18 +320,16 @@ where
             clipboard,
             &mut interne_shell,
         );
-        if interne_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if interne_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        for nachricht in interne_nachrichten {
-            if let Some(externe_nachricht) =
-                (self.mapper)(nachricht, self.zustand, &mut event_status)
-            {
-                shell.publish(externe_nachricht)
-            }
-        }
+        synchronisiere_widget_layout_validierung(&interne_shell, shell);
+        konvertiere_nachrichten(
+            interne_nachrichten,
+            shell,
+            self.zustand,
+            &mut event_status,
+            self.mapper,
+            self.element,
+            self.erzeuge_element,
+        );
         event_status
     }
 
