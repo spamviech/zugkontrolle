@@ -7,7 +7,7 @@ use iced::{
         widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
         Element,
     },
-    Alignment, Length,
+    Alignment, Length, Point,
 };
 use log::error;
 use num_traits::NumCast;
@@ -194,27 +194,23 @@ where
         let modal: Element<'_, _> = todo!();
         let _ = ();
 
-        Modal::neu(
-            modal,
-            &|message_box| {
-                let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } =
-                    message_box;
-                Element::new(
-                    iced_aw::pure::Card::new(
-                        Text::new(&*titel),
-                        Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
-                    )
-                    .foot(
-                        iced::pure::widget::Button::new(Text::new("Ok"))
-                            .on_press(NachrichtClone::SchließeMessageBox),
-                    )
-                    .width(Length::Shrink),
+        Modal::neu(modal, &|message_box| {
+            let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
+            Element::new(
+                iced_aw::pure::Card::new(
+                    Text::new(&*titel),
+                    Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
                 )
-                .map(Nachricht::from)
-                .map(modal::Nachricht::Underlay)
-            },
-            true,
-        )
+                .foot(
+                    iced::pure::widget::Button::new(Text::new("Ok"))
+                        .on_press(NachrichtClone::SchließeMessageBox),
+                )
+                .width(Length::Shrink),
+            )
+            .map(Nachricht::from)
+            .map(modal::Nachricht::Underlay)
+        })
+        .schließe_bei_esc()
         .into()
     }
 }
