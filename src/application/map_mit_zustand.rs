@@ -57,6 +57,8 @@ impl<T> DerefMut for MutTracer<'_, T> {
 
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
+///
+/// **ACHTUNG**: Das normale Overlay des Widgets wird nicht angezeigt!
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: RwLock<Element<'a, Intern, R>>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
@@ -247,14 +249,11 @@ where
         &'a self,
         state: &'a mut Tree,
         layout: Layout<'_>,
-        renderer: &R,
+        _renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
         let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
         let zustand: &mut Zustand = state.state.downcast_mut();
         let overlay = (self.erzeuge_overlay)(zustand)?;
-        // let guard = element.read();
-        // let overlay = (self.erzeuge_overlay)(zustand)
-        //     .or_else(|| guard.as_widget().overlay(state, layout, renderer))?;
         let map_mit_zustand_overlay =
             MapMitZustandOverlay { element, erzeuge_element, overlay, zustand, mapper };
         Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
