@@ -63,7 +63,7 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: RwLock<Element<'a, Intern, R>>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<overlay::Element<'a, Intern, R>>,
+    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
     mapper: &'a dyn Fn(
         Intern,
         &mut dyn DerefMut<Target = Zustand>,
@@ -87,7 +87,7 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     pub fn neu(
         erzeuge_zustand: &'a dyn Fn() -> Zustand,
         erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-        erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<overlay::Element<'a, Intern, R>>,
+        erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
         mapper: &'a dyn Fn(
             Intern,
             &mut dyn DerefMut<Target = Zustand>,
@@ -117,7 +117,7 @@ fn synchronisiere_widget_layout_validierung<Intern, Extern>(
     }
 }
 
-fn konvertiere_nachrichten<'a, Zustand, Intern, Extern, R>(
+fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     interne_nachrichten: Vec<Intern>,
     shell: &mut Shell<'_, Extern>,
     zustand: &mut Zustand,
@@ -216,7 +216,7 @@ where
         );
         let zustand: &mut Zustand = state.state.downcast_mut();
         synchronisiere_widget_layout_validierung(&interne_shell, shell);
-        konvertiere_nachrichten(
+        verarbeite_nachrichten(
             interne_nachrichten,
             shell,
             zustand,
@@ -251,11 +251,11 @@ where
         layout: Layout<'_>,
         _renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
-        let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
-        let zustand: &mut Zustand = state.state.downcast_mut();
-        let overlay = (self.erzeuge_overlay)(zustand)?;
+        let MapMitZustand { element, erzeuge_element, erzeuge_overlay, mapper, .. } = self;
+        let zustand: &Zustand = state.state.downcast_ref();
+        let overlay = erzeuge_overlay(zustand)?;
         let map_mit_zustand_overlay =
-            MapMitZustandOverlay { element, erzeuge_element, overlay, zustand, mapper };
+            MapMitZustandOverlay { element, erzeuge_element, overlay, state, mapper };
         Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
     }
 }
@@ -274,8 +274,8 @@ where
 struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
     element: &'a RwLock<Element<'e, Intern, R>>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
-    overlay: overlay::Element<'a, Intern, R>,
-    zustand: &'a mut Zustand,
+    overlay: Element<'a, Intern, R>,
+    state: &'a mut Tree,
     mapper: &'a dyn Fn(
         Intern,
         &mut dyn DerefMut<Target = Zustand>,
@@ -292,7 +292,7 @@ where
             .field("element", &"<RwLock<Element>>")
             .field("erzeuge_element", &"<closure>")
             .field("overlay", &"<overlay::Element>")
-            .field("zustand", &self.zustand)
+            .field("state", &"<Tree>")
             .field("mapper", &"<closure>")
             .finish()
     }
@@ -301,14 +301,25 @@ where
 impl<Zustand, Intern, Extern, R> Overlay<Extern, R>
     for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
 where
+    Zustand: 'static,
     R: Renderer,
 {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
-        self.overlay.layout(renderer, bounds).translate(Vector { x: position.x, y: position.y })
+        self.overlay
+            .as_widget()
+            .layout(renderer, &layout::Limits::new(bounds, bounds))
+            .translate(Vector { x: position.x, y: position.y })
     }
 
     fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
-        self.overlay.draw(renderer, style, layout, cursor_position)
+        self.overlay.as_widget().draw(
+            self.state,
+            renderer,
+            style,
+            layout,
+            cursor_position,
+            &layout.bounds(),
+        )
     }
 
     fn on_event(
@@ -322,7 +333,8 @@ where
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let mut event_status = self.overlay.on_event(
+        let mut event_status = self.overlay.as_widget_mut().on_event(
+            self.state,
             event,
             layout,
             cursor_position,
@@ -331,10 +343,11 @@ where
             &mut interne_shell,
         );
         synchronisiere_widget_layout_validierung(&interne_shell, shell);
-        konvertiere_nachrichten(
+        let zustand: &mut Zustand = self.state.state.downcast_mut();
+        verarbeite_nachrichten(
             interne_nachrichten,
             shell,
-            self.zustand,
+            zustand,
             &mut event_status,
             self.mapper,
             self.element,
@@ -350,6 +363,12 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
+        self.overlay.as_widget().mouse_interaction(
+            self.state,
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 }
