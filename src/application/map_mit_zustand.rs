@@ -260,6 +260,17 @@ where
     }
 }
 
+impl<'a, Zustand, Intern, Extern, R> From<MapMitZustand<'a, Zustand, Intern, Extern, R>>
+    for Element<'a, Extern, R>
+where
+    Zustand: 'static,
+    R: Renderer,
+{
+    fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, R>) -> Self {
+        Element::new(map_mit_zustand)
+    }
+}
+
 struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
     element: &'a RwLock<Element<'e, Intern, R>>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
