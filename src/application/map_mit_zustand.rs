@@ -186,11 +186,11 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&*self.element.read())]
+        vec![Tree::new(&*self.element.read()), Tree::new(Element::<Intern, R>::new(Dummy))]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[&*self.element.read()])
+        tree.diff_children(&[&*self.element.read(), &Element::<Intern, R>::new(Dummy)])
     }
 
     fn on_event(
@@ -254,8 +254,15 @@ where
         let MapMitZustand { element, erzeuge_element, erzeuge_overlay, mapper, .. } = self;
         let zustand: &Zustand = state.state.downcast_ref();
         let overlay = erzeuge_overlay(zustand)?;
-        let map_mit_zustand_overlay =
-            MapMitZustandOverlay { element, erzeuge_element, overlay, state, mapper };
+        let zustand: &mut Zustand = state.state.downcast_mut();
+        let map_mit_zustand_overlay = MapMitZustandOverlay {
+            element,
+            erzeuge_element,
+            overlay,
+            zustand,
+            state: &mut state.children[1],
+            mapper,
+        };
         Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
     }
 }
@@ -275,6 +282,7 @@ struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
     element: &'a RwLock<Element<'e, Intern, R>>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
     overlay: Element<'a, Intern, R>,
+    zustand: &'a mut Zustand,
     state: &'a mut Tree,
     mapper: &'a dyn Fn(
         Intern,
@@ -292,6 +300,7 @@ where
             .field("element", &"<RwLock<Element>>")
             .field("erzeuge_element", &"<closure>")
             .field("overlay", &"<overlay::Element>")
+            .field("zustand", &self.zustand)
             .field("state", &"<Tree>")
             .field("mapper", &"<closure>")
             .finish()
@@ -343,11 +352,10 @@ where
             &mut interne_shell,
         );
         synchronisiere_widget_layout_validierung(&interne_shell, shell);
-        let zustand: &mut Zustand = self.state.state.downcast_mut();
         verarbeite_nachrichten(
             interne_nachrichten,
             shell,
-            zustand,
+            self.zustand,
             &mut event_status,
             self.mapper,
             self.element,
@@ -370,5 +378,33 @@ where
             viewport,
             renderer,
         )
+    }
+}
+
+/// An invisible Widget.
+pub(in crate::application) struct Dummy;
+
+impl<N, R> Widget<N, R> for Dummy {
+    fn width(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(&self, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
+        layout::Node::new(Size::ZERO)
+    }
+
+    fn draw(
+        &self,
+        _state: &Tree,
+        _renderer: &mut R,
+        _style: &Style,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
     }
 }
