@@ -77,11 +77,11 @@ impl<T: Zeichnen> Knopf<T> {
         let höhe =
             NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
         // account for lines right at the edge
-        Container::new(
-            Canvas::new(self)
-                .width(Length::Units(breite.unwrap_or(standard_breite)))
-                .height(Length::Units(höhe)),
-        )
+        Container::new(Canvas::new(
+            self,
+            Length::Units(breite.unwrap_or(standard_breite)),
+            Length::Units(höhe),
+        ))
         .width(Length::Fill)
         .height(Length::Shrink)
     }

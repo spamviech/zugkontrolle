@@ -14,55 +14,35 @@ use log::trace;
 use crate::application::macros::widget_newtype_methods;
 
 /// [iced::Canvas]-Wrapper mit Touch-Event.
-pub struct Canvas<'a, P, Message, R> {
-    element: Element<'a, Message, R>,
-    program: P,
-    width: Option<Length>,
-    height: Option<Length>,
-}
+pub struct Canvas<'a, Message, R>(Element<'a, Message, R>);
 
-impl<P: Debug, Message, R> Debug for Canvas<'_, P, Message, R> {
+impl<Message, R> Debug for Canvas<'_, Message, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Canvas")
-            .field("element", &"<Element>")
-            .field("program", &self.program)
-            .field("width", &self.width)
-            .field("height", &self.height)
-            .finish()
+        f.debug_tuple("Canvas").field(&"<Element>").finish()
     }
 }
 
-impl<P: Program<Message>, Message, B: Backend> Canvas<'_, P, Message, Renderer<B>> {
+impl<'t, Message: 't, B: Backend> Canvas<'t, Message, Renderer<B>> {
     /// Erstelle einen neuen [Canvas].
-    pub fn new(program: P) -> Self {
-        let mut canvas = iced::pure::widget::Canvas::new(&program);
-        Canvas { element: canvas.into(), program, width: None, height: None }
-    }
-
-    pub fn width(mut self, width: Length) -> Self {
-        let mut canvas = iced::pure::widget::Canvas::new(&self.program).width(width);
-        self.width = Some(width);
-        if let Some(height) = self.height {
-            canvas = canvas.height(height);
-        }
-        self.element = canvas.into();
-        self
-    }
-
-    pub fn height(mut self, height: Length) -> Self {
-        let mut canvas = iced::pure::widget::Canvas::new(&self.program).height(height);
-        self.height = Some(height);
-        if let Some(width) = self.width {
+    pub fn new<P: 't + Program<Message>>(
+        program: P,
+        width: impl Into<Option<Length>>,
+        height: impl Into<Option<Length>>,
+    ) -> Self {
+        let mut canvas = iced::pure::widget::Canvas::new(program);
+        if let Some(width) = width.into() {
             canvas = canvas.height(width);
         }
-        self.element = canvas.into();
-        self
+        if let Some(height) = height.into() {
+            canvas = canvas.height(height);
+        }
+        Canvas(canvas.into())
     }
 }
 
-impl<P, Message, R> Widget<Message, R> for Canvas<'_, P, Message, R> {
+impl<Message, R> Widget<Message, R> for Canvas<'_, Message, R> {
     widget_newtype_methods! {
-        element, R, Message
+        0, R, Message
         => [width, height, layout, draw, children, diff, mouse_interaction, overlay]
     }
 
@@ -100,7 +80,7 @@ impl<P, Message, R> Widget<Message, R> for Canvas<'_, P, Message, R> {
                 },
             }
         }
-        self.element.as_widget_mut().on_event(
+        self.0.as_widget_mut().on_event(
             &mut state.children[0],
             event,
             layout,
@@ -112,8 +92,8 @@ impl<P, Message, R> Widget<Message, R> for Canvas<'_, P, Message, R> {
     }
 }
 
-impl<'a, P, Message, R> From<Canvas<'a, P, Message, R>> for Element<'a, Message, R> {
-    fn from(canvas: Canvas<'a, P, Message, R>) -> Self {
+impl<'a, Message: 'a, R: 'a> From<Canvas<'a, Message, R>> for Element<'a, Message, R> {
+    fn from(canvas: Canvas<'a, Message, R>) -> Self {
         Element::new(canvas)
     }
 }

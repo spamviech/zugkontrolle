@@ -109,12 +109,8 @@ where
             Column::new().push(top_row).push(Rule::horizontal(1).style(TRENNLINIE)).push(
                 row_with_scrollable.push(
                     Container::new(
-                        Element::new(
-                            touch_canvas::Canvas::new(gleise)
-                                .width(Length::Fill)
-                                .height(Length::Fill),
-                        )
-                        .map(Nachricht::from),
+                        Element::new(touch_canvas::Canvas::new(gleise, Length::Fill, Length::Fill))
+                            .map(Nachricht::from),
                     )
                     .width(Length::Fill)
                     .height(Length::Fill),
@@ -231,10 +227,8 @@ where
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
-    let bewegen =
-        touch_canvas::Canvas::new(bewegen).width(Length::Units(50)).height(Length::Units(50));
-    let drehen =
-        touch_canvas::Canvas::new(drehen).width(Length::Units(50)).height(Length::Units(50));
+    let bewegen = touch_canvas::Canvas::new(bewegen, Length::Units(50), Length::Units(50));
+    let drehen = touch_canvas::Canvas::new(drehen, Length::Units(50), Length::Units(50));
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
