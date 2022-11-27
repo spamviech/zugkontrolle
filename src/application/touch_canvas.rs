@@ -6,9 +6,10 @@ use iced_graphics::{backend::Backend, widget::canvas::Program, Renderer};
 use iced_native::{
     event,
     mouse::{self, Button},
-    touch, Clipboard, Layout, Length, Point, Shell,
+    touch,
+    widget::tree::Tree,
+    Clipboard, Element, Layout, Length, Point, Shell, Widget,
 };
-use iced_pure::{widget::tree::Tree, Element, Widget};
 use log::trace;
 
 use crate::application::macros::widget_newtype_methods;
@@ -41,7 +42,7 @@ impl<'t, Message: 't, B: Backend, T> Canvas<'t, Message, Renderer<B, T>> {
     }
 }
 
-impl<Message, R> Widget<Message, R> for Canvas<'_, Message, R> {
+impl<Message, R: iced_native::Renderer> Widget<Message, R> for Canvas<'_, Message, R> {
     widget_newtype_methods! {
         0, R, Message
         => [width, height, layout, draw, children, diff, mouse_interaction, overlay]

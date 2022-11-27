@@ -62,10 +62,6 @@ default-features = false
 version = "0.5.1"
 default-features = false
 
-[dependencies.iced_pure]
-version = "0.2.2"
-default_features = false
-
 [dependencies.iced_aw]
 version = "0.2.0"
 default-features = false

@@ -8,15 +8,13 @@ use std::{
 
 use iced_native::{
     event::{self, Event},
-    overlay, text, Clipboard, Layout, Length, Point, Shell,
-};
-use iced_pure::{
+    overlay, text,
     widget::{
         scrollable::{self, Scrollable},
         tree::{self, Tag, Tree},
         Button, Column, Container, Row, Rule, Space, Text,
     },
-    Element, Widget,
+    Clipboard, Element, Layout, Length, Point, Shell, Widget,
 };
 
 use crate::{
@@ -79,7 +77,7 @@ pub struct Lizenzen<'a, R> {
     element: Element<'a, InterneNachricht, R>,
     lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
     aktuell: &'a Option<UniCaseOrd<&'static str>>,
-    scrollable_style: Box<dyn 'a + scrollable::StyleSheet>,
+    scrollable_style: Box<dyn 'a + scrollable::StyleSheet<Style = ()>>,
 }
 
 impl<R> Debug for Lizenzen<'_, R> {
@@ -101,7 +99,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     pub fn neu(
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
         aktuell: &'a Option<UniCaseOrd<&'static str>>,
-        scrollable_style: impl Into<Box<dyn 'a + scrollable::StyleSheet>>,
+        scrollable_style: impl Into<Box<dyn 'a + scrollable::StyleSheet<Style = ()>>>,
     ) -> Self {
         let scrollable_style = scrollable_style.into();
         Lizenzen {
@@ -119,7 +117,7 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     fn erzeuge_element(
         zustand: &'a Zustand,
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
-        scrollable_style: Box<dyn scrollable::StyleSheet + 'a>,
+        scrollable_style: Box<dyn scrollable::StyleSheet<Style = ()> + 'a>,
     ) -> Element<'a, InterneNachricht, R> {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Fill);

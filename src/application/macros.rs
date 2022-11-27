@@ -57,14 +57,15 @@ macro_rules! widget_newtype_methods {
         #[allow(unused_qualifications)]
         fn draw(
             &self,
-            state: &iced_pure::widget::Tree,
+            state: &iced_native::widget::Tree,
             renderer: &mut $renderer,
             style: &iced_native::renderer::Style,
             layout: iced_native::layout::Layout<'_>,
             cursor_position: Point,
             viewport: &iced::Rectangle,
         ) {
-            self.$record.as_widget().draw(state, renderer, style, layout, cursor_position, viewport)
+            // TODO
+            // self.$record.as_widget().draw(state, renderer, style, layout, cursor_position, viewport)
         }
     };
     ($record:tt, $renderer:ty $(, $message:ty)? => [children $(, $($methods: ident),+)?]) => {
@@ -72,8 +73,8 @@ macro_rules! widget_newtype_methods {
 
         #[inline(always)]
         #[allow(unused_qualifications)]
-        fn children(&self) -> Vec<iced_pure::widget::Tree> {
-            vec![iced_pure::widget::Tree::new(&self.$record)]
+        fn children(&self) -> Vec<iced_native::widget::Tree> {
+            vec![iced_native::widget::Tree::new(&self.$record)]
         }
     };
     ($record:tt, $renderer:ty $(, $message:ty)? => [diff $(, $($methods: ident),+)?]) => {
@@ -81,7 +82,7 @@ macro_rules! widget_newtype_methods {
 
         #[inline(always)]
         #[allow(unused_qualifications)]
-        fn diff(&self, tree: &mut iced_pure::widget::Tree) {
+        fn diff(&self, tree: &mut iced_native::widget::Tree) {
             tree.diff_children(&[&self.$record])
         }
     };
@@ -92,7 +93,7 @@ macro_rules! widget_newtype_methods {
         #[allow(unused_qualifications)]
         fn mouse_interaction(
             &self,
-            state: &iced_pure::widget::Tree,
+            state: &iced_native::widget::Tree,
             layout: iced_native::Layout<'_>,
             cursor_position: iced::Point,
             viewport: &iced::Rectangle,
@@ -132,7 +133,7 @@ macro_rules! widget_newtype_methods {
         #[allow(unused_qualifications)]
         fn overlay<'macro_overlay_lt>(
             &'macro_overlay_lt self,
-            state: &'macro_overlay_lt mut iced_pure::widget::Tree,
+            state: &'macro_overlay_lt mut iced_native::widget::Tree,
             layout: iced_native::Layout<'_>,
             renderer: &$renderer,
         ) -> Option<iced_native::overlay::Element<'macro_overlay_lt, $($message)?, $renderer>> {
@@ -146,7 +147,7 @@ macro_rules! widget_newtype_methods {
         #[allow(unused_qualifications)]
         fn on_event(
             &mut self,
-            state: &mut iced_pure::widget::Tree,
+            state: &mut iced_native::widget::Tree,
             event: iced_native::Event,
             layout: iced_native::Layout<'_>,
             cursor_position: iced::Point,

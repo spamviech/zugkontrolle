@@ -6,13 +6,13 @@ use std::{
 };
 
 use iced_aw::pure::{NumberInput, TabLabel, Tabs};
-use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Shell};
-use iced_pure::{
+use iced_native::{
+    event, text,
     widget::{
         tree::{State, Tag, Tree},
         Column, Radio, Row, Text,
     },
-    Element, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
 };
 use log::error;
 

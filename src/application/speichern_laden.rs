@@ -3,14 +3,12 @@
 use std::fmt::Debug;
 
 use iced_native::{
-    event, overlay, text, Alignment, Clipboard, Event, Layout, Length, Point, Shell,
-};
-use iced_pure::{
+    event, overlay, text,
     widget::{
         tree::{self, Tag, Tree},
         Button, Column, Row, Text, TextInput,
     },
-    Element, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Shell, Widget,
 };
 
 use crate::application::{macros::widget_newtype_methods, style::hintergrund};

@@ -8,14 +8,12 @@ use std::{
 use iced_aw::pure::Card;
 use iced_native::{
     event::{self, Event},
-    text, Alignment, Clipboard, Font, Layout, Length, Point, Renderer, Shell,
-};
-use iced_pure::{
+    text,
     widget::{
         tree::{self, Tag, Tree},
         Button, Checkbox, Column, Container, Row, Scrollable, Text, TextInput,
     },
-    Element, Widget,
+    Alignment, Clipboard, Element, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 
 use crate::{

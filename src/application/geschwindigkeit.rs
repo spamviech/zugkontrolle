@@ -8,14 +8,13 @@ use std::{
 };
 
 use iced_aw::pure::{Card, TabLabel, Tabs};
-use iced_native::{event, text, Clipboard, Event, Font, Layout, Length, Point, Renderer, Shell};
-use iced_pure::{
-    overlay,
+use iced_native::{
+    event, overlay, text,
     widget::{
         tree::{self, Tag, Tree},
         Button, Column, Radio, Row, Scrollable, Slider, Text, TextInput,
     },
-    Element, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 use log::error;
 use nonempty::NonEmpty;

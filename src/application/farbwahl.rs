@@ -7,9 +7,10 @@ use iced_native::{
     layout::{self, Layout},
     mouse,
     renderer::{Quad, Renderer, Style},
-    touch, Background, Clipboard, Color, Length, Point, Rectangle, Shell, Size,
+    touch,
+    widget::tree::Tree,
+    Background, Clipboard, Color, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
-use iced_pure::{widget::tree::Tree, Element, Widget};
 
 use crate::typen::{
     farbe::Farbe,

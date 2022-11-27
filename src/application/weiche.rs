@@ -3,13 +3,13 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
 use iced_aw::pure::Card;
-use iced_native::{event, overlay, text, Clipboard, Event, Font, Layout, Length, Point, Shell};
-use iced_pure::{
+use iced_native::{
+    event, overlay, text,
     widget::{
         tree::{self, Tag, Tree},
         Button, Column, Row, Text, TextInput,
     },
-    Element, Widget,
+    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
 };
 
 use crate::{

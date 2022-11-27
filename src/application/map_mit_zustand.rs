@@ -10,13 +10,10 @@ use iced_native::{
     event::{self, Event},
     layout::{self, Layout},
     mouse,
-    renderer::{Renderer, Style},
-    Clipboard, Length, Point, Rectangle, Shell, Size, Vector,
-};
-use iced_pure::{
     overlay::{self, Overlay},
+    renderer::{Renderer, Style},
     widget::tree::{State, Tag, Tree},
-    Element, Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use parking_lot::RwLock;
 
@@ -167,14 +164,14 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.element.read().as_widget().draw(
-            &state.children[0],
-            renderer,
-            style,
-            layout,
-            cursor_position,
-            viewport,
-        )
+        // self.element.read().as_widget().draw(
+        //     &state.children[0],
+        //     renderer,
+        //     style,
+        //     layout,
+        //     cursor_position,
+        //     viewport,
+        // )
     }
 
     fn tag(&self) -> Tag {
@@ -321,14 +318,14 @@ where
     }
 
     fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
-        self.overlay.as_widget().draw(
-            self.state,
-            renderer,
-            style,
-            layout,
-            cursor_position,
-            &layout.bounds(),
-        )
+        // self.overlay.as_widget().draw(
+        //     self.state,
+        //     renderer,
+        //     style,
+        //     layout,
+        //     cursor_position,
+        //     &layout.bounds(),
+        // )
     }
 
     fn on_event(
@@ -384,7 +381,7 @@ where
 /// An invisible Widget.
 pub(in crate::application) struct Dummy;
 
-impl<N, R> Widget<N, R> for Dummy {
+impl<N, R: Renderer> Widget<N, R> for Dummy {
     fn width(&self) -> Length {
         Length::Shrink
     }
