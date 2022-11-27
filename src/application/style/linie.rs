@@ -1,6 +1,7 @@
 //! Style Strukturen für eine [iced::widget::Rule].
 
 use iced::{
+    theme::{self, Theme},
     widget::rule::{Appearance, FillMode, StyleSheet},
     Color,
 };
@@ -20,10 +21,16 @@ pub struct Linie {
 }
 
 impl StyleSheet for Linie {
-    type Style = ();
+    type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         let Linie { farbe: color, breite: width, radius } = *self;
         Appearance { color, radius, width, fill_mode: FillMode::Full }
+    }
+}
+
+impl From<Linie> for theme::Rule {
+    fn from(linie: Linie) -> Self {
+        theme::Rule::Custom(Box::new(linie))
     }
 }

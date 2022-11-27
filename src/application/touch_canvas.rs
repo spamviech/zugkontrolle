@@ -26,7 +26,7 @@ impl<Message, R> Debug for Canvas<'_, Message, R> {
 
 impl<'t, Message: 't, B: Backend, T> Canvas<'t, Message, Renderer<B, T>> {
     /// Erstelle einen neuen [Canvas].
-    pub fn new<P: 't + Program<Message>>(
+    pub fn new<P: 't + Program<Message, T>>(
         program: P,
         width: impl Into<Option<Length>>,
         height: impl Into<Option<Length>>,
@@ -94,7 +94,9 @@ impl<Message, R: iced_native::Renderer> Widget<Message, R> for Canvas<'_, Messag
     }
 }
 
-impl<'a, Message: 'a, R: 'a> From<Canvas<'a, Message, R>> for Element<'a, Message, R> {
+impl<'a, Message: 'a, R: 'a + iced_native::Renderer> From<Canvas<'a, Message, R>>
+    for Element<'a, Message, R>
+{
     fn from(canvas: Canvas<'a, Message, R>) -> Self {
         Element::new(canvas)
     }

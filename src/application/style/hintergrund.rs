@@ -70,7 +70,7 @@ impl button::StyleSheet for Hintergrund {
     fn active(&self, style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(iced::Background::Color(self.color())),
-            ..container::Appearance::default()
+            ..button::Appearance::default()
         }
     }
 }

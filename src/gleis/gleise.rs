@@ -7,6 +7,7 @@ use std::{
 
 use iced::{
     mouse,
+    theme::{self, Theme},
     widget::canvas::{event, Cursor, Event, Geometry, Program},
     Rectangle,
 };
@@ -583,7 +584,13 @@ impl<L: Leiter> Program<Nachricht> for Gleise<L> {
     type State = ();
 
     #[inline(always)]
-    fn draw(&self, state: &Self::State, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+    fn draw(
+        &self,
+        state: &Self::State,
+        theme: &Theme,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Vec<Geometry> {
         self.draw(state, bounds, cursor)
     }
 

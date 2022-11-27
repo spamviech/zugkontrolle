@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Debug, Display, Formatter};
 
-use iced_aw::pure::Card;
+use iced_aw::Card;
 use iced_native::{
     event, overlay, text,
     widget::{

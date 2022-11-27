@@ -1,6 +1,7 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
 use iced::{
+    theme::{self, Theme},
     widget::{
         button,
         container::{Appearance, StyleSheet},
@@ -32,7 +33,7 @@ pub enum Anzeige {
 }
 
 impl StyleSheet for Anzeige {
-    type Style = ();
+    type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         match self {
@@ -62,7 +63,9 @@ impl StyleSheet for Auswahl {
 }
 
 impl button::StyleSheet for Auswahl {
-    fn active(&self) -> button::Appearance {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(Background::Color(self.0.into())),
             ..button::Appearance::default()

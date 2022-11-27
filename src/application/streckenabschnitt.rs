@@ -5,7 +5,7 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::pure::Card;
+use iced_aw::Card;
 use iced_native::{
     event::{self, Event},
     text,

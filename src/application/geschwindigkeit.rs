@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use iced_aw::pure::{Card, TabLabel, Tabs};
+use iced_aw::{Card, TabLabel, Tabs};
 use iced_native::{
     event, overlay, text,
     widget::{

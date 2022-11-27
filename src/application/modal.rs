@@ -10,8 +10,8 @@ use iced_native::{
     layout, mouse, overlay,
     renderer::{Renderer, Style},
     widget::{
+        container::{self, Container},
         tree::{self, Tag, Tree},
-        Container,
     },
     Clipboard, Element, Event, Layout, Length, Point, Shell, Widget,
 };
@@ -145,10 +145,13 @@ fn bearbeite_modal_nachrichten<Overlay, ElementNachricht>(
     }
 }
 
-impl<Overlay, ElementNachricht, R: Renderer> Widget<ElementNachricht, R>
+impl<Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
     for Modal<'_, Overlay, ElementNachricht, R>
 where
     Overlay: 'static,
+    R: Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
     // TODO widget_newtype_methods!-Macro verwenden
     fn width(&self) -> Length {
@@ -193,19 +196,21 @@ where
         &self,
         state: &Tree,
         renderer: &mut R,
+        theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // self.underlay.as_widget().draw(
-        //     &state.children[0],
-        //     renderer,
-        //     style,
-        //     layout,
-        //     cursor_position,
-        //     viewport,
-        // )
+        self.underlay.as_widget().draw(
+            &state.children[0],
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn mouse_interaction(
@@ -296,6 +301,8 @@ where
     Inner: 'static,
     Nachricht: 'a,
     R: 'a + Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -311,8 +318,12 @@ struct ModalOverlay<'a, Overlay, ElementNachricht, R> {
     state: &'a mut Tree,
 }
 
-impl<'a, Overlay, ElementNachricht: 'a, R: 'a + Renderer>
-    ModalOverlay<'a, Overlay, ElementNachricht, R>
+impl<'a, Overlay, ElementNachricht, R> ModalOverlay<'a, Overlay, ElementNachricht, R>
+where
+    ElementNachricht: 'a,
+    R: 'a + Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
     fn neu_element(
         overlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
@@ -365,18 +376,26 @@ impl<Overlay, ElementNachricht, R: Renderer> overlay::Overlay<ElementNachricht, 
         layout
     }
 
-    fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
-        // match &self.element_or_overlay {
-        //     Either::Left(element) => element.as_widget().draw(
-        //         self.state,
-        //         renderer,
-        //         style,
-        //         layout,
-        //         cursor_position,
-        //         &layout.bounds(),
-        //     ),
-        //     Either::Right(overlay) => overlay.draw(renderer, style, layout, cursor_position),
-        // }
+    fn draw(
+        &self,
+        renderer: &mut R,
+        theme: &<R as Renderer>::Theme,
+        style: &Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) {
+        match &self.element_or_overlay {
+            Either::Left(element) => element.as_widget().draw(
+                self.state,
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                &layout.bounds(),
+            ),
+            Either::Right(overlay) => overlay.draw(renderer, theme, style, layout, cursor_position),
+        }
     }
 
     fn on_event(

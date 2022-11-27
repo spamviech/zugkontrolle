@@ -5,7 +5,7 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::pure::{NumberInput, TabLabel, Tabs};
+use iced_aw::{NumberInput, TabLabel, Tabs};
 use iced_native::{
     event, text,
     widget::{

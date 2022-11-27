@@ -3,6 +3,7 @@
 use iced::{
     alignment::{Horizontal, Vertical},
     mouse,
+    theme::{self, Theme},
     widget::{
         canvas::{event, Cursor, Event, Geometry, Program},
         Container,
@@ -95,7 +96,13 @@ struct Zustand {
 impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
     type State = Zustand;
 
-    fn draw(&self, state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    fn draw(
+        &self,
+        state: &Self::State,
+        theme: &Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
         vec![state.canvas.zeichnen(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());

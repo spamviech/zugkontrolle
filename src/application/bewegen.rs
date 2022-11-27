@@ -81,10 +81,16 @@ impl Bewegen {
     }
 }
 
-impl Program<Nachricht> for Bewegen {
+impl<Theme> Program<Nachricht, Theme> for Bewegen {
     type State = ();
 
-    fn draw(&self, _state: &Self::State, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    fn draw(
+        &self,
+        _state: &Self::State,
+        theme: &Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
         let size = bounds.size();
         let width = Skalar(size.width);
         let height = Skalar(size.height);

@@ -63,9 +63,12 @@ version = "0.5.1"
 default-features = false
 
 [dependencies.iced_aw]
-version = "0.2.0"
+# version = "0.2.0"
+git = "https://github.com/iced-rs/iced_aw"
+rev = "c6a3bfdc4d01d28aeb433d42628e80a620f78bb3"
 default-features = false
-features = ["card", "tab_bar", "tabs", "number_input", "glow", "pure"]
+# colors is required by card, but not implied due to a bug; not used directly
+features = ["card", "tab_bar", "tabs", "number_input", "glow", "colors"]
 
 # can't be used on non-raspi systems
 # raspi 0/1

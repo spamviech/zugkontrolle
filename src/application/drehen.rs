@@ -37,10 +37,16 @@ impl Drehen {
     }
 }
 
-impl Program<Winkel> for Drehen {
+impl<Theme> Program<Winkel, Theme> for Drehen {
     type State = ();
 
-    fn draw(&self, _state: &Self::State, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+    fn draw(
+        &self,
+        _state: &Self::State,
+        theme: &Theme,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Vec<Geometry> {
         let size = bounds.size();
         vec![self.canvas.zeichnen(size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));

@@ -13,7 +13,7 @@ use iced_native::{
     overlay::{self, Overlay},
     renderer::{Renderer, Style},
     widget::tree::{State, Tag, Tree},
-    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use parking_lot::RwLock;
 
@@ -159,19 +159,21 @@ where
         &self,
         state: &Tree,
         renderer: &mut R,
+        theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // self.element.read().as_widget().draw(
-        //     &state.children[0],
-        //     renderer,
-        //     style,
-        //     layout,
-        //     cursor_position,
-        //     viewport,
-        // )
+        self.element.read().as_widget().draw(
+            &state.children[0],
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn tag(&self) -> Tag {
@@ -317,15 +319,23 @@ where
             .translate(Vector { x: position.x, y: position.y })
     }
 
-    fn draw(&self, renderer: &mut R, style: &Style, layout: Layout<'_>, cursor_position: Point) {
-        // self.overlay.as_widget().draw(
-        //     self.state,
-        //     renderer,
-        //     style,
-        //     layout,
-        //     cursor_position,
-        //     &layout.bounds(),
-        // )
+    fn draw(
+        &self,
+        renderer: &mut R,
+        theme: &<R as Renderer>::Theme,
+        style: &Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) {
+        self.overlay.as_widget().draw(
+            self.state,
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            &layout.bounds(),
+        )
     }
 
     fn on_event(
@@ -398,6 +408,7 @@ impl<N, R: Renderer> Widget<N, R> for Dummy {
         &self,
         _state: &Tree,
         _renderer: &mut R,
+        _theme: &<R as Renderer>::Theme,
         _style: &Style,
         _layout: Layout<'_>,
         _cursor_position: Point,

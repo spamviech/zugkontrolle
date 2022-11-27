@@ -1,6 +1,7 @@
 //! Style-Strukturen für ein [iced::widget::Scrollable].
 
 use iced::{
+    theme::{self, Theme},
     widget::scrollable::{Scrollbar, Scroller, StyleSheet},
     Color,
 };
@@ -43,15 +44,23 @@ impl Sammlung {
 }
 
 impl StyleSheet for Sammlung {
-    fn active(&self) -> Scrollbar {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> Scrollbar {
         self.scrollbar(0.7)
     }
 
-    fn hovered(&self) -> Scrollbar {
+    fn hovered(&self, style: &Self::Style) -> Scrollbar {
         self.scrollbar(0.6)
     }
 
-    fn dragging(&self) -> Scrollbar {
+    fn dragging(&self, style: &Self::Style) -> Scrollbar {
         self.scrollbar(0.5)
+    }
+}
+
+impl From<Sammlung> for theme::Scrollable {
+    fn from(sammlung: Sammlung) -> Self {
+        theme::Scrollable::Custom(Box::new(sammlung))
     }
 }

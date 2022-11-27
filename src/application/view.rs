@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use iced::{
     widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
-    Alignment, Element, Length, Point,
+    Alignment, Element, Length, Point, Renderer,
 };
 use log::error;
 use num_traits::NumCast;
@@ -17,7 +17,10 @@ use crate::{
         lizenzen::{self, Lizenzen},
         modal::{self, Modal},
         speichern_laden, streckenabschnitt,
-        style::{linie::TRENNLINIE, sammlung::Sammlung},
+        style::{
+            linie::{Linie, TRENNLINIE},
+            sammlung::Sammlung,
+        },
         touch_canvas, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht,
         NachrichtClone, Zugkontrolle,
     },
@@ -188,9 +191,9 @@ where
         let _ = ();
 
         Modal::neu(modal, &|message_box| {
-            let MessageBox { titel, nachricht, button_zustand, scrollable_zustand } = message_box;
+            let MessageBox { titel, nachricht } = message_box;
             Element::new(
-                iced_aw::pure::Card::new(
+                iced_aw::Card::new(
                     Text::new(&*titel),
                     Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
                 )

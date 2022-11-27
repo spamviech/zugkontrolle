@@ -12,7 +12,11 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{widget::Radio, Application, Command, Element, Settings, Subscription};
+use iced::{
+    application::{Appearance, Application, StyleSheet},
+    widget::Radio,
+    Color, Command, Element, Renderer, Settings, Subscription, Theme,
+};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -463,6 +467,7 @@ where
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);
     type Message = Nachricht<L, S>;
+    type Theme = Theme;
 
     fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;
@@ -603,7 +608,7 @@ where
         command
     }
 
-    fn view(&self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
         self.view()
     }
 
