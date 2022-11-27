@@ -7,8 +7,9 @@ use std::{
 };
 
 use iced::{
-    canvas::{event, Cursor, Event},
-    mouse, Rectangle,
+    mouse,
+    widget::canvas::{event, Cursor, Event},
+    Rectangle,
 };
 use log::error;
 use parking_lot::Mutex;

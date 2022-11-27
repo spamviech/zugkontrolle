@@ -9,7 +9,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use iced::{button, scrollable, Command};
+use iced::{
+    widget::{button, scrollable},
+    Command,
+};
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 

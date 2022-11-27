@@ -1,7 +1,7 @@
-//! Style Strukturen für eine [iced::Rule].
+//! Style Strukturen für eine [iced::widget::Rule].
 
 use iced::{
-    rule::{FillMode, Style, StyleSheet},
+    widget::rule::{Appearance, FillMode, StyleSheet},
     Color,
 };
 
@@ -20,8 +20,10 @@ pub struct Linie {
 }
 
 impl StyleSheet for Linie {
-    fn style(&self) -> Style {
+    type Style = ();
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
         let Linie { farbe: color, breite: width, radius } = *self;
-        Style { color, radius, width, fill_mode: FillMode::Full }
+        Appearance { color, radius, width, fill_mode: FillMode::Full }
     }
 }

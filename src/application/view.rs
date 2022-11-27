@@ -3,11 +3,8 @@
 use std::fmt::Debug;
 
 use iced::{
-    pure::{
-        widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
-        Element,
-    },
-    Alignment, Length, Point,
+    widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
+    Alignment, Element, Length, Point,
 };
 use log::error;
 use num_traits::NumCast;
@@ -198,7 +195,7 @@ where
                     Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
                 )
                 .foot(
-                    iced::pure::widget::Button::new(Text::new("Ok"))
+                    iced::widget::Button::new(Text::new("Ok"))
                         .on_press(NachrichtClone::SchließeMessageBox),
                 )
                 .width(Length::Shrink),

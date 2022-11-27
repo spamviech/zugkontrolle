@@ -1,8 +1,10 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
 use iced::{
-    button,
-    container::{Style, StyleSheet},
+    widget::{
+        button,
+        container::{Appearance, StyleSheet},
+    },
     Background, Color,
 };
 
@@ -13,8 +15,9 @@ use crate::typen::farbe::Farbe;
 pub struct Beschreibung;
 
 impl StyleSheet for Beschreibung {
-    fn style(&self) -> Style {
-        Style { text_color: Some(Color::BLACK), ..Default::default() }
+    type Style = ();
+    fn appearance(&self, style: &Self::Style) -> Appearance {
+        Appearance { text_color: Some(Color::BLACK), ..Appearance::default() }
     }
 }
 
@@ -29,13 +32,17 @@ pub enum Anzeige {
 }
 
 impl StyleSheet for Anzeige {
-    fn style(&self) -> Style {
+    type Style = ();
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
         match self {
-            Anzeige::Farbe(farbe) => {
-                Style { background: Some(Background::Color((*farbe).into())), ..Default::default() }
+            Anzeige::Farbe(farbe) => Appearance {
+                background: Some(Background::Color((*farbe).into())),
+                ..Appearance::default()
             },
-            Anzeige::Deaktiviert => {
-                Style { text_color: Some(Color::from_rgb(0.5, 0.5, 0.5)), ..Default::default() }
+            Anzeige::Deaktiviert => Appearance {
+                text_color: Some(Color::from_rgb(0.5, 0.5, 0.5)),
+                ..Appearance::default()
             },
         }
     }
@@ -47,13 +54,18 @@ impl StyleSheet for Anzeige {
 pub struct Auswahl(pub Farbe);
 
 impl StyleSheet for Auswahl {
-    fn style(&self) -> Style {
-        Style { background: Some(Background::Color(self.0.into())), ..Default::default() }
+    type Style = ();
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
+        Appearance { background: Some(Background::Color(self.0.into())), ..Appearance::default() }
     }
 }
 
 impl button::StyleSheet for Auswahl {
-    fn active(&self) -> button::Style {
-        button::Style { background: Some(Background::Color(self.0.into())), ..Default::default() }
+    fn active(&self) -> button::Appearance {
+        button::Appearance {
+            background: Some(Background::Color(self.0.into())),
+            ..button::Appearance::default()
+        }
     }
 }

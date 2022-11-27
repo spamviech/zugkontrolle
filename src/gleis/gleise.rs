@@ -7,7 +7,7 @@ use std::{
 
 use iced::{
     mouse,
-    pure::widget::canvas::{event, Cursor, Event, Geometry, Program},
+    widget::canvas::{event, Cursor, Event, Geometry, Program},
     Rectangle,
 };
 use log::error;

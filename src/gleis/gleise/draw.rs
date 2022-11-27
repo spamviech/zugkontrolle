@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use iced::{
     alignment::{Horizontal, Vertical},
-    canvas::{Cursor, Geometry},
+    widget::canvas::{Cursor, Geometry},
     Point,
 };
 use rstar::primitives::Rectangle;
@@ -29,8 +29,10 @@ use crate::{
     steuerung::geschwindigkeit::Leiter,
     typen::{
         canvas::{
+            fill::{self, Fill, FillRule},
             pfad::{self, Transformation},
-            Color, Fill, FillRule, Frame, Position, Stroke, Text,
+            stroke::{self, Stroke},
+            Color, Frame, Position, Text,
         },
         farbe::Farbe,
         mm::Spurweite,
@@ -69,7 +71,10 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
                 frame.with_save(|frame| {
                     let Farbe { rot, grün, blau } = *streckenabschnitt_farbe;
                     let color = Color { r: rot, g: grün, b: blau, a: alpha };
-                    frame.fill(&path, Fill { color, rule: FillRule::EvenOdd });
+                    frame.fill(
+                        &path,
+                        Fill { style: fill::Style::Solid(color), rule: FillRule::EvenOdd },
+                    );
                 });
             }
         })
@@ -94,9 +99,9 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
                     frame.stroke(
                         &path,
                         Stroke {
-                            color: Color { a, ..Color::BLACK },
+                            style: stroke::Style::Solid(Color { a, ..Color::BLACK }),
                             width: 1.5,
-                            ..Default::default()
+                            ..Stroke::default()
                         },
                     );
                 });
@@ -140,10 +145,20 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
                     path_builder.line_to(verbindung_position + richtung);
                     path_builder.line_to(verbindung_position - richtung_seite);
                     let path = path_builder.baue();
-                    frame.stroke(&path, Stroke { color, width: 1.5, ..Default::default() });
+                    frame.stroke(
+                        &path,
+                        Stroke {
+                            style: stroke::Style::Solid(color),
+                            width: 1.5,
+                            ..Stroke::default()
+                        },
+                    );
                     // fill on connect/snap for drag&drop
                     if andere_gehalten {
-                        frame.fill(&path, Fill { color, ..Default::default() });
+                        frame.fill(
+                            &path,
+                            Fill { style: fill::Style::Solid(color), ..Fill::default() },
+                        );
                     }
                 });
             });

@@ -3,14 +3,11 @@
 use iced::{
     alignment::{Horizontal, Vertical},
     mouse,
-    pure::{
-        widget::{
-            canvas::{event, Cursor, Event, Geometry, Program},
-            Container,
-        },
-        Element,
+    widget::{
+        canvas::{event, Cursor, Event, Geometry, Program},
+        Container,
     },
-    Length, Point, Rectangle,
+    Element, Length, Point, Rectangle,
 };
 use num_traits::NumCast;
 
@@ -19,8 +16,10 @@ use crate::{
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
+            fill::{self, Fill, FillRule},
             pfad::{Pfad, Transformation},
-            Cache, Color, Fill, FillRule, Stroke, Text,
+            stroke::{self, Stroke},
+            Cache, Color, Text,
         },
         mm::Spurweite,
         rechteck::Rechteck,
@@ -103,13 +102,21 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
             frame.fill(
                 &border_path,
                 Fill {
-                    color: if state.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
+                    style: fill::Style::Solid(if state.in_bounds {
+                        GREY_IN_BOUNDS
+                    } else {
+                        GREY_OUT_OF_BOUNDS
+                    }),
                     rule: FillRule::EvenOdd,
                 },
             );
             frame.stroke(
                 &border_path,
-                Stroke { color: Color::BLACK, width: BORDER_WIDTH as f32, ..Default::default() },
+                Stroke {
+                    style: stroke::Style::Solid(Color::BLACK),
+                    width: BORDER_WIDTH as f32,
+                    ..Default::default()
+                },
             );
             let spurweite = self.spurweite;
             let rechteck = self.gleis.rechteck(spurweite);
@@ -133,7 +140,11 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for 
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
-                        Stroke { color: Color::BLACK, width: STROKE_WIDTH.0, ..Default::default() },
+                        Stroke {
+                            style: stroke::Style::Solid(Color::BLACK),
+                            width: STROKE_WIDTH.0,
+                            ..Default::default()
+                        },
                     );
                 });
             }

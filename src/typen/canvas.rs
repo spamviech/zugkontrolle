@@ -10,14 +10,15 @@ use crate::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
 pub mod pfad;
 
 // re-exports
+pub use self::pfad::{Bogen, Pfad, Transformation};
 pub use iced::{
     widget::canvas::{
+        fill::{self, Fill},
         stroke::{self, Stroke},
-        Fill, FillRule, Text,
+        Text,
     },
     Color,
 };
-pub use pfad::{Bogen, Pfad, Transformation};
 
 /// Newtype auf [iced::widget::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///

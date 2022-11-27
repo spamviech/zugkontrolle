@@ -1,15 +1,15 @@
-//! Style-Strukturen für ein [iced::Scrollable].
+//! Style-Strukturen für ein [iced::widget::Scrollable].
 
 use iced::{
-    scrollable::{Scrollbar, Scroller, StyleSheet},
+    widget::scrollable::{Scrollbar, Scroller, StyleSheet},
     Color,
 };
 
-/// Style-Struktur für ein [iced::Scrollable]
-/// mit fester [Scroller-Breite](iced::Scrollable::scroller_width).
+/// Style-Struktur für ein [iced::widget::Scrollable]
+/// mit fester [Scroller-Breite](iced::widget::Scrollable::scroller_width).
 #[derive(Debug, Clone, Copy)]
 pub struct Sammlung {
-    /// Die [Scroller-Breite](iced::Scrollable::scroller_width).
+    /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width).
     pub breite: u16,
 }
 
@@ -19,7 +19,7 @@ impl Sammlung {
         Sammlung { breite }
     }
 
-    /// Die [Scroller-Breite](iced::Scrollable::scroller_width) des [iced::Scrollable].
+    /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width) des [iced::widget::Scrollable].
     #[inline(always)]
     pub fn breite(&self) -> u16 {
         self.breite

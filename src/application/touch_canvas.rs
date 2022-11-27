@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Debug, Formatter};
 
-use iced_graphics::{backend::Backend, pure::canvas::Program, Renderer};
+use iced_graphics::{backend::Backend, widget::canvas::Program, Renderer};
 use iced_native::{
     event,
     mouse::{self, Button},
@@ -13,6 +13,7 @@ use log::trace;
 
 use crate::application::macros::widget_newtype_methods;
 
+// FIXME remove, canvas now supports touch events
 /// [iced::Canvas]-Wrapper mit Touch-Event.
 pub struct Canvas<'a, Message, R>(Element<'a, Message, R>);
 
@@ -22,14 +23,14 @@ impl<Message, R> Debug for Canvas<'_, Message, R> {
     }
 }
 
-impl<'t, Message: 't, B: Backend> Canvas<'t, Message, Renderer<B>> {
+impl<'t, Message: 't, B: Backend, T> Canvas<'t, Message, Renderer<B, T>> {
     /// Erstelle einen neuen [Canvas].
     pub fn new<P: 't + Program<Message>>(
         program: P,
         width: impl Into<Option<Length>>,
         height: impl Into<Option<Length>>,
     ) -> Self {
-        let mut canvas = iced::pure::widget::Canvas::new(program);
+        let mut canvas = iced::widget::Canvas::new(program);
         if let Some(width) = width.into() {
             canvas = canvas.height(width);
         }
