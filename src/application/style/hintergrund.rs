@@ -1,6 +1,9 @@
-//! Style Strukturen für die Hintergrund-Farbe eines [iced::Container] oder [iced::Button].
+//! Style Strukturen für die Hintergrund-Farbe eines [iced::widget::Container] oder [iced::widget::Button].
 
-use iced::{button, container, Color};
+use iced::{
+    widget::{button, container},
+    Color,
+};
 
 /// Weißer Hintergrund.
 #[allow(non_upper_case_globals)]
@@ -16,7 +19,7 @@ pub const BLAU: Hintergrund = Hintergrund::Blau(0.7);
 /// Standard Hintergrund (leicht grau).
 pub const STANDARD: Hintergrund = Hintergrund::Grau(0.85);
 
-/// Style Strukturen für die Hintergrund-Farbe eines [iced::Container] oder [iced::Button].
+/// Style Strukturen für die Hintergrund-Farbe eines [iced::Container] oder [iced::widget::Button].
 #[derive(Debug, Clone, Copy)]
 pub enum Hintergrund {
     /// Ein grauer Hintergrund.
@@ -52,18 +55,22 @@ impl Hintergrund {
 }
 
 impl container::StyleSheet for Hintergrund {
-    fn style(&self) -> container::Style {
-        container::Style {
+    type Style = ();
+
+    fn appearance(&self, style: &Self::Style) -> container::Appearance {
+        container::Appearance {
             background: Some(iced::Background::Color(self.color())),
-            ..Default::default()
+            ..container::Appearance::default()
         }
     }
 }
 impl button::StyleSheet for Hintergrund {
-    fn active(&self) -> button::Style {
-        button::Style {
+    type Style = ();
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
+        button::Appearance {
             background: Some(iced::Background::Color(self.color())),
-            ..Default::default()
+            ..container::Appearance::default()
         }
     }
 }

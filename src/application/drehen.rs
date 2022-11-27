@@ -2,7 +2,12 @@
 
 use iced::{
     mouse,
-    pure::widget::canvas::{event, Cursor, Event, Fill, FillRule, Geometry, Program, Stroke},
+    widget::canvas::{
+        event,
+        fill::{self, Fill, FillRule},
+        stroke::{self, Stroke},
+        Cursor, Event, Geometry, Program,
+    },
     Color, Rectangle,
 };
 
@@ -52,7 +57,11 @@ impl Program<Winkel> for Drehen {
                 .baue();
             frame.stroke(
                 &kreis_pfad,
-                Stroke { color: Color::BLACK, width: 1., ..Default::default() },
+                Stroke {
+                    style: stroke::Style::Solid(Color::BLACK),
+                    width: 1.,
+                    ..Default::default()
+                },
             );
             let knopf_zentrum =
                 kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, self.winkel);
@@ -78,7 +87,7 @@ impl Program<Winkel> for Drehen {
             frame.fill(
                 &knopf_pfad,
                 Fill {
-                    color: Color::from_rgb(knopf_grau, knopf_grau, knopf_grau),
+                    style: fill::Style::Solid(Color::from_rgb(knopf_grau, knopf_grau, knopf_grau)),
                     rule: FillRule::EvenOdd,
                 },
             );

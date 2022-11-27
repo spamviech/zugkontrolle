@@ -1,8 +1,8 @@
-//! Newtypes für [iced::canvas::Frame] und [iced::canvas::Cache].
+//! Newtypes für [iced::widget::canvas::Frame] und [iced::widget::canvas::Cache].
 
 use std::fmt::{self, Debug, Formatter};
 
-use iced::{canvas::Geometry, Size};
+use iced::{widget::canvas::Geometry, Size};
 use serde::{Deserialize, Serialize};
 
 use crate::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
@@ -11,17 +11,20 @@ pub mod pfad;
 
 // re-exports
 pub use iced::{
-    canvas::{Fill, FillRule, Stroke, Text},
+    widget::canvas::{
+        stroke::{self, Stroke},
+        Fill, FillRule, Text,
+    },
     Color,
 };
 pub use pfad::{Bogen, Pfad, Transformation};
 
-/// Newtype auf [iced::canvas::Frame], dessen Methoden meine Typen verwenden.
+/// Newtype auf [iced::widget::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///
 /// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [iced::Frame] liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
-pub struct Frame<'t>(&'t mut iced::canvas::Frame);
+pub struct Frame<'t>(&'t mut iced::widget::canvas::Frame);
 
 impl Debug for Frame<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -31,7 +34,7 @@ impl Debug for Frame<'_> {
 
 impl<'t> Frame<'t> {
     /// Erzeuge einen neuen [Frame].
-    pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
+    pub fn neu(frame: &'t mut iced::widget::canvas::Frame) -> Self {
         Frame(frame)
     }
 
@@ -105,12 +108,12 @@ impl<'t> Frame<'t> {
 /// Ein Cache wird die [Geometry] nicht neu berechnen, sofern
 /// sich seine Dimensionen nicht verändert haben oder er explizit [geleert](Cache::leeren) wurde.
 #[derive(Debug, Default)]
-pub struct Cache(iced::canvas::Cache);
+pub struct Cache(iced::widget::canvas::Cache);
 
 impl Cache {
     /// Erstelle einen neuen [Cache].
     pub fn neu() -> Self {
-        Cache(iced::canvas::Cache::new())
+        Cache(iced::widget::canvas::Cache::new())
     }
 
     /// Leere den [Cache], so dass er neu gezeichnet wird.

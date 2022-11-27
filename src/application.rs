@@ -12,10 +12,7 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{
-    pure::{widget::Radio, Application, Element},
-    Command, Settings, Subscription,
-};
+use iced::{widget::Radio, Application, Command, Element, Settings, Subscription};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -100,7 +97,7 @@ pub enum AnyGleisUnit {
 }
 
 impl Modus {
-    fn erstelle_radio<'t>(self, aktueller_modus: Self) -> Radio<'t, Modus> {
+    fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
@@ -345,8 +342,6 @@ impl<L: LeiterAnzeige<S>, S> Debug for AuswahlZustand<L, S> {
 struct MessageBox {
     titel: String,
     nachricht: String,
-    button_zustand: iced::button::State,
-    scrollable_zustand: iced::scrollable::State,
 }
 
 /// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
