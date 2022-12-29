@@ -16,7 +16,7 @@ use iced_native::{
         operation::Operation,
         tree::{State, Tag, Tree},
     },
-    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
 
 /// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
@@ -56,14 +56,10 @@ impl<T> DerefMut for MutTracer<'_, T> {
 
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
-///
-/// **ACHTUNG**: Das normale Overlay des Widgets wird nicht angezeigt!
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: Element<'a, Intern, R>,
-    overlay: Option<Element<'a, Intern, R>>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
     mapper: &'a dyn Fn(
         Intern,
         &mut dyn DerefMut<Target = Zustand>,
@@ -75,10 +71,8 @@ impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Ex
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustand")
             .field("element", &"<Element>")
-            .field("overlay", &"<Element>")
             .field("erzeuge_zustand", &"<closure>")
             .field("erzeuge_element", &"<closure>")
-            .field("erzeuge_overlay", &"<closure>")
             .field("mapper", &"<closure>")
             .finish()
     }
@@ -88,7 +82,6 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     pub fn neu(
         erzeuge_zustand: &'a dyn Fn() -> Zustand,
         erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-        erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
         mapper: &'a dyn Fn(
             Intern,
             &mut dyn DerefMut<Target = Zustand>,
@@ -97,15 +90,7 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     ) -> Self {
         let zustand = erzeuge_zustand();
         let element = erzeuge_element(&zustand);
-        let overlay = erzeuge_overlay(&zustand);
-        MapMitZustand {
-            element,
-            overlay,
-            erzeuge_zustand,
-            erzeuge_element,
-            erzeuge_overlay,
-            mapper,
-        }
+        MapMitZustand { element, erzeuge_zustand, erzeuge_element, mapper }
     }
 }
 
@@ -132,8 +117,6 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     ) -> Option<Extern>,
     element: &mut Element<'a, Intern, R>,
     erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-    overlay: &mut Option<Element<'a, Intern, R>>,
-    erzeuge_overlay: &dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
 ) {
     let mut mut_tracer = MutTracer::neu(zustand);
     for nachricht in interne_nachrichten {
@@ -143,7 +126,6 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     }
     if mut_tracer.verändert() {
         *element = erzeuge_element(zustand);
-        *overlay = erzeuge_overlay(zustand);
     }
 }
 
@@ -194,21 +176,32 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        let mut children = Vec::new();
-        children.push(Tree::new(&self.element));
-        if let Some(overlay) = &self.overlay {
-            children.push(Tree::new(overlay));
-        }
-        children
+        self.element.as_widget().children()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let children: &[&Element<'_, Intern, R>] = if let Some(overlay) = &self.overlay {
-            &[&self.element, overlay]
-        } else {
-            &[&self.element]
-        };
-        tree.diff_children(children)
+        self.element.as_widget().diff(tree)
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &R,
+    ) -> mouse::Interaction {
+        self.element.as_widget().mouse_interaction(
+            &state.children[0],
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn operate(&self, state: &mut Tree, layout: Layout<'_>, operation: &mut dyn Operation<Extern>) {
+        self.element.as_widget().operate(state, layout, &mut MapOperation { operation })
     }
 
     fn on_event(
@@ -242,27 +235,8 @@ where
             self.mapper,
             &mut self.element,
             self.erzeuge_element,
-            &mut self.overlay,
-            self.erzeuge_overlay,
         );
         event_status
-    }
-
-    fn mouse_interaction(
-        &self,
-        state: &Tree,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &R,
-    ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            &state.children[0],
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
     }
 
     fn overlay<'a>(
@@ -271,33 +245,56 @@ where
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
-        let MapMitZustand { element, erzeuge_element, overlay, erzeuge_overlay, mapper, .. } = self;
+        let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
         let zustand: &Zustand = state.state.downcast_ref();
         let zustand: &mut Zustand = state.state.downcast_mut();
-        if let Some(overlay) = overlay {
-            let map_mit_zustand_overlay = MapMitZustandOverlay {
-                element,
-                erzeuge_element,
-                overlay,
-                erzeuge_overlay,
-                zustand,
-                state: &mut state.children[1],
-                mapper,
-            };
-            Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
-        } else {
-            let TODO = element.as_widget_mut().overlay(state, layout, renderer);
-            todo!()
-        }
+        element.as_widget_mut().overlay(state, layout, renderer).map(|overlay| {
+            let position = overlay.position();
+            let map_mit_zustand_overlay =
+                MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper };
+            overlay::Element::new(position, Box::new(map_mit_zustand_overlay))
+        })
+    }
+}
+
+// Kopiert von https://docs.rs/iced_native/latest/src/iced_native/element.rs.html#295-335
+struct MapOperation<'a, B> {
+    operation: &'a mut dyn Operation<B>,
+}
+
+impl<T, B> Operation<T> for MapOperation<'_, B> {
+    fn container(
+        &mut self,
+        id: Option<&iced_native::widget::Id>,
+        operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+    ) {
+        self.operation.container(id, &mut |operation| {
+            operate_on_children(&mut MapOperation { operation });
+        });
     }
 
-    fn operate(
-        &self,
-        _state: &mut Tree,
-        _layout: Layout<'_>,
-        _operation: &mut dyn Operation<Extern>,
+    fn focusable(
+        &mut self,
+        state: &mut dyn iced_native::widget::operation::Focusable,
+        id: Option<&iced_native::widget::Id>,
     ) {
-        todo!()
+        self.operation.focusable(state, id);
+    }
+
+    fn scrollable(
+        &mut self,
+        state: &mut dyn iced_native::widget::operation::Scrollable,
+        id: Option<&iced_native::widget::Id>,
+    ) {
+        self.operation.scrollable(state, id);
+    }
+
+    fn text_input(
+        &mut self,
+        state: &mut dyn iced_native::widget::operation::TextInput,
+        id: Option<&iced_native::widget::Id>,
+    ) {
+        self.operation.text_input(state, id);
     }
 }
 
@@ -313,12 +310,10 @@ where
 }
 
 struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
+    overlay: overlay::Element<'a, Intern, R>,
     element: &'a mut Element<'e, Intern, R>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
-    overlay: &'a mut Element<'a, Intern, R>,
-    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'e, Intern, R>>,
     zustand: &'a mut Zustand,
-    state: &'a mut Tree,
     mapper: &'a dyn Fn(
         Intern,
         &mut dyn DerefMut<Target = Zustand>,
@@ -332,11 +327,10 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustandOverlay")
-            .field("element", &"<RwLock<Element>>")
-            .field("erzeuge_element", &"<closure>")
             .field("overlay", &"<overlay::Element>")
+            .field("element", &"<Element>")
+            .field("erzeuge_element", &"<closure>")
             .field("zustand", &self.zustand)
-            .field("state", &"<Tree>")
             .field("mapper", &"<closure>")
             .finish()
     }
@@ -349,10 +343,10 @@ where
     R: Renderer,
 {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
-        self.overlay
-            .as_widget()
-            .layout(renderer, &layout::Limits::new(bounds, bounds))
-            .translate(Vector { x: position.x, y: position.y })
+        let bisher = self.overlay.position();
+        let unterschied = position - bisher;
+        self.overlay = self.overlay.translate(unterschied);
+        self.overlay.layout(renderer, bounds)
     }
 
     fn draw(
@@ -363,15 +357,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.overlay.as_widget().draw(
-            self.state,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            &layout.bounds(),
-        )
+        self.overlay.draw(renderer, theme, style, layout, cursor_position)
     }
 
     fn on_event(
@@ -385,8 +371,7 @@ where
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let mut event_status = self.overlay.as_widget_mut().on_event(
-            self.state,
+        let mut event_status = self.overlay.on_event(
             event,
             layout,
             cursor_position,
@@ -403,8 +388,6 @@ where
             self.mapper,
             self.element,
             self.erzeuge_element,
-            todo!(), //self.overlay,
-            self.erzeuge_overlay,
         );
         event_status
     }
@@ -416,12 +399,6 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.overlay.as_widget().mouse_interaction(
-            self.state,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
     }
 }
