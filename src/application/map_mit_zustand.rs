@@ -176,11 +176,11 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        self.element.as_widget().children()
+        vec![Tree::new(&self.element)]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.element.as_widget().diff(tree)
+        tree.diff_children(&[&self.element])
     }
 
     fn mouse_interaction(
