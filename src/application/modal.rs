@@ -11,12 +11,13 @@ use iced_native::{
     renderer::{Renderer, Style},
     widget::{
         container::{self, Container},
+        operation::Operation,
         tree::{self, Tag, Tree},
     },
     Clipboard, Element, Event, Layout, Length, Point, Shell, Widget,
 };
 
-use crate::application::{map_mit_zustand::Dummy, style::hintergrund::Hintergrund};
+use crate::application::{map_mit_zustand::MapOperation, style::hintergrund::Hintergrund};
 
 /// Nachricht für Underlay und Overlay eines [Modals](Modal).
 pub enum Nachricht<Overlay, ElementNachricht> {
@@ -40,8 +41,6 @@ impl<Overlay> Zustand<Overlay> {
         Zustand { overlay: None }
     }
 
-    // FIXME funktioniert stateless mit beeinflussen von außen?
-    // Nein, aber spezielle Nachrichten sind möglich
     /// Zeige ein Overlay über dem Widget.
     #[inline(always)]
     fn zeige_overlay(&mut self, overlay: Overlay) {
@@ -70,6 +69,7 @@ impl<Overlay> Zustand<Overlay> {
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Overlay, ElementNachricht, R> {
     underlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+    overlay: Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     initial_overlay: Option<&'a dyn Fn() -> Overlay>,
     zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     schließe_bei_esc: bool,
@@ -79,11 +79,33 @@ impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Modal")
             .field("underlay", &"<Element>")
-            .field("initial_overlay", &"<closure>")
+            .field("overlay", &self.overlay.map(|_| "<Element>"))
+            .field("initial_overlay", &self.initial_overlay.map(|_| "<closure>"))
             .field("zeige_overlay", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
             .finish()
     }
+}
+
+fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
+    overlay: &mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
+    zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+    neues_overlay: &Option<Overlay>,
+) where
+    R: Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+{
+    *overlay = neues_overlay.as_ref().map(|neues_overlay| {
+        let element = zeige_overlay(neues_overlay);
+        Container::new(element)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
+            .into()
+    });
 }
 
 impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
@@ -94,21 +116,34 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
     ) -> Self {
         Modal {
             underlay: underlay.into(),
+            overlay: None,
             initial_overlay: None,
             zeige_overlay,
             schließe_bei_esc: false,
         }
     }
 
-    /// Setzte das initial angezeigte Overlay.
-    pub fn initiales_overlay(mut self, initial_overlay: &'a impl Fn() -> Overlay) -> Self {
-        self.initial_overlay = Some(initial_overlay);
-        self
-    }
-
     /// Schließe das Overlay bei einem Druck der Esc-Taste.
     pub fn schließe_bei_esc(mut self) -> Self {
         self.schließe_bei_esc = true;
+        self
+    }
+}
+
+impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R>
+where
+    R: Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+{
+    /// Setzte das initial angezeigte Overlay.
+    pub fn initiales_overlay(mut self, initial_overlay: &'a impl Fn() -> Overlay) -> Self {
+        aktualisiere_overlay_element(
+            &mut self.overlay,
+            &self.zeige_overlay,
+            &Some(initial_overlay()),
+        );
+        self.initial_overlay = Some(initial_overlay);
         self
     }
 }
@@ -124,12 +159,18 @@ fn synchronisiere_widget_layout_validierung<Overlay, ElementNachricht>(
     }
 }
 
-fn bearbeite_modal_nachrichten<Overlay, ElementNachricht>(
+fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
     messages: Vec<Nachricht<Overlay, ElementNachricht>>,
     shell: &mut Shell<'_, ElementNachricht>,
     zustand: &mut Zustand<Overlay>,
     status: &mut event::Status,
-) {
+    overlay: &mut Option<Element<'_, Nachricht<Overlay, ElementNachricht>, R>>,
+    zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+) where
+    R: Renderer,
+    <R as Renderer>::Theme: container::StyleSheet,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+{
     for message in messages {
         match message {
             Nachricht::Underlay(element_nachricht) => shell.publish(element_nachricht),
@@ -143,6 +184,7 @@ fn bearbeite_modal_nachrichten<Overlay, ElementNachricht>(
             },
         }
     }
+    aktualisiere_overlay_element(overlay, zeige_overlay, zustand.overlay());
 }
 
 impl<Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
@@ -153,7 +195,6 @@ where
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
-    // TODO widget_newtype_methods!-Macro verwenden
     fn width(&self) -> Length {
         self.underlay.as_widget().width()
     }
@@ -167,17 +208,21 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![
-            Tree::new(&self.underlay),
-            Tree::new(Element::<Nachricht<Overlay, ElementNachricht>, R>::new(Dummy)),
-        ]
+        let mut children = Vec::new();
+        children.push(Tree::new(&self.underlay));
+        if let Some(overlay) = &self.overlay {
+            children.push(Tree::new(overlay))
+        }
+        children
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[
-            &self.underlay,
-            &Element::<Nachricht<Overlay, ElementNachricht>, R>::new(Dummy),
-        ])
+        let mut children = Vec::new();
+        children.push(&self.underlay);
+        if let Some(overlay) = &self.overlay {
+            children.push(overlay)
+        }
+        tree.diff_children(&children)
     }
 
     fn state(&self) -> tree::State {
@@ -230,6 +275,15 @@ where
         )
     }
 
+    fn operate(
+        &self,
+        state: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<ElementNachricht>,
+    ) {
+        self.underlay.as_widget().operate(state, layout, &mut MapOperation { operation })
+    }
+
     fn on_event(
         &mut self,
         state: &mut Tree,
@@ -254,7 +308,14 @@ where
                 &mut inner_shell,
             );
             synchronisiere_widget_layout_validierung(&inner_shell, shell);
-            bearbeite_modal_nachrichten(messages, shell, zustand, &mut status);
+            bearbeite_modal_nachrichten(
+                messages,
+                shell,
+                zustand,
+                &mut status,
+                &mut self.overlay,
+                &self.zeige_overlay,
+            );
             status
         } else {
             match event {
@@ -271,26 +332,23 @@ where
     }
 
     fn overlay<'s>(
-        &'s self,
+        &'s mut self,
         state: &'s mut Tree,
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
-        if let Some(overlay) = zustand.overlay() {
-            let element = (self.zeige_overlay)(overlay);
+        if let Some(overlay) = &mut self.overlay {
             let position = layout.position();
             Some(
-                ModalOverlay::neu_element(element, zustand, &mut state.children[1])
+                ModalOverlay::neu_element(overlay, zustand, &mut state.children[1])
                     .overlay(position),
             )
         } else {
-            let [state_element, state_overlay] = &mut state.children[0..2] else {
-                unreachable!("2-item slice has exactly two items!")
-            };
+            let state_element = &mut state.children[0];
             self.underlay.as_widget().overlay(state_element, layout, renderer).map(|overlay| {
                 let position = layout.position();
-                ModalOverlay::neu_overlay(overlay, zustand, state_overlay).overlay(position)
+                ModalOverlay::neu_overlay(overlay, zustand, todo!()).overlay(position)
             })
         }
     }
@@ -311,7 +369,7 @@ where
 
 struct ModalOverlay<'a, Overlay, ElementNachricht, R> {
     element_or_overlay: Either<
-        Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+        &'a mut Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
         overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     >,
     zustand: &'a mut Zustand<Overlay>,
@@ -326,23 +384,11 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
     fn neu_element(
-        overlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+        overlay: &'a mut Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
         zustand: &'a mut Zustand<Overlay>,
         state: &'a mut Tree,
     ) -> Self {
-        ModalOverlay {
-            element_or_overlay: Either::Left(
-                Container::new(overlay)
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .center_x()
-                    .center_y()
-                    .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
-                    .into(),
-            ),
-            zustand,
-            state,
-        }
+        ModalOverlay { element_or_overlay: Either::Left(overlay), zustand, state }
     }
 
     fn neu_overlay(
@@ -429,7 +475,14 @@ impl<Overlay, ElementNachricht, R: Renderer> overlay::Overlay<ElementNachricht, 
             ),
         };
         synchronisiere_widget_layout_validierung(&inner_shell, shell);
-        bearbeite_modal_nachrichten(messages, shell, &mut self.zustand, &mut status);
+        bearbeite_modal_nachrichten(
+            messages,
+            shell,
+            &mut self.zustand,
+            &mut status,
+            todo!("overlay"),
+            todo!("zeige_overlay"),
+        );
         status
     }
 
