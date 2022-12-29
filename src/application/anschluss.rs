@@ -5,7 +5,7 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
-use iced_aw::{NumberInput, TabLabel, Tabs};
+use iced_aw::native::{NumberInput, TabLabel, Tabs};
 use iced_native::{
     event, text,
     widget::{
@@ -248,9 +248,15 @@ impl<Modus: Debug, ModusNachricht, Serialisiert, R> Debug
     }
 }
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
+impl<'a, R, Style> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(
@@ -309,11 +315,13 @@ where
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             &|pin, beschreibung| {
-                interrupt_pins
-                    .get(&beschreibung)
-                    .map_or(NumberInput::new(*pin, 32, InputNachricht::interrupt).into(), |pin| {
-                        Text::new(pin.to_string()).into()
-                    })
+                interrupt_pins.get(&beschreibung).map_or(
+                    NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
+                    |pin| {
+                        let text: Text<'_, R> = Text::new(pin.to_string());
+                        Element::from(text)
+                    },
+                )
             },
             &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
             &|pin, _input| InputSerialisiert::Pin { pin },
@@ -343,9 +351,15 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
+impl<'a, R, Style> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
@@ -442,17 +456,26 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text::Renderer,
+    <R as iced_native::Renderer>::Theme:
+        iced_native::widget::radio::StyleSheet + iced_native::widget::text::StyleSheet,
 {
     Column::new()
         .push(Radio::new(fst, fst_s, Some(current.clone()), to_message.clone()).spacing(0))
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
+    Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     Modus: Copy,
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     fn neu_mit_interrupt_view(
         zeige_modus: ZeigeModus,
@@ -474,10 +497,17 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
+    Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
@@ -524,7 +554,7 @@ where
                     }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar)
+                    .tab_bar_style(TabBar::neu())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -538,7 +568,7 @@ where
                     (TabLabel::Text("Pcf8574-Port".to_owned()), { pcf8574_row.into() }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar)
+                    .tab_bar_style(TabBar::neu())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
@@ -548,12 +578,18 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R> Widget<Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R, Style> Widget<Serialisiert, R>
     for Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     Modus: 'static,
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     widget_newtype_methods! {element, R}
 
@@ -628,12 +664,18 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
 where
     Modus: 'static,
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_native::widget::container::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::radio::StyleSheet
+        + iced_native::widget::text::StyleSheet,
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
         Element::new(auswahl)
@@ -668,7 +710,14 @@ impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
     }
 }
 
-impl<'a, R: text::Renderer<Font = Font>> Pwm<'a, R> {
+impl<'a, R> Pwm<'a, R>
+where
+    R: iced_native::text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::container::StyleSheet,
+{
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
         Pwm { element: Self::erzeuge_element(&PwmZustand::neu(pin)), pin }
@@ -679,7 +728,14 @@ impl<'a, R: text::Renderer<Font = Font>> Pwm<'a, R> {
     }
 }
 
-impl<R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'_, R> {
+impl<R> Widget<pwm::Serialisiert, R> for Pwm<'_, R>
+where
+    R: text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::container::StyleSheet,
+{
     widget_newtype_methods! {element, R}
 
     fn tag(&self) -> Tag {
@@ -726,7 +782,14 @@ impl<R: text::Renderer<Font = Font>> Widget<pwm::Serialisiert, R> for Pwm<'_, R>
     }
 }
 
-impl<'a, R: text::Renderer<Font = Font>> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R> {
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
+where
+    R: text::Renderer<Font = Font>,
+    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet
+        + iced_native::widget::container::StyleSheet,
+{
     fn from(auswahl: Pwm<'a, R>) -> Self {
         Element::new(auswahl)
     }
