@@ -12,10 +12,12 @@ use iced_native::{
     mouse,
     overlay::{self, Overlay},
     renderer::{Renderer, Style},
-    widget::tree::{State, Tag, Tree},
+    widget::{
+        operation::Operation,
+        tree::{State, Tag, Tree},
+    },
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use parking_lot::RwLock;
 
 /// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
 #[derive(Debug)]
@@ -57,7 +59,8 @@ impl<T> DerefMut for MutTracer<'_, T> {
 ///
 /// **ACHTUNG**: Das normale Overlay des Widgets wird nicht angezeigt!
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
-    element: RwLock<Element<'a, Intern, R>>,
+    element: Element<'a, Intern, R>,
+    overlay: Option<Element<'a, Intern, R>>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
     erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
@@ -71,7 +74,8 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
 impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustand")
-            .field("element", &"<RwLock<Element>>")
+            .field("element", &"<Element>")
+            .field("overlay", &"<Element>")
             .field("erzeuge_zustand", &"<closure>")
             .field("erzeuge_element", &"<closure>")
             .field("erzeuge_overlay", &"<closure>")
@@ -93,8 +97,10 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     ) -> Self {
         let zustand = erzeuge_zustand();
         let element = erzeuge_element(&zustand);
+        let overlay = erzeuge_overlay(&zustand);
         MapMitZustand {
-            element: RwLock::new(element),
+            element,
+            overlay,
             erzeuge_zustand,
             erzeuge_element,
             erzeuge_overlay,
@@ -124,8 +130,10 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
         &mut dyn DerefMut<Target = Zustand>,
         &mut event::Status,
     ) -> Option<Extern>,
-    element: &RwLock<Element<'a, Intern, R>>,
+    element: &mut Element<'a, Intern, R>,
     erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+    overlay: &mut Option<Element<'a, Intern, R>>,
+    erzeuge_overlay: &dyn Fn(&Zustand) -> Option<Element<'a, Intern, R>>,
 ) {
     let mut mut_tracer = MutTracer::neu(zustand);
     for nachricht in interne_nachrichten {
@@ -134,7 +142,8 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
         }
     }
     if mut_tracer.verändert() {
-        *element.write() = erzeuge_element(zustand);
+        *element = erzeuge_element(zustand);
+        *overlay = erzeuge_overlay(zustand);
     }
 }
 
@@ -144,15 +153,15 @@ where
     R: Renderer,
 {
     fn width(&self) -> Length {
-        self.element.read().as_widget().width()
+        self.element.as_widget().width()
     }
 
     fn height(&self) -> Length {
-        self.element.read().as_widget().height()
+        self.element.as_widget().height()
     }
 
     fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.read().as_widget().layout(renderer, limits)
+        self.element.as_widget().layout(renderer, limits)
     }
 
     fn draw(
@@ -165,7 +174,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.element.read().as_widget().draw(
+        self.element.as_widget().draw(
             &state.children[0],
             renderer,
             theme,
@@ -185,11 +194,21 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&*self.element.read()), Tree::new(Element::<Intern, R>::new(Dummy))]
+        let mut children = Vec::new();
+        children.push(Tree::new(&self.element));
+        if let Some(overlay) = &self.overlay {
+            children.push(Tree::new(overlay));
+        }
+        children
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[&*self.element.read(), &Element::<Intern, R>::new(Dummy)])
+        let children: &[&Element<'_, Intern, R>] = if let Some(overlay) = &self.overlay {
+            &[&self.element, overlay]
+        } else {
+            &[&self.element]
+        };
+        tree.diff_children(children)
     }
 
     fn on_event(
@@ -204,7 +223,7 @@ where
     ) -> event::Status {
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let mut event_status = self.element.write().as_widget_mut().on_event(
+        let mut event_status = self.element.as_widget_mut().on_event(
             &mut state.children[0],
             event,
             layout,
@@ -221,8 +240,10 @@ where
             zustand,
             &mut event_status,
             self.mapper,
-            &self.element,
+            &mut self.element,
             self.erzeuge_element,
+            &mut self.overlay,
+            self.erzeuge_overlay,
         );
         event_status
     }
@@ -235,7 +256,7 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.element.read().as_widget().mouse_interaction(
+        self.element.as_widget().mouse_interaction(
             &state.children[0],
             layout,
             cursor_position,
@@ -245,24 +266,38 @@ where
     }
 
     fn overlay<'a>(
-        &'a self,
+        &'a mut self,
         state: &'a mut Tree,
         layout: Layout<'_>,
-        _renderer: &R,
+        renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
-        let MapMitZustand { element, erzeuge_element, erzeuge_overlay, mapper, .. } = self;
+        let MapMitZustand { element, erzeuge_element, overlay, erzeuge_overlay, mapper, .. } = self;
         let zustand: &Zustand = state.state.downcast_ref();
-        let overlay = erzeuge_overlay(zustand)?;
         let zustand: &mut Zustand = state.state.downcast_mut();
-        let map_mit_zustand_overlay = MapMitZustandOverlay {
-            element,
-            erzeuge_element,
-            overlay,
-            zustand,
-            state: &mut state.children[1],
-            mapper,
-        };
-        Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
+        if let Some(overlay) = overlay {
+            let map_mit_zustand_overlay = MapMitZustandOverlay {
+                element,
+                erzeuge_element,
+                overlay,
+                erzeuge_overlay,
+                zustand,
+                state: &mut state.children[1],
+                mapper,
+            };
+            Some(overlay::Element::new(layout.position(), Box::new(map_mit_zustand_overlay)))
+        } else {
+            let TODO = element.as_widget_mut().overlay(state, layout, renderer);
+            todo!()
+        }
+    }
+
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        _layout: Layout<'_>,
+        _operation: &mut dyn Operation<Extern>,
+    ) {
+        todo!()
     }
 }
 
@@ -278,9 +313,10 @@ where
 }
 
 struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
-    element: &'a RwLock<Element<'e, Intern, R>>,
+    element: &'a mut Element<'e, Intern, R>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
-    overlay: Element<'a, Intern, R>,
+    overlay: &'a mut Element<'a, Intern, R>,
+    erzeuge_overlay: &'a dyn Fn(&Zustand) -> Option<Element<'e, Intern, R>>,
     zustand: &'a mut Zustand,
     state: &'a mut Tree,
     mapper: &'a dyn Fn(
@@ -367,6 +403,8 @@ where
             self.mapper,
             self.element,
             self.erzeuge_element,
+            todo!(), //self.overlay,
+            self.erzeuge_overlay,
         );
         event_status
     }
@@ -385,34 +423,5 @@ where
             viewport,
             renderer,
         )
-    }
-}
-
-/// An invisible Widget.
-pub(in crate::application) struct Dummy;
-
-impl<N, R: Renderer> Widget<N, R> for Dummy {
-    fn width(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(&self, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
-        layout::Node::new(Size::ZERO)
-    }
-
-    fn draw(
-        &self,
-        _state: &Tree,
-        _renderer: &mut R,
-        _theme: &<R as Renderer>::Theme,
-        _style: &Style,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
     }
 }
