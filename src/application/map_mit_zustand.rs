@@ -360,6 +360,10 @@ where
         self.overlay.draw(renderer, theme, style, layout, cursor_position)
     }
 
+    fn operate(&mut self, layout: Layout<'_>, operation: &mut dyn Operation<Extern>) {
+        self.overlay.operate(layout, &mut MapOperation { operation })
+    }
+
     fn on_event(
         &mut self,
         event: Event,
