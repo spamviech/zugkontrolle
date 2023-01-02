@@ -2,7 +2,6 @@
 
 use std::fmt::{self, Debug, Formatter};
 
-use either::Either;
 use iced::{Rectangle, Size};
 use iced_native::{
     event,
@@ -208,21 +207,17 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        let mut children = Vec::new();
-        children.push(Tree::new(&self.underlay));
-        if let Some(overlay) = &self.overlay {
-            children.push(Tree::new(overlay))
-        }
-        children
+        vec![
+            Tree::new(&self.underlay),
+            Tree::new(self.overlay.as_ref().unwrap_or(&Element::from(Dummy))),
+        ]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let mut children = Vec::new();
-        children.push(&self.underlay);
-        if let Some(overlay) = &self.overlay {
-            children.push(overlay)
-        }
-        tree.diff_children(&children)
+        tree.diff_children(&[
+            &self.underlay,
+            self.overlay.as_ref().unwrap_or(&Element::from(Dummy)),
+        ])
     }
 
     fn state(&self) -> tree::State {
@@ -344,7 +339,7 @@ where
             modal_overlay: &mut self.overlay,
             element_overlay,
             zustand,
-            state: &mut state.children[1], // TODO kann nicht existieren...
+            state: &mut state.children[1],
             zeige_overlay: &self.zeige_overlay,
         };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
@@ -361,6 +356,42 @@ where
 {
     fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
         Element::new(modal)
+    }
+}
+
+/// Dummy-Widget, das nichts anzeigt.
+struct Dummy;
+
+impl<M, R: Renderer> Widget<M, R> for Dummy {
+    fn width(&self) -> Length {
+        Length::Units(0)
+    }
+
+    fn height(&self) -> Length {
+        Length::Units(0)
+    }
+
+    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        layout::Node::new(Size::ZERO)
+    }
+
+    fn draw(
+        &self,
+        state: &Tree,
+        renderer: &mut R,
+        theme: &<R as Renderer>::Theme,
+        style: &Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        // zeichne nichts
+    }
+}
+
+impl<M, R: Renderer> From<Dummy> for Element<'_, M, R> {
+    fn from(dummy: Dummy) -> Self {
+        Element::new(dummy)
     }
 }
 
