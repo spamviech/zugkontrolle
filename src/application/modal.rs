@@ -428,7 +428,7 @@ where
         } else if let Some(overlay) = &self.element_overlay {
             overlay.layout(renderer, bounds)
         } else {
-            todo!()
+            layout::Node::new(Size::ZERO)
         };
         layout.move_to(position);
         layout
@@ -455,7 +455,7 @@ where
         } else if let Some(overlay) = &self.element_overlay {
             overlay.draw(renderer, theme, style, layout, cursor_position)
         } else {
-            todo!()
+            // zeichne nichts
         }
     }
 
@@ -465,7 +465,7 @@ where
         } else if let Some(overlay) = &self.element_overlay {
             overlay.operate(layout, &mut MapOperation { operation })
         } else {
-            todo!()
+            // keine Operation
         }
     }
 
@@ -493,7 +493,7 @@ where
         } else if let Some(overlay) = &self.element_overlay {
             overlay.on_event(event, layout, cursor_position, renderer, clipboard, &mut inner_shell)
         } else {
-            todo!()
+            event::Status::Ignored
         };
         synchronisiere_widget_layout_validierung(&inner_shell, shell);
         bearbeite_modal_nachrichten(
@@ -525,69 +525,7 @@ where
         } else if let Some(overlay) = &self.element_overlay {
             overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
         } else {
-            todo!()
+            mouse::Interaction::default()
         }
     }
 }
-
-/// Standard-Overlay, falls kein eigens angezeigt werden soll.
-struct ModalOverlayStandard<'a, Overlay, ElementNachricht, R> {
-    element: overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
-    zustand: &'a mut Zustand<Overlay>,
-    overlay: &'a mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
-    zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
-}
-
-impl<Overlay, ElementNachricht, R: Renderer> overlay::Overlay<ElementNachricht, R>
-    for ModalOverlayStandard<'_, Overlay, ElementNachricht, R>
-{
-    fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
-        todo!()
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut R,
-        theme: &<R as Renderer>::Theme,
-        style: &Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) {
-        todo!()
-    }
-
-    fn operate(&mut self, layout: Layout<'_>, operation: &mut dyn Operation<ElementNachricht>) {
-        todo!()
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, ElementNachricht>,
-    ) -> event::Status {
-        todo!()
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &R,
-    ) -> mouse::Interaction {
-        todo!()
-    }
-}
-
-// fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
-//     messages: Vec<Nachricht<Overlay, ElementNachricht>>,
-//     shell: &mut Shell<'_, ElementNachricht>,
-//     zustand: &mut Zustand<Overlay>,
-//     status: &mut event::Status,
-//     overlay: &mut Option<Element<'_, Nachricht<Overlay, ElementNachricht>, R>>,
-//     zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>
-// )
