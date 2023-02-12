@@ -46,16 +46,16 @@ default_features = false
 features = ["colors"]
 
 [dependencies.iced]
-version = "0.6.0"
+version = "0.7.0"
 default-features = false
 features = ["canvas", "glow"]
 
 [dependencies.iced_native]
-version = "0.7.0"
+version = "0.8.0"
 default-features = false
 
 [dependencies.iced_graphics]
-version = "0.5.0"
+version = "0.6.0"
 default-features = false
 
 [dependencies.iced_futures]
@@ -63,12 +63,9 @@ version = "0.5.1"
 default-features = false
 
 [dependencies.iced_aw]
-# version = "0.2.0"
-git = "https://github.com/iced-rs/iced_aw"
-rev = "193e3bd8e6de4d8ce14ac2f2767323574b8fc712"
+version = "0.3.0"
 default-features = false
-# colors is required by card, but not implied due to a bug; not used directly
-features = ["card", "tab_bar", "tabs", "number_input", "glow", "colors"]
+features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 
 # can't be used on non-raspi systems
 # raspi 0/1
