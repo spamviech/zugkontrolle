@@ -2,19 +2,29 @@
 
 use std::fmt::{self, Debug, Display, Formatter};
 
-use iced_aw::Card;
-use iced_native::{
-    event, overlay, text,
-    widget::{
-        tree::{self, Tag, Tree},
-        Button, Column, Row, Text, TextInput,
+use iced_aw::{
+    native::{
+        card::{self, Card},
+        number_input,
     },
-    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
+    tab_bar,
+};
+use iced_native::{
+    event, overlay,
+    widget::{
+        button::{self, Button},
+        container, radio,
+        text::{self, Text},
+        text_input::{self, TextInput},
+        tree::{self, Tag, Tree},
+        Column, Row,
+    },
+    Clipboard, Element, Event, Font, Layout, Length, Point, Renderer, Shell, Widget,
 };
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{anschluss, macros::widget_newtype_methods},
+    application::{anschluss, macros::widget_newtype_methods, style::tab_bar::TabBar},
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
@@ -70,11 +80,20 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R, Style>
+    Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     AnschlüsseSerialisiert: Default + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
-    R: 't + text::Renderer<Font = Font>,
+    R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet
+        + radio::StyleSheet
+        + card::StyleSheet
+        + number_input::StyleSheet
+        + tab_bar::StyleSheet<Style = TabBar<Style>>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<AnschlüsseAuswahlZustand>(
@@ -110,7 +129,7 @@ where
                     .on_press(InterneNachricht::Entfernen),
                 ),
         );
-        let card = Card::new(Text::new("Weiche"), column)
+        let card: Card<'t, InterneNachricht<Richtung>, R> = Card::new(Text::new("Weiche"), column)
             .on_close(InterneNachricht::Schließen)
             .width(Length::Shrink)
             .height(Length::Shrink);
@@ -127,14 +146,22 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-impl<Richtung, Richtung2, AnschlüsseSerialisiert, R>
+impl<Richtung, Richtung2, AnschlüsseSerialisiert, R, Style>
     Widget<Nachricht<Richtung2, AnschlüsseSerialisiert>, R>
     for Auswahl<'_, Richtung, AnschlüsseSerialisiert, R>
 where
     Richtung: Clone + Display,
     Richtung2: Default,
     AnschlüsseSerialisiert: Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
-    R: text::Renderer<Font = Font>,
+    R: Renderer + iced_native::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet
+        + radio::StyleSheet
+        + card::StyleSheet
+        + number_input::StyleSheet
+        + tab_bar::StyleSheet<Style = TabBar<Style>>,
 {
     widget_newtype_methods! {element, R}
 
@@ -204,7 +231,7 @@ where
     }
 
     fn overlay<'a>(
-        &'a self,
+        &'a mut self,
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &R,
@@ -214,14 +241,22 @@ where
     }
 }
 
-impl<'t, Richtung, Richtung2, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, Richtung2, AnschlüsseSerialisiert, R, Style>
     From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
     for Element<'t, Nachricht<Richtung2, AnschlüsseSerialisiert>, R>
 where
     Richtung: 't + Clone + Display,
     Richtung2: Default,
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
-    R: 't + text::Renderer<Font = Font>,
+    R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet
+        + radio::StyleSheet
+        + card::StyleSheet
+        + number_input::StyleSheet
+        + tab_bar::StyleSheet<Style = TabBar<Style>>,
 {
     fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
         Element::new(anzeige)
