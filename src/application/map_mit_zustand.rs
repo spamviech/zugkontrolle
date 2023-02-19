@@ -200,8 +200,14 @@ where
         )
     }
 
-    fn operate(&self, state: &mut Tree, layout: Layout<'_>, operation: &mut dyn Operation<Extern>) {
-        self.element.as_widget().operate(state, layout, &mut MapOperation { operation })
+    fn operate(
+        &self,
+        state: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &R,
+        operation: &mut dyn Operation<Extern>,
+    ) {
+        self.element.as_widget().operate(state, layout, renderer, &mut MapOperation { operation })
     }
 
     fn on_event(
@@ -360,8 +366,8 @@ where
         self.overlay.draw(renderer, theme, style, layout, cursor_position)
     }
 
-    fn operate(&mut self, layout: Layout<'_>, operation: &mut dyn Operation<Extern>) {
-        self.overlay.operate(layout, &mut MapOperation { operation })
+    fn operate(&mut self, layout: Layout<'_>, renderer: &R, operation: &mut dyn Operation<Extern>) {
+        self.overlay.operate(layout, renderer, &mut MapOperation { operation })
     }
 
     fn on_event(

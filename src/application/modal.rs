@@ -274,9 +274,10 @@ where
         &self,
         state: &mut Tree,
         layout: Layout<'_>,
+        renderer: &R,
         operation: &mut dyn Operation<ElementNachricht>,
     ) {
-        self.underlay.as_widget().operate(state, layout, &mut MapOperation { operation })
+        self.underlay.as_widget().operate(state, layout, renderer, &mut MapOperation { operation })
     }
 
     fn on_event(
@@ -459,11 +460,21 @@ where
         }
     }
 
-    fn operate(&mut self, layout: Layout<'_>, operation: &mut dyn Operation<ElementNachricht>) {
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &R,
+        operation: &mut dyn Operation<ElementNachricht>,
+    ) {
         if let Some(overlay) = &self.modal_overlay {
-            overlay.as_widget().operate(self.state, layout, &mut MapOperation { operation })
+            overlay.as_widget().operate(
+                self.state,
+                layout,
+                renderer,
+                &mut MapOperation { operation },
+            )
         } else if let Some(overlay) = &self.element_overlay {
-            overlay.operate(layout, &mut MapOperation { operation })
+            overlay.operate(layout, renderer, &mut MapOperation { operation })
         } else {
             // keine Operation
         }
