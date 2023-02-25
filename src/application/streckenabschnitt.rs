@@ -22,15 +22,12 @@ use iced_native::{
         text_input::{self, TextInput},
         Column, Row,
     },
-    Alignment, Element, Font, Length, Point, Renderer, Widget,
+    Alignment, Element, Font, Length, Renderer,
 };
 
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{
-        anschluss, farbwahl::Farbwahl, macros::widget_newtype_methods,
-        map_mit_zustand::MapMitZustand, style,
-    },
+    application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, style},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     steuerung::streckenabschnitt::{Name, Streckenabschnitt},
@@ -140,13 +137,9 @@ where
     }
 }
 
-impl<R: Renderer> Widget<AnzeigeNachricht, R> for Anzeige<'_, R> {
-    widget_newtype_methods! {element, R, AnzeigeNachricht}
-}
-
 impl<'a, R: 'a + Renderer> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
     fn from(auswahl: Anzeige<'a, R>) -> Self {
-        Element::new(auswahl)
+        auswahl.element
     }
 }
 
