@@ -3,24 +3,29 @@
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashSet},
-    fmt::{self, Debug, Formatter},
+    ops::DerefMut,
 };
 
 use iced_native::{
-    event::{self, Event},
-    overlay, text,
+    event,
     widget::{
+        button::{self, Button},
+        container::{self, Container},
+        rule::{self, Rule},
         scrollable::{self, Scrollable},
-        tree::{self, Tag, Tree},
-        Button, Column, Container, Row, Rule, Space, Text,
+        text::{self, Text},
+        Column, Row, Space,
     },
-    Clipboard, Element, Layout, Length, Point, Shell, Widget,
+    Element, Length, Renderer,
 };
 
 use crate::{
     application::{
-        macros::widget_newtype_methods,
-        style::{hintergrund, linie::TRENNLINIE},
+        map_mit_zustand::MapMitZustand,
+        style::{
+            hintergrund::{self, Hintergrund},
+            linie::{Linie, TRENNLINIE},
+        },
     },
     unicase_ord::UniCaseOrd,
 };
@@ -73,52 +78,59 @@ impl Zustand {
 }
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
-pub struct Lizenzen<'a, R> {
-    element: Element<'a, InterneNachricht, R>,
-    lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
-    aktuell: &'a Option<UniCaseOrd<&'static str>>,
-    scrollable_style: Box<dyn 'a + scrollable::StyleSheet<Style = ()>>,
-}
-
-impl<R> Debug for Lizenzen<'_, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Lizenzen")
-            .field("element", &"<Element>")
-            .field("lizenzen", &self.lizenzen)
-            .field("aktuell", &self.aktuell)
-            .field("scrollable_style", &"Box<dyn 'a + scrollable::StyleSheet>")
-            .finish()
-    }
-}
+#[derive(Debug)]
+pub struct Lizenzen<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, R>);
 
 const PADDING: f32 = 5.;
 const TRENNLINIE_BREITE: u16 = 1;
 
-impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
+impl<'a, R> Lizenzen<'a, R>
+where
+    R: 'a + iced_native::text::Renderer,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + scrollable::StyleSheet
+        + rule::StyleSheet
+        + text::StyleSheet,
+    <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+{
     /// Erstelle ein neues [Lizenzen]-Widget.
-    pub fn neu(
+    pub fn neu<ScrollableStyle>(
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
         aktuell: &'a Option<UniCaseOrd<&'static str>>,
-        scrollable_style: impl Into<Box<dyn 'a + scrollable::StyleSheet<Style = ()>>>,
-    ) -> Self {
-        let scrollable_style = scrollable_style.into();
-        Lizenzen {
-            element: Self::erzeuge_element(
-                &Zustand::neu(*aktuell, lizenzen),
-                lizenzen,
-                scrollable_style,
-            ),
-            lizenzen,
-            aktuell,
-            scrollable_style,
-        }
+        scrollable_style: ScrollableStyle,
+    ) -> Self
+    where
+        ScrollableStyle: Clone,
+        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+    {
+        let erzeuge_zustand = || Zustand::neu(*aktuell, lizenzen);
+        let erzeuge_element =
+            |zustand| Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone());
+        let mapper = |interne_nachricht,
+                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      status: &mut event::Status| {
+            *status = event::Status::Captured;
+            match interne_nachricht {
+                InterneNachricht::Aktuell(name, f) => {
+                    zustand.aktuell = Some((name, f()));
+                    Vec::new()
+                },
+                InterneNachricht::Schließen => vec![Nachricht::Schließen],
+            }
+        };
+        Lizenzen(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
     }
 
-    fn erzeuge_element(
+    fn erzeuge_element<ScrollableStyle>(
         zustand: &'a Zustand,
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
-        scrollable_style: Box<dyn scrollable::StyleSheet<Style = ()> + 'a>,
-    ) -> Element<'a, InterneNachricht, R> {
+        scrollable_style: ScrollableStyle,
+    ) -> Element<'a, InterneNachricht, R>
+    where
+        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+    {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Fill);
         let (aktuell_name, aktuell_text) =
@@ -164,72 +176,19 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
     }
 }
 
-impl<R: text::Renderer> Widget<Nachricht, R> for Lizenzen<'_, R> {
-    widget_newtype_methods! {element,  R}
-
-    fn tag(&self) -> Tag {
-        Tag::of::<Zustand>()
-    }
-
-    fn state(&self) -> tree::State {
-        tree::State::new(Zustand::neu(*self.aktuell, &self.lizenzen))
-    }
-
-    fn on_event(
-        &mut self,
-        state: &mut Tree,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Nachricht>,
-    ) -> event::Status {
-        let mut interne_nachrichten = Vec::new();
-        let mut interne_shell = Shell::new(&mut interne_nachrichten);
-        let event_status = self.element.as_widget_mut().on_event(
-            &mut state.children[0],
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            &mut interne_shell,
-        );
-        if interne_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if interne_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        let zustand: &mut Zustand = state.state.downcast_mut();
-        for interne_nachricht in interne_nachrichten {
-            event_status = event::Status::Captured;
-            match interne_nachricht {
-                InterneNachricht::Aktuell(name, f) => {
-                    zustand.aktuell = Some((name, f()));
-                    self.element =
-                        Self::erzeuge_element(zustand, &self.lizenzen, self.scrollable_style);
-                },
-                InterneNachricht::Schließen => shell.publish(Nachricht::Schließen),
-            }
-        }
-        event_status
-    }
-
-    fn overlay<'a>(
-        &'a self,
-        _state: &'a mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &R,
-    ) -> Option<overlay::Element<'a, Nachricht, R>> {
-        // TODO
-        None
-    }
-}
-
-impl<'a, R: 'a + text::Renderer> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R> {
+impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R>
+where
+    R: 'a + iced_native::text::Renderer,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + scrollable::StyleSheet
+        + rule::StyleSheet
+        + text::StyleSheet,
+    <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+{
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
-        Element::new(lizenzen)
+        Element::new(lizenzen.0)
     }
 }
 
