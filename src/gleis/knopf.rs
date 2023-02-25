@@ -5,13 +5,12 @@ use iced::{
     mouse,
     widget::{
         canvas::{event, Cursor, Event, Geometry, Program},
-        Container,
+        Canvas, Container,
     },
     Element, Length, Point, Rectangle, Theme,
 };
 
 use crate::{
-    application::touch_canvas::Canvas,
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
@@ -74,11 +73,11 @@ impl<T: Zeichnen> Knopf<T> {
         let standard_breite = (STROKE_WIDTH + größe.x).0;
         let höhe = (DOUBLE_PADDING + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
-        Container::new(Canvas::new(
-            self,
-            Length::Fixed(breite.unwrap_or(standard_breite)),
-            Length::Fixed(höhe),
-        ))
+        Container::new(
+            Canvas::new(self)
+                .width(Length::Fixed(breite.unwrap_or(standard_breite)))
+                .height(Length::Fixed(höhe)),
+        )
         .width(Length::Fill)
         .height(Length::Shrink)
     }

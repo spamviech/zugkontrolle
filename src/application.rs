@@ -75,7 +75,6 @@ pub mod modal;
 pub mod speichern_laden;
 pub mod streckenabschnitt;
 pub mod style;
-pub mod touch_canvas;
 pub mod update;
 pub mod view;
 pub mod weiche;

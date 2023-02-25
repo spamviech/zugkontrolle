@@ -20,8 +20,8 @@ use crate::{
             linie::{Linie, TRENNLINIE},
             sammlung::Sammlung,
         },
-        touch_canvas, weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht,
-        NachrichtClone, Zugkontrolle,
+        weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht, NachrichtClone,
+        Zugkontrolle,
     },
     gleis::{
         gerade::GeradeUnit,
