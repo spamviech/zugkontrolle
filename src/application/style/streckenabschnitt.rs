@@ -1,12 +1,11 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
 use iced::{
-    theme::{self, Theme},
     widget::{
         button,
         container::{Appearance, StyleSheet},
     },
-    Background, Color,
+    Background, Color, Theme,
 };
 
 use crate::typen::farbe::Farbe;

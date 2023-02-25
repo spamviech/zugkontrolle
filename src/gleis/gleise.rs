@@ -7,9 +7,8 @@ use std::{
 
 use iced::{
     mouse,
-    theme::{self, Theme},
     widget::canvas::{event, Cursor, Event, Geometry, Program},
-    Rectangle,
+    Rectangle, Theme,
 };
 use log::error;
 use nonempty::NonEmpty;
