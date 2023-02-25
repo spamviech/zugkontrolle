@@ -70,7 +70,6 @@ pub mod fonts;
 pub mod geschwindigkeit;
 pub mod icon;
 pub mod lizenzen;
-pub(crate) mod macros;
 pub mod map_mit_zustand;
 pub mod modal;
 pub mod speichern_laden;

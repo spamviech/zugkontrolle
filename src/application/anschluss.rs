@@ -1,18 +1,12 @@
 //! Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
-use std::{
-    collections::HashMap,
-    fmt::{self, Debug, Formatter},
-};
+use std::{collections::HashMap, ops::DerefMut};
 
 use iced_aw::native::{NumberInput, TabLabel, Tabs};
 use iced_native::{
     event, text,
-    widget::{
-        tree::{State, Tag, Tree},
-        Column, Radio, Row, Text,
-    },
-    Clipboard, Element, Event, Font, Layout, Length, Point, Shell, Widget,
+    widget::{Column, Radio, Row, Text},
+    Element, Font, Length, Widget,
 };
 use log::error;
 
@@ -24,7 +18,7 @@ use crate::{
         polarität::Polarität,
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
-    application::{macros::widget_newtype_methods, style::tab_bar::TabBar},
+    application::{map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
@@ -222,31 +216,10 @@ impl OutputNachricht {
 }
 
 /// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R> {
-    element: Element<'a, InterneNachricht<ModusNachricht>, R>,
-    zeige_modus: ZeigeModus,
-    view_modus: &'a dyn Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
-    update_modus: &'a dyn Fn(&mut Modus, ModusNachricht),
-    make_pin: &'a dyn Fn(u8, &Modus) -> Serialisiert,
-    make_port: &'a dyn Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
-    erzeuge_zustand: &'a dyn Fn() -> Zustand<Modus>,
-}
-
-impl<Modus: Debug, ModusNachricht, Serialisiert, R> Debug
-    for Auswahl<'_, Modus, ModusNachricht, Serialisiert, R>
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Auswahl")
-            .field("element", &"<Element>")
-            .field("zeige_modus", &self.zeige_modus)
-            .field("view_modus", &"<closure>")
-            .field("update_modus", &"<closure>")
-            .field("make_pin", &"<closure>")
-            .field("make_port", &"<closure>")
-            .field("erzeuge_zustand", &"<closure>")
-            .finish()
-    }
-}
+#[derive(Debug)]
+pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
+    MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, R>,
+);
 
 impl<'a, R, Style> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
@@ -263,18 +236,6 @@ where
         start_wert: Option<&'a InputAnschluss>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
     ) -> Self {
-        /*
-        // FIXME sollte das von außen kommen?
-        // wird verwendet als bekannte interrupt pins
-        let interrupt_pins = match start_wert.map(InputAnschluss::serialisiere) {
-            Some(InputSerialisiert::Pcf8574Port {
-                beschreibung,
-                port: _,
-                interrupt: Some(pin),
-            }) => HashMap::from([(beschreibung, pin)]),
-            _ => HashMap::new(),
-        };
-        */
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
             Some(InputAnschluss::Pcf8574Port(port)) => (
@@ -485,15 +446,37 @@ where
         make_port: &'a impl Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
     ) -> Self {
-        Auswahl {
-            element: Self::erzeuge_element(&erzeuge_zustand(), view_modus, zeige_modus),
-            zeige_modus,
-            view_modus,
-            update_modus,
-            make_pin,
-            make_port,
-            erzeuge_zustand,
-        }
+        let erzeuge_element = |zustand| Self::erzeuge_element(zustand, view_modus, zeige_modus);
+        let mapper = |interne_nachricht,
+                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      status: &mut event::Status| {
+            *status = event::Status::Captured;
+            match interne_nachricht {
+                InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
+                InterneNachricht::Pin(pin) => zustand.pin = pin,
+                InterneNachricht::A0(a0) => zustand.beschreibung.a0 = a0,
+                InterneNachricht::A1(a1) => zustand.beschreibung.a1 = a1,
+                InterneNachricht::A2(a2) => zustand.beschreibung.a2 = a2,
+                InterneNachricht::Variante(variante) => zustand.beschreibung.variante = variante,
+                InterneNachricht::Port(port) => {
+                    zustand.port = match kleiner_8::try_from(port) {
+                        Ok(port) => port,
+                        Err(InvaliderWert(port)) => {
+                            error!("Port {} > kleiner_8::MAX {}", port, kleiner_8::MAX);
+                            kleiner_8::MAX
+                        },
+                    }
+                },
+                InterneNachricht::Modus(msg) => update_modus(&mut zustand.modus, msg),
+            }
+            let nachricht = if zustand.active_tab == 0 {
+                make_pin(zustand.pin, &zustand.modus)
+            } else {
+                make_port(zustand.beschreibung, zustand.port, &zustand.modus)
+            };
+            vec![nachricht]
+        };
+        Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
     }
 }
 
@@ -578,107 +561,11 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R, Style> Widget<Serialisiert, R>
-    for Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
-where
-    Modus: 'static,
-    ModusNachricht: 'static + Clone,
-    R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
-{
-    widget_newtype_methods! {element, R}
-
-    fn tag(&self) -> Tag {
-        Tag::of::<Zustand<Modus>>()
-    }
-
-    fn state(&self) -> State {
-        State::new((self.erzeuge_zustand)())
-    }
-
-    fn on_event(
-        &mut self,
-        state: &mut Tree,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Serialisiert>,
-    ) -> event::Status {
-        let mut internal_messages = Vec::new();
-        let mut internal_shell = Shell::new(&mut internal_messages);
-        let mut status = self.element.as_widget_mut().on_event(
-            &mut state.children[0],
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            &mut internal_shell,
-        );
-        if internal_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if internal_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        let mut changed = false;
-        let zustand: &mut Zustand<Modus> = state.state.downcast_mut();
-        for message in internal_messages {
-            changed = true;
-            match message {
-                InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
-                InterneNachricht::Pin(pin) => zustand.pin = pin,
-                InterneNachricht::A0(a0) => zustand.beschreibung.a0 = a0,
-                InterneNachricht::A1(a1) => zustand.beschreibung.a1 = a1,
-                InterneNachricht::A2(a2) => zustand.beschreibung.a2 = a2,
-                InterneNachricht::Variante(variante) => zustand.beschreibung.variante = variante,
-                InterneNachricht::Port(port) => {
-                    zustand.port = match kleiner_8::try_from(port) {
-                        Ok(port) => port,
-                        Err(InvaliderWert(port)) => {
-                            error!("Port {} > kleiner_8::MAX {}", port, kleiner_8::MAX);
-                            kleiner_8::MAX
-                        },
-                    }
-                },
-                InterneNachricht::Modus(msg) => (self.update_modus)(&mut zustand.modus, msg),
-            }
-            status = event::Status::Captured;
-        }
-        if changed {
-            self.element = Self::erzeuge_element(&zustand, &self.view_modus, self.zeige_modus);
-            let message = if zustand.active_tab == 0 {
-                (self.make_pin)(zustand.pin, &zustand.modus)
-            } else {
-                (self.make_port)(zustand.beschreibung, zustand.port, &zustand.modus)
-            };
-            shell.publish(message);
-        }
-        status
-    }
-}
-
 impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
-where
-    Modus: 'static,
-    ModusNachricht: 'static + Clone,
-    R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
-        Element::new(auswahl)
+        Element::new(auswahl.0)
     }
 }
 
@@ -696,21 +583,10 @@ impl PwmZustand {
 }
 
 /// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-pub struct Pwm<'a, R: 'a + text::Renderer<Font = Font>> {
-    element: Element<'a, pwm::Serialisiert, R>,
-    pin: Option<&'a pwm::Pin>,
-}
+#[derive(Debug)]
+pub struct Pwm<'a, N, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, N, R>);
 
-impl<'a, R: 'a + text::Renderer<Font = Font>> Debug for Pwm<'a, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Pwm")
-            .field("number_input", &"<NumberInput>")
-            .field("pin", &self.pin)
-            .finish()
-    }
-}
-
-impl<'a, R> Pwm<'a, R>
+impl<'a, N, R> Pwm<'a, N, R>
 where
     R: iced_native::text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
@@ -720,7 +596,17 @@ where
 {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
-        Pwm { element: Self::erzeuge_element(&PwmZustand::neu(pin)), pin }
+        let erzeuge_zustand = || PwmZustand::neu(pin);
+        let erzeuge_element = Self::erzeuge_element;
+        let mapper = |interne_nachricht,
+                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      status: &mut event::Status| {
+            *status = event::Status::Captured;
+            let pwm::Serialisiert(pin) = interne_nachricht;
+            zustand.pin = pin;
+            Vec::new()
+        };
+        Pwm(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
     }
 
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
@@ -728,69 +614,8 @@ where
     }
 }
 
-impl<R> Widget<pwm::Serialisiert, R> for Pwm<'_, R>
-where
-    R: text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
-        + iced_native::widget::container::StyleSheet,
-{
-    widget_newtype_methods! {element, R}
-
-    fn tag(&self) -> Tag {
-        Tag::of::<PwmZustand>()
-    }
-
-    fn state(&self) -> State {
-        State::new(PwmZustand::neu(self.pin))
-    }
-
-    fn on_event(
-        &mut self,
-        state: &mut Tree,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, pwm::Serialisiert>,
-    ) -> event::Status {
-        let mut internal_messages = Vec::new();
-        let mut internal_shell = Shell::new(&mut internal_messages);
-        let mut status = self.element.as_widget_mut().on_event(
-            &mut state.children[0],
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            &mut internal_shell,
-        );
-        if internal_shell.are_widgets_invalid() {
-            shell.invalidate_widgets()
-        } else if internal_shell.is_layout_invalid() {
-            shell.invalidate_layout()
-        }
-        let zustand: &mut PwmZustand = state.state.downcast_mut();
-        if let Some(pwm::Serialisiert(pin)) = internal_messages.last() {
-            zustand.pin = *pin;
-            self.element = Self::erzeuge_element(zustand);
-            status = event::Status::Captured;
-        }
-        status
-    }
-}
-
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
-where
-    R: text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
-        + iced_native::widget::container::StyleSheet,
-{
-    fn from(auswahl: Pwm<'a, R>) -> Self {
-        Element::new(auswahl)
+impl<'a, N, R> From<Pwm<'a, N, R>> for Element<'a, N, R> {
+    fn from(auswahl: Pwm<'a, N, R>) -> Self {
+        Element::new(auswahl.0)
     }
 }
