@@ -112,21 +112,21 @@ where
             match interne_nachricht {
                 InterneNachricht::Name(name) => {
                     zustand.name = name;
-                    None
+                    Vec::new()
                 },
                 InterneNachricht::Anschluss(richtung, anschluss) => {
                     *zustand.anschlüsse.erhalte_mut(&richtung) = anschluss;
-                    None
+                    Vec::new()
                 },
                 InterneNachricht::Festlegen => {
-                    Some(Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
+                    vec![Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(zustand.name.clone()),
                         Richtung::default(),
                         zustand.anschlüsse.clone(),
-                    ))))
+                    )))]
                 },
-                InterneNachricht::Entfernen => Some(Nachricht::Festlegen(None)),
-                InterneNachricht::Schließen => Some(Nachricht::Schließen),
+                InterneNachricht::Entfernen => vec![Nachricht::Festlegen(None)],
+                InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
         Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))

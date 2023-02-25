@@ -60,11 +60,8 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: Element<'a, Intern, R>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-    mapper: &'a dyn Fn(
-        Intern,
-        &mut dyn DerefMut<Target = Zustand>,
-        &mut event::Status,
-    ) -> Option<Extern>,
+    mapper:
+        &'a dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
 }
 
 impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
@@ -86,7 +83,7 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
             Intern,
             &mut dyn DerefMut<Target = Zustand>,
             &mut event::Status,
-        ) -> Option<Extern>,
+        ) -> Vec<Extern>,
     ) -> Self {
         let zustand = erzeuge_zustand();
         let element = erzeuge_element(&zustand);
@@ -110,17 +107,14 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     shell: &mut Shell<'_, Extern>,
     zustand: &mut Zustand,
     event_status: &mut event::Status,
-    mapper: &dyn Fn(
-        Intern,
-        &mut dyn DerefMut<Target = Zustand>,
-        &mut event::Status,
-    ) -> Option<Extern>,
+    mapper: &dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     element: &mut Element<'a, Intern, R>,
     erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, R>,
 ) {
     let mut mut_tracer = MutTracer::neu(zustand);
     for nachricht in interne_nachrichten {
-        if let Some(externe_nachricht) = mapper(nachricht, &mut mut_tracer, event_status) {
+        let externe_nachrichten = mapper(nachricht, &mut mut_tracer, event_status);
+        for externe_nachricht in externe_nachrichten {
             shell.publish(externe_nachricht)
         }
     }
@@ -320,11 +314,8 @@ struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
     element: &'a mut Element<'e, Intern, R>,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
     zustand: &'a mut Zustand,
-    mapper: &'a dyn Fn(
-        Intern,
-        &mut dyn DerefMut<Target = Zustand>,
-        &mut event::Status,
-    ) -> Option<Extern>,
+    mapper:
+        &'a dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
 }
 
 impl<Zustand, Intern, Extern, R> Debug for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
