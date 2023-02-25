@@ -91,7 +91,7 @@ impl<'a, R: 'a + text::Renderer> SpeichernLaden<'a, R> {
             )
             .push(
                 TextInput::new("Pfad", aktueller_pfad, InterneNachricht::Pfad)
-                    .width(Length::Units(150))
+                    .width(Length::Fixed(150.))
                     .padding(1),
             )
             .spacing(5)

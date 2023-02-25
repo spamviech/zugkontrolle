@@ -136,8 +136,9 @@ where
         zustand: &'t Zustand<AnschlüsseSerialisiert>,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
-        let mut column = Column::new()
-            .push(TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Units(200)));
+        let mut column = Column::new().push(
+            TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Fixed(200.)),
+        );
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push(
                 Element::from(anschluss::Auswahl::neu_output_s(Some(anschluss))).map(

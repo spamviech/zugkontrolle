@@ -541,7 +541,7 @@ where
                 InterneNachricht::Port,
             ));
         // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
-        let width = Length::Units(350);
+        let width = Length::Fixed(350.);
         let row = match zeige_modus {
             ZeigeModus::Pcf8574 => {
                 let tabs = vec![

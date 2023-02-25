@@ -351,8 +351,7 @@ where
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
         let bisher = self.overlay.position();
         let unterschied = position - bisher;
-        self.overlay = self.overlay.translate(unterschied);
-        self.overlay.layout(renderer, bounds)
+        self.overlay.layout(renderer, bounds, unterschied)
     }
 
     fn draw(

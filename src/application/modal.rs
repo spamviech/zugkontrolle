@@ -13,7 +13,7 @@ use iced_native::{
         operation::Operation,
         tree::{self, Tag, Tree},
     },
-    Clipboard, Element, Event, Layout, Length, Point, Shell, Widget,
+    Clipboard, Element, Event, Layout, Length, Point, Shell, Vector, Widget,
 };
 
 use crate::application::{map_mit_zustand::MapOperation, style::hintergrund::Hintergrund};
@@ -365,11 +365,11 @@ struct Dummy;
 
 impl<M, R: Renderer> Widget<M, R> for Dummy {
     fn width(&self) -> Length {
-        Length::Units(0)
+        Length::Fixed(0.)
     }
 
     fn height(&self) -> Length {
-        Length::Units(0)
+        Length::Fixed(0.)
     }
 
     fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
@@ -427,7 +427,7 @@ where
         let mut layout = if let Some(overlay) = &self.modal_overlay {
             overlay.as_widget().layout(renderer, &layout::Limits::new(bounds, bounds))
         } else if let Some(overlay) = &self.element_overlay {
-            overlay.layout(renderer, bounds)
+            overlay.layout(renderer, bounds, Vector::ZERO)
         } else {
             layout::Node::new(Size::ZERO)
         };

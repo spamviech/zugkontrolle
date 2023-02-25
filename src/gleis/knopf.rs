@@ -3,14 +3,12 @@
 use iced::{
     alignment::{Horizontal, Vertical},
     mouse,
-    theme::{self, Theme},
     widget::{
         canvas::{event, Cursor, Event, Geometry, Program},
         Container,
     },
-    Element, Length, Point, Rectangle,
+    Element, Length, Point, Rectangle, Theme,
 };
-use num_traits::NumCast;
 
 use crate::{
     application::touch_canvas::Canvas,
@@ -66,21 +64,20 @@ impl<T: Zeichnen> Knopf<T> {
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
     pub fn als_iced_widget<'t, Nachricht>(
         &'t self,
-        breite: Option<u16>,
+        breite: Option<f32>,
     ) -> impl Into<Element<'t, Nachricht>>
     where
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
     {
         let größe = self.gleis.rechteck(self.spurweite).größe();
-        let standard_breite = NumCast::from((STROKE_WIDTH + größe.x).0.ceil()).unwrap_or(u16::MAX);
-        let höhe =
-            NumCast::from((DOUBLE_PADDING + STROKE_WIDTH + größe.y).0.ceil()).unwrap_or(u16::MAX);
+        let standard_breite = (STROKE_WIDTH + größe.x).0;
+        let höhe = (DOUBLE_PADDING + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
         Container::new(Canvas::new(
             self,
-            Length::Units(breite.unwrap_or(standard_breite)),
-            Length::Units(höhe),
+            Length::Fixed(breite.unwrap_or(standard_breite)),
+            Length::Fixed(höhe),
         ))
         .width(Length::Fill)
         .height(Length::Shrink)

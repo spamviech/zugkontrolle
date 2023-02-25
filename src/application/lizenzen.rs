@@ -91,7 +91,7 @@ impl<R> Debug for Lizenzen<'_, R> {
     }
 }
 
-const PADDING: u16 = 5;
+const PADDING: f32 = 5.;
 const TRENNLINIE_BREITE: u16 = 1;
 
 impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
@@ -136,22 +136,22 @@ impl<'a, R: 'a + text::Renderer> Lizenzen<'a, R> {
         let buttons = Scrollable::new(buttons).style(scrollable_style);
         let column = Column::new()
             .push(buttons)
-            .push(Space::with_height(Length::Units(PADDING)))
+            .push(Space::with_height(Length::Fixed(PADDING)))
             .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .width(Length::Shrink)
             .height(Length::Fill);
         let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Fill);
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
-                .push(Space::with_width(Length::Units(PADDING)))
+                .push(Space::with_width(Length::Fixed(PADDING)))
                 .push(Text::new(aktuell_text.as_ref()).width(Length::Fill).height(Length::Shrink))
-                .push(Space::with_width(Length::Units(PADDING)))
+                .push(Space::with_width(Length::Fixed(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
             column_aktuell = column_aktuell
-                .push(Space::with_height(Length::Units(PADDING)))
+                .push(Space::with_height(Length::Fixed(PADDING)))
                 .push(text_mit_horizontalem_padding)
-                .push(Space::with_height(Length::Units(PADDING)))
+                .push(Space::with_height(Length::Fixed(PADDING)))
         }
         let container = Container::new(
             Row::new()

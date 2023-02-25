@@ -133,7 +133,7 @@ where
         } else {
             column.push(
                 Slider::new(0..=u8::MAX, aktuelle_geschwindigkeit, geschwindigkeit_nachricht)
-                    .width(Length::Units(100)),
+                    .width(Length::Fixed(100.)),
             )
         };
         column = column.push(zeige_fahrtrichtung(aktuelle_fahrtrichtung));
@@ -340,7 +340,7 @@ where
         let output_save_head = &mut ks_anschlüsse.head;
         let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter_mut().collect();
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
-        let width = Length::Units(950);
+        let width = Length::Fixed(950.);
         let mut neu = Column::new()
             .push(TextInput::new("<Name>", neu_name, InterneAuswahlNachricht::Name).width(width));
         let umdrehen_auswahl = Column::new().push(Text::new(fahrtrichtung_beschreibung)).push(
@@ -371,7 +371,7 @@ where
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
-        let mut ks_column = Column::new().height(Length::Units(150));
+        let mut ks_column = Column::new().height(Length::Fixed(150.));
         for i in 0..anschlüsse_save.len() {
             let ii = i;
             let mut row = Row::new().push(Element::from(anschluss::Auswahl::neu_output(None)).map(

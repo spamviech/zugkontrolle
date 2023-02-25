@@ -7,7 +7,6 @@ use iced::{
     Alignment, Element, Length, Point, Renderer,
 };
 use log::error;
-use num_traits::NumCast;
 
 use crate::{
     application::{
@@ -195,7 +194,7 @@ where
             Element::new(
                 iced_aw::Card::new(
                     Text::new(&*titel),
-                    Scrollable::new(Text::new(&*nachricht)).height(Length::Units(300)),
+                    Scrollable::new(Text::new(&*nachricht)).height(Length::Fixed(300.)),
                 )
                 .foot(
                     iced::widget::Button::new(Text::new("Ok"))
@@ -210,6 +209,12 @@ where
         .into()
     }
 }
+
+const BEWEGEN_HÖHE: f32 = 50.;
+const BEWEGEN_BREITE: f32 = 50.;
+const DREHEN_HÖHE: f32 = 50.;
+const DREHEN_BREITE: f32 = 50.;
+const SKALIEREN_BREITE: f32 = 75.;
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
@@ -227,8 +232,13 @@ where
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
-    let bewegen = touch_canvas::Canvas::new(bewegen, Length::Units(50), Length::Units(50));
-    let drehen = touch_canvas::Canvas::new(drehen, Length::Units(50), Length::Units(50));
+    let bewegen = touch_canvas::Canvas::new(
+        bewegen,
+        Length::Fixed(BEWEGEN_HÖHE),
+        Length::Fixed(BEWEGEN_BREITE),
+    );
+    let drehen =
+        touch_canvas::Canvas::new(drehen, Length::Fixed(DREHEN_HÖHE), Length::Fixed(DREHEN_BREITE));
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
@@ -236,7 +246,7 @@ where
                 NachrichtClone::Skalieren(Skalar(exponent.exp()))
             })
             .step(0.01)
-            .width(Length::Units(75)),
+            .width(Length::Fixed(SKALIEREN_BREITE)),
         )
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
@@ -302,14 +312,16 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                     $(
                         for button in $vec.iter() {
                             let größe = button.rechteck().größe();
-                            let breite = NumCast::from(größe.x.0.ceil()).unwrap_or(u16::MAX);
-                            max_breite = max_breite.max(Some(breite));
+                            let breite = Some(größe.x.0);
+                            if breite > max_breite {
+                                max_breite = breite;
+                            }
                         }
                     )*
                 }
             }
             fn knöpfe_hinzufügen<'t, L, S, T>(
-                max_breite: &mut Option<u16>,
+                max_breite: &mut Option<f32>,
                 scrollable_row: &mut Row<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
@@ -339,7 +351,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                 kreuzungen
             );
             if let Some(max) = max_breite {
-                width = Length::Units(max);
+                width = Length::Fixed(max);
             }
         },
         Modus::Fahren => {

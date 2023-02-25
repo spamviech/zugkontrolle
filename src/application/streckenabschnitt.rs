@@ -262,7 +262,7 @@ impl<'a, L: Leiter, R: 'a + text::Renderer<Font = Font>> Auswahl<'a, L, R> {
                                             neu_name,
                                             InterneAuswahlNachricht::Name,
                                         )
-                                        .width(Length::Units(200)),
+                                        .width(Length::Fixed(200.)),
                                     )
                                     .push(
                                         Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)

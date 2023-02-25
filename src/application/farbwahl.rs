@@ -100,11 +100,11 @@ impl<'a, M> Farbwahl<'a, M> {
 
 impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
     fn width(&self) -> Length {
-        Length::Units(self.durchmesser)
+        Length::Fixed(f32::from(self.durchmesser))
     }
 
     fn height(&self) -> Length {
-        Length::Units(self.durchmesser)
+        Length::Fixed(f32::from(self.durchmesser))
     }
 
     fn layout(&self, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
