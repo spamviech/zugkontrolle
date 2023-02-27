@@ -6,7 +6,7 @@ use iced_aw::native::{NumberInput, TabLabel, Tabs};
 use iced_native::{
     event, text,
     widget::{Column, Radio, Row, Text},
-    Element, Font, Length, Widget,
+    Element, Font, Length, Renderer,
 };
 use log::error;
 
@@ -448,7 +448,7 @@ where
     ) -> Self {
         let erzeuge_element = |zustand| Self::erzeuge_element(zustand, view_modus, zeige_modus);
         let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
@@ -561,7 +561,7 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
+impl<'a, Modus, ModusNachricht, Serialisiert, R: Renderer>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
@@ -599,7 +599,7 @@ where
         let erzeuge_zustand = || PwmZustand::neu(pin);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      zustand: &mut dyn DerefMut<Target = PwmZustand>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             let pwm::Serialisiert(pin) = interne_nachricht;
@@ -614,7 +614,7 @@ where
     }
 }
 
-impl<'a, N, R> From<Pwm<'a, N, R>> for Element<'a, N, R> {
+impl<'a, N, R: Renderer> From<Pwm<'a, N, R>> for Element<'a, N, R> {
     fn from(auswahl: Pwm<'a, N, R>) -> Self {
         Element::new(auswahl.0)
     }

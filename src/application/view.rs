@@ -3,7 +3,10 @@
 use std::fmt::Debug;
 
 use iced::{
-    widget::{Button, Canvas, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
+    widget::{
+        scrollable::{self, Scrollable},
+        Button, Canvas, Column, Container, Row, Rule, Slider, Space, Text,
+    },
     Alignment, Element, Length, Point, Renderer,
 };
 use log::error;
@@ -216,7 +219,7 @@ const DREHEN_HÖHE: f32 = 50.;
 const DREHEN_BREITE: f32 = 50.;
 const SKALIEREN_BREITE: f32 = 75.;
 
-fn top_row<'t, L, S, R>(
+fn top_row<'t, L, S>(
     aktueller_modus: Modus,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
@@ -225,7 +228,7 @@ fn top_row<'t, L, S, R>(
     initialer_pfad: &str,
 ) -> Row<'t, Nachricht<L, S>>
 where
-    L: 'static + Debug + LeiterAnzeige<S, R>,
+    L: 'static + Debug + LeiterAnzeige<S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
@@ -270,7 +273,7 @@ where
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))
-        .push(Element::new(speichern_laden).map(|message| match message {
+        .push(Element::from(speichern_laden).map(|message| match message {
             speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
             speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
         }))
@@ -286,7 +289,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
+fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -362,7 +365,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
                     continue;
                 };
                 scrollable_row = scrollable_row.push(
-                    Element::new(L::anzeige_neu(todo!("name"), geschwindigkeit))
+                    Element::from(L::anzeige_neu(todo!("name"), geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
@@ -375,7 +378,10 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
             Container::new(
                 Element::new(
                     scrollable
-                        .scroller_width(scroller_width)
+                        .vertical_scroll(scrollable::Properties {
+                            scroller_width,
+                            ..scrollable::Properties::default()
+                        })
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )

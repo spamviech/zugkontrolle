@@ -27,7 +27,7 @@ use iced_native::{
         text_input::{self, TextInput},
         Column, Row,
     },
-    Element, Font, Length, Renderer, Widget,
+    Element, Font, Length, Renderer,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -517,7 +517,20 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<R: Renderer> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter {
+impl<R, Style> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter
+where
+    R: iced_native::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + scrollable::StyleSheet
+        + radio::StyleSheet
+        + slider::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet
+        + number_input::StyleSheet
+        + tab_bar::StyleSheet<Style = TabBar<Style>>
+        + card::StyleSheet,
+{
     fn anzeige_neu<'t>(
         name: &'t Name,
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
@@ -569,7 +582,20 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<R> LeiterAnzeige<ZweileiterSerialisiert, R> for Zweileiter {
+impl<R, Style> LeiterAnzeige<ZweileiterSerialisiert, R> for Zweileiter
+where
+    R: iced_native::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: container::StyleSheet
+        + button::StyleSheet
+        + scrollable::StyleSheet
+        + radio::StyleSheet
+        + slider::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet
+        + number_input::StyleSheet
+        + tab_bar::StyleSheet<Style = TabBar<Style>>
+        + card::StyleSheet,
+{
     fn anzeige_neu<'t>(
         name: &'t Name,
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,

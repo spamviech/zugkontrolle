@@ -509,7 +509,7 @@ where
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,
-            scrollable_style: style::sammlung::Sammlung::neu(10),
+            scrollable_style: style::sammlung::Sammlung::neu(10.),
             geraden,
             kurven,
             weichen,

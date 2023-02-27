@@ -11,18 +11,18 @@ use iced::{
 #[derive(Debug, Clone, Copy)]
 pub struct Sammlung {
     /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width).
-    pub breite: u16,
+    pub breite: f32,
 }
 
 impl Sammlung {
     /// Erstelle eine neue [Sammlung] Style-Struktur.
-    pub fn neu(breite: u16) -> Self {
+    pub fn neu(breite: f32) -> Self {
         Sammlung { breite }
     }
 
     /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width) des [iced::widget::Scrollable].
     #[inline(always)]
-    pub fn breite(&self) -> u16 {
+    pub fn breite(&self) -> f32 {
         self.breite
     }
 
@@ -35,7 +35,7 @@ impl Sammlung {
             border_color: Color::BLACK,
             scroller: Scroller {
                 color: scroller_color,
-                border_radius: 0.25 * (self.breite as f32),
+                border_radius: 0.25 * self.breite,
                 border_width: 0.,
                 border_color: scroller_color,
             },
