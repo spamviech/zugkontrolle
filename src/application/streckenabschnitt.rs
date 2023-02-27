@@ -30,10 +30,11 @@ use crate::{
     application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, style},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
-    steuerung::streckenabschnitt::{Name, Streckenabschnitt},
     typen::farbe::Farbe,
     unicase_ord::UniCaseOrd,
 };
+
+pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 
 /// Zustand des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie [Buttons](iced::Button) zum Öffnen des Auswahl-Fensters.

@@ -117,7 +117,7 @@ enum NachrichtClone<L: Leiter> {
     ZeigeLizenzen,
 }
 
-impl<L: LeiterAnzeige<S>, S> From<NachrichtClone<L>> for Nachricht<L, S> {
+impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
     fn from(nachricht_clone: NachrichtClone<L>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
@@ -224,7 +224,7 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: LeiterAnzeige<S>, S> From<gleise::Nachricht> for Nachricht<L, S> {
+impl<L: Leiter, S> From<gleise::Nachricht> for Nachricht<L, S> {
     fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
@@ -241,7 +241,7 @@ impl<L: LeiterAnzeige<S>, S> From<gleise::Nachricht> for Nachricht<L, S> {
     }
 }
 
-impl<L: LeiterAnzeige<S>, S> From<AsyncNachricht> for Nachricht<L, S> {
+impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
     fn from(fehler: AsyncNachricht) -> Self {
         match fehler {
             AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
@@ -281,7 +281,7 @@ async fn async_identity<T>(t: T) -> T {
 
 impl<L, S> Nachricht<L, S>
 where
-    L: 'static + LeiterAnzeige<S> + Send,
+    L: 'static + Leiter + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -308,7 +308,7 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
 
 /// Zustand des Auswahl-Fensters.
-pub enum AuswahlZustand<L: LeiterAnzeige<S>, S> {
+pub enum AuswahlZustand<L: Leiter, S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt,
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
@@ -323,7 +323,7 @@ pub enum AuswahlZustand<L: LeiterAnzeige<S>, S> {
     ZeigeLizenzen,
 }
 
-impl<L: LeiterAnzeige<S>, S> Debug for AuswahlZustand<L, S> {
+impl<L: Leiter, S> Debug for AuswahlZustand<L, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AuswahlZustand::Streckenabschnitt => f.debug_tuple("Streckenabschnitt").finish(),
@@ -423,7 +423,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_debug(S: Debug)]
-pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
+pub struct Zugkontrolle<L: Leiter, S> {
     gleise: Gleise<L>,
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
@@ -450,7 +450,13 @@ pub struct Zugkontrolle<L: LeiterAnzeige<S>, S> {
 #[allow(single_use_lifetimes)]
 impl<L, S> Application for Zugkontrolle<L, S>
 where
-    L: 'static + Debug + Display + LeiterAnzeige<S> + Serialisiere<S> + BekannterLeiter + Send,
+    L: 'static
+        + Debug
+        + Display
+        + LeiterAnzeige<S, Renderer>
+        + Serialisiere<S>
+        + BekannterLeiter
+        + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:

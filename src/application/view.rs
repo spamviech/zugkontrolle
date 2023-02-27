@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 
 use iced::{
-    widget::{Button, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
+    widget::{Button, Canvas, Column, Container, Row, Rule, Scrollable, Slider, Space, Text},
     Alignment, Element, Length, Point, Renderer,
 };
 use log::error;
@@ -39,7 +39,7 @@ use crate::{
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S>, S: 'static>(
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
     ) -> Element<'t, Nachricht<L, S>> {
@@ -51,7 +51,7 @@ impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for 
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige<S>,
+    L: 'static + Debug + LeiterAnzeige<S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
@@ -108,7 +108,7 @@ where
             Column::new().push(top_row).push(Rule::horizontal(1).style(TRENNLINIE)).push(
                 row_with_scrollable.push(
                     Container::new(
-                        Element::new(touch_canvas::Canvas::new(gleise, Length::Fill, Length::Fill))
+                        Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
                             .map(Nachricht::from),
                     )
                     .width(Length::Fill)
@@ -216,7 +216,7 @@ const DREHEN_HÖHE: f32 = 50.;
 const DREHEN_BREITE: f32 = 50.;
 const SKALIEREN_BREITE: f32 = 75.;
 
-fn top_row<'t, L, S>(
+fn top_row<'t, L, S, R>(
     aktueller_modus: Modus,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
@@ -225,20 +225,18 @@ fn top_row<'t, L, S>(
     initialer_pfad: &str,
 ) -> Row<'t, Nachricht<L, S>>
 where
-    L: 'static + Debug + LeiterAnzeige<S>,
+    L: 'static + Debug + LeiterAnzeige<S, R>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
         .push(Modus::Fahren.erstelle_radio(aktueller_modus));
-    let bewegen = touch_canvas::Canvas::new(
-        bewegen,
-        Length::Fixed(BEWEGEN_HÖHE),
-        Length::Fixed(BEWEGEN_BREITE),
-    );
+    let bewegen = Canvas::new(bewegen)
+        .width(Length::Fixed(BEWEGEN_HÖHE))
+        .height(Length::Fixed(BEWEGEN_BREITE));
     let drehen =
-        touch_canvas::Canvas::new(drehen, Length::Fixed(DREHEN_HÖHE), Length::Fixed(DREHEN_BREITE));
+        Canvas::new(drehen).width(Length::Fixed(DREHEN_HÖHE)).height(Length::Fixed(DREHEN_BREITE));
     let skalieren_slider = Column::new()
         .push(Text::new(format!("Zoom {:.2}", aktueller_zoom.0)))
         .push(
@@ -288,7 +286,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
+fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -320,12 +318,12 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S>, S: 'static>(
                     )*
                 }
             }
-            fn knöpfe_hinzufügen<'t, L, S, T>(
+            fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 max_breite: &mut Option<f32>,
                 scrollable_row: &mut Row<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
-                L: 'static + LeiterAnzeige<S>,
+                L: 'static + LeiterAnzeige<S, R>,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
             {
                 take_mut::take(scrollable_row, |mut scrollable_row| {

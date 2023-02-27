@@ -11,7 +11,7 @@ use std::{
 
 use iced::{
     widget::{button, scrollable},
-    Command,
+    Command, Renderer,
 };
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
@@ -45,7 +45,7 @@ use crate::{
 
 impl<L, S> Nachricht<L, S>
 where
-    L: 'static + LeiterAnzeige<S> + Send,
+    L: 'static + Leiter + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
+impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
     /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -126,7 +126,6 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     ) where
         T: 'static + for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere<WS>,
-        WS:,
     {
         let steuerung_res = self.gleise.erhalte_steuerung(&id);
         if let Ok(steuerung) = steuerung_res {
@@ -450,7 +449,7 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
     }
 }
 
-impl<L: LeiterAnzeige<S> + Display, S> Zugkontrolle<L, S> {
+impl<L: LeiterAnzeige<S, Renderer> + Display, S> Zugkontrolle<L, S> {
     /// Zeige das Auswahl-Fenster zum Einstellen einer
     /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     #[inline(always)]
@@ -487,7 +486,7 @@ impl<L: LeiterAnzeige<S> + Display, S> Zugkontrolle<L, S> {
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: LeiterAnzeige<S> + Serialisiere<S> + Display,
+    L: LeiterAnzeige<S, Renderer> + Serialisiere<S> + Display,
     S: Debug + Clone + Reserviere<L, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
@@ -622,7 +621,7 @@ where
     }
 }
 
-impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
+impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
     #[inline(always)]
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
@@ -632,7 +631,7 @@ impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<S> + Send,
+    L: 'static + LeiterAnzeige<S, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -661,7 +660,7 @@ where
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige<S> + Send,
+    L: 'static + Debug + LeiterAnzeige<S, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Debug + Send,
     S: Send,
 {
@@ -730,7 +729,7 @@ where
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<S> + BekannterLeiter + Serialisiere<S> + Send,
+    L: 'static + LeiterAnzeige<S, Renderer> + BekannterLeiter + Serialisiere<S> + Send,
     S: 'static + Serialize + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
@@ -762,7 +761,7 @@ where
     }
 }
 
-impl<L: LeiterAnzeige<S>, S> Zugkontrolle<L, S> {
+impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
     /// Lade einen neuen Zustand aus einer Datei.
     #[allow(single_use_lifetimes)]
     pub fn laden(&mut self, pfad: String)

@@ -517,7 +517,7 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<R> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter {
+impl<R: Renderer> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter {
     fn anzeige_neu<'t>(
         name: &'t Name,
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
