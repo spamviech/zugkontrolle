@@ -24,7 +24,7 @@ itertools = "0.10.3"
 log = "0.4.14"
 parking_lot = "0.12.0"
 num-traits = "0.2.14"
-rstar = "0.9.1"
+rstar = "0.10.0"
 take_mut = "0.2.2"
 unicase = "2.6.0"
 
@@ -41,7 +41,7 @@ version = "1.0.136"
 features = ["derive"]
 
 [dependencies.flexi_logger]
-version = "0.22.3"
+version = "0.25.2"
 default_features = false
 features = ["colors"]
 
@@ -66,23 +66,23 @@ features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 # can't be used on non-raspi systems
 # raspi 0/1
 [target.arm-unknown-linux-gnueabihf.dependencies]
-rppal = "0.13.1"
+rppal = "0.14.1"
 #rascam = "0.0.2"
 #raspicam-rs = "0.1.3"
 #libcamera = "0.2.1"
 [target.arm-unknown-linux-musleabihf.dependencies]
-rppal = "0.13.1"
+rppal = "0.14.1"
 #rascam = "0.0.2"
 #raspicam-rs = "0.1.3"
 #libcamera = "0.2.1"
 # raspi 2/3/4
 [target.armv7-unknown-linux-gnueabihf.dependencies]
-rppal = "0.13.1"
+rppal = "0.14.1"
 #rascam = "0.0.2"
 #raspicam-rs = "0.1.3"
 #libcamera = "0.2.1"
 [target.armv7-unknown-linux-musleabihf.dependencies]
-rppal = "0.13.1"
+rppal = "0.14.1"
 #rascam = "0.0.2"
 #raspicam-rs = "0.1.3"
 #libcamera = "0.2.1"
