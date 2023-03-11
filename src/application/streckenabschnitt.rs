@@ -27,7 +27,17 @@ use iced_native::{
 
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, style},
+    application::{
+        anschluss,
+        farbwahl::Farbwahl,
+        map_mit_zustand::MapMitZustand,
+        style::{
+            streckenabschnitt::{
+                Anzeige as StyleAnzeige, Auswahl as StyleAuswahl, Beschreibung as StyleBeschreibung,
+            },
+            tab_bar::TabBar,
+        },
+    },
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
@@ -63,10 +73,8 @@ where
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style:
-        From<style::streckenabschnitt::Beschreibung>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style:
-        From<style::streckenabschnitt::Anzeige>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleBeschreibung>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAnzeige>,
 {
     /// Erstelle eine neue [Anzeige].
     pub fn neu(zustand: Option<(&'a StreckenabschnittId, &'a Farbe)>, festlegen: bool) -> Self {
@@ -74,14 +82,12 @@ where
         // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_id.name.0).into());
-            style::streckenabschnitt::Anzeige::Farbe(*farbe)
+            StyleAnzeige::Farbe(*farbe)
         } else {
             children.push(
-                Container::new(Text::new("<Streckenabschnitt>"))
-                    .style(style::streckenabschnitt::Beschreibung)
-                    .into(),
+                Container::new(Text::new("<Streckenabschnitt>")).style(StyleBeschreibung).into(),
             );
-            style::streckenabschnitt::Anzeige::Deaktiviert
+            StyleAnzeige::Deaktiviert
         };
         children.push(
             Row::new()
@@ -197,23 +203,27 @@ pub struct Auswahl<'a, R: Renderer>(
     MapMitZustand<'a, AuswahlZustand, InterneAuswahlNachricht, AuswahlNachricht, R>,
 );
 
-impl<'a, R, Style> Auswahl<'a, R>
+impl<'a, R> Auswahl<'a, R>
 where
     R: 'a + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: card::StyleSheet
         + text::StyleSheet
         + scrollable::StyleSheet
         + container::StyleSheet
-        + button::StyleSheet<Style = style::streckenabschnitt::Auswahl>
+        + button::StyleSheet
         + text_input::StyleSheet
         + number_input::StyleSheet
-        + tab_bar::StyleSheet<Style = style::tab_bar::TabBar<Style>>
+        + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style:
-        From<style::streckenabschnitt::Auswahl>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> Self {
+    pub fn neu<L, Style>(gleise: &Gleise<L>) -> Self
+    where
+        L: Leiter,
+        <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let erzeuge_zustand = || AuswahlZustand::neu(gleise);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
@@ -294,7 +304,7 @@ where
                                     .on_press(InterneAuswahlNachricht::Hinzufügen),
                             ),
                     )
-                    .style(style::streckenabschnitt::Auswahl(*neu_farbe)),
+                    .style(StyleAuswahl(*neu_farbe)),
                 )
                 .push(
                     Button::new(Text::new("Keinen"))
@@ -311,7 +321,7 @@ where
                                         name.clone().into_inner(),
                                         *farbe,
                                     ))))
-                                    .style(style::streckenabschnitt::Auswahl(*farbe)),
+                                    .style(StyleAuswahl(*farbe)),
                             )
                             .push(Button::new(Text::new("X")).on_press(
                                 InterneAuswahlNachricht::Lösche(name.clone().into_inner()),
@@ -333,13 +343,14 @@ where
         + text::StyleSheet
         + scrollable::StyleSheet
         + container::StyleSheet
-        + button::StyleSheet<Style = style::streckenabschnitt::Auswahl>
+        + button::StyleSheet
         + text_input::StyleSheet
         + number_input::StyleSheet
-        + tab_bar::StyleSheet<Style = style::tab_bar::TabBar<Style>>
+        + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style:
-        From<style::streckenabschnitt::Auswahl>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl.0)

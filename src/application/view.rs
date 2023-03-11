@@ -264,8 +264,8 @@ where
                 .on_press(NachrichtClone::ZeigeAuswahlGeschwindigkeit),
         )
         .map(Nachricht::from);
-        let streckenabschnitt = Element::new(streckenabschnitt::Anzeige::neu(
-            todo!("streckenabschnitt"),
+        let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
+            todo!("Option<(StreckenabschnittId, Farbe)>"),
             *streckenabschnitt_festlegen,
         ))
         .map(Nachricht::from);

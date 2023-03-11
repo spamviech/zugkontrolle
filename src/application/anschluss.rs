@@ -2,7 +2,10 @@
 
 use std::{collections::HashMap, ops::DerefMut};
 
-use iced_aw::native::{NumberInput, TabLabel, Tabs};
+use iced_aw::{
+    native::{NumberInput, TabLabel, Tabs},
+    style::tab_bar,
+};
 use iced_native::{
     event, text,
     widget::{Column, Radio, Row, Text},
@@ -221,21 +224,24 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
     MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, R>,
 );
 
-impl<'a, R, Style> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
+impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
-    pub fn neu_input(
+    pub fn neu_input<Style>(
         start_wert: Option<&'a InputAnschluss>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
             Some(InputAnschluss::Pcf8574Port(port)) => (
@@ -251,10 +257,13 @@ where
     }
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
-    pub fn neu_input_s(
+    pub fn neu_input_s<Style>(
         start_wert: Option<&'a InputSerialisiert>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputSerialisiert::Pin { pin }) => (TAB_PIN, Some(*pin), None, None, None),
             Some(InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }) => {
@@ -265,14 +274,17 @@ where
         Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins)
     }
 
-    fn neu_input_aux(
+    fn neu_input_aux<Style>(
         active_tab: usize,
         pin: Option<u8>,
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
         modus: Option<u8>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             &|pin, beschreibung| {
@@ -312,18 +324,21 @@ where
     }
 }
 
-impl<'a, R, Style> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
+impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
+    pub fn neu_output<Style>(start_wert: Option<&'a OutputAnschluss>) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputAnschluss::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
@@ -337,7 +352,11 @@ where
     }
 
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output_s(start_wert: Option<&'a OutputSerialisiert>) -> Self {
+    pub fn neu_output_s<Style>(start_wert: Option<&'a OutputSerialisiert>) -> Self
+    where
+        <<R as iced_native::Renderer>::Theme as iced_aw::tab_bar::StyleSheet>::Style:
+            From<TabBar<Style>>,
+    {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputSerialisiert::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(*pin), None, None, Some(*polarität))
@@ -350,13 +369,16 @@ where
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus)
     }
 
-    fn neu_output_aux(
+    fn neu_output_aux<Style>(
         active_tab: usize,
         pin: Option<u8>,
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
         modus: Option<Polarität>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Beide,
             &|polarität, _beschreibung| {
@@ -425,27 +447,29 @@ where
         .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
-    Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     Modus: Copy,
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
 {
-    fn neu_mit_interrupt_view(
+    fn neu_mit_interrupt_view<Style>(
         zeige_modus: ZeigeModus,
         view_modus: &'a impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
         make_port: &'a impl Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let erzeuge_element = |zustand| Self::erzeuge_element(zustand, view_modus, zeige_modus);
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
@@ -480,23 +504,25 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R, Style>
-    Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet<Style = TabBar<Style>>
+        + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
 {
-    fn erzeuge_element(
+    fn erzeuge_element<Style>(
         zustand: &Zustand<Modus>,
         view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         zeige_modus: ZeigeModus,
-    ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
+    ) -> Element<'a, InterneNachricht<ModusNachricht>, R>
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
         let element_modus = view_modus(&modus, *beschreibung);
         // TODO anzeige des verwendeten I2cBus
@@ -537,7 +563,7 @@ where
                     }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar::neu())
+                    .tab_bar_style(TabBar::neu().into())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -551,7 +577,7 @@ where
                     (TabLabel::Text("Pcf8574-Port".to_owned()), { pcf8574_row.into() }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar::neu())
+                    .tab_bar_style(TabBar::neu().into())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)

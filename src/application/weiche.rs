@@ -84,8 +84,7 @@ pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>(
     >,
 );
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R, Style>
-    Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
 where
     AnschlüsseSerialisiert: Default + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Default + Display,
@@ -97,12 +96,15 @@ where
         + radio::StyleSheet
         + card::StyleSheet
         + number_input::StyleSheet
-        + tab_bar::StyleSheet<Style = TabBar<Style>>,
+        + tab_bar::StyleSheet,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<AnschlüsseAuswahlZustand>(
+    pub fn neu<AnschlüsseAuswahlZustand, Style>(
         weiche: &'t Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
-    ) -> Self {
+    ) -> Self
+    where
+        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    {
         let erzeuge_zustand = || Zustand::neu(weiche);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,

@@ -60,8 +60,8 @@ pub struct SpeichernLaden<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Na
 impl<'a, R> SpeichernLaden<'a, R>
 where
     R: 'a + iced_native::text::Renderer,
-    <R as Renderer>::Theme:
-        button::StyleSheet<Style = Hintergrund> + text::StyleSheet + text_input::StyleSheet,
+    <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<Hintergrund>,
 {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(initialer_pfad: &'a str) -> Self {
@@ -97,10 +97,10 @@ where
         let row = Row::new()
             .push(
                 Column::new()
-                    .push(speichern_ungefärbt.style(speichern_style))
+                    .push(speichern_ungefärbt.style(speichern_style.into()))
                     .push(
                         Button::new(Text::new("Laden"))
-                            .style(hintergrund::STANDARD)
+                            .style(hintergrund::STANDARD.into())
                             .on_press(InterneNachricht::Laden),
                     )
                     .align_items(Alignment::End),
@@ -120,8 +120,8 @@ where
 impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R>
 where
     R: 'a + iced_native::text::Renderer,
-    <R as Renderer>::Theme:
-        button::StyleSheet<Style = Hintergrund> + text::StyleSheet + text_input::StyleSheet,
+    <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<Hintergrund>,
 {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
         Element::new(auswahl.0)
