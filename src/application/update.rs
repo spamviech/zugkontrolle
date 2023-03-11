@@ -150,7 +150,6 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
     pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
-            .aktuell()
             .as_ref()
             .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
         macro_rules! hinzufügen_gehalten_bei_maus {
@@ -162,7 +161,7 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
                     false,
                 ) {
                     error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    self.streckenabschnitt_aktuell.entferne_aktuell();
+                    self.streckenabschnitt_aktuell = None;
                     let _ = self.gleise.hinzufügen_gehalten_bei_maus(
                         $gleis.mit_none(),
                         Vektor { x: Skalar(0.), y: klick_höhe },
@@ -210,7 +209,7 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
         &mut self,
         streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
     ) {
-        *self.streckenabschnitt_aktuell.aktuell_mut() = streckenabschnitt
+        self.streckenabschnitt_aktuell = streckenabschnitt
     }
 
     /// Füge einen neuen [Streckenabschnitt] hinzu.
@@ -263,13 +262,13 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
 
         if let Some(streckenabschnitt) = streckenabschnitt {
             {
-                self.streckenabschnitt_aktuell.setze_aktuell(
+                self.streckenabschnitt_aktuell = Some((
                     StreckenabschnittId {
                         geschwindigkeit: geschwindigkeit.cloned(),
                         name: name.clone(),
                     },
                     farbe,
-                );
+                ));
                 let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
                 // match self.auswahl.overlay_mut() {
                 //     Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
@@ -316,11 +315,10 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
     pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
         if self
             .streckenabschnitt_aktuell
-            .aktuell()
             .as_ref()
             .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
         {
-            self.streckenabschnitt_aktuell.entferne_aktuell()
+            self.streckenabschnitt_aktuell = None
         }
 
         // match self.auswahl.overlay_mut() {
@@ -361,7 +359,6 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
                 Gleise::setze_streckenabschnitt,
                 &mut self.gleise,
                 self.streckenabschnitt_aktuell
-                    .aktuell()
                     .as_ref()
                     .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen())
             ) {
@@ -803,7 +800,7 @@ impl<L: LeiterAnzeige<S, Renderer>, S> Zugkontrolle<L, S> {
         todo!();
         let _ = ();
 
-        self.streckenabschnitt_aktuell.entferne_aktuell();
+        self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(
                 format!("Fehler beim Laden von {}", pfad),
