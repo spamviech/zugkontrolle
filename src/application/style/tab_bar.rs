@@ -1,22 +1,17 @@
 //! Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 //! bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
-use iced::{Background, Color};
-use std::marker::PhantomData;
+use iced::{Background, Color, Theme};
+use iced_aw::style::tab_bar::{Appearance, StyleSheet};
 
 /// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 #[derive(Debug, Clone, Copy)]
-pub struct TabBar<Style>(PhantomData<fn(Style)>);
+pub struct TabBar;
 
-impl<Style> TabBar<Style> {
-    /// Erzeuge eine neue Style-Struktur einer [TabBar](iced_aw::tab_bar::TabBar).
-    pub fn neu() -> Self {
-        TabBar(PhantomData)
-    }
-
-    fn style(&self, tab_label_background: Color) -> iced_aw::style::tab_bar::Appearance {
-        iced_aw::style::tab_bar::Appearance {
+impl TabBar {
+    fn style(&self, tab_label_background: Color) -> Appearance {
+        Appearance {
             background: Some(Background::Color(Color::WHITE)),
             border_color: Some(Color::BLACK),
             border_width: 0.,
@@ -29,10 +24,11 @@ impl<Style> TabBar<Style> {
     }
 }
 
-impl<Style: Copy + Clone + Default> iced_aw::tab_bar::StyleSheet for TabBar<Style> {
-    type Style = Style;
+impl StyleSheet for TabBar {
+    // TODO Style verwenden
+    type Style = Theme;
 
-    fn active(&self, _style: Self::Style, is_active: bool) -> iced_aw::style::tab_bar::Appearance {
+    fn active(&self, _style: Self::Style, is_active: bool) -> Appearance {
         let grey_value: f32;
         if is_active {
             grey_value = 0.8;
@@ -42,11 +38,7 @@ impl<Style: Copy + Clone + Default> iced_aw::tab_bar::StyleSheet for TabBar<Styl
         self.style(Color::from_rgb(grey_value, grey_value, grey_value))
     }
 
-    fn hovered(
-        &self,
-        _style: Self::Style,
-        _is_active: bool,
-    ) -> iced_aw::style::tab_bar::Appearance {
+    fn hovered(&self, _style: Self::Style, _is_active: bool) -> Appearance {
         let grey_value = 0.7;
         self.style(Color::from_rgb(grey_value, grey_value, grey_value))
     }

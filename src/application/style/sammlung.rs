@@ -44,6 +44,7 @@ impl Sammlung {
 }
 
 impl StyleSheet for Sammlung {
+    // TODO Style verwenden
     type Style = Theme;
 
     fn active(&self, style: &Self::Style) -> Scrollbar {

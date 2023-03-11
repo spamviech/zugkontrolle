@@ -287,9 +287,10 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<Leiter, Style>(
+    pub fn neu<Leiter: Display>(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Leiter>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -302,11 +303,7 @@ where
             OutputSerialisiert,
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
-    ) -> Self
-    where
-        Leiter: Display,
-        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
-    {
+    ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
         let erzeuge_zustand = || AuswahlZustand::neu(geschwindigkeiten.iter());
         let erzeuge_element = |zustand| {
@@ -497,7 +494,7 @@ where
 }
 
 /// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
-pub trait LeiterAnzeige<S, R, Style>: Leiter + Sized {
+pub trait LeiterAnzeige<S, R>: Leiter + Sized {
     /// Erstelle eine neue [Anzeige].
     fn anzeige_neu<'t>(
         name: &'t Name,
@@ -518,7 +515,7 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<R, Style> LeiterAnzeige<MittelleiterSerialisiert, R, Style> for Mittelleiter
+impl<R> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter
 where
     R: iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
@@ -531,7 +528,7 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn anzeige_neu<'t>(
         name: &'t Name,
@@ -584,7 +581,7 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<R, Style> LeiterAnzeige<ZweileiterSerialisiert, R, Style> for Zweileiter
+impl<R> LeiterAnzeige<ZweileiterSerialisiert, R> for Zweileiter
 where
     R: iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
@@ -597,7 +594,7 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn anzeige_neu<'t>(
         name: &'t Name,

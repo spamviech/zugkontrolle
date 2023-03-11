@@ -2,7 +2,7 @@
 
 use iced::{
     widget::container::{Appearance, StyleSheet},
-    Color,
+    Color, Theme,
 };
 
 /// Style Strukturen für den Rand eines [iced::widget::Container].
@@ -17,10 +17,17 @@ pub struct Rand {
 }
 
 impl StyleSheet for Rand {
-    type Style = ();
+    // TODO Style verwenden
+    type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         let Rand { farbe: border_color, breite: border_width, radius: border_radius } = *self;
         Appearance { border_color, border_width, border_radius, ..Appearance::default() }
+    }
+}
+
+impl From<Rand> for iced::theme::Container {
+    fn from(rand: Rand) -> Self {
+        iced::theme::Container::Custom(Box::new(rand))
     }
 }

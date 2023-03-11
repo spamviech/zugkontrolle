@@ -97,14 +97,12 @@ where
         + card::StyleSheet
         + number_input::StyleSheet
         + tab_bar::StyleSheet,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<AnschlüsseAuswahlZustand, Style>(
+    pub fn neu<AnschlüsseAuswahlZustand>(
         weiche: &'t Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
-    ) -> Self
-    where
-        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
-    {
+    ) -> Self {
         let erzeuge_zustand = || Zustand::neu(weiche);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,

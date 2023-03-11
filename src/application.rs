@@ -435,7 +435,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: geschwindigkeit::Map<L>,
-    streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand,
+    streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
     streckenabschnitt_aktuell_festlegen: bool,
     bewegen: Bewegen,
     drehen: Drehen,
@@ -448,12 +448,12 @@ pub struct Zugkontrolle<L: Leiter, S> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<L, S> Application for Zugkontrolle<L, S>
+impl<L, S, Style> Application for Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
         + Display
-        + LeiterAnzeige<S, Renderer>
+        + LeiterAnzeige<S, Renderer, Style>
         + Serialisiere<S>
         + BekannterLeiter
         + Send,
@@ -518,7 +518,7 @@ where
             s_kurven_weichen,
             kreuzungen,
             geschwindigkeiten: geschwindigkeit::Map::new(),
-            streckenabschnitt_aktuell: streckenabschnitt::AnzeigeZustand::neu(),
+            streckenabschnitt_aktuell: None,
             streckenabschnitt_aktuell_festlegen: false,
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),

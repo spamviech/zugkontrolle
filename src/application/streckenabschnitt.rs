@@ -216,14 +216,11 @@ where
         + tab_bar::StyleSheet
         + radio::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L, Style>(gleise: &Gleise<L>) -> Self
-    where
-        L: Leiter,
-        <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
-        <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
-    {
+    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> Self {
         let erzeuge_zustand = || AuswahlZustand::neu(gleise);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
@@ -336,7 +333,7 @@ where
     }
 }
 
-impl<'a, Style, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
+impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
 where
     R: 'a + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: card::StyleSheet
@@ -350,7 +347,7 @@ where
         + radio::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar<Style>>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::new(auswahl.0)

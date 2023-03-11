@@ -2,7 +2,7 @@
 
 use iced::{
     widget::{button, container},
-    Color,
+    Color, Theme,
 };
 
 /// Weißer Hintergrund.
@@ -55,7 +55,8 @@ impl Hintergrund {
 }
 
 impl container::StyleSheet for Hintergrund {
-    type Style = ();
+    // TODO Style verwenden
+    type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         container::Appearance {
@@ -65,12 +66,25 @@ impl container::StyleSheet for Hintergrund {
     }
 }
 impl button::StyleSheet for Hintergrund {
-    type Style = ();
+    // TODO Style verwenden
+    type Style = Theme;
 
     fn active(&self, style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(iced::Background::Color(self.color())),
             ..button::Appearance::default()
         }
+    }
+}
+
+impl From<Hintergrund> for iced::theme::Container {
+    fn from(hintergrund: Hintergrund) -> Self {
+        iced::theme::Container::Custom(Box::new(hintergrund))
+    }
+}
+
+impl From<Hintergrund> for iced::theme::Button {
+    fn from(hintergrund: Hintergrund) -> Self {
+        iced::theme::Button::Custom(Box::new(hintergrund))
     }
 }

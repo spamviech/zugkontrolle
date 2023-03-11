@@ -219,7 +219,7 @@ const DREHEN_HÖHE: f32 = 50.;
 const DREHEN_BREITE: f32 = 50.;
 const SKALIEREN_BREITE: f32 = 75.;
 
-fn top_row<'t, L, S>(
+fn top_row<'t, L, S, Style>(
     aktueller_modus: Modus,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
@@ -289,7 +289,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
+fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static, Style>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -321,7 +321,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
                     )*
                 }
             }
-            fn knöpfe_hinzufügen<'t, L, S, R, T>(
+            fn knöpfe_hinzufügen<'t, L, S, R, T, Style>(
                 max_breite: &mut Option<f32>,
                 scrollable_row: &mut Row<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,

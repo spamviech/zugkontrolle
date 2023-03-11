@@ -21,6 +21,7 @@ pub struct Linie {
 }
 
 impl StyleSheet for Linie {
+    // TODO Style verwenden
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {

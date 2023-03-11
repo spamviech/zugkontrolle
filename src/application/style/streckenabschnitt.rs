@@ -15,7 +15,8 @@ use crate::typen::farbe::Farbe;
 pub struct Beschreibung;
 
 impl StyleSheet for Beschreibung {
-    type Style = ();
+    // TODO Style verwenden
+    type Style = Theme;
     fn appearance(&self, style: &Self::Style) -> Appearance {
         Appearance { text_color: Some(Color::BLACK), ..Appearance::default() }
     }
@@ -32,6 +33,7 @@ pub enum Anzeige {
 }
 
 impl StyleSheet for Anzeige {
+    // TODO Style verwenden
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
@@ -48,13 +50,20 @@ impl StyleSheet for Anzeige {
     }
 }
 
+impl From<Anzeige> for iced::theme::Container {
+    fn from(anzeige: Anzeige) -> Self {
+        iced::theme::Container::Custom(Box::new(anzeige))
+    }
+}
+
 /// Hintergrund der [Auswahl](crate::application::streckenabschnitt::Auswahl) eines Streckenabschnittes
 /// zeigt die gewählte Farbe an.
 #[derive(Debug, Clone, Copy)]
 pub struct Auswahl(pub Farbe);
 
 impl StyleSheet for Auswahl {
-    type Style = ();
+    // TODO Style verwenden
+    type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         Appearance { background: Some(Background::Color(self.0.into())), ..Appearance::default() }
@@ -69,5 +78,11 @@ impl button::StyleSheet for Auswahl {
             background: Some(Background::Color(self.0.into())),
             ..button::Appearance::default()
         }
+    }
+}
+
+impl From<Auswahl> for iced::theme::Button {
+    fn from(auswahl: Auswahl) -> Self {
+        iced::theme::Button::Custom(Box::new(auswahl))
     }
 }
