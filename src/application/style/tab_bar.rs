@@ -1,8 +1,8 @@
 //! Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 //! bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
-use iced::{Background, Color, Theme};
-use iced_aw::style::tab_bar::{Appearance, StyleSheet};
+use iced::{Background, Color};
+use iced_aw::style::tab_bar::{Appearance, StyleSheet, TabBarStyles};
 
 /// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
@@ -26,7 +26,7 @@ impl TabBar {
 
 impl StyleSheet for TabBar {
     // TODO Style verwenden
-    type Style = Theme;
+    type Style = ();
 
     fn active(&self, _style: Self::Style, is_active: bool) -> Appearance {
         let grey_value: f32;
@@ -41,5 +41,13 @@ impl StyleSheet for TabBar {
     fn hovered(&self, _style: Self::Style, _is_active: bool) -> Appearance {
         let grey_value = 0.7;
         self.style(Color::from_rgb(grey_value, grey_value, grey_value))
+    }
+}
+
+// FIXME mit ziemlicher Sicherheit erzeugt es das falsche Ergebnis
+// Hier, damit es kompiliert und keinen crash erzeugt (kein todo!())
+impl From<TabBar> for TabBarStyles {
+    fn from(value: TabBar) -> Self {
+        TabBarStyles::Default
     }
 }

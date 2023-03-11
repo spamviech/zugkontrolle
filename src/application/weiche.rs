@@ -74,20 +74,22 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
 
 /// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
 #[derive(Debug)]
-pub struct Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>(
+pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
     MapMitZustand<
         't,
         Zustand<AnschlüsseSerialisiert>,
         InterneNachricht<Richtung>,
-        Nachricht<Richtung, AnschlüsseSerialisiert>,
+        Nachricht<RichtungInformation, AnschlüsseSerialisiert>,
         R,
     >,
 );
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
+    Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
 where
     AnschlüsseSerialisiert: Default + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
-    Richtung: 'static + Clone + Default + Display,
+    Richtung: 'static + Clone + Display,
+    RichtungInformation: Default,
     R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
@@ -100,8 +102,8 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<AnschlüsseAuswahlZustand>(
-        weiche: &'t Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+    pub fn neu(
+        weiche: &'t Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
     ) -> Self {
         let erzeuge_zustand = || Zustand::neu(weiche);
         let erzeuge_element = Self::erzeuge_element;
@@ -121,7 +123,7 @@ where
                 InterneNachricht::Festlegen => {
                     vec![Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
                         Name(zustand.name.clone()),
-                        Richtung::default(),
+                        RichtungInformation::default(),
                         zustand.anschlüsse.clone(),
                     )))]
                 },
@@ -168,12 +170,15 @@ where
     }
 }
 
-impl<'t, Richtung, AnschlüsseSerialisiert, R> From<Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>>
-    for Element<'t, Nachricht<Richtung, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
+    From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>>
+    for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, R>
 where
     R: Renderer,
 {
-    fn from(anzeige: Auswahl<'t, Richtung, AnschlüsseSerialisiert, R>) -> Self {
+    fn from(
+        anzeige: Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>,
+    ) -> Self {
         Element::new(anzeige.0)
     }
 }

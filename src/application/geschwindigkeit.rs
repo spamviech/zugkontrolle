@@ -461,7 +461,7 @@ where
             .push(TabLabel::Text("Konstante Spannung".to_owned()), ks_auswahl)
             .width(width)
             .height(Length::Shrink)
-            .tab_bar_style(TabBar::neu());
+            .tab_bar_style(TabBar.into());
         let neu = neu.push(tabs);
         let mut column = Column::new().push(neu).push(
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),

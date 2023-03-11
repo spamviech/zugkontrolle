@@ -448,12 +448,12 @@ pub struct Zugkontrolle<L: Leiter, S> {
 }
 
 #[allow(single_use_lifetimes)]
-impl<L, S, Style> Application for Zugkontrolle<L, S>
+impl<L, S> Application for Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
         + Display
-        + LeiterAnzeige<S, Renderer, Style>
+        + LeiterAnzeige<S, Renderer>
         + Serialisiere<S>
         + BekannterLeiter
         + Send,

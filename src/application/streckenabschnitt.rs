@@ -77,7 +77,7 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAnzeige>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(zustand: Option<(&'a StreckenabschnittId, &'a Farbe)>, festlegen: bool) -> Self {
+    pub fn neu(zustand: &'a Option<(StreckenabschnittId, Farbe)>, festlegen: bool) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
@@ -318,7 +318,7 @@ where
                                         name.clone().into_inner(),
                                         *farbe,
                                     ))))
-                                    .style(StyleAuswahl(*farbe)),
+                                    .style(StyleAuswahl(*farbe).into()),
                             )
                             .push(Button::new(Text::new("X")).on_press(
                                 InterneAuswahlNachricht::Lösche(name.clone().into_inner()),

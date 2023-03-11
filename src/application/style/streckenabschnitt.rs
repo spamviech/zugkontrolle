@@ -1,10 +1,7 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
 use iced::{
-    widget::{
-        button,
-        container::{Appearance, StyleSheet},
-    },
+    widget::{button, container},
     Background, Color, Theme,
 };
 
@@ -14,11 +11,17 @@ use crate::typen::farbe::Farbe;
 #[derive(Debug, Clone, Copy)]
 pub struct Beschreibung;
 
-impl StyleSheet for Beschreibung {
+impl container::StyleSheet for Beschreibung {
     // TODO Style verwenden
     type Style = Theme;
-    fn appearance(&self, style: &Self::Style) -> Appearance {
-        Appearance { text_color: Some(Color::BLACK), ..Appearance::default() }
+    fn appearance(&self, style: &Self::Style) -> container::Appearance {
+        container::Appearance { text_color: Some(Color::BLACK), ..container::Appearance::default() }
+    }
+}
+
+impl From<Beschreibung> for iced::theme::Container {
+    fn from(beschreibung: Beschreibung) -> Self {
+        iced::theme::Container::Custom(Box::new(beschreibung))
     }
 }
 
@@ -32,19 +35,19 @@ pub enum Anzeige {
     Deaktiviert,
 }
 
-impl StyleSheet for Anzeige {
+impl container::StyleSheet for Anzeige {
     // TODO Style verwenden
     type Style = Theme;
 
-    fn appearance(&self, style: &Self::Style) -> Appearance {
+    fn appearance(&self, style: &Self::Style) -> container::Appearance {
         match self {
-            Anzeige::Farbe(farbe) => Appearance {
+            Anzeige::Farbe(farbe) => container::Appearance {
                 background: Some(Background::Color((*farbe).into())),
-                ..Appearance::default()
+                ..container::Appearance::default()
             },
-            Anzeige::Deaktiviert => Appearance {
+            Anzeige::Deaktiviert => container::Appearance {
                 text_color: Some(Color::from_rgb(0.5, 0.5, 0.5)),
-                ..Appearance::default()
+                ..container::Appearance::default()
             },
         }
     }
@@ -61,12 +64,15 @@ impl From<Anzeige> for iced::theme::Container {
 #[derive(Debug, Clone, Copy)]
 pub struct Auswahl(pub Farbe);
 
-impl StyleSheet for Auswahl {
+impl container::StyleSheet for Auswahl {
     // TODO Style verwenden
     type Style = Theme;
 
-    fn appearance(&self, style: &Self::Style) -> Appearance {
-        Appearance { background: Some(Background::Color(self.0.into())), ..Appearance::default() }
+    fn appearance(&self, style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(Background::Color(self.0.into())),
+            ..container::Appearance::default()
+        }
     }
 }
 
@@ -78,6 +84,12 @@ impl button::StyleSheet for Auswahl {
             background: Some(Background::Color(self.0.into())),
             ..button::Appearance::default()
         }
+    }
+}
+
+impl From<Auswahl> for iced::theme::Container {
+    fn from(auswahl: Auswahl) -> Self {
+        iced::theme::Container::Custom(Box::new(auswahl))
     }
 }
 

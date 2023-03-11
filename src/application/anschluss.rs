@@ -325,6 +325,7 @@ where
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
     pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
@@ -440,6 +441,7 @@ where
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn neu_mit_interrupt_view(
         zeige_modus: ZeigeModus,
@@ -493,6 +495,7 @@ where
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
         + iced_native::widget::text::StyleSheet,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
@@ -539,7 +542,7 @@ where
                     }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar::neu().into())
+                    .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -553,7 +556,7 @@ where
                     (TabLabel::Text("Pcf8574-Port".to_owned()), { pcf8574_row.into() }),
                 ];
                 let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
-                    .tab_bar_style(TabBar::neu().into())
+                    .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)

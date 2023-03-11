@@ -93,7 +93,7 @@ where
             aktueller_zoom,
             initialer_pfad,
         );
-        let row_with_scrollable = row_with_scrollable(
+        let row_mit_scrollable = row_mit_scrollable(
             aktueller_modus,
             *scrollable_style,
             geraden,
@@ -109,7 +109,7 @@ where
 
         let column = Element::new(
             Column::new().push(top_row).push(Rule::horizontal(1).style(TRENNLINIE)).push(
-                row_with_scrollable.push(
+                row_mit_scrollable.push(
                     Container::new(
                         Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
                             .map(Nachricht::from),
@@ -120,79 +120,122 @@ where
             ),
         );
 
-        // let modal = Modal::neu(todo!("{:?}", auswahl), column, |modal| match modal {
-        //     AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl) => Element::new(
-        //         streckenabschnitt::Auswahl::neu(streckenabschnitt_auswahl),
-        //     )
-        //     .map(|message| {
-        //         use streckenabschnitt::AuswahlNachricht::*;
-        //         match message {
-        //             Schließe => Nachricht::SchließeAuswahl,
-        //             Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
-        //             Hinzufügen(geschwindigkeit, name, farbe, output) => {
-        //                 Nachricht::HinzufügenStreckenabschnitt(
-        //                     geschwindigkeit,
-        //                     name,
-        //                     farbe,
-        //                     output,
-        //                 )
-        //             },
-        //             Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
-        //         }
-        //     }),
-        //     AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl) => {
-        //         Element::new(<L as LeiterAnzeige<S>>::auswahl_neu(geschwindigkeit_auswahl, todo!()))
-        //             .map(|message| {
-        //                 use geschwindigkeit::AuswahlNachricht::*;
-        //                 match message {
-        //                     Schließen => Nachricht::SchließeAuswahl,
-        //                     Hinzufügen(name, geschwindigkeit) => {
-        //                         Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
-        //                     },
-        //                     Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
-        //                 }
-        //             })
-        //     },
-        //     AuswahlZustand::Weiche(zustand, als_message) => {
-        //         let als_message_clone = als_message.clone();
-        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-        //             use weiche::Nachricht::*;
-        //             match message {
-        //                 Festlegen(steuerung) => als_message_clone(steuerung),
-        //                 Schließen => Nachricht::SchließeAuswahl,
-        //             }
-        //         })
-        //     },
-        //     AuswahlZustand::DreiwegeWeiche(zustand, als_message) => {
-        //         let als_message_clone = als_message.clone();
-        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-        //             use weiche::Nachricht::*;
-        //             match message {
-        //                 Festlegen(steuerung) => als_message_clone(steuerung),
-        //                 Schließen => Nachricht::SchließeAuswahl,
-        //             }
-        //         })
-        //     },
-        //     AuswahlZustand::KurvenWeiche(zustand, als_message) => {
-        //         let als_message_clone = als_message.clone();
-        //         Element::new(weiche::Auswahl::neu(zustand)).map(move |message| {
-        //             use weiche::Nachricht::*;
-        //             match message {
-        //                 Festlegen(steuerung) => als_message_clone(steuerung),
-        //                 Schließen => Nachricht::SchließeAuswahl,
-        //             }
-        //         })
-        //     },
-        //     AuswahlZustand::ZeigeLizenzen(zustand) => {
-        //         Element::new(Lizenzen::neu(zustand, *scrollable_style))
-        //             .map(|lizenzen::Nachricht::Schließen| Nachricht::SchließeAuswahl)
-        //     },
-        // })
-        // .on_esc(&|| Nachricht::SchließeAuswahl);
-        let modal: Element<'_, _> = todo!();
-        let _ = ();
+        let zeige_auswahlzustand =
+            |modal: &AuswahlZustand<L, S>| -> Element<'_, modal::Nachricht<_, Nachricht<L, S>>> {
+                match modal {
+                    AuswahlZustand::Streckenabschnitt => {
+                        Element::from(streckenabschnitt::Auswahl::neu(gleise)).map(|message| {
+                            use streckenabschnitt::AuswahlNachricht::*;
+                            match message {
+                                Schließe => modal::Nachricht::VersteckeOverlay,
+                                Wähle(wahl) => modal::Nachricht::Underlay(
+                                    Nachricht::WähleStreckenabschnitt(wahl),
+                                ),
+                                Hinzufügen(geschwindigkeit, name, farbe, output) => {
+                                    modal::Nachricht::Underlay(
+                                        Nachricht::HinzufügenStreckenabschnitt(
+                                            geschwindigkeit,
+                                            name,
+                                            farbe,
+                                            output,
+                                        ),
+                                    )
+                                },
+                                Lösche(name) => modal::Nachricht::Underlay(
+                                    Nachricht::LöscheStreckenabschnitt(name),
+                                ),
+                            }
+                        })
+                    },
+                    AuswahlZustand::Geschwindigkeit => {
+                        Element::from(<L as LeiterAnzeige<S, Renderer>>::auswahl_neu(
+                            todo!("geschwindigkeiten"),
+                            todo!("zugtyp"),
+                        ))
+                        .map(|message| {
+                            use geschwindigkeit::AuswahlNachricht::*;
+                            match message {
+                                Schließen => modal::Nachricht::VersteckeOverlay,
+                                Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
+                                    Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
+                                ),
+                                Löschen(name) => modal::Nachricht::Underlay(
+                                    Nachricht::LöscheGeschwindigkeit(name),
+                                ),
+                            }
+                        })
+                    },
+                    AuswahlZustand::Weiche(als_message) => {
+                        let als_message_clone = als_message.clone();
+                        let weiche: &Option<
+                            crate::steuerung::WeicheSerialisiert<
+                                crate::gleis::weiche::gerade::Richtung,
+                                crate::gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+                            >,
+                        > = todo!();
+                        let _ = ();
+                        Element::from(weiche::Auswahl::neu(weiche)).map(move |message| {
+                            use weiche::Nachricht::*;
+                            match message {
+                                Festlegen(steuerung) => {
+                                    modal::Nachricht::Underlay(als_message_clone(steuerung))
+                                },
+                                Schließen => modal::Nachricht::VersteckeOverlay,
+                            }
+                        })
+                    },
+                    AuswahlZustand::DreiwegeWeiche(als_message) => {
+                        let als_message_clone = als_message.clone();
+                        let dreiwege_weiche: &Option<
+                            crate::steuerung::WeicheSerialisiert<
+                                crate::gleis::weiche::dreiwege::RichtungInformation,
+                                crate::gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+                            >,
+                        > = todo!();
+                        let _ = ();
+                        Element::from(weiche::Auswahl::neu(dreiwege_weiche)).map(move |message| {
+                            use weiche::Nachricht::*;
+                            match message {
+                                Festlegen(steuerung) => {
+                                    modal::Nachricht::Underlay(als_message_clone(steuerung))
+                                },
+                                Schließen => modal::Nachricht::VersteckeOverlay,
+                            }
+                        })
+                    },
+                    AuswahlZustand::KurvenWeiche(als_message) => {
+                        let als_message_clone = als_message.clone();
+                        let kurven_weiche: &Option<
+                            crate::steuerung::WeicheSerialisiert<
+                                crate::gleis::weiche::kurve::Richtung,
+                                crate::gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+                            >,
+                        > = todo!();
+                        let _ = ();
+                        Element::from(weiche::Auswahl::neu(kurven_weiche)).map(move |message| {
+                            use weiche::Nachricht::*;
+                            match message {
+                                Festlegen(steuerung) => {
+                                    modal::Nachricht::Underlay(als_message_clone(steuerung))
+                                },
+                                Schließen => modal::Nachricht::VersteckeOverlay,
+                            }
+                        })
+                    },
+                    AuswahlZustand::ZeigeLizenzen => Element::from(Lizenzen::neu(
+                        todo!("lizenzen"),
+                        todo!("aktuell"),
+                        *scrollable_style,
+                    ))
+                    .map(|lizenzen::Nachricht::Schließen| modal::Nachricht::VersteckeOverlay),
+                }
+            };
+        let auswahlzustand: Element<'_, _> =
+            Modal::neu(column.map(modal::Nachricht::Underlay), &zeige_auswahlzustand)
+                .schließe_bei_esc()
+                .into();
 
-        Modal::neu(modal, &|message_box| {
+        Modal::neu(auswahlzustand.map(modal::Nachricht::Underlay), &|message_box| {
             let MessageBox { titel, nachricht } = message_box;
             Element::new(
                 iced_aw::Card::new(
@@ -219,7 +262,7 @@ const DREHEN_HÖHE: f32 = 50.;
 const DREHEN_BREITE: f32 = 50.;
 const SKALIEREN_BREITE: f32 = 75.;
 
-fn top_row<'t, L, S, Style>(
+fn top_row<'t, L, S>(
     aktueller_modus: Modus,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
@@ -289,7 +332,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static, Style>(
+fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -321,7 +364,7 @@ fn row_with_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static, 
                     )*
                 }
             }
-            fn knöpfe_hinzufügen<'t, L, S, R, T, Style>(
+            fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 max_breite: &mut Option<f32>,
                 scrollable_row: &mut Row<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,
