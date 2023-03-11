@@ -584,7 +584,7 @@ impl<T> SelectionFunction<T> for SelectEnvelope
 where
     T: RTreeObject<Envelope = AABB<Vektor>>,
 {
-    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
+    fn should_unpack_parent(&self, envelope: &AABB<Vektor>) -> bool {
         let self_upper = self.0.upper();
         let self_lower = self.0.lower();
         let upper = envelope.upper();
