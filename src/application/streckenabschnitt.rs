@@ -36,45 +36,6 @@ use crate::{
 
 pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 
-/// Zustand des Widgets zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
-/// sowie [Buttons](iced::Button) zum Öffnen des Auswahl-Fensters.
-#[derive(Debug)]
-pub struct AnzeigeZustand {
-    /// Der aktuelle Streckenabschnitt.
-    aktuell: Option<(StreckenabschnittId, Farbe)>,
-}
-
-impl AnzeigeZustand {
-    /// Erstelle einen neuen [AnzeigeZustand].
-    pub fn neu() -> Self {
-        AnzeigeZustand { aktuell: None }
-    }
-
-    /// Der aktuelle [Streckenabschnitt].
-    #[inline(always)]
-    pub fn aktuell(&self) -> &Option<(StreckenabschnittId, Farbe)> {
-        &self.aktuell
-    }
-
-    /// Eine veränderliche Referenz auf den aktuellen [Streckenabschnitt].
-    #[inline(always)]
-    pub fn aktuell_mut(&mut self) -> &mut Option<(StreckenabschnittId, Farbe)> {
-        &mut self.aktuell
-    }
-
-    /// Setze den aktuellen [Streckenabschnitt].
-    #[inline(always)]
-    pub fn setze_aktuell(&mut self, streckenabschnitt: StreckenabschnittId, farbe: Farbe) {
-        self.aktuell = Some((streckenabschnitt, farbe))
-    }
-
-    /// Entferne den aktuellen [Streckenabschnitt].
-    #[inline(always)]
-    pub fn entferne_aktuell(&mut self) {
-        self.aktuell = None
-    }
-}
-
 /// Eine Nachricht des [Anzeige]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
@@ -108,10 +69,10 @@ where
         From<style::streckenabschnitt::Anzeige>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(zustand: &'a mut AnzeigeZustand, festlegen: bool) -> Self {
+    pub fn neu(zustand: Option<(&'a StreckenabschnittId, &'a Farbe)>, festlegen: bool) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
-        let style = if let Some((streckenabschnitt_id, farbe)) = &zustand.aktuell {
+        let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_id.name.0).into());
             style::streckenabschnitt::Anzeige::Farbe(*farbe)
         } else {
