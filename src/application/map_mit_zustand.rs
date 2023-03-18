@@ -56,12 +56,15 @@ impl<T> DerefMut for MutTracer<'_, T> {
 
 /// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
+///
+/// Anmerkung: Das overlay des Elements wird NICHT angezeigt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: Element<'a, Intern, R>,
     erzeuge_zustand: &'a dyn Fn() -> Zustand,
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-    mapper:
-        &'a dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
+    mapper: Box<
+        dyn 'a + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
+    >,
 }
 
 impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
@@ -79,15 +82,12 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     pub fn neu(
         erzeuge_zustand: &'a dyn Fn() -> Zustand,
         erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
-        mapper: &'a dyn Fn(
-            Intern,
-            &mut dyn DerefMut<Target = Zustand>,
-            &mut event::Status,
-        ) -> Vec<Extern>,
+        mapper: impl 'a
+            + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     ) -> Self {
         let zustand = erzeuge_zustand();
         let element = erzeuge_element(&zustand);
-        MapMitZustand { element, erzeuge_zustand, erzeuge_element, mapper }
+        MapMitZustand { element, erzeuge_zustand, erzeuge_element, mapper: Box::new(mapper) }
     }
 }
 
@@ -177,23 +177,6 @@ where
         tree.diff_children(&[&self.element])
     }
 
-    fn mouse_interaction(
-        &self,
-        state: &Tree,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &R,
-    ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            &state.children[0],
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
-    }
-
     fn operate(
         &self,
         state: &mut Tree,
@@ -232,11 +215,28 @@ where
             shell,
             zustand,
             &mut event_status,
-            self.mapper,
+            &self.mapper,
             &mut self.element,
             self.erzeuge_element,
         );
         event_status
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &R,
+    ) -> mouse::Interaction {
+        self.element.as_widget().mouse_interaction(
+            &state.children[0],
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn overlay<'a>(
@@ -245,15 +245,18 @@ where
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
-        let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
-        let zustand: &Zustand = state.state.downcast_ref();
-        let zustand: &mut Zustand = state.state.downcast_mut();
-        element.as_widget_mut().overlay(state, layout, renderer).map(|overlay| {
-            let position = overlay.position();
-            let map_mit_zustand_overlay =
-                MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper };
-            overlay::Element::new(position, Box::new(map_mit_zustand_overlay))
-        })
+        // FIXME die aktuelle Implementierung benötigt gleichzeitigen mutable-borrow von state & element
+        None
+        // let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
+        // element.as_widget_mut().overlay(state, layout, renderer).map(|overlay| {
+        //     // FIXME state-borrow so lange wie overlay
+        //     let zustand: &mut Zustand = state.state.downcast_mut();
+        //     let position = overlay.position();
+        //     // FIXME element-borrow so lange wie overlay
+        //     let map_mit_zustand_overlay =
+        //         MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper };
+        //     overlay::Element::new(position, Box::new(map_mit_zustand_overlay))
+        // })
     }
 }
 
@@ -302,6 +305,7 @@ impl<'a, Zustand, Intern, Extern, R> From<MapMitZustand<'a, Zustand, Intern, Ext
     for Element<'a, Extern, R>
 where
     Zustand: 'static,
+    Extern: 'a,
     R: Renderer,
 {
     fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, R>) -> Self {
@@ -400,5 +404,9 @@ where
         renderer: &R,
     ) -> mouse::Interaction {
         self.overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        layout.bounds().contains(cursor_position)
     }
 }
