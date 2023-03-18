@@ -78,7 +78,7 @@ impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Modal")
             .field("underlay", &"<Element>")
-            .field("overlay", &self.overlay.map(|_| "<Element>"))
+            .field("overlay", &self.overlay.as_ref().map(|_| "<Element>"))
             .field("initial_overlay", &self.initial_overlay.map(|_| "<closure>"))
             .field("zeige_overlay", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
@@ -91,7 +91,9 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
     zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     neues_overlay: &Option<Overlay>,
 ) where
-    R: Renderer,
+    Overlay: 'a,
+    ElementNachricht: 'a,
+    R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
@@ -131,6 +133,7 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
 
 impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R>
 where
+    Overlay: 'a,
     R: Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
@@ -163,10 +166,12 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
     shell: &mut Shell<'_, ElementNachricht>,
     zustand: &mut Zustand<Overlay>,
     status: &mut event::Status,
-    overlay: &mut Option<Element<'_, Nachricht<Overlay, ElementNachricht>, R>>,
+    overlay: &mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
 ) where
-    R: Renderer,
+    Overlay: 'a,
+    ElementNachricht: 'a,
+    R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
@@ -186,8 +191,8 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
     aktualisiere_overlay_element(overlay, zeige_overlay, zustand.overlay());
 }
 
-impl<Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
-    for Modal<'_, Overlay, ElementNachricht, R>
+impl<'a, Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
+    for Modal<'a, Overlay, ElementNachricht, R>
 where
     Overlay: 'static,
     R: Renderer,
@@ -334,13 +339,16 @@ where
         renderer: &R,
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
+        let [state_underlay, state_overlay] = state.children.as_mut_slice() else {unreachable!("Invalide children-Anzahl!")};
         let element_overlay =
-            self.underlay.as_widget().overlay(&mut state.children[0], layout, renderer);
+            self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer);
+        let modal_overlay: &'s mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>> =
+            &mut self.overlay;
         let overlay = ModalOverlay {
-            modal_overlay: &mut self.overlay,
+            modal_overlay,
             element_overlay,
             zustand,
-            state: &mut state.children[1],
+            state: state_overlay,
             zeige_overlay: &self.zeige_overlay,
         };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
@@ -473,7 +481,7 @@ where
                 renderer,
                 &mut MapOperation { operation },
             )
-        } else if let Some(overlay) = &self.element_overlay {
+        } else if let Some(overlay) = &mut self.element_overlay {
             overlay.operate(layout, renderer, &mut MapOperation { operation })
         } else {
             // keine Operation
@@ -491,8 +499,8 @@ where
     ) -> event::Status {
         let mut messages = Vec::new();
         let mut inner_shell = Shell::new(&mut messages);
-        let mut status = if let Some(overlay) = &self.modal_overlay {
-            overlay.as_widget().on_event(
+        let mut status = if let Some(overlay) = &mut self.modal_overlay {
+            overlay.as_widget_mut().on_event(
                 self.state,
                 event,
                 layout,
@@ -501,7 +509,7 @@ where
                 clipboard,
                 &mut inner_shell,
             )
-        } else if let Some(overlay) = &self.element_overlay {
+        } else if let Some(overlay) = &mut self.element_overlay {
             overlay.on_event(event, layout, cursor_position, renderer, clipboard, &mut inner_shell)
         } else {
             event::Status::Ignored
