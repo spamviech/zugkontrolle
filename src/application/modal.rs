@@ -340,11 +340,11 @@ where
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
         let [state_underlay, state_overlay] = state.children.as_mut_slice() else {unreachable!("Invalide children-Anzahl!")};
-        let element_overlay =
+        let element_overlay: Option<overlay::Element<'s, Nachricht<Overlay, ElementNachricht>, R>> =
             self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer);
         let modal_overlay: &'s mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>> =
             &mut self.overlay;
-        let overlay = ModalOverlay {
+        let overlay: ModalOverlay<'s, 'a, Overlay, ElementNachricht, R> = ModalOverlay {
             modal_overlay,
             element_overlay,
             zustand,
@@ -380,19 +380,19 @@ impl<M, R: Renderer> Widget<M, R> for Dummy {
         Length::Fixed(0.)
     }
 
-    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
+    fn layout(&self, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
         layout::Node::new(Size::ZERO)
     }
 
     fn draw(
         &self,
-        state: &Tree,
-        renderer: &mut R,
-        theme: &<R as Renderer>::Theme,
-        style: &Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
+        _state: &Tree,
+        _renderer: &mut R,
+        _theme: &<R as Renderer>::Theme,
+        _style: &Style,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
         // zeichne nichts
     }
@@ -404,18 +404,19 @@ impl<M, R: Renderer> From<Dummy> for Element<'_, M, R> {
     }
 }
 
-struct ModalOverlay<'a, Overlay, ElementNachricht, R> {
-    modal_overlay: &'a mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
+struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, R> {
+    modal_overlay: &'a mut Option<Element<'e, Nachricht<Overlay, ElementNachricht>, R>>,
     element_overlay: Option<overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     zustand: &'a mut Zustand<Overlay>,
     state: &'a mut Tree,
-    zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+    zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'e, Nachricht<Overlay, ElementNachricht>, R>,
 }
 
-impl<'a, Overlay, ElementNachricht, R> ModalOverlay<'a, Overlay, ElementNachricht, R>
+impl<'a, 'e, Overlay, ElementNachricht, R> ModalOverlay<'a, 'e, Overlay, ElementNachricht, R>
 where
-    ElementNachricht: 'a,
-    R: 'a + Renderer,
+    ElementNachricht: 'a + 'e,
+    Overlay: 'e,
+    R: 'a + 'e + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
@@ -424,10 +425,12 @@ where
     }
 }
 
-impl<Overlay, ElementNachricht, R> overlay::Overlay<ElementNachricht, R>
-    for ModalOverlay<'_, Overlay, ElementNachricht, R>
+impl<'e, Overlay, ElementNachricht, R> overlay::Overlay<ElementNachricht, R>
+    for ModalOverlay<'_, 'e, Overlay, ElementNachricht, R>
 where
-    R: Renderer,
+    ElementNachricht: 'e,
+    Overlay: 'e,
+    R: 'e + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
