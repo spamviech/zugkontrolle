@@ -107,7 +107,7 @@ where
     ) -> Self {
         let erzeuge_zustand = || Zustand::neu(weiche);
         let erzeuge_element = Self::erzeuge_element;
-        let mapper = |interne_nachricht,
+        let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
@@ -131,24 +131,24 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
     fn erzeuge_element(
-        zustand: &'t Zustand<AnschlüsseSerialisiert>,
+        zustand: &Zustand<AnschlüsseSerialisiert>,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
-        let mut column = Column::new().push(
-            TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Fixed(200.)),
-        );
+        let mut column: Column<'t, InterneNachricht<Richtung>, R> = Column::new();
+        let text_input: TextInput<'t, InterneNachricht<Richtung>, R> =
+            TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Fixed(200.));
+        column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
-            column = column.push(Row::new().push(Text::new(richtung.to_string())).push(
-                Element::from(anschluss::Auswahl::neu_output_s(Some(anschluss))).map(
-                    move |anschluss_serialisiert| {
-                        InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
-                    },
-                ),
-            ))
+            column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
+                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(Some(anschluss.clone()));
+                Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
+                    InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
+                })
+            }))
         }
         column = column.push(
             Row::new()
@@ -174,7 +174,10 @@ impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
     From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>>
     for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, R>
 where
-    R: Renderer,
+    AnschlüsseSerialisiert: 'static,
+    Richtung: 't,
+    RichtungInformation: 't,
+    R: 't + Renderer,
 {
     fn from(
         anzeige: Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>,

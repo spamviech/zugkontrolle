@@ -279,7 +279,7 @@ where
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
-            &|pin, beschreibung| {
+            |pin, beschreibung| {
                 interrupt_pins.get(&beschreibung).map_or(
                     NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
                     |pin| {
@@ -290,7 +290,7 @@ where
             },
             &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
             &|pin, _input| InputSerialisiert::Pin { pin },
-            &|beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
+            |beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
                 interrupt: if interrupt_pins.get(&beschreibung).is_some() {
@@ -299,7 +299,7 @@ where
                     Some(*pin)
                 },
             },
-            &|| Zustand {
+            move || Zustand {
                 active_tab,
                 pin: pin.unwrap_or(0),
                 beschreibung: beschreibung.unwrap_or(Beschreibung {
@@ -342,13 +342,13 @@ where
     }
 
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output_s(start_wert: Option<&'a OutputSerialisiert>) -> Self {
+    pub fn neu_output_s(start_wert: Option<OutputSerialisiert>) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputSerialisiert::Pin { pin, polarität }) => {
-                (TAB_PIN, Some(*pin), None, None, Some(*polarität))
+                (TAB_PIN, Some(pin), None, None, Some(polarität))
             },
             Some(OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität }) => {
-                (TAB_PCF8574, None, Some(*beschreibung), Some(*port), Some(*polarität))
+                (TAB_PCF8574, None, Some(beschreibung), Some(port), Some(polarität))
             },
             None => (TAB_PIN, None, None, None, None),
         };
@@ -364,7 +364,7 @@ where
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Beide,
-            &|polarität, _beschreibung| {
+            |polarität, _beschreibung| {
                 Column::new()
                     .push(Radio::new(
                         Polarität::Normal,
@@ -382,12 +382,12 @@ where
             },
             &|modus, OutputNachricht { polarität }| *modus = polarität,
             &|pin, polarität| OutputSerialisiert::Pin { pin, polarität: *polarität },
-            &|beschreibung, port, polarität| OutputSerialisiert::Pcf8574Port {
+            |beschreibung, port, polarität| OutputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
                 polarität: *polarität,
             },
-            &|| Zustand {
+            move || Zustand {
                 active_tab,
                 pin: pin.unwrap_or(0),
                 beschreibung: beschreibung.unwrap_or(Beschreibung {
@@ -445,16 +445,18 @@ where
 {
     fn neu_mit_interrupt_view(
         zeige_modus: ZeigeModus,
-        view_modus: &'a impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
+        view_modus: impl 'a + Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
-        make_port: &'a impl Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
-        erzeuge_zustand: &'a impl Fn() -> Zustand<Modus>,
+        make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
+        erzeuge_zustand: impl 'a + Fn() -> Zustand<Modus>,
     ) -> Self {
-        let erzeuge_element = |zustand| Self::erzeuge_element(zustand, view_modus, zeige_modus);
-        let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
-                      status: &mut event::Status| {
+        let erzeuge_element = move |zustand: &Zustand<Modus>| {
+            Self::erzeuge_element(zustand, &view_modus, zeige_modus)
+        };
+        let mapper = move |interne_nachricht,
+                           zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
+                           status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
                 InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
@@ -481,7 +483,7 @@ where
             };
             vec![nachricht]
         };
-        Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 }
 
@@ -566,8 +568,13 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R: Renderer>
+impl<'a, Modus, ModusNachricht, Serialisiert, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
+where
+    Modus: 'static,
+    ModusNachricht: 'a,
+    Serialisiert: 'a,
+    R: 'a + Renderer,
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
         Element::new(auswahl.0)
@@ -593,7 +600,8 @@ pub struct Pwm<'a, N, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, N, R>)
 
 impl<'a, N, R> Pwm<'a, N, R>
 where
-    R: iced_native::text::Renderer<Font = Font>,
+    N: 'a,
+    R: 'a + iced_native::text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_native::widget::text::StyleSheet
         + iced_native::widget::text_input::StyleSheet
@@ -601,7 +609,7 @@ where
 {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
-        let erzeuge_zustand = || PwmZustand::neu(pin);
+        let erzeuge_zustand = move || PwmZustand::neu(pin);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = PwmZustand>,
@@ -611,7 +619,7 @@ where
             zustand.pin = pin;
             Vec::new()
         };
-        Pwm(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Pwm(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
@@ -619,7 +627,11 @@ where
     }
 }
 
-impl<'a, N, R: Renderer> From<Pwm<'a, N, R>> for Element<'a, N, R> {
+impl<'a, N, R> From<Pwm<'a, N, R>> for Element<'a, N, R>
+where
+    N: 'a,
+    R: 'a + Renderer,
+{
     fn from(auswahl: Pwm<'a, N, R>) -> Self {
         Element::new(auswahl.0)
     }

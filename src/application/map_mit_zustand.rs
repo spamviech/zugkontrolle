@@ -60,8 +60,8 @@ impl<T> DerefMut for MutTracer<'_, T> {
 /// Anmerkung: Das overlay des Elements wird NICHT angezeigt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: Element<'a, Intern, R>,
-    erzeuge_zustand: &'a dyn Fn() -> Zustand,
-    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+    erzeuge_zustand: Box<dyn 'a + Fn() -> Zustand>,
+    erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, R>>,
     mapper: Box<
         dyn 'a + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     >,
@@ -80,14 +80,19 @@ impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Ex
 
 impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, R> {
     pub fn neu(
-        erzeuge_zustand: &'a dyn Fn() -> Zustand,
-        erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+        erzeuge_zustand: impl 'a + Fn() -> Zustand,
+        erzeuge_element: impl 'a + Fn(&Zustand) -> Element<'a, Intern, R>,
         mapper: impl 'a
             + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     ) -> Self {
         let zustand = erzeuge_zustand();
         let element = erzeuge_element(&zustand);
-        MapMitZustand { element, erzeuge_zustand, erzeuge_element, mapper: Box::new(mapper) }
+        MapMitZustand {
+            element,
+            erzeuge_zustand: Box::new(erzeuge_zustand),
+            erzeuge_element: Box::new(erzeuge_element),
+            mapper: Box::new(mapper),
+        }
     }
 }
 
@@ -217,7 +222,7 @@ where
             &mut event_status,
             &self.mapper,
             &mut self.element,
-            self.erzeuge_element,
+            &self.erzeuge_element,
         );
         event_status
     }
@@ -305,8 +310,9 @@ impl<'a, Zustand, Intern, Extern, R> From<MapMitZustand<'a, Zustand, Intern, Ext
     for Element<'a, Extern, R>
 where
     Zustand: 'static,
+    Intern: 'a,
     Extern: 'a,
-    R: Renderer,
+    R: 'a + Renderer,
 {
     fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, R>) -> Self {
         Element::new(map_mit_zustand)
