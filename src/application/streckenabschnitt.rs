@@ -169,7 +169,7 @@ impl AuswahlZustand {
 
     /// Erhalte den aktuell konfigurierten Streckenabschnitt.
     fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
-        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss)
+        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss.clone())
     }
 }
 
@@ -220,7 +220,7 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(gleise: &Gleise<L>) -> Self {
+    pub fn neu<L: Leiter>(gleise: &'a Gleise<L>) -> Self {
         let erzeuge_zustand = || AuswahlZustand::neu(gleise);
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
@@ -264,13 +264,13 @@ where
                 },
             }
         };
-        Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
     fn erzeuge_element(
-        auswahl_zustand: &'a AuswahlZustand,
+        auswahl_zustand: &AuswahlZustand,
     ) -> Element<'a, InterneAuswahlNachricht, R> {
-        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
+        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss: _, streckenabschnitte } =
             auswahl_zustand;
         let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
             let mut column = Column::new()
@@ -313,7 +313,7 @@ where
                     column.push(
                         Row::new()
                             .push(
-                                Button::new(Text::new(&format!("{name}: {anschluss:?}")))
+                                Button::new(Text::new(format!("{name}: {anschluss:?}")))
                                     .on_press(InterneAuswahlNachricht::Wähle(Some((
                                         name.clone().into_inner(),
                                         *farbe,
