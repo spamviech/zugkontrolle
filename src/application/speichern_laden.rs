@@ -84,10 +84,10 @@ where
                 },
             }
         };
-        SpeichernLaden(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        SpeichernLaden(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
-    fn erzeuge_element(zustand: &'a Zustand) -> Element<'a, InterneNachricht, R> {
+    fn erzeuge_element(zustand: &Zustand) -> Element<'a, InterneNachricht, R> {
         let Zustand { speichern_gefärbt, aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =

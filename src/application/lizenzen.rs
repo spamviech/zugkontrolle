@@ -102,12 +102,13 @@ where
         scrollable_style: ScrollableStyle,
     ) -> Self
     where
-        ScrollableStyle: Clone,
+        ScrollableStyle: 'a + Clone,
         <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         let erzeuge_zustand = || Zustand::neu(*aktuell, lizenzen);
-        let erzeuge_element =
-            |zustand| Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone());
+        let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, R> {
+            Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
+        };
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = Zustand>,
                       status: &mut event::Status| {
@@ -120,11 +121,11 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Lizenzen(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Lizenzen(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
     fn erzeuge_element<ScrollableStyle>(
-        zustand: &'a Zustand,
+        zustand: &Zustand,
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
         scrollable_style: ScrollableStyle,
     ) -> Element<'a, InterneNachricht, R>
@@ -133,15 +134,18 @@ where
     {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Fill);
-        let (aktuell_name, aktuell_text) =
-            if let Some((name, text)) = aktuell { (Some(*name), Some(text)) } else { (None, None) };
-        for (&name, f) in lizenzen {
+        let (aktuell_name, aktuell_text) = if let Some((name, text)) = aktuell {
+            (Some(name.clone()), Some(text.clone().into_owned()))
+        } else {
+            (None, None)
+        };
+        for (name, f) in lizenzen {
             buttons = buttons.push({
                 let button = Button::new(Text::new(name.as_ref()));
-                if Some(name) == aktuell_name {
+                if Some(*name) == aktuell_name {
                     button
                 } else {
-                    button.on_press(InterneNachricht::Aktuell(name, *f))
+                    button.on_press(InterneNachricht::Aktuell(*name, *f))
                 }
             });
         }
@@ -156,7 +160,7 @@ where
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
                 .push(Space::with_width(Length::Fixed(PADDING)))
-                .push(Text::new(aktuell_text.as_ref()).width(Length::Fill).height(Length::Shrink))
+                .push(Text::new(aktuell_text).width(Length::Fill).height(Length::Shrink))
                 .push(Space::with_width(Length::Fixed(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
