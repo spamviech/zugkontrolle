@@ -338,11 +338,14 @@ impl<L: Leiter> Gleise<L> {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
                 let Gleise { modus, zustand, pivot, skalieren, canvas, .. } = self;
+                let modus = todo!("modus"); // self ist nicht mut ref!
+                let _ = ();
+
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
                     spurweite,
-                    todo!("modus"),
+                    modus,
                     zustand.alle_streckenabschnitte_und_daten(),
                     pivot,
                     skalieren,
@@ -356,7 +359,7 @@ impl<L: Leiter> Gleise<L> {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
                         if bewegt {
                             if !cursor.is_over(&bounds) {
-                                let mut_ref: &mut Gleise<L> = todo!("self");
+                                let mut_ref: &mut Gleise<L> = todo!("self"); // self ist nicht mut ref!
                                 let _ = ();
 
                                 if let Err(fehler) =
