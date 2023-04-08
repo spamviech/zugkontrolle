@@ -111,7 +111,7 @@ where
 {
     /// Erstelle eine neue [Anzeige] für einen [Leiter].
     pub fn neu<'s, L: Leiter>(
-        name: &'s Name,
+        name: &'t Name,
         geschwindigkeit: &'s Geschwindigkeit<L>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
@@ -306,7 +306,7 @@ where
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
         let erzeuge_zustand = || AuswahlZustand::neu(geschwindigkeiten.iter());
-        let erzeuge_element = |zustand| {
+        let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element(zustand, fahrtrichtung_anschluss, &fahrtrichtung_beschreibung)
         };
         let mapper = |interne_nachricht,
@@ -385,33 +385,34 @@ where
                 },
             }
         };
-        Auswahl(MapMitZustand::neu(&erzeuge_zustand, &erzeuge_element, &mapper))
+        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
-    fn erzeuge_element<'s>(
-        zustand: &'s AuswahlZustand,
+    fn erzeuge_element(
+        zustand: &AuswahlZustand,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: &str,
-    ) -> Element<'s, InterneAuswahlNachricht, R> {
+    ) -> Element<'t, InterneAuswahlNachricht, R> {
         let AuswahlZustand {
             neu_name,
             aktueller_tab,
-            umdrehen_anschluss,
-            pwm_pin,
+            umdrehen_anschluss: _,
+            pwm_pin: _,
             pwm_polarität,
             ks_anschlüsse,
             geschwindigkeiten,
         } = zustand;
-        let output_save_head = &mut ks_anschlüsse.head;
-        let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter_mut().collect();
+        let output_save_head = &ks_anschlüsse.head;
+        let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter().collect();
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         let width = Length::Fixed(950.);
-        let mut neu = Column::new()
+        let mut neuer_anschluss = Column::new()
             .push(TextInput::new("<Name>", neu_name, InterneAuswahlNachricht::Name).width(width));
-        let umdrehen_auswahl = Column::new().push(Text::new(fahrtrichtung_beschreibung)).push(
-            Element::from(anschluss::Auswahl::neu_output(None))
-                .map(InterneAuswahlNachricht::UmdrehenAnschluss),
-        );
+        let umdrehen_auswahl =
+            Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
+                Element::from(anschluss::Auswahl::neu_output(None))
+                    .map(InterneAuswahlNachricht::UmdrehenAnschluss),
+            );
         let make_radio = |polarität: Polarität| {
             Radio::new(
                 polarität,
@@ -427,7 +428,9 @@ where
             FahrtrichtungAnschluss::KonstanteSpannung => {
                 ks_auswahl = ks_auswahl.push(umdrehen_auswahl)
             },
-            FahrtrichtungAnschluss::Immer => neu = neu.push(umdrehen_auswahl),
+            FahrtrichtungAnschluss::Immer => {
+                neuer_anschluss = neuer_anschluss.push(umdrehen_auswahl)
+            },
         }
         let pwm_auswahl = pwm_auswahl
             .push(Element::from(anschluss::Pwm::neu(None)).map(InterneAuswahlNachricht::PwmPin))
@@ -462,19 +465,18 @@ where
             .width(width)
             .height(Length::Shrink)
             .tab_bar_style(TabBar.into());
-        let neu = neu.push(tabs);
-        let mut column = Column::new().push(neu).push(
+        let neuer_anschluss = neuer_anschluss.push(tabs);
+        let mut column = Column::new().push(neuer_anschluss).push(
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
         );
-        for (name, anschlüsse) in geschwindigkeiten.iter_mut() {
+        for (name, anschlüsse) in geschwindigkeiten.iter() {
             let button = Button::new(Text::new("X"))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
-            column = column.push(
-                Column::new()
-                    .push(Text::new(name.as_ref()))
-                    .push(Text::new(&*anschlüsse))
-                    .push(button),
-            );
+            let geschwindigkeit = Column::new()
+                .push(Text::new(name.as_ref().to_owned()))
+                .push(Text::new(anschlüsse.clone()))
+                .push(button);
+            column = column.push(geschwindigkeit);
         }
         let card = Card::new(Text::new("Geschwindigkeit"), Scrollable::new(column))
             .on_close(InterneAuswahlNachricht::Schließen)
@@ -486,6 +488,7 @@ where
 impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
     for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
 where
+    LeiterSerialisiert: 't,
     R: 't + iced_native::text::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
@@ -494,15 +497,15 @@ where
 }
 
 /// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
-pub trait LeiterAnzeige<S, R>: Leiter + Sized {
+pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
     /// Erstelle eine neue [Anzeige].
-    fn anzeige_neu<'t>(
+    fn anzeige_neu(
         name: &'t Name,
-        geschwindigkeit: &Geschwindigkeit<Self>,
+        geschwindigkeit: &'t Geschwindigkeit<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
     /// Erstelle eine neue [Auswahl].
-    fn auswahl_neu<'t>(
+    fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Self>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, S, R>;
@@ -515,9 +518,9 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<R> LeiterAnzeige<MittelleiterSerialisiert, R> for Mittelleiter
+impl<'t, R> LeiterAnzeige<'t, MittelleiterSerialisiert, R> for Mittelleiter
 where
-    R: iced_native::text::Renderer<Font = Font>,
+    R: 't + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -530,9 +533,9 @@ where
         + card::StyleSheet,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    fn anzeige_neu<'t>(
+    fn anzeige_neu(
         name: &'t Name,
-        geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
+        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let zeige_fahrtrichtung = |_none| {
             Button::new(Text::new("Umdrehen"))
@@ -555,7 +558,7 @@ where
     }
 
     #[inline(always)]
-    fn auswahl_neu<'t>(
+    fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Mittelleiter>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
@@ -581,7 +584,7 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<R> LeiterAnzeige<ZweileiterSerialisiert, R> for Zweileiter
+impl<'t, R> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
 where
     R: iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
@@ -596,9 +599,9 @@ where
         + card::StyleSheet,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    fn anzeige_neu<'t>(
+    fn anzeige_neu(
         name: &'t Name,
-        geschwindigkeit: &Geschwindigkeit<Zweileiter>,
+        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
@@ -633,7 +636,7 @@ where
     }
 
     #[inline(always)]
-    fn auswahl_neu<'t>(
+    fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Zweileiter>>,
         zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
