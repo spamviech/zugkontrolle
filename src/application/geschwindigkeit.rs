@@ -45,7 +45,6 @@ use crate::{
         plan::AktionGeschwindigkeit,
     },
     unicase_ord::UniCaseOrd,
-    zugtyp::Zugtyp,
 };
 
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
@@ -507,7 +506,6 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Self>>,
-        zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, S, R>;
 }
 
@@ -560,7 +558,6 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Mittelleiter>>,
-        zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,
@@ -584,7 +581,7 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<'t, R> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
+impl<'t, R: 't> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
 where
     R: iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
@@ -638,7 +635,6 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Zweileiter>>,
-        zugtyp: &'t Zugtyp<Self>,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,

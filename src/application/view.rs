@@ -143,24 +143,21 @@ where
                     }
                 })
             },
-            AuswahlZustand::Geschwindigkeit => {
-                Element::from(<L as LeiterAnzeige<S, Renderer>>::auswahl_neu(
-                    todo!("geschwindigkeiten"),
-                    todo!("zugtyp"),
-                ))
-                .map(|message| {
-                    use geschwindigkeit::AuswahlNachricht::*;
-                    match message {
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                        Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
-                            Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
-                        ),
-                        Löschen(name) => {
-                            modal::Nachricht::Underlay(Nachricht::LöscheGeschwindigkeit(name))
-                        },
-                    }
-                })
-            },
+            AuswahlZustand::Geschwindigkeit => Element::from(
+                <L as LeiterAnzeige<S, Renderer>>::auswahl_neu(todo!("geschwindigkeiten")),
+            )
+            .map(|message| {
+                use geschwindigkeit::AuswahlNachricht::*;
+                match message {
+                    Schließen => modal::Nachricht::VersteckeOverlay,
+                    Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
+                        Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
+                    ),
+                    Löschen(name) => {
+                        modal::Nachricht::Underlay(Nachricht::LöscheGeschwindigkeit(name))
+                    },
+                }
+            }),
             AuswahlZustand::Weiche(als_message) => {
                 let als_message_clone = als_message.clone();
                 let weiche: &Option<
