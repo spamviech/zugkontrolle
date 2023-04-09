@@ -24,31 +24,39 @@ use crate::typen::{
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
 /// [Canvas](crate::touch_canvas::Canvas).
 #[derive(Debug)]
-pub struct Drehen {
-    canvas: Cache,
-    winkel: Winkel,
-    grabbed: bool,
-}
+pub struct Drehen(Cache);
 
 impl Drehen {
     /// Erstelle ein neues [Drehen]-Widget.
     pub fn neu() -> Self {
-        Drehen { canvas: Cache::neu(), winkel: winkel::ZERO, grabbed: false }
+        Drehen(Cache::neu())
+    }
+}
+
+#[derive(Debug)]
+struct Zustand {
+    winkel: Winkel,
+    grabbed: bool,
+}
+
+impl Default for Zustand {
+    fn default() -> Self {
+        Self { winkel: winkel::ZERO, grabbed: false }
     }
 }
 
 impl<Theme> Program<Winkel, Theme> for Drehen {
-    type State = ();
+    type State = Zustand;
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         theme: &Theme,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
-        vec![self.canvas.zeichnen(size, |frame| {
+        vec![self.0.zeichnen(size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
@@ -70,7 +78,7 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
                 },
             );
             let knopf_zentrum =
-                kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, self.winkel);
+                kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
             let knopf_radius = half_min_width_height - kreis_radius;
             let knopf_pfad = pfad::Erbauer::neu()
                 .arc_chain(Bogen {
@@ -80,7 +88,7 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
                     ende: winkel::TAU,
                 })
                 .baue();
-            let knopf_grau = if self.grabbed {
+            let knopf_grau = if state.grabbed {
                 0.5
             } else if cursor.position_in(&bounds).map_or(false, |position| {
                 (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum).länge()
@@ -102,7 +110,7 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
 
     fn update(
         &self,
-        _state: &mut Self::State,
+        state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
@@ -120,21 +128,21 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
                         Vektor { x: half_min_width_height, y: half_min_width_height };
                     let kreis_radius = Skalar(0.8) * half_min_width_height;
                     let knopf_zentrum =
-                        kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, self.winkel);
+                        kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
                     let knopf_radius = half_min_width_height - kreis_radius;
                     if (relative_position - knopf_zentrum).länge() < knopf_radius {
-                        self.grabbed = true
+                        state.grabbed = true
                     }
                 }
             },
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if self.grabbed => {
-                self.canvas.leeren();
-                self.grabbed = false;
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if state.grabbed => {
+                self.0.leeren();
+                state.grabbed = false;
                 status = event::Status::Captured;
             },
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if self.grabbed {
-                    self.canvas.leeren();
+                if state.grabbed {
+                    self.0.leeren();
                     let relative_position = Vektor {
                         x: Skalar(position.x - bounds.x),
                         y: Skalar(position.y - bounds.y),
@@ -148,10 +156,10 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
                     let acos = Winkel::acos(
                         position_von_zentrum.einheitsvektor().skalarprodukt(&Vektor::EX),
                     );
-                    self.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
-                    winkel = Some(self.winkel);
+                    state.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
+                    winkel = Some(state.winkel);
                 } else if cursor.is_over(&bounds) {
-                    self.canvas.leeren()
+                    self.0.leeren()
                 }
             },
             _ => {},

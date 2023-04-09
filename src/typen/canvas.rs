@@ -119,7 +119,7 @@ impl Cache {
 
     /// Leere den [Cache], so dass er neu gezeichnet wird.
     #[inline(always)]
-    pub fn leeren(&mut self) {
+    pub fn leeren(&self) {
         self.0.clear()
     }
 

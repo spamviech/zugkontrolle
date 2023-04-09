@@ -69,20 +69,17 @@ pub enum Nachricht {
 
 /// Widget zum Anpassen des Pivot-Punktes.
 #[derive(Debug)]
-pub struct Bewegen {
-    canvas: Cache,
-    bewegung: bool,
-}
+pub struct Bewegen(Cache);
 
 impl Bewegen {
     /// Erstelle ein neues [Bewegen]-Widget.
     pub fn neu() -> Self {
-        Bewegen { canvas: Cache::neu(), bewegung: false }
+        Bewegen(Cache::neu())
     }
 }
 
 impl<Theme> Program<Nachricht, Theme> for Bewegen {
-    type State = ();
+    type State = bool;
 
     fn draw(
         &self,
@@ -134,12 +131,12 @@ impl<Theme> Program<Nachricht, Theme> for Bewegen {
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
         let pfad = erbauer.baue();
-        vec![self.canvas.zeichnen(size, |frame| frame.stroke(&pfad, Stroke::default()))]
+        vec![self.0.zeichnen(size, |frame| frame.stroke(&pfad, Stroke::default()))]
     }
 
     fn update(
         &self,
-        _state: &mut Self::State,
+        state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
@@ -172,7 +169,7 @@ impl<Theme> Program<Nachricht, Theme> for Bewegen {
                     let klick_radius =
                         (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
                     if position.x < links_grenze.0 {
-                        self.bewegung = true;
+                        *state = true;
                         nachricht = Some(Nachricht::StarteBewegung(if position.y < oben_grenze.0 {
                             Bewegung::ObenLinks
                         } else if position.y > unten_grenze.0 {
@@ -181,7 +178,7 @@ impl<Theme> Program<Nachricht, Theme> for Bewegen {
                             Bewegung::Links
                         }))
                     } else if position.x >= rechts_grenze.0 {
-                        self.bewegung = true;
+                        *state = true;
                         nachricht = Some(Nachricht::StarteBewegung(if position.y < oben_grenze.0 {
                             Bewegung::ObenRechts
                         } else if position.y >= unten_grenze.0 {
@@ -190,19 +187,19 @@ impl<Theme> Program<Nachricht, Theme> for Bewegen {
                             Bewegung::Rechts
                         }))
                     } else if position.y < oben_grenze.0 {
-                        self.bewegung = true;
+                        *state = true;
                         nachricht = Some(Nachricht::StarteBewegung(Bewegung::Oben))
                     } else if position.y >= unten_grenze.0 {
-                        self.bewegung = true;
+                        *state = true;
                         nachricht = Some(Nachricht::StarteBewegung(Bewegung::Unten))
                     } else if klick_radius < radius {
                         nachricht = Some(Nachricht::Zurücksetzen)
                     }
                 }
             },
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if self.bewegung => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if *state => {
                 // beende nur gestartete Bewegungen
-                self.bewegung = false;
+                *state = false;
                 nachricht = Some(Nachricht::BeendeBewegung)
             },
             _ => {},
