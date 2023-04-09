@@ -8,7 +8,7 @@ use std::{
 
 use iced::{
     mouse,
-    widget::canvas::{event, Cursor, Event},
+    widget::canvas::{event, Cursor, Event, Program},
     Rectangle,
 };
 use log::error;
@@ -326,27 +326,24 @@ impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &self,
-        state: &mut (),
+        state: &mut <Self as Program<Nachricht>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
         let mut event_status = event::Status::Ignored;
         let mut message = None;
-        self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
+        *self.last_size.write() = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
-                let Gleise { modus, zustand, pivot, skalieren, canvas, .. } = self;
-                let modus = todo!("modus"); // self ist nicht mut ref!
-                let _ = ();
-
+                let Gleise { zustand, pivot, skalieren, canvas, modus, .. } = self;
                 let click_result = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
                     spurweite,
-                    modus,
-                    zustand.alle_streckenabschnitte_und_daten(),
+                    &mut *modus.write(),
+                    zustand.read().alle_streckenabschnitte_und_daten(),
                     pivot,
                     skalieren,
                     canvas,
@@ -355,15 +352,12 @@ impl<L: Leiter> Gleise<L> {
                 message = click_result.1;
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
                     if let Some(Gehalten { gleis_id, bewegt, .. }) = gehalten.take() {
                         if bewegt {
                             if !cursor.is_over(&bounds) {
-                                let mut_ref: &mut Gleise<L> = todo!("self"); // self ist nicht mut ref!
-                                let _ = ();
-
                                 if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, mut_ref)
+                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
                                 {
                                     error!("Entfernen für entferntes Gleis: {:?}", fehler)
                                 }
@@ -380,7 +374,7 @@ impl<L: Leiter> Gleise<L> {
                 if let Some(canvas_pos) =
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
-                    self.last_mouse = canvas_pos;
+                    *self.last_mouse.write() = canvas_pos;
                     if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
                         error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
                     }

@@ -144,6 +144,7 @@ impl<L: Leiter> Gleise<L> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let Gleis { definition, position: _ }: &Gleis<T> = &zustand
+            .read()
             .daten(streckenabschnitt)?
             .rstern()
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
@@ -162,6 +163,7 @@ impl<L: Leiter> Gleise<L> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
+            .write()
             .daten_mut(streckenabschnitt)?
             .rstern_mut()
             .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
