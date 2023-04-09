@@ -42,7 +42,7 @@ use crate::{
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<S, R>, S: 'static, R>(
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static, R>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
     ) -> Element<'t, Nachricht<L, S>> {
@@ -52,9 +52,9 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
 
 impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<L, S> Zugkontrolle<L, S>
+impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige<S, Renderer>,
+    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
@@ -264,7 +264,7 @@ fn top_row<'t, L, S>(
     initialer_pfad: &str,
 ) -> Row<'t, Nachricht<L, S>>
 where
-    L: 'static + Debug + LeiterAnzeige<S, Renderer>,
+    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
@@ -325,7 +325,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
+fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -362,7 +362,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<S, Renderer>, S: 'static>(
                 scrollable_row: &mut Row<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
-                L: 'static + LeiterAnzeige<S, R>,
+                L: 'static + LeiterAnzeige<'t, S, R>,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
             {
                 take_mut::take(scrollable_row, |mut scrollable_row| {
