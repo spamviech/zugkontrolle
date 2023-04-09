@@ -14,18 +14,14 @@ use log::error;
 use nonempty::NonEmpty;
 use parking_lot::Mutex;
 
-pub use self::{
-    daten::Gleis,
-    id::{AnyId, GleisId, StreckenabschnittId},
-};
-use self::{
-    daten::{GleiseDaten, StreckenabschnittMap, Zustand},
-    id::StreckenabschnittIdRef,
-};
 use crate::{
     anschluss,
     gleis::{
         self,
+        gleise::{
+            daten::{GleiseDaten, StreckenabschnittMap, Zustand},
+            id::StreckenabschnittIdRef,
+        },
         kreuzung::Kreuzung,
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
@@ -54,6 +50,11 @@ pub mod hinzufügen_entfernen;
 pub mod id;
 pub mod steuerung;
 pub mod update;
+
+pub use self::{
+    daten::Gleis,
+    id::{AnyId, GleisId, StreckenabschnittId},
+};
 
 #[derive(Debug)]
 struct Gehalten {
