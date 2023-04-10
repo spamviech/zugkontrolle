@@ -128,12 +128,11 @@ impl AuswahlZustand {
             neu_name: String::new(),
             neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            streckenabschnitte: gleise
-                .streckenabschnitte()
-                .map(|(streckenabschnitt_id, streckenabschnitt)| {
+            streckenabschnitte: gleise.aus_allen_streckenabschnitten(
+                |streckenabschnitt_id, streckenabschnitt| {
                     Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
-                })
-                .collect(),
+                },
+            ),
         }
     }
 

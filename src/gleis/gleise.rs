@@ -12,7 +12,7 @@ use iced::{
 };
 use log::error;
 use nonempty::NonEmpty;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::{MappedRwLockReadGuard, Mutex, RwLock, RwLockReadGuard};
 
 use crate::{
     anschluss,
@@ -194,16 +194,16 @@ impl<L: Leiter> Gleise<L> {
         mut streckenabschnitt: Streckenabschnitt,
     ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
     {
-        let streckenabschnitt_map =
-            match self.zustand.write().streckenabschnitt_map_mut(geschwindigkeit) {
-                Ok(streckenabschnitt_map) => streckenabschnitt_map,
-                Err(GeschwindigkeitEntferntFehler(name)) => {
-                    return Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
-                        name,
-                        streckenabschnitt,
-                    ))
-                },
-            };
+        let mut guard = self.zustand.write();
+        let streckenabschnitt_map = match guard.streckenabschnitt_map_mut(geschwindigkeit) {
+            Ok(streckenabschnitt_map) => streckenabschnitt_map,
+            Err(GeschwindigkeitEntferntFehler(name)) => {
+                return Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
+                    name,
+                    streckenabschnitt,
+                ))
+            },
+        };
         let entry = streckenabschnitt_map.entry(name.clone());
         let bisher = match entry {
             Entry::Occupied(mut occupied) => {
@@ -225,8 +225,8 @@ impl<L: Leiter> Gleise<L> {
         streckenabschnitt: &StreckenabschnittId,
     ) -> Result<&'s Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        let streckenabschnitt_map =
-            self.zustand.read().streckenabschnitt_map(geschwindigkeit.as_ref())?;
+        let guard = self.zustand.read();
+        let streckenabschnitt_map = guard.streckenabschnitt_map(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get(name)
             .map(|(streckenabschnitt, _daten)| streckenabschnitt)
@@ -241,8 +241,8 @@ impl<L: Leiter> Gleise<L> {
         streckenabschnitt: &StreckenabschnittId,
     ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        let streckenabschnitt_map =
-            self.zustand.write().streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
+        let guard = self.zustand.write();
+        let streckenabschnitt_map = guard.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
         streckenabschnitt_map
             .get_mut(name)
             .map(|(streckenabschnitt, _daten)| streckenabschnitt)
@@ -271,22 +271,29 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// Alle aktuell bekannten Streckenabschnitte.
-    pub(crate) fn streckenabschnitte<'t>(
-        &'t self,
-    ) -> impl Iterator<Item = (StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)> {
-        let iter_map = |(geschwindigkeit, streckenabschnitt_map): (_, &'t StreckenabschnittMap)| {
-            streckenabschnitt_map.iter().map(move |(name, (streckenabschnitt, _daten))| {
-                (StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)
-            })
-        };
+    pub(crate) fn aus_allen_streckenabschnitten<T, C>(
+        &self,
+        f: impl for<'s> Fn(StreckenabschnittIdRef<'s>, &'s Streckenabschnitt) -> T,
+    ) -> C
+    where
+        C: FromIterator<T>,
+    {
         let guard = self.zustand.read();
+        // Notwendig, da sonst f in die flat_map-closure moved wird, wodurch sie nur FnOnce ist.
+        // Außerdem darf sie aus irgendeinem Grund nicht als Variable gespeichert werden.
+        let g = &f;
         iter::once((None, &guard.ohne_geschwindigkeit))
             .chain(guard.geschwindigkeiten.iter().map(
                 |(geschwindigkeit_name, (_geschwindigkeit, streckenabschnitt_map))| {
                     (Some(geschwindigkeit_name), streckenabschnitt_map)
                 },
             ))
-            .flat_map(iter_map)
+            .flat_map(|(geschwindigkeit, streckenabschnitt_map): (_, &StreckenabschnittMap)| {
+                streckenabschnitt_map.iter().map(move |(name, (streckenabschnitt, _daten))| {
+                    g(StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)
+                })
+            })
+            .collect()
     }
 
     /// Füge eine Geschwindigkeit hinzu.
@@ -314,8 +321,8 @@ impl<L: Leiter> Gleise<L> {
         &'s self,
         name: &geschwindigkeit::Name,
     ) -> Option<&'s Geschwindigkeit<L>> {
-        self.zustand
-            .read()
+        let guard = self.zustand.read();
+        guard
             .geschwindigkeiten
             .get(name)
             .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
@@ -326,8 +333,8 @@ impl<L: Leiter> Gleise<L> {
         &'s mut self,
         name: &geschwindigkeit::Name,
     ) -> Option<&'s mut Geschwindigkeit<L>> {
-        self.zustand
-            .write()
+        let guard = self.zustand.write();
+        guard
             .geschwindigkeiten
             .get_mut(name)
             .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
@@ -399,12 +406,15 @@ impl<L: Leiter> Gleise<L> {
         guard
             .geschwindigkeiten
             .iter()
-            .map(|(name, (geschwindigkeit, _streckenabschnitt_map))| (name, geschwindigkeit))
+            .map(|(name, (geschwindigkeit, _streckenabschnitt_map))| (name, geschwindigkeit));
+        todo!();
+        Vec::new().into_iter()
     }
 
     /// Verwendeter Zugtyp.
-    pub fn zugtyp(&self) -> &Zugtyp<L> {
-        &self.zustand.read().zugtyp
+    pub fn zugtyp<'t>(&'t self) -> MappedRwLockReadGuard<'t, Zugtyp<L>> {
+        let guard = self.zustand.read();
+        RwLockReadGuard::map(guard, |zustand| &zustand.zugtyp)
     }
 
     /// Spurweite des verwendeten Zugtyps.

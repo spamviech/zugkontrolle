@@ -36,7 +36,7 @@ use crate::{
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::Ausführen,
+        plan::{Ausführen, Einstellungen},
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
@@ -85,7 +85,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
-        if let Err(fehler) = aktion.ausführen(self.gleise.zugtyp().into()) {
+        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp());
+        if let Err(fehler) = aktion.ausführen(einstellungen) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
         }
     }
@@ -100,7 +101,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
         <L as Leiter>::Fahrtrichtung: Send,
         S: 'static + Send,
     {
-        let join_handle = aktion.async_ausführen(self.gleise.zugtyp().into(), self.sender.clone());
+        let join_handle = aktion
+            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = thread::spawn(move || {
@@ -532,7 +534,7 @@ where
                         stopp_zeit,
                         umdrehen_zeit,
                         ..
-                    } = self.gleise.zugtyp();
+                    } = &*self.gleise.zugtyp();
                     // let _ = geschwindigkeiten.insert(
                     //     name.clone(),
                     //     <L as LeiterAnzeige<S>>::anzeige_zustand_neu(
@@ -780,7 +782,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
             stopp_zeit,
             umdrehen_zeit,
             ..
-        } = self.gleise.zugtyp();
+        } = &*self.gleise.zugtyp();
         // self.geschwindigkeiten = self
         //     .gleise
         //     .geschwindigkeiten()
