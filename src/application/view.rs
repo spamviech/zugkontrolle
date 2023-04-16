@@ -398,7 +398,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
                     continue;
                 };
                 scrollable_row = scrollable_row.push(
-                    Element::from(L::anzeige_neu(todo!("name"), geschwindigkeit))
+                    Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }
