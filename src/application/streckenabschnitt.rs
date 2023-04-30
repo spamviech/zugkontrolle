@@ -279,12 +279,9 @@ where
                             .push(
                                 Row::new()
                                     .push(
-                                        TextInput::new(
-                                            "<Name>",
-                                            neu_name,
-                                            InterneAuswahlNachricht::Name,
-                                        )
-                                        .width(Length::Fixed(200.)),
+                                        TextInput::new("<Name>", neu_name)
+                                            .on_input(InterneAuswahlNachricht::Name)
+                                            .width(Length::Fixed(200.)),
                                     )
                                     .push(
                                         Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)

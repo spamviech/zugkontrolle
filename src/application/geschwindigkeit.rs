@@ -131,8 +131,8 @@ where
                         .map(|i| {
                             let i_u8 = u8::try_from(i).unwrap_or(u8::MAX);
                             Radio::new(
-                                i_u8,
                                 i_u8.to_string(),
+                                i_u8,
                                 Some(aktuelle_geschwindigkeit),
                                 geschwindigkeit_nachricht.clone(),
                             )
@@ -405,8 +405,9 @@ where
         let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter().collect();
         let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         let width = Length::Fixed(950.);
-        let mut neuer_anschluss = Column::new()
-            .push(TextInput::new("<Name>", neu_name, InterneAuswahlNachricht::Name).width(width));
+        let mut neuer_anschluss = Column::new().push(
+            TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
+        );
         let umdrehen_auswahl =
             Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
                 Element::from(anschluss::Auswahl::neu_output(None))
@@ -414,8 +415,8 @@ where
             );
         let make_radio = |polarität: Polarität| {
             Radio::new(
-                polarität,
                 polarität.to_string(),
+                polarität,
                 Some(*pwm_polarität),
                 InterneAuswahlNachricht::PwmPolarität,
             )
@@ -603,8 +604,8 @@ where
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
-                fahrtrichtung,
                 fahrtrichtung.to_string(),
+                fahrtrichtung,
                 Some(*aktuell),
                 move |fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
                     geschwindigkeit: clone.clone(),

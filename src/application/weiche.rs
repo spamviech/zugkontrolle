@@ -140,7 +140,9 @@ where
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
         let mut column: Column<'t, InterneNachricht<Richtung>, R> = Column::new();
         let text_input: TextInput<'t, InterneNachricht<Richtung>, R> =
-            TextInput::new("<Name>", name, InterneNachricht::Name).width(Length::Fixed(200.));
+            TextInput::new("<Name>", name)
+                .on_input(InterneNachricht::Name)
+                .width(Length::Fixed(200.));
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({

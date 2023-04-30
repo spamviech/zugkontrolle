@@ -106,7 +106,8 @@ where
                     .align_items(Alignment::End),
             )
             .push(
-                TextInput::new("Pfad", aktueller_pfad, InterneNachricht::Pfad)
+                TextInput::new("Pfad", aktueller_pfad)
+                    .on_input(InterneNachricht::Pfad)
                     .width(Length::Fixed(150.))
                     .padding(1),
             )

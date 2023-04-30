@@ -367,14 +367,14 @@ where
             |polarität, _beschreibung| {
                 Column::new()
                     .push(Radio::new(
-                        Polarität::Normal,
                         "Normal",
+                        Polarität::Normal,
                         Some(*polarität),
                         OutputNachricht::polarität,
                     ))
                     .push(Radio::new(
-                        Polarität::Invertiert,
                         "Invertiert",
+                        Polarität::Invertiert,
                         Some(*polarität),
                         OutputNachricht::polarität,
                     ))
@@ -426,8 +426,8 @@ where
         iced_native::widget::radio::StyleSheet + iced_native::widget::text::StyleSheet,
 {
     Column::new()
-        .push(Radio::new(fst, fst_s, Some(current.clone()), to_message.clone()).spacing(0))
-        .push(Radio::new(snd, snd_s, Some(current.clone()), to_message).spacing(0))
+        .push(Radio::new(fst_s, fst, Some(current.clone()), to_message.clone()).spacing(0))
+        .push(Radio::new(snd_s, snd, Some(current.clone()), to_message).spacing(0))
 }
 
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>

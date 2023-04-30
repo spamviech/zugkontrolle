@@ -2,7 +2,7 @@
 
 use std::include_bytes;
 
-use iced::window::Icon;
+use iced::window::icon::{self, Icon};
 use log::error;
 
 static DATA: &[u8] = include_bytes!("../../icon/zugkontrolle.data");
@@ -11,7 +11,7 @@ static HEIGHT: u32 = 32;
 
 /// Das Icon der Anwendung.
 pub fn icon() -> Option<Icon> {
-    match Icon::from_rgba(Vec::from(DATA), WIDTH, HEIGHT) {
+    match icon::from_rgba(Vec::from(DATA), WIDTH, HEIGHT) {
         Ok(icon) => Some(icon),
         Err(fehler) => {
             error!("Fehler beim Konvertieren des Application Icons: {:?}", fehler);

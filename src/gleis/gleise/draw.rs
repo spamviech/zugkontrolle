@@ -269,7 +269,8 @@ impl<L: Leiter> Gleise<L> {
                 // Zeichne Gleise
                 let gehalten_id: Option<&AnyId>;
                 let modus_bauen: bool;
-                match &*modus.read() {
+                let guard = modus.read();
+                match &*guard {
                     ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
                         gehalten_id = Some(gleis_id);
                         modus_bauen = true;

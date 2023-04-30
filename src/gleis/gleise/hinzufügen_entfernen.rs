@@ -75,6 +75,7 @@ impl<L: Leiter> Gleise<L> {
         } else if cp_y > last_size.y {
             canvas_position -= (cp_y - last_size.y) * ey;
         }
+        drop(last_size);
         let gleis_id = self.hinzufügen(
             definition,
             Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
@@ -162,11 +163,11 @@ impl<L: Leiter> Gleise<L> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let data = self.zustand.write().entfernen(gleis_id)?;
+        let gleis = self.zustand.write().entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
-        Ok(data)
+        Ok(gleis)
     }
 
     /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
@@ -176,7 +177,7 @@ impl<L: Leiter> Gleise<L> {
         T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let data = self.zustand.write().entfernen(gleis_id)?;
+        let _gleis = self.zustand.write().entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -217,7 +218,8 @@ impl<L: Leiter> Gleise<L> {
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let bisherige_daten = self.zustand.write().daten_mut(streckenabschnitt)?;
+        let mut guard = self.zustand.write();
+        let bisherige_daten = guard.daten_mut(streckenabschnitt)?;
         // Entferne aktuellen Eintrag.
         let geom_with_data = bisherige_daten
             .rstern_mut::<T>()

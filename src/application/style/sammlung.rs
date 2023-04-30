@@ -51,7 +51,7 @@ impl StyleSheet for Sammlung {
         self.scrollbar(0.7)
     }
 
-    fn hovered(&self, style: &Self::Style) -> Scrollbar {
+    fn hovered(&self, style: &Self::Style, _is_mouse_over_scrollbar: bool) -> Scrollbar {
         self.scrollbar(0.6)
     }
 

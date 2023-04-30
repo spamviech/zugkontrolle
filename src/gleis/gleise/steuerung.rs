@@ -6,7 +6,9 @@ use std::{
     sync::Arc,
 };
 
-use parking_lot::Mutex;
+use parking_lot::{
+    MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, RwLockReadGuard, RwLockWriteGuard,
+};
 use rstar::RTreeObject;
 
 use crate::{
@@ -143,8 +145,8 @@ impl<L: Leiter> Gleise<L> {
     ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &Gleis<T> = &zustand
-            .read()
+        let guard = zustand.read();
+        let Gleis { definition, position: _ }: &Gleis<T> = &guard
             .daten(streckenabschnitt)?
             .rstern()
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
@@ -162,8 +164,8 @@ impl<L: Leiter> Gleise<L> {
     ) -> Result<Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
-            .write()
+        let mut guard = zustand.write();
+        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut guard
             .daten_mut(streckenabschnitt)?
             .rstern_mut()
             .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
