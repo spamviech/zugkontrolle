@@ -7,8 +7,8 @@ use syn::{
     punctuated::Punctuated,
     token::{Gt, Lt},
     AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, GenericParam, Generics,
-    Ident, ImplItemMethod, Pat, PatIdent, PatType, PathArguments, PathSegment, ReturnType,
-    Signature, Type, TypeParam, TypeParamBound,
+    Ident, ImplItemFn, Pat, PatIdent, PatType, PathArguments, PathSegment, ReturnType, Signature,
+    Type, TypeParam, TypeParamBound,
 };
 
 fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type {
@@ -131,7 +131,7 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
     }
 }
 
-pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> TokenStream {
+pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !attr.is_empty() {
@@ -182,17 +182,10 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemMethod) -> Toke
         let s_kurven_weiche = erzeuge_typ_segments(Some(&["weiche", "s_kurve"]), "SKurvenWeiche");
         let kreuzung = erzeuge_typ_segments(None, "Kreuzung");
 
-        let ImplItemMethod {
-            sig: Signature { ident, generics, inputs, output, .. }, attrs, ..
-        } = &item;
-        let doc_attrs: Vec<&Attribute> = attrs
-            .iter()
-            .filter(|attr| {
-                attr.path.segments.len() == 1
-                    && attr.path.segments.first().map(|path_segment| path_segment.ident.to_string())
-                        == Some("doc".to_string())
-            })
-            .collect();
+        let ImplItemFn { sig: Signature { ident, generics, inputs, output, .. }, attrs, .. } =
+            &item;
+        let doc_attrs: Vec<&Attribute> =
+            attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
         let gerade_ident = format_ident!("{}_gerade", ident);
         let kurve_ident = format_ident!("{}_kurve", ident);
         let weiche_ident = format_ident!("{}_weiche", ident);

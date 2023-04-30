@@ -5,7 +5,7 @@ use std::convert::identity;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenStream {
+pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
@@ -30,8 +30,7 @@ pub(crate) fn make_chain(args: Vec<syn::NestedMeta>, ast: syn::ItemFn) -> TokenS
             },
         ..
     } = &ast;
-    let docstrings: Vec<_> =
-        attrs.iter().filter(|syn::Attribute { path, .. }| path.is_ident("doc")).collect();
+    let docstrings: Vec<_> = attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
     if let syn::ReturnType::Type(_arrow, ty) = output {
         errors.push(format!("only default return type supported, but {:?} was given.", ty));
     }

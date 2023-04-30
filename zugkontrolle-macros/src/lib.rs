@@ -67,7 +67,7 @@ mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(attr);
+    let args = parse_macro_input!(attr with syn::punctuated::Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
 
     nachschlagen::impl_nachschlagen(args, ast).into()
@@ -76,7 +76,7 @@ pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod erstelle_enum;
 #[proc_macro_attribute]
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
-pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn erstelle_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 

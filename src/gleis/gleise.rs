@@ -66,7 +66,7 @@ struct Gehalten {
     bewegt: bool,
 }
 
-#[zugkontrolle_macros::make_enum(pub, Modus)]
+#[zugkontrolle_macros::erstelle_enum(pub, Modus)]
 /// Aktueller Modus von [Gleise].
 #[derive(Debug)]
 enum ModusDaten {

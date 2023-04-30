@@ -1,79 +1,77 @@
 //! Take a sum-type enum and produce an associated enum without any data
 
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use std::iter::once;
 
-pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
-    // parse args
-    let mut arg_vis: Option<syn::Visibility> = None;
-    let mut arg_ident: Option<syn::Ident> = None;
+use proc_macro2::{TokenStream, TokenTree};
+use quote::{format_ident, quote};
+use syn::{Ident, ItemEnum, Visibility};
+
+fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), Vec<String>> {
+    let mut acc = TokenStream::new();
+    let mut arg_vis: Option<Visibility> = None;
+    let mut arg_ident: Option<Ident> = None;
     let mut errors = Vec::new();
-    for arg in &args {
-        match arg {
-            syn::NestedMeta::Meta(meta) => match meta {
-                syn::Meta::List(list) => {
-                    errors.push(format!(
-                        "List arguments not supported, but {} was given",
-                        quote!(#list)
-                    ));
-                },
-                syn::Meta::NameValue(name) => {
-                    errors.push(format!(
-                        "NameValue arguments not supported, but {} was given",
-                        quote!(#name)
-                    ));
-                },
-                syn::Meta::Path(path) => {
-                    if let Some(ident) = path.get_ident() {
-                        let id = ident.to_string();
-                        if let Ok(vis) = syn::parse_str(&id) {
-                            if arg_vis.is_none() {
-                                arg_vis = Some(vis);
-                            } else {
-                                errors
-                                    .push(format!("duplicate visibility argument {}", quote!(#id)));
-                            }
-                        } else if arg_ident.is_none() {
-                            arg_ident = Some(ident.clone());
-                        } else {
-                            errors.push(format!("duplicate identifier {id}"));
-                        }
-                    } else {
-                        errors.push(format!(
-                            "Only identifiers supported, but {} was given",
-                            quote!(#path)
-                        ))
-                    }
-                },
+    let mut parse_acc = |acc: &mut TokenStream| {
+        if let Ok(vis) = syn::parse2(acc.clone()) {
+            if arg_vis.is_none() {
+                arg_vis = Some(vis);
+            } else {
+                errors.push(format!("duplicate visibility argument {acc}"));
+            }
+        } else if let Ok(ident) = syn::parse2(acc.clone()) {
+            if arg_ident.is_none() {
+                arg_ident = Some(ident);
+            } else {
+                errors.push(format!("duplicate identifier {acc}"));
+            }
+        } else {
+            errors.push(format!("Only identifiers supported, but {acc} was given"))
+        }
+        *acc = TokenStream::new();
+    };
+    for tt in args {
+        match tt {
+            TokenTree::Punct(punct) if punct.as_char() == ',' => {
+                parse_acc(&mut acc);
             },
-            syn::NestedMeta::Lit(lit) => {
-                errors.push(format!(
-                    "Literal arguments not supported, but {} was given",
-                    quote!(#lit)
-                ));
-            },
+            _ => acc.extend(once(tt)),
         }
     }
+    // berücksichtige fehlendes terminierendes Komma
+    if !acc.is_empty() {
+        parse_acc(&mut acc);
+    }
+    if errors.is_empty() {
+        Ok((arg_vis, arg_ident))
+    } else {
+        Err(errors)
+    }
+}
+
+pub(crate) fn erstelle_enum(args: TokenStream, ast: ItemEnum) -> TokenStream {
+    let (arg_vis, arg_ident) = match parse_args(args) {
+        Ok(vid_ident) => vid_ident,
+        Err(errors) => {
+            let error_message = errors.join("\n");
+            return quote! {
+                compile_error!(#error_message);
+                #ast
+            };
+        },
+    };
     let derives = quote!(
         #[derive(Debug, Clone, Copy, PartialEq, Eq, ::kommandozeilen_argumente::EnumArgument)]
         #[kommandozeilen_argumente(case: insensitive)]
     );
-    if errors.len() > 0 {
-        let error_message = errors.join("\n");
-        return quote! {
-            compile_error!(#error_message);
-            #ast
-        };
-    }
 
-    let syn::ItemEnum { vis, ident, variants, attrs, .. } = &ast;
+    let ItemEnum { vis, ident, variants, attrs, .. } = &ast;
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
-    let (enum_variants, enum_variants_docstrings): (Vec<syn::Ident>, Vec<TokenStream>) = variants
+    let (enum_variants, enum_variants_docstrings): (Vec<Ident>, Vec<TokenStream>) = variants
         .iter()
         .map(|syn::Variant { ident, attrs, .. }| {
-            let docstrings = attrs.iter().filter_map(|attr @ syn::Attribute { path, .. }| {
-                if path.is_ident("doc") {
+            let docstrings = attrs.iter().filter_map(|attr| {
+                if attr.path().is_ident("doc") {
                     Some(attr.clone())
                 } else {
                     None
@@ -83,7 +81,7 @@ pub(crate) fn erstelle_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> T
         })
         .unzip();
     let enum_variants_str: Vec<String> = enum_variants.iter().map(syn::Ident::to_string).collect();
-    let docstrings = attrs.iter().filter(|syn::Attribute { path, .. }| path.is_ident("doc"));
+    let docstrings = attrs.iter().filter(|attr| attr.path().is_ident("doc"));
     quote!(
         #ast
 

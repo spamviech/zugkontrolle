@@ -34,6 +34,6 @@ fn main() {
     let is_windows = env::var("CARGO_CFG_WINDOWS").is_ok();
     if is_windows {
         // Setup windows binary icon
-        embed_resource::compile("resources.rc");
+        embed_resource::compile("resources.rc", embed_resource::NONE);
     }
 }

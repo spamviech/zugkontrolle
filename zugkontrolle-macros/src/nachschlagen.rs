@@ -4,12 +4,13 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
+use syn::{punctuated::Punctuated, token::Comma, ItemEnum, Path};
 
-pub(crate) fn impl_nachschlagen(args: Vec<syn::NestedMeta>, item: syn::ItemEnum) -> TokenStream {
+pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let syn::ItemEnum { vis, variants, ident, .. } = &item;
-    let dummy = Vec::new();
+    let ItemEnum { vis, variants, ident, .. } = &item;
+    let dummy: Punctuated<Path, Comma> = syn::punctuated::Punctuated::new();
     let (element, struct_name, derives) = if args.len() < 2 {
         errors.push(if args.is_empty() {
             "Lookup Element and Collection missing!".to_string()

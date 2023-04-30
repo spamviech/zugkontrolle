@@ -25,5 +25,5 @@ default-features = false
 
 [dependencies.syn]
 version = "2.0.15"
-features = ["full", "extra-traits"]
+features = ["parsing", "full", "extra-traits"]
 default_features = false
