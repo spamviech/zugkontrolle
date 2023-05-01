@@ -223,7 +223,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
         anschluss_definition: OutputSerialisiert,
     ) {
         let id_ref = StreckenabschnittIdRef { geschwindigkeit, name: &name };
-        match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
+        let message_opt = match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
             geschwindigkeit: geschwindigkeit.cloned(),
             name: name.clone(),
         }) {
@@ -237,13 +237,13 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
                 } else {
                     format!("Streckenabschnitt {:?} angepasst.", id_ref)
                 };
-                self.zeige_message_box(
-                    format!("Streckenabschnitt {:?} anpassen", id_ref),
-                    fehlermeldung,
-                );
-                return;
+                Some((format!("Streckenabschnitt {:?} anpassen", id_ref), fehlermeldung))
             },
-            _fehler => {},
+            _fehler => None,
+        };
+        if let Some((titel, nachricht)) = message_opt {
+            self.zeige_message_box(titel, nachricht);
+            return;
         }
         // Streckenabschnitt hat nur einen Anschluss,
         // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.

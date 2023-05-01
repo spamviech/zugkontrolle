@@ -186,7 +186,7 @@ impl<L: Leiter> Gleise<L> {
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
-        &mut self,
+        &self,
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
