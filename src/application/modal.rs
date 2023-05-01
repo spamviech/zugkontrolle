@@ -70,7 +70,8 @@ pub struct Modal<'a, Overlay, ElementNachricht, R> {
     underlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     overlay: Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     initial_overlay: Option<&'a dyn Fn() -> Overlay>,
-    zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+    zeige_overlay:
+        Box<dyn 'a + Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     schließe_bei_esc: bool,
 }
 
@@ -113,13 +114,13 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
     /// Erstelle ein neues [Modal].
     pub fn neu(
         underlay: impl 'a + Into<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
-        zeige_overlay: &'a impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
+        zeige_overlay: impl 'a + Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     ) -> Self {
         Modal {
             underlay: underlay.into(),
             overlay: None,
             initial_overlay: None,
-            zeige_overlay,
+            zeige_overlay: Box::new(zeige_overlay),
             schließe_bei_esc: false,
         }
     }
@@ -134,7 +135,8 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
 impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R>
 where
     Overlay: 'a,
-    R: Renderer,
+    ElementNachricht: 'a,
+    R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
@@ -195,7 +197,8 @@ impl<'a, Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
     for Modal<'a, Overlay, ElementNachricht, R>
 where
     Overlay: 'static,
-    R: Renderer,
+    ElementNachricht: 'a,
+    R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {

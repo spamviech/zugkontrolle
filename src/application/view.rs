@@ -52,9 +52,9 @@ trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
 
 impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
-impl<'t, L, S> Zugkontrolle<L, S>
+impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
+    L: 'static + Debug + for<'t> LeiterAnzeige<'t, S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static,
 {
@@ -221,16 +221,16 @@ where
             },
         };
         let auswahlzustand: Element<'_, _> =
-            Modal::neu(column.map(modal::Nachricht::Underlay), &zeige_auswahlzustand)
+            Modal::neu(column.map(modal::Nachricht::Underlay), zeige_auswahlzustand)
                 .schließe_bei_esc()
                 .into();
 
-        Modal::neu(auswahlzustand.map(modal::Nachricht::Underlay), &|message_box| {
+        let zeige_message_box = |message_box: &MessageBox| {
             let MessageBox { titel, nachricht } = message_box;
             Element::new(
                 iced_aw::Card::new(
-                    Text::new(&*titel),
-                    Scrollable::new(Text::new(&*nachricht)).height(Length::Fixed(300.)),
+                    Text::new(titel.clone()),
+                    Scrollable::new(Text::new(nachricht.clone())).height(Length::Fixed(300.)),
                 )
                 .foot(
                     iced::widget::Button::new(Text::new("Ok"))
@@ -240,9 +240,10 @@ where
             )
             .map(Nachricht::from)
             .map(modal::Nachricht::Underlay)
-        })
-        .schließe_bei_esc()
-        .into()
+        };
+        Modal::neu(auswahlzustand.map(modal::Nachricht::Underlay), zeige_message_box)
+            .schließe_bei_esc()
+            .into()
     }
 }
 
@@ -258,7 +259,7 @@ fn top_row<'t, L, S>(
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
-    initialer_pfad: &str,
+    initialer_pfad: &'t str,
 ) -> Row<'t, Nachricht<L, S>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
