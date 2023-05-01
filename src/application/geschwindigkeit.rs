@@ -264,7 +264,7 @@ pub struct Auswahl<'t, LeiterSerialisiert, R>(
 
 /// Wo soll eine Auswahl für einen Anschluss zum Einstellen der Fahrtrichtung angezeigt werden.
 #[derive(Debug, Clone, Copy)]
-enum FahrtrichtungAnschluss {
+pub enum FahrtrichtungAnschluss {
     /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
     Pwm,
     /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über mehrere Anschlüsse

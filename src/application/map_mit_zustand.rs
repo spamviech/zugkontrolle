@@ -267,7 +267,7 @@ where
 
 // Kopiert von https://docs.rs/iced_native/latest/src/iced_native/element.rs.html#295-335
 pub(in crate::application) struct MapOperation<'a, B> {
-    operation: &'a mut dyn Operation<B>,
+    pub(in crate::application) operation: &'a mut dyn Operation<B>,
 }
 
 impl<T, B> Operation<T> for MapOperation<'_, B> {

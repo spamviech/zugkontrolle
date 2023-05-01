@@ -83,8 +83,9 @@ impl<T: Zeichnen> Knopf<T> {
     }
 }
 
+/// Zustand für ein [Knopf]-Widget.
 #[derive(Debug, Default)]
-struct Zustand {
+pub struct Zustand {
     canvas: Cache,
     in_bounds: bool,
 }

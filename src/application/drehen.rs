@@ -33,8 +33,9 @@ impl Drehen {
     }
 }
 
+/// Zustand für ein [Drehen]-Widget.
 #[derive(Debug)]
-struct Zustand {
+pub struct Zustand {
     winkel: Winkel,
     grabbed: bool,
 }

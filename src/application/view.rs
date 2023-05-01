@@ -412,10 +412,9 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             Container::new(
                 Element::new(
                     scrollable
-                        .vertical_scroll(scrollable::Properties {
-                            scroller_width,
-                            ..scrollable::Properties::default()
-                        })
+                        .vertical_scroll(
+                            scrollable::Properties::default().scroller_width(scroller_width),
+                        )
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )
