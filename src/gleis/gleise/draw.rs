@@ -202,7 +202,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     }
 }
 
-fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl Fn(AnyIdRef<'t>) -> bool + 't {
+fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl 't + Fn(AnyIdRef<'t>) -> bool {
     move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
 }
 
@@ -284,8 +284,6 @@ impl<L: Leiter> Gleise<L> {
                         modus_bauen = false;
                     }
                 };
-                // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten = ist_gehalten_test(gehalten_id);
 
                 macro_rules! mit_allen_gleisen {
                     ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
@@ -300,6 +298,8 @@ impl<L: Leiter> Gleise<L> {
                 }
 
                 let guard = zustand.read();
+                // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
+                let ist_gehalten = ist_gehalten_test(gehalten_id);
                 // Hintergrund
                 for (streckenabschnitt_opt, daten) in guard.alle_streckenabschnitte_und_daten() {
                     let (streckenabschnitt_id, streckenabschnitt)
