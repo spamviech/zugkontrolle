@@ -6,9 +6,7 @@ use std::{
     sync::Arc,
 };
 
-use parking_lot::{
-    MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, RwLockReadGuard, RwLockWriteGuard,
-};
+use parking_lot::Mutex;
 use rstar::RTreeObject;
 
 use crate::{
@@ -139,10 +137,11 @@ pub trait MitSteuerung<'t> {
 impl<L: Leiter> Gleise<L> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
-        &'t self,
+    pub(crate) fn mit_steuerung<T: for<'t> MitSteuerung<'t> + DatenAuswahl, V>(
+        &self,
         gleis_id: &GleisId<T>,
-    ) -> Result<Steuerung<&'t <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
+        f: impl FnOnce(Steuerung<&<T as MitSteuerung<'_>>::Steuerung>) -> V,
+    ) -> Result<V, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let guard = zustand.read();
@@ -153,15 +152,17 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung(canvas.clone()))
+        let steuerung = definition.steuerung(canvas.clone());
+        Ok(f(steuerung))
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn erhalte_steuerung_mut<'t, T: 't + MitSteuerung<'t> + DatenAuswahl>(
-        &'t mut self,
+    pub(crate) fn mit_steuerung_mut<T: for<'t> MitSteuerung<'t> + DatenAuswahl, V>(
+        &mut self,
         gleis_id: &GleisId<T>,
-    ) -> Result<Steuerung<&'t mut <T as MitSteuerung<'t>>::Steuerung>, GleisIdFehler> {
+        f: impl FnOnce(Steuerung<&mut <T as MitSteuerung<'_>>::Steuerung>) -> V,
+    ) -> Result<V, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         let Gleise { zustand, canvas, .. } = self;
         let mut guard = zustand.write();
@@ -172,7 +173,8 @@ impl<L: Leiter> Gleise<L> {
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        Ok(definition.steuerung_mut(canvas.clone()))
+        let steuerung = definition.steuerung_mut(canvas.clone());
+        Ok(f(steuerung))
     }
 }
 

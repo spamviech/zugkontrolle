@@ -7,9 +7,58 @@ use syn::{
     punctuated::Punctuated,
     token::{Gt, Lt},
     AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, GenericParam, Generics,
-    Ident, ImplItemFn, Pat, PatIdent, PatType, PathArguments, PathSegment, ReturnType, Signature,
-    Type, TypeParam, TypeParamBound,
+    Ident, ImplItemFn, Pat, PatIdent, PatType, Path, PathArguments, PathSegment, ReturnType,
+    Signature, Type, TypeParam, TypeParamBound,
 };
+
+fn ersetze_generic_path(generic: &Ident, insert: Vec<PathSegment>, mut path: Path) -> Path {
+    let num_segments = path.segments.len();
+    let (segments, segment) =
+        path.segments.into_iter().fold((Punctuated::new(), 0usize), |mut acc, mut path_segment| {
+            path_segment.arguments = match path_segment.arguments {
+                PathArguments::None => PathArguments::None,
+                PathArguments::AngleBracketed(mut angle_bracketed) => {
+                    angle_bracketed.args = angle_bracketed
+                        .args
+                        .into_iter()
+                        .map(|generic_arg| {
+                            if let GenericArgument::Type(ty) = generic_arg {
+                                GenericArgument::Type(ersetze_generic(generic, insert.clone(), ty))
+                            } else {
+                                generic_arg
+                            }
+                        })
+                        .collect();
+                    PathArguments::AngleBracketed(angle_bracketed)
+                },
+                PathArguments::Parenthesized(mut parenthesized) => {
+                    parenthesized.inputs = parenthesized
+                        .inputs
+                        .into_iter()
+                        .map(|ty| ersetze_generic(generic, insert.clone(), ty))
+                        .collect();
+                    parenthesized.output = match parenthesized.output {
+                        ReturnType::Default => ReturnType::Default,
+                        ReturnType::Type(r_arrow, ty) => ReturnType::Type(
+                            r_arrow,
+                            Box::new(ersetze_generic(generic, insert.clone(), *ty)),
+                        ),
+                    };
+                    PathArguments::Parenthesized(parenthesized)
+                },
+            };
+            acc.1 += 1;
+            if &path_segment.ident == generic {
+                acc.0.extend(insert.iter().cloned())
+            } else {
+                acc.0.push(path_segment)
+            }
+            acc
+        });
+    assert!(segment == num_segments);
+    path.segments = segments;
+    path
+}
 
 fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type {
     match ty {
@@ -17,7 +66,22 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
         Type::Macro(mac) => Type::Macro(mac),
         Type::Never(never) => Type::Never(never),
         Type::TraitObject(trait_object) => Type::TraitObject(trait_object),
-        Type::ImplTrait(impl_trait) => Type::ImplTrait(impl_trait),
+        Type::ImplTrait(mut impl_trait) => {
+            impl_trait.bounds = impl_trait
+                .bounds
+                .into_iter()
+                .map(|bound| {
+                    if let TypeParamBound::Trait(mut trait_bound) = bound {
+                        trait_bound.path =
+                            ersetze_generic_path(generic, insert.clone(), trait_bound.path);
+                        TypeParamBound::Trait(trait_bound)
+                    } else {
+                        bound
+                    }
+                })
+                .collect();
+            Type::ImplTrait(impl_trait)
+        },
         Type::Verbatim(verb) => Type::Verbatim(verb),
         Type::Array(mut type_array) => {
             type_array.elem = Box::new(ersetze_generic(generic, insert, *type_array.elem));
@@ -70,61 +134,11 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
             Type::BareFn(type_bar_fn)
         },
         Type::Path(mut type_path) => {
-            let num_segments = type_path.path.segments.len();
-            let (segments, segment) = type_path.path.segments.into_iter().fold(
-                (Punctuated::new(), 0usize),
-                |mut acc, mut path_segment| {
-                    path_segment.arguments = match path_segment.arguments {
-                        PathArguments::None => PathArguments::None,
-                        PathArguments::AngleBracketed(mut angle_bracketed) => {
-                            angle_bracketed.args = angle_bracketed
-                                .args
-                                .into_iter()
-                                .map(|generic_arg| {
-                                    if let GenericArgument::Type(ty) = generic_arg {
-                                        GenericArgument::Type(ersetze_generic(
-                                            generic,
-                                            insert.clone(),
-                                            ty,
-                                        ))
-                                    } else {
-                                        generic_arg
-                                    }
-                                })
-                                .collect();
-                            PathArguments::AngleBracketed(angle_bracketed)
-                        },
-                        PathArguments::Parenthesized(mut parenthesized) => {
-                            parenthesized.inputs = parenthesized
-                                .inputs
-                                .into_iter()
-                                .map(|ty| ersetze_generic(generic, insert.clone(), ty))
-                                .collect();
-                            parenthesized.output = match parenthesized.output {
-                                ReturnType::Default => ReturnType::Default,
-                                ReturnType::Type(r_arrow, ty) => ReturnType::Type(
-                                    r_arrow,
-                                    Box::new(ersetze_generic(generic, insert.clone(), *ty)),
-                                ),
-                            };
-                            PathArguments::Parenthesized(parenthesized)
-                        },
-                    };
-                    acc.1 += 1;
-                    if &path_segment.ident == generic {
-                        acc.0.extend(insert.iter().cloned())
-                    } else {
-                        acc.0.push(path_segment)
-                    }
-                    acc
-                },
-            );
-            assert!(segment == num_segments);
+            type_path.path = ersetze_generic_path(generic, insert.clone(), type_path.path);
             type_path.qself = type_path.qself.map(|mut qself| {
                 qself.ty = Box::new(ersetze_generic(generic, insert, *qself.ty));
                 qself
             });
-            type_path.path.segments = segments;
             Type::Path(type_path)
         },
         _ => unimplemented!("Unsupported Argument type: {:?}", ty),

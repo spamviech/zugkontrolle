@@ -129,8 +129,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
         T: 'static + for<'s> MitSteuerung<'s, Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere<WS>,
     {
-        let steuerung_res = self.gleise.erhalte_steuerung(&id);
-        if let Ok(steuerung) = steuerung_res {
+        let steuerung_res = self.gleise.mit_steuerung(&id, |steuerung| {
             let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
             // self.auswahl.zeige_modal(erzeuge_modal(
             //     erzeuge_modal_zustand(steuerung_save),
@@ -138,12 +137,13 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
             //         Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
             //     }),
             // ))
-            todo!()
-        } else {
-            drop(steuerung_res);
+            todo!();
+            ()
+        });
+        if let Err(fehler) = steuerung_res {
             self.zeige_message_box(
                 "Gleis entfernt!".to_owned(),
-                format!("Anschlüsse {} anpassen für entferntes Gleis!", gleis_art),
+                format!("Anschlüsse {gleis_art} anpassen für entferntes Gleis: {fehler:?}!"),
             )
         }
     }

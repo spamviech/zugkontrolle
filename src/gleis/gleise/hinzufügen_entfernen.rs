@@ -1,6 +1,6 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use std::fmt::Debug;
+use std::{convert::identity, fmt::Debug};
 
 use log::error;
 use rstar::RTreeObject;
@@ -264,48 +264,53 @@ impl<L: Leiter> Gleise<L> {
         <S as Reserviere<W>>::Arg: Clone,
     {
         use Ergebnis::*;
-        let mut steuerung = self.erhalte_steuerung_mut(&id)?;
-        let anschlüsse_serialisiert =
-            if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
-                anschlüsse_serialisiert
-            } else {
-                let _ = steuerung.take();
-                return Ok(());
-            };
-        let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
-            (Some(s.serialisiere()), s.anschlüsse())
-        } else {
-            (None, Anschlüsse::default())
-        };
-        let (fehler, anschlüsse) =
-            match anschlüsse_serialisiert.reserviere(lager, anschlüsse, arg.clone()) {
-                Wert { anschluss, .. } => {
-                    let _ = steuerung.insert(anschluss);
+        self.mit_steuerung_mut(&id, |mut steuerung| {
+            let anschlüsse_serialisiert =
+                if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
+                    anschlüsse_serialisiert
+                } else {
+                    let _ = steuerung.take();
                     return Ok(());
-                },
-                FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
-                    anschlüsse.anhängen(anschluss.anschlüsse());
-                    (fehler, anschlüsse)
-                },
-                Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+                };
+            let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
+                (Some(s.serialisiere()), s.anschlüsse())
+            } else {
+                (None, Anschlüsse::default())
             };
-        let mut wiederherstellen_fehler = None;
-        if let Some(steuerung_serialisiert) = steuerung_serialisiert {
-            let serialisiert_string = format!("{steuerung_serialisiert:?}");
-            match steuerung_serialisiert.reserviere(lager, anschlüsse, arg) {
-                Wert { anschluss, .. } => {
-                    let _ = steuerung.insert(anschluss);
-                },
-                FehlerMitErsatzwert { anschluss, fehler, .. } => {
-                    let _ = steuerung.insert(anschluss);
-                    wiederherstellen_fehler = Some((fehler, serialisiert_string));
-                },
-                Fehler { fehler, .. } => {
-                    wiederherstellen_fehler = Some((fehler, serialisiert_string))
-                },
+            let (fehler, anschlüsse) =
+                match anschlüsse_serialisiert.reserviere(lager, anschlüsse, arg.clone()) {
+                    Wert { anschluss, .. } => {
+                        let _ = steuerung.insert(anschluss);
+                        return Ok(());
+                    },
+                    FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                        anschlüsse.anhängen(anschluss.anschlüsse());
+                        (fehler, anschlüsse)
+                    },
+                    Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+                };
+            let mut wiederherstellen_fehler = None;
+            if let Some(steuerung_serialisiert) = steuerung_serialisiert {
+                let serialisiert_string = format!("{steuerung_serialisiert:?}");
+                match steuerung_serialisiert.reserviere(lager, anschlüsse, arg) {
+                    Wert { anschluss, .. } => {
+                        let _ = steuerung.insert(anschluss);
+                    },
+                    FehlerMitErsatzwert { anschluss, fehler, .. } => {
+                        let _ = steuerung.insert(anschluss);
+                        wiederherstellen_fehler = Some((fehler, serialisiert_string));
+                    },
+                    Fehler { fehler, .. } => {
+                        wiederherstellen_fehler = Some((fehler, serialisiert_string))
+                    },
+                }
             }
-        }
-        Err(AnschlüsseAnpassenFehler::Deserialisieren { fehler, wiederherstellen_fehler })
+            Err(AnschlüsseAnpassenFehler::Deserialisieren { fehler, wiederherstellen_fehler })
+        })
+        .map_err(AnschlüsseAnpassenFehler::from)
+        .and_then(identity)
+        // TODO and_then(identity) is actually flatten, but this hasn't been stabilized yet
+        // https://doc.rust-lang.org/src/core/result.rs.html#1739
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
