@@ -447,13 +447,12 @@ pub struct Zugkontrolle<L: Leiter, S> {
     // TODO Plan
 }
 
-#[allow(single_use_lifetimes)]
-impl<'t, L, S> Application for Zugkontrolle<L, S>
+impl<L, S> Application for Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
         + Display
-        + LeiterAnzeige<'t, S, Renderer>
+        + for<'l> LeiterAnzeige<'l, S, Renderer>
         + Serialisiere<S>
         + BekannterLeiter
         + Send,
@@ -613,7 +612,7 @@ where
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
-        self.view()
+        Zugkontrolle::view(self)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
