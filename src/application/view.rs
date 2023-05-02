@@ -28,7 +28,7 @@ use crate::{
     },
     gleis::{
         gerade::GeradeUnit,
-        gleise::Gleise,
+        gleise::{id::StreckenabschnittId, Gleise},
         knopf::Knopf,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
@@ -38,7 +38,7 @@ use crate::{
         },
     },
     steuerung::geschwindigkeit::Leiter,
-    typen::{skalar::Skalar, Zeichnen},
+    typen::{farbe::Farbe, skalar::Skalar, Zeichnen},
 };
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
@@ -87,6 +87,7 @@ where
 
         let top_row = top_row(
             aktueller_modus,
+            streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             bewegen,
             drehen,
@@ -255,6 +256,7 @@ const SKALIEREN_BREITE: f32 = 75.;
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
+    streckenabschnitt_aktuell: &'t Option<(StreckenabschnittId, Farbe)>,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,
@@ -299,7 +301,7 @@ where
         )
         .map(Nachricht::from);
         let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
-            todo!("Option<(StreckenabschnittId, Farbe)>"),
+            streckenabschnitt_aktuell,
             *streckenabschnitt_festlegen,
         ))
         .map(Nachricht::from);
@@ -336,7 +338,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
     geschwindigkeiten: &'t geschwindigkeit::Map<L>,
     gleise: &Gleise<L>,
 ) -> Row<'t, Nachricht<L, S>> {
-    let mut scrollable_row = Row::new();
+    let mut scrollable_column = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
     match aktueller_modus {
@@ -357,23 +359,24 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             }
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 max_breite: &mut Option<f32>,
-                scrollable_row: &mut Row<'t, NachrichtClone<L>>,
+                scrollable_column: &mut Column<'t, NachrichtClone<L>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
                 T: Zeichnen + Clone + Into<AnyGleisUnit>,
             {
-                take_mut::take(scrollable_row, |mut scrollable_row| {
+                take_mut::take(scrollable_column, |mut scrollable_column| {
                     for button in buttons {
-                        scrollable_row = scrollable_row.push(button.als_iced_widget(*max_breite))
+                        scrollable_column =
+                            scrollable_column.push(button.als_iced_widget(*max_breite))
                     }
-                    scrollable_row
+                    scrollable_column
                 })
             }
             macro_rules! knöpfe_hinzufügen {
                 ($($vec: expr),* $(,)?) => {
                     max_breite_berechnen!($($vec),*);
-                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable_row, $vec);)*
+                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable_column, $vec);)*
                 }
             }
             knöpfe_hinzufügen!(
@@ -390,7 +393,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             }
         },
         Modus::Fahren => {
-            scrollable_row = scrollable_row.push(Text::new("Geschwindigkeiten")).spacing(1);
+            scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
             for (name, anzeige_zustand) in geschwindigkeiten {
                 let geschwindigkeit = if let Some(geschwindigkeit) = gleise.geschwindigkeit(name) {
                     geschwindigkeit
@@ -398,7 +401,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
                     error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
                     continue;
                 };
-                scrollable_row = scrollable_row.push(
+                scrollable_column = scrollable_column.push(
                     Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
@@ -406,7 +409,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
-    let scrollable = Scrollable::new(scrollable_row);
+    let scrollable = Scrollable::new(scrollable_column);
     Row::new()
         .push(
             Container::new(

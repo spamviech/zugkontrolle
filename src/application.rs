@@ -21,17 +21,17 @@ use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 
-use self::{
-    bewegen::{Bewegen, Bewegung},
-    drehen::Drehen,
-    empfänger::Empfänger,
-    geschwindigkeit::LeiterAnzeige,
-    icon::icon,
-};
 use crate::{
     anschluss::{
         de_serialisieren::{Reserviere, Serialisiere},
         Lager, OutputSerialisiert,
+    },
+    application::{
+        bewegen::{Bewegen, Bewegung},
+        drehen::Drehen,
+        empfänger::Empfänger,
+        geschwindigkeit::LeiterAnzeige,
+        icon::icon,
     },
     argumente::{Argumente, ZugtypArgument},
     gleis::{
