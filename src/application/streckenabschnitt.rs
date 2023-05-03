@@ -49,8 +49,6 @@ pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 /// Eine Nachricht des [Anzeige]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
-    /// Öffne das Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
-    Auswählen,
     /// Einstellen ob ein Klick auf ein Gleis den [Streckenabschnitt]
     /// zum aktuellen Streckenabschnitt ändert.
     Festlegen(bool),

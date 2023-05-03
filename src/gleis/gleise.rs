@@ -624,8 +624,6 @@ fn streckenabschnitt_entfernen<T>(
 pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
     SetzeStreckenabschnitt(AnyId),
-    /// Öffne das Fenster zum Anpassen der Anschlüsse für ein Gleis.
-    AnschlüsseAnpassen(AnyId),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),

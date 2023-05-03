@@ -111,10 +111,7 @@ impl Modus {
 enum NachrichtClone<L: Leiter> {
     Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
     Skalieren(Skalar),
-    SchließeMessageBox,
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
-    ZeigeAuswahlGeschwindigkeit,
-    ZeigeLizenzen,
 }
 
 impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
@@ -122,12 +119,9 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
         match nachricht_clone {
             NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
-            NachrichtClone::SchließeMessageBox => Nachricht::SchließeMessageBox,
             NachrichtClone::AktionGeschwindigkeit(aktion) => {
                 Nachricht::AktionGeschwindigkeit(aktion)
             },
-            NachrichtClone::ZeigeAuswahlGeschwindigkeit => Nachricht::ZeigeAuswahlGeschwindigkeit,
-            NachrichtClone::ZeigeLizenzen => Nachricht::ZeigeLizenzen,
         }
     }
 }
@@ -158,12 +152,6 @@ pub enum Nachricht<L: Leiter, S> {
     Winkel(Winkel),
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    /// Schließe das [Auswahl](AuswahlZustand)-Fenster.
-    SchließeAuswahl,
-    /// Schließe die [MessageBox].
-    SchließeMessageBox,
-    /// Zeige die Auswahl für [Streckenabschnitte](steuerung::Streckenabschnitt).
-    ZeigeAuswahlStreckenabschnitt,
     /// Wähle den aktuellen [Streckenabschnitt](steuerung::Streckenabschnitt).
     WähleStreckenabschnitt(Option<(StreckenabschnittId, Farbe)>),
     /// Hinzufügen eines neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
@@ -196,15 +184,11 @@ pub enum Nachricht<L: Leiter, S> {
     Laden(String),
     /// Eine Aktion einer [Geschwindigkeit](steuerung::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
-    /// Zeige die Auswahl für [Geschwindigkeiten](steuerung::Geschwindigkeit).
-    ZeigeAuswahlGeschwindigkeit,
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
     /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
-    ZeigeAnschlüsseAnpassen(AnyId),
-    /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
@@ -212,8 +196,6 @@ pub enum Nachricht<L: Leiter, S> {
     /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
     /// Zeige Lizenzen der verwendeten Open Source Libraries an.
-    ZeigeLizenzen,
-    /// Eine asynchrone Aktion hat eine Änderung des Zustands bewirkt.
     AsyncAktualisieren,
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
@@ -229,9 +211,6 @@ impl<L: Leiter, S> From<gleise::Nachricht> for Nachricht<L, S> {
         match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
                 Nachricht::SetzeStreckenabschnitt(any_id)
-            },
-            gleise::Nachricht::AnschlüsseAnpassen(any_id) => {
-                Nachricht::ZeigeAnschlüsseAnpassen(any_id)
             },
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
                 Nachricht::StreckenabschnittUmschalten(aktion)
@@ -255,9 +234,6 @@ impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
 impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S> {
     fn from(nachricht: streckenabschnitt::AnzeigeNachricht) -> Self {
         match nachricht {
-            streckenabschnitt::AnzeigeNachricht::Auswählen => {
-                Nachricht::ZeigeAuswahlStreckenabschnitt
-            },
             streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
                 Nachricht::StreckenabschnittFestlegen(festlegen)
             },
@@ -308,6 +284,8 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
 
 /// Zustand des Auswahl-Fensters.
+#[derive(zugkontrolle_macros::Clone)]
+#[zugkontrolle_clone(S: Clone)]
 pub enum AuswahlZustand<L: Leiter, S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt,
@@ -340,7 +318,7 @@ impl<L: Leiter, S> Debug for AuswahlZustand<L, S> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct MessageBox {
     titel: String,
     nachricht: String,
@@ -554,8 +532,6 @@ where
             Nachricht::Position(position) => self.gleise.setze_pivot(position),
             Nachricht::Winkel(winkel) => self.gleise.winkel(winkel),
             Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
-            Nachricht::SchließeAuswahl => self.schließe_auswahl(),
-            Nachricht::ZeigeAuswahlStreckenabschnitt => self.zeige_auswahl_streckenabschnitt(),
             Nachricht::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
             Nachricht::HinzufügenStreckenabschnitt(
                 geschwindigkeit,
@@ -577,7 +553,6 @@ where
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen)
             },
-            Nachricht::SchließeMessageBox => self.schließe_message_box(),
             Nachricht::Speichern(pfad) => {
                 if let Some(cmd) = self.speichern(pfad) {
                     command = cmd
@@ -590,12 +565,10 @@ where
             Nachricht::AktionGeschwindigkeit(aktion) => {
                 self.async_aktion_ausführen(aktion, Some(Nachricht::AsyncAktualisieren))
             },
-            Nachricht::ZeigeAuswahlGeschwindigkeit => self.zeige_auswahl_geschwindigkeit(),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            Nachricht::ZeigeAnschlüsseAnpassen(any_id) => self.zeige_anschlüsse_anpassen(any_id),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
                     command = nachricht.als_command()
@@ -603,7 +576,6 @@ where
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
-            Nachricht::ZeigeLizenzen => self.zeige_lizenzen(),
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }

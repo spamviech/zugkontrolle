@@ -19,6 +19,7 @@ use iced_native::{
 use crate::application::{map_mit_zustand::MapOperation, style::hintergrund::Hintergrund};
 
 /// Nachricht für Underlay und Overlay eines [Modals](Modal).
+#[derive(Debug, Clone)]
 pub enum Nachricht<Overlay, ElementNachricht> {
     /// Nach außen durchgereichte Nachricht.
     Underlay(ElementNachricht),
@@ -26,6 +27,25 @@ pub enum Nachricht<Overlay, ElementNachricht> {
     ZeigeOverlay(Overlay),
     /// Verstecke das angezeigte Overlay.
     VersteckeOverlay,
+}
+
+impl<Overlay, ElementNachricht> From<ElementNachricht> for Nachricht<Overlay, ElementNachricht> {
+    fn from(nachricht: ElementNachricht) -> Self {
+        Nachricht::Underlay(nachricht)
+    }
+}
+
+impl<Overlay, N0> Nachricht<Overlay, N0> {
+    pub fn underlay_from<N1>(value: Nachricht<Overlay, N1>) -> Self
+    where
+        N0: From<N1>,
+    {
+        match value {
+            Nachricht::Underlay(nachricht) => Nachricht::Underlay(nachricht.into()),
+            Nachricht::ZeigeOverlay(overlay) => Nachricht::ZeigeOverlay(overlay),
+            Nachricht::VersteckeOverlay => Nachricht::VersteckeOverlay,
+        }
+    }
 }
 
 /// Zustand des [Modal]-Widgets.
@@ -358,15 +378,15 @@ where
     }
 }
 
-impl<'a, Inner, Nachricht, R> From<Modal<'a, Inner, Nachricht, R>> for Element<'a, Nachricht, R>
+impl<'a, Overlay, Nachricht, R> From<Modal<'a, Overlay, Nachricht, R>> for Element<'a, Nachricht, R>
 where
-    Inner: 'static,
+    Overlay: 'static,
     Nachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
-    fn from(modal: Modal<'a, Inner, Nachricht, R>) -> Self {
+    fn from(modal: Modal<'a, Overlay, Nachricht, R>) -> Self {
         Element::new(modal)
     }
 }
