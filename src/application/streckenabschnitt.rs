@@ -31,6 +31,7 @@ use crate::{
         anschluss,
         farbwahl::Farbwahl,
         map_mit_zustand::MapMitZustand,
+        modal,
         style::{
             streckenabschnitt::{
                 Anzeige as StyleAnzeige, Auswahl as StyleAuswahl, Beschreibung as StyleBeschreibung,
@@ -56,18 +57,19 @@ pub enum AnzeigeNachricht {
 
 /// Widget zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
-pub struct Anzeige<'a, R> {
-    element: Element<'a, AnzeigeNachricht, R>,
+pub struct Anzeige<'a, Overlay, R> {
+    element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>,
 }
 
-impl<R> Debug for Anzeige<'_, R> {
+impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
-impl<'a, R> Anzeige<'a, R>
+impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
 where
+    Overlay: Clone,
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
@@ -75,7 +77,11 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAnzeige>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(zustand: &'a Option<(StreckenabschnittId, Farbe)>, festlegen: bool) -> Self {
+    pub fn neu(
+        zustand: &'a Option<(StreckenabschnittId, Farbe)>,
+        festlegen: bool,
+        overlay: Overlay,
+    ) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
@@ -89,8 +95,16 @@ where
         };
         children.push(
             Row::new()
-                .push(Button::new(Text::new("Auswählen")).on_press(AnzeigeNachricht::Auswählen))
-                .push(Checkbox::new("Festlegen", festlegen, AnzeigeNachricht::Festlegen).spacing(0))
+                .push(
+                    Button::new(Text::new("Auswählen"))
+                        .on_press(modal::Nachricht::ZeigeOverlay(overlay)),
+                )
+                .push(
+                    Checkbox::new("Festlegen", festlegen, |festlegen| {
+                        modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(festlegen))
+                    })
+                    .spacing(0),
+                )
                 .spacing(1)
                 .into(),
         );
@@ -103,8 +117,10 @@ where
     }
 }
 
-impl<'a, R: 'a + Renderer> From<Anzeige<'a, R>> for Element<'a, AnzeigeNachricht, R> {
-    fn from(auswahl: Anzeige<'a, R>) -> Self {
+impl<'a, Overlay, R: 'a + Renderer> From<Anzeige<'a, Overlay, R>>
+    for Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>
+{
+    fn from(auswahl: Anzeige<'a, Overlay, R>) -> Self {
         auswahl.element
     }
 }

@@ -322,17 +322,21 @@ where
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
-        let geschwindigkeit = Element::new(
-            Button::new(Text::new("Geschwindigkeiten"))
-                .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Streckenabschnitt)),
-        )
-        .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
-        let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
+        let geschwindigkeit: Element<'_, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>> =
+            Element::new(
+                Button::new(Text::new("Geschwindigkeiten"))
+                    .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Streckenabschnitt)),
+            )
+            .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
+        let streckenabschnitt: Element<
+            '_,
+            modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>,
+        > = Element::from(streckenabschnitt::Anzeige::neu(
             streckenabschnitt_aktuell,
             *streckenabschnitt_festlegen,
+            AuswahlZustand::Streckenabschnitt,
         ))
-        .map(Nachricht::from)
-        .map(modal::Nachricht::Underlay);
+        .map(modal::Nachricht::underlay_from);
         row = row.push(Column::new().push(geschwindigkeit).push(streckenabschnitt).spacing(1));
     }
 
