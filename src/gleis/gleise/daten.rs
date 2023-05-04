@@ -240,7 +240,7 @@ impl<L: Leiter> Zustand<L> {
         &'t self,
         verbindung: &'t Verbindung,
         eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
+        gehalten_id: Option<&'t AnyIdRef<'t>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
         let mut gehalten = false;
         let überlappend =
@@ -483,7 +483,7 @@ impl GleiseDaten {
         verbindung: &'t Verbindung,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
         eigene_id: Option<&'t AnyIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
+        gehalten_id: Option<&'t AnyIdRef<'t>>,
     ) -> (impl Iterator<Item = Verbindung> + 't, bool)
     where
         T: Zeichnen + DatenAuswahl + 't,

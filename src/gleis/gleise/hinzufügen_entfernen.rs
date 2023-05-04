@@ -15,8 +15,8 @@ use crate::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
             steuerung::MitSteuerung,
-            AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, Gleise,
-            ModusDaten, StreckenabschnittIdFehler,
+            AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, GleisSteuerung,
+            Gleise, ModusDaten, StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
     },
@@ -84,8 +84,10 @@ impl<L: Leiter> Gleise<L> {
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
             let any_id = gleis_id.klonen().into();
+            let gleis_steuerung: GleisSteuerung = todo!();
+            let _ = ();
             *gehalten = Some(Gehalten {
-                gleis_id: any_id,
+                gleis_steuerung,
                 halte_position,
                 winkel: winkel::ZERO,
                 bewegt: true,
@@ -190,7 +192,10 @@ impl<L: Leiter> Gleise<L> {
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
-            if let Some(Gehalten { gleis_id, halte_position, winkel, bewegt }) = gehalten {
+            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
+                // FIXME es gibt keine AnyId mehr! Macro erweitern, so dass es mit GleisSteuerung umgehen kann? Neues Macro schreiben?
+                let gleis_id: &mut AnyId = todo!();
+                let _ = ();
                 let punkt = canvas_pos - halte_position;
                 let mut_ref = &mut *self.zustand.write();
                 mit_any_id!(

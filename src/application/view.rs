@@ -109,27 +109,17 @@ where
             geschwindigkeiten,
             gleise,
         );
-        let row_mit_scrollable_und_canvas = row_mit_scrollable.push(
-            Container::new(
-                Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
-                    .map(Nachricht::from),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill),
-        );
+        let canvas = Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
+            .map(modal::Nachricht::<AuswahlZustand<L, S>, Nachricht<L, S>>::from)
+            .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
+        let row_mit_scrollable_und_canvas = row_mit_scrollable
+            .push(Container::new(canvas).width(Length::Fill).height(Length::Fill));
 
-        let column: Element<
-            '_,
-            modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
-        > = Element::from(
+        let column = Element::from(
             Column::new()
                 .push(Element::from(top_row).map(modal::Nachricht::underlay_from))
                 .push(Rule::horizontal(1).style(TRENNLINIE))
-                .push(
-                    Element::from(row_mit_scrollable_und_canvas)
-                        .map(modal::Nachricht::Underlay)
-                        .map(modal::Nachricht::Underlay),
-                ),
+                .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
         let zeige_auswahlzustand = |modal: &AuswahlZustand<L, S>| -> Element<
@@ -374,7 +364,8 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: &'t geschwindigkeit::Map<L>,
     gleise: &Gleise<L>,
-) -> Row<'t, Nachricht<L, S>> {
+) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>>
+{
     let mut scrollable_column = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
@@ -458,7 +449,9 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )
-                .map(Nachricht::from),
+                .map(Nachricht::from)
+                .map(modal::Nachricht::Underlay)
+                .map(modal::Nachricht::Underlay),
             )
             .width(width)
             .height(Length::Fill),

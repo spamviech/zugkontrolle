@@ -204,16 +204,21 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: Leiter, S> From<gleise::Nachricht> for Nachricht<L, S> {
+impl<L: Leiter, S> From<gleise::Nachricht>
+    for modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>
+{
     fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
-                Nachricht::SetzeStreckenabschnitt(any_id)
+                modal::Nachricht::Underlay(Nachricht::SetzeStreckenabschnitt(any_id))
             },
             gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
-                Nachricht::StreckenabschnittUmschalten(aktion)
+                modal::Nachricht::Underlay(Nachricht::StreckenabschnittUmschalten(aktion))
             },
-            gleise::Nachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
+            gleise::Nachricht::WeicheSchalten(aktion) => {
+                modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
+            },
+            gleise::Nachricht::AnschlüsseAnpassen(gleis_steuerung) => todo!(),
         }
     }
 }

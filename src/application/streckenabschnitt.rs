@@ -69,7 +69,7 @@ impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
 
 impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
 where
-    Overlay: Clone,
+    Overlay: 'a + Clone,
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,

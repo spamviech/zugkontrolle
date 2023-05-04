@@ -20,17 +20,20 @@ use crate::{
     anschluss,
     gleis::{
         self,
+        gerade::Gerade,
         gleise::{
             daten::{GleiseDaten, StreckenabschnittMap, Zustand},
-            id::StreckenabschnittIdRef,
+            id::{AnyIdRef, StreckenabschnittIdRef},
         },
         kreuzung::Kreuzung,
+        kurve::Kurve,
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        kontakt::KontaktSerialisiert,
         plan::{AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::{self, Streckenabschnitt},
         weiche,
@@ -58,9 +61,81 @@ pub use self::{
     id::{AnyId, GleisId, StreckenabschnittId},
 };
 
+type IdUndSteuerungSerialisiert<T, S> = (GleisId<T>, S);
+
+// Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
+type StWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+>;
+
+type StDreiwegeWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
+    gleis::weiche::dreiwege::RichtungInformation,
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+
+type StKurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+>;
+
+// FIXME sind die ganzen Typ-Aliase notwendig? Record-Felder wären vmtl. besser
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum GleisSteuerung {
+    Gerade(IdUndSteuerungSerialisiert<Gerade, Option<KontaktSerialisiert>>),
+    Kurve(IdUndSteuerungSerialisiert<Kurve, Option<KontaktSerialisiert>>),
+    Weiche(IdUndSteuerungSerialisiert<Weiche, Option<StWeicheSerialisiert>>),
+    KurvenWeiche(IdUndSteuerungSerialisiert<KurvenWeiche, Option<StKurvenWeicheSerialisiert>>),
+    DreiwegeWeiche(
+        IdUndSteuerungSerialisiert<DreiwegeWeiche, Option<StDreiwegeWeicheSerialisiert>>,
+    ),
+    SKurvenWeiche(IdUndSteuerungSerialisiert<SKurvenWeiche, Option<StWeicheSerialisiert>>),
+    Kreuzung(IdUndSteuerungSerialisiert<Kreuzung, Option<StWeicheSerialisiert>>),
+}
+
+impl GleisSteuerung {
+    fn id(&self) -> AnyIdRef<'_> {
+        match self {
+            GleisSteuerung::Gerade((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::Kurve((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::Weiche((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::KurvenWeiche((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::DreiwegeWeiche((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::SKurvenWeiche((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::Kreuzung((id, _steuerung)) => id.als_ref().into(),
+        }
+    }
+
+    pub(crate) fn klonen(&self) -> GleisSteuerung {
+        match self {
+            GleisSteuerung::Gerade((id, steuerung)) => {
+                GleisSteuerung::Gerade((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::Kurve((id, steuerung)) => {
+                GleisSteuerung::Kurve((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::Weiche((id, steuerung)) => {
+                GleisSteuerung::Weiche((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::KurvenWeiche((id, steuerung)) => {
+                GleisSteuerung::KurvenWeiche((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::DreiwegeWeiche((id, steuerung)) => {
+                GleisSteuerung::DreiwegeWeiche((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::SKurvenWeiche((id, steuerung)) => {
+                GleisSteuerung::SKurvenWeiche((id.klonen(), steuerung.clone()))
+            },
+            GleisSteuerung::Kreuzung((id, steuerung)) => {
+                GleisSteuerung::Kreuzung((id.klonen(), steuerung.clone()))
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Gehalten {
-    gleis_id: AnyId,
+    gleis_steuerung: GleisSteuerung,
     halte_position: Vektor,
     winkel: Winkel,
     bewegt: bool,
@@ -629,6 +704,8 @@ pub enum Nachricht {
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
+    /// Die Anschlüsse für ein Gleis sollen angepasst werden.
+    AnschlüsseAnpassen(GleisSteuerung),
 }
 
 impl<L: Leiter> Program<Nachricht> for Gleise<L> {

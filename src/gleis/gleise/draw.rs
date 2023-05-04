@@ -202,7 +202,9 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     }
 }
 
-fn ist_gehalten_test<'t>(gehalten_id: Option<&'t AnyId>) -> impl 't + Fn(AnyIdRef<'t>) -> bool {
+fn ist_gehalten_test<'t>(
+    gehalten_id: Option<&'t AnyIdRef<'t>>,
+) -> impl 't + Fn(AnyIdRef<'t>) -> bool {
     move |parameter_id| gehalten_id.map_or(false, |id| id == &parameter_id)
 }
 
@@ -216,7 +218,7 @@ impl<L: Leiter> Gleise<L> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-        gehalten_id: Option<&'t AnyId>,
+        gehalten_id: Option<&'t AnyIdRef<'t>>,
     ) -> impl 't + Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung
     where
         T: Zeichnen,
@@ -267,12 +269,12 @@ impl<L: Leiter> Gleise<L> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<&AnyId>;
+                let gehalten_id: Option<AnyIdRef<'_>>;
                 let modus_bauen: bool;
                 let guard = modus.read();
                 match &*guard {
-                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_id, .. }), .. } => {
-                        gehalten_id = Some(gleis_id);
+                    ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_steuerung, .. }), .. } => {
+                        gehalten_id = Some(gleis_steuerung.id());
                         modus_bauen = true;
                     }
                     ModusDaten::Bauen { gehalten: None, .. } => {
@@ -299,7 +301,7 @@ impl<L: Leiter> Gleise<L> {
 
                 let guard = zustand.read();
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
-                let ist_gehalten = ist_gehalten_test(gehalten_id);
+                let ist_gehalten = ist_gehalten_test(gehalten_id.as_ref());
                 // Hintergrund
                 for (streckenabschnitt_opt, daten) in guard.alle_streckenabschnitte_und_daten() {
                     let (streckenabschnitt_id, streckenabschnitt)
@@ -358,7 +360,7 @@ impl<L: Leiter> Gleise<L> {
                         ($gleis: ident) => {
                             self.ist_gehalten_und_andere_verbindung::<$gleis>(
                                 streckenabschnitt,
-                                gehalten_id
+                                gehalten_id.as_ref()
                             )
                         };
                     }

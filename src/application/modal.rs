@@ -35,13 +35,35 @@ impl<Overlay, ElementNachricht> From<ElementNachricht> for Nachricht<Overlay, El
     }
 }
 
-impl<Overlay, N0> Nachricht<Overlay, N0> {
+impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
+    pub fn overlay_from<O1>(value: Nachricht<O1, ElementNachricht>) -> Self
+    where
+        Overlay: From<O1>,
+    {
+        value.overlay_map(<Overlay as From<O1>>::from)
+    }
+
+    pub fn overlay_map<O1>(self, f: impl FnOnce(Overlay) -> O1) -> Nachricht<O1, ElementNachricht> {
+        match self {
+            Nachricht::Underlay(nachricht) => Nachricht::Underlay(nachricht),
+            Nachricht::ZeigeOverlay(overlay) => Nachricht::ZeigeOverlay(f(overlay)),
+            Nachricht::VersteckeOverlay => Nachricht::VersteckeOverlay,
+        }
+    }
+
     pub fn underlay_from<N1>(value: Nachricht<Overlay, N1>) -> Self
     where
-        N0: From<N1>,
+        ElementNachricht: From<N1>,
     {
-        match value {
-            Nachricht::Underlay(nachricht) => Nachricht::Underlay(nachricht.into()),
+        value.underlay_map(<ElementNachricht as From<N1>>::from)
+    }
+
+    pub fn underlay_map<N1>(
+        self,
+        f: impl FnOnce(ElementNachricht) -> N1,
+    ) -> Nachricht<Overlay, N1> {
+        match self {
+            Nachricht::Underlay(nachricht) => Nachricht::Underlay(f(nachricht)),
             Nachricht::ZeigeOverlay(overlay) => Nachricht::ZeigeOverlay(overlay),
             Nachricht::VersteckeOverlay => Nachricht::VersteckeOverlay,
         }
