@@ -188,8 +188,6 @@ pub enum Nachricht<L: Leiter, S> {
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
-    /// Zeige die Auswahl zum Anpassen der Anschlüsse eines Gleises.
-    AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -569,11 +567,6 @@ where
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
-            Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
-                    command = nachricht.als_command()
-                }
-            },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::AsyncAktualisieren => {},
