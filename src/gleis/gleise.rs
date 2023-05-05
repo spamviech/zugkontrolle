@@ -133,6 +133,35 @@ impl GleisSteuerung {
     }
 }
 
+macro_rules! mit_any_steuerung_id {
+    ($gleis_steuerung: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
+        match $gleis_steuerung {
+            GleisSteuerung::Gerade((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::Kurve((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::Weiche((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::DreiwegeWeiche((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::KurvenWeiche((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::SKurvenWeiche((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            GleisSteuerung::Kreuzung((gleis_id, _steuerung)) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+        }
+    };
+}
+pub(crate) use mit_any_steuerung_id;
+
 #[derive(Debug)]
 struct Gehalten {
     gleis_steuerung: GleisSteuerung,

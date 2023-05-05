@@ -13,7 +13,8 @@ use crate::{
     gleis::{
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-            id::{mit_any_id, AnyId, GleisId, StreckenabschnittId},
+            id::{AnyId, GleisId, StreckenabschnittId},
+            mit_any_steuerung_id,
             steuerung::MitSteuerung,
             AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, GleisSteuerung,
             Gleise, ModusDaten, StreckenabschnittIdFehler,
@@ -47,7 +48,7 @@ impl<L: Leiter> Gleise<L> {
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_gehalten_bei_maus<T>(
+    pub(crate) fn hinzufügen_gehalten_bei_maus<T, R, S>(
         &mut self,
         definition: T,
         halte_position: Vektor,
@@ -56,8 +57,10 @@ impl<L: Leiter> Gleise<L> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         GleisId<T>: Into<AnyId>,
-        T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        T: Debug + Zeichnen + DatenAuswahl + for<'t> MitSteuerung<'t, Steuerung = Option<R>>,
+        <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        R: Serialisiere<S>,
+        (GleisId<T>, Option<S>): Into<GleisSteuerung>,
     {
         let mut canvas_position = *self.last_mouse.read();
         let last_size = self.last_size.read();
@@ -76,6 +79,8 @@ impl<L: Leiter> Gleise<L> {
             canvas_position -= (cp_y - last_size.y) * ey;
         }
         drop(last_size);
+        let serialisiert =
+            definition.steuerung(self.canvas.clone()).opt_as_ref().map(Serialisiere::serialisiere);
         let gleis_id = self.hinzufügen(
             definition,
             Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
@@ -83,9 +88,7 @@ impl<L: Leiter> Gleise<L> {
             einrasten,
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
-            let any_id = gleis_id.klonen().into();
-            let gleis_steuerung: GleisSteuerung = todo!();
-            let _ = ();
+            let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
             *gehalten = Some(Gehalten {
                 gleis_steuerung,
                 halte_position,
@@ -193,13 +196,10 @@ impl<L: Leiter> Gleise<L> {
     ) -> Result<(), GleisIdFehler> {
         if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
             if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
-                // FIXME es gibt keine AnyId mehr! Macro erweitern, so dass es mit GleisSteuerung umgehen kann? Neues Macro schreiben?
-                let gleis_id: &mut AnyId = todo!();
-                let _ = ();
                 let punkt = canvas_pos - halte_position;
                 let mut_ref = &mut *self.zustand.write();
-                mit_any_id!(
-                    gleis_id,
+                mit_any_steuerung_id!(
+                    gleis_steuerung,
                     Zustand::bewegen,
                     mut_ref,
                     Position { punkt, winkel: *winkel },
