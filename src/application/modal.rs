@@ -131,6 +131,7 @@ impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
 
 fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
     overlay: &mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
+    state_overlay: Option<&mut Tree>,
     zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     neues_overlay: &Option<Overlay>,
 ) where
@@ -150,6 +151,9 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
             .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
             .into()
     });
+    if let Some(state_overlay) = state_overlay {
+        *state_overlay = Tree::new(overlay.as_ref().unwrap_or(&Element::from(Dummy)))
+    }
 }
 
 impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
@@ -186,6 +190,7 @@ where
     pub fn initiales_overlay(mut self, initial_overlay: &'a impl Fn() -> Overlay) -> Self {
         aktualisiere_overlay_element(
             &mut self.overlay,
+            None,
             &self.zeige_overlay,
             &Some(initial_overlay()),
         );
@@ -211,6 +216,7 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
     zustand: &mut Zustand<Overlay>,
     status: &mut event::Status,
     overlay: &mut Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
+    state_overlay: &mut Tree,
     zeige_overlay: &impl Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
 ) where
     Overlay: 'a,
@@ -232,7 +238,7 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
             },
         }
     }
-    aktualisiere_overlay_element(overlay, zeige_overlay, zustand.overlay());
+    aktualisiere_overlay_element(overlay, Some(state_overlay), zeige_overlay, zustand.overlay());
 }
 
 impl<'a, Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
@@ -360,6 +366,7 @@ where
                 zustand,
                 &mut status,
                 &mut self.overlay,
+                &mut state.children[1],
                 &self.zeige_overlay,
             );
             status
@@ -393,7 +400,7 @@ where
             modal_overlay,
             element_overlay,
             zustand,
-            state: state_overlay,
+            state_overlay,
             zeige_overlay: &self.zeige_overlay,
         };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
@@ -451,23 +458,10 @@ impl<M, R: Renderer> From<Dummy> for Element<'_, M, R> {
 
 struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, R> {
     modal_overlay: &'a mut Option<Element<'e, Nachricht<Overlay, ElementNachricht>, R>>,
+    state_overlay: &'a mut Tree,
     element_overlay: Option<overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     zustand: &'a mut Zustand<Overlay>,
-    state: &'a mut Tree,
     zeige_overlay: &'a dyn Fn(&Overlay) -> Element<'e, Nachricht<Overlay, ElementNachricht>, R>,
-}
-
-impl<'a, 'e, Overlay, ElementNachricht, R> ModalOverlay<'a, 'e, Overlay, ElementNachricht, R>
-where
-    ElementNachricht: 'a + 'e,
-    Overlay: 'e,
-    R: 'a + 'e + Renderer,
-    <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
-{
-    fn overlay(self, position: Point) -> overlay::Element<'a, ElementNachricht, R> {
-        overlay::Element::new(position, Box::new(self))
-    }
 }
 
 impl<'e, Overlay, ElementNachricht, R> overlay::Overlay<ElementNachricht, R>
@@ -501,7 +495,7 @@ where
     ) {
         if let Some(overlay) = &self.modal_overlay {
             overlay.as_widget().draw(
-                self.state,
+                self.state_overlay,
                 renderer,
                 theme,
                 style,
@@ -524,7 +518,7 @@ where
     ) {
         if let Some(overlay) = &self.modal_overlay {
             overlay.as_widget().operate(
-                self.state,
+                self.state_overlay,
                 layout,
                 renderer,
                 &mut MapOperation { operation },
@@ -549,7 +543,7 @@ where
         let mut inner_shell = Shell::new(&mut messages);
         let mut status = if let Some(overlay) = &mut self.modal_overlay {
             overlay.as_widget_mut().on_event(
-                self.state,
+                self.state_overlay,
                 event,
                 layout,
                 cursor_position,
@@ -569,6 +563,7 @@ where
             &mut self.zustand,
             &mut status,
             &mut self.modal_overlay,
+            &mut self.state_overlay,
             &self.zeige_overlay,
         );
         status
@@ -583,7 +578,7 @@ where
     ) -> mouse::Interaction {
         if let Some(overlay) = &self.modal_overlay {
             overlay.as_widget().mouse_interaction(
-                self.state,
+                self.state_overlay,
                 layout,
                 cursor_position,
                 viewport,
