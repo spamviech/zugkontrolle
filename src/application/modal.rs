@@ -225,20 +225,30 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht, R>(
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
 {
+    let mut aktualisiere_overlay = false;
     for message in messages {
         match message {
             Nachricht::Underlay(element_nachricht) => shell.publish(element_nachricht),
             Nachricht::ZeigeOverlay(overlay) => {
+                aktualisiere_overlay = true;
                 *status = event::Status::Captured;
                 zustand.zeige_overlay(overlay)
             },
             Nachricht::VersteckeOverlay => {
+                aktualisiere_overlay = true;
                 *status = event::Status::Captured;
                 zustand.verstecke_overlay()
             },
         }
     }
-    aktualisiere_overlay_element(overlay, Some(state_overlay), zeige_overlay, zustand.overlay());
+    if aktualisiere_overlay {
+        aktualisiere_overlay_element(
+            overlay,
+            Some(state_overlay),
+            zeige_overlay,
+            zustand.overlay(),
+        );
+    }
 }
 
 impl<'a, Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
