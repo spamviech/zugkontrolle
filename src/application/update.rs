@@ -484,9 +484,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {
+            // FIXME funktioniert nur, wenn innerhalb des Widgets!
             self.zeige_message_box(titel, nachricht);
             None
         } else {
+            // FIXME funktioniert nur, wenn innerhalb des Widgets!
             Some(modal::Nachricht::VersteckeOverlay)
         }
     }

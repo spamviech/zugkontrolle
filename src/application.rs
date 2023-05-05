@@ -41,7 +41,7 @@ use crate::{
             self,
             daten::v2::BekannterZugtyp,
             id::{AnyId, StreckenabschnittId},
-            AnschlüsseAnpassen, Gleise, Modus,
+            AnschlüsseAnpassen, GleisSteuerung, Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
         kreuzung::KreuzungUnit,
@@ -188,6 +188,8 @@ pub enum Nachricht<L: Leiter, S> {
     HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     LöscheGeschwindigkeit(geschwindigkeit::Name),
+    /// Anpassen der Anschlüsse eines Gleises.
+    AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -218,7 +220,65 @@ impl<L: Leiter, S> From<gleise::Nachricht>
             gleise::Nachricht::WeicheSchalten(aktion) => {
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
-            gleise::Nachricht::AnschlüsseAnpassen(gleis_steuerung) => todo!(),
+            gleise::Nachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
+                GleisSteuerung::Gerade((id, startwert)) => todo!("AuswahlZustand::Gerade"),
+                GleisSteuerung::Kurve((id, startwert)) => todo!("AuswahlZustand::Kurve"),
+                GleisSteuerung::Weiche((id, startwert)) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        Arc::new(move |steuerung| {
+                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::Weiche(
+                                id.klonen(),
+                                steuerung,
+                            ))
+                        }),
+                    ))
+                },
+                GleisSteuerung::KurvenWeiche((id, startwert)) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(
+                        startwert,
+                        Arc::new(move |steuerung| {
+                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::KurvenWeiche(
+                                id.klonen(),
+                                steuerung,
+                            ))
+                        }),
+                    ))
+                },
+                GleisSteuerung::DreiwegeWeiche((id, startwert)) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(
+                        startwert,
+                        Arc::new(move |steuerung| {
+                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::DreiwegeWeiche(
+                                id.klonen(),
+                                steuerung,
+                            ))
+                        }),
+                    ))
+                },
+                GleisSteuerung::SKurvenWeiche((id, startwert)) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        Arc::new(move |steuerung| {
+                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::SKurvenWeiche(
+                                id.klonen(),
+                                steuerung,
+                            ))
+                        }),
+                    ))
+                },
+                GleisSteuerung::Kreuzung((id, startwert)) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        Arc::new(move |steuerung| {
+                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::Kreuzung(
+                                id.klonen(),
+                                steuerung,
+                            ))
+                        }),
+                    ))
+                },
+            },
         }
     }
 }
@@ -295,11 +355,17 @@ pub enum AuswahlZustand<L: Leiter, S> {
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     Geschwindigkeit,
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
+    Weiche(Option<WeicheSerialisiert>, ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>),
+    DreiwegeWeiche(
+        Option<DreiwegeWeicheSerialisiert>,
+        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>,
+    ),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>),
+    KurvenWeiche(
+        Option<KurvenWeicheSerialisiert>,
+        ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>,
+    ),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen,
 }
@@ -309,12 +375,14 @@ impl<L: Leiter, S> Debug for AuswahlZustand<L, S> {
         match self {
             AuswahlZustand::Streckenabschnitt => f.debug_tuple("Streckenabschnitt").finish(),
             AuswahlZustand::Geschwindigkeit => f.debug_tuple("Geschwindigkeit").finish(),
-            AuswahlZustand::Weiche(_arg0) => f.debug_tuple("Weiche").field(&"<function>").finish(),
-            AuswahlZustand::DreiwegeWeiche(_arg0) => {
-                f.debug_tuple("DreiwegeWeiche").field(&"<function>").finish()
+            AuswahlZustand::Weiche(startwert, _erstelle_nachricht) => {
+                f.debug_tuple("Weiche").field(startwert).field(&"<function>").finish()
             },
-            AuswahlZustand::KurvenWeiche(_arg0) => {
-                f.debug_tuple("KurvenWeiche").field(&"<function>").finish()
+            AuswahlZustand::DreiwegeWeiche(startwert, _erstelle_nachricht) => {
+                f.debug_tuple("DreiwegeWeiche").field(startwert).field(&"<function>").finish()
+            },
+            AuswahlZustand::KurvenWeiche(startwert, _erstelle_nachricht) => {
+                f.debug_tuple("KurvenWeiche").field(startwert).field(&"<function>").finish()
             },
             AuswahlZustand::ZeigeLizenzen => f.debug_tuple("ZeigeLizenzen").finish(),
         }
@@ -572,6 +640,12 @@ where
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
+            Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
+                todo!("AnschlüsseAnpassen({anschlüsse_anpassen:?})");
+                // if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
+                //     command = nachricht.als_command()
+                // }
+            },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::AsyncAktualisieren => {},

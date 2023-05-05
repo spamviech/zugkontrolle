@@ -87,9 +87,9 @@ pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R
 impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
     Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
 where
-    AnschlüsseSerialisiert: Default + Clone + Nachschlagen<Richtung, OutputSerialisiert>,
+    AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
-    RichtungInformation: Default,
+    RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
@@ -103,9 +103,9 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
-        weiche: &'t Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
     ) -> Self {
-        let erzeuge_zustand = || Zustand::neu(weiche);
+        let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
