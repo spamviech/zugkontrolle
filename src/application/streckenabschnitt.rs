@@ -285,58 +285,50 @@ where
     ) -> Element<'a, InterneAuswahlNachricht, R> {
         let AuswahlZustand { neu_name, neu_farbe, neu_anschluss: _, streckenabschnitte } =
             auswahl_zustand;
-        let card = Card::new(Text::new("Streckenabschnitt").width(Length::Fill), {
-            let mut column = Column::new()
-                .push(
-                    Container::new(
-                        Column::new()
-                            .push(
-                                Row::new()
-                                    .push(
-                                        TextInput::new("<Name>", neu_name)
-                                            .on_input(InterneAuswahlNachricht::Name)
-                                            .width(Length::Fixed(200.)),
-                                    )
-                                    .push(
-                                        Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen)
-                                            .durchmesser(50),
-                                    )
-                                    .push(
-                                        Element::from(anschluss::Auswahl::neu_output(None))
-                                            .map(InterneAuswahlNachricht::Anschluss),
-                                    ),
-                            )
-                            .push(
-                                Button::new(Text::new("Hinzufügen"))
-                                    .on_press(InterneAuswahlNachricht::Hinzufügen),
-                            ),
-                    )
+
+        let einstellungen = Row::new()
+            .push(
+                TextInput::new("<Name>", neu_name)
+                    .on_input(InterneAuswahlNachricht::Name)
+                    .width(Length::Fixed(200.)),
+            )
+            .push(Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen).durchmesser(50))
+            .push(
+                Element::from(anschluss::Auswahl::neu_output(None))
+                    .map(InterneAuswahlNachricht::Anschluss),
+            );
+        let hinzufügen =
+            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);
+
+        let mut column = Column::new()
+            .push(
+                Container::new(Column::new().push(einstellungen).push(hinzufügen))
                     .style(StyleAuswahl(*neu_farbe)),
-                )
-                .push(
-                    Button::new(Text::new("Keinen"))
-                        .on_press(InterneAuswahlNachricht::Wähle(None)),
-                )
-                .width(Length::Shrink);
-            for (name, (anschluss, farbe)) in streckenabschnitte {
-                column =
-                    column.push(
-                        Row::new()
-                            .push(
-                                Button::new(Text::new(format!("{name}: {anschluss:?}")))
-                                    .on_press(InterneAuswahlNachricht::Wähle(Some((
-                                        name.clone().into_inner(),
-                                        *farbe,
-                                    ))))
-                                    .style(StyleAuswahl(*farbe).into()),
-                            )
-                            .push(Button::new(Text::new("X")).on_press(
-                                InterneAuswahlNachricht::Lösche(name.clone().into_inner()),
-                            )),
-                    );
-            }
-            Scrollable::new(column)
-        })
+            )
+            .push(Button::new(Text::new("Keinen")).on_press(InterneAuswahlNachricht::Wähle(None)))
+            .width(Length::Shrink);
+        for (name, (anschluss, farbe)) in streckenabschnitte {
+            column = column.push(
+                Row::new()
+                    .push(
+                        Button::new(Text::new(format!("{name}: {anschluss:?}")))
+                            .on_press(InterneAuswahlNachricht::Wähle(Some((
+                                name.clone().into_inner(),
+                                *farbe,
+                            ))))
+                            .style(StyleAuswahl(*farbe).into()),
+                    )
+                    .push(
+                        Button::new(Text::new("X"))
+                            .on_press(InterneAuswahlNachricht::Lösche(name.clone().into_inner())),
+                    ),
+            );
+        }
+
+        let card = Card::new(
+            Text::new("Streckenabschnitt").width(Length::Fill),
+            Scrollable::new(column).width(Length::Shrink),
+        )
         .on_close(InterneAuswahlNachricht::Schließe)
         .width(Length::Shrink);
         card.into()
@@ -360,6 +352,6 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
-        Element::new(auswahl.0)
+        Element::from(auswahl.0)
     }
 }
