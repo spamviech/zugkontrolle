@@ -18,6 +18,7 @@ use parking_lot::{
 
 use crate::{
     anschluss,
+    application::style::thema::Thema,
     gleis::{
         self,
         gerade::Gerade,
@@ -749,14 +750,14 @@ pub enum Nachricht {
     AnschlüsseAnpassen(GleisSteuerung),
 }
 
-impl<L: Leiter> Program<Nachricht> for Gleise<L> {
+impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
     type State = ();
 
     #[inline(always)]
     fn draw(
         &self,
         state: &Self::State,
-        theme: &Theme,
+        theme: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {

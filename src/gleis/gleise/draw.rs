@@ -11,6 +11,7 @@ use rstar::primitives::Rectangle;
 
 use crate::{
     anschluss::polarität::Fließend,
+    application::style::thema::Thema,
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -251,7 +252,7 @@ impl<L: Leiter> Gleise<L> {
     /// [draw](iced::Application::draw)-Methode für [Gleise].
     pub fn draw(
         &self,
-        _state: &<Self as Program<Nachricht>>::State,
+        _state: &<Self as Program<Nachricht, Thema>>::State,
         bounds: iced::Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {

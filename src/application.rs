@@ -98,7 +98,7 @@ pub enum AnyGleisUnit {
 }
 
 impl Modus {
-    fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus> {
+    fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus, Renderer<Thema>> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
@@ -504,7 +504,7 @@ where
     L: 'static
         + Debug
         + Display
-        + for<'l> LeiterAnzeige<'l, S, Renderer>
+        + for<'l> LeiterAnzeige<'l, S, Renderer<Thema>>
         + Serialisiere<S>
         + BekannterLeiter
         + Send,

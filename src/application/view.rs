@@ -38,20 +38,30 @@ use crate::{
     typen::{farbe::Farbe, skalar::Skalar, Zeichnen},
 };
 
-trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static, R>(
+trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
+where
+    Msg: 'static,
+    R: 't + iced_native::Renderer,
+{
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
-    ) -> Element<'t, Nachricht<L, S>> {
+    ) -> Element<'t, Nachricht<L, S>, R> {
         self.into().map(konstruktor)
     }
 }
 
-impl<'t, T: Into<Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
+impl<'t, T, R, Msg> MitTeilNachricht<'t, Msg, R> for T
+where
+    Msg: 'static,
+    T: Into<Element<'t, Msg, R>>,
+    R: 't + iced_native::Renderer,
+{
+}
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + for<'t> LeiterAnzeige<'t, S, Renderer>,
+    L: 'static + Debug + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static + Clone,
 {
@@ -142,23 +152,25 @@ where
                     }
                 })
             },
-            AuswahlZustand::Geschwindigkeit => Element::from(
-                <L as LeiterAnzeige<S, Renderer>>::auswahl_neu(todo!("geschwindigkeiten")),
-            )
-            .map(|message| {
-                use geschwindigkeit::AuswahlNachricht::*;
-                match message {
-                    Schließen => modal::Nachricht::VersteckeOverlay,
-                    Hinzufügen(name, geschwindigkeit) => {
-                        modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                            Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
-                        ))
-                    },
-                    Löschen(name) => modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                        Nachricht::LöscheGeschwindigkeit(name),
-                    )),
-                }
-            }),
+            AuswahlZustand::Geschwindigkeit => {
+                Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(todo!(
+                    "geschwindigkeiten"
+                )))
+                .map(|message| {
+                    use geschwindigkeit::AuswahlNachricht::*;
+                    match message {
+                        Schließen => modal::Nachricht::VersteckeOverlay,
+                        Hinzufügen(name, geschwindigkeit) => {
+                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
+                                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
+                            ))
+                        },
+                        Löschen(name) => modal::Nachricht::Underlay(modal::Nachricht::Underlay(
+                            Nachricht::LöscheGeschwindigkeit(name),
+                        )),
+                    }
+                })
+            },
             AuswahlZustand::Weiche(weiche, als_message) => {
                 let als_message_clone = als_message.clone();
                 Element::from(weiche::Auswahl::neu(weiche.clone())).map(move |message| {
@@ -238,7 +250,7 @@ fn top_row<'t, L, S>(
     initialer_pfad: &'t str,
 ) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>, Renderer<Thema>>
 where
-    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
+    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static + Clone,
 {
@@ -261,7 +273,7 @@ where
         )
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
-    let mut row: Row<'_, _, Renderer<Thema>> = Row::new()
+    let mut row = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus).map(modal::Nachricht::Underlay))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen).map(modal::Nachricht::Underlay))
         .push(drehen.mit_teil_nachricht(Nachricht::Winkel).map(modal::Nachricht::Underlay))
@@ -386,7 +398,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                     continue;
                 };
                 scrollable_column = scrollable_column.push(
-                    Element::from(L::anzeige_neu(name, &*geschwindigkeit))
+                    Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }

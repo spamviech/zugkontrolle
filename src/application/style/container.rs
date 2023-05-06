@@ -39,27 +39,27 @@ pub enum Container {
 
 impl Container {
     /// Ein grauer Hintergrund ohne Transparenz.
-    pub fn hintergrund_grau(grau: f32) -> Container {
+    pub const fn hintergrund_grau(grau: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(grau, grau, grau) }
     }
 
     /// Ein roter Hintergrund ohne Transparenz.
-    pub fn hintergrund_rot(rot: f32) -> Container {
+    pub const fn hintergrund_rot(rot: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(rot, 0., 0.) }
     }
 
     /// Ein grüner Hintergrund ohne Transparenz.
-    pub fn hintergrund_grün(grün: f32) -> Container {
+    pub const fn hintergrund_grün(grün: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(0., grün, 0.) }
     }
 
     /// Ein blauer Hintergrund ohne Transparenz.
-    pub fn hintergrund_blau(blau: f32) -> Container {
+    pub const fn hintergrund_blau(blau: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(0., 0., blau) }
     }
 
     /// Ein grauer Hintergrund mit Transparenz.
-    pub fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Container {
+    pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
 }

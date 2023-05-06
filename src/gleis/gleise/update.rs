@@ -16,6 +16,7 @@ use parking_lot::Mutex;
 
 use crate::{
     anschluss::Serialisiere,
+    application::style::thema::Thema,
     gleis::{
         self,
         gerade::Gerade,
@@ -432,7 +433,7 @@ impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &self,
-        state: &mut <Self as Program<Nachricht>>::State,
+        state: &mut <Self as Program<Nachricht, Thema>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,

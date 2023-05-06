@@ -327,19 +327,7 @@ where
 
 impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
 where
-    R: 'a + iced_native::text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: card::StyleSheet
-        + text::StyleSheet
-        + scrollable::StyleSheet
-        + container::StyleSheet
-        + button::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Container>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
+    R: 'a + Renderer,
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::from(auswahl.0)

@@ -25,8 +25,10 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        lizenzen, modal, streckenabschnitt, weiche, AnschlüsseAnpassen, AnyGleisUnit,
-        AuswahlZustand, MessageBox, Nachricht, Zugkontrolle,
+        lizenzen, modal, streckenabschnitt,
+        style::thema::Thema,
+        weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand, MessageBox, Nachricht,
+        Zugkontrolle,
     },
     gleis::gleise::{
         daten::{v2::BekannterZugtyp, DatenAuswahl, StreckenabschnittMap},
@@ -61,7 +63,7 @@ where
 
 // FIXME methoden als pub(crate) angegeben um unused-Warnungen zu erzeugen (sollen pub sein)
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -514,7 +516,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer> + Display, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
     /// Zeige das Auswahl-Fenster zum Einstellen einer
     /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     #[inline(always)]
@@ -551,7 +553,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer> + Display, S> Zugkontrolle<L, S> {
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: LeiterAnzeige<'t, S, Renderer> + Serialisiere<S> + Display,
+    L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S> + Display,
     S: Debug + Clone + Reserviere<L, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
@@ -686,7 +688,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
     #[inline(always)]
     pub(crate) fn async_fehler(&mut self, titel: String, nachricht: String) {
@@ -696,7 +698,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -725,7 +727,7 @@ where
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer> + BekannterLeiter + Serialisiere<S> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + BekannterLeiter + Serialisiere<S> + Send,
     S: 'static + Serialize + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
@@ -757,7 +759,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Lade einen neuen Zustand aus einer Datei.
     #[allow(single_use_lifetimes)]
     pub(crate) fn laden(&mut self, pfad: String)
