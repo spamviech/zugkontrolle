@@ -286,6 +286,53 @@ pub struct Beschreibung {
     pub variante: Variante,
 }
 
+impl PartialEq for Pcf8574 {
+    fn eq(&self, other: &Self) -> bool {
+        self.beschreibung == other.beschreibung
+    }
+}
+impl Eq for Pcf8574 {}
+
+fn display_bus_str(i2c_bus: &I2cBus) -> &str {
+    match i2c_bus {
+        I2cBus::I2c0_1 => "01",
+        // I2cBus::I2c2 => " 2",
+        I2cBus::I2c3 => " 3",
+        I2cBus::I2c4 => " 4",
+        I2cBus::I2c5 => " 5",
+        I2cBus::I2c6 => " 6",
+    }
+}
+
+fn display_level_str(level: &Level) -> &str {
+    match level {
+        Level::Low => "L",
+        Level::High => "H",
+    }
+}
+
+fn display_variante_str(variante: &Variante) -> &str {
+    match variante {
+        Variante::Normal => " ",
+        Variante::A => "A",
+    }
+}
+
+impl Display for Beschreibung {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let Beschreibung { i2c_bus, a0, a1, a2, variante } = self;
+        write!(
+            f,
+            "{}-{}{}{}{}",
+            display_bus_str(i2c_bus),
+            display_level_str(a0),
+            display_level_str(a1),
+            display_level_str(a2),
+            display_variante_str(variante)
+        )
+    }
+}
+
 impl Pcf8574 {
     fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
@@ -394,12 +441,6 @@ impl Pcf8574 {
         Ok(())
     }
 }
-impl PartialEq for Pcf8574 {
-    fn eq(&self, other: &Self) -> bool {
-        self.beschreibung == other.beschreibung
-    }
-}
-impl Eq for Pcf8574 {}
 
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -437,43 +478,10 @@ impl PartialEq for Port {
 }
 impl Eq for Port {}
 
-fn display_bus_str(i2c_bus: &I2cBus) -> &str {
-    match i2c_bus {
-        I2cBus::I2c0_1 => "01",
-        // I2cBus::I2c2 => " 2",
-        I2cBus::I2c3 => " 3",
-        I2cBus::I2c4 => " 4",
-        I2cBus::I2c5 => " 5",
-        I2cBus::I2c6 => " 6",
-    }
-}
-
-fn display_level_str(level: &Level) -> &str {
-    match level {
-        Level::Low => "L",
-        Level::High => "H",
-    }
-}
-
-fn display_variante_str(variante: &Variante) -> &str {
-    match variante {
-        Variante::Normal => " ",
-        Variante::A => "A",
-    }
-}
-
 impl Display for Port {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let Port { beschreibung: Beschreibung { i2c_bus, a0, a1, a2, variante }, port, .. } = self;
-        write!(
-            f,
-            "{}-{}{}{}{}-{port}",
-            display_bus_str(i2c_bus),
-            display_level_str(a0),
-            display_level_str(a1),
-            display_level_str(a2),
-            display_variante_str(variante)
-        )
+        let Port { beschreibung, port, .. } = self;
+        write!(f, "{beschreibung}-{port}",)
     }
 }
 

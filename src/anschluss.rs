@@ -224,6 +224,19 @@ pub enum OutputSerialisiert {
     },
 }
 
+impl Display for OutputSerialisiert {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            OutputSerialisiert::Pin { pin, polarität } => {
+                write!(f, "Pin({pin}, {polarität})")
+            },
+            OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
+                write!(f, "Pcf8574Port({beschreibung}-{port}, {polarität}")
+            },
+        }
+    }
+}
+
 impl OutputSerialisiert {
     /// Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
     pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {

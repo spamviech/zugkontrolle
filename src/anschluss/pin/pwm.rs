@@ -30,6 +30,7 @@ impl PartialEq for Pwm {
         }
     }
 }
+
 impl Eq for Pwm {}
 
 /// Einstellung eines [Pwm]-Pulses.

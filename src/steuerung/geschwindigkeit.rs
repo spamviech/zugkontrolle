@@ -134,7 +134,7 @@ pub struct Geschwindigkeit<Leiter> {
 
 impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.lock_leiter())
+        Display::fmt(&*self.lock_leiter(), f)
     }
 }
 
@@ -312,6 +312,12 @@ pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
     pub leiter: LeiterSerialisiert,
 }
 
+impl<LeiterSerialisiert: Display> Display for GeschwindigkeitSerialisiert<LeiterSerialisiert> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.leiter, f)
+    }
+}
+
 #[allow(single_use_lifetimes)]
 impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Geschwindigkeit<T> {
     fn serialisiere(&self) -> GeschwindigkeitSerialisiert<S> {
@@ -465,6 +471,29 @@ pub enum MittelleiterSerialisiert {
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: OutputSerialisiert,
     },
+}
+
+impl Display for MittelleiterSerialisiert {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            MittelleiterSerialisiert::Pwm { pin, polarität } => {
+                write!(f, "Pwm({}, {polarität})", pin.0)
+            },
+            MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
+                f.write_str("KonstanteSpannung(")?;
+                let mut first = true;
+                for anschluss in geschwindigkeit.iter() {
+                    if first {
+                        first = false;
+                    } else {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{anschluss}")?;
+                }
+                write!(f, "-{umdrehen})")
+            },
+        }
+    }
 }
 
 impl Serialisiere<MittelleiterSerialisiert> for Mittelleiter {
@@ -739,7 +768,7 @@ impl Display for Zweileiter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Zweileiter::Pwm { geschwindigkeit, letzter_wert: _, polarität, fahrtrichtung } => {
-                write!(f, "Pwm({}, {}-{})", geschwindigkeit.pin(), polarität, fahrtrichtung)
+                write!(f, "Pwm({}, {polarität}-{fahrtrichtung})", geschwindigkeit.pin())
             },
             Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, fahrtrichtung } => {
                 f.write_str("KonstanteSpannung(")?;
@@ -1046,6 +1075,29 @@ pub enum ZweileiterSerialisiert {
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: OutputSerialisiert,
     },
+}
+
+impl Display for ZweileiterSerialisiert {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                write!(f, "Pwm({}, {polarität}-{fahrtrichtung})", geschwindigkeit.0)
+            },
+            ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
+                f.write_str("KonstanteSpannung(")?;
+                let mut first = true;
+                for anschluss in geschwindigkeit.iter() {
+                    if first {
+                        first = false;
+                    } else {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{anschluss}")?;
+                }
+                write!(f, "-{fahrtrichtung})")
+            },
+        }
+    }
 }
 
 impl Serialisiere<ZweileiterSerialisiert> for Zweileiter {
