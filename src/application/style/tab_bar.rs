@@ -4,7 +4,7 @@
 use iced::{Background, Color};
 use iced_aw::style::tab_bar::{Appearance, StyleSheet};
 
-use crate::application::style::theme::Theme2 as Theme;
+use crate::application::style::thema::Thema;
 
 /// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
@@ -26,12 +26,12 @@ impl TabBar {
     }
 }
 
-impl StyleSheet for Theme {
+impl StyleSheet for Thema {
     type Style = TabBar;
 
     fn active(&self, style: Self::Style, is_active: bool) -> Appearance {
         match self {
-            Theme::Light => {
+            Thema::Hell => {
                 let grey_value: f32;
                 if is_active {
                     grey_value = 0.8;
@@ -45,7 +45,7 @@ impl StyleSheet for Theme {
 
     fn hovered(&self, style: Self::Style, _is_active: bool) -> Appearance {
         match self {
-            Theme::Light => {
+            Thema::Hell => {
                 let grey_value = 0.7;
                 style.style(Color::from_rgb(grey_value, grey_value, grey_value))
             },

@@ -19,7 +19,7 @@ use crate::{
         lizenzen::{self, Lizenzen},
         modal::{self, Modal},
         speichern_laden, streckenabschnitt,
-        style::{linie::TRENNLINIE, sammlung::Sammlung, theme::Theme2},
+        style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
         weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht, NachrichtClone,
         Zugkontrolle,
     },
@@ -56,7 +56,7 @@ where
     S: 'static + Clone,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
-    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Theme2>> {
+    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
         let Zugkontrolle {
             gleise,
             scrollable_style,
@@ -236,7 +236,7 @@ fn top_row<'t, L, S>(
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
-) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>, Renderer<Theme2>>
+) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>, Renderer<Thema>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
@@ -261,7 +261,7 @@ where
         )
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
-    let mut row: Row<'_, _, Renderer<Theme2>> = Row::new()
+    let mut row: Row<'_, _, Renderer<Thema>> = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus).map(modal::Nachricht::Underlay))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen).map(modal::Nachricht::Underlay))
         .push(drehen.mit_teil_nachricht(Nachricht::Winkel).map(modal::Nachricht::Underlay))
@@ -320,9 +320,9 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
 ) -> Row<
     't,
     modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
-    Renderer<Theme2>,
+    Renderer<Thema>,
 > {
-    let mut scrollable_column = Column::new();
+    let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
     match aktueller_modus {
@@ -343,7 +343,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             }
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 max_breite: &mut Option<f32>,
-                scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Theme2>>,
+                scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Thema>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
@@ -385,10 +385,10 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
                     error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
                     continue;
                 };
-                scrollable_column = scrollable_column.push(
+                let anzeige: Element<'_, _, Renderer<Thema>> =
                     Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
-                        .map(NachrichtClone::AktionGeschwindigkeit),
-                );
+                        .map(NachrichtClone::AktionGeschwindigkeit);
+                scrollable_column = scrollable_column.push(anzeige);
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },

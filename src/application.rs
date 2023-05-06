@@ -30,7 +30,7 @@ use crate::{
         empfänger::Empfänger,
         geschwindigkeit::LeiterAnzeige,
         icon::icon,
-        style::theme::Theme,
+        style::thema::Thema,
     },
     argumente::{Argumente, ZugtypArgument},
     gleis::{
@@ -522,7 +522,7 @@ where
     type Executor = iced::executor::Default;
     type Flags = (Argumente, Lager, Zugtyp<L>);
     type Message = Nachricht<L, S>;
-    type Theme = Theme;
+    type Theme = Thema;
 
     fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;
