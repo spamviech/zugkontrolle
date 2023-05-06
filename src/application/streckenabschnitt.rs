@@ -283,7 +283,7 @@ where
     fn erzeuge_element(
         auswahl_zustand: &AuswahlZustand,
     ) -> Element<'a, InterneAuswahlNachricht, R> {
-        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss: _, streckenabschnitte } =
+        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
             auswahl_zustand;
 
         let einstellungen = Row::new()
@@ -294,7 +294,7 @@ where
             )
             .push(Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen).durchmesser(50))
             .push(
-                Element::from(anschluss::Auswahl::neu_output(None))
+                Element::from(anschluss::Auswahl::neu_output_s(Some(neu_anschluss.clone())))
                     .map(InterneAuswahlNachricht::Anschluss),
             );
         let hinzufügen =
