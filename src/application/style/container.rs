@@ -33,6 +33,8 @@ pub enum Container {
         /// Radius der abgerundeten Ecken.
         radius: f32,
     },
+    /// Style-Struktur für die Auswahl einer [Pcf8574-Beschreibung](crate::anschluss::pcf8574::Beschreibung).
+    Pcf8574Beschreibung,
 }
 
 impl Container {
@@ -78,6 +80,10 @@ impl container::StyleSheet for Thema {
                 border_color: *farbe,
                 border_width: *breite,
                 border_radius: *radius,
+                ..container::Appearance::default()
+            },
+            (Thema::Hell, Container::Pcf8574Beschreibung) => container::Appearance {
+                text_color: Some(Color::BLACK),
                 ..container::Appearance::default()
             },
         }

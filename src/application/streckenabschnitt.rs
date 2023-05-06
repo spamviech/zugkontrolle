@@ -27,18 +27,7 @@ use iced_native::{
 
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{
-        anschluss,
-        farbwahl::Farbwahl,
-        map_mit_zustand::MapMitZustand,
-        modal,
-        style::{
-            streckenabschnitt::{
-                Anzeige as StyleAnzeige, Auswahl as StyleAuswahl, Beschreibung as StyleBeschreibung,
-            },
-            tab_bar::TabBar,
-        },
-    },
+    application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::geschwindigkeit::{self, Leiter},
     typen::farbe::Farbe,
@@ -73,8 +62,7 @@ where
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleBeschreibung>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAnzeige>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [Anzeige].
     pub fn neu(
@@ -86,12 +74,14 @@ where
         // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_id.name.0).into());
-            StyleAnzeige::Farbe(*farbe)
+            style::streckenabschnitt::anzeige_farbe(*farbe)
         } else {
             children.push(
-                Container::new(Text::new("<Streckenabschnitt>")).style(StyleBeschreibung).into(),
+                Container::new(Text::new("<Streckenabschnitt>"))
+                    .style(style::Container::Pcf8574Beschreibung)
+                    .into(),
             );
-            StyleAnzeige::Deaktiviert
+            style::streckenabschnitt::anzeige_deaktiviert()
         };
         children.push(
             Row::new()
@@ -228,9 +218,9 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<L: Leiter>(gleise: &'a Gleise<L>) -> Self {
@@ -303,7 +293,7 @@ where
         let mut column = Column::new()
             .push(
                 Container::new(Column::new().push(einstellungen).push(hinzufügen))
-                    .style(StyleAuswahl(*neu_farbe)),
+                    .style(style::streckenabschnitt::auswahl_container(*neu_farbe)),
             )
             .push(Button::new(Text::new("Keinen")).on_press(InterneAuswahlNachricht::Wähle(None)))
             .width(Length::Shrink);
@@ -316,7 +306,7 @@ where
                                 name.clone().into_inner(),
                                 *farbe,
                             ))))
-                            .style(StyleAuswahl(*farbe).into()),
+                            .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
                     )
                     .push(
                         Button::new(Text::new("X"))
@@ -347,9 +337,9 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<StyleAuswahl>,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<StyleAuswahl>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Container>,
+    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     fn from(auswahl: Auswahl<'a, R>) -> Self {
         Element::from(auswahl.0)
