@@ -2,11 +2,13 @@
 //! bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
 use iced::{Background, Color};
-use iced_aw::style::tab_bar::{Appearance, StyleSheet, TabBarStyles};
+use iced_aw::style::tab_bar::{Appearance, StyleSheet};
+
+use crate::application::style::theme::Theme2 as Theme;
 
 /// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct TabBar;
 
 impl TabBar {
@@ -24,30 +26,29 @@ impl TabBar {
     }
 }
 
-impl StyleSheet for TabBar {
-    // TODO Style verwenden
-    type Style = ();
+impl StyleSheet for Theme {
+    type Style = TabBar;
 
     fn active(&self, style: Self::Style, is_active: bool) -> Appearance {
-        let grey_value: f32;
-        if is_active {
-            grey_value = 0.8;
-        } else {
-            grey_value = 0.9;
+        match self {
+            Theme::Light => {
+                let grey_value: f32;
+                if is_active {
+                    grey_value = 0.8;
+                } else {
+                    grey_value = 0.9;
+                }
+                style.style(Color::from_rgb(grey_value, grey_value, grey_value))
+            },
         }
-        self.style(Color::from_rgb(grey_value, grey_value, grey_value))
     }
 
     fn hovered(&self, style: Self::Style, _is_active: bool) -> Appearance {
-        let grey_value = 0.7;
-        self.style(Color::from_rgb(grey_value, grey_value, grey_value))
-    }
-}
-
-// FIXME mit ziemlicher Sicherheit erzeugt es das falsche Ergebnis
-// Hier, damit es kompiliert und keinen crash erzeugt (kein todo!())
-impl From<TabBar> for TabBarStyles {
-    fn from(value: TabBar) -> Self {
-        TabBarStyles::Default
+        match self {
+            Theme::Light => {
+                let grey_value = 0.7;
+                style.style(Color::from_rgb(grey_value, grey_value, grey_value))
+            },
+        }
     }
 }

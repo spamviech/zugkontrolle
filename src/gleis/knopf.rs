@@ -4,11 +4,12 @@ use iced::{
     alignment::{Horizontal, Vertical},
     mouse,
     widget::{
-        canvas::{event, Cursor, Event, Geometry, Program},
-        Canvas, Container,
+        canvas::{event, Canvas, Cursor, Event, Geometry, Program},
+        container::{self, Container},
     },
-    Element, Length, Point, Rectangle, Theme,
+    Element, Length, Point, Rectangle,
 };
+use iced_graphics::{Backend, Renderer};
 
 use crate::{
     gleis::gleise::draw::bewege_an_position,
@@ -61,25 +62,24 @@ impl<T: Zeichnen> Knopf<T> {
     }
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
-    pub fn als_iced_widget<'t, Nachricht>(
+    pub fn als_iced_widget<'t, Nachricht, B, Theme>(
         &'t self,
         breite: Option<f32>,
-    ) -> impl Into<Element<'t, Nachricht>>
+    ) -> impl Into<Element<'t, Nachricht, Renderer<B, Theme>>>
     where
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
+        B: 't + Backend,
+        Theme: 't + container::StyleSheet,
     {
         let größe = self.gleis.rechteck(self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
         let höhe = (DOUBLE_PADDING + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
-        Container::new(
-            Canvas::new(self)
-                .width(Length::Fixed(breite.unwrap_or(standard_breite)))
-                .height(Length::Fixed(höhe)),
-        )
-        .width(Length::Fill)
-        .height(Length::Shrink)
+        let canvas = Canvas::new(self)
+            .width(Length::Fixed(breite.unwrap_or(standard_breite)))
+            .height(Length::Fixed(höhe));
+        Container::new(canvas).width(Length::Fill).height(Length::Shrink)
     }
 }
 
@@ -90,7 +90,9 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht> for Knopf<T> {
+impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht, Theme> Program<Nachricht, Theme>
+    for Knopf<T>
+{
     type State = Zustand;
 
     fn draw(

@@ -19,7 +19,7 @@ use crate::{
         lizenzen::{self, Lizenzen},
         modal::{self, Modal},
         speichern_laden, streckenabschnitt,
-        style::{linie::TRENNLINIE, sammlung::Sammlung},
+        style::{linie::TRENNLINIE, sammlung::Sammlung, theme::Theme2},
         weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht, NachrichtClone,
         Zugkontrolle,
     },
@@ -56,7 +56,7 @@ where
     S: 'static + Clone,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
-    pub fn view(&self) -> Element<'_, Nachricht<L, S>> {
+    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Theme2>> {
         let Zugkontrolle {
             gleise,
             scrollable_style,
@@ -236,7 +236,7 @@ fn top_row<'t, L, S>(
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
-) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>>
+) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>, Renderer<Theme2>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
@@ -261,7 +261,7 @@ where
         )
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
-    let mut row = Row::new()
+    let mut row: Row<'_, _, Renderer<Theme2>> = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus).map(modal::Nachricht::Underlay))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen).map(modal::Nachricht::Underlay))
         .push(drehen.mit_teil_nachricht(Nachricht::Winkel).map(modal::Nachricht::Underlay))
@@ -269,16 +269,12 @@ where
 
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
-        let geschwindigkeit: Element<'_, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>> =
-            Element::new(
-                Button::new(Text::new("Geschwindigkeiten"))
-                    .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit)),
-            )
-            .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
-        let streckenabschnitt: Element<
-            '_,
-            modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>,
-        > = Element::from(streckenabschnitt::Anzeige::neu(
+        let geschwindigkeit = Element::new(
+            Button::new(Text::new("Geschwindigkeiten"))
+                .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit)),
+        )
+        .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
+        let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
             streckenabschnitt_aktuell,
             *streckenabschnitt_festlegen,
             AuswahlZustand::Streckenabschnitt,
@@ -321,8 +317,11 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: &'t geschwindigkeit::Map<L>,
     gleise: &Gleise<L>,
-) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>>
-{
+) -> Row<
+    't,
+    modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
+    Renderer<Theme2>,
+> {
     let mut scrollable_column = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
@@ -344,7 +343,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
             }
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 max_breite: &mut Option<f32>,
-                scrollable_column: &mut Column<'t, NachrichtClone<L>>,
+                scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Theme2>>,
                 buttons: &'t Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,

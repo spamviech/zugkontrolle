@@ -14,7 +14,6 @@ use std::{
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{
     application::Application, widget::Radio, Command, Element, Renderer, Settings, Subscription,
-    Theme,
 };
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
@@ -31,6 +30,7 @@ use crate::{
         empfänger::Empfänger,
         geschwindigkeit::LeiterAnzeige,
         icon::icon,
+        style::theme::Theme,
     },
     argumente::{Argumente, ZugtypArgument},
     gleis::{
