@@ -81,10 +81,8 @@ enum OverlayElement {
     Aktuell,
     /// Das Overlay wurde geändert. Element und Kind-Zustand müssen aktualisiert werden.
     Geändert,
-    /// Das initiale Element soll gezeigt werden. Das Element muss aktualisiert werden.
+    /// Das initiale Element soll gezeigt werden. Element und Kind-Zustand müssen evtl. aktualisiert werden.
     Initial,
-    /// Das initiale Element soll zum ersten mal gezeigt werden. Element und Kind-Zustand müssen aktualisiert werden.
-    InitialNeu,
 }
 
 /// Zustand des [Modal]-Widgets.
@@ -98,7 +96,7 @@ impl<Overlay> Zustand<Overlay> {
     /// Erstelle einen neuen Zustand für das [Modal]-Widget.
     fn neu(overlay: Option<Overlay>) -> Self {
         let aktualisiere_element =
-            if overlay.is_some() { OverlayElement::InitialNeu } else { OverlayElement::Aktuell };
+            if overlay.is_some() { OverlayElement::Initial } else { OverlayElement::Aktuell };
         Zustand { overlay, aktualisiere_element }
     }
 
@@ -161,12 +159,13 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
                     .center_y()
                     .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
                     .into()
-            })
+            });
         };
     }
     macro_rules! aktualisiere_state {
         () => {
-            *state_overlay = Tree::new(overlay.as_ref().unwrap_or(&Element::from(Dummy)));
+            let dummy = Element::from(Dummy);
+            *state_overlay = Tree::new(overlay.as_ref().unwrap_or_else(|| &dummy));
         };
     }
     match *aktualisiere_overlay {
@@ -176,11 +175,11 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
             aktualisiere_state!();
             *aktualisiere_overlay = OverlayElement::Aktuell;
         },
-        OverlayElement::Initial => aktualisiere_element!(),
-        OverlayElement::InitialNeu => {
-            aktualisiere_element!();
-            aktualisiere_state!();
-            *aktualisiere_overlay = OverlayElement::Initial;
+        OverlayElement::Initial => {
+            if overlay.is_some() != neues_overlay.is_some() {
+                aktualisiere_element!();
+                aktualisiere_state!();
+            }
         },
     }
 }
