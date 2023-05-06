@@ -184,6 +184,6 @@ where
     fn from(
         anzeige: Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>,
     ) -> Self {
-        Element::new(anzeige.0)
+        Element::from(anzeige.0)
     }
 }

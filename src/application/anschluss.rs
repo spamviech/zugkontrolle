@@ -577,7 +577,7 @@ where
     R: 'a + Renderer,
 {
     fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
-        Element::new(auswahl.0)
+        Element::from(auswahl.0)
     }
 }
 
