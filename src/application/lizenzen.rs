@@ -23,7 +23,7 @@ use crate::{
     application::{
         map_mit_zustand::MapMitZustand,
         style::{
-            hintergrund::{self, Hintergrund},
+            self,
             linie::{Linie, TRENNLINIE},
         },
     },
@@ -93,7 +93,7 @@ where
         + rule::StyleSheet
         + text::StyleSheet,
     <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu<ScrollableStyle>(
@@ -175,7 +175,7 @@ where
                 .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(hintergrund::WEIß);
+        .style(style::container::WEIß);
         container.into()
     }
 }
@@ -189,7 +189,7 @@ where
         + rule::StyleSheet
         + text::StyleSheet,
     <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     fn from(lizenzen: Lizenzen<'a, R>) -> Self {
         Element::new(lizenzen.0)

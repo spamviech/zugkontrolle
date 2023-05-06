@@ -1,16 +1,17 @@
 //! Style Strukturen für eine [iced::widget::Rule].
 
 use iced::{
-    theme::{self, Theme},
     widget::rule::{Appearance, FillMode, StyleSheet},
     Color,
 };
+
+use crate::application::style::thema::Thema;
 
 /// Style-Struktur für eine Trennlinie.
 pub const TRENNLINIE: Linie = Linie { farbe: Color::BLACK, breite: 1, radius: 0. };
 
 /// Eine Linie mit gegebener Farbe, Breite und Radius an den Enden.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Linie {
     /// Die Farbe der Linie.
     pub farbe: Color,
@@ -20,18 +21,15 @@ pub struct Linie {
     pub radius: f32,
 }
 
-impl StyleSheet for Linie {
-    // TODO Style verwenden
-    type Style = Theme;
+impl StyleSheet for Thema {
+    type Style = Linie;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
-        let Linie { farbe: color, breite: width, radius } = *self;
-        Appearance { color, radius, width, fill_mode: FillMode::Full }
-    }
-}
-
-impl From<Linie> for theme::Rule {
-    fn from(linie: Linie) -> Self {
-        theme::Rule::Custom(Box::new(linie))
+        match self {
+            Thema::Hell => {
+                let Linie { farbe: color, breite: width, radius } = *style;
+                Appearance { color, radius, width, fill_mode: FillMode::Full }
+            },
+        }
     }
 }

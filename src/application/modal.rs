@@ -16,7 +16,7 @@ use iced_native::{
     Clipboard, Element, Event, Layout, Length, Point, Shell, Vector, Widget,
 };
 
-use crate::application::{map_mit_zustand::MapOperation, style::hintergrund::Hintergrund};
+use crate::application::{map_mit_zustand::MapOperation, style};
 
 /// Nachricht für Underlay und Overlay eines [Modals](Modal).
 #[derive(Debug, Clone)]
@@ -146,7 +146,7 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
     ElementNachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     macro_rules! aktualisiere_element {
         () => {
@@ -157,7 +157,7 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
                     .height(Length::Fill)
                     .center_x()
                     .center_y()
-                    .style(Hintergrund::GrauTransparent { grau: 0.7, alpha: 0.5 })
+                    .style(style::Container::hintergrund_grau_transparent(0.7, 0.5))
                     .into()
             });
         };
@@ -212,7 +212,7 @@ where
     ElementNachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Setzte das initial angezeigte Overlay.
     pub fn initiales_overlay(mut self, initiales_overlay: &'a impl Fn() -> Overlay) -> Self {
@@ -263,7 +263,7 @@ where
     ElementNachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     fn width(&self) -> Length {
         self.underlay.as_widget().width()
@@ -417,7 +417,7 @@ where
     Nachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     fn from(modal: Modal<'a, Overlay, Nachricht, R>) -> Self {
         Element::new(modal)
@@ -474,7 +474,7 @@ where
     Overlay: 'e,
     R: 'e + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
         let mut layout = if let Some(overlay) = &self.modal_overlay {

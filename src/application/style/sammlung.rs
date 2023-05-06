@@ -1,10 +1,11 @@
 //! Style-Strukturen für ein [iced::widget::Scrollable].
 
 use iced::{
-    theme::{self, Theme},
     widget::scrollable::{Scrollbar, Scroller, StyleSheet},
     Color,
 };
+
+use crate::application::style::thema::Thema;
 
 /// Style-Struktur für ein [iced::widget::Scrollable]
 /// mit fester [Scroller-Breite](iced::widget::Scrollable::scroller_width).
@@ -12,6 +13,12 @@ use iced::{
 pub struct Sammlung {
     /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width).
     pub breite: f32,
+}
+
+impl Default for Sammlung {
+    fn default() -> Self {
+        Self { breite: 10. }
+    }
 }
 
 impl Sammlung {
@@ -43,25 +50,24 @@ impl Sammlung {
     }
 }
 
-impl StyleSheet for Sammlung {
-    // TODO Style verwenden
-    type Style = Theme;
+impl StyleSheet for Thema {
+    type Style = Sammlung;
 
     fn active(&self, style: &Self::Style) -> Scrollbar {
-        self.scrollbar(0.7)
+        match self {
+            Thema::Hell => style.scrollbar(0.7),
+        }
     }
 
     fn hovered(&self, style: &Self::Style, _is_mouse_over_scrollbar: bool) -> Scrollbar {
-        self.scrollbar(0.6)
+        match self {
+            Thema::Hell => style.scrollbar(0.6),
+        }
     }
 
     fn dragging(&self, style: &Self::Style) -> Scrollbar {
-        self.scrollbar(0.5)
-    }
-}
-
-impl From<Sammlung> for theme::Scrollable {
-    fn from(sammlung: Sammlung) -> Self {
-        theme::Scrollable::Custom(Box::new(sammlung))
+        match self {
+            Thema::Hell => style.scrollbar(0.5),
+        }
     }
 }

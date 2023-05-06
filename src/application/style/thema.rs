@@ -26,44 +26,6 @@ impl StyleSheet for Thema {
     }
 }
 
-impl container::StyleSheet for Thema {
-    type Style = <iced::Theme as container::StyleSheet>::Style;
-
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
-        match self {
-            Thema::Hell => container::StyleSheet::appearance(&iced::Theme::Light, style),
-        }
-    }
-}
-
-impl button::StyleSheet for Thema {
-    type Style = <iced::Theme as button::StyleSheet>::Style;
-
-    fn active(&self, style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::active(&iced::Theme::Light, style),
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::hovered(&iced::Theme::Light, style),
-        }
-    }
-
-    fn pressed(&self, style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::pressed(&iced::Theme::Light, style),
-        }
-    }
-
-    fn disabled(&self, style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::disabled(&iced::Theme::Light, style),
-        }
-    }
-}
-
 impl checkbox::StyleSheet for Thema {
     type Style = <iced::Theme as checkbox::StyleSheet>::Style;
 

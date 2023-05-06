@@ -305,7 +305,7 @@ where
         .height(Length::Shrink)
 }
 
-fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'static>(
+fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     geraden: &'t Vec<Knopf<GeradeUnit>>,
@@ -385,10 +385,10 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer>, S: 'stati
                     error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
                     continue;
                 };
-                let anzeige: Element<'_, _, Renderer<Thema>> =
-                    Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
-                        .map(NachrichtClone::AktionGeschwindigkeit);
-                scrollable_column = scrollable_column.push(anzeige);
+                scrollable_column = scrollable_column.push(
+                    Element::from(L::anzeige_neu(name, &*geschwindigkeit))
+                        .map(NachrichtClone::AktionGeschwindigkeit),
+                );
             }
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },

@@ -5,7 +5,7 @@ use iced::{
     Background, Color, Theme,
 };
 
-use crate::typen::farbe::Farbe;
+use crate::{application::style::thema::Thema, typen::farbe::Farbe};
 
 /// Style-Struktur für die Auswahl einer [Pcf8574-Beschreibung](crate::anschluss::pcf8574::Beschreibung).
 #[derive(Debug, Clone, Copy)]

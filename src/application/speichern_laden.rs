@@ -13,10 +13,7 @@ use iced_native::{
     Alignment, Element, Length, Renderer,
 };
 
-use crate::application::{
-    map_mit_zustand::MapMitZustand,
-    style::hintergrund::{self, Hintergrund},
-};
+use crate::application::{map_mit_zustand::MapMitZustand, style};
 
 /// Zustand von [SpeichernLaden].
 #[derive(Debug)]
@@ -61,7 +58,7 @@ impl<'a, R> SpeichernLaden<'a, R>
 where
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(initialer_pfad: &'a str) -> Self {
@@ -93,14 +90,14 @@ where
         let speichern_ungefärbt =
             Button::new(Text::new("Speichern")).on_press(InterneNachricht::Speichern);
         let speichern_style =
-            if *speichern_gefärbt { hintergrund::GRÜN } else { hintergrund::STANDARD };
+            if *speichern_gefärbt { style::button::GRÜN } else { style::Button::Standard };
         let row = Row::new()
             .push(
                 Column::new()
                     .push(speichern_ungefärbt.style(speichern_style.into()))
                     .push(
                         Button::new(Text::new("Laden"))
-                            .style(hintergrund::STANDARD.into())
+                            .style(style::Button::Standard.into())
                             .on_press(InterneNachricht::Laden),
                     )
                     .align_items(Alignment::End),
@@ -122,7 +119,7 @@ impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R>
 where
     R: 'a + iced_native::text::Renderer,
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<Hintergrund>,
+    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
         Element::from(auswahl.0)
