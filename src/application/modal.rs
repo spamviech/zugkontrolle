@@ -36,6 +36,7 @@ impl<Overlay, ElementNachricht> From<ElementNachricht> for Nachricht<Overlay, El
 }
 
 impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
+    /// Konvertiere Overlay-Nachrichten mit dem [From]-Trait.
     pub fn overlay_from<O1>(value: Nachricht<O1, ElementNachricht>) -> Self
     where
         Overlay: From<O1>,
@@ -43,6 +44,7 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
         value.overlay_map(<Overlay as From<O1>>::from)
     }
 
+    /// Konvertiere Overlay-Nachrichten mit der übergebenen Funktion.
     pub fn overlay_map<O1>(self, f: impl FnOnce(Overlay) -> O1) -> Nachricht<O1, ElementNachricht> {
         match self {
             Nachricht::Underlay(nachricht) => Nachricht::Underlay(nachricht),
@@ -51,6 +53,7 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
         }
     }
 
+    /// Konvertiere Underlay-Nachrichten mit dem [From]-Trait.
     pub fn underlay_from<N1>(value: Nachricht<Overlay, N1>) -> Self
     where
         ElementNachricht: From<N1>,
@@ -58,6 +61,7 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
         value.underlay_map(<ElementNachricht as From<N1>>::from)
     }
 
+    /// Konvertiere Underlay-Nachrichten mit der übergebenen Funktion.
     pub fn underlay_map<N1>(
         self,
         f: impl FnOnce(ElementNachricht) -> N1,
@@ -98,12 +102,6 @@ impl<Overlay> Zustand<Overlay> {
     #[inline(always)]
     fn overlay(&self) -> &Option<Overlay> {
         &self.overlay
-    }
-
-    /// Eine veränderliche Referenz auf das aktuelle Overlay.
-    #[inline(always)]
-    fn overlay_mut(&mut self) -> &mut Option<Overlay> {
-        &mut self.overlay
     }
 }
 

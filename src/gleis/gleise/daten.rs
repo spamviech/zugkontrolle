@@ -16,9 +16,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            id::{
-                AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
-            },
+            id::{AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef},
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,

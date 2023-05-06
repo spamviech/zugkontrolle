@@ -28,7 +28,7 @@ impl StyleSheet for TabBar {
     // TODO Style verwenden
     type Style = ();
 
-    fn active(&self, _style: Self::Style, is_active: bool) -> Appearance {
+    fn active(&self, style: Self::Style, is_active: bool) -> Appearance {
         let grey_value: f32;
         if is_active {
             grey_value = 0.8;
@@ -38,7 +38,7 @@ impl StyleSheet for TabBar {
         self.style(Color::from_rgb(grey_value, grey_value, grey_value))
     }
 
-    fn hovered(&self, _style: Self::Style, _is_active: bool) -> Appearance {
+    fn hovered(&self, style: Self::Style, _is_active: bool) -> Appearance {
         let grey_value = 0.7;
         self.style(Color::from_rgb(grey_value, grey_value, grey_value))
     }

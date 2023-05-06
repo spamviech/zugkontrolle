@@ -79,6 +79,9 @@ impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Ex
 }
 
 impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, R> {
+    /// Erzeuge einen neuen [MapMitZustand].
+    ///
+    /// **ANMERKUNG**: Aus technischen Gründen wird das overlay NICHT angezeigt.
     pub fn neu(
         erzeuge_zustand: impl 'a + Fn() -> Zustand,
         erzeuge_element: impl 'a + Fn(&Zustand) -> Element<'a, Intern, R>,
@@ -246,9 +249,9 @@ where
 
     fn overlay<'a>(
         &'a mut self,
-        state: &'a mut Tree,
-        layout: Layout<'_>,
-        renderer: &R,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, R>> {
         // FIXME die aktuelle Implementierung benötigt gleichzeitigen mutable-borrow von state & element
         None

@@ -15,7 +15,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             daten::{Gleis, RStern},
-            id::{AnyId, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
+            id::{AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
         kreuzung::Kreuzung,
@@ -251,7 +251,7 @@ impl<L: Leiter> Gleise<L> {
     /// [draw](iced::Application::draw)-Methode für [Gleise].
     pub fn draw(
         &self,
-        state: &<Self as Program<Nachricht>>::State,
+        _state: &<Self as Program<Nachricht>>::State,
         bounds: iced::Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {

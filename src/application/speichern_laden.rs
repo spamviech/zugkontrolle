@@ -125,6 +125,6 @@ where
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<Hintergrund>,
 {
     fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
-        Element::new(auswahl.0)
+        Element::from(auswahl.0)
     }
 }

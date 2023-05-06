@@ -13,9 +13,8 @@ use std::{
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{
-    application::{Appearance, Application, StyleSheet},
-    widget::Radio,
-    Color, Command, Element, Renderer, Settings, Subscription, Theme,
+    application::Application, widget::Radio, Command, Element, Renderer, Settings, Subscription,
+    Theme,
 };
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
@@ -221,8 +220,12 @@ impl<L: Leiter, S> From<gleise::Nachricht>
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
             gleise::Nachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
-                GleisSteuerung::Gerade((id, startwert)) => todo!("AuswahlZustand::Gerade"),
-                GleisSteuerung::Kurve((id, startwert)) => todo!("AuswahlZustand::Kurve"),
+                GleisSteuerung::Gerade((id, startwert)) => {
+                    todo!("AuswahlZustand::Gerade({id:?}, {startwert:?}")
+                },
+                GleisSteuerung::Kurve((id, startwert)) => {
+                    todo!("AuswahlZustand::Kurve({id:?}, {startwert:?}")
+                },
                 GleisSteuerung::Weiche((id, startwert)) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
                         startwert,

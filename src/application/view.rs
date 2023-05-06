@@ -7,7 +7,7 @@ use iced::{
         scrollable::{self, Scrollable},
         Button, Canvas, Column, Container, Row, Rule, Slider, Space, Text,
     },
-    Alignment, Element, Length, Point, Renderer,
+    Alignment, Element, Length, Renderer,
 };
 use log::error;
 
@@ -19,10 +19,7 @@ use crate::{
         lizenzen::{self, Lizenzen},
         modal::{self, Modal},
         speichern_laden, streckenabschnitt,
-        style::{
-            linie::{Linie, TRENNLINIE},
-            sammlung::Sammlung,
-        },
+        style::{linie::TRENNLINIE, sammlung::Sammlung},
         weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht, NachrichtClone,
         Zugkontrolle,
     },
@@ -40,8 +37,6 @@ use crate::{
     steuerung::geschwindigkeit::Leiter,
     typen::{farbe::Farbe, skalar::Skalar, Zeichnen},
 };
-
-use super::style::streckenabschnitt::Auswahl;
 
 trait MitTeilNachricht<'t, Msg: 'static>: Into<Element<'t, Msg>> {
     fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static, R>(
