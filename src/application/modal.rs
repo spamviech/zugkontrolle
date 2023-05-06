@@ -385,6 +385,12 @@ where
                     modifiers: _,
                 }) if self.schließe_bei_esc => {
                     zustand.verstecke_overlay();
+                    aktualisiere_overlay_element(
+                        &mut self.overlay,
+                        Some(&mut state.children[1]),
+                        &self.zeige_overlay,
+                        zustand.overlay(),
+                    );
                     event::Status::Captured
                 },
                 _ => event::Status::Ignored,
