@@ -272,7 +272,7 @@ where
         let geschwindigkeit: Element<'_, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>> =
             Element::new(
                 Button::new(Text::new("Geschwindigkeiten"))
-                    .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Streckenabschnitt)),
+                    .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit)),
             )
             .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
         let streckenabschnitt: Element<
