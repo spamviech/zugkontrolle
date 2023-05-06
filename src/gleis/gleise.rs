@@ -548,6 +548,18 @@ impl<L: Leiter> Gleise<L> {
         }
     }
 
+    /// Alle aktuell bekannten Geschwindigkeiten.
+    pub(crate) fn mit_allen_geschwindigkeiten_mut(
+        &self,
+        mut f: impl FnMut(&geschwindigkeit::Name, &mut Geschwindigkeit<L>),
+    ) {
+        let mut guard = self.zustand.write();
+        for (name, (geschwindigkeit, _streckenabschnitt_map)) in guard.geschwindigkeiten.iter_mut()
+        {
+            f(name, geschwindigkeit)
+        }
+    }
+
     /// Verwendeter Zugtyp.
     pub fn zugtyp<'t>(&'t self) -> MappedRwLockReadGuard<'t, Zugtyp<L>> {
         let guard = self.zustand.read();
