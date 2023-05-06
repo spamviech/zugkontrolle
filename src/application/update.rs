@@ -72,14 +72,14 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
         //     button_zustand: button::State::new(),
         //     scrollable_zustand: scrollable::State::new(),
         // })
-        todo!()
+        todo!("MessageBox\n----------\n{titel}\n----------\n{nachricht}\n----------")
     }
 
     /// Schließe die [MessageBox].
     #[inline(always)]
     pub(crate) fn schließe_message_box(&mut self) {
         // self.message_box.verstecke_modal()
-        todo!()
+        todo!("schließe_message_box")
     }
 
     /// Führe eine Aktion aus.
@@ -773,32 +773,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer>, S> Zugkontrolle<L, S> {
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
         let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
-        let Zugtyp {
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            ..
-        } = &*self.gleise.zugtyp();
-        // self.geschwindigkeiten = self
-        //     .gleise
-        //     .geschwindigkeiten()
-        //     .map(|(name, _geschwindigkeit)| {
-        //         (
-        //             name.clone(),
-        //             L::anzeige_zustand_neu(
-        //                 name.clone(),
-        //                 *pwm_frequenz,
-        //                 verhältnis_fahrspannung_überspannung.clone(),
-        //                 *stopp_zeit,
-        //                 umdrehen_zeit.clone(),
-        //             ),
-        //         )
-        //     })
-        //     .collect();
-        todo!();
-        let _ = ();
-
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(
