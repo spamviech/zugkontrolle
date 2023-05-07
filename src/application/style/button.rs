@@ -23,7 +23,10 @@ pub enum Button {
     #[default]
     Standard,
     /// Ändere die Hintergrundfarbe.
-    Hintergrund { farbe: Color },
+    Hintergrund {
+        /// Die Hintergrundfarbe.
+        farbe: Color,
+    },
 }
 
 impl Button {

@@ -23,7 +23,10 @@ pub enum Container {
     #[default]
     Standard,
     /// Ändere die Hintergrundfarbe.
-    Hintergrund { farbe: Color },
+    Hintergrund {
+        /// Die Hintergrundfarbe.
+        farbe: Color,
+    },
     /// Zeige einen Rand in der spezifizierten Darstellung.
     Rand {
         /// Die Farbe des Rands.
