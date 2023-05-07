@@ -141,7 +141,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             //         Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
             //     }),
             // ))
-            todo!();
+            todo!("zeige_anschlüsse_anpassen_aux");
             ()
         });
         if let Err(fehler) = steuerung_res {
@@ -169,7 +169,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //     AuswahlZustand::Weiche,
                 //     AnschlüsseAnpassen::Weiche,
                 // );
-                todo!()
+                todo!("zeige_anschlüsse_anpassen")
             },
             AnyId::DreiwegeWeiche(id) => {
                 // self.zeige_anschlüsse_anpassen_aux(
@@ -179,7 +179,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //     AuswahlZustand::DreiwegeWeiche,
                 //     AnschlüsseAnpassen::DreiwegeWeiche,
                 // );
-                todo!()
+                todo!("zeige_anschlüsse_anpassen")
             },
             AnyId::KurvenWeiche(id) => {
                 // self.zeige_anschlüsse_anpassen_aux(
@@ -189,7 +189,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //     AuswahlZustand::KurvenWeiche,
                 //     AnschlüsseAnpassen::KurvenWeiche,
                 // );
-                todo!()
+                todo!("zeige_anschlüsse_anpassen")
             },
             AnyId::SKurvenWeiche(id) => {
                 // self.zeige_anschlüsse_anpassen_aux(
@@ -199,7 +199,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //     AuswahlZustand::Weiche,
                 //     AnschlüsseAnpassen::SKurvenWeiche,
                 // );
-                todo!()
+                todo!("zeige_anschlüsse_anpassen")
             },
             AnyId::Kreuzung(id) => {
                 // self.zeige_anschlüsse_anpassen_aux(
@@ -209,7 +209,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //     AuswahlZustand::Weiche,
                 //     AnschlüsseAnpassen::Kreuzung,
                 // );
-                todo!()
+                todo!("zeige_anschlüsse_anpassen")
             },
         }
     }
@@ -260,7 +260,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     #[inline(always)]
     pub(crate) fn schließe_auswahl(&mut self) {
         // self.auswahl.verstecke_modal()
-        todo!()
+        todo!("schließe_auswahl")
     }
 
     /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für einen [Streckenabschnitt].
@@ -268,7 +268,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         // self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
         //     streckenabschnitt::AuswahlZustand::neu(&self.gleise),
         // ))
-        todo!()
+        todo!("zeige_auswahl_streckenabschnitt")
     }
 
     /// Wähle den aktuellen [Streckenabschnitt].
@@ -349,7 +349,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 //         ))
                 //     },
                 // }
-                todo!();
+                todo!("streckenabschnitt_hinzufügen");
                 let _ = ();
 
                 if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
@@ -400,7 +400,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         //         ))
         //     },
         // }
-        todo!();
+        todo!("streckenabschnitt_löschen");
         let _ = ();
 
         let nicht_gefunden_nachricht = format!(
@@ -453,7 +453,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         if let Some(färbe_zeit) = self.speichern_gefärbt {
             if nachricht_zeit == färbe_zeit {
                 // self.speichern_laden.färbe_speichern(false);
-                todo!();
+                todo!("entferne_speichern_farbe");
                 self.speichern_gefärbt = None;
             }
         }
@@ -486,11 +486,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {
-            // FIXME funktioniert nur, wenn innerhalb des Widgets!
             self.zeige_message_box(titel, nachricht);
             None
         } else {
-            // FIXME funktioniert nur, wenn innerhalb des Widgets!
             Some(modal::Nachricht::VersteckeOverlay)
         }
     }
@@ -512,7 +510,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         // self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
         //     lizenzen::Zustand::neu_mit_verwendeten_lizenzen(),
         // ))
-        todo!()
+        todo!("zeige_lizenzen")
     }
 }
 
@@ -524,7 +522,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
         // self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
         //     geschwindigkeit::AuswahlZustand::neu(self.gleise.geschwindigkeiten()),
         // ))
-        todo!()
+        todo!("zeige_auswahl_geschwindigkeit")
     }
 
     /// Entferne eine [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
@@ -547,7 +545,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
         //         ))
         //     },
         // }
-        todo!()
+        todo!("geschwindigkeit_entfernen")
     }
 }
 
@@ -593,7 +591,7 @@ where
                     //         ))
                     //     },
                     // }
-                    todo!();
+                    todo!("geschwindigkeit_hinzufügen");
                     let _ = ();
 
                     let Zugtyp {
@@ -613,7 +611,7 @@ where
                     //         umdrehen_zeit.clone(),
                     //     ),
                     // );
-                    todo!();
+                    todo!("geschwindigkeit_hinzufügen");
                     let _ = ();
 
                     let streckenabschnitt_map = if let Some((serialisiert, streckenabschnitt_map)) =
@@ -673,7 +671,7 @@ where
                 //         ))
                 //     },
                 // }
-                todo!();
+                todo!("geschwindigkeit_hinzufügen");
                 let _ = ();
 
                 let _ = geschwindigkeiten.remove(&name);
@@ -739,7 +737,7 @@ where
         match ergebnis {
             Ok(()) => {
                 // self.speichern_laden.färbe_speichern(true);
-                todo!();
+                todo!("speichern");
                 let _ = ();
 
                 let speicher_zeit = Instant::now();
