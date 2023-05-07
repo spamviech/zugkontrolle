@@ -12,6 +12,7 @@ use iced::{
 use log::error;
 
 use crate::{
+    anschluss::de_serialisieren::Serialisiere,
     application::{
         bewegen::Bewegen,
         drehen::Drehen,
@@ -61,7 +62,7 @@ where
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>>,
+    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static + Clone,
 {
@@ -153,9 +154,13 @@ where
                 })
             },
             AuswahlZustand::Geschwindigkeit => {
-                Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(todo!(
-                    "geschwindigkeiten"
-                )))
+                let geschwindigkeiten =
+                    self.gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
+                        (name.clone(), geschwindigkeit.serialisiere())
+                    });
+                Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(
+                    geschwindigkeiten,
+                ))
                 .map(|message| {
                     use geschwindigkeit::AuswahlNachricht::*;
                     match message {
@@ -328,7 +333,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
     geschwindigkeiten: &'t geschwindigkeit::Map<L>,
-    gleise: &Gleise<L>,
+    gleise: &'t Gleise<L>,
 ) -> Row<
     't,
     modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
@@ -398,7 +403,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                     continue;
                 };
                 scrollable_column = scrollable_column.push(
-                    Element::from(L::anzeige_neu(todo!("name"), &*geschwindigkeit))
+                    Element::from(L::anzeige_neu(name, &*geschwindigkeit))
                         .map(NachrichtClone::AktionGeschwindigkeit),
                 );
             }

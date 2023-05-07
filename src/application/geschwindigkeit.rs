@@ -32,14 +32,14 @@ use iced_native::{
 use log::error;
 use nonempty::NonEmpty;
 
-pub use crate::steuerung::geschwindigkeit::{Geschwindigkeit, Name};
+pub use crate::steuerung::geschwindigkeit::Name;
 use crate::{
     anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert},
     application::{anschluss, map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
     eingeschränkt::NichtNegativ,
     steuerung::{
         geschwindigkeit::{
-            Fahrtrichtung, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
+            Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
             MittelleiterSerialisiert, Zweileiter, ZweileiterSerialisiert,
         },
         plan::AktionGeschwindigkeit,
@@ -110,7 +110,7 @@ where
 {
     /// Erstelle eine neue [Anzeige] für einen [Leiter].
     pub fn neu<'s, L: Leiter>(
-        name: &'t Name,
+        name: &'s Name,
         geschwindigkeit: &'s Geschwindigkeit<L>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
@@ -120,7 +120,7 @@ where
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();
         // TODO Anschluss-Anzeige (Expander über Overlay?)
-        let mut column = Column::new().spacing(1).push(Text::new(&name.0));
+        let mut column = Column::new().spacing(1).push(Text::new(name.0.clone()));
         column = if let Some(länge) = ks_länge(geschwindigkeit) {
             if länge > u8::MAX.into() {
                 error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
@@ -185,8 +185,10 @@ struct AuswahlZustand {
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    fn neu<'t, Leiter: 't + Display>(
-        geschwindigkeiten: impl Iterator<Item = (&'t Name, &'t Geschwindigkeit<Leiter>)>,
+    fn neu<'t, LeiterSerialisiert: 't + Display>(
+        geschwindigkeiten: impl Iterator<
+            Item = (&'t Name, &'t GeschwindigkeitSerialisiert<LeiterSerialisiert>),
+        >,
     ) -> Self {
         AuswahlZustand {
             neu_name: String::new(),
@@ -202,17 +204,17 @@ impl AuswahlZustand {
         }
     }
 
-    fn iter_map<'t, Leiter: 't + Display>(
-        (name, geschwindigkeit): (&'t Name, &'t Geschwindigkeit<Leiter>),
+    fn iter_map<LeiterSerialisiert: Display>(
+        (name, geschwindigkeit): (&Name, &GeschwindigkeitSerialisiert<LeiterSerialisiert>),
     ) -> (UniCaseOrd<Name>, String) {
         (UniCaseOrd::neu(name.clone()), geschwindigkeit.to_string())
     }
 
     /// Füge eine neue [Geschwindigkeit] hinzu.
-    fn hinzufügen<Leiter: Display>(
+    fn hinzufügen<LeiterSerialisiert: Display>(
         &mut self,
         name: &Name,
-        geschwindigkeit: &Geschwindigkeit<Leiter>,
+        geschwindigkeit: &GeschwindigkeitSerialisiert<LeiterSerialisiert>,
     ) {
         let (key, value) = Self::iter_map((name, geschwindigkeit));
         let _ = self.geschwindigkeiten.insert(key, value);
@@ -276,6 +278,7 @@ pub enum FahrtrichtungAnschluss {
 
 impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
 where
+    LeiterSerialisiert: 't + Display,
     R: 't + iced_native::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
@@ -289,8 +292,8 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<Leiter: Display>(
-        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Leiter>>,
+    pub fn neu(
+        geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
         pwm_nachricht: &'t impl Fn(
@@ -304,7 +307,7 @@ where
         ) -> LeiterSerialisiert,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
-        let erzeuge_zustand = || AuswahlZustand::neu(geschwindigkeiten.iter());
+        let erzeuge_zustand = move || AuswahlZustand::neu(geschwindigkeiten.iter());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element(zustand, fahrtrichtung_anschluss, &fahrtrichtung_beschreibung)
         };
@@ -500,13 +503,13 @@ where
 pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
     /// Erstelle eine neue [Anzeige].
     fn anzeige_neu(
-        name: &'t Name,
-        geschwindigkeit: &'t Geschwindigkeit<Self>,
+        name: &Name,
+        geschwindigkeit: &Geschwindigkeit<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu(
-        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Self>>,
+        geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
     ) -> Auswahl<'t, S, R>;
 }
 
@@ -533,8 +536,8 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn anzeige_neu(
-        name: &'t Name,
-        geschwindigkeit: &'t Geschwindigkeit<Mittelleiter>,
+        name: &Name,
+        geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let zeige_fahrtrichtung = |_none| {
             Button::new(Text::new("Umdrehen"))
@@ -558,7 +561,7 @@ where
 
     #[inline(always)]
     fn auswahl_neu(
-        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Mittelleiter>>,
+        geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,
@@ -598,8 +601,8 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn anzeige_neu(
-        name: &'t Name,
-        geschwindigkeit: &'t Geschwindigkeit<Zweileiter>,
+        name: &Name,
+        geschwindigkeit: &Geschwindigkeit<Zweileiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
         let clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
@@ -635,7 +638,7 @@ where
 
     #[inline(always)]
     fn auswahl_neu(
-        geschwindigkeiten: &'t BTreeMap<Name, Geschwindigkeit<Zweileiter>>,
+        geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,
