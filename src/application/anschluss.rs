@@ -589,18 +589,17 @@ struct PwmZustand {
 
 impl PwmZustand {
     /// Erstelle einen neuen [PwmZustand].
-    fn neu(pin: Option<&pwm::Pin>) -> Self {
-        PwmZustand { pin: pin.map(pwm::Pin::pin).unwrap_or(0) }
+    fn neu(pin: Option<u8>) -> Self {
+        PwmZustand { pin: pin.unwrap_or(0) }
     }
 }
 
 /// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
 #[derive(Debug)]
-pub struct Pwm<'a, N, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, N, R>);
+pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Serialisiert, R>);
 
-impl<'a, N, R> Pwm<'a, N, R>
+impl<'a, R> Pwm<'a, R>
 where
-    N: 'a,
     R: 'a + iced_native::text::Renderer<Font = Font>,
     <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_native::widget::text::StyleSheet
@@ -609,30 +608,37 @@ where
 {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
-        let erzeuge_zustand = move || PwmZustand::neu(pin);
-        let erzeuge_element = Self::erzeuge_element;
-        let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = PwmZustand>,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
-            let pwm::Serialisiert(pin) = interne_nachricht;
-            zustand.pin = pin;
-            Vec::new()
-        };
-        Pwm(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        let erzeuge_zustand = move || PwmZustand::neu(pin.map(pwm::Pin::pin));
+        Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
+    }
+
+    /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+    pub fn neu_s(pin: Option<pwm::Serialisiert>) -> Self {
+        let erzeuge_zustand = move || PwmZustand::neu(pin.as_ref().map(|pin| pin.0));
+        Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
     }
 
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
         NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
     }
+
+    fn mapper(
+        nachricht: pwm::Serialisiert,
+        zustand: &mut (dyn DerefMut<Target = PwmZustand>),
+        status: &mut event::Status,
+    ) -> Vec<pwm::Serialisiert> {
+        *status = event::Status::Captured;
+        let pwm::Serialisiert(pin) = nachricht;
+        zustand.pin = pin;
+        vec![nachricht]
+    }
 }
 
-impl<'a, N, R> From<Pwm<'a, N, R>> for Element<'a, N, R>
+impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
 where
-    N: 'a,
     R: 'a + Renderer,
 {
-    fn from(auswahl: Pwm<'a, N, R>) -> Self {
-        Element::new(auswahl.0)
+    fn from(auswahl: Pwm<'a, R>) -> Self {
+        Element::from(auswahl.0)
     }
 }

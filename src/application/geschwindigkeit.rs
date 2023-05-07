@@ -25,7 +25,7 @@ use iced_native::{
         slider::{self, Slider},
         text::{self, Text},
         text_input::{self, TextInput},
-        Column, Row,
+        Column, Row, Space,
     },
     Element, Font, Length, Renderer,
 };
@@ -35,7 +35,11 @@ use nonempty::NonEmpty;
 pub use crate::steuerung::geschwindigkeit::Name;
 use crate::{
     anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert},
-    application::{anschluss, map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
+    application::{
+        anschluss,
+        map_mit_zustand::MapMitZustand,
+        style::{sammlung::Sammlung, tab_bar::TabBar},
+    },
     eingeschränkt::NichtNegativ,
     steuerung::{
         geschwindigkeit::{
@@ -290,6 +294,7 @@ where
         + tab_bar::StyleSheet
         + card::StyleSheet,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
@@ -398,22 +403,19 @@ where
         let AuswahlZustand {
             neu_name,
             aktueller_tab,
-            umdrehen_anschluss: _,
-            pwm_pin: _,
+            umdrehen_anschluss,
+            pwm_pin,
             pwm_polarität,
             ks_anschlüsse,
             geschwindigkeiten,
         } = zustand;
-        let output_save_head = &ks_anschlüsse.head;
-        let anschlüsse_save_tail: Vec<_> = ks_anschlüsse.tail.iter().collect();
-        let anschlüsse_save = NonEmpty { head: output_save_head, tail: anschlüsse_save_tail };
         let width = Length::Fixed(950.);
         let mut neuer_anschluss = Column::new().push(
             TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
         );
         let umdrehen_auswahl =
             Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
-                Element::from(anschluss::Auswahl::neu_output(None))
+                Element::from(anschluss::Auswahl::neu_output_s(Some(umdrehen_anschluss.clone())))
                     .map(InterneAuswahlNachricht::UmdrehenAnschluss),
             );
         let make_radio = |polarität: Polarität| {
@@ -436,18 +438,26 @@ where
             },
         }
         let pwm_auswahl = pwm_auswahl
-            .push(Element::from(anschluss::Pwm::neu(None)).map(InterneAuswahlNachricht::PwmPin))
+            .push(
+                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin.clone())))
+                    .map(InterneAuswahlNachricht::PwmPin),
+            )
             .push(
                 Column::new()
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
-        let mut ks_column = Column::new().height(Length::Fixed(150.));
-        for i in 0..anschlüsse_save.len() {
-            let ii = i;
-            let mut row = Row::new().push(Element::from(anschluss::Auswahl::neu_output(None)).map(
-                move |anschluss| InterneAuswahlNachricht::KonstanteSpannungAnschluss(ii, anschluss),
-            ));
+        let mut ks_column = Column::new().height(Length::Shrink);
+        for (i, ks_anschluss) in ks_anschlüsse.iter().enumerate() {
+            // FIXME neu hinzugefügte Anschlüsse werden erst nach Ändern der Fenstergröße angezeigt
+            // (davor wird nur das scrollable größer)
+            let mut row = Row::new().height(Length::Shrink).push(
+                Element::from(anschluss::Auswahl::neu_output_s(Some(ks_anschluss.clone()))).map(
+                    move |anschluss| {
+                        InterneAuswahlNachricht::KonstanteSpannungAnschluss(i, anschluss)
+                    },
+                ),
+            );
             row = row.push(if let Some(ix) = NonZeroUsize::new(i) {
                 Element::new(
                     Button::new(Text::new("X"))
@@ -459,9 +469,10 @@ where
                         .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
                 )
             });
+            row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
             ks_column = ks_column.push(row)
         }
-        let ks_auswahl = ks_auswahl.push(Scrollable::new(ks_column));
+        let ks_auswahl = ks_auswahl.push(Scrollable::new(ks_column).height(Length::Fixed(150.)));
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
             .push(TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
             .push(TabLabel::Text("Konstante Spannung".to_owned()), ks_auswahl)
@@ -534,6 +545,7 @@ where
         + tab_bar::StyleSheet
         + card::StyleSheet,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     fn anzeige_neu(
         name: &Name,
@@ -599,6 +611,7 @@ where
         + tab_bar::StyleSheet
         + card::StyleSheet,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     fn anzeige_neu(
         name: &Name,
