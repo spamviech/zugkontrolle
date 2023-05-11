@@ -452,8 +452,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     pub(crate) fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
         if let Some(färbe_zeit) = self.speichern_gefärbt {
             if nachricht_zeit == färbe_zeit {
+                // FIXME entferne_speichern_farbe
                 // self.speichern_laden.färbe_speichern(false);
-                todo!("entferne_speichern_farbe");
                 self.speichern_gefärbt = None;
             }
         }
@@ -736,10 +736,8 @@ where
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
+                // FIXME färbe_speichern
                 // self.speichern_laden.färbe_speichern(true);
-                todo!("speichern");
-                let _ = ();
-
                 let speicher_zeit = Instant::now();
                 self.speichern_gefärbt = Some(speicher_zeit.clone());
                 let command = Nachricht::EntferneSpeichernFarbe(speicher_zeit)
