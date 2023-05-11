@@ -1,6 +1,6 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [iced::Application]-Traits.
 
-use std::fmt::Debug;
+use std::{convert::identity, fmt::Debug};
 
 use iced::{
     widget::{
@@ -86,6 +86,7 @@ where
             lager: _,
             speichern_gefärbt: _,
             bewegung: _,
+            message_box,
             sender: _,
             empfänger: _,
             initialer_pfad,
@@ -223,19 +224,28 @@ where
         let zeige_message_box = |message_box: &MessageBox| {
             let MessageBox { titel, nachricht } = message_box;
             Element::new(
-                iced_aw::Card::new(
-                    Text::new(titel.clone()),
-                    Scrollable::new(Text::new(nachricht.clone())).height(Length::Fixed(300.)),
-                )
-                .foot(
-                    iced::widget::Button::new(Text::new("Ok"))
-                        .on_press(modal::Nachricht::VersteckeOverlay),
-                )
-                .width(Length::Shrink),
+                // iced_aw::Card::new(
+                //     Text::new(titel.clone()),
+                //     Scrollable::new(Text::new(nachricht.clone())).height(Length::Fixed(300.)),
+                // )
+                // .foot(
+                //     iced::widget::Button::new(Text::new("Ok"))
+                //         .on_press(modal::Nachricht::VersteckeOverlay),
+                // )
+                // .width(Length::Shrink),
+                Column::new().push(Text::new(titel.clone())).push(Text::new(nachricht.clone())),
             )
             .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>)
         };
-        Modal::neu(auswahlzustand, zeige_message_box).schließe_bei_esc().into()
+        let mut message_box_modal =
+            Modal::neu(auswahlzustand, zeige_message_box).schließe_bei_esc();
+        if let Some(message_box) = message_box {
+            // FIXME MessageBox wird nicht angezeigt?
+            println!("{message_box:?}");
+            message_box_modal = message_box_modal.initiales_overlay(|| message_box.clone());
+        }
+        println!("{message_box_modal:?}");
+        message_box_modal.into()
     }
 }
 

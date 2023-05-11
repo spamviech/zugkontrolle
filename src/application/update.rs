@@ -68,13 +68,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub(crate) fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        // self.message_box.zeige_modal(MessageBox {
-        //     titel,
-        //     nachricht,
-        //     button_zustand: button::State::new(),
-        //     scrollable_zustand: scrollable::State::new(),
-        // })
-        todo!("MessageBox\n----------\n{titel}\n----------\n{nachricht}\n----------")
+        self.message_box = Some(MessageBox { titel, nachricht })
     }
 
     /// Schließe die [MessageBox].

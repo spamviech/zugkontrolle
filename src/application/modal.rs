@@ -117,7 +117,7 @@ impl<Overlay> Zustand<Overlay> {
 pub struct Modal<'a, Overlay, ElementNachricht, R> {
     underlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     overlay: Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
-    initiales_overlay: Option<&'a dyn Fn() -> Overlay>,
+    initiales_overlay: Option<Box<dyn 'a + Fn() -> Overlay>>,
     zeige_overlay:
         Box<dyn 'a + Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     schließe_bei_esc: bool,
@@ -128,7 +128,7 @@ impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
         f.debug_struct("Modal")
             .field("underlay", &"<Element>")
             .field("overlay", &self.overlay.as_ref().map(|_| "<Element>"))
-            .field("initiales_overlay", &self.initiales_overlay.map(|_| "<closure>"))
+            .field("initiales_overlay", &self.initiales_overlay.as_ref().map(|_| "<closure>"))
             .field("zeige_overlay", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
             .finish()
@@ -215,8 +215,8 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Setzte das initial angezeigte Overlay.
-    pub fn initiales_overlay(mut self, initiales_overlay: &'a impl Fn() -> Overlay) -> Self {
-        self.initiales_overlay = Some(initiales_overlay);
+    pub fn initiales_overlay(mut self, initiales_overlay: impl 'a + Fn() -> Overlay) -> Self {
+        self.initiales_overlay = Some(Box::new(initiales_overlay));
         self
     }
 }
@@ -292,7 +292,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(Zustand::<Overlay>::neu(self.initiales_overlay.map(|f| f())))
+        tree::State::new(Zustand::<Overlay>::neu(self.initiales_overlay.as_ref().map(|f| f())))
     }
 
     fn tag(&self) -> Tag {

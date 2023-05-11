@@ -494,6 +494,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     initialer_pfad: String,
     speichern_gefärbt: Option<Instant>,
     bewegung: Option<Bewegung>,
+    message_box: Option<MessageBox>,
     sender: Sender<Nachricht<L, S>>,
     empfänger: Empfänger<Nachricht<L, S>>,
     // TODO Plan
@@ -576,6 +577,7 @@ where
             initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
+            message_box: None,
             sender,
             empfänger: Empfänger::neu(receiver),
         };
