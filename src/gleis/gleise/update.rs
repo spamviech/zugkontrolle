@@ -18,11 +18,10 @@ use crate::{
     anschluss::Serialisiere,
     application::style::thema::Thema,
     gleis::{
-        self,
         gerade::Gerade,
         gleise::{
             daten::{Gleis, GleiseDaten, RStern},
-            id::{mit_any_id, AnyId, AnyIdRef, GleisId, GleisIdRef, StreckenabschnittIdRef},
+            id::{mit_any_id, AnyId, GleisIdRef, StreckenabschnittIdRef},
             steuerung::{MitSteuerung, Steuerung},
             Gehalten, GleisSteuerung, Gleise, IdUndSteuerungSerialisiert, ModusDaten, Nachricht,
         },
@@ -34,11 +33,9 @@ use crate::{
         },
     },
     steuerung::{
-        self,
         geschwindigkeit::Leiter,
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::Streckenabschnitt,
-        KontaktSerialisiert,
     },
     typen::{
         canvas::{Cache, Position},
@@ -48,7 +45,6 @@ use crate::{
         winkel::Winkel,
         Zeichnen,
     },
-    void::Void,
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.
@@ -86,22 +82,6 @@ enum GleisSteuerungRef<'t> {
     Kreuzung(IdUndSteuerung<'t, Kreuzung>),
 }
 
-impl<'t> GleisSteuerungRef<'t> {
-    fn id(self) -> AnyIdRef<'t> {
-        match self {
-            GleisSteuerungRef::Gerade((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::Kurve((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::Weiche((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::KurvenWeiche((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::DreiwegeWeiche((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::SKurvenWeiche((id, _steuerung)) => id.into(),
-            GleisSteuerungRef::Kreuzung((id, _steuerung)) => id.into(),
-        }
-    }
-}
-
-// type IdUndSteuerungSerialisiert<T, S> = (GleisId<T>, S);
-
 fn klone_und_serialisiere<'t, T, R, S>(
     (id_ref, steuerung): IdUndSteuerung<'t, T>,
 ) -> IdUndSteuerungSerialisiert<T, Option<S>>
@@ -111,33 +91,6 @@ where
 {
     (id_ref.als_id(), steuerung.opt_as_ref().map(Serialisiere::serialisiere))
 }
-
-// // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-// type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-//     gleis::weiche::gerade::Richtung,
-//     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
-// >;
-
-// type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-//     gleis::weiche::dreiwege::RichtungInformation,
-//     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
-// >;
-
-// type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-//     gleis::weiche::kurve::Richtung,
-//     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
-// >;
-
-// #[derive(zugkontrolle_macros::From)]
-// enum GleisSteuerung {
-//     Gerade(IdUndSteuerungSerialisiert<Gerade, Option<KontaktSerialisiert>>),
-//     Kurve(IdUndSteuerungSerialisiert<Kurve, Option<KontaktSerialisiert>>),
-//     Weiche(IdUndSteuerungSerialisiert<Weiche, Option<WeicheSerialisiert>>),
-//     KurvenWeiche(IdUndSteuerungSerialisiert<KurvenWeiche, Option<KurvenWeicheSerialisiert>>),
-//     DreiwegeWeiche(IdUndSteuerungSerialisiert<DreiwegeWeiche, Option<DreiwegeWeicheSerialisiert>>),
-//     SKurvenWeiche(IdUndSteuerungSerialisiert<SKurvenWeiche, Option<WeicheSerialisiert>>),
-//     Kreuzung(IdUndSteuerungSerialisiert<Kreuzung, Option<WeicheSerialisiert>>),
-// }
 
 impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
     fn from(gleis_steuerung_ref: GleisSteuerungRef<'_>) -> Self {
@@ -166,27 +119,6 @@ impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
         }
     }
 }
-
-/*
-type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
-/// Zustand des Auswahl-Fensters.
-#[derive(zugkontrolle_macros::Clone)]
-#[zugkontrolle_clone(S: Clone)]
-pub enum AuswahlZustand<L: Leiter, S> {
-    /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
-    Streckenabschnitt,
-    /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
-    Geschwindigkeit,
-    /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
-    /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>),
-    /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>),
-    /// Anzeige der verwendeten Open-Source Lizenzen.
-    ZeigeLizenzen,
-}
-*/
 
 /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
 fn gleis_an_position<'t, T>(
@@ -433,7 +365,7 @@ impl<L: Leiter> Gleise<L> {
     /// [update](iced::Application::update)-Methode für [Gleise]
     pub fn update(
         &self,
-        state: &mut <Self as Program<Nachricht, Thema>>::State,
+        _state: &mut <Self as Program<Nachricht, Thema>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,

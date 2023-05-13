@@ -297,11 +297,15 @@ type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
+
 /// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
 #[derive(Debug, PartialEq)]
 pub enum WeichenId {
+    /// Die Id einer [Weiche].
     Gerade(GleisId<Weiche>),
+    /// Die Id einer [SKurvenWeiche].
     SKurve(GleisId<SKurvenWeiche>),
+    /// Die Id einer [Kreuzung].
     Kreuzung(GleisId<Kreuzung>),
 }
 
@@ -324,7 +328,6 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
-type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
 
 /// Zustand des Auswahl-Fensters.
 #[derive(Debug, PartialEq)]

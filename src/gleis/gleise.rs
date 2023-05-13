@@ -8,7 +8,7 @@ use std::{
 use iced::{
     mouse,
     widget::canvas::{event, Cursor, Event, Geometry, Program},
-    Rectangle, Theme,
+    Rectangle,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -793,7 +793,7 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
 
     fn mouse_interaction(
         &self,
-        state: &Self::State,
+        _state: &Self::State,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
