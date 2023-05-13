@@ -169,14 +169,14 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum KonstanteSpannungAnpassen {
     Hinzufügen,
     Entfernen(NonZeroUsize),
 }
 
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct AuswahlZustand {
     neu_name: String,
     aktueller_tab: usize,

@@ -116,7 +116,7 @@ impl<'a, Overlay, R: 'a + Renderer> From<Anzeige<'a, Overlay, R>>
 }
 
 /// Zustand des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct AuswahlZustand {
     neu_name: String,
     neu_farbe: Farbe,

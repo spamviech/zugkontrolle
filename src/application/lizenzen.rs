@@ -53,7 +53,7 @@ pub enum Nachricht {
 }
 
 /// Zustand eines [Lizenzen]-Widgets.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Zustand {
     aktuell: Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
 }

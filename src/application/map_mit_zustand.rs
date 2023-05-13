@@ -61,17 +61,19 @@ impl<T> DerefMut for MutTracer<'_, T> {
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     element: Element<'a, Intern, R>,
     erzeuge_zustand: Box<dyn 'a + Fn() -> Zustand>,
+    initialer_zustand: (Zustand, bool),
     erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, R>>,
     mapper: Box<
         dyn 'a + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     >,
 }
 
-impl<Zustand, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
+impl<Zustand: Debug, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("MapMitZustand")
             .field("element", &"<Element>")
             .field("erzeuge_zustand", &"<closure>")
+            .field("initialerZustand", &self.initialer_zustand)
             .field("erzeuge_element", &"<closure>")
             .field("mapper", &"<closure>")
             .finish()
@@ -93,6 +95,7 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
         MapMitZustand {
             element,
             erzeuge_zustand: Box::new(erzeuge_zustand),
+            initialer_zustand: (zustand, true),
             erzeuge_element: Box::new(erzeuge_element),
             mapper: Box::new(mapper),
         }
@@ -133,7 +136,7 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
 
 impl<Zustand, Intern, Extern, R> Widget<Extern, R> for MapMitZustand<'_, Zustand, Intern, Extern, R>
 where
-    Zustand: 'static,
+    Zustand: 'static + PartialEq,
     R: Renderer,
 {
     fn width(&self) -> Length {
@@ -205,6 +208,12 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Extern>,
     ) -> event::Status {
+        let zustand: &mut Zustand = state.state.downcast_mut();
+        if self.initialer_zustand.1 && (self.initialer_zustand.0 != *zustand) {
+            self.initialer_zustand.1 = false;
+            self.element = (self.erzeuge_element)(zustand);
+            state.children = vec![Tree::new(&self.element)];
+        }
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
         let mut event_status = self.element.as_widget_mut().on_event(
@@ -216,7 +225,6 @@ where
             clipboard,
             &mut interne_shell,
         );
-        let zustand: &mut Zustand = state.state.downcast_mut();
         synchronisiere_widget_layout_validierung(&interne_shell, shell);
         verarbeite_nachrichten(
             interne_nachrichten,
@@ -312,7 +320,7 @@ impl<T, B> Operation<T> for MapOperation<'_, B> {
 impl<'a, Zustand, Intern, Extern, R> From<MapMitZustand<'a, Zustand, Intern, Extern, R>>
     for Element<'a, Extern, R>
 where
-    Zustand: 'static,
+    Zustand: 'static + PartialEq,
     Intern: 'a,
     Extern: 'a,
     R: 'a + Renderer,

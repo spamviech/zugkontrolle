@@ -4,7 +4,7 @@ use iced::Color;
 use serde::{Deserialize, Serialize};
 
 /// Eine Farbe im RGB-Schema.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Farbe {
     /// Rot
     pub rot: f32,

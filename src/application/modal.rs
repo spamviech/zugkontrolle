@@ -426,7 +426,7 @@ where
 }
 
 /// Dummy-Widget, das nichts anzeigt.
-struct Dummy;
+pub(in crate::application) struct Dummy;
 
 impl<M, R: Renderer> Widget<M, R> for Dummy {
     fn width(&self) -> Length {

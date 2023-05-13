@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Zustand<T> {
     active_tab: usize,
     pin: u8,
@@ -571,7 +571,7 @@ where
 impl<'a, Modus, ModusNachricht, Serialisiert, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
 where
-    Modus: 'static,
+    Modus: 'static + PartialEq,
     ModusNachricht: 'a,
     Serialisiert: 'a,
     R: 'a + Renderer,
@@ -582,7 +582,7 @@ where
 }
 
 /// Zustand eines Widgets zur Auswahl eines [Pwm-Pins](pwm::Pin).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct PwmZustand {
     pin: u8,
 }

@@ -16,7 +16,7 @@ use iced_native::{
 use crate::application::{map_mit_zustand::MapMitZustand, style};
 
 /// Zustand von [SpeichernLaden].
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Zustand {
     speichern_gefärbt: bool,
     aktueller_pfad: String,
@@ -62,7 +62,6 @@ where
 {
     /// Erstelle ein neuen [SpeichernLaden]-Widget.
     pub fn neu(initialer_pfad: &'a str) -> Self {
-        // FIXME nach speichern/laden wird der initiale_pfad wieder angezeigt, aber der aktuelle verwendet
         let erzeuge_zustand = || Zustand::neu(initialer_pfad.to_owned());
         let erzeuge_element = Self::erzeuge_element;
         let mapper = |interne_nachricht,
