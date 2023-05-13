@@ -523,8 +523,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
 
-        let _ = self.geschwindigkeiten.remove(&name_clone);
-
         // match self.auswahl.overlay_mut() {
         //     Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
         //         geschwindigkeit_auswahl.entfernen(&name_clone);
@@ -551,7 +549,7 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
     ) {
-        let Zugkontrolle { gleise, geschwindigkeiten, .. } = self;
+        let Zugkontrolle { gleise, .. } = self;
         let (alt_serialisiert_und_map, anschlüsse) =
             if let Some((geschwindigkeit, streckenabschnitt_map)) =
                 gleise.geschwindigkeit_mit_streckenabschnitten_entfernen(&name)
@@ -665,7 +663,6 @@ where
                 todo!("geschwindigkeit_hinzufügen");
                 let _ = ();
 
-                let _ = geschwindigkeiten.remove(&name);
                 fehlermeldung.push_str(&format!(
                     "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
                     fehler, serialisiert_clone

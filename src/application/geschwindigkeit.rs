@@ -1,7 +1,7 @@
 //! Anzeige und Erstellen einer [Geschwindigkeit].
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Debug, Display, Formatter},
     num::NonZeroUsize,
     ops::DerefMut,
@@ -62,7 +62,7 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
 }
 
 /// Sortierte Map aller Widget zur Anzeige der [Geschwindigkeiten](Geschwindigkeit).
-pub type Map<L> = BTreeMap<Name, AnzeigeZustand<L>>;
+pub type Set = BTreeSet<Name>;
 
 /// Zustand des Widgets zur Anzeige einer [Geschwindigkeit].
 #[derive(zugkontrolle_macros::Debug)]

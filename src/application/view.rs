@@ -1,6 +1,6 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [iced::Application]-Traits.
 
-use std::{convert::identity, fmt::Debug};
+use std::fmt::Debug;
 
 use iced::{
     widget::{
@@ -9,7 +9,6 @@ use iced::{
     },
     Alignment, Element, Length, Renderer,
 };
-use log::error;
 
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
@@ -78,7 +77,6 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-            geschwindigkeiten,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             bewegen,
@@ -113,7 +111,6 @@ where
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-            geschwindigkeiten,
             gleise,
         );
         let canvas = Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
@@ -355,7 +352,6 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
-    geschwindigkeiten: &'t geschwindigkeit::Map<L>,
     gleise: &'t Gleise<L>,
 ) -> Row<
     't,
@@ -418,18 +414,14 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
         },
         Modus::Fahren => {
             scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
-            for (name, anzeige_zustand) in geschwindigkeiten {
-                let geschwindigkeit = if let Some(geschwindigkeit) = gleise.geschwindigkeit(name) {
-                    geschwindigkeit
-                } else {
-                    error!("Anzeige für entfernte Geschwindigkeit {}!", name.0);
-                    continue;
-                };
-                scrollable_column = scrollable_column.push(
-                    Element::from(L::anzeige_neu(name, &*geschwindigkeit))
-                        .map(NachrichtClone::AktionGeschwindigkeit),
-                );
-            }
+            gleise.mit_allen_geschwindigkeiten(|name, geschwindigkeit| {
+                take_mut::take(&mut scrollable_column, |scrollable_column| {
+                    scrollable_column.push(
+                        Element::from(L::anzeige_neu(name, &*geschwindigkeit))
+                            .map(NachrichtClone::AktionGeschwindigkeit),
+                    )
+                })
+            })
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
