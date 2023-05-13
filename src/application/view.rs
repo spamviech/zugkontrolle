@@ -227,7 +227,7 @@ where
                 })
             },
             AuswahlZustand::ZeigeLizenzen => {
-                Element::from(Lizenzen::neu(todo!("lizenzen"), todo!("aktuell"), *scrollable_style))
+                Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(*scrollable_style))
                     .map(|lizenzen::Nachricht::Schließen| modal::Nachricht::VersteckeOverlay)
             },
         };

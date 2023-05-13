@@ -18,6 +18,7 @@ use iced_native::{
     },
     Element, Length, Renderer,
 };
+use once_cell::sync::Lazy;
 
 use crate::{
     application::{
@@ -69,12 +70,6 @@ impl Zustand {
             .or_else(|| lizenzen.iter().next().map(|(name, f)| (*name, f())));
         Zustand { aktuell }
     }
-
-    /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
-    #[inline(always)]
-    fn neu_mit_verwendeten_lizenzen() -> Self {
-        Self::neu(None, &verwendete_lizenzen(target_crates()))
-    }
 }
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
@@ -95,6 +90,15 @@ where
     <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
+    /// Erstelle ein neues [Lizenzen]-Widget mit den verwendeten Lizenzen.
+    pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
+    where
+        ScrollableStyle: 'a + Clone,
+        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+    {
+        Self::neu(&*TARGET_LIZENZEN, &None, scrollable_style)
+    }
+
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu<ScrollableStyle>(
         lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
@@ -133,7 +137,7 @@ where
         <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         let Zustand { aktuell } = zustand;
-        let mut buttons = Column::new().width(Length::Shrink).height(Length::Fill);
+        let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
         let (aktuell_name, aktuell_text) = if let Some((name, text)) = aktuell {
             (Some(name.clone()), Some(text.clone().into_owned()))
         } else {
@@ -150,13 +154,14 @@ where
             });
         }
         let buttons = Scrollable::new(buttons).style(scrollable_style);
+        // FIXME Schließen-Knopf nach den Buttons wird nicht angezeigt :(
         let column = Column::new()
-            .push(buttons)
-            .push(Space::with_height(Length::Fixed(PADDING)))
             .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
+            .push(Space::with_height(Length::Fixed(PADDING)))
+            .push(buttons)
             .width(Length::Shrink)
             .height(Length::Fill);
-        let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Fill);
+        let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Shrink);
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
                 .push(Space::with_width(Length::Fixed(PADDING)))
@@ -227,9 +232,12 @@ fn target_crates() -> HashSet<&'static str> {
     zugkontrolle_macros::target_crates!()
 }
 
+static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>> =
+    Lazy::new(|| verwendete_lizenzen(target_crates()));
+
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
+const fn cargo_lock_lizenzen() -> [(&'static str, fn() -> Cow<'static, str>); 268] {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
