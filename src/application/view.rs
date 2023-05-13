@@ -22,11 +22,11 @@ use crate::{
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
         weiche, AnyGleisUnit, AuswahlZustand, MessageBox, Modus, Nachricht, NachrichtClone,
-        Zugkontrolle,
+        WeichenId, Zugkontrolle,
     },
     gleis::{
         gerade::GeradeUnit,
-        gleise::{id::StreckenabschnittId, Gleise},
+        gleise::{id::StreckenabschnittId, AnschlüsseAnpassen, Gleise},
         knopf::Knopf,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
@@ -117,7 +117,7 @@ where
             gleise,
         );
         let canvas = Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
-            .map(modal::Nachricht::<AuswahlZustand<L, S>, Nachricht<L, S>>::from)
+            .map(modal::Nachricht::<AuswahlZustand, Nachricht<L, S>>::from)
             .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
         let row_mit_scrollable_und_canvas = row_mit_scrollable
             .push(Container::new(canvas).width(Length::Fill).height(Length::Fill));
@@ -129,7 +129,7 @@ where
                 .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
-        let zeige_auswahlzustand = |modal: &AuswahlZustand<L, S>| match modal {
+        let zeige_auswahlzustand = |modal: &AuswahlZustand| match modal {
             AuswahlZustand::Streckenabschnitt => {
                 Element::from(streckenabschnitt::Auswahl::neu(gleise)).map(|message| {
                     use streckenabschnitt::AuswahlNachricht::*;
@@ -177,37 +177,53 @@ where
                     }
                 })
             },
-            AuswahlZustand::Weiche(weiche, als_message) => {
-                let als_message_clone = als_message.clone();
+            AuswahlZustand::Weiche(weiche, weichen_id) => {
+                let weichen_id_clone = weichen_id.klonen();
                 Element::from(weiche::Auswahl::neu(weiche.clone())).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
-                        Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(als_message_clone(steuerung)),
-                        ),
+                        Festlegen(steuerung) => {
+                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
+                                Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
+                                    WeichenId::Gerade(id) => {
+                                        AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
+                                    },
+                                    WeichenId::SKurve(id) => {
+                                        AnschlüsseAnpassen::SKurvenWeiche(id.klonen(), steuerung)
+                                    },
+                                    WeichenId::Kreuzung(id) => {
+                                        AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
+                                    },
+                                }),
+                            ))
+                        },
                         Schließen => modal::Nachricht::VersteckeOverlay,
                     }
                 })
             },
-            AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, als_message) => {
-                let als_message_clone = als_message.clone();
+            AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
+                let id_clone = id.klonen();
                 Element::from(weiche::Auswahl::neu(dreiwege_weiche.clone())).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(als_message_clone(steuerung)),
+                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                                AnschlüsseAnpassen::DreiwegeWeiche(id_clone.klonen(), steuerung),
+                            )),
                         ),
                         Schließen => modal::Nachricht::VersteckeOverlay,
                     }
                 })
             },
-            AuswahlZustand::KurvenWeiche(kurven_weiche, als_message) => {
-                let als_message_clone = als_message.clone();
+            AuswahlZustand::KurvenWeiche(kurven_weiche, id) => {
+                let id_clone = id.klonen();
                 Element::from(weiche::Auswahl::neu(kurven_weiche.clone())).map(move |message| {
                     use weiche::Nachricht::*;
                     match message {
                         Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(als_message_clone(steuerung)),
+                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                                AnschlüsseAnpassen::KurvenWeiche(id_clone.klonen(), steuerung),
+                            )),
                         ),
                         Schließen => modal::Nachricht::VersteckeOverlay,
                     }
@@ -232,18 +248,16 @@ where
                     iced::widget::Button::new(Text::new("Ok"))
                         .on_press(modal::Nachricht::VersteckeOverlay),
                 )
+                .on_close(modal::Nachricht::VersteckeOverlay)
                 .width(Length::Shrink),
             )
             .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>)
         };
         let mut message_box_modal =
-            Modal::neu(auswahlzustand, zeige_message_box).schließe_bei_esc().debug();
+            Modal::neu(auswahlzustand, zeige_message_box).schließe_bei_esc();
         if let Some(message_box) = message_box {
-            // FIXME MessageBox wird nicht angezeigt!
-            println!("{message_box:?}");
-            message_box_modal = message_box_modal.initiales_overlay(|| message_box.clone());
+            message_box_modal = message_box_modal.initiales_overlay(message_box.clone());
         }
-        println!("{message_box_modal:?}");
         message_box_modal.into()
     }
 }
@@ -262,7 +276,7 @@ fn top_row<'t, L, S>(
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
-) -> Row<'t, modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>, Renderer<Thema>>
+) -> Row<'t, modal::Nachricht<AuswahlZustand, Nachricht<L, S>>, Renderer<Thema>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
@@ -345,7 +359,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     gleise: &'t Gleise<L>,
 ) -> Row<
     't,
-    modal::Nachricht<AuswahlZustand<L, S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
+    modal::Nachricht<AuswahlZustand, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
     Renderer<Thema>,
 > {
     let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();

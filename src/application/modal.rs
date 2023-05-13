@@ -89,15 +89,20 @@ enum OverlayElement {
 #[derive(Debug)]
 struct Zustand<Overlay> {
     overlay: Option<Overlay>,
+    initial: Option<Overlay>,
     aktualisiere_element: OverlayElement,
 }
 
 impl<Overlay> Zustand<Overlay> {
     /// Erstelle einen neuen Zustand für das [Modal]-Widget.
-    fn neu(overlay: Option<Overlay>) -> Self {
+    fn neu(overlay: Option<Overlay>) -> Self
+    where
+        Overlay: Clone,
+    {
+        let initial = overlay.clone();
         let aktualisiere_element =
             if overlay.is_some() { OverlayElement::Initial } else { OverlayElement::Aktuell };
-        Zustand { overlay, aktualisiere_element }
+        Zustand { overlay, initial, aktualisiere_element }
     }
 
     /// Zeige ein Overlay über dem Widget.
@@ -117,19 +122,18 @@ impl<Overlay> Zustand<Overlay> {
 pub struct Modal<'a, Overlay, ElementNachricht, R> {
     underlay: Element<'a, Nachricht<Overlay, ElementNachricht>, R>,
     overlay: Option<Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
-    initiales_overlay: Option<Box<dyn 'a + Fn() -> Overlay>>,
+    initiales_overlay: Option<Overlay>,
     zeige_overlay:
         Box<dyn 'a + Fn(&Overlay) -> Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     schließe_bei_esc: bool,
-    debug: bool,
 }
 
-impl<Overlay, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
+impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Modal")
             .field("underlay", &"<Element>")
             .field("overlay", &self.overlay.as_ref().map(|_| "<Element>"))
-            .field("initiales_overlay", &self.initiales_overlay.as_ref().map(|_| "<closure>"))
+            .field("initiales_overlay", &self.initiales_overlay)
             .field("zeige_overlay", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
             .finish()
@@ -190,7 +194,6 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
             initiales_overlay: None,
             zeige_overlay: Box::new(zeige_overlay),
             schließe_bei_esc: false,
-            debug: false,
         }
     }
 
@@ -199,19 +202,6 @@ impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R> {
         self.schließe_bei_esc = true;
         self
     }
-
-    pub fn debug(mut self) -> Self {
-        self.debug = true;
-        self
-    }
-}
-
-macro_rules! dprint {
-    ($modal:expr, $msg:expr) => {
-        if $modal.debug {
-            println!("{}: {}", line!(), $msg);
-        }
-    };
 }
 
 impl<'a, Overlay, ElementNachricht, R> Modal<'a, Overlay, ElementNachricht, R>
@@ -223,8 +213,8 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Setzte das initial angezeigte Overlay.
-    pub fn initiales_overlay(mut self, initiales_overlay: impl 'a + Fn() -> Overlay) -> Self {
-        self.initiales_overlay = Some(Box::new(initiales_overlay));
+    pub fn initiales_overlay(mut self, initiales_overlay: Overlay) -> Self {
+        self.initiales_overlay = Some(initiales_overlay);
         self
     }
 }
@@ -267,29 +257,25 @@ fn bearbeite_modal_nachrichten<'a, Overlay, ElementNachricht>(
 impl<'a, Overlay, ElementNachricht, R> Widget<ElementNachricht, R>
     for Modal<'a, Overlay, ElementNachricht, R>
 where
-    Overlay: 'static,
+    Overlay: 'static + Clone + PartialEq,
     ElementNachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     fn width(&self) -> Length {
-        dprint!(self, "width");
         self.underlay.as_widget().width()
     }
 
     fn height(&self) -> Length {
-        dprint!(self, "height");
         self.underlay.as_widget().height()
     }
 
     fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        dprint!(self, "layout");
         self.underlay.as_widget().layout(renderer, limits)
     }
 
     fn children(&self) -> Vec<Tree> {
-        dprint!(self, "children");
         vec![
             Tree::new(&self.underlay),
             Tree::new(self.overlay.as_ref().unwrap_or(&Element::from(Dummy))),
@@ -297,7 +283,6 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        dprint!(self, "diff");
         tree.diff_children(&[
             &self.underlay,
             self.overlay.as_ref().unwrap_or(&Element::from(Dummy)),
@@ -305,12 +290,10 @@ where
     }
 
     fn state(&self) -> tree::State {
-        dprint!(self, "state");
-        tree::State::new(Zustand::<Overlay>::neu(self.initiales_overlay.as_ref().map(|f| f())))
+        tree::State::new(Zustand::<Overlay>::neu(self.initiales_overlay.clone()))
     }
 
     fn tag(&self) -> Tag {
-        dprint!(self, "tag");
         Tag::of::<Zustand<Overlay>>()
     }
 
@@ -324,7 +307,6 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        dprint!(self, "draw");
         self.underlay.as_widget().draw(
             &state.children[0],
             renderer,
@@ -344,7 +326,6 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        dprint!(self, "mouse_interaction");
         self.underlay.as_widget().mouse_interaction(
             &state.children[0],
             layout,
@@ -361,7 +342,6 @@ where
         renderer: &R,
         operation: &mut dyn Operation<ElementNachricht>,
     ) {
-        dprint!(self, "operate");
         self.underlay.as_widget().operate(state, layout, renderer, &mut MapOperation { operation })
     }
 
@@ -375,7 +355,6 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, ElementNachricht>,
     ) -> event::Status {
-        dprint!(self, "on_event");
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
         if zustand.overlay.is_none() {
             let mut messages = Vec::new();
@@ -416,7 +395,10 @@ where
         let [state_underlay, state_overlay] = state.children.as_mut_slice() else {unreachable!("Invalide children-Anzahl!")};
         let element_overlay: Option<overlay::Element<'s, Nachricht<Overlay, ElementNachricht>, R>> =
             self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer);
-        // FIXME wenn sich initiales_overlay ändert wird der state nicht angepasst!
+        if zustand.initial != self.initiales_overlay {
+            // Wenn sich initiales_overlay ändert muss der Zustand zurückgesetzt werden.
+            *zustand = Zustand::<Overlay>::neu(self.initiales_overlay.clone());
+        }
         aktualisiere_overlay_element(
             &mut self.overlay,
             state_overlay,
@@ -425,23 +407,14 @@ where
             &mut zustand.aktualisiere_element,
         );
         let modal_overlay = &mut self.overlay;
-        dprint!(
-            self,
-            format!(
-                "overlay, element: {}, modal: {}",
-                element_overlay.is_some(),
-                modal_overlay.is_some()
-            )
-        );
-        let overlay: ModalOverlay<'s, 'a, Overlay, ElementNachricht, R> =
-            ModalOverlay { modal_overlay, element_overlay, zustand, state_overlay };
+        let overlay = ModalOverlay { modal_overlay, element_overlay, zustand, state_overlay };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
     }
 }
 
 impl<'a, Overlay, Nachricht, R> From<Modal<'a, Overlay, Nachricht, R>> for Element<'a, Nachricht, R>
 where
-    Overlay: 'static,
+    Overlay: 'static + Clone + PartialEq,
     Nachricht: 'a,
     R: 'a + Renderer,
     <R as Renderer>::Theme: container::StyleSheet,

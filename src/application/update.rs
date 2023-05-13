@@ -118,10 +118,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         gleis_art: &str,
         id: GleisId<T>,
         erzeuge_modal_zustand: impl Fn(Option<WS>) -> Zustand,
-        erzeuge_modal: impl Fn(
-            Zustand,
-            Arc<dyn Fn(Option<WS>) -> Nachricht<L, S>>,
-        ) -> AuswahlZustand<L, S>,
+        erzeuge_modal: impl Fn(Zustand, Arc<dyn Fn(Option<WS>) -> Nachricht<L, S>>) -> AuswahlZustand,
         als_nachricht: impl 'static + Fn(GleisId<T>, Option<WS>) -> AnschlüsseAnpassen,
     ) where
         T: 'static + for<'s> MitSteuerung<'s, Steuerung = Option<W>> + DatenAuswahl,

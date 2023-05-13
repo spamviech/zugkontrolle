@@ -39,15 +39,17 @@ use crate::{
         gleise::{
             self,
             daten::v2::BekannterZugtyp,
-            id::{AnyId, StreckenabschnittId},
+            id::{AnyId, GleisId, StreckenabschnittId},
             AnschlüsseAnpassen, GleisSteuerung, Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
-        kreuzung::KreuzungUnit,
+        kreuzung::{Kreuzung, KreuzungUnit},
         kurve::KurveUnit,
         weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
     steuerung::{
@@ -205,9 +207,7 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: Leiter, S> From<gleise::Nachricht>
-    for modal::Nachricht<AuswahlZustand<L, S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<gleise::Nachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
     fn from(nachricht: gleise::Nachricht) -> Self {
         match nachricht {
             gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
@@ -226,61 +226,21 @@ impl<L: Leiter, S> From<gleise::Nachricht>
                 GleisSteuerung::Kurve((id, startwert)) => {
                     todo!("AuswahlZustand::Kurve({id:?}, {startwert:?}")
                 },
-                GleisSteuerung::Weiche((id, startwert)) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
-                        Arc::new(move |steuerung| {
-                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::Weiche(
-                                id.klonen(),
-                                steuerung,
-                            ))
-                        }),
-                    ))
-                },
+                GleisSteuerung::Weiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                    AuswahlZustand::Weiche(startwert, WeichenId::Gerade(id)),
+                ),
                 GleisSteuerung::KurvenWeiche((id, startwert)) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(
-                        startwert,
-                        Arc::new(move |steuerung| {
-                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::KurvenWeiche(
-                                id.klonen(),
-                                steuerung,
-                            ))
-                        }),
-                    ))
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(startwert, id))
                 },
                 GleisSteuerung::DreiwegeWeiche((id, startwert)) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(
-                        startwert,
-                        Arc::new(move |steuerung| {
-                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::DreiwegeWeiche(
-                                id.klonen(),
-                                steuerung,
-                            ))
-                        }),
-                    ))
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(startwert, id))
                 },
-                GleisSteuerung::SKurvenWeiche((id, startwert)) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
-                        Arc::new(move |steuerung| {
-                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::SKurvenWeiche(
-                                id.klonen(),
-                                steuerung,
-                            ))
-                        }),
-                    ))
-                },
-                GleisSteuerung::Kreuzung((id, startwert)) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
-                        Arc::new(move |steuerung| {
-                            Nachricht::AnschlüsseAnpassen(AnschlüsseAnpassen::Kreuzung(
-                                id.klonen(),
-                                steuerung,
-                            ))
-                        }),
-                    ))
-                },
+                GleisSteuerung::SKurvenWeiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                    AuswahlZustand::Weiche(startwert, WeichenId::SKurve(id)),
+                ),
+                GleisSteuerung::Kreuzung((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                    AuswahlZustand::Weiche(startwert, WeichenId::Kreuzung(id)),
+                ),
             },
         }
     }
@@ -337,6 +297,23 @@ type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
+/// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
+#[derive(Debug, PartialEq)]
+pub enum WeichenId {
+    Gerade(GleisId<Weiche>),
+    SKurve(GleisId<SKurvenWeiche>),
+    Kreuzung(GleisId<Kreuzung>),
+}
+
+impl WeichenId {
+    fn klonen(&self) -> Self {
+        match self {
+            WeichenId::Gerade(id) => WeichenId::Gerade(id.klonen()),
+            WeichenId::SKurve(id) => WeichenId::SKurve(id.klonen()),
+            WeichenId::Kreuzung(id) => WeichenId::Kreuzung(id.klonen()),
+        }
+    }
+}
 
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::RichtungInformation,
@@ -350,49 +327,42 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 type ErstelleAnschlussNachricht<T, L, S> = Arc<dyn Fn(Option<T>) -> Nachricht<L, S>>;
 
 /// Zustand des Auswahl-Fensters.
-#[derive(zugkontrolle_macros::Clone)]
-#[zugkontrolle_clone(S: Clone)]
-pub enum AuswahlZustand<L: Leiter, S> {
+#[derive(Debug, PartialEq)]
+pub enum AuswahlZustand {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
     Streckenabschnitt,
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
     Geschwindigkeit,
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
-    Weiche(Option<WeicheSerialisiert>, ErstelleAnschlussNachricht<WeicheSerialisiert, L, S>),
+    Weiche(Option<WeicheSerialisiert>, WeichenId),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(
-        Option<DreiwegeWeicheSerialisiert>,
-        ErstelleAnschlussNachricht<DreiwegeWeicheSerialisiert, L, S>,
-    ),
+    DreiwegeWeiche(Option<DreiwegeWeicheSerialisiert>, GleisId<DreiwegeWeiche>),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(
-        Option<KurvenWeicheSerialisiert>,
-        ErstelleAnschlussNachricht<KurvenWeicheSerialisiert, L, S>,
-    ),
+    KurvenWeiche(Option<KurvenWeicheSerialisiert>, GleisId<KurvenWeiche>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen,
 }
 
-impl<L: Leiter, S> Debug for AuswahlZustand<L, S> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Clone for AuswahlZustand {
+    fn clone(&self) -> Self {
         match self {
-            AuswahlZustand::Streckenabschnitt => f.debug_tuple("Streckenabschnitt").finish(),
-            AuswahlZustand::Geschwindigkeit => f.debug_tuple("Geschwindigkeit").finish(),
-            AuswahlZustand::Weiche(startwert, _erstelle_nachricht) => {
-                f.debug_tuple("Weiche").field(startwert).field(&"<function>").finish()
+            AuswahlZustand::Streckenabschnitt => AuswahlZustand::Streckenabschnitt,
+            AuswahlZustand::Geschwindigkeit => AuswahlZustand::Geschwindigkeit,
+            AuswahlZustand::Weiche(startwert, id) => {
+                AuswahlZustand::Weiche(startwert.clone(), id.klonen())
             },
-            AuswahlZustand::DreiwegeWeiche(startwert, _erstelle_nachricht) => {
-                f.debug_tuple("DreiwegeWeiche").field(startwert).field(&"<function>").finish()
+            AuswahlZustand::DreiwegeWeiche(startwert, id) => {
+                AuswahlZustand::DreiwegeWeiche(startwert.clone(), id.klonen())
             },
-            AuswahlZustand::KurvenWeiche(startwert, _erstelle_nachricht) => {
-                f.debug_tuple("KurvenWeiche").field(startwert).field(&"<function>").finish()
+            AuswahlZustand::KurvenWeiche(startwert, id) => {
+                AuswahlZustand::KurvenWeiche(startwert.clone(), id.klonen())
             },
-            AuswahlZustand::ZeigeLizenzen => f.debug_tuple("ZeigeLizenzen").finish(),
+            AuswahlZustand::ZeigeLizenzen => AuswahlZustand::ZeigeLizenzen,
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct MessageBox {
     titel: String,
     nachricht: String,
