@@ -103,10 +103,11 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
+        weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
     ) -> Self {
         let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
-        let erzeuge_element = Self::erzeuge_element;
+        let erzeuge_element = move |zustand: &_| Self::erzeuge_element(weichen_art, zustand);
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
                       status: &mut event::Status| {
@@ -135,6 +136,7 @@ where
     }
 
     fn erzeuge_element(
+        weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
@@ -164,10 +166,11 @@ where
                     .on_press(InterneNachricht::Entfernen),
                 ),
         );
-        let card: Card<'t, InterneNachricht<Richtung>, R> = Card::new(Text::new("Weiche"), column)
-            .on_close(InterneNachricht::Schließen)
-            .width(Length::Shrink)
-            .height(Length::Shrink);
+        let card: Card<'t, InterneNachricht<Richtung>, R> =
+            Card::new(Text::new(weichen_art), column)
+                .on_close(InterneNachricht::Schließen)
+                .width(Length::Shrink)
+                .height(Length::Shrink);
         card.into()
     }
 }

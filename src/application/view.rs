@@ -175,56 +175,71 @@ where
                 })
             },
             AuswahlZustand::Weiche(weiche, weichen_id) => {
+                let weichen_art = match &weichen_id {
+                    WeichenId::Gerade(_id) => "Weiche",
+                    WeichenId::SKurve(_id) => "S-Kurven-Weiche",
+                    WeichenId::Kreuzung(_id) => "Kreuzung",
+                };
                 let weichen_id_clone = weichen_id.klonen();
-                Element::from(weiche::Auswahl::neu(weiche.clone())).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => {
-                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                                Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
-                                    WeichenId::Gerade(id) => {
-                                        AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
-                                    },
-                                    WeichenId::SKurve(id) => {
-                                        AnschlüsseAnpassen::SKurvenWeiche(id.klonen(), steuerung)
-                                    },
-                                    WeichenId::Kreuzung(id) => {
-                                        AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
-                                    },
-                                }),
-                            ))
-                        },
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
-                })
+                Element::from(weiche::Auswahl::neu(weichen_art, weiche.clone())).map(
+                    move |message| {
+                        use weiche::Nachricht::*;
+                        match message {
+                            Festlegen(steuerung) => {
+                                modal::Nachricht::Underlay(modal::Nachricht::Underlay(
+                                    Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
+                                        WeichenId::Gerade(id) => {
+                                            AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
+                                        },
+                                        WeichenId::SKurve(id) => AnschlüsseAnpassen::SKurvenWeiche(
+                                            id.klonen(),
+                                            steuerung,
+                                        ),
+                                        WeichenId::Kreuzung(id) => {
+                                            AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
+                                        },
+                                    }),
+                                ))
+                            },
+                            Schließen => modal::Nachricht::VersteckeOverlay,
+                        }
+                    },
+                )
             },
             AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
                 let id_clone = id.klonen();
-                Element::from(weiche::Auswahl::neu(dreiwege_weiche.clone())).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                                AnschlüsseAnpassen::DreiwegeWeiche(id_clone.klonen(), steuerung),
-                            )),
-                        ),
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
-                })
+                Element::from(weiche::Auswahl::neu("Dreiwege-Weiche", dreiwege_weiche.clone())).map(
+                    move |message| {
+                        use weiche::Nachricht::*;
+                        match message {
+                            Festlegen(steuerung) => modal::Nachricht::Underlay(
+                                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                                    AnschlüsseAnpassen::DreiwegeWeiche(
+                                        id_clone.klonen(),
+                                        steuerung,
+                                    ),
+                                )),
+                            ),
+                            Schließen => modal::Nachricht::VersteckeOverlay,
+                        }
+                    },
+                )
             },
             AuswahlZustand::KurvenWeiche(kurven_weiche, id) => {
                 let id_clone = id.klonen();
-                Element::from(weiche::Auswahl::neu(kurven_weiche.clone())).map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                                AnschlüsseAnpassen::KurvenWeiche(id_clone.klonen(), steuerung),
-                            )),
-                        ),
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
-                })
+                Element::from(weiche::Auswahl::neu("Kurven-Weiche", kurven_weiche.clone())).map(
+                    move |message| {
+                        use weiche::Nachricht::*;
+                        match message {
+                            Festlegen(steuerung) => modal::Nachricht::Underlay(
+                                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                                    AnschlüsseAnpassen::KurvenWeiche(id_clone.klonen(), steuerung),
+                                )),
+                            ),
+                            Schließen => modal::Nachricht::VersteckeOverlay,
+                        }
+                    },
+                )
             },
             AuswahlZustand::ZeigeLizenzen => {
                 Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(*scrollable_style))
