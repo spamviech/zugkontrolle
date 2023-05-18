@@ -4,16 +4,12 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::Arc,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
 
-use iced::{
-    widget::{button, scrollable},
-    Command, Renderer,
-};
-use log::{debug, error};
+use iced::{Command, Renderer};
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -25,15 +21,13 @@ use crate::{
     application::{
         bewegen::Bewegung,
         geschwindigkeit::{self, LeiterAnzeige},
-        lizenzen, modal, streckenabschnitt,
+        streckenabschnitt,
         style::thema::Thema,
-        weiche, AnschlüsseAnpassen, AnyGleisUnit, AuswahlZustand, MessageBox, Nachricht,
-        Zugkontrolle,
+        AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
-        daten::{v2::BekannterZugtyp, DatenAuswahl, StreckenabschnittMap},
-        id::{mit_any_id, AnyId, GleisId, StreckenabschnittId, StreckenabschnittIdRef},
-        steuerung::MitSteuerung,
+        daten::{v2::BekannterZugtyp, StreckenabschnittMap},
+        id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
         AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
@@ -42,7 +36,6 @@ use crate::{
         streckenabschnitt::Streckenabschnitt,
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
-    zugtyp::Zugtyp,
 };
 
 impl<L, S> Nachricht<L, S>
@@ -61,25 +54,16 @@ where
     }
 }
 
-// FIXME methoden als pub(crate) angegeben um unused-Warnungen zu erzeugen (sollen pub sein)
-
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
-    pub(crate) fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        self.message_box = Some(MessageBox { titel, nachricht })
-    }
-
-    /// Schließe die [MessageBox].
-    #[inline(always)]
-    pub(crate) fn schließe_message_box(&mut self) {
-        // self.message_box.verstecke_modal()
-        todo!("schließe_message_box")
+    pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
+        self.message_box = Some(MessageBox { titel, nachricht });
     }
 
     /// Führe eine Aktion aus.
-    pub(crate) fn aktion_ausführen<Aktion: Ausführen<L> + Debug>(&mut self, mut aktion: Aktion)
+    pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug>(&mut self, mut aktion: Aktion)
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
@@ -90,7 +74,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
-    pub(crate) fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
+    pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
         aktualisieren: Option<Nachricht<L, S>>,
@@ -112,101 +96,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    #[allow(single_use_lifetimes)]
-    fn zeige_anschlüsse_anpassen_aux<T, W, WS, Zustand>(
-        &mut self,
-        gleis_art: &str,
-        id: GleisId<T>,
-        erzeuge_modal_zustand: impl Fn(Option<WS>) -> Zustand,
-        erzeuge_modal: impl Fn(Zustand, Arc<dyn Fn(Option<WS>) -> Nachricht<L, S>>) -> AuswahlZustand,
-        als_nachricht: impl 'static + Fn(GleisId<T>, Option<WS>) -> AnschlüsseAnpassen,
-    ) where
-        T: 'static + for<'s> MitSteuerung<'s, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere<WS>,
-    {
-        let steuerung_res = self.gleise.mit_steuerung(&id, |steuerung| {
-            let steuerung_save = steuerung.opt_as_ref().map(|steuerung| steuerung.serialisiere());
-            // self.auswahl.zeige_modal(erzeuge_modal(
-            //     erzeuge_modal_zustand(steuerung_save),
-            //     Arc::new(move |steuerung| {
-            //         Nachricht::AnschlüsseAnpassen(als_nachricht(id.klonen(), steuerung))
-            //     }),
-            // ))
-            todo!("zeige_anschlüsse_anpassen_aux");
-            ()
-        });
-        if let Err(fehler) = steuerung_res {
-            self.zeige_message_box(
-                "Gleis entfernt!".to_owned(),
-                format!("Anschlüsse {gleis_art} anpassen für entferntes Gleis: {fehler:?}!"),
-            )
-        }
-    }
-
-    /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für ein Gleis.
-    pub(crate) fn zeige_anschlüsse_anpassen(&mut self, any_id: AnyId) {
-        match any_id {
-            AnyId::Gerade(id) => {
-                debug!("Anschlüsse für Gerade {:?} anpassen.", id)
-            },
-            AnyId::Kurve(id) => {
-                debug!("Anschlüsse für Kurve {:?} anpassen.", id)
-            },
-            AnyId::Weiche(id) => {
-                // self.zeige_anschlüsse_anpassen_aux(
-                //     "Weiche",
-                //     id,
-                //     weiche::Zustand::neu,
-                //     AuswahlZustand::Weiche,
-                //     AnschlüsseAnpassen::Weiche,
-                // );
-                todo!("zeige_anschlüsse_anpassen")
-            },
-            AnyId::DreiwegeWeiche(id) => {
-                // self.zeige_anschlüsse_anpassen_aux(
-                //     "DreiwegeWeiche",
-                //     id,
-                //     weiche::Zustand::neu,
-                //     AuswahlZustand::DreiwegeWeiche,
-                //     AnschlüsseAnpassen::DreiwegeWeiche,
-                // );
-                todo!("zeige_anschlüsse_anpassen")
-            },
-            AnyId::KurvenWeiche(id) => {
-                // self.zeige_anschlüsse_anpassen_aux(
-                //     "KurvenWeiche",
-                //     id,
-                //     weiche::Zustand::neu,
-                //     AuswahlZustand::KurvenWeiche,
-                //     AnschlüsseAnpassen::KurvenWeiche,
-                // );
-                todo!("zeige_anschlüsse_anpassen")
-            },
-            AnyId::SKurvenWeiche(id) => {
-                // self.zeige_anschlüsse_anpassen_aux(
-                //     "SKurvenWeiche",
-                //     id,
-                //     weiche::Zustand::neu,
-                //     AuswahlZustand::Weiche,
-                //     AnschlüsseAnpassen::SKurvenWeiche,
-                // );
-                todo!("zeige_anschlüsse_anpassen")
-            },
-            AnyId::Kreuzung(id) => {
-                // self.zeige_anschlüsse_anpassen_aux(
-                //     "Kreuzung",
-                //     id,
-                //     weiche::Zustand::neu,
-                //     AuswahlZustand::Weiche,
-                //     AnschlüsseAnpassen::Kreuzung,
-                // );
-                todo!("zeige_anschlüsse_anpassen")
-            },
-        }
-    }
-
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
-    pub(crate) fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
+    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
             .as_ref()
@@ -247,24 +138,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Schließe das Auswahl-Fenster.
-    #[inline(always)]
-    pub(crate) fn schließe_auswahl(&mut self) {
-        // self.auswahl.verstecke_modal()
-        todo!("schließe_auswahl")
-    }
-
-    /// Zeige das Auswahl-Fenster zum Anpassen der Anschlüsse für einen [Streckenabschnitt].
-    pub(crate) fn zeige_auswahl_streckenabschnitt(&mut self) {
-        // self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
-        //     streckenabschnitt::AuswahlZustand::neu(&self.gleise),
-        // ))
-        todo!("zeige_auswahl_streckenabschnitt")
-    }
-
     /// Wähle den aktuellen [Streckenabschnitt].
     #[inline(always)]
-    pub(crate) fn streckenabschnitt_wählen(
+    pub fn streckenabschnitt_wählen(
         &mut self,
         streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
     ) {
@@ -272,7 +148,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Füge einen neuen [Streckenabschnitt] hinzu.
-    pub(crate) fn streckenabschnitt_hinzufügen(
+    pub fn streckenabschnitt_hinzufügen(
         &mut self,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
@@ -329,19 +205,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                     farbe,
                 ));
                 let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
-                // match self.auswahl.overlay_mut() {
-                //     Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
-                //         streckenabschnitt_auswahl.hinzufügen(&name, &streckenabschnitt);
-                //     },
-                //     modal => {
-                //         error!("Falscher Modal-State bei HinzufügenStreckenabschnitt: {:?}", modal);
-                //         self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
-                //             streckenabschnitt::AuswahlZustand::neu(&self.gleise),
-                //         ))
-                //     },
-                // }
-                todo!("streckenabschnitt_hinzufügen");
-                let _ = ();
 
                 if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
                     geschwindigkeit,
@@ -371,7 +234,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Lösche einen [Streckenabschnitt].
-    pub(crate) fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
+    pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
         if self
             .streckenabschnitt_aktuell
             .as_ref()
@@ -379,20 +242,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         {
             self.streckenabschnitt_aktuell = None
         }
-
-        // match self.auswahl.overlay_mut() {
-        //     Some(AuswahlZustand::Streckenabschnitt(streckenabschnitt_auswahl)) => {
-        //         streckenabschnitt_auswahl.entfernen(&streckenabschnitt_id.name);
-        //     },
-        //     modal => {
-        //         error!("Falscher Modal-State bei LöscheStreckenabschnitt: {:?}", modal);
-        //         self.auswahl.zeige_modal(AuswahlZustand::Streckenabschnitt(
-        //             streckenabschnitt::AuswahlZustand::neu(&self.gleise),
-        //         ))
-        //     },
-        // }
-        todo!("streckenabschnitt_löschen");
-        let _ = ();
 
         let nicht_gefunden_nachricht = format!(
             "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
@@ -411,7 +260,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
-    pub(crate) fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
+        // FIXME führt zu einem deadlock!
+        println!("gleis_setzte_streckenabschnitt");
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = mit_any_id!(
                 &mut any_id,
@@ -435,12 +286,12 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Einstellen ob anklicken eines Gleises dessen [Streckenabschnitt] zum
     /// aktuellen Streckenabschnitt ändern soll.
     #[inline(always)]
-    pub(crate) fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
+    pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
         self.streckenabschnitt_aktuell_festlegen = festlegen
     }
 
     /// Setze die Farbe des Speichern-Knopfes zurück.
-    pub(crate) fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
+    pub fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
         if let Some(färbe_zeit) = self.speichern_gefärbt {
             if nachricht_zeit == färbe_zeit {
                 // FIXME entferne_speichern_farbe
@@ -451,7 +302,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub(crate) fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnschlüsseAnpassen) {
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnschlüsseAnpassen) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
@@ -480,55 +331,23 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Beende die Bewegung des Pivot-Punktes.
     #[inline(always)]
-    pub(crate) fn bewegung_beenden(&mut self) {
+    pub fn bewegung_beenden(&mut self) {
         self.bewegung = None
     }
 
     /// Setze den Pivot-Punkt auf den (0,0) zurück.
     #[inline(always)]
-    pub(crate) fn bewegung_zurücksetzen(&mut self) {
+    pub fn bewegung_zurücksetzen(&mut self) {
         self.gleise.setze_pivot(Vektor::null_vektor())
-    }
-
-    /// Zeige die Lizenzen der verwendeter Open-Source Bibliotheken.
-    pub(crate) fn zeige_lizenzen(&mut self) {
-        // self.auswahl.zeige_modal(AuswahlZustand::ZeigeLizenzen(
-        //     lizenzen::Zustand::neu_mit_verwendeten_lizenzen(),
-        // ))
-        todo!("zeige_lizenzen")
     }
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
-    /// Zeige das Auswahl-Fenster zum Einstellen einer
-    /// [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    #[inline(always)]
-    pub(crate) fn zeige_auswahl_geschwindigkeit(&mut self) {
-        // self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-        //     geschwindigkeit::AuswahlZustand::neu(self.gleise.geschwindigkeiten()),
-        // ))
-        todo!("zeige_auswahl_geschwindigkeit")
-    }
-
     /// Entferne eine [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    pub(crate) fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
-        let name_clone = name.clone();
+    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
-
-        // match self.auswahl.overlay_mut() {
-        //     Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-        //         geschwindigkeit_auswahl.entfernen(&name_clone);
-        //     },
-        //     modal => {
-        //         error!("Falscher Modal-State bei LöscheGeschwindigkeit: {:?}", modal);
-        //         self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-        //             geschwindigkeit::AuswahlZustand::neu(self.gleise.geschwindigkeiten()),
-        //         ))
-        //     },
-        // }
-        todo!("geschwindigkeit_entfernen")
     }
 }
 
@@ -538,7 +357,7 @@ where
     S: Debug + Clone + Reserviere<L, Arg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
-    pub(crate) fn geschwindigkeit_hinzufügen(
+    pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
         geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
@@ -558,45 +377,6 @@ where
         let (fehler, anschlüsse) =
             match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
-                    // match auswahl.overlay_mut() {
-                    //     Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-                    //         geschwindigkeit_auswahl.hinzufügen(&name, &geschwindigkeit)
-                    //     },
-                    //     modal => {
-                    //         error!(
-                    //             "Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}",
-                    //             modal
-                    //         );
-                    //         self.auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-                    //             geschwindigkeit::AuswahlZustand::neu(
-                    //                 self.gleise.geschwindigkeiten(),
-                    //             ),
-                    //         ))
-                    //     },
-                    // }
-                    todo!("geschwindigkeit_hinzufügen");
-                    let _ = ();
-
-                    let Zugtyp {
-                        pwm_frequenz,
-                        verhältnis_fahrspannung_überspannung,
-                        stopp_zeit,
-                        umdrehen_zeit,
-                        ..
-                    } = &*self.gleise.zugtyp();
-                    // let _ = geschwindigkeiten.insert(
-                    //     name.clone(),
-                    //     <L as LeiterAnzeige<S>>::anzeige_zustand_neu(
-                    //         name.clone(),
-                    //         *pwm_frequenz,
-                    //         verhältnis_fahrspannung_überspannung.clone(),
-                    //         *stopp_zeit,
-                    //         umdrehen_zeit.clone(),
-                    //     ),
-                    // );
-                    todo!("geschwindigkeit_hinzufügen");
-                    let _ = ();
-
                     let streckenabschnitt_map = if let Some((serialisiert, streckenabschnitt_map)) =
                         alt_serialisiert_und_map
                     {
@@ -643,20 +423,6 @@ where
                 );
             }
             if let Some(fehler) = fehler {
-                // match auswahl.overlay_mut() {
-                //     Some(AuswahlZustand::Geschwindigkeit(geschwindigkeit_auswahl)) => {
-                //         geschwindigkeit_auswahl.entfernen(&name)
-                //     },
-                //     modal => {
-                //         error!("Falscher Modal-State bei HinzufügenGeschwindigkeit: {:?}", modal);
-                //         auswahl.zeige_modal(AuswahlZustand::Geschwindigkeit(
-                //             geschwindigkeit::AuswahlZustand::neu(gleise.geschwindigkeiten()),
-                //         ))
-                //     },
-                // }
-                todo!("geschwindigkeit_hinzufügen");
-                let _ = ();
-
                 fehlermeldung.push_str(&format!(
                     "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
                     fehler, serialisiert_clone
@@ -671,7 +437,7 @@ where
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
     #[inline(always)]
-    pub(crate) fn async_fehler(&mut self, titel: String, nachricht: String) {
+    pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
     }
 }
@@ -684,13 +450,13 @@ where
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     #[inline(always)]
-    pub(crate) fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
     }
 
     /// Tick für eine Bewegung des Pivot-Punktes.
-    pub(crate) fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L, S>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L, S>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -714,7 +480,7 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub(crate) fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L, S>>> {
+    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L, S>>> {
         let ergebnis = self.gleise.speichern(&pfad);
         match ergebnis {
             Ok(()) => {
@@ -740,7 +506,7 @@ where
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Lade einen neuen Zustand aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub(crate) fn laden(&mut self, pfad: String)
+    pub fn laden(&mut self, pfad: String)
     where
         L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
