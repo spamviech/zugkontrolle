@@ -169,12 +169,6 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-enum KonstanteSpannungAnpassen {
-    Hinzufügen,
-    Entfernen(NonZeroUsize),
-}
-
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
 #[derive(Debug, PartialEq, Eq)]
 struct AuswahlZustand {
@@ -212,21 +206,6 @@ impl AuswahlZustand {
         (name, geschwindigkeit): (&Name, &GeschwindigkeitSerialisiert<LeiterSerialisiert>),
     ) -> (UniCaseOrd<Name>, String) {
         (UniCaseOrd::neu(name.clone()), geschwindigkeit.to_string())
-    }
-
-    /// Füge eine neue [Geschwindigkeit] hinzu.
-    fn hinzufügen<LeiterSerialisiert: Display>(
-        &mut self,
-        name: &Name,
-        geschwindigkeit: &GeschwindigkeitSerialisiert<LeiterSerialisiert>,
-    ) {
-        let (key, value) = Self::iter_map((name, geschwindigkeit));
-        let _ = self.geschwindigkeiten.insert(key, value);
-    }
-
-    /// Entferne eine [Geschwindigkeit].
-    fn entfernen(&mut self, name: &Name) {
-        let _ = self.geschwindigkeiten.remove(&UniCaseOrd::neu(name.clone()));
     }
 }
 

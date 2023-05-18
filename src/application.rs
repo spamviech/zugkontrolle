@@ -617,10 +617,13 @@ where
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                todo!("AnschlüsseAnpassen({anschlüsse_anpassen:?})");
-                // if let Some(nachricht) = self.anschlüsse_anpassen(anschlüsse_anpassen) {
-                //     command = nachricht.als_command()
-                // }
+                if let Some(nachricht) =
+                    self.anschlüsse_anpassen::<AuswahlZustand>(anschlüsse_anpassen)
+                {
+                    println!("{nachricht:?}");
+                    // command = nachricht.als_command();
+                    // TODO verstecke AuswahlZustand
+                }
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),

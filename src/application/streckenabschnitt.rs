@@ -148,32 +148,6 @@ impl AuswahlZustand {
             (streckenabschnitt.lock_anschluss().to_string(), streckenabschnitt.farbe.clone()),
         )
     }
-
-    /// Ersetze die angezeigten Streckenabschnitte mit dem Argument.
-    fn update<'t>(
-        &mut self,
-        streckenabschnitte: impl Iterator<Item = (&'t Name, &'t Streckenabschnitt)>,
-    ) {
-        self.streckenabschnitte.clear();
-        self.streckenabschnitte.extend(streckenabschnitte.map(Self::iter_map));
-    }
-
-    /// Entferne den Streckenabschnitt mit übergebenen Namen.
-    fn entfernen(&mut self, name: &Name) {
-        let _ = self.streckenabschnitte.remove(&UniCaseOrd::neu(name.clone()));
-    }
-
-    /// Füge einen neuen Streckenabschnitt hinzu.
-    /// Falls der Name bereits existiert wird der bisherige ersetzt.
-    fn hinzufügen(&mut self, name: &Name, streckenabschnitt: &Streckenabschnitt) {
-        let (key, value) = Self::iter_map((name, streckenabschnitt));
-        let _ = self.streckenabschnitte.insert(key, value);
-    }
-
-    /// Erhalte den aktuell konfigurierten Streckenabschnitt.
-    fn streckenabschnitt(&self) -> (Name, Farbe, OutputSerialisiert) {
-        (Name(self.neu_name.clone()), self.neu_farbe, self.neu_anschluss.clone())
-    }
 }
 
 #[derive(Debug, Clone)]
