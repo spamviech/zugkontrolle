@@ -451,10 +451,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub(crate) fn anschlüsse_anpassen<Overlay>(
-        &mut self,
-        anschlüsse_anpassen: AnschlüsseAnpassen,
-    ) -> Option<modal::Nachricht<Overlay, Nachricht<L, S>>> {
+    pub(crate) fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnschlüsseAnpassen) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
@@ -478,9 +475,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
-            None
-        } else {
-            Some(modal::Nachricht::VersteckeOverlay)
         }
     }
 
