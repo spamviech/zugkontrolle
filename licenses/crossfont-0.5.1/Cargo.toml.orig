@@ -1,0 +1,41 @@
+[package]
+name = "crossfont"
+version = "0.5.1"
+description = "Cross platform native font loading and rasterization"
+authors = ["Christian Duerr <contact@christianduerr.com>", "Joe Wilm <joe@jwilm.com>"]
+repository = "https://github.com/alacritty/crossfont.git"
+documentation = "https://docs.rs/crossfont"
+license = "Apache-2.0"
+readme = "README.md"
+categories = ["gui", "os"]
+keywords = ["font"]
+edition = "2021"
+rust-version = "1.56.0"
+
+[dependencies]
+libc = "0.2"
+foreign-types = "0.5"
+log = "0.4"
+
+[target.'cfg(not(any(target_os = "macos", windows)))'.dependencies]
+servo-fontconfig = "0.5.1"
+freetype-rs = "0.26"
+
+[target.'cfg(not(any(target_os = "macos", windows)))'.build-dependencies]
+pkg-config = "0.3"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.24"
+core-foundation = "0.9"
+core-text = "19"
+core-graphics = "0.22"
+core-foundation-sys = "0.8"
+objc = "0.2.7"
+once_cell = "1.12"
+
+[target.'cfg(windows)'.dependencies]
+dwrote = { version = "0.11" }
+winapi = { version = "0.3", features = ["impl-default"] }
+
+[features]
+force_system_fontconfig = ["servo-fontconfig/force_system_lib"]

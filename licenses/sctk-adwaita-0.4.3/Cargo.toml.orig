@@ -1,0 +1,23 @@
+[package]
+name = "sctk-adwaita"
+version = "0.4.3"
+edition = "2021"
+authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
+keywords = ["sctk"]
+license = "MIT"
+repository = "https://github.com/PolyMeilex/sctk-adwaita"
+documentation = "https://docs.rs/sctk-adwaita"
+description = "Adwaita-like SCTK Frame"
+
+[dependencies]
+smithay-client-toolkit = "0.16"
+tiny-skia = { version = "0.7.0", features = ["std", "simd"] }
+log = "0.4"
+
+crossfont = { version = "0.5.0", features = [
+    "force_system_fontconfig",
+], optional = true }
+
+[features]
+# default = ["title"]
+title = ["crossfont"]
