@@ -1,5 +1,5 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
-//! [Canvas](crate::application::touch_canvas::Canvas).
+//! [Canvas](iced::widget::canvas::Canvas).
 
 use std::{
     collections::hash_map::Entry, convert::identity, fmt::Debug, iter, sync::Arc, time::Instant,
@@ -81,16 +81,24 @@ type StKurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
 >;
 
 // FIXME sind die ganzen Typ-Aliase notwendig? Record-Felder wären vmtl. besser
+/// [GleisId] und serialisierte Steuerung eines Gleises.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum GleisSteuerung {
+    /// [GleisId] und [KontaktSerialisiert] einer [Gerade].
     Gerade(IdUndSteuerungSerialisiert<Gerade, Option<KontaktSerialisiert>>),
+    /// [GleisId] und [KontaktSerialisiert] einer [Kurve].
     Kurve(IdUndSteuerungSerialisiert<Kurve, Option<KontaktSerialisiert>>),
+    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Weiche].
     Weiche(IdUndSteuerungSerialisiert<Weiche, Option<StWeicheSerialisiert>>),
+    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [KurvenWeiche].
     KurvenWeiche(IdUndSteuerungSerialisiert<KurvenWeiche, Option<StKurvenWeicheSerialisiert>>),
+    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [DreiwegeWeiche].
     DreiwegeWeiche(
         IdUndSteuerungSerialisiert<DreiwegeWeiche, Option<StDreiwegeWeicheSerialisiert>>,
     ),
+    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [SKurvenWeiche].
     SKurvenWeiche(IdUndSteuerungSerialisiert<SKurvenWeiche, Option<StWeicheSerialisiert>>),
+    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Kreuzung].
     Kreuzung(IdUndSteuerungSerialisiert<Kreuzung, Option<StWeicheSerialisiert>>),
 }
 
@@ -750,8 +758,7 @@ fn streckenabschnitt_entfernen<T>(
 //      Id auch in Gehalten durch AnyGleis ersetzen
 // AnschlüsseAnpassen(Arc<Mutex<AnyGleis>>)
 //      Muss in Arc<Mutex<_>> sein, da in Nachricht aus update keine Referenz aus self enthalten kann.
-/// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
-/// [Canvas](crate::application::touch_canvas::Canvas).
+/// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [Canvas](iced::widget::canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
 #[non_exhaustive]
 pub enum Nachricht {
@@ -1002,7 +1009,7 @@ pub enum AnschlüsseAnpassen {
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum AnschlüsseAnpassenFehler {
-    /// Ein Fehler beim [Reservieren](Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
+    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
         fehler: NonEmpty<anschluss::Fehler>,

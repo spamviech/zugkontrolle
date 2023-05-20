@@ -53,7 +53,7 @@ pub mod v2;
 pub struct Gleis<T> {
     /// Wie sieht da Gleis aus, welche [Anschlüsse](anschluss::Anschluss) hat es.
     pub definition: T,
-    /// Wo auf dem [Canvas](crate::application::touch_canvas::Canvas) wird das Gleis gezeichnet.
+    /// Wo auf dem [Canvas](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
     pub position: Position,
 }
 

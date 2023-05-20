@@ -45,23 +45,18 @@ pub struct Gpio;
 
 #[cfg(not(raspi))]
 impl Gpio {
-    /// Constructs a new `Gpio`.
+    /// Constructs a new Gpio.
     pub fn new() -> Result<Gpio> {
         Ok(Gpio)
     }
 
-    /// Returns a [`Pin`] for the specified BCM GPIO pin number.
+    /// Returns a [Pin] for the specified BCM GPIO pin number.
     ///
-    /// Retrieving a GPIO pin grants access to the pin through an owned [`Pin`] instance.
+    /// Retrieving a GPIO pin grants access to the pin through an owned [Pin] instance.
     /// If the pin is already in use, or the GPIO peripheral doesn't expose a pin with the
-    /// specified number, `get` returns `Err(`[`Error::PinNotAvailable`]`)`. After a [`Pin`]
-    /// (or a derived [`InputPin`], [`OutputPin`]) goes out of scope, it
-    /// can be retrieved again through another `get` call.
-    ///
-    /// [`Pin`]: struct.Pin.html
-    /// [`InputPin`]: struct.InputPin.html
-    /// [`OutputPin`]: struct.OutputPin.html
-    /// [`Error::PinNotAvailable`]: enum.Error.html#variant.PinNotAvailable
+    /// specified number, get returns Err([Error::PinNotAvailable]). After a [Pin]
+    /// (or a derived [InputPin], [OutputPin]) goes out of scope, it
+    /// can be retrieved again through another get call.
     pub fn get(&self, pin: u8) -> Result<Pin> {
         if GpioStore::lock_static().pins.remove(&pin) {
             Ok(Pin(pin))
@@ -97,55 +92,44 @@ impl Pin {
         self.0
     }
 
-    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
     /// and disables the pin's built-in pull-up/pull-down resistors.
-    ///
-    /// [`InputPin`]: struct.InputPin.html
-    /// [`Input`]: enum.Mode.html#variant.Input
     pub fn into_input(self) -> InputPin {
         InputPin(self, PullUpDown::Off)
     }
 
-    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
     /// and enables the pin's built-in pull-down resistor.
     ///
-    /// The pull-down resistor is disabled when `InputPin` goes out of scope if [`reset_on_drop`]
-    /// is set to `true` (default).
-    ///
-    /// [`InputPin`]: struct.InputPin.html
-    /// [`Input`]: enum.Mode.html#variant.Input
-    /// [`reset_on_drop`]: struct.InputPin.html#method.set_reset_on_drop
+    /// The pull-down resistor is disabled when InputPin goes out of scope if `reset_on_drop`
+    /// is set to true (default).
     pub fn into_input_pulldown(self) -> InputPin {
         InputPin(self, PullUpDown::PullDown)
     }
 
-    /// Consumes the `Pin` and returns an [`InputPin`]. Sets the mode to [`Input`]
+    /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
     /// and enables the pin's built-in pull-up resistor.
     ///
-    /// The pull-up resistor is disabled when `InputPin` goes out of scope if [`reset_on_drop`]
-    /// is set to `true` (default).
-    ///
-    /// [`InputPin`]: struct.InputPin.html
-    /// [`Input`]: enum.Mode.html#variant.Input
-    /// [`reset_on_drop`]: struct.InputPin.html#method.set_reset_on_drop
+    /// The pull-up resistor is disabled when InputPin goes out of scope if `reset_on_drop`
+    /// is set to true (default).
     pub fn into_input_pullup(self) -> InputPin {
         InputPin(self, PullUpDown::PullUp)
     }
 
-    /// Consumes the `Pin` and returns an [`OutputPin`]. Sets the mode to [`Mode::Output`]
+    /// Consumes the Pin and returns an [OutputPin]. Sets the mode to [Mode::Output]
     /// and leaves the logic level unchanged.
     pub fn into_output(self) -> OutputPin {
         OutputPin(self, Level::Low)
     }
 
-    /// Consumes the `Pin` and returns an [`OutputPin`]. Changes the logic level to
-    /// [`Level::Low`] and then sets the mode to [`Mode::Output`].
+    /// Consumes the Pin and returns an [OutputPin]. Changes the logic level to
+    /// [Level::Low] and then sets the mode to [Mode::Output].
     pub fn into_output_low(self) -> OutputPin {
         OutputPin(self, Level::Low)
     }
 
-    /// Consumes the `Pin` and returns an [`OutputPin`]. Changes the logic level to
-    /// [`Level::High`] and then sets the mode to [`Mode::Output`].
+    /// Consumes the [Pin] and returns an [OutputPin]. Changes the logic level to
+    /// [Level::High] and then sets the mode to [Mode::Output].
     pub fn into_output_high(self) -> OutputPin {
         OutputPin(self, Level::High)
     }
@@ -185,17 +169,13 @@ impl InputPin {
         Level::Low
     }
 
-    /// Reads the pin's logic level, and returns `true` if it's set to [`Low`].
-    ///
-    /// [`Low`]: enum.Level.html#variant.Low
+    /// Reads the pin's logic level, and returns true if it's set to [Level::Low].
     pub fn is_low(&self) -> bool {
         debug!("{:?}.is_low()", self);
         true
     }
 
-    /// Reads the pin's logic level, and returns `true` if it's set to [`High`].
-    ///
-    /// [`High`]: enum.Level.html#variant.High
+    /// Reads the pin's logic level, and returns true if it's set to [Level::High].
     pub fn is_high(&self) -> bool {
         debug!("{:?}.is_high()", self);
         false
@@ -204,13 +184,10 @@ impl InputPin {
     /// Configures an asynchronous interrupt trigger, which executes the callback on a
     /// separate thread when the interrupt is triggered.
     ///
-    /// The callback closure or function pointer is called with a single [`Level`] argument.
+    /// The callback closure or function pointer is called with a single [Level] argument.
     ///
     /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared
-    /// when `set_async_interrupt` is called, or when `InputPin` goes out of scope.
-    ///
-    /// [`clear_async_interrupt`]: #method.clear_async_interrupt
-    /// [`Level`]: enum.Level.html
+    /// when set_async_interrupt is called, or when InputPin goes out of scope.
     pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, _callback: C) -> Result<()>
     where
         C: FnMut(Level) + Send + 'static,
@@ -244,16 +221,12 @@ impl OutputPin {
         self.0.pin()
     }
 
-    /// Returns `true` if the pin's output state is set to [`Low`].
-    ///
-    /// [`Low`]: enum.Level.html#variant.Low
+    /// Returns true if the pin's output state is set to [Level::Low].
     pub fn is_set_low(&self) -> bool {
         self.1 == Level::Low
     }
 
-    /// Returns `true` if the pin's output state is set to [`High`].
-    ///
-    /// [`High`]: enum.Level.html#variant.High
+    /// Returns true if the pin's output state is set to [Level::High].
     pub fn is_set_high(&self) -> bool {
         self.1 == Level::High
     }
@@ -264,10 +237,7 @@ impl OutputPin {
         self.1 = level;
     }
 
-    /// Toggles the pin's output state between [`Low`] and [`High`].
-    ///
-    /// [`Low`]: enum.Level.html#variant.Low
-    /// [`High`]: enum.Level.html#variant.High
+    /// Toggles the pin's output state between [Level::Low] and [Level::High].
     pub fn toggle(&mut self) {
         debug!("{:?}.toggle()", self);
         self.1 = !self.1;
@@ -343,7 +313,7 @@ pub enum Trigger {
     Both,
 }
 
-/// Result with `gpio::Error`.
+/// Result with [Error].
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(raspi)]
@@ -359,4 +329,39 @@ pub enum Error {
     PermissionDenied(String),
     Io(io::Error),
     ThreadPanic,
+}
+
+#[cfg(raspi)]
+#[doc(inline)]
+pub use rppal::gpio::Mode;
+#[cfg(not(raspi))]
+/// Pin modes.
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum Mode {
+    Input = 0b000,
+    Output = 0b001,
+    Alt0 = 0b100,
+    Alt1 = 0b101,
+    Alt2 = 0b110,
+    Alt3 = 0b111,
+    Alt4 = 0b011,
+    Alt5 = 0b010,
+}
+
+#[cfg(not(raspi))]
+impl std::fmt::Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Mode::Input => write!(f, "In"),
+            Mode::Output => write!(f, "Out"),
+            Mode::Alt0 => write!(f, "Alt0"),
+            Mode::Alt1 => write!(f, "Alt1"),
+            Mode::Alt2 => write!(f, "Alt2"),
+            Mode::Alt3 => write!(f, "Alt3"),
+            Mode::Alt4 => write!(f, "Alt4"),
+            Mode::Alt5 => write!(f, "Alt5"),
+        }
+    }
 }

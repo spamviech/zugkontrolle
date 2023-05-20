@@ -27,7 +27,7 @@ use crate::{
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Gerade<Anschluss = Option<Kontakt>> {
-    /// Die Länge der Gerade auf dem [Canvas](crate::application::touch_canvas::Canvas).
+    /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
     pub länge: Skalar,
     /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,

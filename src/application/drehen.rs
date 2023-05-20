@@ -22,7 +22,7 @@ use crate::typen::{
 };
 
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
-/// [Canvas](crate::touch_canvas::Canvas).
+/// [Canvas](iced::widget::canvas::Canvas).
 #[derive(Debug)]
 pub struct Drehen(Cache);
 

@@ -8,10 +8,10 @@ use iced::{
 use crate::application::style::thema::Thema;
 
 /// Style-Struktur für ein [iced::widget::Scrollable]
-/// mit fester [Scroller-Breite](iced::widget::Scrollable::scroller_width).
+/// mit fester [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width).
 #[derive(Debug, Clone, Copy)]
 pub struct Sammlung {
-    /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width).
+    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width).
     pub breite: f32,
 }
 
@@ -27,7 +27,7 @@ impl Sammlung {
         Sammlung { breite }
     }
 
-    /// Die [Scroller-Breite](iced::widget::Scrollable::scroller_width) des [iced::widget::Scrollable].
+    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des [Scrollable](iced::widget::Scrollable).
     #[inline(always)]
     pub fn breite(&self) -> f32 {
         self.breite

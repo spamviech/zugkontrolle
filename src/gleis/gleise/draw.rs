@@ -1,4 +1,4 @@
-//! [draw](iced::Application::draw)-Methode für [Gleise].
+//! [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
 
 use std::marker::PhantomData;
 
@@ -249,7 +249,7 @@ impl<L: Leiter> Gleise<L> {
         }
     }
 
-    /// [draw](iced::Application::draw)-Methode für [Gleise].
+    /// [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
     pub fn draw(
         &self,
         _state: &<Self as Program<Nachricht, Thema>>::State,

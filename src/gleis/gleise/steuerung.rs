@@ -1,5 +1,5 @@
 //! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
-//! [Canvas](crate::application::touch_canvas::Canvas) erzwingt.
+//! [Canvas](iced::widget::canvas::Canvas) erzwingt.
 
 use std::{
     fmt::{self, Debug, Formatter},

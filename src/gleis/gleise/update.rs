@@ -1,4 +1,4 @@
-//! [update](iced::Application::update)-Methode für [Gleise].
+//! [update](iced::widget::canvas::Program::update)-Methode für [Gleise].
 
 use std::{
     marker::PhantomData,
@@ -362,7 +362,7 @@ fn aktion_gleis_an_position<'t>(
 }
 
 impl<L: Leiter> Gleise<L> {
-    /// [update](iced::Application::update)-Methode für [Gleise]
+    /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
     pub fn update(
         &self,
         _state: &mut <Self as Program<Nachricht, Thema>>::State,

@@ -71,8 +71,7 @@ impl Transparenz {
     }
 }
 
-/// Trait für Typen, die auf einem [Canvas](crate::application::touch_canvas::Canvas)
-/// gezeichnet werden können.
+/// Trait für Typen, die auf einem [Frame](crate::typen::canvas::Frame) gezeichnet werden können.
 pub trait Zeichnen {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck;

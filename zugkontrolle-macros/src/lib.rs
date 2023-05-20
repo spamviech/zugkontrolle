@@ -65,7 +65,7 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
 
 mod nachschlagen;
 #[proc_macro_attribute]
-/// Erzeuge eine Struktur und zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Implementierung für das Enum.
+/// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr with syn::punctuated::Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
@@ -96,7 +96,7 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod richtung;
 #[proc_macro_attribute]
 /// Erzeuge ein Richtung-Enum mit identischen Varianten bis auf /Anfang/,
-/// sowie eine zugehörige [zugkontrolle::nachschlagen::Nachschlagen]-Struktur.
+/// sowie eine zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Struktur.
 pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
@@ -107,8 +107,8 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod alias;
 #[proc_macro_attribute]
 /// Erzeuge /*Serialisiert/ und /'Unit/ Typ-Synonyme,
-/// sowie [zugkontrolle::anschluss::de_serialisieren::Serialisiere]
-/// und [zugkontrolle::::anschluss::de_serialisieren::Reserviere] Implementierungen.
+/// sowie `zugkontrolle::anschluss::de_serialisieren::Serialisiere`
+/// und `zugkontrolle::::anschluss::de_serialisieren::Reserviere` Implementierungen.
 ///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
@@ -132,7 +132,7 @@ mod daten;
 /// Das erste Argument muss `&mut self`, oder `&'t mut self` und
 /// alle anderen Argumente reine Namen-Pattern sein.
 /// Die `where`-Klausel wird nicht inspiziert oder kopiert.
-/// Für assoziierte Typen wird eine vollständig qualifizierte Form <T as Trait>::Typ empfohlen.
+/// Für assoziierte Typen wird eine vollständig qualifizierte Form \<T as Trait\>::Typ empfohlen.
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
@@ -159,7 +159,7 @@ pub fn verwendete_crates(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 /// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten.
-/// Dazu werden viele über cfg-Aufrufe von [verwendete_crates] erzeugt.
+/// Dazu werden viele über cfg-Aufrufe von [verwendete_crates!] erzeugt.
 /// Die targets werden über `rustc --print target-list` ausgelesen.
 pub fn target_crates(input: TokenStream) -> TokenStream {
     metadata::target_crates(input.into()).into()

@@ -46,7 +46,7 @@ pub enum Transformation {
     Skalieren(Skalar),
 }
 
-/// Variante von [iced::canvas::path::Arc] mit [Invertiert]-Implementierung.
+/// Variante von [iced::widget::canvas::path::Arc] mit [Invertiert]-Implementierung.
 ///
 /// Beschreibt einen Bogen um `zentrum` mit `radius` von Winkel `anfang` bis `ende`
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
@@ -130,7 +130,7 @@ where
     }
 }
 
-/// Newtype auf einem [iced::canvas::path::Builder].
+/// Newtype auf einem [iced::widget::canvas::path::Builder].
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.

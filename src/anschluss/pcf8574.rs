@@ -685,8 +685,10 @@ impl InputPort {
     /// Konfiguriere einen asynchronen Interrupt Trigger.
     /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
     ///
-    /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald [setze_async_interrupt]
-    /// oder [lösche_async_interrupt] aufgerufen wird, oder der [InputPin] out of scope geht.
+    /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald
+    /// [setze_async_interrupt](input::Pin::setze_async_interrupt) oder
+    /// [lösche_async_interrupt](input::Pin::lösche_async_interrupt) aufgerufen wird,
+    /// oder der [input::Pin] out of scope geht.
     ///
     /// ## Keine synchronen Interrupts
     /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.

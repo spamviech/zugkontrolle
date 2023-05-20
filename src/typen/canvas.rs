@@ -22,7 +22,7 @@ pub use iced::{
 
 /// Newtype auf [iced::widget::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [iced::Frame] liegt.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [Frame](iced::widget::canvas::Frame) liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut iced::widget::canvas::Frame);
@@ -67,7 +67,7 @@ impl<'t> Frame<'t> {
     /// Zeichne die Buchstaben des [Textes](Text) auf den [Frame]
     /// und fülle sie mit der gewünschten Farbe.
     ///
-    /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [iced::canvas::Frame]
+    /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [iced::widget::canvas::Frame]
     /// treten hier ebenfalls auf!
     #[inline(always)]
     pub fn fill_text(&mut self, text: impl Into<Text>) {

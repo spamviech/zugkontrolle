@@ -88,7 +88,7 @@ impl<Anschlüsse> Kreuzung<Anschlüsse> {
     /// Berechne den Winkel der [Kreuzung], ausgehend von der Gleichung
     /// `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`.
     ///
-    /// https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
+    /// <https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC>
     /// `länge=0` gibt `winkel=0` zurück, ist aber nicht wohldefiniert,
     /// da es die obige Gleichung verletzt (benötigt winkel=pi/2).
     /// `winkel=pi/2` funktioniert ebenfalls nicht, da es die Gleichung

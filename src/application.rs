@@ -365,8 +365,9 @@ impl Clone for AuswahlZustand {
     }
 }
 
+/// Anzeige einer Meldung.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct MessageBox {
+pub struct MessageBox {
     titel: String,
     nachricht: String,
 }

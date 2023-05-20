@@ -33,21 +33,21 @@ impl PartialEq for Pwm {
 
 impl Eq for Pwm {}
 
-/// Einstellung eines [Pwm]-Pulses.
+/// Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Konfiguration {
-    /// Die [Zeit]-Einstellungen eines [Pwm]-Pulses.
+    /// Die [Zeit]-Einstellungen eines Pwm-Pulses.
     pub zeit: Zeit,
-    /// Die [Polarität] eines [Pwm]-Pulses.
+    /// Die [Polarität] eines Pwm-Pulses.
     pub polarität: Polarität,
 }
 
 /// Zeit-Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Zeit {
-    /// Frequenz des [Pwm]-Pulses in Herz.
+    /// Frequenz des Pwm-Pulses in Herz.
     pub frequenz: NichtNegativ,
-    /// [Fließend](crate::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
+    /// [Fließend](crate::anschluss::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
     pub betriebszyklus: NullBisEins,
 }
 
@@ -145,7 +145,7 @@ impl Pin {
     }
 }
 
-/// Fehler bei Interaktion mit einem [Pwm]-Puls.
+/// Fehler bei Interaktion mit einem Pwm-Puls.
 #[derive(Debug)]
 pub enum Fehler {
     /// Fehler eines GPIO-[Pin]s.
@@ -155,19 +155,12 @@ pub enum Fehler {
         /// Der aufgetretene Fehler.
         fehler: gpio::Error,
     },
-    /// Fehler beim erzeugen des [Pwm]-Pulses.
+    /// Fehler beim erzeugen des Pwm-Pulses.
     Pwm {
         /// Der betroffene [Pin].
         pin: u8,
         /// Der aufgetretene Fehler.
         fehler: pwm::Error,
-    },
-    /// [Invalide Konfiguration](Konfiguration::valide).
-    InvalideKonfiguration {
-        /// Der betroffene [Pin].
-        pin: u8,
-        /// Die invalide Konfiguration.
-        konfiguration: Konfiguration,
     },
 }
 
