@@ -124,19 +124,6 @@ macro_rules! mit_any_id {
 }
 pub(crate) use mit_any_id;
 
-impl AnyId {
-    fn aus_ref<T>(gleis_id: &GleisId<T>) -> Self
-    where
-        GleisId<T>: Into<Self>,
-    {
-        gleis_id.klonen().into()
-    }
-
-    pub(crate) fn klonen(&self) -> AnyId {
-        mit_any_id!(self, Self::aus_ref)
-    }
-}
-
 // completely remove any notion of ID?
 #[allow(single_use_lifetimes)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -261,21 +248,6 @@ impl AnyIdRef<'_> {
             AnyIdRef::KurvenWeiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
             AnyIdRef::SKurvenWeiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
             AnyIdRef::Kreuzung(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-        }
-    }
-}
-
-impl AnyId {
-    /// Erzeuge einen neuen Ref-Wert.
-    pub(in crate::gleis::gleise) fn als_ref(&self) -> AnyIdRef<'_> {
-        match self {
-            AnyId::Gerade(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::Kurve(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::Weiche(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::DreiwegeWeiche(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::KurvenWeiche(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::SKurvenWeiche(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
-            AnyId::Kreuzung(gleis_id) => AnyIdRef::from(gleis_id.als_ref()),
         }
     }
 }

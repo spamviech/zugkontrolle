@@ -4,10 +4,7 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::{
-        mpsc::{channel, Sender},
-        Arc,
-    },
+    sync::mpsc::{channel, Sender},
     time::Instant,
 };
 
