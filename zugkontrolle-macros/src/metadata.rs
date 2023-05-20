@@ -2,7 +2,7 @@
 
 use std::{iter, process::Command, str};
 
-use cargo_metadata::MetadataCommand;
+use cargo_metadata::{MetadataCommand, Package};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::LitStr;
@@ -17,8 +17,10 @@ pub(crate) fn verwendete_crates(target: LitStr) -> TokenStream {
             return quote!(compile_error!(#fehlermeldung));
         },
     };
-    let packages =
-        metadata.packages.iter().map(|package| format!("{}-{}", package.name, package.version));
+    let packages = metadata.packages.iter().map(|Package { name, version, .. }| {
+        let version_string = version.to_string();
+        quote! {(#name, #version_string)}
+    });
     quote!([#(#packages),*])
 }
 
@@ -51,6 +53,6 @@ pub(crate) fn target_crates(input: TokenStream) -> TokenStream {
         stdout_string.lines().chain(iter::once("zugkontrolle-unbekanntes-target")).collect();
     quote!({#(
         #[cfg(zugkontrolle_target = #targets)]
-        {zugkontrolle_macros::verwendete_crates!(#targets).into()}
+        {zugkontrolle_macros::verwendete_crates!(#targets)}
     )*})
 }

@@ -1,7 +1,7 @@
 //! Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 
 use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fmt::{self, Display, Formatter, Write},
     str::Split,
 };
@@ -9,6 +9,7 @@ use std::{
 use difference::{Changeset, Difference};
 use either::Either;
 use log::error;
+use nonempty::NonEmpty;
 
 use crate::{
     application::lizenzen::{
@@ -36,13 +37,18 @@ impl<T: Display> Display for OptionD<'_, T> {
 /// Das verwendete Target wird nicht unterstützt.
 struct UnbekanntesTarget<'t>(&'t str);
 
+macro_rules! count_literals {
+    ($(,)?) => {0usize};
+    ($head: literal $(, $tail: literal)*) => {1usize + count_literals!($($tail),*)};
+}
+
 macro_rules! release_targets {
     ($($target: literal),*) => {
         /// Targets, für die bei einem Release binaries bereitgestellt werden.
-        static RELEASE_TARGETS: [&'static str; 2] = [$($target),*];
+        static RELEASE_TARGETS: [&'static str; count_literals!($($target),*)] = [$($target),*];
 
         /// Crates für das übergebene target, ausgehend von `cargo --filter-platform <target> metadata`.
-        fn target_crates(target: &str) -> Result<HashSet<&'static str>, UnbekanntesTarget<'_>> {
+        fn target_crates(target: &str) -> Result<Vec<(&'static str, &'static str)>, UnbekanntesTarget<'_>> {
             match target {
                 $($target => Ok(zugkontrolle_macros::verwendete_crates!($target).into()),)*
                 _ => Err(UnbekanntesTarget(target)),
@@ -54,22 +60,24 @@ macro_rules! release_targets {
 release_targets! {"x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"}
 
 fn cargo_lock_crates() -> HashSet<&'static str> {
-    cargo_lock_lizenzen().into_iter().map(|(name, _f)| name).collect()
+    cargo_lock_lizenzen().into_iter().map(|(name, _lizenz)| name).collect()
 }
 
 #[test]
 /// Test ob alle Lizenzen angezeigt werden.
 /// Nimmt vorheriges ausführen von `python fetch_licenses.py` im licenses-Ordner an.
-fn alle_lizenzen() -> Result<(), (BTreeSet<&'static str>, usize)> {
+fn alle_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, usize)> {
     init_test_logging();
 
     let mut fehlend = BTreeSet::new();
     for target in RELEASE_TARGETS {
         let target_crates = target_crates(target).expect("cargo metadata failed!");
         let lizenzen: HashSet<_> = cargo_lock_crates();
-        fehlend.extend(target_crates.into_iter().filter(|crate_name| {
-            !lizenzen.contains(crate_name) && !crate_name.starts_with("zugkontrolle")
-        }));
+        fehlend.extend(
+            target_crates
+                .into_iter()
+                .filter(|(name, _version)| !lizenzen.contains(name) && (*name != "zugkontrolle")),
+        );
     }
     if fehlend.is_empty() {
         Ok(())
@@ -421,10 +429,17 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<UniCaseOrd<&'static str>>, usize)
     let release_target_crates = RELEASE_TARGETS
         .into_iter()
         .flat_map(|target| {
-            target_crates(target).unwrap_or_else(|fehler| {
-                error!("{fehler:?}");
-                cargo_lock_crates()
-            })
+            let mut crates: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
+            for (name, version) in target_crates(target).expect("unbekanntes target!") {
+                use std::collections::hash_map::Entry;
+                match crates.entry(name) {
+                    Entry::Occupied(mut o) => o.get_mut().push(version),
+                    Entry::Vacant(v) => {
+                        let _ = v.insert(NonEmpty::singleton(version));
+                    },
+                }
+            }
+            crates
         })
         .collect();
     let lizenzen: BTreeMap<_, _> = verwendete_lizenzen(release_target_crates);
