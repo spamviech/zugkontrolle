@@ -5,20 +5,21 @@ use iced::{
     mouse,
     widget::{
         canvas::{event, Canvas, Cursor, Event, Geometry, Program},
-        container::{self, Container},
+        container::Container,
     },
     Element, Length, Point, Rectangle,
 };
 use iced_graphics::{Backend, Renderer};
 
 use crate::{
+    application::style::thema::Thema,
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
             fill::{self, Fill, FillRule},
             pfad::{Pfad, Transformation},
             stroke::{self, Stroke},
-            Cache, Color, Text,
+            Cache, Text,
         },
         mm::Spurweite,
         rechteck::Rechteck,
@@ -32,12 +33,6 @@ const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 const PADDING: u16 = 2;
 const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
-const GREY_IN_BOUNDS_VALUE: f32 = 0.7;
-const GREY_IN_BOUNDS: Color =
-    Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
-const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
-const GREY_OUT_OF_BOUNDS: Color =
-    Color::from_rgb(GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE, GREY_OUT_OF_BOUNDS_VALUE);
 
 /// Ein Knopf, der ein Gleis anzeigt.
 #[derive(Debug)]
@@ -62,15 +57,14 @@ impl<T: Zeichnen> Knopf<T> {
     }
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
-    pub fn als_iced_widget<'t, Nachricht, B, Theme>(
+    pub fn als_iced_widget<'t, Nachricht, B>(
         &'t self,
         breite: Option<f32>,
-    ) -> impl Into<Element<'t, Nachricht, Renderer<B, Theme>>>
+    ) -> impl Into<Element<'t, Nachricht, Renderer<B, Thema>>>
     where
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
         B: 't + Backend,
-        Theme: 't + container::StyleSheet,
     {
         let größe = self.gleis.rechteck(self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
@@ -90,15 +84,13 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht, Theme> Program<Nachricht, Theme>
-    for Knopf<T>
-{
+impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Thema> for Knopf<T> {
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
-        theme: &Theme,
+        thema: &Thema,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -108,18 +100,14 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht, Theme> Program<Nachrich
             frame.fill(
                 &border_path,
                 Fill {
-                    style: fill::Style::Solid(if state.in_bounds {
-                        GREY_IN_BOUNDS
-                    } else {
-                        GREY_OUT_OF_BOUNDS
-                    }),
+                    style: fill::Style::Solid(thema.hintergrund(false, state.in_bounds).into()),
                     rule: FillRule::EvenOdd,
                 },
             );
             frame.stroke(
                 &border_path,
                 Stroke {
-                    style: stroke::Style::Solid(Color::BLACK),
+                    style: stroke::Style::Solid(thema.strich().into()),
                     width: BORDER_WIDTH as f32,
                     ..Default::default()
                 },
@@ -147,7 +135,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht, Theme> Program<Nachrich
                     frame.stroke(
                         &path,
                         Stroke {
-                            style: stroke::Style::Solid(Color::BLACK),
+                            style: stroke::Style::Solid(thema.strich().into()),
                             width: STROKE_WIDTH.0,
                             ..Default::default()
                         },
@@ -162,7 +150,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht, Theme> Program<Nachrich
                     frame.fill_text(Text {
                         content: content.clone(),
                         position: Point::ORIGIN,
-                        color: Color::BLACK,
+                        color: thema.strich().into(),
                         horizontal_alignment: Horizontal::Center,
                         vertical_alignment: Vertical::Center,
                         ..Default::default()

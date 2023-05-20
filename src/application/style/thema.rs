@@ -6,6 +6,8 @@ use iced::{
 };
 use iced_aw::{card, number_input};
 
+use crate::typen::farbe::Farbe;
+
 /// Unterstützte Graphik-Themen, sehr nah am built-in [iced::Theme].
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Thema {
@@ -14,6 +16,25 @@ pub enum Thema {
     Hell,
     // /// Die dunkle Variante.
     // Dunkel,
+}
+
+impl Thema {
+    /// Die Farbe für generische Striche (z.B. Text).
+    pub fn strich(&self) -> Farbe {
+        match self {
+            Thema::Hell => Farbe { rot: 0., grün: 0., blau: 0. },
+        }
+    }
+
+    /// Die Farbe für Hintergrund eines Widgets.
+    pub fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
+        let grey_value = match self {
+            Thema::Hell if aktiv => 0.5,
+            Thema::Hell if in_bounds => 0.7,
+            Thema::Hell => 0.9,
+        };
+        Farbe { rot: grey_value, grün: grey_value, blau: grey_value }
+    }
 }
 
 impl StyleSheet for Thema {

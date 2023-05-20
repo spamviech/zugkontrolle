@@ -87,6 +87,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
+    farbe: Farbe,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
@@ -100,7 +101,7 @@ fn zeichne_alle_gleise<'t, T: Zeichnen>(
                     frame.stroke(
                         &path,
                         Stroke {
-                            style: stroke::Style::Solid(Color { a, ..Color::BLACK }),
+                            style: stroke::Style::Solid(Color { a, ..Color::from(farbe) }),
                             width: 1.5,
                             ..Stroke::default()
                         },
@@ -172,6 +173,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
+    farbe: Farbe,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
@@ -193,7 +195,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
                 frame.fill_text(Text {
                     content,
                     position: Point::ORIGIN,
-                    color: Color { a, ..Color::BLACK },
+                    color: Color { a, ..Color::from(farbe) },
                     horizontal_alignment: Horizontal::Center,
                     vertical_alignment: Vertical::Center,
                     ..Default::default()
@@ -253,6 +255,7 @@ impl<L: Leiter> Gleise<L> {
     pub fn draw(
         &self,
         _state: &<Self as Program<Nachricht, Thema>>::State,
+        thema: &Thema,
         bounds: iced::Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -353,6 +356,7 @@ impl<L: Leiter> Gleise<L> {
                         daten,
                         zeichne_alle_gleise,
                         ist_gehalten,
+                        thema.strich()
                     }
                 }
                 // Verbindungen
@@ -385,7 +389,8 @@ impl<L: Leiter> Gleise<L> {
                     mit_allen_gleisen! {
                         daten,
                         schreibe_alle_beschreibungen,
-                        ist_gehalten
+                        ist_gehalten,
+                        thema.strich()
                     }
                 }
             },

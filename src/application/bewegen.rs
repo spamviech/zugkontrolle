@@ -2,18 +2,21 @@
 
 use iced::{
     mouse,
-    widget::canvas::{event, Cursor, Event, Geometry, Program},
+    widget::canvas::{event, Cursor, Event, Geometry, Program, Style},
     Rectangle,
 };
 
-use crate::typen::{
-    canvas::{
-        pfad::{self, Bogen},
-        Cache, Stroke,
+use crate::{
+    application::style::thema::Thema,
+    typen::{
+        canvas::{
+            pfad::{self, Bogen},
+            Cache, Stroke,
+        },
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel,
     },
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel,
 };
 
 /// Mögliche Bewegungen.
@@ -78,13 +81,13 @@ impl Bewegen {
     }
 }
 
-impl<Theme> Program<Nachricht, Theme> for Bewegen {
+impl Program<Nachricht, Thema> for Bewegen {
     type State = bool;
 
     fn draw(
         &self,
         _state: &Self::State,
-        theme: &Theme,
+        thema: &Thema,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -131,7 +134,12 @@ impl<Theme> Program<Nachricht, Theme> for Bewegen {
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
         let pfad = erbauer.baue();
-        vec![self.0.zeichnen(size, |frame| frame.stroke(&pfad, Stroke::default()))]
+        vec![self.0.zeichnen(size, |frame| {
+            frame.stroke(
+                &pfad,
+                Stroke { style: Style::Solid(thema.strich().into()), ..Stroke::default() },
+            )
+        })]
     }
 
     fn update(

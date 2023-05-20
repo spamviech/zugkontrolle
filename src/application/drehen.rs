@@ -8,17 +8,20 @@ use iced::{
         stroke::{self, Stroke},
         Cursor, Event, Geometry, Program,
     },
-    Color, Rectangle,
+    Rectangle,
 };
 
-use crate::typen::{
-    canvas::{
-        pfad::{self, Bogen},
-        Cache,
+use crate::{
+    application::style::thema::Thema,
+    typen::{
+        canvas::{
+            pfad::{self, Bogen},
+            Cache,
+        },
+        skalar::Skalar,
+        vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
     },
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::{self, Trigonometrie, Winkel},
 };
 
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
@@ -46,13 +49,13 @@ impl Default for Zustand {
     }
 }
 
-impl<Theme> Program<Winkel, Theme> for Drehen {
+impl Program<Winkel, Thema> for Drehen {
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
-        theme: &Theme,
+        thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -73,7 +76,7 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
             frame.stroke(
                 &kreis_pfad,
                 Stroke {
-                    style: stroke::Style::Solid(Color::BLACK),
+                    style: stroke::Style::Solid(thema.strich().into()),
                     width: 1.,
                     ..Default::default()
                 },
@@ -89,22 +92,17 @@ impl<Theme> Program<Winkel, Theme> for Drehen {
                     ende: winkel::TAU,
                 })
                 .baue();
-            let knopf_grau = if state.grabbed {
-                0.5
-            } else if cursor.position_in(&bounds).map_or(false, |position| {
-                (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum).länge()
-                    < knopf_radius
-            }) {
-                0.7
-            } else {
-                0.8
-            };
+            let hintergrund = thema.hintergrund(
+                state.grabbed,
+                cursor.position_in(&bounds).map_or(false, |position| {
+                    let v_r =
+                        Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;
+                    v_r.länge() < knopf_radius
+                }),
+            );
             frame.fill(
                 &knopf_pfad,
-                Fill {
-                    style: fill::Style::Solid(Color::from_rgb(knopf_grau, knopf_grau, knopf_grau)),
-                    rule: FillRule::EvenOdd,
-                },
+                Fill { style: fill::Style::Solid(hintergrund.into()), rule: FillRule::EvenOdd },
             );
         })]
     }

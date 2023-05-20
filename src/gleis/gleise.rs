@@ -558,18 +558,6 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
-    pub(crate) fn mit_allen_geschwindigkeiten_mut(
-        &self,
-        mut f: impl FnMut(&geschwindigkeit::Name, &mut Geschwindigkeit<L>),
-    ) {
-        let mut guard = self.zustand.write();
-        for (name, (geschwindigkeit, _streckenabschnitt_map)) in guard.geschwindigkeiten.iter_mut()
-        {
-            f(name, geschwindigkeit)
-        }
-    }
-
-    /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn aus_allen_geschwindigkeiten<T, C>(
         &self,
         mut f: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
@@ -780,11 +768,11 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
     fn draw(
         &self,
         state: &Self::State,
-        theme: &Thema,
+        thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        self.draw(state, bounds, cursor)
+        self.draw(state, thema, bounds, cursor)
     }
 
     #[inline(always)]

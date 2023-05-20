@@ -150,7 +150,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
 
     fn on_event(
         &mut self,
-        state: &mut Tree,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
