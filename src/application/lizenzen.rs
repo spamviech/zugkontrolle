@@ -43,7 +43,7 @@ use texte::{
 
 #[derive(Debug, Clone)]
 enum InterneNachricht {
-    Aktuell(UniCaseOrd<&'static str>, fn() -> Cow<'static, str>),
+    Aktuell(UniCaseOrd<String>, fn() -> Cow<'static, str>),
     Schließen,
 }
 
@@ -57,18 +57,13 @@ pub enum Nachricht {
 /// Zustand eines [Lizenzen]-Widgets.
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {
-    aktuell: Option<(UniCaseOrd<&'static str>, Cow<'static, str>)>,
+    aktuell: Option<(UniCaseOrd<String>, Cow<'static, str>)>,
 }
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
-    fn neu(
-        aktuell_name: Option<UniCaseOrd<&'static str>>,
-        lizenzen: &BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
-    ) -> Self {
-        let aktuell = aktuell_name
-            .and_then(|name| lizenzen.get(&name).map(|f| (name, f())))
-            .or_else(|| lizenzen.iter().next().map(|(name, f)| (*name, f())));
+    fn neu(lizenzen: &BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>) -> Self {
+        let aktuell = lizenzen.iter().next().map(|(name, f)| (name.clone(), f()));
         Zustand { aktuell }
     }
 }
@@ -97,20 +92,19 @@ where
         ScrollableStyle: 'a + Clone,
         <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
-        Self::neu(&*TARGET_LIZENZEN, &None, scrollable_style)
+        Self::neu(&*TARGET_LIZENZEN, scrollable_style)
     }
 
     /// Erstelle ein neues [Lizenzen]-Widget.
     pub fn neu<ScrollableStyle>(
-        lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
-        aktuell: &'a Option<UniCaseOrd<&'static str>>,
+        lizenzen: &'a BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>,
         scrollable_style: ScrollableStyle,
     ) -> Self
     where
         ScrollableStyle: 'a + Clone,
         <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
-        let erzeuge_zustand = || Zustand::neu(*aktuell, lizenzen);
+        let erzeuge_zustand = || Zustand::neu(lizenzen);
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
@@ -131,7 +125,7 @@ where
 
     fn erzeuge_element<ScrollableStyle>(
         zustand: &Zustand,
-        lizenzen: &'a BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>,
+        lizenzen: &'a BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>,
         scrollable_style: ScrollableStyle,
     ) -> Element<'a, InterneNachricht, R>
     where
@@ -147,10 +141,10 @@ where
         for (name, f) in lizenzen {
             buttons = buttons.push({
                 let button = Button::new(Text::new(name.as_ref()));
-                if Some(*name) == aktuell_name {
+                if Some(name) == aktuell_name.as_ref() {
                     button
                 } else {
-                    button.on_press(InterneNachricht::Aktuell(*name, *f))
+                    button.on_press(InterneNachricht::Aktuell(name.clone(), *f))
                 }
             });
         }
@@ -576,7 +570,7 @@ fn target_crates() -> HashMap<&'static str, NonEmpty<&'static str>> {
     crates
 }
 
-static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>>> =
+static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>> =
     Lazy::new(|| verwendete_lizenzen(target_crates()));
 
 struct Lizenz {
@@ -1828,13 +1822,59 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
+        ("adler", Lizenz::neu(mit_missing_note)), // TODO new
+        ("arrayref", Lizenz::neu(mit_missing_note)), // TODO new
+        ("chrono", Lizenz::neu(mit_missing_note)), // TODO new
+        ("cmake", Lizenz::neu(mit_missing_note)), // TODO new
+        ("crc32fast", Lizenz::neu(mit_missing_note)), // TODO new
+        ("crossfont", Lizenz::neu(mit_missing_note)), // TODO new
+        ("expat-sys", Lizenz::neu(mit_missing_note)), // TODO new
+        ("fdeflate", Lizenz::neu(mit_missing_note)), // TODO new
+        ("find-crate", Lizenz::neu(mit_missing_note)), // TODO new
+        ("flate2", Lizenz::neu(mit_missing_note)), // TODO new
+        ("foreign-types-macros", Lizenz::neu(mit_missing_note)), // TODO new
+        ("freetype-rs", Lizenz::neu(mit_missing_note)), // TODO new
+        ("freetype-sys", Lizenz::neu(mit_missing_note)), // TODO new
+        ("hashbrown", Lizenz::neu(mit_missing_note)), // TODO new
+        ("iana-time-zone", Lizenz::neu(mit_missing_note)), // TODO new
+        ("indexmap", Lizenz::neu(mit_missing_note)), // TODO new
+        ("io-lifetimes", Lizenz::neu(mit_missing_note)), // TODO new
+        ("is-terminal", Lizenz::neu(mit_missing_note)), // TODO new
+        ("linux-raw-sys", Lizenz::neu(mit_missing_note)), // TODO new
+        ("miniz_oxide", Lizenz::neu(mit_missing_note)), // TODO new
+        ("nu-ansi-term", Lizenz::neu(mit_missing_note)), // TODO new
+        ("num-integer", Lizenz::neu(mit_missing_note)), // TODO new
+        ("overload", Lizenz::neu(mit_missing_note)), // TODO new
+        ("palette", Lizenz::neu(mit_missing_note)), // TODO new
+        ("palette_derive", Lizenz::neu(mit_missing_note)), // TODO new
+        ("palettef_shared", Lizenz::neu(mit_missing_note)), // TODO new
+        ("phf", Lizenz::neu(mit_missing_note)),   // TODO new
+        ("phf_generator", Lizenz::neu(mit_missing_note)), // TODO new
+        ("phf_macros", Lizenz::neu(mit_missing_note)), // TODO new
+        ("phf_shared", Lizenz::neu(mit_missing_note)), // TODO new
+        ("png", Lizenz::neu(mit_missing_note)),   // TODO new
+        ("rustix", Lizenz::neu(mit_missing_note)), // TODO new
+        ("safe_arch", Lizenz::neu(mit_missing_note)), // TODO new
+        ("sctk-adwaita", Lizenz::neu(mit_missing_note)), // TODO new
+        ("serde_spanned", Lizenz::neu(mit_missing_note)), // TODO new
+        ("servo-fontconfig", Lizenz::neu(mit_missing_note)), // TODO new
+        ("servo-fontconfig-sys", Lizenz::neu(mit_missing_note)), // TODO new
+        ("simd-adler32", Lizenz::neu(mit_missing_note)), // TODO new
+        ("siphasher", Lizenz::neu(mit_missing_note)), // TODO new
+        ("tiny-skia", Lizenz::neu(mit_missing_note)), // TODO new
+        ("tiny-skia-path", Lizenz::neu(mit_missing_note)), // TODO new
+        ("toml_datetime", Lizenz::neu(mit_missing_note)), // TODO new
+        ("toml_edit", Lizenz::neu(mit_missing_note)), // TODO new
+        ("vec_map", Lizenz::neu(mit_missing_note)), // TODO new
+        ("windows-targets", Lizenz::neu(mit_missing_note)), // TODO new
+        ("winnow", Lizenz::neu(mit_missing_note)), // TODO new
     ]
 }
 
-/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
-pub fn verwendete_lizenzen(
+fn verwendete_lizenzen_impl<K: Ord>(
     target_crates: HashMap<&'static str, NonEmpty<&'static str>>,
-) -> BTreeMap<UniCaseOrd<&'static str>, fn() -> Cow<'static, str>> {
+    mut erzeuge_key: impl FnMut(&'static str, &'static str) -> K,
+) -> BTreeMap<K, fn() -> Cow<'static, str>> {
     let alle_lizenzen = cargo_lock_lizenzen();
     alle_lizenzen
         .into_iter()
@@ -1842,11 +1882,20 @@ pub fn verwendete_lizenzen(
             target_crates.get(name).map_or_else(Vec::new, |versions| {
                 versions
                     .into_iter()
-                    .map(|version| (UniCaseOrd::neu(name), lizenz.lizenz_für_version(version)))
+                    .map(|version| (erzeuge_key(name, version), lizenz.lizenz_für_version(version)))
                     .collect()
             })
         })
         .collect()
+}
+
+/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
+pub fn verwendete_lizenzen(
+    target_crates: HashMap<&'static str, NonEmpty<&'static str>>,
+) -> BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>> {
+    verwendete_lizenzen_impl(target_crates, |name, version| {
+        UniCaseOrd::neu(format!("{name}-{version}"))
+    })
 }
 
 #[cfg(test)]

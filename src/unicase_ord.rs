@@ -49,8 +49,8 @@ impl<S: AsRef<str>> AsRef<str> for UniCaseOrd<S> {
     }
 }
 
-impl<S: AsRef<str>> PartialEq for UniCaseOrd<S> {
-    fn eq(&self, other: &Self) -> bool {
+impl<S: AsRef<str>, T: AsRef<str>> PartialEq<UniCaseOrd<T>> for UniCaseOrd<S> {
+    fn eq(&self, other: &UniCaseOrd<T>) -> bool {
         self.0.as_ref() == other.0.as_ref()
     }
 }
