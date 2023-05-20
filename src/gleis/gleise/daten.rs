@@ -239,7 +239,7 @@ impl<L: Leiter> Zustand<L> {
         verbindung: &'t Verbindung,
         eigene_id: Option<&'t AnyIdRef<'t>>,
         gehalten_id: Option<&'t AnyIdRef<'t>>,
-    ) -> (impl Iterator<Item = Verbindung> + 't, bool) {
+    ) -> (impl 't + Iterator<Item = Verbindung>, bool) {
         let mut gehalten = false;
         let überlappend =
             self.alle_streckenabschnitt_daten().flat_map(move |(streckenabschnitt, daten)| {

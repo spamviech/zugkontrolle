@@ -231,7 +231,6 @@ impl<L: Leiter> Gleise<L> {
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisIdFehler::GleisEntfernt)?;
         // Füge Eintrag bei neuem Streckenabschnitt hinzu.
-        let mut guard = self.zustand.write();
         match guard.daten_mut(&streckenabschnitt_neu) {
             Ok(neue_daten) => {
                 neue_daten.rstern_mut().insert(geom_with_data);
