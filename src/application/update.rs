@@ -261,8 +261,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
     pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
-        // FIXME führt zu einem deadlock!
-        println!("gleis_setzte_streckenabschnitt");
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = mit_any_id!(
                 &mut any_id,
