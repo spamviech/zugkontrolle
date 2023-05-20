@@ -82,7 +82,7 @@ where
             bewegen,
             drehen,
             lager: _,
-            speichern_gefärbt: _,
+            speichern_gefärbt,
             bewegung: _,
             message_box,
             sender: _,
@@ -100,6 +100,7 @@ where
             drehen,
             aktueller_zoom,
             initialer_pfad,
+            speichern_gefärbt.map(|(gefärbt, _färbe_zeit)| gefärbt),
         );
         let row_mit_scrollable = row_mit_scrollable(
             aktueller_modus,
@@ -288,6 +289,7 @@ fn top_row<'t, L, S>(
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
+    speichern_gefärbt: Option<bool>,
 ) -> Row<'t, modal::Nachricht<AuswahlZustand, Nachricht<L, S>>, Renderer<Thema>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
@@ -312,7 +314,7 @@ where
             .width(Length::Fixed(SKALIEREN_BREITE)),
         )
         .align_items(Alignment::Center);
-    let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad);
+    let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad, speichern_gefärbt);
     let mut row = Row::new()
         .push(modus_radios.mit_teil_nachricht(Nachricht::Modus).map(modal::Nachricht::Underlay))
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen).map(modal::Nachricht::Underlay))

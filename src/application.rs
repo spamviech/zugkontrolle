@@ -462,7 +462,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     bewegen: Bewegen,
     drehen: Drehen,
     initialer_pfad: String,
-    speichern_gefärbt: Option<Instant>,
+    speichern_gefärbt: Option<(bool, Instant)>,
     bewegung: Option<Bewegung>,
     message_box: Option<MessageBox>,
     sender: Sender<Nachricht<L, S>>,
@@ -599,9 +599,7 @@ where
                 self.streckenabschnitt_festlegen(festlegen)
             },
             Nachricht::Speichern(pfad) => {
-                if let Some(cmd) = self.speichern(pfad) {
-                    command = cmd
-                }
+                command = self.speichern(pfad);
             },
             Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit)

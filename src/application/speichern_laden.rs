@@ -18,19 +18,13 @@ use crate::application::{map_mit_zustand::MapMitZustand, style};
 /// Zustand von [SpeichernLaden].
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {
-    speichern_gefärbt: bool,
     aktueller_pfad: String,
 }
 
 impl Zustand {
     /// Erstelle einen neuen Zustand von [SpeichernLaden].
     fn neu(aktueller_pfad: String) -> Self {
-        Zustand { speichern_gefärbt: false, aktueller_pfad }
-    }
-
-    /// Bestimme, ob der Speichern-Knopf gefärbt wird.
-    fn färbe_speichern(&mut self, färben: bool) {
-        self.speichern_gefärbt = färben;
+        Zustand { aktueller_pfad }
     }
 }
 
@@ -60,10 +54,11 @@ where
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {
-    /// Erstelle ein neuen [SpeichernLaden]-Widget.
-    pub fn neu(initialer_pfad: &'a str) -> Self {
+    /// Erstelle ein [SpeichernLaden]-Widget.
+    pub fn neu(initialer_pfad: &'a str, speichern_gefärbt: Option<bool>) -> Self {
         let erzeuge_zustand = || Zustand::neu(initialer_pfad.to_owned());
-        let erzeuge_element = Self::erzeuge_element;
+        let erzeuge_element =
+            move |zustand: &Zustand| Self::erzeuge_element(zustand, speichern_gefärbt.clone());
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = Zustand>,
                       status: &mut event::Status| {
@@ -84,13 +79,19 @@ where
         SpeichernLaden(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
-    fn erzeuge_element(zustand: &Zustand) -> Element<'a, InterneNachricht, R> {
-        let Zustand { speichern_gefärbt, aktueller_pfad } = zustand;
+    fn erzeuge_element(
+        zustand: &Zustand,
+        speichern_gefärbt: Option<bool>,
+    ) -> Element<'a, InterneNachricht, R> {
+        let Zustand { aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
             Button::new(Text::new("Speichern")).on_press(InterneNachricht::Speichern);
-        let speichern_style =
-            if *speichern_gefärbt { style::button::GRÜN } else { style::Button::Standard };
+        let speichern_style = match speichern_gefärbt {
+            Some(true) => style::button::GRÜN,
+            Some(false) => style::button::ROT,
+            None => style::Button::Standard,
+        };
         let row = Row::new()
             .push(
                 Column::new()

@@ -290,10 +290,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Setze die Farbe des Speichern-Knopfes zurück.
     pub fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
-        if let Some(färbe_zeit) = self.speichern_gefärbt {
+        if let Some((_gefärbt, färbe_zeit)) = self.speichern_gefärbt {
             if nachricht_zeit == färbe_zeit {
-                // FIXME entferne_speichern_farbe
-                // self.speichern_laden.färbe_speichern(false);
                 self.speichern_gefärbt = None;
             }
         }
@@ -478,26 +476,17 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: String) -> Option<Command<Nachricht<L, S>>> {
+    pub fn speichern(&mut self, pfad: String) -> Command<Nachricht<L, S>> {
         let ergebnis = self.gleise.speichern(&pfad);
-        match ergebnis {
-            Ok(()) => {
-                // FIXME färbe_speichern
-                // self.speichern_laden.färbe_speichern(true);
-                let speicher_zeit = Instant::now();
-                self.speichern_gefärbt = Some(speicher_zeit.clone());
-                let command = Nachricht::EntferneSpeichernFarbe(speicher_zeit)
-                    .als_sleep_command(Duration::from_secs(2));
-                Some(command)
-            },
-            Err(err) => {
-                self.zeige_message_box(
-                    format!("Fehler beim Speichern in {}", pfad),
-                    format!("{:?}", err),
-                );
-                None
-            },
+        let speicher_zeit = Instant::now();
+        self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit.clone()));
+        if let Err(err) = ergebnis {
+            self.zeige_message_box(
+                format!("Fehler beim Speichern in {}", pfad),
+                format!("{:?}", err),
+            );
         }
+        Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
     }
 }
 
