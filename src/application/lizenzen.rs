@@ -1865,9 +1865,22 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("tiny-skia-path", Lizenz::neu(mit_missing_note)), // TODO new
         ("toml_datetime", Lizenz::neu(mit_missing_note)), // TODO new
         ("toml_edit", Lizenz::neu(mit_missing_note)), // TODO new
-        ("vec_map", Lizenz::neu(mit_missing_note)), // TODO new
-        ("windows-targets", Lizenz::neu(mit_missing_note)), // TODO new
-        ("winnow", Lizenz::neu(mit_missing_note)), // TODO new
+        ("vec_map", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        (
+            "windows-targets",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::leerzeichen_4(),
+                    false,
+                    MITEnde { punkt: false, neue_zeile: 1 },
+                )
+            }),
+        ),
+        ("winnow", Lizenz::neu(|| mit_ohne_copyright(MITZeilenumbruch::Redox))),
     ]
 }
 
