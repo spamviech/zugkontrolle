@@ -446,7 +446,7 @@ fn lizenz_dateien(
         ("servo-fontconfig-sys", ("COPYING", HashMap::new())),
         ("simd-adler32", ("LICENSE.md", HashMap::new())),
         ("siphasher", ("COPYING", HashMap::new())),
-        ("tinyvec_macros", ("LICENSE-APACHE.md", HashMap::new())),
+        ("tinyvec_macros", ("LICENSE-MIT.md", HashMap::new())),
         ("toml_datetime", ("LICENSE-MIT", HashMap::new())),
         ("toml_edit", ("LICENSE-MIT", HashMap::new())),
         ("vec_map", ("LICENSE-MIT", HashMap::new())),

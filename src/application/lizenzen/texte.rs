@@ -62,8 +62,6 @@ impl<'t> MITCopyright<'t> {
     }
 }
 
-struct VecD<'t, T>(Vec<T>, MITEinrückung<'t>);
-
 impl Display for MITCopyright<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let MITCopyright { c_in_klammern, jahr, voller_name } = self;
@@ -82,7 +80,9 @@ impl Display for MITCopyright<'_> {
     }
 }
 
-impl Display for VecD<'_, MITCopyright<'_>> {
+struct VecD<T, E>(Vec<T>, E);
+
+impl Display for VecD<MITCopyright<'_>, MITEinrückung<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let VecD(vec, einrückung) = self;
         if !vec.is_empty() {
@@ -95,9 +95,9 @@ impl Display for VecD<'_, MITCopyright<'_>> {
     }
 }
 
-struct OptionD<'t, T>(Option<T>, MITEinrückung<'t>);
+struct OptionD<T, E>(Option<T>, E);
 
-impl Display for OptionD<'_, (&'_ str, u8)> {
+impl Display for OptionD<(&'_ str, u8), MITEinrückung<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let OptionD(Some((s, neue_zeilen)), einrückung) = self {
             write!(f, "{einrückung}{s}")?;
@@ -728,38 +728,190 @@ pub fn apache_2_0<'t>(
     ))
 }
 
+/// Anzeige der Copyright-Informationen bei einer BSD3-Lizenz.
+#[derive(Debug)]
+pub struct BSD3Copyright<'t> {
+    /// Das Jahr in der Copyright-Information.
+    pub jahr: &'t str,
+    /// Wird nach dem Jahr ein Komma angezeigt.
+    pub komma_nach_jahr: bool,
+    /// Der vollständige Name in der Copyright-Information.
+    pub voller_name: &'t str,
+    /// Ist"All rights reserved" in einer neue Zeile.
+    pub all_rights_neue_zeile: bool,
+}
+
+impl<'t> BSD3Copyright<'t> {
+    /// Erstelle ein neues [BSD3Copyright] struct.
+    pub fn neu(
+        jahr: &'t str,
+        komma_nach_jahr: bool,
+        voller_name: &'t str,
+        all_rights_neue_zeile: bool,
+    ) -> Self {
+        BSD3Copyright { jahr, komma_nach_jahr, voller_name, all_rights_neue_zeile }
+    }
+}
+
+impl Display for BSD3Copyright<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let BSD3Copyright { jahr, komma_nach_jahr, voller_name, all_rights_neue_zeile } = self;
+        let komma = if *all_rights_neue_zeile { "\n" } else { "" };
+        let neue_zeile_oder_leerzeichen = if *komma_nach_jahr { "," } else { " " };
+        write!(f, "Copyright (c) {jahr}{komma} {voller_name}{neue_zeile_oder_leerzeichen}")?;
+        Ok(())
+    }
+}
+
+impl Display for VecD<BSD3Copyright<'_>, ()> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let VecD(vec, ()) = self;
+        if !vec.is_empty() {
+            for copyright in vec {
+                write!(f, "{copyright}All rights reserved.\n")?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
+/// Wo sind Zeilenumbrüche im BSD3-Lizenztext.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BSD3Zeilenumbruch {
+    /// Zeilenumbrüche, wie sie bei dem instant-crate verwendet werden.
+    Instant,
+    /// Zeilenumbrüche, wie sie bei dem tiny-skia-crate verwendet werden.
+    TinySkia,
+}
+
+/// Darstellung des Lizenztextes einer BSD3-Lizenz.
+#[derive(Debug)]
+pub struct BSD3Darstellung<'t> {
+    /// Darstellung der Punkte (z.B. "*", "1.").
+    pub punkte: fn(u8) -> Cow<'t, str>,
+    /// Einrückung der Punkte.
+    pub einrückung_punkte: &'t str,
+    /// Einrückung des restlichen Textes eines Listenpunktes.
+    pub einrückung_text: &'t str,
+    /// Alternativer Begriff für "author" in Punkt 3, z.B. "copyright holder".
+    pub author: &'t str,
+    ///  Alternativer Begriff für COPYRIGHT "HOLDER" in letzten Absatz, z.B. "OWNER".
+    pub copyright_holder: &'t str,
+}
+
 /// Erzeuge den Lizenztext für die BSD-3-Lizenz.
-pub fn bsd_3<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
-    Cow::Owned(format!(
-        r#"Copyright (c) {jahr}, {voller_name}
-All rights reserved.
+pub fn bsd_3<'t>(
+    copyright: Vec<BSD3Copyright<'t>>,
+    zeilenumbrüche: BSD3Zeilenumbruch,
+    darstellung: BSD3Darstellung<'t>,
+) -> Cow<'t, str> {
+    let copyright_d = VecD(copyright, ());
+    let neue_zeile_oder_leerzeichen =
+        |b, einrückung| if b { format!("\n{einrückung}") } else { String::from(" ") };
+    use BSD3Zeilenumbruch::*;
+    let instant = |einrückung| neue_zeile_oder_leerzeichen(zeilenumbrüche == Instant, einrückung);
+    let tiny_skia =
+        |einrückung| neue_zeile_oder_leerzeichen(zeilenumbrüche == TinySkia, einrückung);
+    let instant_tiny_skia = |einrückung| {
+        neue_zeile_oder_leerzeichen([Instant, TinySkia].contains(&zeilenumbrüche), einrückung)
+    };
+    let BSD3Darstellung { punkte, einrückung_punkte, einrückung_text, author, copyright_holder } =
+        darstellung;
+    let mut string = format!("{copyright_d}");
+    macro_rules! push_string {
+            ($h: expr $(, $t: expr)* $(,)?) => {
+                string.push_str($h);
+                push_string!($($t),* ,);
+            };
+            ($(,)?) => {};
+        }
+    push_string!(
+        "Redistribution and use in source and binary forms, with or without",
+        &instant_tiny_skia(""),
+        "modification, are permitted provided that the following conditions are",
+        &tiny_skia(""),
+        "met:",
+        &instant_tiny_skia(""),
+        &instant_tiny_skia(einrückung_punkte),
+        &punkte(1),
+        " Redistributions of source code must retain the above copyright",
+        &tiny_skia(einrückung_text),
+        "notice, this",
+        &instant(einrückung_text),
+        "list of conditions and the following disclaimer.",
+        &instant_tiny_skia(""),
+        &instant_tiny_skia(einrückung_punkte),
+        &punkte(2),
+        " Redistributions in binary form must reproduce the above copyright",
+        &tiny_skia(einrückung_text),
+        "notice,",
+        &instant(einrückung_text),
+        "this list of conditions and the following disclaimer in",
+        &tiny_skia(einrückung_text),
+        "the documentation",
+        &instant(einrückung_text),
+        "and/or other materials provided with the",
+        &tiny_skia(einrückung_text),
+        "distribution.",
+        &instant_tiny_skia(""),
+        &instant_tiny_skia(einrückung_punkte),
+        &punkte(3),
+        " Neither the name of the ",
+        author,
+        " nor the names of its",
+        &tiny_skia(einrückung_text),
+        "contributors may be used",
+        &instant(einrückung_text),
+        "to endorse or promote products derived",
+        &tiny_skia(einrückung_text),
+        "from this software without specific",
+        &instant(einrückung_text),
+        "prior written permission.",
+        &instant_tiny_skia(""),
+        &instant_tiny_skia(""),
+        "THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS",
+        &tiny_skia(""),
+        "\"AS IS\" AND",
+        &instant(""),
+        "ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT",
+        &tiny_skia(""),
+        "LIMITED TO, THE IMPLIED",
+        &instant(""),
+        "WARRANTIES OF MERCHANTABILITY AND FITNESS FOR",
+        &tiny_skia(""),
+        "A PARTICULAR PURPOSE ARE",
+        &instant(""),
+        "DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT",
+        &tiny_skia(""),
+        copyright_holder,
+        " OR CONTRIBUTORS BE LIABLE",
+        &instant(""),
+        "FOR ANY DIRECT, INDIRECT, INCIDENTAL,",
+        &tiny_skia(""),
+        "SPECIAL, EXEMPLARY, OR CONSEQUENTIAL",
+        &instant(""),
+        "DAMAGES (INCLUDING, BUT NOT",
+        &tiny_skia(""),
+        "LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR",
+        &instant(""),
+        "SERVICES; LOSS OF USE,",
+        &tiny_skia(""),
+        "DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER",
+        &instant(""),
+        "CAUSED AND ON ANY",
+        &tiny_skia(""),
+        "THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,",
+        &instant(""),
+        "OR TORT",
+        &tiny_skia(""),
+        "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE",
+        &instant_tiny_skia(""),
+        "OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+        &instant_tiny_skia(""),
+    );
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-3. Neither the name of the author nor the names of its contributors may be used
-   to endorse or promote products derived from this software without specific
-   prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-"#
-    ))
+    Cow::Owned(string)
 }
 
 /// Erzeuge den Lizenztext für die CC-0-Lizenz.

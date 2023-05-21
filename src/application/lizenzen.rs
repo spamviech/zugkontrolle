@@ -37,8 +37,8 @@ pub mod texte;
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_3, bsl_1_0, cc_0, isc,
     mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1, zlib,
-    ApacheCopyright, ApacheEinrückung, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde,
-    MITInfix, MITPräfix, MITZeilenumbruch,
+    ApacheCopyright, ApacheEinrückung, BSD3Copyright, BSD3Darstellung, BSD3Zeilenumbruch,
+    ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix, MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
@@ -507,7 +507,7 @@ fn vswwhom_lizenz() -> Cow<'static, str> {
     )
 }
 
-fn wasm_bindgen_lizenz() -> Cow<'static, str> {
+fn crichton_2014_lizenz() -> Cow<'static, str> {
     mit(
         None,
         vec![MITCopyright::neu(true, "2014", "Alex Crichton")],
@@ -552,6 +552,23 @@ fn widows_sys_lizenz() -> Cow<'static, str> {
         MITEinrückung::leerzeichen_4(),
         false,
         MITEnde { punkt: false, neue_zeile: 1 },
+    )
+}
+
+fn tiny_skia_lizenz() -> Cow<'static, str> {
+    bsd_3(
+        vec![
+            BSD3Copyright::neu("2011", false, "Google Inc.", false),
+            BSD3Copyright::neu("2020", false, "Reizner Evgeniy", false),
+        ],
+        BSD3Zeilenumbruch::TinySkia,
+        BSD3Darstellung {
+            punkte: |_| Cow::Borrowed("*"),
+            einrückung_punkte: "  ",
+            einrückung_text: "    ",
+            author: "copyright holder",
+            copyright_holder: "OWNER",
+        },
     )
 }
 
@@ -806,9 +823,9 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("camino", Lizenz::neu(mit_ohne_copyright_x11)),
         ("cargo_metadata", Lizenz::neu(mit_ohne_copyright_x11)),
         ("cargo-platform", Lizenz::neu(mit_ohne_copyright_x11)),
-        ("cc", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("cfg-if", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("cfg-if", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("cc", Lizenz::neu(crichton_2014_lizenz)),
+        ("cfg-if", Lizenz::neu(crichton_2014_lizenz)),
+        ("cfg-if", Lizenz::neu(crichton_2014_lizenz)),
         (
             "cfg_aliases",
             Lizenz::neu(|| {
@@ -1108,7 +1125,22 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
-        ("instant", Lizenz::neu(|| bsd_3("2019", "Sébastien Crozet"))),
+        (
+            "instant",
+            Lizenz::neu(|| {
+                bsd_3(
+                    vec![BSD3Copyright::neu("2019", true, "Sébastien Crozet", true)],
+                    BSD3Zeilenumbruch::Instant,
+                    BSD3Darstellung {
+                        punkte: |i| Cow::Owned(format!("{i}.")),
+                        einrückung_punkte: "",
+                        einrückung_text: "   ",
+                        author: "author",
+                        copyright_holder: "HOLDER",
+                    },
+                )
+            }),
+        ),
         (
             "itertools",
             Lizenz::neu(|| {
@@ -1138,7 +1170,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
-        ("js-sys", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("js-sys", Lizenz::neu(crichton_2014_lizenz)),
         ("khronos_api", Lizenz::neu(apache_2_0_standard_eingerückt)),
         ("kommandozeilen_argumente", Lizenz::neu(kommandozeilen_argumente_lizenz)),
         ("kommandozeilen_argumente_derive", Lizenz::neu(kommandozeilen_argumente_lizenz)),
@@ -1331,7 +1363,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
-        ("pkg-config", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("pkg-config", Lizenz::neu(crichton_2014_lizenz)),
         (
             "ppv-lite86",
             Lizenz::neu(|| {
@@ -1347,7 +1379,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
             }),
         ),
         ("proc-macro-crate", Lizenz::neu(mit_ohne_copyright_x11)),
-        ("proc-macro2", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("proc-macro2", Lizenz::neu(crichton_2014_lizenz)),
         ("quote", Lizenz::neu(mit_rust_project_developers_lizenz_2016)),
         ("rand", Lizenz::neu(rand_lizenz)),
         ("rand_chacha", Lizenz::neu(rand_lizenz)),
@@ -1423,7 +1455,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("rustc_version", Lizenz::neu(mit_rust_project_developers_lizenz_2016)),
         ("rustversion", Lizenz::neu(mit_ohne_copyright_x11)),
         ("ryu", Lizenz::neu(|| apache_2_0_eingerückt(false, ApacheCopyright::standard(), true))),
-        ("scoped-tls", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("scoped-tls", Lizenz::neu(crichton_2014_lizenz)),
         (
             "scopeguard",
             Lizenz::neu(|| {
@@ -1615,7 +1647,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
-        ("toml", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("toml", Lizenz::neu(crichton_2014_lizenz)),
         (
             "ttf-parser",
             Lizenz::neu(|| {
@@ -1694,12 +1726,12 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("vswhom", Lizenz::neu(vswwhom_lizenz)),
         ("vswhom-sys", Lizenz::neu(vswwhom_lizenz)),
         ("wasi", Lizenz::neu(mit_ohne_copyright_x11)),
-        ("wasm-bindgen", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("wasm-bindgen-backend", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("wasm-bindgen-futures", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("wasm-bindgen-macro", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("wasm-bindgen-macro-support", Lizenz::neu(wasm_bindgen_lizenz)),
-        ("wasm-bindgen-shared", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("wasm-bindgen", Lizenz::neu(crichton_2014_lizenz)),
+        ("wasm-bindgen-backend", Lizenz::neu(crichton_2014_lizenz)),
+        ("wasm-bindgen-futures", Lizenz::neu(crichton_2014_lizenz)),
+        ("wasm-bindgen-macro", Lizenz::neu(crichton_2014_lizenz)),
+        ("wasm-bindgen-macro-support", Lizenz::neu(crichton_2014_lizenz)),
+        ("wasm-bindgen-shared", Lizenz::neu(crichton_2014_lizenz)),
         (
             "wasm-timer",
             Lizenz::neu(|| {
@@ -1724,7 +1756,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("wayland-protocols", Lizenz::neu(wayland_lizenz)),
         ("wayland-scanner", Lizenz::neu(wayland_lizenz)),
         ("wayland-sys", Lizenz::neu(wayland_lizenz)),
-        ("web-sys", Lizenz::neu(wasm_bindgen_lizenz)),
+        ("web-sys", Lizenz::neu(crichton_2014_lizenz)),
         ("winapi", Lizenz::neu(winapi_lizenz)),
         ("winapi-i686-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
         ("winapi-wsapoll", Lizenz::neu(apache_2_0_standard_eingerückt)),
@@ -1861,10 +1893,23 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("servo-fontconfig-sys", Lizenz::neu(mit_missing_note)), // TODO new
         ("simd-adler32", Lizenz::neu(mit_missing_note)), // TODO new
         ("siphasher", Lizenz::neu(mit_missing_note)), // TODO new
-        ("tiny-skia", Lizenz::neu(mit_missing_note)), // TODO new
-        ("tiny-skia-path", Lizenz::neu(mit_missing_note)), // TODO new
-        ("toml_datetime", Lizenz::neu(mit_missing_note)), // TODO new
-        ("toml_edit", Lizenz::neu(mit_missing_note)), // TODO new
+        ("tiny-skia", Lizenz::neu(tiny_skia_lizenz)),
+        ("tiny-skia-path", Lizenz::neu(tiny_skia_lizenz)),
+        ("toml_datetime", Lizenz::neu(crichton_2014_lizenz)),
+        (
+            "toml_edit",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright::neu(true, "2017", "Andronik Ordian")],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
         ("vec_map", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
         (
             "windows-targets",
