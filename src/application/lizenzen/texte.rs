@@ -404,7 +404,7 @@ pub fn mit<'t, 'p, 'i>(
 /// ohne Einrückung und ohne Leerzeile am Anfang.
 #[inline(always)]
 pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true)
+    apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
@@ -412,16 +412,23 @@ pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
 pub fn apache_2_0_nicht_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
-    ende_neue_zeile: bool,
+    appendix: bool,
+    ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
-    apache_2_0(beginn_leerzeile, copyright, ApacheEinrückung::nicht_eingerückt(), ende_neue_zeile)
+    apache_2_0(
+        beginn_leerzeile,
+        copyright,
+        ApacheEinrückung::nicht_eingerückt(),
+        appendix,
+        ende_neue_zeile,
+    )
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten, eingerücktem Text
 /// und Leerzeile am Anfang.
 #[inline(always)]
 pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_eingerückt(true, ApacheCopyright::standard(), true)
+    apache_2_0_eingerückt(true, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit eingerücktem Text.
@@ -429,9 +436,16 @@ pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
 pub fn apache_2_0_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
-    ende_neue_zeile: bool,
+    appendix: bool,
+    ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
-    apache_2_0(beginn_leerzeile, copyright, ApacheEinrückung::eingerückt(), ende_neue_zeile)
+    apache_2_0(
+        beginn_leerzeile,
+        copyright,
+        ApacheEinrückung::eingerückt(),
+        appendix,
+        ende_neue_zeile,
+    )
 }
 
 /// Einrückung im Lizenztext einer Apache-2.0 Lizenz.
@@ -509,7 +523,8 @@ pub fn apache_2_0<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
     einrückung: ApacheEinrückung<'_>,
-    ende_neue_zeile: bool,
+    appendix: bool,
+    ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
     let beginn_leerzeile_str = if beginn_leerzeile { "\n" } else { "" };
     let ApacheCopyright { brackets, jahr, voller_name } = copyright;
@@ -522,7 +537,38 @@ pub fn apache_2_0<'t>(
         sub_text: indent_sub_text,
         finale_url: indent_finale_url,
     } = einrückung;
-    let ende_neue_zeile_str = if ende_neue_zeile { "\n" } else { "" };
+    let appendix_str = if appendix {
+        format!(
+            r#"
+{indent_header}APPENDIX: How to apply the Apache License to your work.
+
+{indent_text}To apply the Apache License to your work, attach the following
+{indent_text}boilerplate notice, with the fields enclosed by brackets "{brackets}"
+{indent_text}replaced with your own identifying information. (Don't include
+{indent_text}the brackets!)  The text should be enclosed in the appropriate
+{indent_text}comment syntax for the file format. We also recommend that a
+{indent_text}file or class name and description of purpose be included on the
+{indent_text}same "printed page" as the copyright notice for easier
+{indent_text}identification within third-party archives.
+
+{indent_header}Copyright {jahr} {voller_name}
+
+{indent_header}Licensed under the Apache License, Version 2.0 (the "License");
+{indent_header}you may not use this file except in compliance with the License.
+{indent_header}You may obtain a copy of the License at
+
+{indent_finale_url}http://www.apache.org/licenses/LICENSE-2.0
+
+{indent_header}Unless required by applicable law or agreed to in writing, software
+{indent_header}distributed under the License is distributed on an "AS IS" BASIS,
+{indent_header}WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+{indent_header}See the License for the specific language governing permissions and
+{indent_header}limitations under the License."#
+        )
+    } else {
+        String::new()
+    };
+    let ende_neue_zeile_str = "\n".repeat(ende_neue_zeile);
     Cow::Owned(format!(
         r#"{beginn_leerzeile_str}{indent_titel}Apache License
 {indent_version}Version 2.0, January 2004
@@ -700,31 +746,40 @@ pub fn apache_2_0<'t>(
 {indent_text}of your accepting any such warranty or additional liability.
 
 {indent_header}END OF TERMS AND CONDITIONS
+{appendix_str}{ende_neue_zeile_str}"#,
+    ))
+}
 
-{indent_header}APPENDIX: How to apply the Apache License to your work.
+/// Erzeuge den Lizenztext für die BSD-2-Lizenz.
+pub fn bsd_2<'t>(jahr: &'t str, name: &'t str) -> Cow<'t, str> {
+    Cow::Owned(format!(
+        r#"Copyright (c) {jahr} {name}
+All rights reserved.
 
-{indent_text}To apply the Apache License to your work, attach the following
-{indent_text}boilerplate notice, with the fields enclosed by brackets "{brackets}"
-{indent_text}replaced with your own identifying information. (Don't include
-{indent_text}the brackets!)  The text should be enclosed in the appropriate
-{indent_text}comment syntax for the file format. We also recommend that a
-{indent_text}file or class name and description of purpose be included on the
-{indent_text}same "printed page" as the copyright notice for easier
-{indent_text}identification within third-party archives.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
 
-{indent_header}Copyright {jahr} {voller_name}
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
 
-{indent_header}Licensed under the Apache License, Version 2.0 (the "License");
-{indent_header}you may not use this file except in compliance with the License.
-{indent_header}You may obtain a copy of the License at
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the
+   distribution.
 
-{indent_finale_url}http://www.apache.org/licenses/LICENSE-2.0
-
-{indent_header}Unless required by applicable law or agreed to in writing, software
-{indent_header}distributed under the License is distributed on an "AS IS" BASIS,
-{indent_header}WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-{indent_header}See the License for the specific language governing permissions and
-{indent_header}limitations under the License.{ende_neue_zeile_str}"#,
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"#
     ))
 }
 
@@ -756,8 +811,8 @@ impl<'t> BSD3Copyright<'t> {
 impl Display for BSD3Copyright<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let BSD3Copyright { jahr, komma_nach_jahr, voller_name, all_rights_neue_zeile } = self;
-        let komma = if *all_rights_neue_zeile { "\n" } else { "" };
-        let neue_zeile_oder_leerzeichen = if *komma_nach_jahr { "," } else { " " };
+        let komma = if *komma_nach_jahr { "," } else { "" };
+        let neue_zeile_oder_leerzeichen = if *all_rights_neue_zeile { "\n" } else { " " };
         write!(f, "Copyright (c) {jahr}{komma} {voller_name}{neue_zeile_oder_leerzeichen}")?;
         Ok(())
     }
