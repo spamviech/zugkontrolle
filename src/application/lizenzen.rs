@@ -36,9 +36,10 @@ pub mod texte;
 
 use texte::{
     apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_3, bsl_1_0, cc_0, isc,
-    mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1, zlib,
-    ApacheCopyright, ApacheEinrückung, BSD3Copyright, BSD3Darstellung, BSD3Zeilenumbruch,
-    ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix, MITZeilenumbruch,
+    mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1,
+    servo_fontconfig_sys, zlib, ApacheCopyright, ApacheEinrückung, BSD3Copyright, BSD3Darstellung,
+    BSD3Zeilenumbruch, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix,
+    MITZeilenumbruch,
 };
 
 #[derive(Debug, Clone)]
@@ -1889,10 +1890,37 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("safe_arch", Lizenz::neu(mit_missing_note)), // TODO new
         ("sctk-adwaita", Lizenz::neu(mit_missing_note)), // TODO new
         ("serde_spanned", Lizenz::neu(mit_missing_note)), // TODO new
-        ("servo-fontconfig", Lizenz::neu(mit_missing_note)), // TODO new
-        ("servo-fontconfig-sys", Lizenz::neu(mit_missing_note)), // TODO new
-        ("simd-adler32", Lizenz::neu(mit_missing_note)), // TODO new
-        ("siphasher", Lizenz::neu(mit_missing_note)), // TODO new
+        ("servo-fontconfig", Lizenz::neu(mozilla_foundation_lizenz)),
+        ("servo-fontconfig-sys", Lizenz::neu(servo_fontconfig_sys)),
+        (
+            "simd-adler32",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright::neu(true, "[2021]", "[Marvin Countryman]")],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "siphasher",
+            Lizenz::neu(|| {
+                Cow::Borrowed(
+                    r#"Copyright 2012-2016 The Rust Project Developers.
+Copyright 2016-2021 Frank Denis.
+
+Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+<LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+option.
+"#,
+                )
+            }),
+        ), // TODO new
         ("tiny-skia", Lizenz::neu(tiny_skia_lizenz)),
         ("tiny-skia-path", Lizenz::neu(tiny_skia_lizenz)),
         ("toml_datetime", Lizenz::neu(crichton_2014_lizenz)),

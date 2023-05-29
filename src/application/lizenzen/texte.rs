@@ -95,11 +95,15 @@ impl Display for VecD<MITCopyright<'_>, MITEinrückung<'_>> {
     }
 }
 
+/// Der Präfix eines MIT-Lizenztextes, gefolgt von einer beliebigen Anzahl neuer Zeilen.
+#[derive(Debug, Clone, Copy)]
+pub struct MITPräfix<'t>(pub &'t str, pub u8);
+
 struct OptionD<T, E>(Option<T>, E);
 
-impl Display for OptionD<(&'_ str, u8), MITEinrückung<'_>> {
+impl Display for OptionD<MITPräfix<'_>, MITEinrückung<'_>> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let OptionD(Some((s, neue_zeilen)), einrückung) = self {
+        if let OptionD(Some(MITPräfix(s, neue_zeilen)), einrückung) = self {
             write!(f, "{einrückung}{s}")?;
             for _ in 0..*neue_zeilen {
                 write!(f, "\n")?;
@@ -109,24 +113,20 @@ impl Display for OptionD<(&'_ str, u8), MITEinrückung<'_>> {
     }
 }
 
-/// Der Präfix eines MIT-Lizenztextes, gefolgt von einer beliebigen Anzahl neuer Zeilen.
-#[derive(Debug, Clone, Copy)]
-pub struct MITPräfix<'t>(pub &'t str, pub u8);
-
-impl<'t> From<MITPräfix<'t>> for (&'t str, u8) {
-    fn from(MITPräfix(präfix, neue_zeilen): MITPräfix<'t>) -> Self {
-        (präfix, neue_zeilen)
-    }
-}
-
 /// Der Infix nach der Copyright-Information eines MIT-Lizenztextes,
 /// gefolgt von einer beliebigen Anzahl neuer Zeilen.
 #[derive(Debug, Clone, Copy)]
 pub struct MITInfix<'t>(pub &'t str, pub u8);
 
-impl<'t> From<MITInfix<'t>> for (&'t str, u8) {
-    fn from(MITInfix(infix, neue_zeilen): MITInfix<'t>) -> Self {
-        (infix, neue_zeilen)
+impl Display for OptionD<MITInfix<'_>, MITEinrückung<'_>> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(Some(MITInfix(s, neue_zeilen)), einrückung) = self {
+            write!(f, "{einrückung}{s}")?;
+            for _ in 0..*neue_zeilen {
+                write!(f, "\n")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -212,9 +212,9 @@ pub fn mit<'t, 'p, 'i>(
     including_next_paragraph: bool,
     ende: MITEnde,
 ) -> Cow<'t, str> {
-    let präfix_d = OptionD(präfix.into().map(MITPräfix::into), einrückung);
+    let präfix_d = OptionD(präfix.into(), einrückung);
     let copyright_d = VecD(copyright, einrückung);
-    let infix_d = OptionD(infix.into().map(MITInfix::into), einrückung);
+    let infix_d = OptionD(infix.into(), einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
@@ -1045,6 +1045,42 @@ pub fn isc<'t>(
         "THIS SOFTWARE.\n",
     );
     Cow::Owned(string)
+}
+
+/// Lizenztext des servo-fontconfig-sys crates.
+/// Sehr nah an isc-Lizenz, aber genug Unterschiede, dass plain-text deutlich einfacher ist.
+pub fn servo_fontconfig_sys<'t>() -> Cow<'t, str> {
+    Cow::Borrowed(
+        r#"fontconfig/COPYING
+
+Copyright © 2000,2001,2002,2003,2004,2006,2007 Keith Packard
+Copyright © 2005 Patrick Lam
+Copyright © 2009 Roozbeh Pournader
+Copyright © 2008,2009 Red Hat, Inc.
+Copyright © 2008 Danilo Šegan
+Copyright © 2012 Google, Inc.
+
+
+Permission to use, copy, modify, distribute, and sell this software and its
+documentation for any purpose is hereby granted without fee, provided that
+the above copyright notice appear in all copies and that both that
+copyright notice and this permission notice appear in supporting
+documentation, and that the name of the author(s) not be used in
+advertising or publicity pertaining to distribution of the software without
+specific, written prior permission.  The authors make no
+representations about the suitability of this software for any purpose.  It
+is provided "as is" without express or implied warranty.
+
+THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
+EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+"#,
+    )
 }
 
 /// Erzeuge den Lizenztext für die MPL-2.0 Lizenz.
