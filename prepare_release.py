@@ -22,9 +22,17 @@ linker = "arm-none-linux-gnueabihf-gcc"
 linker = "arm-none-linux-gnueabihf-gcc"
 """
 
-# install windres (+ strip) and allow it to work
+# install windres (+ strip, make) and allow it to work
 # pacman -S mingw-w64-x86_64-binutils
 # pacman -S mingw-w64-x86_64-gcc
+# pacman -S make
+
+# download Visual Studio build tools
+# https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022
+# execute build script from Developer Powershell for VS 2022 (or command line if you prefer that)
+# it might be necessary to run `cargo clean` before starting the build
+
+# TODO: the above should be enough to compile expat-sys, but freetype-sys still complains :(
 
 # LINUX
 # sudo apt install arm-linux-gnueabihf-gcc
@@ -36,6 +44,10 @@ linker = "arm-linux-gnueabihf-gcc"
 [target.armv7-unknown-linux-musleabihf]
 linker = "arm-linux-gnueabihf-gcc"
 """
+
+# looks like it helps, but still not enough :(
+#import os
+#os.environ["CMAKE_GENERATOR"] = "MSYS Makefiles"
 
 # build for raspi in release mode
 build(config.name, target=config.arm_target)
