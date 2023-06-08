@@ -22,17 +22,30 @@ linker = "arm-none-linux-gnueabihf-gcc"
 linker = "arm-none-linux-gnueabihf-gcc"
 """
 
-# install windres (+ strip, make) and allow it to work
-# pacman -S mingw-w64-x86_64-binutils
-# pacman -S mingw-w64-x86_64-gcc
-# pacman -S make
+# install windres (+ strip) and allow it to work
+# (you might need to add "C:\msys64\mingw64\bin" and "C:\msys64\usr\bin" to your PATH)
+"""
+pacman -S mingw-w64-x86_64-binutils
+pacman -S mingw-w64-x86_64-gcc
+pacman -S pkg-config
+"""
 
-# download Visual Studio build tools
+# can we use the msys-provided one?
+# download & install cmake, make sure it is in PATH
+# https://cmake.org/download/
+
+# download Visual Studio build tools (we need at least `nmake` from it)
 # https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022
-# execute build script from Developer Powershell for VS 2022 (or command line if you prefer that)
-# it might be necessary to run `cargo clean` before starting the build
+# choose the equivalent to the german
+# - under "Workload", enable "Buildtools für die universelle Windows-Platform"
+# - under  "Einzelne Komponenten", enable "C++-CMake-Tools für Windows"
+#   (this alone might be enough, but is definitely required)
 
-# TODO: the above should be enough to compile expat-sys, but freetype-sys still complains :(
+# it should not be necessare, but it can help to run from Developer Powershell for VS 2022
+# (or command promt if you prefer that)
+
+# it might be necessary to run `cargo clean` before starting the build
+# (e.g. after an installation with missing requirements)
 
 # LINUX
 # sudo apt install arm-linux-gnueabihf-gcc
@@ -45,9 +58,19 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "arm-linux-gnueabihf-gcc"
 """
 
-# looks like it helps, but still not enough :(
-#import os
-#os.environ["CMAKE_GENERATOR"] = "MSYS Makefiles"
+# TODO: maybe there are similare steps necessary now (e.g. install cmake)
+# I didn't try it on Linux with the current dependency set yet.
+
+import os
+# make sure the cc-crate uses the correct c++-compiler during cross-compilation
+os.environ["CXX_armv7_unknown_linux_gnueabihf"] = "arm-none-linux-gnueabihf-g++"
+
+# a step in the right direction, but not fully successful
+# (lib still missing)
+os.environ["PKG_CONFIG_ALLOW_CROSS"] = "1"
+# https://github.com/servo/libfontconfig/issues/67
+# https://github.com/servo/libfontconfig/issues/64
+# https://github.com/slint-ui/slint/discussions/1165
 
 # build for raspi in release mode
 build(config.name, target=config.arm_target)
