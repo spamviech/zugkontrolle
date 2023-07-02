@@ -48,7 +48,11 @@ pacman -S pkg-config
 # (e.g. after an installation with missing requirements)
 
 # LINUX
-# sudo apt install arm-linux-gnueabihf-gcc
+# # looks like this was renamed (see below)
+# # sudo apt install arm-linux-gnueabihf-gcc
+# sudo apt install binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+# sudo apt install cmake
+# sudo apt install libfontconfig-dev
 # create `$HOME/.cargo/config.toml` with these contents
 """
 [target.armv7-unknown-linux-gnueabihf]

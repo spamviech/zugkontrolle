@@ -37,7 +37,11 @@ linker = "arm-none-linux-gnueabihf-gcc"
 # pacman -S mingw-w64-x86_64-gcc
 
 # LINUX
-# sudo apt install arm-linux-gnueabihf-gcc
+# # looks like this was renamed (see below)
+# # sudo apt install arm-linux-gnueabihf-gcc
+# sudo apt install binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+# sudo apt install cmake
+# sudo apt install libfontconfig-dev
 # create `$HOME/.cargo/config.toml` with these contents
 """
 [target.armv7-unknown-linux-gnueabihf]
