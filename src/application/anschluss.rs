@@ -83,7 +83,7 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
 impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
@@ -175,7 +175,7 @@ where
 impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
     R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
@@ -278,7 +278,7 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text::Renderer,
-    <R as iced_native::Renderer>::Theme:
+    <R as Renderer>::Theme:
         iced_native::widget::radio::StyleSheet + iced_native::widget::text::StyleSheet,
 {
     Column::new()
@@ -291,7 +291,7 @@ where
     Modus: Copy,
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
@@ -347,7 +347,7 @@ impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachric
 where
     ModusNachricht: 'static + Clone,
     R: 'a + text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
         + iced_native::widget::text_input::StyleSheet
@@ -457,7 +457,7 @@ pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Seri
 impl<'a, R> Pwm<'a, R>
 where
     R: 'a + iced_native::text::Renderer<Font = Font>,
-    <R as iced_native::Renderer>::Theme: iced_aw::number_input::StyleSheet
+    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_native::widget::text::StyleSheet
         + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::container::StyleSheet,
