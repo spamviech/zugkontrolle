@@ -20,7 +20,7 @@ import build.config as config
 check_docker_podman()
 
 # build for raspi in release mode
-build(config.name, target=config.arm_target)
+build(config.name, release=True, target=config.arm_target)
 
 # build for host platform in release mode
-build(config.name, binary_extension=config.host_extension)
+build(config.name, release=True, binary_extension=config.host_extension)

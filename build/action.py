@@ -17,7 +17,12 @@ def check_docker_podman():
 def build(program_name, release=True, target=None, binary_extension=""):
     """Build the program for the specified profile, copy it to ./bin, strip it"""
     binary_name = program_name + binary_extension
-    build_command = ["cross", "build"]
+    build_command = []
+    if target is None:
+        build_command.append("cargo")
+    else:
+        build_command.append("cross")
+    build_command.append("build")
     bin_path = "./bin/" + binary_name
     if release:
         build_command.append("--release")

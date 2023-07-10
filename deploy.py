@@ -22,6 +22,6 @@ import build.config as config
 check_docker_podman()
 
 # build for raspi in release mode
-bin_path = build(config.name, target=config.arm_target)
+bin_path = build(config.name, release=True, target=config.arm_target)
 # automatically transfer to raspi using scp
 send_to_raspi(config.name, bin_path, config.raspberry_user, config.raspberry_address)
