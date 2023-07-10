@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+## 3.0.0
+
 - Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster
 - Zeige Fließend-Status von Streckenabschnitten über Transparenz an
 - Verwende einen Slider anstelle von Buttons zum Skalieren
@@ -32,6 +34,7 @@
   sind jetzt Argumente.
   Sie werden für das GUI im Zugtyp gespeichert.
 - Bibliothek: Viele fehlenden docstrings ergänzt.
+- Bibliothek: GUI an neue iced-version mit state-less widgets angepasst
 - Bugfix: Bei fehlgeschlagenem Einstellen der Geschwindigkeit wird das UI nicht verändert
 - Refactoring: Aufsplitten von großen Modulen (application.rs, gleise.rs)
 - Refactoring: Verwende AnyId statt GleisId\<Z\>.
@@ -69,6 +72,7 @@
 - Refactoring: GleiseMap-Trait (jetzt DatenAuswahl) ist nicht mehr public.
     Stattdessen werden explizite Methoden für jeden Typ bereitgestellt.
 - Crate umbenannt: zugkontrolle-derive -> zugkontrolle-macros
+- dependencies aktualisiert
 
 ## 2.0.1
 
