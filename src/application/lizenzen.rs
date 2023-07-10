@@ -242,6 +242,18 @@ fn ab_glyph_lizenz(appendix: bool, ende_neue_zeile: usize) -> Cow<'static, str> 
     )
 }
 
+fn arrayref_lizenz(year: &str) -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "Ulrik Sverdrup \"bluss\"", year)],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
 fn bytemuck_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -734,17 +746,14 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("approx", Lizenz::neu(apache_2_0_standard_eingerückt)),
         (
             "arrayvec",
-            Lizenz::neu(|| {
-                mit(
-                    None,
-                    vec![MITCopyright::neu(true, "Ulrik Sverdrup \"bluss\"", "2015-2017")],
-                    None,
-                    MITZeilenumbruch::X11,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
+            Lizenz {
+                lizenz: || arrayref_lizenz("2015-2023"),
+                version_spezifisch: {
+                    // force coercion from closure to fn()
+                    let array: [(_, fn() -> _); 1] = [("0.5.2", || arrayref_lizenz("2015-2017"))];
+                    HashMap::from(array)
+                },
+            },
         ),
         (
             "atomic-polyfill",
@@ -2235,6 +2244,20 @@ option.
             }),
         ),
         ("winnow", Lizenz::neu(|| mit_ohne_copyright(MITZeilenumbruch::Redox))),
+        (
+            "equivalent",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright::neu(true, "2016--2023", None)],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
     ]
 }
 

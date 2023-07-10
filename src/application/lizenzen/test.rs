@@ -434,10 +434,10 @@ fn lizenz_dateien(
         ("nu-ansi-term", ("LICENCE", HashMap::new())),
         ("palette", ("LICENSE-MIT", HashMap::new())),
         ("palette_derive", ("LICENSE-MIT", HashMap::new())),
-        ("phf", ("LICENSE-GITHUB", HashMap::new())),
-        ("phf_generator", ("LICENSE-GITHUB", HashMap::new())),
+        ("phf", ("LICENSE-GITHUB", HashMap::from([("0.11.2", "LICENSE")]))),
+        ("phf_generator", ("LICENSE-GITHUB", HashMap::from([("0.11.2", "LICENSE")]))),
         ("phf_macros", ("LICENSE-GITHUB", HashMap::new())),
-        ("phf_shared", ("LICENSE-GITHUB", HashMap::new())),
+        ("phf_shared", ("LICENSE-GITHUB", HashMap::from([("0.11.2", "LICENSE")]))),
         ("png", ("LICENSE-MIT", HashMap::new())),
         ("rustix", ("LICENSE-MIT", HashMap::new())),
         ("safe_arch", ("LICENSE-MIT-GITHUB..md", HashMap::new())),
@@ -452,6 +452,7 @@ fn lizenz_dateien(
         ("vec_map", ("LICENSE-MIT", HashMap::new())),
         ("windows-targets", ("LICENSE-MIT", HashMap::new())),
         ("winnow", ("LICENSE-MIT", HashMap::new())),
+        ("equivalent", ("LICENSE-MIT", HashMap::new())),
     ]
     .into_iter()
     .map(|(name, (pfad, version_spezifisch))| (UniCaseOrd::neu(name), (pfad, version_spezifisch)))
