@@ -1,11 +1,23 @@
 #!/bin/python3
 
+import sys
+
 from build.util import execute, copy
+
+def check_docker_podman():
+    """Check if either podman or docker is running (hello-world runs with 0 exit-code)."""
+    container_engines = ["docker", "podman"]
+    for engine in container_engines:
+        running = execute([engine, "run", "hello-world"], exit=False)
+        if running:
+            return True
+    # if we reach here, we didn't find a running container engine
+    sys.exit("Neither docker nor podman running!")
 
 def build(program_name, release=True, target=None, binary_extension=""):
     """Build the program for the specified profile, copy it to ./bin, strip it"""
     binary_name = program_name + binary_extension
-    build_command = ["cargo", "build"]
+    build_command = ["cross", "build"]
     bin_path = "./bin/" + binary_name
     if release:
         build_command.append("--release")
