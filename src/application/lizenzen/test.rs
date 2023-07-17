@@ -205,9 +205,9 @@ fn lizenz_dateien(
         ("objc_id", ("TODO", HashMap::new())),         // TODO Missing
         ("sid", ("TODO", HashMap::new())),             // TODO Missing
         ("expat-sys", ("TODO", HashMap::new())),       // TODO Missing
-        ("fdeflate", ("TODO", HashMap::new())),        // TODO Missing
         ("Lato", ("../iced_graphics-0.3.0/fonts/OFL.txt", HashMap::new())),
         ("SourceSerif4-Regular", ("../../fonts/source-serif/LICENSE.md", HashMap::new())),
+        ("fdeflate", ("LICENSE-GITHUB", HashMap::new())),
         ("aho-corasick", ("LICENSE-MIT", HashMap::new())),
         ("android_glue", ("LICENSE-GITHUB", HashMap::new())),
         ("ansi_term", ("LICENCE", HashMap::new())),
@@ -306,7 +306,6 @@ fn lizenz_dateien(
         ("lyon_tessellation", ("LICENSE-MIT-GITHUB", HashMap::new())),
         ("malloc_buf", ("LICENSE-GITHUB", HashMap::new())),
         ("memchr", ("LICENSE-MIT", HashMap::new())),
-        ("memmap2", ("LICENSE-MIT", HashMap::new())),
         ("memmap2", ("LICENSE-MIT", HashMap::new())),
         ("minimal-lexical", ("LICENSE-MIT", HashMap::new())),
         ("nb", ("LICENSE-MIT", HashMap::new())),
@@ -453,6 +452,7 @@ fn lizenz_dateien(
         ("windows-targets", ("LICENSE-MIT", HashMap::new())),
         ("winnow", ("LICENSE-MIT", HashMap::new())),
         ("equivalent", ("LICENSE-MIT", HashMap::new())),
+        ("fdeflate", ("LICENSE-MIT-GITHUB", HashMap::new())),
     ]
     .into_iter()
     .map(|(name, (pfad, version_spezifisch))| (UniCaseOrd::neu(name), (pfad, version_spezifisch)))

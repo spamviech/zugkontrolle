@@ -679,7 +679,6 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
         ("objc_id", Lizenz::neu(mit_missing_note)),         // TODO
         ("sid", Lizenz::neu(mit_missing_note)),             // TODO
         ("expat-sys", Lizenz::neu(mit_missing_note)),       // TODO
-        ("fdeflate", Lizenz::neu(mit_missing_note)),        // TODO
         (
             "SourceSerif4-Regular",
             Lizenz::neu(|| {
@@ -2250,6 +2249,20 @@ option.
                 mit(
                     None,
                     vec![MITCopyright::neu(true, "2016--2023", None)],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "fdeflate",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    Vec::new(),
                     None,
                     MITZeilenumbruch::X11,
                     MITEinrückung::keine(),
