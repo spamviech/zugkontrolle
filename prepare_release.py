@@ -21,6 +21,8 @@ check_docker_podman()
 
 # build for raspi in release mode
 build(config.name, release=True, target=config.arm_target)
+# build for raspi 64bit in release mode
+build(config.name, release=True, target=config.arm64_target)
 
 # build for host platform in release mode
 build(config.name, release=True, binary_extension=config.host_extension)

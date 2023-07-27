@@ -97,6 +97,16 @@ rppal = "0.14.1"
 #rascam = "0.0.2"
 #raspicam-rs = "0.1.3"
 #libcamera = "0.2.1"
+[target.aarch64-unknown-linux-gnu.dependencies]
+rppal = "0.14.1"
+#rascam = "0.0.2"
+#raspicam-rs = "0.1.3"
+#libcamera = "0.2.1"
+[target.aarch64-unknown-linux-musl.dependencies]
+rppal = "0.14.1"
+#rascam = "0.0.2"
+#raspicam-rs = "0.1.3"
+#libcamera = "0.2.1"
 
 [build-dependencies]
 cfg_aliases = "0.1.1"

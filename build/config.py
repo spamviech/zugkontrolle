@@ -25,3 +25,4 @@ else:
     raise HostOsNotSupported(sys.platform)
 
 arm_target = "armv7-unknown-linux-" + gnu_or_musl + "eabihf"
+arm64_target = "aarch64-unknown-linux-" + gnu_or_musl
