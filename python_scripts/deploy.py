@@ -1,7 +1,9 @@
 #!/bin/python3
 
-from build.action import build, check_docker_podman
-import build.config as config
+import subprocess
+import sys
+from action import build, send_to_raspi
+import config
 
 # install either docker or podman, must be started before executing this script
 
@@ -20,9 +22,6 @@ import build.config as config
 check_docker_podman()
 
 # build for raspi in release mode
-build(config.name, release=True, target=config.arm_target)
-# build for raspi 64bit in release mode
-build(config.name, release=True, target=config.arm64_target)
-
-# build for host platform in release mode
-build(config.name, release=True, binary_extension=config.host_extension)
+bin_path = build(config.name, release=True, target=config.arm_target)
+# automatically transfer to raspi using scp
+send_to_raspi(config.name, bin_path, config.raspberry_user, config.raspberry_address)

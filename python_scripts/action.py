@@ -2,7 +2,7 @@
 
 import sys
 
-from build.util import execute, copy
+from util import execute, copy
 
 def check_docker_podman():
     """Check if either podman or docker is running (hello-world runs with 0 exit-code)."""

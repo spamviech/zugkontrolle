@@ -6,8 +6,6 @@ import sys
 
 raspberry_address = "raspberrypi"
 raspberry_user = "pi"
-# musl fails, since some dependency (probably iced-backend) requires dynamic library loading
-gnu_or_musl = "gnu"
 
 cwd = os.getcwd()
 name = os.path.split(cwd)[1]
@@ -24,5 +22,5 @@ elif sys.platform.startswith('win32'):
 else:
     raise HostOsNotSupported(sys.platform)
 
-arm_target = "armv7-unknown-linux-" + gnu_or_musl + "eabihf"
-arm64_target = "aarch64-unknown-linux-" + gnu_or_musl
+arm_target = "armv7-unknown-linux-gnueabihf"
+arm64_target = "aarch64-unknown-linux-gnu"
