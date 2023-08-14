@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "3.0.0"
+version = "3.0.1"
 authors = ["Wolfgang Witt <Wolfgang.Witt@campus.lmu.de>"]
 edition = "2021"
 license = "MIT"
