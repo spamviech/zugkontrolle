@@ -2,8 +2,13 @@
 
 ## Unreleased changes
 
-- füge target für 64-bit raspi zu prepare_release.py hinzu
 - füge Lizenz für `fdeflate` hinzu
+- verbessere build-scripts:
+  - neue targets: 64-bit raspi, x86_64 linux
+  - erkenne automatisch host target-triple
+  - binaries enthalten immer target-triple + version
+  - lese name+version aus Cargo.toml
+  - ausführen unabhängig vom aktuellen Arbeitsverzeichnis möglich
 
 ## 3.0.0
 

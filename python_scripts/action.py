@@ -1,48 +1,54 @@
 #!/bin/python3
 
 import sys
+import os.path
+from typing import Optional
 
-from util import execute, copy
+from util import execute, copy, query_host_target_triple, get_repo_root
 
-def check_docker_podman():
+host_target_triple: Optional[str] = query_host_target_triple()
+repo_root: str = get_repo_root()
+
+
+def check_docker_podman(exit: bool = True) -> bool:
     """Check if either podman or docker is running (hello-world runs with 0 exit-code)."""
     container_engines = ["docker", "podman"]
     for engine in container_engines:
-        running = execute([engine, "run", "hello-world"], exit=False)
+        running, output = execute(
+            [engine, "run", "hello-world"], exit=False)
         if running:
             return True
     # if we reach here, we didn't find a running container engine
-    sys.exit("Neither docker nor podman running!")
-
-def build(program_name, release=True, target=None, binary_extension=""):
-    """Build the program for the specified profile, copy it to ./bin, strip it"""
-    binary_name = program_name + binary_extension
-    build_command = []
-    if target is None:
-        build_command.append("cargo")
+    if exit:
+        sys.exit("Neither docker nor podman running!")
     else:
-        build_command.append("cross")
-    build_command.append("build")
-    bin_path = "./bin/" + binary_name
+        return False
+
+
+def build(program_name: str, program_version: str, target: str, release: bool = True, binary_extension: str = "") -> str:
+    """Build the program for the specified profile, copy it to {repo_root}/bin"""
+    if target == host_target_triple:
+        build_program = "cargo"
+    else:
+        build_program = "cross"
     if release:
-        build_command.append("--release")
         profile = "release"
     else:
         profile = "debug"
-    if target is None:
-        target_dir = ""
-    else:
-        build_command.append("--target=" + target)
-        target_dir = target + "/"
-        bin_path +=  "-" + target
-    source_path = "./target/" + target_dir + profile + "/" + binary_name
+    build_command = [build_program, "build", "--profile=" +
+                     profile, "--target=" + target]
     execute(build_command)
+    source_path = os.path.join(
+        repo_root, "target",  target, profile, program_name + binary_extension)
+    bin_path = os.path.join(
+        repo_root, "bin", f"{program_name}-{program_version}-{target}{binary_extension}")
     copy(source_path, bin_path)
     return bin_path
 
-def send_to_raspi(program_name, bin_path, raspberry_user, raspberry_address, binary_extension=""):
+
+def send_to_raspi(bin_path: str, raspberry_user: str, raspberry_address: str):
     """Automatically transfer binary produced by `build` to raspi using scp"""
-    binary_name = program_name + binary_extension
+    binary_name = os.path.basename(bin_path)
     target_path = "/home/" + raspberry_user + "/bin/" + binary_name
     rasperry_user_address = raspberry_user + "@" + raspberry_address
     scp_dst = rasperry_user_address + ":" + target_path

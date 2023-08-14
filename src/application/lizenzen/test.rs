@@ -43,7 +43,7 @@ macro_rules! count_literals {
 }
 
 macro_rules! release_targets {
-    ($($target: literal),*) => {
+    ($($target: literal),* $(,)?) => {
         /// Targets, für die bei einem Release binaries bereitgestellt werden.
         static RELEASE_TARGETS: [&'static str; count_literals!($($target),*)] = [$($target),*];
 
@@ -57,7 +57,12 @@ macro_rules! release_targets {
     }
 }
 
-release_targets! {"x86_64-pc-windows-gnu", "armv7-unknown-linux-gnueabihf"}
+release_targets! {
+    "armv7-unknown-linux-gnueabihf",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnu",
+    "x86_64-unknown-linux-gnu",
+}
 
 fn cargo_lock_crates() -> HashSet<&'static str> {
     cargo_lock_lizenzen().into_iter().map(|(name, _lizenz)| name).collect()

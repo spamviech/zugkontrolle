@@ -1,26 +1,12 @@
 #!/bin/python3
 
-import os
-import os.path
-import sys
+raspberry_address: str = "raspberrypi"
+raspberry_user: str = "pi"
 
-raspberry_address = "raspberrypi"
-raspberry_user = "pi"
+raspi32_target: str = "armv7-unknown-linux-gnueabihf"
+raspi64_target: str = "aarch64-unknown-linux-gnu"
+windows_target: str = "x86_64-pc-windows-gnu"
+linux_target: str = "x86_64-unknown-linux-gnu"
 
-cwd = os.getcwd()
-name = os.path.split(cwd)[1]
-
-class HostOsNotSupported(Exception):
-    def __init__(self, name):
-        super().__init__(name)
-        self.name = name
-
-if sys.platform.startswith('linux'):
-    host_extension = ""
-elif sys.platform.startswith('win32'):
-    host_extension = ".exe"
-else:
-    raise HostOsNotSupported(sys.platform)
-
-arm_target = "armv7-unknown-linux-gnueabihf"
-arm64_target = "aarch64-unknown-linux-gnu"
+targets: list[str] = [(raspi32_target, ""), (raspi64_target, ""),
+                      (windows_target, ".exe"), (linux_target, "")]
