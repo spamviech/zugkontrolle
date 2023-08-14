@@ -2,6 +2,9 @@
 
 ## Unreleased changes
 
+- füge target für 64-bit raspi zu prepare_release.py hinzu
+- füge Lizenz für `fdeflate` hinzu
+
 ## 3.0.0
 
 - Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster
