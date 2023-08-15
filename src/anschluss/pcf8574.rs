@@ -529,15 +529,19 @@ impl Port {
     }
 
     /// Konfiguriere den Port für Output.
-    pub fn als_output(self, level: Level) -> Result<OutputPort, Fehler> {
-        self.pcf8574.lock().schreibe_port(self.port, level)?;
-        Ok(OutputPort(self))
+    pub fn als_output(self, level: Level) -> (OutputPort, Option<Fehler>) {
+        let fehler = self.pcf8574.lock().schreibe_port(self.port, level).err();
+        (OutputPort(self), fehler)
     }
 
     /// Konfiguriere den Port für Input.
-    pub fn als_input(self) -> Result<InputPort, Fehler> {
-        self.pcf8574.lock().port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
-        Ok(InputPort(self))
+    pub fn als_input(self) -> (InputPort, Option<Fehler>) {
+        let fehler = self
+            .pcf8574
+            .lock()
+            .port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)
+            .err();
+        (InputPort(self), fehler)
     }
 }
 

@@ -96,24 +96,28 @@ impl Display for Anschluss {
 
 impl Anschluss {
     /// Konfiguriere den [Anschluss] als [Output](OutputAnschluss).
-    pub fn als_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
+    pub fn als_output(self, polarität: Polarität) -> (OutputAnschluss, Option<Fehler>) {
         let gesperrt_level = Fließend::Gesperrt.mit_polarität(polarität);
-        Ok(match self {
+        match self {
             Anschluss::Pin(pin) => {
-                OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }
+                (OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }, None)
             },
             Anschluss::Pcf8574Port(port) => {
-                OutputAnschluss::Pcf8574Port { port: port.als_output(gesperrt_level)?, polarität }
+                let (port, fehler) = port.als_output(gesperrt_level);
+                (OutputAnschluss::Pcf8574Port { port, polarität }, fehler.map(Fehler::from))
             },
-        })
+        }
     }
 
     /// Konfiguriere den [Anschluss] als [Input](InputAnschluss).
-    pub fn als_input(self) -> Result<InputAnschluss, Fehler> {
-        Ok(match self {
-            Anschluss::Pin(pin) => InputAnschluss::Pin(pin.als_input()),
-            Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.als_input()?),
-        })
+    pub fn als_input(self) -> (InputAnschluss, Option<Fehler>) {
+        match self {
+            Anschluss::Pin(pin) => (InputAnschluss::Pin(pin.als_input()), None),
+            Anschluss::Pcf8574Port(port) => {
+                let (port, fehler) = port.als_input();
+                (InputAnschluss::Pcf8574Port(port), fehler.map(Fehler::from))
+            },
+        }
     }
 }
 
@@ -319,13 +323,17 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 },
             };
             match anschluss_res {
-                Ok(anschluss) => match anschluss.als_output(polarität) {
-                    Ok(output_anschluss) => {
+                Ok(anschluss) => {
+                    let (output_anschluss, fehler) = anschluss.als_output(polarität);
+                    if let Some(fehler) = fehler {
+                        Ergebnis::FehlerMitErsatzwert {
+                            anschluss: output_anschluss,
+                            fehler: NonEmpty::singleton(fehler.into()),
+                            anschlüsse,
+                        }
+                    } else {
                         Ergebnis::Wert { anschluss: output_anschluss, anschlüsse }
-                    },
-                    Err(fehler) => {
-                        Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
-                    },
+                    }
                 },
                 Err(fehler) => {
                     Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
@@ -523,7 +531,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             anschluss_suchen(anschluss)
         }
         drop(anschluss_suchen);
-        let interrupt_konfigurieren = |mut port: pcf8574::InputPort| -> Result<_, Fehler> {
+        let interrupt_konfigurieren = |port: &mut pcf8574::InputPort| -> Result<(), Fehler> {
             if let Some(interrupt) = gesuchter_interrupt {
                 let _ = port.setze_interrupt_pin(interrupt)?;
             } else if let Some(pin) = self_interrupt {
@@ -532,7 +540,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.setze_interrupt_pin(interrupt)?;
                 }
             }
-            Ok(port)
+            Ok(())
         };
         let anschlüsse = Anschlüsse {
             output_anschlüsse,
@@ -554,21 +562,24 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 },
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     match lager.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
-                        Ok(port) => match port.als_input() {
-                            Ok(input_port) => match interrupt_konfigurieren(input_port) {
-                                Ok(konfigurierter_port) => Ergebnis::Wert {
-                                    anschluss: InputAnschluss::Pcf8574Port(konfigurierter_port),
+                        Ok(port) => {
+                            let (mut input_port, fehler) = port.als_input();
+                            let fehler2 = interrupt_konfigurieren(&mut input_port).err();
+                            let input_anschluss = InputAnschluss::Pcf8574Port(input_port);
+                            let fehler_vec: Vec<_> = fehler
+                                .into_iter()
+                                .map(Fehler::from)
+                                .chain(fehler2.map(Fehler::from))
+                                .collect();
+                            if let Ok(fehler) = NonEmpty::try_from(fehler_vec) {
+                                Ergebnis::FehlerMitErsatzwert {
+                                    anschluss: input_anschluss,
+                                    fehler,
                                     anschlüsse,
-                                },
-                                Err(fehler) => Ergebnis::Fehler {
-                                    fehler: NonEmpty::singleton(fehler.into()),
-                                    anschlüsse,
-                                },
-                            },
-                            Err(fehler) => Ergebnis::Fehler {
-                                fehler: NonEmpty::singleton(fehler.into()),
-                                anschlüsse,
-                            },
+                                }
+                            } else {
+                                Ergebnis::Wert { anschluss: input_anschluss, anschlüsse }
+                            }
                         },
                         Err(fehler) => Ergebnis::Fehler {
                             fehler: NonEmpty::singleton(fehler.into()),

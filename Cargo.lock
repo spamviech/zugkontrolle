@@ -2983,7 +2983,7 @@ checksum = "5a56c84a8ccd4258aed21c92f70c0f6dea75356b6892ae27c24139da456f9336"
 
 [[package]]
 name = "zugkontrolle"
-version = "3.0.1"
+version = "4.0.0"
 dependencies = [
  "bincode",
  "difference",
