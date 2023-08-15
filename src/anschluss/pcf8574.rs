@@ -174,8 +174,12 @@ pub enum I2cBus {
     ///
     /// Auf dem Raspberry Pi B Rev 1 sind sie mit I2C0 verbunden,
     /// bei allen anderen Raspberry Pi Versionen mit I2C1.
+    ///
+    /// Der jeweils andere ist für Kommunikation mit dem EEPROM z.B. eines Hats
+    /// und nicht für allgemeine Nutzung vorgesehen.
     I2c0_1,
-    // /// I2C-Bus bisher nicht verfügbar.
+    // /// I2C-Bus wird u.a. für HDMI und Kamera verwendet
+    // /// und ist nicht für allgemeine Nutzung vorgesehen.
     // I2c2,
     /// I2C-Bus auf den GPIO-Pins 4 (SDA) und 5 (SCL), physisch 7 und 29.
     I2c3,

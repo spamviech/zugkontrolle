@@ -190,3 +190,39 @@ install the following packages and boot to desktop. This should (slightly) less 
 ```sh
 sudo apt install xserver-xorg raspberrypi-ui-mods lightdm
 ```
+
+## Aktivieren zusätzlicher I2C-Busse
+
+Durch hinzufügen folgender Zeilen in `/boot/config.txt` werden ab dem nächsten boot zusätzliche I2C-Busse (3-6) verfügbar sein.
+Bei raspi4 verwenden diese Hardware-Funktionalität, ansonsten wird das I2C-Signal über Software erzeugt.
+
+```txt
+# Enable additional i2c busses
+# https://www.instructables.com/Raspberry-PI-Multiple-I2c-Devices/
+# https://www.raspberrypi.com/documentation/computers/config_txt.html
+# https://www.raspberrypi.com/documentation/computers/configuration.html#part3.1
+[pi4]
+dtoverlay=i2c3
+dtoverlay=i2c4
+dtoverlay=i2c5
+dtoverlay=i2c6
+[pi3]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[pi2]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[pi1]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[all]
+```
