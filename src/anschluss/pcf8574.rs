@@ -167,7 +167,11 @@ impl Lager {
 
 /// Ein I2cBus.
 ///
-/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) unterstützt.
+/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) als Hardware-I2C unterstützt.
+///
+/// Anmerkung: Es ist möglich Software-I2C auf normalen Gpio-Pins zu aktivieren.
+/// Beachte dazu den Abschnitt "Aktivieren zusätzlicher I2C-Busse" in der `README.md`.
+/// ACHTUNG: Dabei werden nur die Standard-Pins, die auch bei Pi4 verwendet werden, unterstützt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum I2cBus {
     /// I2C-Bus auf den GPIO-Pins 2 (SDA) und 3 (SCL), physisch 3 und 5.

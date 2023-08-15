@@ -181,11 +181,13 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
   - [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
   - [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)
 
-## dependencies
+## Abhängigkeiten
 
-When you install the desktop-variant of the raspberry pi os, you should be good to go.
-If you have to install the lite-variant, e.g. due do size-constraints of the sd card,
-install the following packages and boot to desktop. This should (slightly) less space.
+Sofern die desktop-variante des Raspberry Pi OS installiert wurde, sollte alles nötige vorhanden sein.
+
+Falls z.B. aus Größenbeschränkung der SD-Karte nur die lite-variante installiert wurde,
+kann man nach Installation der folgenden Pakete ebenfalls in ein Desktop-environment booten.
+Das sollte (minimal) weniger Speicherplatz benötigen.
 
 ```sh
 sudo apt install xserver-xorg raspberrypi-ui-mods lightdm
