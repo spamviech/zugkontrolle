@@ -2,23 +2,9 @@
 
 use std::env;
 
-use cfg_aliases::cfg_aliases;
-
 fn main() {
-    // Setup cfg aliases
-    cfg_aliases! {
-        // Raspberry Pi 0/1 or 2/3/4
-        raspi: {
-            all(
-                any(target_arch = "arm", target_arch = "aarch64"),
-                target_vendor = "unknown",
-                target_os = "linux",
-                any(target_env = "gnu", target_env = "musl")
-            )
-        },
-    }
-
-    // Make sure build script is run every time the target changes.
+    // Make sure build script is run every time the target changes
+    // (not strictly necessary, but better be safe than sorry).
     println!("cargo:rerun-if-changed-env=TARGET");
     // cargo allows querying the current target only in the build script.
     let target = env::var("TARGET").unwrap_or_else(|error| {

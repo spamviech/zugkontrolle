@@ -1,22 +1,22 @@
 //! Mock-Methoden oder re-export für rppal.
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use std::fmt::{self, Debug, Formatter};
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
 pub mod gpio;
 pub mod i2c;
 pub mod pwm;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 enum ElementOderKonstruktor<T, F = fn() -> T> {
     Element(T),
     Konstruktor(F),
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl<T: Debug, F> Debug for ElementOderKonstruktor<T, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -24,13 +24,13 @@ impl<T: Debug, F> Debug for ElementOderKonstruktor<T, F> {
                 f.debug_tuple("Element").field(element).finish()
             },
             ElementOderKonstruktor::Konstruktor(_) => {
-                f.debug_tuple("Konstruktor").field(&"<funktion>").finish()
+                f.debug_tuple("Konstruktor").field(&"<Funktion>").finish()
             },
         }
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl<T, F> ElementOderKonstruktor<T, F> {
     fn erhalte_element_mut_unchecked(&mut self) -> &mut T {
         match self {
@@ -42,7 +42,7 @@ impl<T, F> ElementOderKonstruktor<T, F> {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
     fn initialisiere_wenn_notwendig(&mut self) {
         take_mut::take(self, |element_oder_konstruktor| match element_oder_konstruktor {
@@ -54,11 +54,11 @@ impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 struct LazyMutex<T, F = fn() -> T>(Mutex<ElementOderKonstruktor<T, F>>);
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl<T, F> LazyMutex<T, F> {
     #[inline(always)]
     const fn neu(konstruktor: F) -> LazyMutex<T, F> {
@@ -66,7 +66,7 @@ impl<T, F> LazyMutex<T, F> {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl<T, F: FnOnce() -> T> LazyMutex<T, F> {
     fn lock(&self) -> MappedMutexGuard<'_, T> {
         let mut write_guard = self.0.lock();

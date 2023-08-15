@@ -3,6 +3,7 @@
 ## Unreleased changes
 
 - füge Lizenz für `fdeflate` hinzu
+- neues Feature "raspi", ersetzt bisherige target-spezifische Logik
 - verbessere build-scripts:
   - neue targets: 64-bit raspi, x86_64 linux
   - erkenne automatisch host target-triple

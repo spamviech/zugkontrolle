@@ -4,10 +4,11 @@ import sys
 import os.path
 from typing import Optional
 
-from util import execute, copy, query_host_target_triple, get_repo_root
+from util import execute, copy, query_host_target_triple, get_repo_root, get_name_and_version, get_binary_extension, is_raspi_target
 
 host_target_triple: Optional[str] = query_host_target_triple()
 repo_root: str = get_repo_root()
+name, version = get_name_and_version()
 
 
 def check_docker_podman(exit: bool = True) -> bool:
@@ -25,7 +26,7 @@ def check_docker_podman(exit: bool = True) -> bool:
         return False
 
 
-def build(program_name: str, program_version: str, target: str, release: bool = True, binary_extension: str = "") -> str:
+def build(target: str, release: bool = True) -> str:
     """Build the program for the specified profile, copy it to {repo_root}/bin"""
     if target == host_target_triple:
         build_program = "cargo"
@@ -37,11 +38,14 @@ def build(program_name: str, program_version: str, target: str, release: bool = 
         profile = "debug"
     build_command = [build_program, "build", "--profile=" +
                      profile, "--target=" + target]
+    if is_raspi_target(target):
+        build_command.append("--features=raspi")
     execute(build_command)
+    binary_extension = get_binary_extension(target)
     source_path = os.path.join(
-        repo_root, "target",  target, profile, program_name + binary_extension)
+        repo_root, "target",  target, profile, name + binary_extension)
     bin_path = os.path.join(
-        repo_root, "bin", f"{program_name}-{program_version}-{target}{binary_extension}")
+        repo_root, "bin", f"{name}-{version}-{target}{binary_extension}")
     copy(source_path, bin_path)
     return bin_path
 

@@ -1,32 +1,32 @@
 //! Low level Steuerung eines i2c Kanals.
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use std::{collections::HashSet, fmt::Debug, io};
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use log::{debug, error};
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use parking_lot::MappedMutexGuard;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use crate::rppal::LazyMutex;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 struct I2cStore {
     buses: HashSet<u8>,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 const MIN_BUS: u8 = 0;
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 const MAX_BUS: u8 = 6;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 static I2C: LazyMutex<I2cStore> =
     LazyMutex::neu(|| I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() });
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl I2cStore {
     #[inline(always)]
     fn lock_static<'t>() -> MappedMutexGuard<'t, I2cStore> {
@@ -34,10 +34,10 @@ impl I2cStore {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
 pub use rppal::i2c::I2c;
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s I2C peripheral.
 #[derive(Debug)]
 #[allow(missing_copy_implementations)]
@@ -46,7 +46,7 @@ pub struct I2c {
     slave_address: u16,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Drop for I2c {
     fn drop(&mut self) {
         if !I2cStore::lock_static().buses.insert(self.bus) {
@@ -55,7 +55,7 @@ impl Drop for I2c {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl I2c {
     /// Constructs a new `I2c` bound to physical pins 3 (SDA) and 5 (SCL).
     pub fn new() -> Result<I2c> {
@@ -115,10 +115,10 @@ impl I2c {
 /// Result with `i2c::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
 pub use rppal::i2c::Error;
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the I2C peripheral.
 #[derive(Debug)]
 #[allow(variant_size_differences, missing_docs)]

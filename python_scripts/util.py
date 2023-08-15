@@ -7,6 +7,8 @@ import shutil
 import sys
 from typing import Optional, Tuple
 
+import config
+
 def get_repo_root() -> str:
     script_dir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(script_dir, ".."))
@@ -32,6 +34,15 @@ def get_name_and_version() -> Tuple[str, str]:
                 elif line.startswith(version_prefix):
                     version = line.removeprefix(version_prefix).strip().removeprefix('=').strip().removeprefix('"').removesuffix('"')
     return name, version
+
+def get_binary_extension(target: str) -> str:
+    if target == config.windows_target:
+        return ".exe"
+    else:
+        return ""
+    
+def is_raspi_target(target: str) -> bool:
+    return (target in (config.raspi32_target, config.raspi64_target))
 
 first_command = True
 def print_newline_after_first_call():

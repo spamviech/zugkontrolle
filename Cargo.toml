@@ -12,6 +12,11 @@ rust-version = "1.69"
 [profile.release]
 strip = true
 
+[features]
+default = []
+# Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
+raspi = ["rppal"]
+
 # dependencies
 [dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
@@ -75,41 +80,15 @@ default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "glow"]
 
 # can't be used on non-raspi systems
-# raspi 0/1
-[target.arm-unknown-linux-gnueabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.arm-unknown-linux-musleabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-# raspi 2/3/4
-[target.armv7-unknown-linux-gnueabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.armv7-unknown-linux-musleabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.aarch64-unknown-linux-gnu.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.aarch64-unknown-linux-musl.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
+[dependencies.rppal]
+version = "0.14.1"
+optional = true
+
+#[dependencies.libcamera]
+#version = "0.2.2"
+#optional = true
 
 [build-dependencies]
-cfg_aliases = "0.1.1"
 embed-resource = "2.1.1"
 
 [dev-dependencies]

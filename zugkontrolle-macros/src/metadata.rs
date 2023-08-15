@@ -8,8 +8,13 @@ use quote::quote;
 use syn::LitStr;
 
 pub(crate) fn verwendete_crates(target: LitStr) -> TokenStream {
-    let metadata_res =
-        MetadataCommand::new().other_options(["--filter-platform".into(), target.value()]).exec();
+    let metadata_res = MetadataCommand::new()
+        .other_options([
+            String::from("--filter-platform"),
+            target.value(),
+            String::from("--all-features"),
+        ])
+        .exec();
     let metadata = match metadata_res {
         Ok(metadata) => metadata,
         Err(fehler) => {
