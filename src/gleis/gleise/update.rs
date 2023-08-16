@@ -12,6 +12,7 @@ use iced::{
     Rectangle,
 };
 use log::error;
+use nonempty::NonEmpty;
 use parking_lot::Mutex;
 
 use crate::{
@@ -247,7 +248,7 @@ fn aktion_gleis_an_position<'t>(
     bounds: &'t Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
-    modus: &'t mut ModusDaten,
+    modus: &'t ModusDaten,
     daten_iter: impl Iterator<
         Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
     >,
@@ -364,14 +365,14 @@ fn aktion_gleis_an_position<'t>(
 impl<L: Leiter> Gleise<L> {
     /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
     pub fn update(
-        &mut self,
-        _state: &mut <Self as Program<Nachricht, Thema>>::State,
+        &self,
+        _state: &mut <Self as Program<NonEmpty<Nachricht>, Thema>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
         let mut event_status = event::Status::Ignored;
-        let mut message = None;
+        let mut messages = None;
         self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -388,23 +389,22 @@ impl<L: Leiter> Gleise<L> {
                     canvas,
                 );
                 event_status = click_result.0;
-                message = click_result.1;
+                messages = click_result.1.map(NonEmpty::singleton);
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
                     if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.take() {
                         let gleis_id = gleis_steuerung.id().als_id();
                         if bewegt {
                             if !cursor.is_over(&bounds) {
-                                if let Err(fehler) =
-                                    mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
-                                {
-                                    error!("Entfernen für entferntes Gleis: {:?}", fehler)
-                                }
+                                messages =
+                                    Some(NonEmpty::singleton(Nachricht::EntferneGleis(gleis_id)))
                             }
                         } else {
                             // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            message = Some(Nachricht::SetzeStreckenabschnitt(gleis_id));
+                            messages = Some(NonEmpty::singleton(
+                                Nachricht::SetzeStreckenabschnitt(gleis_id),
+                            ));
                         }
                         event_status = event::Status::Captured;
                     }
@@ -414,10 +414,16 @@ impl<L: Leiter> Gleise<L> {
                 if let Some(canvas_pos) =
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
-                    self.last_mouse = canvas_pos;
-                    if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
-                        error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
+                    let mut nachrichten = NonEmpty::singleton(Nachricht::MausPosition(canvas_pos));
+                    if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                        if let Some(Gehalten { gleis_steuerung, .. }) = gehalten {
+                            nachrichten.push(Nachricht::BewegeGleis {
+                                gleis_id: gleis_steuerung.id().als_id(),
+                                position: canvas_pos,
+                            })
+                        }
                     }
+                    messages = Some(nachrichten);
                     event_status = event::Status::Captured
                 }
             },
@@ -426,6 +432,6 @@ impl<L: Leiter> Gleise<L> {
         if event_status == event::Status::Captured {
             self.canvas.lock().leeren()
         }
-        (event_status, message)
+        (event_status, messages)
     }
 }

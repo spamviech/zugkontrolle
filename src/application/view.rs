@@ -15,6 +15,7 @@ use crate::{
     application::{
         bewegen::Bewegen,
         drehen::Drehen,
+        flat_map::FlatMap,
         geschwindigkeit::{self, LeiterAnzeige},
         lizenzen::{self, Lizenzen},
         modal::{self, Modal},
@@ -114,9 +115,15 @@ where
             kreuzungen,
             gleise,
         );
-        let canvas = Element::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill))
-            .map(modal::Nachricht::<AuswahlZustand, Nachricht<L, S>>::from)
-            .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
+        let canvas = Element::new(FlatMap::neu(
+            Box::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
+            |nachrichten| {
+                nachrichten
+                    .into_iter()
+                    .map(modal::Nachricht::<AuswahlZustand, Nachricht<L, S>>::from)
+            },
+        ))
+        .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
         let row_mit_scrollable_und_canvas = row_mit_scrollable
             .push(Container::new(canvas).width(Length::Fill).height(Length::Fill));
 

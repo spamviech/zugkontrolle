@@ -7,6 +7,7 @@ use iced::{
     widget::canvas::{Cursor, Geometry, Program},
     Point,
 };
+use nonempty::NonEmpty;
 use rstar::primitives::Rectangle;
 
 use crate::{
@@ -253,7 +254,7 @@ impl<L: Leiter> Gleise<L> {
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
     pub fn draw(
         &self,
-        _state: &<Self as Program<Nachricht, Thema>>::State,
+        _state: &<Self as Program<NonEmpty<Nachricht>, Thema>>::State,
         thema: &Thema,
         bounds: iced::Rectangle,
         _cursor: Cursor,

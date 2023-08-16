@@ -17,6 +17,8 @@
   wenn initialisieren nicht erfolgreich war (z.B. pcf8574 nicht angeschlossen).
 - verschiebe MitRichtung nach steuerung::weiche
 - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
+- entferne RwLock aus Gleise-Struktur
+- erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
 
 ## 3.0.0
 

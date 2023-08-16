@@ -728,9 +728,15 @@ pub enum Nachricht {
     WeicheSchalten(AnyAktionSchalten),
     /// Die Anschlüsse für ein Gleis sollen angepasst werden.
     AnschlüsseAnpassen(GleisSteuerung),
+    /// Entferne ein Gleis.
+    EntferneGleis(AnyId),
+    /// Bewege ein Gleis an die neue Position.
+    BewegeGleis { gleis_id: AnyId, position: Vektor },
+    /// Aktualisiere die gespeicherte Maus-Position.
+    MausPosition(Vektor),
 }
 
-impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
+impl<L: Leiter> Program<NonEmpty<Nachricht>, Thema> for Gleise<L> {
     type State = ();
 
     #[inline(always)]
@@ -751,7 +757,7 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
         Gleise::update(self, state, event, bounds, cursor)
     }
 
