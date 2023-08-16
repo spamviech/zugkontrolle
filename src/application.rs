@@ -195,7 +195,15 @@ pub enum Nachricht<L: Leiter, S> {
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
-    /// Zeige Lizenzen der verwendeten Open Source Libraries an.
+    /// Eine GUI-Nachricht für Änderungen des Zustandes des [Gleise]-Typs.
+    ///
+    /// Notwendig, weil die [update](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
+    /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
+    /// ([State](iced::widget::canvas::Program::State) dadurch nicht möglich).
+    GleiseZustandAktualisieren(gleise::nachricht::ZustandAktualisieren),
+    /// Dummy-Nachricht, damit die [view](Application::view)-Methode erneut aufgerufen wird.
+    ///
+    /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
     AsyncAktualisieren,
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
@@ -240,6 +248,9 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
                 GleisSteuerung::Kreuzung((id, startwert)) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Weiche(startwert, WeichenId::Kreuzung(id)),
                 ),
+            },
+            GleiseNachricht::ZustandAktualisieren(nachricht) => {
+                modal::Nachricht::Underlay(Nachricht::GleiseZustandAktualisieren(nachricht))
             },
         }
     }
@@ -619,6 +630,9 @@ where
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
+            Nachricht::GleiseZustandAktualisieren(nachricht) => {
+                self.gleise_zustand_aktualisieren(nachricht)
+            },
             Nachricht::AsyncAktualisieren => {},
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }

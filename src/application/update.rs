@@ -26,6 +26,7 @@ use crate::{
         AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
+        self,
         daten::{v2::BekannterZugtyp, StreckenabschnittMap},
         id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
         AnschlüsseAnpassenFehler, Gleise,
@@ -467,6 +468,21 @@ where
     }
 }
 
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [update](Gleise::update)-Methode.
+    pub fn gleise_zustand_aktualisieren(
+        &mut self,
+        nachricht: gleise::nachricht::ZustandAktualisieren,
+    ) {
+        if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
+            self.zeige_message_box(
+                String::from("Interner Applikations-Fehler."),
+                format!("{fehler:?}"),
+            )
+        }
+    }
+}
+
 impl<'t, L, S> Zugkontrolle<L, S>
 where
     L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + BekannterLeiter + Serialisiere<S> + Send,
@@ -480,10 +496,10 @@ where
         let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit.clone()));
-        if let Err(err) = ergebnis {
+        if let Err(fehler) = ergebnis {
             self.zeige_message_box(
-                format!("Fehler beim Speichern in {}", pfad),
-                format!("{:?}", err),
+                format!("Fehler beim Speichern in '{pfad}'."),
+                format!("{fehler:?}"),
             );
         }
         Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
@@ -509,8 +525,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(
-                format!("Fehler beim Laden von {}", pfad),
-                format!("{:?}", fehler),
+                format!("Fehler beim Laden von '{pfad}'."),
+                format!("{fehler:?}"),
             )
         }
     }

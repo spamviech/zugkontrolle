@@ -62,21 +62,21 @@ impl<L: Leiter> Gleise<L> {
         R: Serialisiere<S>,
         (GleisId<T>, Option<S>): Into<GleisSteuerung>,
     {
-        let mut canvas_position = self.last_mouse;
-        let last_size = self.last_size;
+        let mut canvas_position = self.letzte_maus_position;
+        let letzte_canvas_größe = self.letzte_canvas_größe;
         let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
         let cp_x = canvas_position.skalarprodukt(&ex);
         if cp_x < Skalar(0.) {
             canvas_position -= cp_x * ex;
-        } else if cp_x > last_size.x {
-            canvas_position -= (cp_x - last_size.x) * ex;
+        } else if cp_x > letzte_canvas_größe.x {
+            canvas_position -= (cp_x - letzte_canvas_größe.x) * ex;
         }
         let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiert(-self.pivot.winkel);
         let cp_y = canvas_position.skalarprodukt(&ey);
         if cp_y < Skalar(0.) {
             canvas_position -= cp_y * ey;
-        } else if cp_y > last_size.y {
-            canvas_position -= (cp_y - last_size.y) * ey;
+        } else if cp_y > letzte_canvas_größe.y {
+            canvas_position -= (cp_y - letzte_canvas_größe.y) * ey;
         }
         let serialisiert =
             definition.steuerung(self.canvas.clone()).opt_as_ref().map(Serialisiere::serialisiere);

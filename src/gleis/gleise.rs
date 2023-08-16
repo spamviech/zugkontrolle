@@ -22,7 +22,7 @@ use crate::{
         gleise::{
             daten::{GleiseDaten, StreckenabschnittMap, Zustand},
             id::{GleisId, StreckenabschnittId, StreckenabschnittIdRef},
-            nachricht::{GleisSteuerung, Nachricht},
+            nachricht::{Gehalten, GleisSteuerung, Nachricht},
         },
         kreuzung::Kreuzung,
         weiche::{
@@ -52,14 +52,6 @@ pub mod id;
 pub mod nachricht;
 pub mod steuerung;
 pub mod update;
-
-#[derive(Debug)]
-struct Gehalten {
-    gleis_steuerung: GleisSteuerung,
-    halte_position: Vektor,
-    winkel: Winkel,
-    bewegt: bool,
-}
 
 #[zugkontrolle_macros::erstelle_enum(pub, Modus)]
 /// Aktueller Modus von [Gleise].
@@ -91,23 +83,9 @@ pub struct Gleise<L: Leiter> {
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<L>,
-    last_mouse: Vektor,
-    last_size: Vektor,
+    letzte_maus_position: Vektor,
+    letzte_canvas_größe: Vektor,
     modus: ModusDaten,
-}
-
-// Helper-funktion zur Verwendung mit RwLockRead/WriteGuard::try_map
-fn speicher_fehler_in_variable<T, E, F>(result: Result<T, E>, option: &mut Option<F>) -> Option<T>
-where
-    E: Into<F>,
-{
-    match result {
-        Ok(t) => Some(t),
-        Err(e) => {
-            *option = Some(e.into());
-            None
-        },
-    }
 }
 
 impl<L: Leiter> Gleise<L> {
@@ -118,8 +96,8 @@ impl<L: Leiter> Gleise<L> {
             pivot,
             skalieren,
             zustand: Zustand::neu(zugtyp),
-            last_mouse: Vektor::null_vektor(),
-            last_size: Vektor::null_vektor(),
+            letzte_maus_position: Vektor::null_vektor(),
+            letzte_canvas_größe: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
         }
     }

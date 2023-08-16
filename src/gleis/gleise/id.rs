@@ -98,25 +98,25 @@ impl PartialEq for AnyId {
 macro_rules! mit_any_id {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {
-            AnyId::Gerade(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::Gerade(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Kurve(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::Kurve(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Weiche(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::Weiche(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::DreiwegeWeiche(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::DreiwegeWeiche(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::KurvenWeiche(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::KurvenWeiche(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::SKurvenWeiche(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::SKurvenWeiche(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Kreuzung(gleis_id) => {
+            crate::gleis::gleise::id::AnyId::Kreuzung(gleis_id) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
         }

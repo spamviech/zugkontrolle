@@ -17,13 +17,15 @@ use iced_native::{
     Length, Point, Rectangle, Shell, Size,
 };
 
-//  Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+///  Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+#[allow(missing_debug_implementations)]
 pub struct FlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
     widget: Box<dyn Widget<A, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> I + 'a>,
 }
 
 impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> FlatMap<'a, A, B, I, Renderer> {
+    /// Erzeuge ein neues [FlatMap]-widget.
     pub fn neu(
         widget: Box<dyn Widget<A, Renderer> + 'a>,
         mapper: impl 'a + Fn(A) -> I,
@@ -212,7 +214,7 @@ struct OverlayFlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
 }
 
 impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> OverlayFlatMap<'a, A, B, I, Renderer> {
-    pub fn neu(
+    fn neu(
         content: overlay::Element<'a, A, Renderer>,
         mapper: &'a dyn Fn(A) -> I,
     ) -> OverlayFlatMap<'a, A, B, I, Renderer> {
