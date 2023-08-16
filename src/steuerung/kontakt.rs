@@ -80,15 +80,14 @@ impl Kontakt {
         let senders_clone = senders.clone();
         let set_async_interrupt_result = anschluss.setze_async_interrupt(trigger, move |level| {
             let senders = &mut *senders_clone.lock();
-            // iterate over all registered channels, sending them the level
-            // start at the end to avoid shifting channels as much as possible
+            // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
             let mut next = senders.len().checked_sub(1);
             while let Some(i) = next {
                 match senders[i].send(level) {
                     Ok(()) => next = i.checked_sub(1),
                     Err(SendError(_level)) => {
                         // channel was disconnected, so no need to send to it anymore
-                        let _ = senders.remove(i);
+                        let _ = senders.swap_remove(i);
                     },
                 }
             }
