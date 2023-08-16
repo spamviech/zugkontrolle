@@ -181,8 +181,8 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
         let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
-            (None, Some(name)) => Some(name.clone()),
-            (Some(beschreibung), None) => Some(beschreibung.clone()),
+            (None, Some(name)) => Some(String::from(name)),
+            (Some(beschreibung), None) => Some(String::from(beschreibung)),
             (None, None) => None,
         } {
             let punkt =

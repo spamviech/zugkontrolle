@@ -276,7 +276,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&str>, Option<&str>) {
         // utility sizes
         let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
@@ -287,7 +287,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
                 punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
                 winkel: Winkel(0.),
             },
-            self.beschreibung.as_ref(),
+            self.beschreibung.as_ref().map(String::as_str),
             self.steuerung.name(),
         )
     }

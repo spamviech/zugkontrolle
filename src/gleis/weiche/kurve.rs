@@ -263,7 +263,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&str>, Option<&str>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         let size: Vektor = self.rechteck(spurweite).ecke_max();
@@ -285,7 +285,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
                 },
                 winkel: Winkel(0.),
             },
-            self.beschreibung.as_ref(),
+            self.beschreibung.as_ref().map(String::as_str),
             self.steuerung.name(),
         )
     }

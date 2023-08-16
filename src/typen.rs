@@ -3,10 +3,6 @@
 use crate::{
     gleis::verbindung::{self, Verbindung},
     nachschlagen::Nachschlagen,
-    steuerung::{
-        kontakt::{Kontakt, KontaktSerialisiert},
-        weiche::Weiche,
-    },
 };
 
 // re-exports
@@ -91,10 +87,8 @@ pub trait Zeichnen {
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad>;
 
     /// Position für, sowie Beschreibung und Name (falls verfügbar).
-    fn beschreibung_und_name(
-        &self,
-        spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>);
+    fn beschreibung_und_name(&self, spurweite: Spurweite)
+        -> (Position, Option<&str>, Option<&str>);
 
     /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(
@@ -134,29 +128,11 @@ pub trait Zeichnen {
 /// Trait für (potentiell) benannte Typen.
 pub trait MitName {
     /// Der Name des Wertes.
-    fn name(&self) -> Option<&String>;
+    fn name(&self) -> Option<&str>;
 }
 
 impl MitName for () {
-    fn name(&self) -> Option<&String> {
+    fn name(&self) -> Option<&str> {
         None
-    }
-}
-
-impl<R, A> MitName for Option<Weiche<R, A>> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|weiche| &weiche.name.0)
-    }
-}
-
-impl MitName for Option<Kontakt> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
-    }
-}
-
-impl MitName for Option<KontaktSerialisiert> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
     }
 }

@@ -23,12 +23,18 @@ use crate::{
     gleis::gleise::steuerung::Steuerung,
     nachschlagen::Nachschlagen,
     steuerung::plan::async_ausführen,
-    typen::canvas::Cache,
+    typen::{canvas::Cache, MitName},
 };
 
 /// Name einer [Weiche].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
+
+impl<R, A> MitName for Option<Weiche<R, A>> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|weiche| weiche.name.0.as_str())
+    }
+}
 
 // inklusive Kreuzung
 /// [Name], aktuelle Richtung und Anschlüsse einer Weiche.

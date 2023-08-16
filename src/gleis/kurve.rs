@@ -105,7 +105,7 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&str>, Option<&str>) {
         let half_angle = 0.5 * self.winkel;
         (
             Position {
@@ -116,7 +116,7 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
                 },
                 winkel: Winkel(0.),
             },
-            self.beschreibung.as_ref(),
+            self.beschreibung.as_ref().map(String::as_str),
             self.kontakt.name(),
         )
     }

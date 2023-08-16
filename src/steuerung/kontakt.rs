@@ -11,12 +11,15 @@ use nonempty::NonEmpty;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    self,
-    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-    level::Level,
-    trigger::Trigger,
-    Fehler, InputAnschluss, InputSerialisiert,
+use crate::{
+    anschluss::{
+        self,
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        level::Level,
+        trigger::Trigger,
+        Fehler, InputAnschluss, InputSerialisiert,
+    },
+    typen::MitName,
 };
 
 /// Name eines [Kontaktes](Kontakt).
@@ -117,6 +120,12 @@ impl Kontakt {
     }
 }
 
+impl MitName for Option<Kontakt> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
+    }
+}
+
 /// Serialisierbare Variante eines [Kontaktes](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
@@ -179,5 +188,11 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 Fehler { fehler, anschlüsse }
             },
         }
+    }
+}
+
+impl MitName for Option<KontaktSerialisiert> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
     }
 }

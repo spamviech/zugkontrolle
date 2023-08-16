@@ -148,7 +148,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Them
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {
-                        content: content.clone(),
+                        content: String::from(content),
                         position: Point::ORIGIN,
                         color: thema.strich().into(),
                         horizontal_alignment: Horizontal::Center,

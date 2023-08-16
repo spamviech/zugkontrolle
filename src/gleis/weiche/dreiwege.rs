@@ -252,7 +252,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
     fn beschreibung_und_name(
         &self,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&str>, Option<&str>) {
         let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
@@ -262,7 +262,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
                 winkel: winkel::ZERO,
             },
-            self.beschreibung.as_ref(),
+            self.beschreibung.as_ref().map(String::as_str),
             self.steuerung.name(),
         )
     }
