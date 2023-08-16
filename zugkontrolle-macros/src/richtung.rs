@@ -66,7 +66,7 @@ pub(crate) fn erstelle_richtung(args: TokenStream, item: syn::ItemEnum) -> Token
                 }
             }
             #[allow(unused_qualifications)]
-            impl crate::typen::MitRichtung<Richtung> for Richtung {
+            impl crate::steuerung::weiche::MitRichtung<Richtung> for Richtung {
                 fn aktuelle_richtung(&self) -> Option<Richtung> {
                     Some(*self)
                 }

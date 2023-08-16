@@ -12,7 +12,7 @@ use crate::{
         verbindung::Verbindung,
         weiche::gerade::{VerbindungName, Verbindungen},
     },
-    steuerung,
+    steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
             pfad::{self, Pfad, Transformation},
@@ -23,7 +23,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, Transparenz, Zeichnen,
     },
 };
 

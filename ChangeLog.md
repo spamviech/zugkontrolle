@@ -15,6 +15,7 @@
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
 - (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,
   wenn initialisieren nicht erfolgreich war (z.B. pcf8574 nicht angeschlossen).
+- verschiebe MitRichtung nach steuerung::weiche
 
 ## 3.0.0
 

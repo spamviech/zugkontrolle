@@ -160,27 +160,3 @@ impl MitName for Option<KontaktSerialisiert> {
         self.as_ref().map(|kontakt| &kontakt.name.0)
     }
 }
-
-/// Trait für Typen mit einer aktuellen Richtung.
-pub trait MitRichtung<Richtung> {
-    /// Erhalte die aktuelle Richtung.
-    fn aktuelle_richtung(&self) -> Option<Richtung>;
-}
-
-impl<R> MitRichtung<R> for () {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        None
-    }
-}
-
-impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        self.as_ref().and_then(MitRichtung::aktuelle_richtung)
-    }
-}
-
-impl<R, T: Clone + MitRichtung<R>, A> MitRichtung<R> for Weiche<T, A> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        self.richtung().aktuelle_richtung()
-    }
-}

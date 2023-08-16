@@ -23,7 +23,7 @@ use crate::{
     gleis::gleise::steuerung::Steuerung,
     nachschlagen::Nachschlagen,
     steuerung::plan::async_ausführen,
-    typen::{canvas::Cache, MitRichtung},
+    typen::canvas::Cache,
 };
 
 /// Name einer [Weiche].
@@ -285,5 +285,29 @@ where
         anschlüsse
             .reserviere(lager, bekannte_anschlüsse, ())
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas))
+    }
+}
+
+/// Trait für Typen mit einer aktuellen Richtung.
+pub trait MitRichtung<Richtung> {
+    /// Erhalte die aktuelle Richtung.
+    fn aktuelle_richtung(&self) -> Option<Richtung>;
+}
+
+impl<R> MitRichtung<R> for () {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        None
+    }
+}
+
+impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.as_ref().and_then(MitRichtung::aktuelle_richtung)
+    }
+}
+
+impl<R, T: Clone + MitRichtung<R>, A> MitRichtung<R> for Weiche<T, A> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.richtung().aktuelle_richtung()
     }
 }

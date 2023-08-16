@@ -9,7 +9,7 @@ pub use crate::gleis::weiche::gerade::Orientierung;
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
     nachschlagen::impl_nachschlagen,
-    steuerung,
+    steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
             pfad::{self, Pfad, Transformation},
@@ -20,7 +20,7 @@ use crate::{
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, Transparenz, Zeichnen,
     },
 };
 
