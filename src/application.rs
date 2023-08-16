@@ -37,7 +37,8 @@ use crate::{
             self,
             daten::v2::BekannterZugtyp,
             id::{AnyId, GleisId, StreckenabschnittId},
-            AnschlüsseAnpassen, GleisSteuerung, Gleise, Modus,
+            nachricht::{GleisSteuerung, Nachricht as GleiseNachricht},
+            AnschlüsseAnpassen, Gleise, Modus,
         },
         knopf::{Knopf, KnopfNachricht},
         kreuzung::{Kreuzung, KreuzungUnit},
@@ -205,19 +206,19 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: Leiter, S> From<gleise::Nachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
-    fn from(nachricht: gleise::Nachricht) -> Self {
+impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
+    fn from(nachricht: GleiseNachricht) -> Self {
         match nachricht {
-            gleise::Nachricht::SetzeStreckenabschnitt(any_id) => {
+            GleiseNachricht::SetzeStreckenabschnitt(any_id) => {
                 modal::Nachricht::Underlay(Nachricht::SetzeStreckenabschnitt(any_id))
             },
-            gleise::Nachricht::StreckenabschnittUmschalten(aktion) => {
+            GleiseNachricht::StreckenabschnittUmschalten(aktion) => {
                 modal::Nachricht::Underlay(Nachricht::StreckenabschnittUmschalten(aktion))
             },
-            gleise::Nachricht::WeicheSchalten(aktion) => {
+            GleiseNachricht::WeicheSchalten(aktion) => {
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
-            gleise::Nachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
+            GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
                 GleisSteuerung::Gerade((id, startwert)) => {
                     todo!("AuswahlZustand::Gerade({id:?}, {startwert:?}")
                 },

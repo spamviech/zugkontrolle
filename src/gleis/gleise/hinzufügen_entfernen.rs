@@ -14,7 +14,7 @@ use crate::{
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{AnyId, GleisId, StreckenabschnittId},
-            mit_any_steuerung_id,
+            nachricht::mit_any_steuerung_id,
             steuerung::MitSteuerung,
             AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, GleisSteuerung,
             Gleise, ModusDaten, StreckenabschnittIdFehler,

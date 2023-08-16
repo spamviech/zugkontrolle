@@ -23,8 +23,9 @@ use crate::{
         gleise::{
             daten::{Gleis, GleiseDaten, RStern},
             id::{mit_any_id, AnyId, GleisIdRef, StreckenabschnittIdRef},
+            nachricht::{GleisSteuerung, IdUndSteuerungSerialisiert},
             steuerung::{MitSteuerung, Steuerung},
-            Gehalten, GleisSteuerung, Gleise, IdUndSteuerungSerialisiert, ModusDaten, Nachricht,
+            Gehalten, Gleise, ModusDaten, Nachricht,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
@@ -255,8 +256,8 @@ fn aktion_gleis_an_position<'t>(
     pivot: &'t Position,
     skalieren: &'t Skalar,
     canvas: &Arc<Mutex<Cache>>,
-) -> (event::Status, Option<Nachricht>) {
-    let mut message = None;
+) -> (event::Status, Vec<Nachricht>) {
+    let mut messages = Vec::new();
     let mut status = event::Status::Ignored;
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
@@ -311,10 +312,10 @@ fn aktion_gleis_an_position<'t>(
                 })
             });
             match modus {
-                ModusDaten::Bauen { gehalten, last } => {
+                ModusDaten::Bauen { gehalten, letzter_klick } => {
                     let now = Instant::now();
-                    let diff = now.checked_duration_since(*last).unwrap_or(Duration::MAX);
-                    *last = now;
+                    let diff = now.checked_duration_since(*letzter_klick).unwrap_or(Duration::MAX);
+                    *letzter_klick = now;
                     if gehalten.is_none() {
                         if let Some((
                             gleis_steuerung_ref,
@@ -334,8 +335,7 @@ fn aktion_gleis_an_position<'t>(
                     }
                     if let Some(Gehalten { gleis_steuerung, .. }) = gehalten {
                         if diff < DOUBLE_CLICK_TIME {
-                            message =
-                                Some(Nachricht::AnschlüsseAnpassen(gleis_steuerung.klonen()));
+                            messages.push(Nachricht::AnschlüsseAnpassen(gleis_steuerung.klonen()));
                             *gehalten = None
                         }
                         status = event::Status::Captured
@@ -349,9 +349,10 @@ fn aktion_gleis_an_position<'t>(
                         streckenabschnitt,
                     )) = gleis_an_position
                     {
-                        message = aktion_fahren(gleis_steuerung_ref, streckenabschnitt, canvas);
+                        let message = aktion_fahren(gleis_steuerung_ref, streckenabschnitt, canvas);
 
-                        if message.is_some() {
+                        if let Some(message) = message {
+                            messages.push(message);
                             status = event::Status::Captured
                         }
                     }
@@ -359,7 +360,7 @@ fn aktion_gleis_an_position<'t>(
             }
         }
     }
-    (status, message)
+    (status, messages)
 }
 
 impl<L: Leiter> Gleise<L> {
@@ -378,7 +379,7 @@ impl<L: Leiter> Gleise<L> {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
                 let Gleise { zustand, pivot, skalieren, canvas, modus, .. } = self;
-                let click_result = aktion_gleis_an_position(
+                let (status, nachrichten) = aktion_gleis_an_position(
                     &bounds,
                     &cursor,
                     spurweite,
@@ -388,8 +389,8 @@ impl<L: Leiter> Gleise<L> {
                     skalieren,
                     canvas,
                 );
-                event_status = click_result.0;
-                messages = click_result.1.map(NonEmpty::singleton);
+                event_status = status;
+                messages = NonEmpty::try_from(nachrichten).ok();
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
