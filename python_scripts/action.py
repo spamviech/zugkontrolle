@@ -53,10 +53,10 @@ def build(target: str, release: bool = True) -> str:
 def send_to_raspi(bin_path: str, raspberry_user: str, raspberry_address: str):
     """Automatically transfer binary produced by `build` to raspi using scp"""
     binary_name = os.path.basename(bin_path)
-    target_path = "/home/" + raspberry_user + "/bin/" + binary_name
+    target_dir = "/home/" + raspberry_user + "/bin"
+    target_path = target_dir + "/" + binary_name
     rasperry_user_address = raspberry_user + "@" + raspberry_address
     scp_dst = rasperry_user_address + ":" + target_path
-    scp_command = ["scp", bin_path, scp_dst]
-    execute(scp_command)
-    ssh_command = ["ssh", rasperry_user_address, "chmod", "+x", target_path]
-    execute(ssh_command)
+    execute(["ssh", rasperry_user_address, "mkdir", "-p", target_dir])
+    execute(["scp", bin_path, scp_dst])
+    execute(["ssh", rasperry_user_address, "chmod", "+x", target_path])

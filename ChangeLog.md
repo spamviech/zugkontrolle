@@ -10,6 +10,7 @@
   - binaries enthalten immer target-triple + version
   - lese name+version aus Cargo.toml
   - ausführen unabhängig vom aktuellen Arbeitsverzeichnis möglich
+  - stelle sicher ziel-Ordner existiert, bevor scp ausgeführt wird
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
 - (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,
