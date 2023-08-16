@@ -364,7 +364,7 @@ fn aktion_gleis_an_position<'t>(
 impl<L: Leiter> Gleise<L> {
     /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
     pub fn update(
-        &self,
+        &mut self,
         _state: &mut <Self as Program<Nachricht, Thema>>::State,
         event: Event,
         bounds: Rectangle,
@@ -372,7 +372,7 @@ impl<L: Leiter> Gleise<L> {
     ) -> (event::Status, Option<Nachricht>) {
         let mut event_status = event::Status::Ignored;
         let mut message = None;
-        *self.last_size.write() = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
+        self.last_size = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
@@ -381,8 +381,8 @@ impl<L: Leiter> Gleise<L> {
                     &bounds,
                     &cursor,
                     spurweite,
-                    &mut *modus.write(),
-                    zustand.read().alle_streckenabschnitte_und_daten(),
+                    modus,
+                    zustand.alle_streckenabschnitte_und_daten(),
                     pivot,
                     skalieren,
                     canvas,
@@ -391,7 +391,7 @@ impl<L: Leiter> Gleise<L> {
                 message = click_result.1;
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
+                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.take() {
                         let gleis_id = gleis_steuerung.id().als_id();
                         if bewegt {
@@ -414,7 +414,7 @@ impl<L: Leiter> Gleise<L> {
                 if let Some(canvas_pos) =
                     berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
-                    *self.last_mouse.write() = canvas_pos;
+                    self.last_mouse = canvas_pos;
                     if let Err(fehler) = self.gehalten_bewegen(canvas_pos) {
                         error!("Drag&Drop für entferntes Gleis: {:?}", fehler)
                     }

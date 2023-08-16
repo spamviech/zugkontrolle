@@ -239,9 +239,8 @@ impl<L: Leiter> Gleise<L> {
                 streckenabschnitt,
                 phantom: PhantomData::<fn() -> T>,
             });
-            let guard = self.zustand.read();
             let (mut überlappende, andere_gehalten) =
-                guard.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten_id);
+                self.zustand.überlappende_verbindungen(&verbindung, Some(&any_id), gehalten_id);
             let ist_entgegengesetzt = |überlappend: &Verbindung| {
                 (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs()
                     < Winkel(0.1)
@@ -275,8 +274,7 @@ impl<L: Leiter> Gleise<L> {
                 // Zeichne Gleise
                 let gehalten_id: Option<AnyIdRef<'_>>;
                 let modus_bauen: bool;
-                let guard = modus.read();
-                match &*guard {
+                match modus {
                     ModusDaten::Bauen { gehalten: Some(Gehalten { gleis_steuerung, .. }), .. } => {
                         gehalten_id = Some(gleis_steuerung.id());
                         modus_bauen = true;
@@ -303,11 +301,10 @@ impl<L: Leiter> Gleise<L> {
                     };
                 }
 
-                let guard = zustand.read();
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
                 let ist_gehalten = ist_gehalten_test(gehalten_id.as_ref());
                 // Hintergrund
-                for (streckenabschnitt_opt, daten) in guard.alle_streckenabschnitte_und_daten() {
+                for (streckenabschnitt_opt, daten) in zustand.alle_streckenabschnitte_und_daten() {
                     let (streckenabschnitt_id, streckenabschnitt)
                         = if let Some(tuple) = streckenabschnitt_opt
                     {
@@ -342,7 +339,7 @@ impl<L: Leiter> Gleise<L> {
                     }
                 }
                 // Kontur
-                for (streckenabschnitt, daten) in guard.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {
@@ -360,7 +357,7 @@ impl<L: Leiter> Gleise<L> {
                     }
                 }
                 // Verbindungen
-                for (streckenabschnitt, daten) in guard.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten_und_andere_verbindung {
                         ($gleis: ident) => {
                             self.ist_gehalten_und_andere_verbindung::<$gleis>(
@@ -376,7 +373,7 @@ impl<L: Leiter> Gleise<L> {
                     }
                 }
                 // Beschreibung
-                for (streckenabschnitt, daten) in guard.alle_streckenabschnitt_daten() {
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitt_daten() {
                     macro_rules! ist_gehalten {
                         ($gleis: ident) => {
                             |rectangle| ist_gehalten(AnyIdRef::from(GleisIdRef {

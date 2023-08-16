@@ -12,9 +12,7 @@ use iced::{
 };
 use log::error;
 use nonempty::NonEmpty;
-use parking_lot::{
-    MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
-};
+use parking_lot::Mutex;
 
 use crate::{
     anschluss,
@@ -208,10 +206,10 @@ pub struct Gleise<L: Leiter> {
     canvas: Arc<Mutex<Cache>>,
     pivot: Position,
     skalieren: Skalar,
-    zustand: RwLock<Zustand<L>>,
-    last_mouse: RwLock<Vektor>,
-    last_size: RwLock<Vektor>,
-    modus: RwLock<ModusDaten>,
+    zustand: Zustand<L>,
+    last_mouse: Vektor,
+    last_size: Vektor,
+    modus: ModusDaten,
 }
 
 // Helper-funktion zur Verwendung mit RwLockRead/WriteGuard::try_map
@@ -235,16 +233,16 @@ impl<L: Leiter> Gleise<L> {
             canvas: Arc::new(Mutex::new(Cache::neu())),
             pivot,
             skalieren,
-            zustand: RwLock::new(Zustand::neu(zugtyp)),
-            last_mouse: RwLock::new(Vektor::null_vektor()),
-            last_size: RwLock::new(Vektor::null_vektor()),
-            modus: RwLock::new(ModusDaten::neu(modus)),
+            zustand: Zustand::neu(zugtyp),
+            last_mouse: Vektor::null_vektor(),
+            last_size: Vektor::null_vektor(),
+            modus: ModusDaten::neu(modus),
         }
     }
 
     /// Aktueller Modus.
     pub fn modus(&self) -> Modus {
-        match &*self.modus.read() {
+        match self.modus {
             ModusDaten::Bauen { .. } => Modus::Bauen,
             ModusDaten::Fahren => Modus::Fahren,
         }
@@ -252,7 +250,7 @@ impl<L: Leiter> Gleise<L> {
 
     /// Wechsel den aktuellen Modus zu `modus`.
     pub fn moduswechsel(&mut self, modus: Modus) {
-        *self.modus.write() = ModusDaten::neu(modus);
+        self.modus = ModusDaten::neu(modus);
     }
 
     /// Aktuelle Pivot-Punkt und Dreh-Winkel
@@ -323,8 +321,7 @@ impl<L: Leiter> Gleise<L> {
         mut streckenabschnitt: Streckenabschnitt,
     ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
     {
-        let mut guard = self.zustand.write();
-        let streckenabschnitt_map = match guard.streckenabschnitt_map_mut(geschwindigkeit) {
+        let streckenabschnitt_map = match self.zustand.streckenabschnitt_map_mut(geschwindigkeit) {
             Ok(streckenabschnitt_map) => streckenabschnitt_map,
             Err(GeschwindigkeitEntferntFehler(name)) => {
                 return Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
@@ -352,45 +349,31 @@ impl<L: Leiter> Gleise<L> {
     pub fn streckenabschnitt<'s>(
         &'s self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<MappedRwLockReadGuard<'s, Streckenabschnitt>, StreckenabschnittIdFehler> {
+    ) -> Result<&'s Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        let guard = self.zustand.read();
-        // try_map kann den fehler nicht direkt übergeben, verwende daher eine temporäre Variable
-        let mut geschwindigkeit_entfernt_fehler = None;
-        RwLockReadGuard::try_map(guard, |zustand| {
-            let streckenabschnitt_map = speicher_fehler_in_variable(
-                zustand.streckenabschnitt_map(geschwindigkeit.as_ref()),
-                &mut geschwindigkeit_entfernt_fehler,
-            )?;
-            streckenabschnitt_map.get(name).map(|(streckenabschnitt, _daten)| streckenabschnitt)
-        })
-        .map_err(|_guard| {
-            geschwindigkeit_entfernt_fehler.unwrap_or_else(|| {
+        let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit.as_ref())?;
+        streckenabschnitt_map
+            .get(name)
+            .map(|(streckenabschnitt, _daten)| streckenabschnitt)
+            .ok_or_else(|| {
                 StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
-        })
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
         streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<MappedRwLockWriteGuard<'s, Streckenabschnitt>, StreckenabschnittIdFehler> {
+    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittIdFehler> {
         let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        let guard = self.zustand.write();
-        let mut geschwindigkeit_entfernt_fehler = None;
-        RwLockWriteGuard::try_map(guard, |zustand| {
-            let streckenabschnitt_map = speicher_fehler_in_variable(
-                zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref()),
-                &mut geschwindigkeit_entfernt_fehler,
-            )?;
-            streckenabschnitt_map.get_mut(name).map(|(streckenabschnitt, _daten)| streckenabschnitt)
-        })
-        .map_err(|_guard| {
-            geschwindigkeit_entfernt_fehler.unwrap_or_else(|| {
+        let streckenabschnitt_map =
+            self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
+        streckenabschnitt_map
+            .get_mut(name)
+            .map(|(streckenabschnitt, _daten)| streckenabschnitt)
+            .ok_or_else(|| {
                 StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
             })
-        })
     }
 
     /// Entferne einen Streckenabschnitt.
@@ -401,8 +384,8 @@ impl<L: Leiter> Gleise<L> {
         streckenabschnitt_id: StreckenabschnittId,
     ) -> Result<Option<Streckenabschnitt>, StreckenabschnittBearbeitenFehler> {
         let StreckenabschnittId { geschwindigkeit, name: _ } = &streckenabschnitt_id;
-        let mut guard = self.zustand.write();
-        let streckenabschnitt_map = guard.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
+        let streckenabschnitt_map =
+            self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
         self.canvas.lock().leeren();
         streckenabschnitt_entfernen(
             streckenabschnitt_map,
@@ -420,12 +403,11 @@ impl<L: Leiter> Gleise<L> {
     where
         C: FromIterator<T>,
     {
-        let guard = self.zustand.read();
         // Notwendig, da sonst f in die flat_map-closure moved wird, wodurch sie nur FnOnce ist.
         // Außerdem darf sie aus irgendeinem Grund nicht als Variable gespeichert werden.
         let g = &f;
-        iter::once((None, &guard.ohne_geschwindigkeit))
-            .chain(guard.geschwindigkeiten.iter().map(
+        iter::once((None, &self.zustand.ohne_geschwindigkeit))
+            .chain(self.zustand.geschwindigkeiten.iter().map(
                 |(geschwindigkeit_name, (_geschwindigkeit, streckenabschnitt_map))| {
                     (Some(geschwindigkeit_name), streckenabschnitt_map)
                 },
@@ -446,7 +428,7 @@ impl<L: Leiter> Gleise<L> {
         name: geschwindigkeit::Name,
         geschwindigkeit: Geschwindigkeit<L>,
     ) -> Option<Geschwindigkeit<L>> {
-        match self.zustand.write().geschwindigkeiten.entry(name) {
+        match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher = std::mem::replace(&mut occupied.get_mut().0, geschwindigkeit);
                 Some(bisher)
@@ -462,30 +444,22 @@ impl<L: Leiter> Gleise<L> {
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
-    ) -> Option<MappedRwLockReadGuard<'s, Geschwindigkeit<L>>> {
-        let guard = self.zustand.read();
-        RwLockReadGuard::try_map(guard, |zustand| {
-            zustand
-                .geschwindigkeiten
-                .get(name)
-                .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
-        })
-        .ok()
+    ) -> Option<&'s Geschwindigkeit<L>> {
+        self.zustand
+            .geschwindigkeiten
+            .get(name)
+            .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
-    ) -> Option<MappedRwLockWriteGuard<'s, Geschwindigkeit<L>>> {
-        let guard = self.zustand.write();
-        RwLockWriteGuard::try_map(guard, |zustand| {
-            zustand
-                .geschwindigkeiten
-                .get_mut(name)
-                .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
-        })
-        .ok()
+    ) -> Option<&'s mut Geschwindigkeit<L>> {
+        self.zustand
+            .geschwindigkeiten
+            .get_mut(name)
+            .map(|(geschwindigkeit, _streckenabschnitt_map)| geschwindigkeit)
     }
 
     /// Entferne eine Geschwindigkeit.
@@ -496,14 +470,13 @@ impl<L: Leiter> Gleise<L> {
         name: geschwindigkeit::Name,
     ) -> Result<Option<Geschwindigkeit<L>>, GeschwindigkeitEntfernenFehler> {
         if let Some((name_entry, (geschwindigkeit, streckenabschnitt_map))) =
-            self.zustand.write().geschwindigkeiten.remove_entry(&name)
+            self.zustand.geschwindigkeiten.remove_entry(&name)
         {
             if streckenabschnitt_map.is_empty() {
                 Ok(Some(geschwindigkeit))
             } else {
                 let _ = self
                     .zustand
-                    .write()
                     .geschwindigkeiten
                     .insert(name_entry, (geschwindigkeit, streckenabschnitt_map));
                 Err(GeschwindigkeitEntfernenFehler::StreckenabschnitteNichtEntfernt(name))
@@ -522,7 +495,7 @@ impl<L: Leiter> Gleise<L> {
         geschwindigkeit: Geschwindigkeit<L>,
         streckenabschnitt_map: StreckenabschnittMap,
     ) -> Option<(Geschwindigkeit<L>, StreckenabschnittMap)> {
-        match self.zustand.write().geschwindigkeiten.entry(name) {
+        match self.zustand.geschwindigkeiten.entry(name) {
             Entry::Occupied(mut occupied) => {
                 let bisher =
                     std::mem::replace(occupied.get_mut(), (geschwindigkeit, streckenabschnitt_map));
@@ -543,7 +516,7 @@ impl<L: Leiter> Gleise<L> {
         &mut self,
         name: &geschwindigkeit::Name,
     ) -> Option<(Geschwindigkeit<L>, StreckenabschnittMap)> {
-        self.zustand.write().geschwindigkeiten.remove(name)
+        self.zustand.geschwindigkeiten.remove(name)
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
@@ -551,8 +524,9 @@ impl<L: Leiter> Gleise<L> {
         &self,
         mut f: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
     ) {
-        let guard = self.zustand.read();
-        for (name, (geschwindigkeit, _streckenabschnitt_map)) in guard.geschwindigkeiten.iter() {
+        for (name, (geschwindigkeit, _streckenabschnitt_map)) in
+            self.zustand.geschwindigkeiten.iter()
+        {
             f(name, geschwindigkeit)
         }
     }
@@ -565,8 +539,7 @@ impl<L: Leiter> Gleise<L> {
     where
         C: FromIterator<T>,
     {
-        let guard = self.zustand.read();
-        guard
+        self.zustand
             .geschwindigkeiten
             .iter()
             .map(|(name, (geschwindigkeit, _streckenabschnitt_map))| f(name, geschwindigkeit))
@@ -574,14 +547,13 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// Verwendeter Zugtyp.
-    pub fn zugtyp<'t>(&'t self) -> MappedRwLockReadGuard<'t, Zugtyp<L>> {
-        let guard = self.zustand.read();
-        RwLockReadGuard::map(guard, |zustand| &zustand.zugtyp)
+    pub fn zugtyp<'t>(&'t self) -> &'t Zugtyp<L> {
+        &self.zustand.zugtyp
     }
 
     /// Spurweite des verwendeten Zugtyps.
     pub fn spurweite(&self) -> Spurweite {
-        self.zustand.read().zugtyp.spurweite
+        self.zugtyp().spurweite
     }
 }
 
@@ -606,7 +578,7 @@ impl<L: Debug + Leiter> Gleise<L> {
         let name = streckenabschnitt_id.name.clone();
         let (geschwindigkeit_name_und_eintrag, streckenabschnitt) =
             if let Some(geschwindigkeit_name) = geschwindigkeit {
-                match self.zustand.write().geschwindigkeiten.remove(&geschwindigkeit_name) {
+                match self.zustand.geschwindigkeiten.remove(&geschwindigkeit_name) {
                     Some((geschwindigkeit, mut streckenabschnitt_map)) => {
                         let streckenabschnitt = streckenabschnitt_entfernen(
                             &mut streckenabschnitt_map,
@@ -631,7 +603,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                 }
             } else {
                 let streckenabschnitt = streckenabschnitt_entfernen(
-                    &mut self.zustand.write().ohne_geschwindigkeit,
+                    &mut self.zustand.ohne_geschwindigkeit,
                     streckenabschnitt_id.klonen(),
                     identity,
                     |streckenabschnitt_id| {
@@ -654,7 +626,6 @@ impl<L: Debug + Leiter> Gleise<L> {
                     let geschwindigkeit_name_clone = geschwindigkeit_name.clone();
                     if let Some(geschwindigkeit_eintrag) = self
                         .zustand
-                        .write()
                         .geschwindigkeiten
                         .insert(geschwindigkeit_name, geschwindigkeit_eintrag)
                     {
@@ -691,7 +662,6 @@ impl<L: Debug + Leiter> Gleise<L> {
                     let geschwindigkeit_name_clone = geschwindigkeit_name.clone();
                     if let Some(geschwindigkeit_eintrag) = self
                         .zustand
-                        .write()
                         .geschwindigkeiten
                         .insert(geschwindigkeit_name, geschwindigkeit_eintrag)
                     {
@@ -703,7 +673,6 @@ impl<L: Debug + Leiter> Gleise<L> {
                 } else {
                     if let Some(streckenabschnitt_eintrag) = self
                         .zustand
-                        .write()
                         .ohne_geschwindigkeit
                         .insert(name.clone(), (streckenabschnitt, GleiseDaten::neu()))
                     {
@@ -772,7 +741,7 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        self.draw(state, thema, bounds, cursor)
+        Gleise::draw(self, state, thema, bounds, cursor)
     }
 
     #[inline(always)]
@@ -783,7 +752,7 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
-        self.update(state, event, bounds, cursor)
+        Gleise::update(self, state, event, bounds, cursor)
     }
 
     fn mouse_interaction(
@@ -792,7 +761,7 @@ impl<L: Leiter> Program<Nachricht, Thema> for Gleise<L> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        match &*self.modus.read() {
+        match &self.modus {
             ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
                 mouse::Interaction::Pointer
             },

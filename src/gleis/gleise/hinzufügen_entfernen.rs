@@ -39,7 +39,7 @@ impl<L: Leiter> Gleise<L> {
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let gleis_id =
-            self.zustand.write().hinzufügen(definition, position, streckenabschnitt, einrasten)?;
+            self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -62,8 +62,8 @@ impl<L: Leiter> Gleise<L> {
         R: Serialisiere<S>,
         (GleisId<T>, Option<S>): Into<GleisSteuerung>,
     {
-        let mut canvas_position = *self.last_mouse.read();
-        let last_size = self.last_size.read();
+        let mut canvas_position = self.last_mouse;
+        let last_size = self.last_size;
         let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
         let cp_x = canvas_position.skalarprodukt(&ex);
         if cp_x < Skalar(0.) {
@@ -78,7 +78,6 @@ impl<L: Leiter> Gleise<L> {
         } else if cp_y > last_size.y {
             canvas_position -= (cp_y - last_size.y) * ey;
         }
-        drop(last_size);
         let serialisiert =
             definition.steuerung(self.canvas.clone()).opt_as_ref().map(Serialisiere::serialisiere);
         let gleis_id = self.hinzufügen(
@@ -87,7 +86,7 @@ impl<L: Leiter> Gleise<L> {
             streckenabschnitt.map(|id| id.klonen()),
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
             *gehalten = Some(Gehalten {
                 gleis_steuerung,
@@ -111,7 +110,7 @@ impl<L: Leiter> Gleise<L> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let gleis_id = self.zustand.write().hinzufügen_anliegend(
+        let gleis_id = self.zustand.hinzufügen_anliegend(
             definition,
             streckenabschnitt,
             verbindung_name,
@@ -134,7 +133,7 @@ impl<L: Leiter> Gleise<L> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        self.zustand.write().bewegen(gleis_id, position_neu, einrasten)?;
+        self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -152,7 +151,7 @@ impl<L: Leiter> Gleise<L> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        self.zustand.write().bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
+        self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -168,7 +167,7 @@ impl<L: Leiter> Gleise<L> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let gleis = self.zustand.write().entfernen(gleis_id)?;
+        let gleis = self.zustand.entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -177,12 +176,12 @@ impl<L: Leiter> Gleise<L> {
 
     /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
     #[inline(always)]
-    pub(crate) fn entfernen_unit<T>(&self, gleis_id: GleisId<T>) -> Result<(), GleisIdFehler>
+    pub(crate) fn entfernen_unit<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisIdFehler>
     where
         T: Debug + Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let _gleis = self.zustand.write().entfernen(gleis_id)?;
+        let _gleis = self.zustand.entfernen(gleis_id)?;
         // Erzwinge Neuzeichnen
         self.canvas.lock().leeren();
         // Rückgabewert
@@ -191,13 +190,13 @@ impl<L: Leiter> Gleise<L> {
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
-        &self,
+        &mut self,
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
                 let punkt = canvas_pos - halte_position;
-                let mut_ref = &mut *self.zustand.write();
+                let mut_ref = &mut self.zustand;
                 mit_any_steuerung_id!(
                     gleis_steuerung,
                     Zustand::bewegen,
@@ -223,29 +222,28 @@ impl<L: Leiter> Gleise<L> {
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let mut guard = self.zustand.write();
-        let bisherige_daten = guard.daten_mut(streckenabschnitt)?;
+        let bisherige_daten = self.zustand.daten_mut(streckenabschnitt)?;
         // Entferne aktuellen Eintrag.
         let geom_with_data = bisherige_daten
             .rstern_mut::<T>()
             .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .ok_or(GleisIdFehler::GleisEntfernt)?;
         // Füge Eintrag bei neuem Streckenabschnitt hinzu.
-        match guard.daten_mut(&streckenabschnitt_neu) {
+        match self.zustand.daten_mut(&streckenabschnitt_neu) {
             Ok(neue_daten) => {
                 neue_daten.rstern_mut().insert(geom_with_data);
                 gleis_id.streckenabschnitt = streckenabschnitt_neu;
                 Ok(())
             },
             Err(fehler) => {
-                let daten = match guard.daten_mut(&streckenabschnitt) {
+                let daten = match self.zustand.daten_mut(&streckenabschnitt) {
                     Ok(bisherige_daten) => bisherige_daten,
                     Err(wiederherstellen_fehler) => {
                         error!(
                         "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nStreckenabschnitt für Gleis entfernt: {:?}",
                         wiederherstellen_fehler, geom_with_data.data
                     );
-                        &mut guard.ohne_streckenabschnitt
+                        &mut self.zustand.ohne_streckenabschnitt
                     },
                 };
                 daten.rstern_mut().insert(geom_with_data);
@@ -253,6 +251,7 @@ impl<L: Leiter> Gleise<L> {
             },
         }
     }
+
     #[allow(single_use_lifetimes)]
     fn gleis_anschlüsse_anpassen<T, W, S>(
         &mut self,

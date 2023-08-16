@@ -612,7 +612,7 @@ impl<L: Leiter> Gleise<L> {
         <L as Leiter>::Fahrtrichtung: Clone + Serialize,
         S: Serialize,
     {
-        let serialisiert: ZustandSerialisiert<L, S> = self.zustand.read().serialisiere();
+        let serialisiert: ZustandSerialisiert<L, S> = self.zustand.serialisiere();
         let file = fs::File::create(pfad)?;
         bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
@@ -639,7 +639,7 @@ impl<L: Leiter> Gleise<L> {
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.canvas.lock().leeren();
-        let anschlüsse = self.zustand.write().anschlüsse_ausgeben();
+        let anschlüsse = self.zustand.anschlüsse_ausgeben();
 
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
@@ -663,7 +663,7 @@ impl<L: Leiter> Gleise<L> {
         let (zustand, fehler) = zustand_serialisiert
             .reserviere(lager, anschlüsse, &self.canvas)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
-        *self.zustand.write() = zustand;
+        self.zustand = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {
             Err(non_empty)
         } else {

@@ -160,7 +160,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             geschwindigkeit: geschwindigkeit.cloned(),
             name: name.clone(),
         }) {
-            Ok(mut streckenabschnitt)
+            Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
