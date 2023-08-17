@@ -142,7 +142,9 @@ where
                         Nachricht::Schließen,
                     ]
                 },
-                InterneNachricht::Entfernen => vec![Nachricht::Festlegen(None)],
+                InterneNachricht::Entfernen => {
+                    vec![Nachricht::Festlegen(None), Nachricht::Schließen]
+                },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
@@ -177,14 +179,11 @@ where
         column = column.push(
             Row::new()
                 .push(Button::new(Text::new("Festlegen")).on_press(InterneNachricht::Festlegen))
-                .push(
-                    Button::new(Text::new(if *hat_steuerung {
-                        "Entfernen"
-                    } else {
-                        "Keine Anschlüsse"
-                    }))
-                    .on_press(InterneNachricht::Entfernen),
-                ),
+                .push(if *hat_steuerung {
+                    Button::new(Text::new("Entfernen")).on_press(InterneNachricht::Entfernen)
+                } else {
+                    Button::new(Text::new("Keine Anschlüsse")).on_press(InterneNachricht::Schließen)
+                }),
         );
         let card: Card<'t, InterneNachricht<Richtung>, R> =
             Card::new(Text::new(weichen_art), column)

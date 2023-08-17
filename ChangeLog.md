@@ -23,6 +23,7 @@
 - ermögliche Auswahl des I2C-Busses bei Anschlüssen
 - alle I2C-Busse sind standard-mäßig deaktiviert
 - neue Gleise erscheinen direkt an der richtigen Position
+- Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
 
 ## 3.0.0
 
