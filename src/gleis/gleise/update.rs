@@ -328,24 +328,26 @@ fn aktion_gleis_an_position<'t>(
                         )) = gleis_an_position
                         {
                             let gleis_steuerung = GleisSteuerung::from(gleis_steuerung_ref);
-                            messages.push(Nachricht::from(
-                                ZustandAktualisierenEnum::GehaltenAktualisieren(Some(Gehalten {
-                                    gleis_steuerung,
-                                    halte_position,
-                                    winkel,
-                                    bewegt: false,
-                                })),
-                            ))
+                            if diff < DOUBLE_CLICK_TIME {
+                                messages
+                                    .push(Nachricht::AnschlüsseAnpassen(gleis_steuerung.klonen()));
+                                messages.push(Nachricht::from(
+                                    ZustandAktualisierenEnum::GehaltenAktualisieren(None),
+                                ))
+                            } else {
+                                messages.push(Nachricht::from(
+                                    ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
+                                        Gehalten {
+                                            gleis_steuerung,
+                                            halte_position,
+                                            winkel,
+                                            bewegt: false,
+                                        },
+                                    )),
+                                ));
+                            }
+                            status = event::Status::Captured;
                         }
-                    }
-                    if let Some(Gehalten { gleis_steuerung, .. }) = gehalten {
-                        if diff < DOUBLE_CLICK_TIME {
-                            messages.push(Nachricht::AnschlüsseAnpassen(gleis_steuerung.klonen()));
-                            messages.push(Nachricht::from(
-                                ZustandAktualisierenEnum::GehaltenAktualisieren(None),
-                            ))
-                        }
-                        status = event::Status::Captured
                     }
                 },
                 ModusDaten::Fahren => {
