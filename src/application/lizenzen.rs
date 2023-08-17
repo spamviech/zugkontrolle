@@ -6,17 +6,17 @@ use std::{
     ops::DerefMut,
 };
 
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        container::{self, Container},
-        rule::{self, Rule},
-        scrollable::{self, Scrollable},
-        text::{self, Text},
-        Column, Row, Space,
-    },
+    widget::text::{self, Text},
     Element, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    container::{self, Container},
+    rule::{self, Rule},
+    scrollable::{self, Scrollable},
+    Column, Row, Space,
 };
 use nonempty::NonEmpty;
 use once_cell::sync::Lazy;
@@ -78,7 +78,7 @@ const TRENNLINIE_BREITE: u16 = 1;
 
 impl<'a, R> Lizenzen<'a, R>
 where
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -183,7 +183,7 @@ where
 
 impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R>
 where
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet

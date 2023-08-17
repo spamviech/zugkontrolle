@@ -4,12 +4,13 @@ use std::marker::PhantomData;
 
 use iced::{
     alignment::{Horizontal, Vertical},
+    mouse::Cursor,
     widget::canvas::{
-        fill::{self, Fill, FillRule},
+        fill::{self, Fill},
         stroke::{self, Stroke},
-        Cursor, Geometry, Program, Text,
+        Geometry, Program, Text,
     },
-    Color, Point,
+    Color, Point, Renderer,
 };
 use nonempty::NonEmpty;
 use rstar::primitives::Rectangle;
@@ -77,7 +78,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
                     let color = Color { r: rot, g: grün, b: blau, a: alpha };
                     frame.fill(
                         &path,
-                        Fill { style: fill::Style::Solid(color), rule: FillRule::EvenOdd },
+                        Fill { style: fill::Style::Solid(color), rule: fill::Rule::EvenOdd },
                     );
                 });
             }
@@ -256,7 +257,8 @@ impl<L: Leiter> Gleise<L> {
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
     pub fn draw(
         &self,
-        _state: &<Self as Program<NonEmpty<Nachricht>, Thema>>::State,
+        _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
+        renderer: &Renderer<Thema>,
         thema: &Thema,
         bounds: iced::Rectangle,
         _cursor: Cursor,
@@ -270,6 +272,7 @@ impl<L: Leiter> Gleise<L> {
         // - berücksichtige Zoom
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
         vec![canvas.lock().zeichnen_skaliert_von_pivot(
+            renderer,
             bounds.size(),
             &self.pivot,
             &self.skalieren,

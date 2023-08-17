@@ -2,19 +2,18 @@
 
 use iced::{
     alignment::{Horizontal, Vertical},
-    mouse,
+    mouse::{self, Cursor},
     widget::{
         canvas::{
             event,
-            fill::{self, Fill, FillRule},
+            fill::{self, Fill},
             stroke::{self, Stroke},
-            Canvas, Cursor, Event, Geometry, Program, Text,
+            Canvas, Event, Geometry, Program, Text,
         },
         container::Container,
     },
-    Element, Length, Point, Rectangle,
+    Element, Length, Point, Rectangle, Renderer,
 };
-use iced_graphics::{Backend, Renderer};
 
 use crate::{
     application::style::thema::Thema,
@@ -60,14 +59,13 @@ impl<T: Zeichnen> Knopf<T> {
     }
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
-    pub fn als_iced_widget<'t, Nachricht, B>(
+    pub fn als_iced_widget<'t, Nachricht>(
         &'t self,
         breite: Option<f32>,
-    ) -> impl Into<Element<'t, Nachricht, Renderer<B, Thema>>>
+    ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
-        B: 't + Backend,
     {
         let größe = self.gleis.rechteck(self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
@@ -87,24 +85,27 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Thema> for Knopf<T> {
+impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Renderer<Thema>>
+    for Knopf<T>
+{
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
+        renderer: &Renderer<Thema>,
         thema: &Thema,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        vec![state.canvas.zeichnen(bounds.size(), |frame| {
+        vec![state.canvas.zeichnen(renderer, bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(
                 &border_path,
                 Fill {
                     style: fill::Style::Solid(thema.hintergrund(false, state.in_bounds).into()),
-                    rule: FillRule::EvenOdd,
+                    rule: fill::Rule::EvenOdd,
                 },
             );
             frame.stroke(
@@ -170,14 +171,14 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Them
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
-        let in_bounds = cursor.is_over(&bounds);
+        let in_bounds = cursor.is_over(bounds);
         if state.in_bounds != in_bounds {
             state.canvas.leeren();
             state.in_bounds = in_bounds;
         }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if state.in_bounds => {
-                let Point { x, y } = cursor.position_in(&bounds).unwrap_or(Point { x: 0., y: 0. });
+                let Point { x, y } = cursor.position_in(bounds).unwrap_or(Point { x: 0., y: 0. });
                 (
                     event::Status::Captured,
                     Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),

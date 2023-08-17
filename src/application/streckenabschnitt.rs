@@ -10,19 +10,19 @@ use iced_aw::{
     native::card::{self, Card},
     style::{number_input, tab_bar},
 };
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        checkbox::{self, Checkbox},
-        container::{self, Container},
-        radio,
-        scrollable::{self, Scrollable},
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row,
-    },
+    widget::text::{self, Text},
     Alignment, Element, Font, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    checkbox::{self, Checkbox},
+    container::{self, Container},
+    radio,
+    scrollable::{self, Scrollable},
+    text_input::{self, TextInput},
+    Column, Row,
 };
 
 use crate::{
@@ -61,7 +61,7 @@ impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
 impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
 where
     Overlay: 'a + Clone,
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
@@ -184,7 +184,7 @@ pub struct Auswahl<'a, R: Renderer>(
 
 impl<'a, R> Auswahl<'a, R>
 where
-    R: 'a + iced_native::text::Renderer<Font = Font>,
+    R: 'a + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: card::StyleSheet
         + text::StyleSheet
         + scrollable::StyleSheet

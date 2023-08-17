@@ -6,9 +6,9 @@ use std::{
 };
 
 use iced::{
-    mouse,
-    widget::canvas::{event, Cursor, Event, Geometry, Program},
-    Rectangle,
+    mouse::{self, Cursor},
+    widget::canvas::{event, Event, Geometry, Program},
+    Rectangle, Renderer,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -571,18 +571,19 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-impl<L: Leiter> Program<NonEmpty<Nachricht>, Thema> for Gleise<L> {
+impl<L: Leiter> Program<NonEmpty<Nachricht>, Renderer<Thema>> for Gleise<L> {
     type State = ();
 
     #[inline(always)]
     fn draw(
         &self,
         state: &Self::State,
+        renderer: &Renderer<Thema>,
         thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        Gleise::draw(self, state, thema, bounds, cursor)
+        Gleise::draw(self, state, renderer, thema, bounds, cursor)
     }
 
     #[inline(always)]
@@ -603,7 +604,7 @@ impl<L: Leiter> Program<NonEmpty<Nachricht>, Thema> for Gleise<L> {
         cursor: Cursor,
     ) -> mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(&bounds) => {
+            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(bounds) => {
                 mouse::Interaction::Pointer
             },
             _ => mouse::Interaction::default(),

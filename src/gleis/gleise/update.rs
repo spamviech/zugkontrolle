@@ -7,9 +7,9 @@ use std::{
 };
 
 use iced::{
-    mouse,
-    widget::canvas::{event, Cursor, Event, Program},
-    Rectangle,
+    mouse::{self, Cursor},
+    widget::canvas::{event, Event, Program},
+    Rectangle, Renderer,
 };
 use log::error;
 use nonempty::{nonempty, NonEmpty};
@@ -249,7 +249,7 @@ fn aktion_fahren(
 }
 
 fn aktion_gleis_an_position<'t>(
-    bounds: &'t Rectangle,
+    bounds: Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t ModusDaten,
@@ -262,7 +262,7 @@ fn aktion_gleis_an_position<'t>(
 ) -> (event::Status, Vec<Nachricht>) {
     let mut messages = Vec::new();
     let mut status = event::Status::Ignored;
-    if cursor.is_over(&bounds) {
+    if cursor.is_over(bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
                 let GleiseDaten {
@@ -376,7 +376,7 @@ impl<L: Leiter> Gleise<L> {
     /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
     pub fn update(
         &self,
-        _state: &mut <Self as Program<NonEmpty<Nachricht>, Thema>>::State,
+        _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
@@ -392,7 +392,7 @@ impl<L: Leiter> Gleise<L> {
                 let spurweite = self.spurweite();
                 let Gleise { zustand, pivot, skalieren, canvas, modus, .. } = self;
                 let (status, nachrichten) = aktion_gleis_an_position(
-                    &bounds,
+                    bounds,
                     &cursor,
                     spurweite,
                     modus,
@@ -409,7 +409,7 @@ impl<L: Leiter> Gleise<L> {
                     if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten {
                         let gleis_id = gleis_steuerung.id().als_id();
                         if *bewegt {
-                            if !cursor.is_over(&bounds) {
+                            if !cursor.is_over(bounds) {
                                 messages.push(Nachricht::from(
                                     ZustandAktualisierenEnum::GleisEntfernen(gleis_id),
                                 ));

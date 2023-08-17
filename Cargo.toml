@@ -54,7 +54,7 @@ features = ["colors"]
 [dependencies.iced]
 version = "0.10.0"
 default-features = false
-features = ["canvas", "advanced", "wgpu"]
+features = ["canvas", "wgpu"]
 
 [dependencies.iced_core]
 version = "0.10.0"

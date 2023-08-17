@@ -1,7 +1,7 @@
 //! Auf channel-Nachricht wartende [Subscription](iced::Subscription).
 
 use std::{
-    hash::{Hash, Hasher},
+    hash::Hash,
     pin::Pin,
     sync::{
         mpsc::{Receiver, RecvError},
@@ -10,6 +10,10 @@ use std::{
     task::{Context, Poll},
 };
 
+use iced_core::{
+    event::{Event, Status},
+    Hasher,
+};
 use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::debug;
 use parking_lot::Mutex;
@@ -28,19 +32,18 @@ impl<Nachricht> Empfänger<Nachricht> {
     }
 }
 
-impl<H, Event, Nachricht> Recipe<H, Event> for Empfänger<Nachricht>
+impl<Nachricht> Recipe for Empfänger<Nachricht>
 where
-    H: Hasher,
     Nachricht: Unpin + Send + 'static,
 {
     type Output = Nachricht;
 
-    fn hash(&self, zustand: &mut H) {
+    fn hash(&self, state: &mut Hasher) {
         // Add some string to differentiate from other possible subscriptions without hashable state.
-        "Empfänger".hash(zustand);
+        "Empfänger".hash(state);
     }
 
-    fn stream(self: Box<Self>, _input: BoxStream<Event>) -> BoxStream<Self::Output> {
+    fn stream(self: Box<Self>, _input: BoxStream<(Event, Status)>) -> BoxStream<Self::Output> {
         Box::pin(self)
     }
 }

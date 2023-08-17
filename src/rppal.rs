@@ -10,6 +10,9 @@ pub mod gpio;
 pub mod i2c;
 pub mod pwm;
 
+#[cfg(raspi)]
+use num_traits as _;
+
 #[cfg(not(feature = "raspi"))]
 enum ElementOderKonstruktor<T, F = fn() -> T> {
     Element(T),

@@ -2,15 +2,15 @@
 
 use std::{fmt::Debug, ops::DerefMut};
 
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row,
-    },
+    widget::text::{self, Text},
     Alignment, Element, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    text_input::{self, TextInput},
+    Column, Row,
 };
 
 use crate::application::{map_mit_zustand::MapMitZustand, style};
@@ -50,7 +50,7 @@ pub struct SpeichernLaden<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Na
 
 impl<'a, R> SpeichernLaden<'a, R>
 where
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {
@@ -118,7 +118,7 @@ where
 
 impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R>
 where
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {

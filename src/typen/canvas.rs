@@ -5,7 +5,7 @@ use std::fmt::{self, Debug, Formatter};
 use iced::{
     widget::canvas::Geometry,
     widget::canvas::{fill::Fill, stroke::Stroke, Text},
-    Size,
+    Renderer, Size,
 };
 use serde::{Deserialize, Serialize};
 
@@ -121,14 +121,15 @@ impl Cache {
         self.0.clear()
     }
 
-    pub(crate) fn zeichnen_skaliert_von_pivot(
+    pub(crate) fn zeichnen_skaliert_von_pivot<Theme>(
         &self,
+        renderer: &Renderer<Theme>,
         bounds: Size<f32>,
         pivot: &Position,
         skalieren: &Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
     ) -> Geometry {
-        self.0.draw(bounds, |frame| {
+        self.0.draw(renderer, bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
                 // pivot transformationen
@@ -142,8 +143,14 @@ impl Cache {
     }
 
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [Cache].
-    pub fn zeichnen(&self, bounds: Size<f32>, draw_fn: impl Fn(&mut Frame<'_>)) -> Geometry {
+    pub fn zeichnen<Theme>(
+        &self,
+        renderer: &Renderer<Theme>,
+        bounds: Size<f32>,
+        draw_fn: impl Fn(&mut Frame<'_>),
+    ) -> Geometry {
         self.zeichnen_skaliert_von_pivot(
+            renderer,
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             &Skalar::multiplikativ_neutral(),

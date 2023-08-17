@@ -42,7 +42,7 @@ use crate::{
 trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
 where
     Msg: 'static,
-    R: 't + iced_native::Renderer,
+    R: 't + iced_core::Renderer,
 {
     fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static>(
         self,
@@ -56,7 +56,7 @@ impl<'t, T, R, Msg> MitTeilNachricht<'t, Msg, R> for T
 where
     Msg: 'static,
     T: Into<Element<'t, Msg, R>>,
-    R: 't + iced_native::Renderer,
+    R: 't + iced_core::Renderer,
 {
 }
 
@@ -469,9 +469,9 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
             Container::new(
                 Element::new(
                     scrollable
-                        .vertical_scroll(
+                        .direction(scrollable::Direction::Vertical(
                             scrollable::Properties::default().scroller_width(scroller_width),
-                        )
+                        ))
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )

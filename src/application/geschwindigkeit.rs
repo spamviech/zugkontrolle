@@ -15,19 +15,19 @@ use iced_aw::{
     },
     style::{number_input, tab_bar},
 };
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        container,
-        radio::{self, Radio},
-        scrollable::{self, Scrollable},
-        slider::{self, Slider},
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row, Space,
-    },
+    widget::text::{self, Text},
     Element, Font, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    container,
+    radio::{self, Radio},
+    scrollable::{self, Scrollable},
+    slider::{self, Slider},
+    text_input::{self, TextInput},
+    Column, Row, Space,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -109,7 +109,7 @@ impl<M, R> Debug for Anzeige<'_, M, R> {
 impl<'t, M, R> Anzeige<'t, M, R>
 where
     M: 't + Clone,
-    R: 't + iced_native::text::Renderer,
+    R: 't + iced_core::text::Renderer,
     <R as Renderer>::Theme: radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
 {
     /// Erstelle eine neue [Anzeige] für einen [Leiter].
@@ -169,11 +169,17 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TabId {
+    Pwm,
+    KonstanteSpannung,
+}
+
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
 #[derive(Debug, PartialEq, Eq)]
 struct AuswahlZustand {
     neu_name: String,
-    aktueller_tab: usize,
+    aktueller_tab: TabId,
     umdrehen_anschluss: OutputSerialisiert,
     pwm_pin: pwm::Serialisiert,
     pwm_polarität: Polarität,
@@ -190,7 +196,7 @@ impl AuswahlZustand {
     ) -> Self {
         AuswahlZustand {
             neu_name: String::new(),
-            aktueller_tab: 0,
+            aktueller_tab: TabId::Pwm,
             umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
             pwm_pin: pwm::Serialisiert(0),
             pwm_polarität: Polarität::Normal,
@@ -212,7 +218,7 @@ impl AuswahlZustand {
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
     Schließen,
-    WähleTab(usize),
+    WähleTab(TabId),
     Name(String),
     UmdrehenAnschluss(OutputSerialisiert),
     PwmPin(pwm::Serialisiert),
@@ -262,7 +268,7 @@ pub enum FahrtrichtungAnschluss {
 impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
 where
     LeiterSerialisiert: 't + Display,
-    R: 't + iced_native::text::Renderer<Font = Font>,
+    R: 't + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -352,21 +358,25 @@ where
                     Vec::new()
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
-                    let leiter = if zustand.aktueller_tab == 0 {
-                        pwm_nachricht(
+                    let leiter = match zustand.aktueller_tab {
+                        TabId::Pwm => pwm_nachricht(
                             zustand.umdrehen_anschluss.clone(),
                             zustand.pwm_pin.clone(),
                             zustand.pwm_polarität,
-                        )
-                    } else {
-                        let NonEmpty { head, tail } = &zustand.ks_anschlüsse;
-                        ks_nachricht(
-                            zustand.umdrehen_anschluss.clone(),
-                            NonEmpty {
-                                head: (*head).clone(),
-                                tail: tail.iter().map(|anschluss| (*anschluss).clone()).collect(),
-                            },
-                        )
+                        ),
+                        TabId::KonstanteSpannung => {
+                            let NonEmpty { head, tail } = &zustand.ks_anschlüsse;
+                            ks_nachricht(
+                                zustand.umdrehen_anschluss.clone(),
+                                NonEmpty {
+                                    head: (*head).clone(),
+                                    tail: tail
+                                        .iter()
+                                        .map(|anschluss| (*anschluss).clone())
+                                        .collect(),
+                                },
+                            )
+                        },
                     };
                     let nachricht = AuswahlNachricht::Hinzufügen(
                         Name(zustand.neu_name.clone()),
@@ -474,9 +484,11 @@ where
             row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
             ks_auswahl = ks_auswahl.push(row)
         }
-        let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
-            .push(TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
+        let tabs = Tabs::new(InterneAuswahlNachricht::WähleTab)
+            .set_active_tab(aktueller_tab)
+            .push(TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
             .push(
+                TabId::KonstanteSpannung,
                 TabLabel::Text("Konstante Spannung".to_owned()),
                 Scrollable::new(ks_auswahl).height(Length::Fixed(150.)),
             )
@@ -510,7 +522,7 @@ impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
     for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
 where
     LeiterSerialisiert: 't,
-    R: 't + iced_native::text::Renderer<Font = Font>,
+    R: 't + iced_core::text::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
         Element::new(anzeige.0)
@@ -542,7 +554,7 @@ pub struct ZustandZurücksetzenMittelleiter {
 
 impl<'t, R> LeiterAnzeige<'t, MittelleiterSerialisiert, R> for Mittelleiter
 where
-    R: 't + iced_native::text::Renderer<Font = Font>,
+    R: 't + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -612,7 +624,7 @@ pub struct ZustandZurücksetzenZweileiter {
 
 impl<'t, R: 't> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
 where
-    R: iced_native::text::Renderer<Font = Font>,
+    R: iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet

@@ -12,16 +12,16 @@ use iced_aw::{
     },
     tab_bar,
 };
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        container, radio, scrollable,
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row,
-    },
+    widget::text::{self, Text},
     Element, Font, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    container, radio, scrollable,
+    text_input::{self, TextInput},
+    Column, Row,
 };
 
 use crate::{
@@ -95,7 +95,7 @@ where
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
-    R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
+    R: 't + Renderer + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet

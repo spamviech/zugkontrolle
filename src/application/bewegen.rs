@@ -1,9 +1,9 @@
 //! Widget zum Anpassen des Pivot Punktes.
 
 use iced::{
-    mouse,
-    widget::canvas::{event, Cursor, Event, Geometry, Program, Stroke, Style},
-    Rectangle,
+    mouse::{self, Cursor},
+    widget::canvas::{event, Event, Geometry, Program, Stroke, Style},
+    Rectangle, Renderer,
 };
 
 use crate::{
@@ -81,12 +81,13 @@ impl Bewegen {
     }
 }
 
-impl Program<Nachricht, Thema> for Bewegen {
+impl Program<Nachricht, Renderer<Thema>> for Bewegen {
     type State = bool;
 
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer<Thema>,
         thema: &Thema,
         bounds: Rectangle,
         _cursor: Cursor,
@@ -134,7 +135,7 @@ impl Program<Nachricht, Thema> for Bewegen {
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
         let pfad = erbauer.baue();
-        vec![self.0.zeichnen(size, |frame| {
+        vec![self.0.zeichnen(renderer, size, |frame| {
             frame.stroke(
                 &pfad,
                 Stroke { style: Style::Solid(thema.strich().into()), ..Stroke::default() },
@@ -152,7 +153,7 @@ impl Program<Nachricht, Thema> for Bewegen {
         let mut nachricht = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     let size = bounds.size();
                     let width = Skalar(size.width);
                     let height = Skalar(size.height);

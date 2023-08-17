@@ -1,8 +1,6 @@
 //! Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
-use std::any::Any;
-
-use iced_native::{
+use iced_core::{
     clipboard::Clipboard,
     event::{self, Event},
     layout::{self, Layout},
@@ -16,6 +14,8 @@ use iced_native::{
     },
     Length, Point, Rectangle, Shell, Size,
 };
+
+use crate::application::map_mit_zustand::MapOperation;
 
 ///  Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
@@ -76,51 +76,6 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        #[allow(single_use_lifetimes)]
-        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                operate_on_children: &mut dyn FnMut(&mut dyn widget::Operation<T>),
-            ) {
-                self.operation.container(id, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.scrollable(state, id);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id);
-            }
-
-            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-                self.operation.custom(state, id);
-            }
-        }
-
         self.widget.operate(tree, layout, renderer, &mut MapOperation { operation });
     }
 
@@ -129,10 +84,11 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
@@ -145,6 +101,7 @@ where
             renderer,
             clipboard,
             &mut local_shell,
+            viewport,
         );
 
         if let Some(at) = local_shell.redraw_request() {
@@ -173,7 +130,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         self.widget.draw(tree, renderer, theme, style, layout, cursor_position, viewport)
@@ -183,7 +140,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -237,50 +194,6 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        impl<T, B> widget::Operation<T> for MapOperation<'_, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                operate_on_children: &mut dyn FnMut(&mut dyn widget::Operation<T>),
-            ) {
-                self.operation.container(id, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.scrollable(state, id);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id)
-            }
-
-            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-                self.operation.custom(state, id);
-            }
-        }
-
         self.content.operate(layout, renderer, &mut MapOperation { operation });
     }
 
@@ -288,7 +201,7 @@ where
         &mut self,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
@@ -327,7 +240,7 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -340,12 +253,12 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
     ) {
         self.content.draw(renderer, theme, style, layout, cursor_position)
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
-        self.content.is_over(layout, cursor_position)
+    fn is_over(&self, layout: Layout<'_>, renderer: &Renderer, cursor_position: Point) -> bool {
+        self.content.is_over(layout, renderer, cursor_position)
     }
 }

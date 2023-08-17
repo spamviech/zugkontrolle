@@ -10,7 +10,8 @@ use std::{
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{
-    application::Application, widget::Radio, Command, Element, Renderer, Settings, Subscription,
+    application::Application, widget::Radio, Command, Element, Font, Renderer, Settings,
+    Subscription,
 };
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
@@ -429,15 +430,15 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         argumente: Argumente,
         lager: Lager,
         zugtyp: Zugtyp<L>,
-    ) -> Settings<(Argumente, Lager, Zugtyp<L>)> {
+    ) -> Settings<(Argumente, Lager, Zugtyp<L>, &'static [u8])> {
         Settings {
             window: iced::window::Settings {
                 size: (800, 480),
                 icon: icon(),
                 ..iced::window::Settings::default()
             },
-            default_font: Some(&fonts::REGULAR),
-            ..Settings::with_flags((argumente, lager, zugtyp))
+            default_font: Font::with_name("SourceSerif4-Regular"),
+            ..Settings::with_flags((argumente, lager, zugtyp, fonts::REGULAR))
         }
     }
     match zugtyp {
@@ -508,20 +509,27 @@ where
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Argumente, Lager, Zugtyp<L>);
+    type Flags = (Argumente, Lager, Zugtyp<L>, &'static [u8]);
     type Message = Nachricht<L, S>;
     type Theme = Thema;
 
-    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
+    fn new((argumente, lager, zugtyp, schriftart): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let command: Command<Self::Message>;
+        let lade_schriftart = iced::font::load(schriftart).map(|ergebnis| match ergebnis {
+            Ok(()) => Nachricht::AsyncAktualisieren,
+            Err(fehler) => Nachricht::AsyncFehler {
+                titel: String::from("Schriftart laden"),
+                nachricht: format!("{fehler:?}"),
+            },
+        });
+        let lade_zustand: Command<Self::Message>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
-            command = Nachricht::Laden(pfad.clone()).als_command();
+            lade_zustand = Nachricht::Laden(pfad.clone()).als_command();
             initialer_pfad = pfad.clone();
         } else {
-            command = Command::none();
+            lade_zustand = Command::none();
             initialer_pfad = {
                 let mut pfad = zugtyp.name.clone();
                 pfad.push_str(".zug");
@@ -569,7 +577,7 @@ where
             empfänger: Empfänger::neu(receiver),
         };
 
-        (zugkontrolle, command)
+        (zugkontrolle, Command::batch([lade_schriftart, lade_zustand]))
     }
 
     fn title(&self) -> String {

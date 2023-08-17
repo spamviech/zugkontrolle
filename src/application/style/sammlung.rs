@@ -2,7 +2,7 @@
 
 use iced::{
     widget::scrollable::{Scrollbar, Scroller, StyleSheet},
-    Color,
+    BorderRadius, Color,
 };
 
 use crate::application::style::thema::Thema;
@@ -37,12 +37,12 @@ impl Sammlung {
         let scroller_color = Color::from_rgb(grey_value, grey_value, grey_value);
         Scrollbar {
             background: None,
-            border_radius: 0.,
+            border_radius: BorderRadius::from(0.),
             border_width: 0.,
             border_color: Color::BLACK,
             scroller: Scroller {
                 color: scroller_color,
-                border_radius: 0.25 * self.breite,
+                border_radius: BorderRadius::from(0.25 * self.breite),
                 border_width: 0.,
                 border_color: scroller_color,
             },

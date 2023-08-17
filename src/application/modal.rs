@@ -3,18 +3,18 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced::{Rectangle, Size};
-use iced_native::{
+use iced_core::{
     event,
     keyboard::{self, KeyCode},
     layout, mouse, overlay,
     renderer::{Renderer, Style},
     widget::{
-        container::{self, Container},
         operation::Operation,
         tree::{self, Tag, Tree},
     },
     Clipboard, Element, Event, Layout, Length, Point, Shell, Vector, Widget,
 };
+use iced_widget::container::{self, Container};
 
 use crate::application::{map_mit_zustand::MapOperation, style};
 
@@ -91,6 +91,7 @@ struct Zustand<Overlay> {
     overlay: Option<Overlay>,
     initial: Option<Overlay>,
     aktualisiere_element: OverlayElement,
+    viewport: Rectangle,
 }
 
 impl<Overlay> Zustand<Overlay> {
@@ -102,7 +103,7 @@ impl<Overlay> Zustand<Overlay> {
         let initial = overlay.clone();
         let aktualisiere_element =
             if overlay.is_some() { OverlayElement::Initial } else { OverlayElement::Aktuell };
-        Zustand { overlay, initial, aktualisiere_element }
+        Zustand { overlay, initial, aktualisiere_element, viewport: Rectangle::default() }
     }
 
     /// Zeige ein Overlay über dem Widget.
@@ -304,7 +305,7 @@ where
         theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         self.underlay.as_widget().draw(
@@ -322,7 +323,7 @@ where
         &self,
         state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
@@ -350,10 +351,11 @@ where
         state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, ElementNachricht>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
         if zustand.overlay.is_none() {
@@ -367,6 +369,7 @@ where
                 renderer,
                 clipboard,
                 &mut inner_shell,
+                viewport,
             );
             synchronisiere_widget_layout_validierung(&inner_shell, shell);
             bearbeite_modal_nachrichten(messages, shell, zustand, &mut status);
@@ -448,7 +451,7 @@ impl<M, R: Renderer> Widget<M, R> for Dummy {
         _theme: &<R as Renderer>::Theme,
         _style: &Style,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         // zeichne nichts
@@ -495,7 +498,7 @@ where
         theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
     ) {
         if let Some(overlay) = &self.modal_overlay {
             overlay.as_widget().draw(
@@ -538,7 +541,7 @@ where
         &mut self,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, ElementNachricht>,
@@ -554,6 +557,7 @@ where
                 renderer,
                 clipboard,
                 &mut inner_shell,
+                &self.zustand.viewport,
             )
         } else if let Some(overlay) = &mut self.element_overlay {
             overlay.on_event(event, layout, cursor_position, renderer, clipboard, &mut inner_shell)
@@ -568,7 +572,7 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {

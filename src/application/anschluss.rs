@@ -6,13 +6,10 @@ use iced_aw::{
     native::{NumberInput, TabLabel, Tabs},
     style::tab_bar,
 };
-use iced_native::{
-    event, text,
-    widget::{
-        scrollable::{self, Scrollable},
-        Column, Radio, Row, Space, Text,
-    },
-    Element, Font, Length, Renderer,
+use iced_core::{event, text, widget::Text, Element, Font, Length, Renderer};
+use iced_widget::{
+    scrollable::{self, Scrollable},
+    Column, Radio, Row, Space,
 };
 use log::error;
 
@@ -32,22 +29,25 @@ use crate::{
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TabId {
+    Pin,
+    Pcf8574,
+}
+
 /// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand<T> {
-    active_tab: usize,
+    active_tab: TabId,
     pin: u8,
     beschreibung: Beschreibung,
     port: kleiner_8,
     modus: T,
 }
 
-const TAB_PIN: usize = 0;
-const TAB_PCF8574: usize = 1;
-
 #[derive(Debug, Clone)]
 enum InterneNachricht<T> {
-    TabSelected(usize),
+    TabSelected(TabId),
     Pin(u8),
     I2cBus(I2cBus),
     A0(Level),
@@ -93,11 +93,11 @@ where
     R: 'a + text::Renderer<Font = Font>,
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::scrollable::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet,
+        + iced_widget::container::StyleSheet
+        + iced_widget::radio::StyleSheet
+        + iced_widget::scrollable::StyleSheet
+        + iced_widget::text::StyleSheet
+        + iced_widget::text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
@@ -109,15 +109,15 @@ where
         settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
-            Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
+            Some(InputAnschluss::Pin(pin)) => (TabId::Pin, Some(pin.pin()), None, None, None),
             Some(InputAnschluss::Pcf8574Port(port)) => (
-                TAB_PCF8574,
+                TabId::Pcf8574,
                 None,
                 Some(*port.beschreibung()),
                 Some(port.port()),
                 port.interrupt_pin(),
             ),
-            None => (TAB_PIN, None, None, None, None),
+            None => (TabId::Pin, None, None, None, None),
         };
         Self::neu_input_aux(
             active_tab,
@@ -139,11 +139,11 @@ where
         settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
-            Some(InputSerialisiert::Pin { pin }) => (TAB_PIN, Some(*pin), None, None, None),
+            Some(InputSerialisiert::Pin { pin }) => (TabId::Pin, Some(*pin), None, None, None),
             Some(InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }) => {
-                (TAB_PCF8574, None, Some(*beschreibung), Some(*port), *interrupt)
+                (TabId::Pcf8574, None, Some(*beschreibung), Some(*port), *interrupt)
             },
-            None => (TAB_PIN, None, None, None, None),
+            None => (TabId::Pin, None, None, None, None),
         };
         Self::neu_input_aux(
             active_tab,
@@ -158,7 +158,7 @@ where
     }
 
     fn neu_input_aux(
-        active_tab: usize,
+        active_tab: TabId,
         pin: Option<u8>,
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
@@ -213,11 +213,11 @@ where
     R: 'a + text::Renderer<Font = Font>,
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::scrollable::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet,
+        + iced_widget::container::StyleSheet
+        + iced_widget::radio::StyleSheet
+        + iced_widget::scrollable::StyleSheet
+        + iced_widget::text::StyleSheet
+        + iced_widget::text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
@@ -229,12 +229,16 @@ where
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputAnschluss::Pin { pin, polarität }) => {
-                (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
+                (TabId::Pin, Some(pin.pin()), None, None, Some(*polarität))
             },
-            Some(OutputAnschluss::Pcf8574Port { port, polarität }) => {
-                (TAB_PCF8574, None, Some(*port.beschreibung()), Some(port.port()), Some(*polarität))
-            },
-            None => (TAB_PIN, None, None, None, None),
+            Some(OutputAnschluss::Pcf8574Port { port, polarität }) => (
+                TabId::Pcf8574,
+                None,
+                Some(*port.beschreibung()),
+                Some(port.port()),
+                Some(*polarität),
+            ),
+            None => (TabId::Pin, None, None, None, None),
         };
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
@@ -247,18 +251,18 @@ where
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputSerialisiert::Pin { pin, polarität }) => {
-                (TAB_PIN, Some(pin), None, None, Some(polarität))
+                (TabId::Pin, Some(pin), None, None, Some(polarität))
             },
             Some(OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität }) => {
-                (TAB_PCF8574, None, Some(beschreibung), Some(port), Some(polarität))
+                (TabId::Pcf8574, None, Some(beschreibung), Some(port), Some(polarität))
             },
-            None => (TAB_PIN, None, None, None, None),
+            None => (TabId::Pin, None, None, None, None),
         };
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
     fn neu_output_aux(
-        active_tab: usize,
+        active_tab: TabId,
         pin: Option<u8>,
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
@@ -326,8 +330,7 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text::Renderer,
-    <R as Renderer>::Theme:
-        iced_native::widget::radio::StyleSheet + iced_native::widget::text::StyleSheet,
+    <R as Renderer>::Theme: iced_widget::radio::StyleSheet + iced_widget::text::StyleSheet,
 {
     let mut column = Column::new();
     for (label, value) in elemente {
@@ -345,11 +348,11 @@ where
     R: 'a + text::Renderer<Font = Font>,
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::scrollable::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet,
+        + iced_widget::container::StyleSheet
+        + iced_widget::radio::StyleSheet
+        + iced_widget::scrollable::StyleSheet
+        + iced_widget::text::StyleSheet
+        + iced_widget::text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
@@ -389,10 +392,9 @@ where
                 },
                 InterneNachricht::Modus(msg) => update_modus(&mut zustand.modus, msg),
             }
-            let nachricht = if zustand.active_tab == 0 {
-                make_pin(zustand.pin, &zustand.modus)
-            } else {
-                make_port(zustand.beschreibung, zustand.port, &zustand.modus)
+            let nachricht = match zustand.active_tab {
+                TabId::Pin => make_pin(zustand.pin, &zustand.modus),
+                TabId::Pcf8574 => make_port(zustand.beschreibung, zustand.port, &zustand.modus),
             };
             vec![nachricht]
         };
@@ -406,11 +408,11 @@ where
     R: 'a + text::Renderer<Font = Font>,
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
-        + iced_native::widget::container::StyleSheet
-        + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::scrollable::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet,
+        + iced_widget::container::StyleSheet
+        + iced_widget::radio::StyleSheet
+        + iced_widget::scrollable::StyleSheet
+        + iced_widget::text::StyleSheet
+        + iced_widget::text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
@@ -474,14 +476,16 @@ where
             ZeigeModus::Pcf8574 => {
                 let tabs = vec![
                     (
+                        TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
                         NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
-                    (TabLabel::Text("Pcf8574-Port".to_owned()), {
+                    (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
-                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(tabs, InterneNachricht::TabSelected)
+                    .set_active_tab(active_tab)
                     .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
                     .width(width);
@@ -490,12 +494,16 @@ where
             ZeigeModus::Beide => {
                 let tabs = vec![
                     (
+                        TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
                         NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
                     ),
-                    (TabLabel::Text("Pcf8574-Port".to_owned()), { pcf8574_row.into() }),
+                    (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
+                        pcf8574_row.into()
+                    }),
                 ];
-                let tabs = Tabs::with_tabs(*active_tab, tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::with_tabs(tabs, InterneNachricht::TabSelected)
+                    .set_active_tab(active_tab)
                     .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
                     .width(width);
@@ -538,11 +546,11 @@ pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Seri
 
 impl<'a, R> Pwm<'a, R>
 where
-    R: 'a + iced_native::text::Renderer<Font = Font>,
+    R: 'a + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_native::widget::text::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
-        + iced_native::widget::container::StyleSheet,
+        + iced_core::widget::text::StyleSheet
+        + iced_widget::container::StyleSheet
+        + iced_widget::text_input::StyleSheet,
 {
     /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
