@@ -16,12 +16,13 @@ use log::error;
 use crate::{
     anschluss::{
         level::Level,
-        pcf8574::{self, Beschreibung, Variante},
+        pcf8574::{self, Beschreibung, I2cBus, Variante},
         pin::pwm,
         polarität::Polarität,
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
     application::{map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
+    argumente::I2cSettings,
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
@@ -42,6 +43,7 @@ const TAB_PCF8574: usize = 1;
 enum InterneNachricht<T> {
     TabSelected(usize),
     Pin(u8),
+    I2cBus(I2cBus),
     A0(Level),
     A1(Level),
     A2(Level),
@@ -95,6 +97,7 @@ where
     pub fn neu_input(
         start_wert: Option<&'a InputAnschluss>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputAnschluss::Pin(pin)) => (TAB_PIN, Some(pin.pin()), None, None, None),
@@ -107,13 +110,14 @@ where
             ),
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins)
+        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins, settings)
     }
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input_s(
         start_wert: Option<&'a InputSerialisiert>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputSerialisiert::Pin { pin }) => (TAB_PIN, Some(*pin), None, None, None),
@@ -122,7 +126,7 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins)
+        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins, settings)
     }
 
     fn neu_input_aux(
@@ -132,6 +136,7 @@ where
         port: Option<kleiner_8>,
         modus: Option<u8>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
@@ -168,6 +173,7 @@ where
                 port: port.unwrap_or(kleiner_8::MIN),
                 modus: modus.unwrap_or(0),
             },
+            settings,
         )
     }
 }
@@ -184,7 +190,7 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output(start_wert: Option<&'a OutputAnschluss>) -> Self {
+    pub fn neu_output(start_wert: Option<&'a OutputAnschluss>, settings: I2cSettings) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputAnschluss::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
@@ -194,11 +200,11 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus)
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, settings)
     }
 
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output_s(start_wert: Option<OutputSerialisiert>) -> Self {
+    pub fn neu_output_s(start_wert: Option<OutputSerialisiert>, settings: I2cSettings) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputSerialisiert::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(pin), None, None, Some(polarität))
@@ -208,7 +214,7 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus)
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, settings)
     }
 
     fn neu_output_aux(
@@ -217,6 +223,7 @@ where
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
         modus: Option<Polarität>,
+        settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Beide,
@@ -256,6 +263,7 @@ where
                 port: port.unwrap_or(kleiner_8::MIN),
                 modus: modus.unwrap_or(Polarität::Normal),
             },
+            settings,
         )
     }
 }
@@ -266,13 +274,11 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-fn make_radios<'a, T, M, R>(
-    current: &T,
-    fst: T,
-    fst_s: &str,
-    snd: T,
-    snd_s: &str,
-    to_message: impl Fn(T) -> M + Clone + 'static,
+#[allow(single_use_lifetimes)]
+fn make_radios<'a, 'b, T, M, R>(
+    aktuell: &T,
+    elemente: impl IntoIterator<Item = (&'b str, T)>,
+    als_nachricht: impl Fn(T) -> M + Clone + 'static,
 ) -> Column<'a, M, R>
 where
     T: Eq + Copy,
@@ -281,9 +287,13 @@ where
     <R as Renderer>::Theme:
         iced_native::widget::radio::StyleSheet + iced_native::widget::text::StyleSheet,
 {
-    Column::new()
-        .push(Radio::new(fst_s, fst, Some(current.clone()), to_message.clone()).spacing(0))
-        .push(Radio::new(snd_s, snd, Some(current.clone()), to_message).spacing(0))
+    let mut column = Column::new();
+    for (label, value) in elemente {
+        column = column.push(
+            Radio::new(label, value, Some(aktuell.clone()), als_nachricht.clone()).spacing(0),
+        );
+    }
+    column
 }
 
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
@@ -306,9 +316,10 @@ where
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
         make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: impl 'a + Fn() -> Zustand<Modus>,
+        settings: I2cSettings,
     ) -> Self {
         let erzeuge_element = move |zustand: &Zustand<Modus>| {
-            Self::erzeuge_element(zustand, &view_modus, zeige_modus)
+            Self::erzeuge_element(zustand, &view_modus, zeige_modus, settings)
         };
         let mapper = move |interne_nachricht,
                            zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
@@ -317,6 +328,7 @@ where
             match interne_nachricht {
                 InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
                 InterneNachricht::Pin(pin) => zustand.pin = pin,
+                InterneNachricht::I2cBus(i2c_bus) => zustand.beschreibung.i2c_bus = i2c_bus,
                 InterneNachricht::A0(a0) => zustand.beschreibung.a0 = a0,
                 InterneNachricht::A1(a1) => zustand.beschreibung.a1 = a1,
                 InterneNachricht::A2(a2) => zustand.beschreibung.a2 = a2,
@@ -359,26 +371,37 @@ where
         zustand: &Zustand<Modus>,
         view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         zeige_modus: ZeigeModus,
+        settings: I2cSettings,
     ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
         let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
         let element_modus = view_modus(&modus, *beschreibung);
         // TODO anzeige des verwendeten I2cBus
-        let Beschreibung { i2c_bus: _, a0, a1, a2, variante } = beschreibung;
+        let Beschreibung { i2c_bus, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = element_modus.map(InterneNachricht::Modus);
         let high_low_column =
-            |level: &Level, to_message: fn(Level) -> InterneNachricht<ModusNachricht>| {
-                make_radios(level, Level::High, "H", Level::Low, "L", to_message)
+            |level: &Level, als_nachricht: fn(Level) -> InterneNachricht<ModusNachricht>| {
+                make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
         let pcf8574_row = Row::new()
+            .push(make_radios(
+                i2c_bus,
+                [
+                    ("0/1", I2cBus::I2c0_1),
+                    ("3", I2cBus::I2c3),
+                    ("4", I2cBus::I2c4),
+                    ("5", I2cBus::I2c5),
+                    ("6", I2cBus::I2c6),
+                ]
+                .into_iter()
+                .filter(|(_label, i2c_bus)| settings.aktiviert(*i2c_bus)),
+                InterneNachricht::I2cBus,
+            ))
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
             .push(high_low_column(a2, InterneNachricht::A2))
             .push(make_radios(
                 variante,
-                Variante::Normal,
-                "Normal",
-                Variante::A,
-                "A",
+                [("Normal", Variante::Normal), ("A", Variante::A)],
                 InterneNachricht::Variante,
             ))
             .push(NumberInput::new(

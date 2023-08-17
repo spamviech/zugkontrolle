@@ -27,6 +27,7 @@ use iced_native::{
 use crate::{
     anschluss::OutputSerialisiert,
     application::{anschluss, map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
+    argumente::I2cSettings,
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
@@ -105,9 +106,11 @@ where
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        settings: I2cSettings,
     ) -> Self {
         let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
-        let erzeuge_element = move |zustand: &_| Self::erzeuge_element(weichen_art, zustand);
+        let erzeuge_element =
+            move |zustand: &_| Self::erzeuge_element(weichen_art, zustand, settings);
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
                       status: &mut event::Status| {
@@ -141,6 +144,7 @@ where
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
+        settings: I2cSettings,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
         let mut column: Column<'t, InterneNachricht<Richtung>, R> = Column::new();
@@ -151,7 +155,8 @@ where
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
-                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(Some(anschluss.clone()));
+                let anschluss_auswahl =
+                    anschluss::Auswahl::neu_output_s(Some(anschluss.clone()), settings);
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })

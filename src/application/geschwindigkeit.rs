@@ -39,6 +39,7 @@ use crate::{
         map_mit_zustand::MapMitZustand,
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
+    argumente::I2cSettings,
     eingeschränkt::NichtNegativ,
     steuerung::{
         geschwindigkeit::{
@@ -288,11 +289,17 @@ where
             OutputSerialisiert,
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
+        settings: I2cSettings,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
         let erzeuge_zustand = move || AuswahlZustand::neu(geschwindigkeiten.iter());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
-            Self::erzeuge_element(zustand, fahrtrichtung_anschluss, &fahrtrichtung_beschreibung)
+            Self::erzeuge_element(
+                zustand,
+                fahrtrichtung_anschluss,
+                &fahrtrichtung_beschreibung,
+                settings,
+            )
         };
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
@@ -377,6 +384,7 @@ where
         zustand: &AuswahlZustand,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: &str,
+        settings: I2cSettings,
     ) -> Element<'t, InterneAuswahlNachricht, R> {
         let AuswahlZustand {
             neu_name,
@@ -393,8 +401,11 @@ where
         );
         let umdrehen_auswahl =
             Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
-                Element::from(anschluss::Auswahl::neu_output_s(Some(umdrehen_anschluss.clone())))
-                    .map(InterneAuswahlNachricht::UmdrehenAnschluss),
+                Element::from(anschluss::Auswahl::neu_output_s(
+                    Some(umdrehen_anschluss.clone()),
+                    settings,
+                ))
+                .map(InterneAuswahlNachricht::UmdrehenAnschluss),
             );
         let make_radio = |polarität: Polarität| {
             Radio::new(
@@ -430,11 +441,13 @@ where
             // FIXME neu hinzugefügte Anschlüsse werden erst nach Ändern der Fenstergröße angezeigt
             // (davor wird nur das scrollable größer)
             let mut row = Row::new().height(Length::Shrink).push(
-                Element::from(anschluss::Auswahl::neu_output_s(Some(ks_anschluss.clone()))).map(
-                    move |anschluss| {
-                        InterneAuswahlNachricht::KonstanteSpannungAnschluss(i, anschluss)
-                    },
-                ),
+                Element::from(anschluss::Auswahl::neu_output_s(
+                    Some(ks_anschluss.clone()),
+                    settings,
+                ))
+                .map(move |anschluss| {
+                    InterneAuswahlNachricht::KonstanteSpannungAnschluss(i, anschluss)
+                }),
             );
             row = row.push(if let Some(ix) = NonZeroUsize::new(i) {
                 Element::new(
@@ -499,6 +512,7 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
+        settings: I2cSettings,
     ) -> Auswahl<'t, S, R>;
 }
 
@@ -552,6 +566,7 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
+        settings: I2cSettings,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,
@@ -562,6 +577,7 @@ where
                 geschwindigkeit,
                 umdrehen,
             },
+            settings,
         )
     }
 }
@@ -630,6 +646,7 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
+        settings: I2cSettings,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
             geschwindigkeiten,
@@ -644,6 +661,7 @@ where
                 geschwindigkeit,
                 fahrtrichtung,
             },
+            settings,
         )
     }
 }

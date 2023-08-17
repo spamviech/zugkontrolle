@@ -28,6 +28,7 @@ use iced_native::{
 use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
+    argumente::I2cSettings,
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::{
         geschwindigkeit::{self, Leiter},
@@ -198,9 +199,10 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(gleise: &'a Gleise<L>) -> Self {
+    pub fn neu<L: Leiter>(gleise: &'a Gleise<L>, settings: I2cSettings) -> Self {
         let erzeuge_zustand = || AuswahlZustand::neu(gleise);
-        let erzeuge_element = Self::erzeuge_element;
+        let erzeuge_element =
+            move |zustand: &AuswahlZustand| Self::erzeuge_element(zustand, settings);
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
                       status: &mut event::Status| {
@@ -247,6 +249,7 @@ where
 
     fn erzeuge_element(
         auswahl_zustand: &AuswahlZustand,
+        settings: I2cSettings,
     ) -> Element<'a, InterneAuswahlNachricht, R> {
         let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
             auswahl_zustand;
@@ -259,8 +262,11 @@ where
             )
             .push(Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen).durchmesser(50))
             .push(
-                Element::from(anschluss::Auswahl::neu_output_s(Some(neu_anschluss.clone())))
-                    .map(InterneAuswahlNachricht::Anschluss),
+                Element::from(anschluss::Auswahl::neu_output_s(
+                    Some(neu_anschluss.clone()),
+                    settings,
+                ))
+                .map(InterneAuswahlNachricht::Anschluss),
             );
         let hinzufügen =
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);

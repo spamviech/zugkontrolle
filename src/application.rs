@@ -29,7 +29,7 @@ use crate::{
         icon::icon,
         style::thema::Thema,
     },
-    argumente::{Argumente, ZugtypArgument},
+    argumente::{Argumente, I2cSettings, ZugtypArgument},
     gleis::{
         self,
         gerade::GeradeUnit,
@@ -466,6 +466,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     gleise: Gleise<L>,
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
+    i2c_settings: I2cSettings,
     geraden: Vec<Knopf<GeradeUnit>>,
     kurven: Vec<Knopf<KurveUnit>>,
     weichen: Vec<Knopf<WeicheUnit>>,
@@ -512,7 +513,7 @@ where
     type Theme = Thema;
 
     fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
-        let Argumente { pfad, modus, zoom, x, y, winkel, .. } = argumente;
+        let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
         let command: Command<Self::Message>;
         let initialer_pfad: String;
@@ -548,6 +549,7 @@ where
             gleise,
             lager,
             scrollable_style: style::sammlung::Sammlung::neu(10.),
+            i2c_settings,
             geraden,
             kurven,
             weichen,

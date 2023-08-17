@@ -20,6 +20,7 @@
 - entferne RwLock aus Gleise-Struktur, um auftretende Deadlocks zu beheben
 - erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
 - entferne die meisten `pub use` re-exports
+- ermögliche Auswahl des I2C-Busses bei Anschlüssen
 
 ## 3.0.0
 
