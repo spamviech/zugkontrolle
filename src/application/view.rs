@@ -138,6 +138,7 @@ where
         let zeige_auswahlzustand = |modal: &AuswahlZustand| match modal {
             AuswahlZustand::Streckenabschnitt => Element::from(streckenabschnitt::Auswahl::neu(
                 gleise,
+                *scrollable_style,
                 *i2c_settings,
             ))
             .map(|message| {
@@ -169,6 +170,7 @@ where
                     });
                 Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(
                     geschwindigkeiten,
+                    *scrollable_style,
                     *i2c_settings,
                 ))
                 .map(|message| {
@@ -193,36 +195,40 @@ where
                     WeichenId::Kreuzung(_id) => "Kreuzung",
                 };
                 let weichen_id_clone = weichen_id.klonen();
-                Element::from(weiche::Auswahl::neu(weichen_art, weiche.clone(), *i2c_settings)).map(
-                    move |message| {
-                        use weiche::Nachricht::*;
-                        match message {
-                            Festlegen(steuerung) => {
-                                modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                                    Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
-                                        WeichenId::Gerade(id) => {
-                                            AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
-                                        },
-                                        WeichenId::SKurve(id) => AnschlüsseAnpassen::SKurvenWeiche(
-                                            id.klonen(),
-                                            steuerung,
-                                        ),
-                                        WeichenId::Kreuzung(id) => {
-                                            AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
-                                        },
-                                    }),
-                                ))
-                            },
-                            Schließen => modal::Nachricht::VersteckeOverlay,
-                        }
-                    },
-                )
+                Element::from(weiche::Auswahl::neu(
+                    weichen_art,
+                    weiche.clone(),
+                    *scrollable_style,
+                    *i2c_settings,
+                ))
+                .map(move |message| {
+                    use weiche::Nachricht::*;
+                    match message {
+                        Festlegen(steuerung) => {
+                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
+                                Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
+                                    WeichenId::Gerade(id) => {
+                                        AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
+                                    },
+                                    WeichenId::SKurve(id) => {
+                                        AnschlüsseAnpassen::SKurvenWeiche(id.klonen(), steuerung)
+                                    },
+                                    WeichenId::Kreuzung(id) => {
+                                        AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
+                                    },
+                                }),
+                            ))
+                        },
+                        Schließen => modal::Nachricht::VersteckeOverlay,
+                    }
+                })
             },
             AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
                 let id_clone = id.klonen();
                 Element::from(weiche::Auswahl::neu(
                     "Dreiwege-Weiche",
                     dreiwege_weiche.clone(),
+                    *scrollable_style,
                     *i2c_settings,
                 ))
                 .map(move |message| {
@@ -242,6 +248,7 @@ where
                 Element::from(weiche::Auswahl::neu(
                     "Kurven-Weiche",
                     kurven_weiche.clone(),
+                    *scrollable_style,
                     *i2c_settings,
                 ))
                 .map(move |message| {

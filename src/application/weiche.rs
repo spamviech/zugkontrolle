@@ -16,7 +16,7 @@ use iced_native::{
     event,
     widget::{
         button::{self, Button},
-        container, radio,
+        container, radio, scrollable,
         text::{self, Text},
         text_input::{self, TextInput},
         Column, Row,
@@ -26,7 +26,11 @@ use iced_native::{
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{anschluss, map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
+    application::{
+        anschluss,
+        map_mit_zustand::MapMitZustand,
+        style::{sammlung::Sammlung, tab_bar::TabBar},
+    },
     argumente::I2cSettings,
     nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
@@ -92,25 +96,29 @@ where
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: container::StyleSheet
-        + button::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + radio::StyleSheet
+    <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
+        + container::StyleSheet
         + number_input::StyleSheet
-        + tab_bar::StyleSheet,
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + tab_bar::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
-        let erzeuge_element =
-            move |zustand: &_| Self::erzeuge_element(weichen_art, zustand, settings);
+        let erzeuge_element = move |zustand: &_| {
+            Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
+        };
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
                       status: &mut event::Status| {
@@ -144,6 +152,7 @@ where
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
@@ -155,8 +164,11 @@ where
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
-                let anschluss_auswahl =
-                    anschluss::Auswahl::neu_output_s(Some(anschluss.clone()), settings);
+                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(
+                    Some(anschluss.clone()),
+                    scrollable_style,
+                    settings,
+                );
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })

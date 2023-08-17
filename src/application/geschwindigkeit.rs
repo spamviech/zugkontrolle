@@ -289,6 +289,7 @@ where
             OutputSerialisiert,
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
@@ -298,6 +299,7 @@ where
                 zustand,
                 fahrtrichtung_anschluss,
                 &fahrtrichtung_beschreibung,
+                scrollable_style,
                 settings,
             )
         };
@@ -384,6 +386,7 @@ where
         zustand: &AuswahlZustand,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: &str,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Element<'t, InterneAuswahlNachricht, R> {
         let AuswahlZustand {
@@ -403,6 +406,7 @@ where
             Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
                 Element::from(anschluss::Auswahl::neu_output_s(
                     Some(umdrehen_anschluss.clone()),
+                    scrollable_style,
                     settings,
                 ))
                 .map(InterneAuswahlNachricht::UmdrehenAnschluss),
@@ -443,6 +447,7 @@ where
             let mut row = Row::new().height(Length::Shrink).push(
                 Element::from(anschluss::Auswahl::neu_output_s(
                     Some(ks_anschluss.clone()),
+                    scrollable_style,
                     settings,
                 ))
                 .map(move |anschluss| {
@@ -512,6 +517,7 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, S, R>;
 }
@@ -566,6 +572,7 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
@@ -577,6 +584,7 @@ where
                 geschwindigkeit,
                 umdrehen,
             },
+            scrollable_style,
             settings,
         )
     }
@@ -646,6 +654,7 @@ where
     #[inline(always)]
     fn auswahl_neu(
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
@@ -661,6 +670,7 @@ where
                 geschwindigkeit,
                 fahrtrichtung,
             },
+            scrollable_style,
             settings,
         )
     }

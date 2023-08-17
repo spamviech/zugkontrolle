@@ -194,15 +194,21 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<style::Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(gleise: &'a Gleise<L>, settings: I2cSettings) -> Self {
+    pub fn neu<L: Leiter>(
+        gleise: &'a Gleise<L>,
+        scrollable_style: style::Sammlung,
+        settings: I2cSettings,
+    ) -> Self {
         let erzeuge_zustand = || AuswahlZustand::neu(gleise);
-        let erzeuge_element =
-            move |zustand: &AuswahlZustand| Self::erzeuge_element(zustand, settings);
+        let erzeuge_element = move |zustand: &AuswahlZustand| {
+            Self::erzeuge_element(zustand, scrollable_style, settings)
+        };
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
                       status: &mut event::Status| {
@@ -249,6 +255,7 @@ where
 
     fn erzeuge_element(
         auswahl_zustand: &AuswahlZustand,
+        scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Element<'a, InterneAuswahlNachricht, R> {
         let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
@@ -264,6 +271,7 @@ where
             .push(
                 Element::from(anschluss::Auswahl::neu_output_s(
                     Some(neu_anschluss.clone()),
+                    scrollable_style,
                     settings,
                 ))
                 .map(InterneAuswahlNachricht::Anschluss),

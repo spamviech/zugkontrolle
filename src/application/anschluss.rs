@@ -8,7 +8,10 @@ use iced_aw::{
 };
 use iced_native::{
     event, text,
-    widget::{Column, Radio, Row, Text},
+    widget::{
+        scrollable::{self, Scrollable},
+        Column, Radio, Row, Space, Text,
+    },
     Element, Font, Length, Renderer,
 };
 use log::error;
@@ -21,7 +24,10 @@ use crate::{
         polarität::Polarität,
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
-    application::{map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
+    application::{
+        map_mit_zustand::MapMitZustand,
+        style::{sammlung::Sammlung, tab_bar::TabBar},
+    },
     argumente::I2cSettings,
     eingeschränkt::{kleiner_8, InvaliderWert},
 };
@@ -88,15 +94,18 @@ where
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
+        + iced_native::widget::scrollable::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(
         start_wert: Option<&'a InputAnschluss>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
@@ -110,13 +119,23 @@ where
             ),
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins, settings)
+        Self::neu_input_aux(
+            active_tab,
+            pin,
+            beschreibung,
+            port,
+            modus,
+            interrupt_pins,
+            scrollable_style,
+            settings,
+        )
     }
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input_s(
         start_wert: Option<&'a InputSerialisiert>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
@@ -126,7 +145,16 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, interrupt_pins, settings)
+        Self::neu_input_aux(
+            active_tab,
+            pin,
+            beschreibung,
+            port,
+            modus,
+            interrupt_pins,
+            scrollable_style,
+            settings,
+        )
     }
 
     fn neu_input_aux(
@@ -136,6 +164,7 @@ where
         port: Option<kleiner_8>,
         modus: Option<u8>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
@@ -173,6 +202,7 @@ where
                 port: port.unwrap_or(kleiner_8::MIN),
                 modus: modus.unwrap_or(0),
             },
+            scrollable_style,
             settings,
         )
     }
@@ -184,13 +214,19 @@ where
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
+        + iced_native::widget::scrollable::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output(start_wert: Option<&'a OutputAnschluss>, settings: I2cSettings) -> Self {
+    pub fn neu_output(
+        start_wert: Option<&'a OutputAnschluss>,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
+    ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputAnschluss::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(pin.pin()), None, None, Some(*polarität))
@@ -200,11 +236,15 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, settings)
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
     /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
-    pub fn neu_output_s(start_wert: Option<OutputSerialisiert>, settings: I2cSettings) -> Self {
+    pub fn neu_output_s(
+        start_wert: Option<OutputSerialisiert>,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
+    ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(OutputSerialisiert::Pin { pin, polarität }) => {
                 (TAB_PIN, Some(pin), None, None, Some(polarität))
@@ -214,7 +254,7 @@ where
             },
             None => (TAB_PIN, None, None, None, None),
         };
-        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, settings)
+        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
     fn neu_output_aux(
@@ -223,6 +263,7 @@ where
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
         modus: Option<Polarität>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
@@ -263,6 +304,7 @@ where
                 port: port.unwrap_or(kleiner_8::MIN),
                 modus: modus.unwrap_or(Polarität::Normal),
             },
+            scrollable_style,
             settings,
         )
     }
@@ -304,9 +346,11 @@ where
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
+        + iced_native::widget::scrollable::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn neu_mit_interrupt_view(
@@ -316,10 +360,11 @@ where
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
         make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
         erzeuge_zustand: impl 'a + Fn() -> Zustand<Modus>,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let erzeuge_element = move |zustand: &Zustand<Modus>| {
-            Self::erzeuge_element(zustand, &view_modus, zeige_modus, settings)
+            Self::erzeuge_element(zustand, &view_modus, zeige_modus, scrollable_style, settings)
         };
         let mapper = move |interne_nachricht,
                            zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
@@ -362,20 +407,22 @@ where
     <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
         + iced_aw::tab_bar::StyleSheet
         + iced_native::widget::container::StyleSheet
-        + iced_native::widget::text_input::StyleSheet
         + iced_native::widget::radio::StyleSheet
-        + iced_native::widget::text::StyleSheet,
+        + iced_native::widget::scrollable::StyleSheet
+        + iced_native::widget::text::StyleSheet
+        + iced_native::widget::text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
         view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         zeige_modus: ZeigeModus,
+        scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
         let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
         let element_modus = view_modus(&modus, *beschreibung);
-        // TODO anzeige des verwendeten I2cBus
         let Beschreibung { i2c_bus, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = element_modus.map(InterneNachricht::Modus);
         let high_low_column =
@@ -383,19 +430,31 @@ where
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
         let pcf8574_row = Row::new()
-            .push(make_radios(
-                i2c_bus,
-                [
-                    ("0/1", I2cBus::I2c0_1),
-                    ("3", I2cBus::I2c3),
-                    ("4", I2cBus::I2c4),
-                    ("5", I2cBus::I2c5),
-                    ("6", I2cBus::I2c6),
-                ]
-                .into_iter()
-                .filter(|(_label, i2c_bus)| settings.aktiviert(*i2c_bus)),
-                InterneNachricht::I2cBus,
-            ))
+            .push(
+                Scrollable::new(
+                    Row::new()
+                        .push(make_radios(
+                            i2c_bus,
+                            [
+                                ("0/1", I2cBus::I2c0_1),
+                                ("3", I2cBus::I2c3),
+                                ("4", I2cBus::I2c4),
+                                ("5", I2cBus::I2c5),
+                                ("6", I2cBus::I2c6),
+                            ]
+                            .into_iter()
+                            .filter(|(_label, i2c_bus)| settings.aktiviert(*i2c_bus)),
+                            InterneNachricht::I2cBus,
+                        ))
+                        .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
+                )
+                .height(Length::Fixed(55.))
+                .style(
+                    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style::from(
+                        scrollable_style,
+                    ),
+                ),
+            )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
             .push(high_low_column(a2, InterneNachricht::A2))
