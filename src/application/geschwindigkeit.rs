@@ -420,7 +420,7 @@ where
             )
         };
         let mut pwm_auswahl = Row::new();
-        let mut ks_auswahl = Row::new();
+        let mut ks_auswahl = Column::new().height(Length::Shrink);
         match fahrtrichtung_anschluss {
             FahrtrichtungAnschluss::Pwm => pwm_auswahl = pwm_auswahl.push(umdrehen_auswahl),
             FahrtrichtungAnschluss::KonstanteSpannung => {
@@ -440,7 +440,9 @@ where
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
-        let mut ks_column = Column::new().height(Length::Shrink);
+        ks_auswahl = ks_auswahl
+            .push(Space::with_height(Length::Fixed(1.)))
+            .push(Text::new("Geschwindigkeit"));
         for (i, ks_anschluss) in ks_anschlüsse.iter().enumerate() {
             // FIXME neu hinzugefügte Anschlüsse werden erst nach Ändern der Fenstergröße angezeigt
             // (davor wird nur das scrollable größer)
@@ -466,12 +468,14 @@ where
                 )
             });
             row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
-            ks_column = ks_column.push(row)
+            ks_auswahl = ks_auswahl.push(row)
         }
-        let ks_auswahl = ks_auswahl.push(Scrollable::new(ks_column).height(Length::Fixed(150.)));
         let tabs = Tabs::new(*aktueller_tab, InterneAuswahlNachricht::WähleTab)
             .push(TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
-            .push(TabLabel::Text("Konstante Spannung".to_owned()), ks_auswahl)
+            .push(
+                TabLabel::Text("Konstante Spannung".to_owned()),
+                Scrollable::new(ks_auswahl).height(Length::Fixed(150.)),
+            )
             .width(width)
             .height(Length::Shrink)
             .tab_bar_style(TabBar.into());
@@ -488,9 +492,12 @@ where
                 .push(button);
             column = column.push(geschwindigkeit);
         }
-        let card = Card::new(Text::new("Geschwindigkeit"), Scrollable::new(column))
-            .on_close(InterneAuswahlNachricht::Schließen)
-            .width(Length::Shrink);
+        let card = Card::new(
+            Text::new("Geschwindigkeit"),
+            Scrollable::new(column).height(Length::Fixed(400.)).width(Length::Shrink),
+        )
+        .on_close(InterneAuswahlNachricht::Schließen)
+        .width(Length::Shrink);
         card.into()
     }
 }
