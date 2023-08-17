@@ -22,7 +22,7 @@ use crate::{
         verbindung::{self, Verbindung},
     },
     steuerung::geschwindigkeit::Leiter,
-    typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
+    typen::{canvas::Position, vektor::Vektor, Zeichnen},
 };
 
 impl<L: Leiter> Gleise<L> {
@@ -62,38 +62,19 @@ impl<L: Leiter> Gleise<L> {
         R: Serialisiere<S>,
         (GleisId<T>, Option<S>): Into<GleisSteuerung>,
     {
-        let mut canvas_position = self.letzte_maus_position;
-        let letzte_canvas_größe = self.letzte_canvas_größe;
-        let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
-        let cp_x = canvas_position.skalarprodukt(&ex);
-        if cp_x < Skalar(0.) {
-            canvas_position -= cp_x * ex;
-        } else if cp_x > letzte_canvas_größe.x {
-            canvas_position -= (cp_x - letzte_canvas_größe.x) * ex;
-        }
-        let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiert(-self.pivot.winkel);
-        let cp_y = canvas_position.skalarprodukt(&ey);
-        if cp_y < Skalar(0.) {
-            canvas_position -= cp_y * ey;
-        } else if cp_y > letzte_canvas_größe.y {
-            canvas_position -= (cp_y - letzte_canvas_größe.y) * ey;
-        }
+        let punkt = self.letzte_maus_position - halte_position;
+        let winkel = -self.pivot.winkel;
         let serialisiert =
             definition.steuerung(self.canvas.clone()).opt_as_ref().map(Serialisiere::serialisiere);
         let gleis_id = self.hinzufügen(
             definition,
-            Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
+            Position { punkt, winkel },
             streckenabschnitt.map(|id| id.klonen()),
             einrasten,
         )?;
         if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
-            *gehalten = Some(Gehalten {
-                gleis_steuerung,
-                halte_position,
-                winkel: winkel::ZERO,
-                bewegt: true,
-            });
+            *gehalten = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
         }
         Ok(gleis_id)
     }

@@ -22,6 +22,7 @@
 - entferne die meisten `pub use` re-exports
 - ermögliche Auswahl des I2C-Busses bei Anschlüssen
 - alle I2C-Busse sind standard-mäßig deaktiviert
+- neue Gleise erscheinen direkt an der richtigen Position
 
 ## 3.0.0
 
