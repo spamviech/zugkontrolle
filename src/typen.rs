@@ -7,7 +7,10 @@ use crate::{
 
 // re-exports
 pub use self::{
-    canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
+    canvas::{
+        pfad::{self, Bogen, Pfad, Transformation},
+        Cache, Frame, Position,
+    },
     farbe::Farbe,
     mm::{Länge, Radius, Spurweite},
     rechteck::Rechteck,

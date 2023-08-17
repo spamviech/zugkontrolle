@@ -4,8 +4,12 @@ use std::marker::PhantomData;
 
 use iced::{
     alignment::{Horizontal, Vertical},
-    widget::canvas::{Cursor, Geometry, Program},
-    Point,
+    widget::canvas::{
+        fill::{self, Fill, FillRule},
+        stroke::{self, Stroke},
+        Cursor, Geometry, Program, Text,
+    },
+    Color, Point,
 };
 use nonempty::NonEmpty;
 use rstar::primitives::Rectangle;
@@ -31,17 +35,15 @@ use crate::{
     steuerung::geschwindigkeit::Leiter,
     typen::{
         canvas::{
-            fill::{self, Fill, FillRule},
             pfad::{self, Transformation},
-            stroke::{self, Stroke},
-            Color, Frame, Position, Text,
+            Frame,
         },
         farbe::Farbe,
         mm::Spurweite,
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        Transparenz, Zeichnen,
+        Position, Transparenz, Zeichnen,
     },
 };
 

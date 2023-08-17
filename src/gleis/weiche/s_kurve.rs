@@ -4,13 +4,16 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
 pub use crate::gleis::weiche::gerade::{
-    Orientierung, Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
+    Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
 };
 use crate::{
     gleis::{
         gerade, kurve,
         verbindung::Verbindung,
-        weiche::gerade::{VerbindungName, Verbindungen},
+        weiche::{
+            gerade::{VerbindungName, Verbindungen},
+            orientierung::Orientierung,
+        },
     },
     steuerung::{self, weiche::MitRichtung},
     typen::{

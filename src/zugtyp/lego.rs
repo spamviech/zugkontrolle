@@ -8,7 +8,10 @@ use crate::{
         gerade::{Gerade, GeradeUnit},
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
-        weiche::s_kurve::{Orientierung, SKurvenWeiche, SKurvenWeicheUnit},
+        weiche::{
+            orientierung::Orientierung,
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+        },
     },
     steuerung::geschwindigkeit::Zweileiter,
     typen::{

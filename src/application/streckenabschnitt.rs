@@ -29,12 +29,13 @@ use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
     gleis::gleise::{id::StreckenabschnittId, Gleise},
-    steuerung::geschwindigkeit::{self, Leiter},
+    steuerung::{
+        geschwindigkeit::{self, Leiter},
+        streckenabschnitt::{Name, Streckenabschnitt},
+    },
     typen::farbe::Farbe,
     unicase_ord::UniCaseOrd,
 };
-
-pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 
 /// Eine Nachricht des [Anzeige]-Widgets.
 #[derive(Debug, Clone, Copy)]

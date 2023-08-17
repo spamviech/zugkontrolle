@@ -19,6 +19,7 @@
 - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
 - entferne RwLock aus Gleise-Struktur, um auftretende Deadlocks zu beheben
 - erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
+- entferne die meisten `pub use` re-exports
 
 ## 3.0.0
 

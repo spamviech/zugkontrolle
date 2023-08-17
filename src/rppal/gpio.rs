@@ -36,7 +36,7 @@ impl GpioStore {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Gpio;
+pub use ::rppal::gpio::Gpio;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
@@ -68,7 +68,7 @@ impl Gpio {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Pin;
+pub use ::rppal::gpio::Pin;
 #[cfg(not(feature = "raspi"))]
 /// Unconfigured GPIO pin.
 #[derive(Debug, PartialEq, Eq)]
@@ -137,7 +137,7 @@ impl Pin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::InputPin;
+pub use ::rppal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
@@ -205,7 +205,7 @@ impl InputPin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::OutputPin;
+pub use ::rppal::gpio::OutputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug, PartialEq, Eq)]
 /// GPIO pin configured as output.
@@ -264,7 +264,7 @@ impl OutputPin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Level;
+pub use ::rppal::gpio::Level;
 #[cfg(not(feature = "raspi"))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -288,7 +288,7 @@ impl Not for Level {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::PullUpDown;
+pub use ::rppal::gpio::PullUpDown;
 #[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
@@ -301,7 +301,7 @@ pub enum PullUpDown {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Trigger;
+pub use ::rppal::gpio::Trigger;
 #[cfg(not(feature = "raspi"))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -318,7 +318,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Error;
+pub use ::rppal::gpio::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
@@ -333,7 +333,7 @@ pub enum Error {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Mode;
+pub use ::rppal::gpio::Mode;
 #[cfg(not(feature = "raspi"))]
 /// Pin modes.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

@@ -2,7 +2,7 @@
 
 use iced::{
     mouse,
-    widget::canvas::{event, Cursor, Event, Geometry, Program, Style},
+    widget::canvas::{event, Cursor, Event, Geometry, Program, Stroke, Style},
     Rectangle,
 };
 
@@ -11,7 +11,7 @@ use crate::{
     typen::{
         canvas::{
             pfad::{self, Bogen},
-            Cache, Stroke,
+            Cache,
         },
         skalar::Skalar,
         vektor::Vektor,

@@ -5,9 +5,8 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
-pub use crate::gleis::weiche::gerade::Orientierung;
 use crate::{
-    gleis::{gerade, kurve, verbindung::Verbindung},
+    gleis::{gerade, kurve, verbindung::Verbindung, weiche::orientierung::Orientierung},
     nachschlagen::impl_nachschlagen,
     steuerung::{self, weiche::MitRichtung},
     typen::{

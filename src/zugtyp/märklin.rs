@@ -10,8 +10,9 @@ use crate::{
         kurve::{Kurve, KurveUnit},
         weiche::{
             dreiwege::DreiwegeWeicheUnit,
-            gerade::{Orientierung, WeicheUnit},
+            gerade::WeicheUnit,
             kurve::{KurvenWeiche, KurvenWeicheUnit},
+            orientierung::Orientierung,
         },
     },
     steuerung::geschwindigkeit::Mittelleiter,

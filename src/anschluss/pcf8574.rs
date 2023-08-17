@@ -23,14 +23,13 @@ use crate::{
         pin::{self, input, Pin},
         {level::Level, trigger::Trigger},
     },
+    argumente::I2cSettings,
     eingeschränkt::{kleiner_128, kleiner_8},
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
 };
-
-pub use crate::argumente::I2cSettings;
 
 #[derive(Debug)]
 struct I2cMitPins {

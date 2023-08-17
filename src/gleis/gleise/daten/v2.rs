@@ -18,7 +18,10 @@ use crate::{
         gerade,
         gleise::daten as aktuell,
         kreuzung, kurve,
-        weiche::{dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, s_kurve},
+        weiche::{
+            dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, orientierung::Orientierung,
+            s_kurve,
+        },
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
@@ -243,7 +246,7 @@ struct WeicheSerialisiert {
     länge: Skalar,
     radius: Skalar,
     winkel: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
     steuerung:
         Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
@@ -287,7 +290,7 @@ struct KurvenWeicheSerialisiert {
     länge: Skalar,
     radius: Skalar,
     winkel: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
     steuerung: Option<
         WeicheSteuerungSerialisiert<kurven_weiche::Richtung, KurvenWeicheAnschlüsseSerialisiert>,
@@ -367,7 +370,7 @@ struct SKurvenWeicheSerialisiert {
     winkel: Winkel,
     radius_reverse: Skalar,
     winkel_reverse: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
     steuerung:
         Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,

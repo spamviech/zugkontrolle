@@ -5,26 +5,27 @@ use std::fmt::{self, Display, Formatter};
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
-use crate::{eingeschränkt::kleiner_8, rppal, zugtyp::FalscherLeiter};
-
-pub mod level;
-pub use level::Level;
-
-#[path = "anschluss/polarität.rs"]
-pub mod polarität;
-pub use polarität::{Fließend, Polarität};
-
-pub mod trigger;
-pub use trigger::Trigger;
-
-pub mod pin;
-pub use pin::{input, output, pwm, Pin};
-
-pub mod pcf8574;
-pub use pcf8574::{I2cBus, Pcf8574};
+use crate::{
+    anschluss::{
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        level::Level,
+        pin::{input, output, pwm, Pin},
+        polarität::{Fließend, Polarität},
+        trigger::Trigger,
+    },
+    argumente::I2cSettings,
+    eingeschränkt::kleiner_8,
+    rppal,
+    zugtyp::FalscherLeiter,
+};
 
 pub mod de_serialisieren;
-pub use de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere};
+pub mod level;
+pub mod pcf8574;
+pub mod pin;
+#[path = "anschluss/polarität.rs"]
+pub mod polarität;
+pub mod trigger;
 
 /// Verwalten nicht verwendeter [Pin]s und [Pcf8574-Ports](pcf8574::Port).
 #[derive(Debug)]
@@ -46,7 +47,7 @@ pub enum InitFehler {
 
 impl Lager {
     /// Initialisiere ein [Lager], das nicht verwendete [Anschlüsse](Anschluss) verwaltet.
-    pub fn neu(settings: pcf8574::I2cSettings) -> Result<Lager, InitFehler> {
+    pub fn neu(settings: I2cSettings) -> Result<Lager, InitFehler> {
         let mut pin = pin::Lager::neu()?;
         let pcf8574 = pcf8574::Lager::neu(&mut pin, settings)?;
         Ok(Lager { pin, pcf8574 })

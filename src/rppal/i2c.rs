@@ -36,7 +36,7 @@ impl I2cStore {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::i2c::I2c;
+pub use ::rppal::i2c::I2c;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s I2C peripheral.
 #[derive(Debug)]
@@ -117,7 +117,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::i2c::Error;
+pub use ::rppal::i2c::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the I2C peripheral.
 #[derive(Debug)]

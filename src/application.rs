@@ -52,8 +52,11 @@ use crate::{
     },
     steuerung::{
         self,
-        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{
+            BekannterLeiter, GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName,
+        },
         plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
+        streckenabschnitt::Name as StreckenabschnittName,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
     zugtyp::Zugtyp,
@@ -157,9 +160,9 @@ pub enum Nachricht<L: Leiter, S> {
     /// Hinzufügen eines neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
         /// Der Name der assoziierten [Geschwindigkeit](steuerung::Geschwindigkeit).
-        Option<geschwindigkeit::Name>,
+        Option<GeschwindigkeitName>,
         /// Der Name des neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
-        streckenabschnitt::Name,
+        StreckenabschnittName,
         /// Die Farbe, mit der Gleise eingefärbt werden sollen.
         Farbe,
         /// Der verwendete [OutputAnschluss](crate::anschluss::OutputAnschluss).
@@ -185,9 +188,9 @@ pub enum Nachricht<L: Leiter, S> {
     /// Eine Aktion einer [Geschwindigkeit](steuerung::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
     /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
-    HinzufügenGeschwindigkeit(geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>),
+    HinzufügenGeschwindigkeit(GeschwindigkeitName, GeschwindigkeitSerialisiert<S>),
     /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
-    LöscheGeschwindigkeit(geschwindigkeit::Name),
+    LöscheGeschwindigkeit(GeschwindigkeitName),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnschlüsseAnpassen),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion

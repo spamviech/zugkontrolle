@@ -4,7 +4,12 @@ use iced::{
     alignment::{Horizontal, Vertical},
     mouse,
     widget::{
-        canvas::{event, Canvas, Cursor, Event, Geometry, Program},
+        canvas::{
+            event,
+            fill::{self, Fill, FillRule},
+            stroke::{self, Stroke},
+            Canvas, Cursor, Event, Geometry, Program, Text,
+        },
         container::Container,
     },
     Element, Length, Point, Rectangle,
@@ -16,10 +21,8 @@ use crate::{
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
-            fill::{self, Fill, FillRule},
             pfad::{Pfad, Transformation},
-            stroke::{self, Stroke},
-            Cache, Text,
+            Cache,
         },
         mm::Spurweite,
         rechteck::Rechteck,

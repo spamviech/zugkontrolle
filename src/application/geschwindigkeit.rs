@@ -32,7 +32,6 @@ use iced_native::{
 use log::error;
 use nonempty::NonEmpty;
 
-pub use crate::steuerung::geschwindigkeit::Name;
 use crate::{
     anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert},
     application::{
@@ -44,7 +43,7 @@ use crate::{
     steuerung::{
         geschwindigkeit::{
             Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
-            MittelleiterSerialisiert, Zweileiter, ZweileiterSerialisiert,
+            MittelleiterSerialisiert, Name, Zweileiter, ZweileiterSerialisiert,
         },
         plan::AktionGeschwindigkeit,
     },

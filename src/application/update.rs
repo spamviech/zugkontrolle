@@ -19,11 +19,8 @@ use crate::{
         OutputSerialisiert,
     },
     application::{
-        bewegen::Bewegung,
-        geschwindigkeit::{self, LeiterAnzeige},
-        streckenabschnitt,
-        style::thema::Thema,
-        AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
+        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, style::thema::Thema, AnschlüsseAnpassen,
+        AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
         self,
@@ -32,9 +29,9 @@ use crate::{
         AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
-        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::{Ausführen, Einstellungen},
-        streckenabschnitt::Streckenabschnitt,
+        streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
 };

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
 use crate::{
-    gleis::{gerade, kurve, verbindung::Verbindung},
+    gleis::{gerade, kurve, verbindung::Verbindung, weiche::orientierung::Orientierung},
     nachschlagen::impl_nachschlagen,
     steuerung::{self, weiche::MitRichtung},
     typen::{
@@ -82,15 +82,6 @@ impl WeicheUnit {
             steuerung: (),
         }
     }
-}
-
-/// Die Orientierung einer [Weiche], in welche Richtung geht die Kurve.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Orientierung {
-    /// Die Kurve geht nach links.
-    Links,
-    /// Die Kurve geht nach rechts.
-    Rechts,
 }
 
 #[erstelle_richtung]

@@ -2,23 +2,21 @@
 
 use std::fmt::{self, Debug, Formatter};
 
-use iced::{widget::canvas::Geometry, Size};
+use iced::{
+    widget::canvas::Geometry,
+    widget::canvas::{fill::Fill, stroke::Stroke, Text},
+    Size,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
+use crate::typen::{
+    canvas::pfad::{Pfad, Transformation},
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::Winkel,
+};
 
 pub mod pfad;
-
-// re-exports
-pub use self::pfad::{Bogen, Pfad, Transformation};
-pub use iced::{
-    widget::canvas::{
-        fill::{self, Fill},
-        stroke::{self, Stroke},
-        Text,
-    },
-    Color,
-};
 
 /// Newtype auf [iced::widget::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///

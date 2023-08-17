@@ -33,7 +33,7 @@
     variant_size_differences
 )]
 
-use zugkontrolle::{ausführen_aus_env, Fehler};
+use zugkontrolle::application::{ausführen_aus_env, Fehler};
 
 fn main() -> Result<(), Fehler> {
     ausführen_aus_env()

@@ -16,7 +16,7 @@ use nonempty::{nonempty, NonEmpty};
 use parking_lot::Mutex;
 
 use crate::{
-    anschluss::Serialisiere,
+    anschluss::de_serialisieren::Serialisiere,
     application::style::thema::Thema,
     gleis::{
         gerade::Gerade,
