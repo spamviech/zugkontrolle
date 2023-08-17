@@ -24,6 +24,8 @@
 - alle I2C-Busse sind standard-mäßig deaktiviert
 - neue Gleise erscheinen direkt an der richtigen Position
 - Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
+- workaround: Schließe Geschwindigkeit-Auswahl nach jeder Aktion, um erneut Eingaben zu akzeptieren
+  Aus irgend einem Grund wird das Modal danach nicht angezeigt.
 
 ## 3.0.0
 
