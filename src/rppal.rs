@@ -6,12 +6,11 @@ use std::fmt::{self, Debug, Formatter};
 #[cfg(not(feature = "raspi"))]
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
+use num_traits as _;
+
 pub mod gpio;
 pub mod i2c;
 pub mod pwm;
-
-#[cfg(raspi)]
-use num_traits as _;
 
 #[cfg(not(feature = "raspi"))]
 enum ElementOderKonstruktor<T, F = fn() -> T> {

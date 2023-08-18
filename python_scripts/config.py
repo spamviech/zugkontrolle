@@ -12,5 +12,5 @@ targets: list[str] = [
     raspi32_target,
     raspi64_target,
     windows_target,
-    linux_target
+    linux_target,
 ]

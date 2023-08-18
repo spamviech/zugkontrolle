@@ -87,10 +87,3 @@ embed-resource = "2.1.1"
 
 [dev-dependencies]
 difference = "2.0.0"
-
-[package.metadata.cross.build]
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update",
-    "apt-get --assume-yes install libfontconfig-dev:$CROSS_DEB_ARCH",
-]

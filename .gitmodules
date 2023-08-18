@@ -1,3 +1,6 @@
 [submodule "fonts/source-serif"]
 	path = fonts/source-serif
 	url = git@github.com:adobe-fonts/source-serif.git
+[submodule "dockerfiles/docker"]
+	path = dockerfiles/docker
+	url = git@github.com:iced-rs/docker.git

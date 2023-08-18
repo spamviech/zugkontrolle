@@ -26,6 +26,7 @@
 - Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
 - workaround: Schließe Geschwindigkeit-Auswahl nach jeder Aktion, um erneut Eingaben zu akzeptieren
   Aus irgend einem Grund wird das Modal danach nicht angezeigt.
+- aktualisiere iced auf Version 0.10.0
 
 ## 3.0.0
 
