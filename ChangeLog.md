@@ -27,6 +27,7 @@
 - workaround: Schließe Geschwindigkeit-Auswahl nach jeder Aktion, um erneut Eingaben zu akzeptieren
   Aus irgend einem Grund wird das Modal danach nicht angezeigt.
 - aktualisiere iced auf Version 0.10.0
+- Schriftgröße von Beschreibungen skaliert nun ebenfalls
 
 ## 3.0.0
 

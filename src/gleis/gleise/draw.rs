@@ -177,6 +177,7 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
     farbe: Farbe,
+    skalieren: Skalar,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
@@ -195,12 +196,10 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
             frame.with_save(|frame| {
                 bewege_an_position(frame, &absolute_position);
                 let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
-                // TODO skaliere Schriftgröße mit Zoom-Level?
-                frame.fill_text(Text {
-                    content,
-                    color: Color { a, ..Color::from(farbe) },
-                    ..standard_text()
-                });
+                let mut text =
+                    Text { content, color: Color { a, ..Color::from(farbe) }, ..standard_text() };
+                text.size *= skalieren.0;
+                frame.fill_text(text);
             })
         }
     }
@@ -293,7 +292,7 @@ impl<L: Leiter> Gleise<L> {
                 };
 
                 macro_rules! mit_allen_gleisen {
-                    ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),*)?) => {
+                    ($daten:expr, $funktion:expr, $arg_macro:ident $(, $($extra_args:expr),* $(,)?)?) => {
                         $funktion(frame, spurweite, &$daten.geraden, $arg_macro!(Gerade)$(, $($extra_args),*)?);
                         $funktion(frame, spurweite, &$daten.kurven, $arg_macro!(Kurve)$(, $($extra_args),*)?);
                         $funktion(frame, spurweite, &$daten.weichen, $arg_macro!(Weiche)$(, $($extra_args),*)?);
@@ -338,7 +337,7 @@ impl<L: Leiter> Gleise<L> {
                         fülle_alle_gleise,
                         transparenz,
                         &farbe,
-                        &fließend
+                        &fließend,
                     }
                 }
                 // Kontur
@@ -356,7 +355,7 @@ impl<L: Leiter> Gleise<L> {
                         daten,
                         zeichne_alle_gleise,
                         ist_gehalten,
-                        thema.strich()
+                        thema.strich(),
                     }
                 }
                 // Verbindungen
@@ -372,7 +371,7 @@ impl<L: Leiter> Gleise<L> {
                     mit_allen_gleisen! {
                         daten,
                         zeichne_alle_anchor_points,
-                        ist_gehalten_und_andere_verbindung
+                        ist_gehalten_und_andere_verbindung,
                     }
                 }
                 // Beschreibung
@@ -390,7 +389,8 @@ impl<L: Leiter> Gleise<L> {
                         daten,
                         schreibe_alle_beschreibungen,
                         ist_gehalten,
-                        thema.strich()
+                        thema.strich(),
+                        self.skalieren,
                     }
                 }
             },
