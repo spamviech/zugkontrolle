@@ -13,7 +13,6 @@ use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger
 use iced::{
     application::Application, widget::Radio, Command, Element, Renderer, Settings, Subscription,
 };
-use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -27,6 +26,7 @@ use crate::{
         bewegen::{Bewegen, Bewegung},
         drehen::Drehen,
         empfänger::Empfänger,
+        fonts::BENÖTIGTE_FONT_BYTES,
         geschwindigkeit::LeiterAnzeige,
         icon::icon,
         style::thema::Thema,
@@ -387,6 +387,38 @@ pub struct MessageBox {
     nachricht: String,
 }
 
+/// Die Anwendung inklusive des GUI.
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
+#[zugkontrolle_debug(S: Debug)]
+pub struct Zugkontrolle<L: Leiter, S> {
+    gleise: Gleise<L>,
+    lager: Lager,
+    scrollable_style: style::sammlung::Sammlung,
+    i2c_settings: I2cSettings,
+    geraden: Vec<Knopf<GeradeUnit>>,
+    kurven: Vec<Knopf<KurveUnit>>,
+    weichen: Vec<Knopf<WeicheUnit>>,
+    dreiwege_weichen: Vec<Knopf<DreiwegeWeicheUnit>>,
+    kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
+    s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
+    kreuzungen: Vec<Knopf<KreuzungUnit>>,
+    streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt_aktuell_festlegen: bool,
+    bewegen: Bewegen,
+    drehen: Drehen,
+    initialer_pfad: String,
+    speichern_gefärbt: Option<(bool, Instant)>,
+    bewegung: Option<Bewegung>,
+    message_box: Option<MessageBox>,
+    sender: Sender<Nachricht<L, S>>,
+    empfänger: Empfänger<Nachricht<L, S>>,
+    // TODO Plan
+}
+
 /// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
@@ -397,6 +429,8 @@ pub enum Fehler {
     /// Ein Fehler beim Initialisieren der Pins und I2C-Busse.
     Anschluss(crate::anschluss::InitFehler),
 }
+
+type Flags<L> = (Argumente, Lager, Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 #[inline(always)]
@@ -431,7 +465,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         argumente: Argumente,
         lager: Lager,
         zugtyp: Zugtyp<L>,
-    ) -> Settings<(Argumente, Lager, Zugtyp<L>, Vec<&'static [u8]>)> {
+    ) -> Settings<Flags<L>> {
         Settings {
             window: iced::window::Settings {
                 size: (800, 480),
@@ -439,12 +473,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
                 ..iced::window::Settings::default()
             },
             default_font: fonts::REGULAR,
-            ..Settings::with_flags((
-                argumente,
-                lager,
-                zugtyp,
-                vec![fonts::REGULAR_BYTES, ICON_FONT_BYTES],
-            ))
+            ..Settings::with_flags((argumente, lager, zugtyp, BENÖTIGTE_FONT_BYTES))
         }
     }
     match zugtyp {
@@ -460,38 +489,6 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     drop(logger_handle);
 
     Ok(())
-}
-
-/// Die Anwendung inklusive des GUI.
-#[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-#[zugkontrolle_debug(S: Debug)]
-pub struct Zugkontrolle<L: Leiter, S> {
-    gleise: Gleise<L>,
-    lager: Lager,
-    scrollable_style: style::sammlung::Sammlung,
-    i2c_settings: I2cSettings,
-    geraden: Vec<Knopf<GeradeUnit>>,
-    kurven: Vec<Knopf<KurveUnit>>,
-    weichen: Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: Vec<Knopf<KreuzungUnit>>,
-    streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
-    streckenabschnitt_aktuell_festlegen: bool,
-    bewegen: Bewegen,
-    drehen: Drehen,
-    initialer_pfad: String,
-    speichern_gefärbt: Option<(bool, Instant)>,
-    bewegung: Option<Bewegung>,
-    message_box: Option<MessageBox>,
-    sender: Sender<Nachricht<L, S>>,
-    empfänger: Empfänger<Nachricht<L, S>>,
-    // TODO Plan
 }
 
 impl<L, S> Application for Zugkontrolle<L, S>
@@ -515,7 +512,7 @@ where
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Argumente, Lager, Zugtyp<L>, Vec<&'static [u8]>);
+    type Flags = Flags<L>;
     type Message = Nachricht<L, S>;
     type Theme = Thema;
 
@@ -524,7 +521,7 @@ where
     ) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_schriftarten = schriftarten.into_iter().map(|schriftart| {
+        let lade_schriftarten = schriftarten.iter().map(|&schriftart| {
             iced::font::load(schriftart).map(|ergebnis| match ergebnis {
                 Ok(()) => Nachricht::AsyncAktualisieren,
                 Err(fehler) => Nachricht::AsyncFehler {

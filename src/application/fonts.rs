@@ -7,12 +7,19 @@ use iced::{
     widget::canvas::Text,
     Font, Point,
 };
+use iced_aw::graphics::icons::ICON_FONT_BYTES;
 
 /// Schriftart ohne zusätzliche Eigenschaften.
 pub static REGULAR: Font = Font::with_name("Source Serif 4");
+
 /// Die Bytes für die Schriftart [REGULAR], damit sie von iced geladen werden kann.
 pub static REGULAR_BYTES: &[u8] =
     include_bytes!("../../fonts/source-serif/TTF/SourceSerif4-Regular.ttf");
+
+/// Bytes von Schriftarten, die von iced geladen werden müssen ([iced::font::load]).
+///
+/// Werden sie nicht geladen kann es zu Darstellungsfehlern kommen.
+pub static BENÖTIGTE_FONT_BYTES: &[&[u8]] = &[REGULAR_BYTES, ICON_FONT_BYTES];
 
 /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
 pub fn standard_text() -> Text {
