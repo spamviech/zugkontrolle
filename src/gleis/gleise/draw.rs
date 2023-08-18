@@ -3,21 +3,20 @@
 use std::marker::PhantomData;
 
 use iced::{
-    alignment::{Horizontal, Vertical},
     mouse::Cursor,
     widget::canvas::{
         fill::{self, Fill},
         stroke::{self, Stroke},
         Geometry, Program, Text,
     },
-    Color, Point, Renderer,
+    Color, Renderer,
 };
 use nonempty::NonEmpty;
 use rstar::primitives::Rectangle;
 
 use crate::{
     anschluss::polarität::Fließend,
-    application::style::thema::Thema,
+    application::{fonts::standard_text, style::thema::Thema},
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -196,13 +195,11 @@ fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
             frame.with_save(|frame| {
                 bewege_an_position(frame, &absolute_position);
                 let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
+                // TODO skaliere Schriftgröße mit Zoom-Level?
                 frame.fill_text(Text {
                     content,
-                    position: Point::ORIGIN,
                     color: Color { a, ..Color::from(farbe) },
-                    horizontal_alignment: Horizontal::Center,
-                    vertical_alignment: Vertical::Center,
-                    ..Default::default()
+                    ..standard_text()
                 });
             })
         }

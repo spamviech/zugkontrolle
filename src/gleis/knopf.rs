@@ -1,7 +1,6 @@
 //! Knopf mit dem jeweiligen Gleis.
 
 use iced::{
-    alignment::{Horizontal, Vertical},
     mouse::{self, Cursor},
     widget::{
         canvas::{
@@ -16,7 +15,7 @@ use iced::{
 };
 
 use crate::{
-    application::style::thema::Thema,
+    application::{fonts::standard_text, style::thema::Thema},
     gleis::gleise::draw::bewege_an_position,
     typen::{
         canvas::{
@@ -153,11 +152,8 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {
                         content: String::from(content),
-                        position: Point::ORIGIN,
                         color: thema.strich().into(),
-                        horizontal_alignment: Horizontal::Center,
-                        vertical_alignment: Vertical::Center,
-                        ..Default::default()
+                        ..standard_text()
                     });
                 })
             }
