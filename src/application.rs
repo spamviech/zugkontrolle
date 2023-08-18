@@ -581,7 +581,7 @@ where
             bewegung: None,
             message_box: None,
             sender,
-            empfänger: Empfänger::neu(receiver),
+            empfänger: Empfänger::neu(receiver, ()),
         };
 
         (zugkontrolle, Command::batch(lade_schriftarten.chain(iter::once(lade_zustand))))

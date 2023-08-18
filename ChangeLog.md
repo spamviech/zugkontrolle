@@ -28,6 +28,7 @@
   Aus irgend einem Grund wird das Modal danach nicht angezeigt.
 - aktualisiere iced auf Version 0.10.0
 - Schriftgröße von Beschreibungen skaliert nun ebenfalls
+- gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 
 ## 3.0.0
 
