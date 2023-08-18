@@ -215,8 +215,8 @@ impl GleiseDatenSerialisiert {
             };
         }
         reserviere_anschlüsse! {
-            geraden: Gerade: kontakt: kontakte: &(),
-            kurven: Kurve: kontakt: kontakte: &(),
+            geraden: Gerade: kontakt: kontakte: &(canvas.clone(), todo!("sender")),
+            kurven: Kurve: kontakt: kontakte: &(canvas.clone(), todo!("sender")),
             weichen: Weiche: steuerung: gerade_weichen: canvas,
             dreiwege_weichen: DreiwegeWeiche: steuerung: dreiwege_weichen: canvas,
             kurven_weichen: KurvenWeiche: steuerung: kurven_weichen: canvas,

@@ -22,7 +22,8 @@ use crate::{
         trigger::Trigger,
         Fehler, InputAnschluss, InputSerialisiert,
     },
-    typen::MitName,
+    gleis::gleise::steuerung::Steuerung,
+    typen::{canvas::Cache, MitName},
 };
 
 /// Name eines [Kontaktes](Kontakt).
@@ -54,6 +55,8 @@ pub struct Kontakt {
     pub name: Name,
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
+    /// Die letzte bekannte [Level] eines [Kontaktes](Kontakt).
+    letztes_level: Arc<Mutex<Steuerung<Option<Level>>>>,
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
@@ -65,6 +68,7 @@ impl Debug for Kontakt {
         f.debug_struct("Kontakt")
             .field("name", &self.name)
             .field("trigger", &self.trigger)
+            .field("letztes_level", &self.letztes_level)
             .field("anschluss", &self.anschluss)
             .field(
                 "senders",
@@ -107,35 +111,71 @@ impl Drop for Kontakt {
     }
 }
 
+/// Das aktuelle level hat sich geändert, das UI muss aktualisiert werden.
+#[derive(Debug, Clone, Copy)]
+pub struct Aktualisieren;
+
 impl Kontakt {
     /// Erzeuge einen neuen Kontakt.
-    pub fn neu(
+    pub fn neu<Nachricht: 'static + From<Aktualisieren> + Send>(
         name: Name,
         mut anschluss: InputAnschluss,
         trigger: Trigger,
+        cache: Arc<Mutex<Cache>>,
+        aktualisieren_sender: Sender<Nachricht>,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
         let senders: Arc<Mutex<Vec<Box<dyn LevelSender + Send>>>> =
             Arc::new(Mutex::new(Vec::new()));
+        let initial_level = match trigger {
+            Trigger::RisingEdge => Some(Level::Low),
+            Trigger::FallingEdge => Some(Level::High),
+            _ => None,
+        };
+        let letztes_level = Arc::new(Mutex::new(Steuerung::neu(initial_level, cache)));
+
+        let name_clone = name.clone();
         let senders_clone = senders.clone();
-        let set_async_interrupt_result = anschluss.setze_async_interrupt(trigger, move |level| {
-            let senders = &mut *senders_clone.lock();
-            // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
-            let mut next = senders.len().checked_sub(1);
-            while let Some(i) = next {
-                match senders[i].send(level) {
-                    Ok(()) => next = i.checked_sub(1),
-                    Err(SendError(_level)) => {
-                        // channel was disconnected, so no need to send to it anymore
-                        let _ = senders.swap_remove(i);
-                    },
+        let trigger_copy = trigger;
+        let letztes_level_clone = letztes_level.clone();
+        let aktualisieren_sender = Mutex::new(aktualisieren_sender);
+        let set_async_interrupt_result =
+            anschluss.setze_async_interrupt(Trigger::Both, move |level| {
+                let mut guard = letztes_level_clone.lock();
+                let letztes_level_mut = guard.as_mut();
+                let callback_aufrufen = letztes_level_mut
+                    .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
+                    .unwrap_or(true);
+                *letztes_level_mut = Some(level);
+                drop(guard);
+                if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren.into()) {
+                    log::error!(
+                        "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
+                        name_clone.0,
+                        fehler
+                    );
                 }
-            }
-        });
+                if callback_aufrufen {
+                    let senders = &mut *senders_clone.lock();
+                    // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
+                    let mut next = senders.len().checked_sub(1);
+                    while let Some(i) = next {
+                        match senders[i].send(level) {
+                            Ok(()) => next = i.checked_sub(1),
+                            Err(SendError(_level)) => {
+                                // channel was disconnected, so no need to send to it anymore
+                                let _ = senders.swap_remove(i);
+                            },
+                        }
+                    }
+                }
+            });
+
         match set_async_interrupt_result {
             Ok(()) => Ok(Kontakt {
                 name,
-                anschluss: Arc::new(Mutex::new(Either::Left(anschluss))),
                 trigger,
+                letztes_level,
+                anschluss: Arc::new(Mutex::new(Either::Left(anschluss))),
                 senders,
             }),
             Err(fehler) => Err((fehler, anschluss)),
@@ -207,24 +247,28 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    type Arg = ();
+    // FIXME beliebigen Nachricht-Typ erlauben
+    type Arg = (Arc<Mutex<Cache>>, Sender<Aktualisieren>);
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: (),
+        (cache, aktualisieren_sender): Self::Arg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::*;
         let (anschluss, fehler, mut anschlüsse) =
-            match self.anschluss.reserviere(lager, anschlüsse, arg) {
+            match self.anschluss.reserviere(lager, anschlüsse, ()) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     (anschluss, Some(fehler), anschlüsse)
                 },
                 Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
             };
-        match (Kontakt::neu(self.name, anschluss, self.trigger), fehler) {
+        match (
+            Kontakt::neu(self.name, anschluss, self.trigger, cache, aktualisieren_sender),
+            fehler,
+        ) {
             (Ok(anschluss), None) => Wert { anschluss, anschlüsse },
             (Ok(anschluss), Some(fehler)) => FehlerMitErsatzwert { anschluss, fehler, anschlüsse },
             (Err((kontakt_fehler, anschluss)), fehler) => {

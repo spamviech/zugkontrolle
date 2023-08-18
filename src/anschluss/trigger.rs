@@ -47,7 +47,7 @@ impl From<Trigger> for rppal::gpio::Trigger {
 
 impl Trigger {
     /// Ist die konfigurierte Trigger-Bedingung aufgetreten?
-    pub(in crate::anschluss) fn callback_aufrufen(&self, aktuell: Level, bisher: Level) -> bool {
+    pub(crate) fn callback_aufrufen(&self, aktuell: Level, bisher: Level) -> bool {
         match self {
             Trigger::Both => aktuell != bisher,
             Trigger::FallingEdge => aktuell < bisher,
