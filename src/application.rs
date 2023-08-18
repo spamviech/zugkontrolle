@@ -4,15 +4,16 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
+    iter,
     sync::mpsc::{channel, Sender},
     time::Instant,
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{
-    application::Application, widget::Radio, Command, Element, Font, Renderer, Settings,
-    Subscription,
+    application::Application, widget::Radio, Command, Element, Renderer, Settings, Subscription,
 };
+use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -430,15 +431,20 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         argumente: Argumente,
         lager: Lager,
         zugtyp: Zugtyp<L>,
-    ) -> Settings<(Argumente, Lager, Zugtyp<L>, &'static [u8])> {
+    ) -> Settings<(Argumente, Lager, Zugtyp<L>, Vec<&'static [u8]>)> {
         Settings {
             window: iced::window::Settings {
                 size: (800, 480),
                 icon: icon(),
                 ..iced::window::Settings::default()
             },
-            default_font: Font::with_name("SourceSerif4-Regular"),
-            ..Settings::with_flags((argumente, lager, zugtyp, fonts::REGULAR))
+            default_font: fonts::REGULAR,
+            ..Settings::with_flags((
+                argumente,
+                lager,
+                zugtyp,
+                vec![fonts::REGULAR_BYTES, ICON_FONT_BYTES],
+            ))
         }
     }
     match zugtyp {
@@ -509,19 +515,23 @@ where
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
     type Executor = iced::executor::Default;
-    type Flags = (Argumente, Lager, Zugtyp<L>, &'static [u8]);
+    type Flags = (Argumente, Lager, Zugtyp<L>, Vec<&'static [u8]>);
     type Message = Nachricht<L, S>;
     type Theme = Thema;
 
-    fn new((argumente, lager, zugtyp, schriftart): Self::Flags) -> (Self, Command<Self::Message>) {
+    fn new(
+        (argumente, lager, zugtyp, schriftarten): Self::Flags,
+    ) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_schriftart = iced::font::load(schriftart).map(|ergebnis| match ergebnis {
-            Ok(()) => Nachricht::AsyncAktualisieren,
-            Err(fehler) => Nachricht::AsyncFehler {
-                titel: String::from("Schriftart laden"),
-                nachricht: format!("{fehler:?}"),
-            },
+        let lade_schriftarten = schriftarten.into_iter().map(|schriftart| {
+            iced::font::load(schriftart).map(|ergebnis| match ergebnis {
+                Ok(()) => Nachricht::AsyncAktualisieren,
+                Err(fehler) => Nachricht::AsyncFehler {
+                    titel: String::from("Schriftart laden"),
+                    nachricht: format!("{fehler:?}"),
+                },
+            })
         });
         let lade_zustand: Command<Self::Message>;
         let initialer_pfad: String;
@@ -577,7 +587,7 @@ where
             empfänger: Empfänger::neu(receiver),
         };
 
-        (zugkontrolle, Command::batch([lade_schriftart, lade_zustand]))
+        (zugkontrolle, Command::batch(lade_schriftarten.chain(iter::once(lade_zustand))))
     }
 
     fn title(&self) -> String {
