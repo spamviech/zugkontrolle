@@ -484,17 +484,21 @@ where
             row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
             ks_auswahl = ks_auswahl.push(row)
         }
-        let tabs = Tabs::new(InterneAuswahlNachricht::WähleTab)
-            .set_active_tab(aktueller_tab)
-            .push(TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl)
-            .push(
-                TabId::KonstanteSpannung,
-                TabLabel::Text("Konstante Spannung".to_owned()),
-                Scrollable::new(ks_auswahl).height(Length::Fixed(150.)),
-            )
-            .width(width)
-            .height(Length::Shrink)
-            .tab_bar_style(TabBar.into());
+        let tabs = Tabs::with_tabs(
+            vec![
+                (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl.into()),
+                (
+                    TabId::KonstanteSpannung,
+                    TabLabel::Text("Konstante Spannung".to_owned()),
+                    Scrollable::new(ks_auswahl).height(Length::Fixed(150.)).into(),
+                ),
+            ],
+            InterneAuswahlNachricht::WähleTab,
+        )
+        .set_active_tab(aktueller_tab)
+        .width(width)
+        .height(Length::Shrink)
+        .tab_bar_style(TabBar.into());
         let neuer_anschluss = neuer_anschluss.push(tabs);
         let mut column = Column::new().push(neuer_anschluss).push(
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
