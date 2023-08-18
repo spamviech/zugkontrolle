@@ -1,8 +1,11 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-use std::sync::{
-    mpsc::{channel, Receiver, RecvError, SendError, Sender},
-    Arc,
+use std::{
+    fmt::Debug,
+    sync::{
+        mpsc::{channel, Receiver, RecvError, SendError, Sender},
+        Arc,
+    },
 };
 
 use either::Either;
@@ -26,8 +29,26 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
+/// Hilfs-Trait um existential types zu ermöglichen (Verstecke T).
+trait LevelSender {
+    fn send(&mut self, level: Level) -> Result<(), SendError<Level>>;
+}
+
+impl LevelSender for Sender<Level> {
+    fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
+        Sender::send(self, level)
+    }
+}
+
+impl<T, F: FnMut(Level) -> T> LevelSender for (Sender<T>, F) {
+    fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
+        let (sender, f) = self;
+        Sender::send(sender, f(level)).map_err(|SendError(_)| SendError(level))
+    }
+}
+
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Kontakt {
     /// Der Name des Kontaktes.
     pub name: Name,
@@ -36,7 +57,24 @@ pub struct Kontakt {
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
-    senders: Arc<Mutex<Vec<Sender<Level>>>>,
+    senders: Arc<Mutex<Vec<Box<dyn LevelSender + Send>>>>,
+}
+
+impl Debug for Kontakt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Kontakt")
+            .field("name", &self.name)
+            .field("trigger", &self.trigger)
+            .field("anschluss", &self.anschluss)
+            .field(
+                "senders",
+                &format!(
+                    "Arc(Mutex({:?}))",
+                    self.senders.lock().iter().map(|_| "<LevelSender>").collect::<Vec<_>>()
+                ),
+            )
+            .finish()
+    }
 }
 
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
@@ -76,7 +114,8 @@ impl Kontakt {
         mut anschluss: InputAnschluss,
         trigger: Trigger,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
-        let senders: Arc<Mutex<Vec<Sender<Level>>>> = Arc::new(Mutex::new(Vec::new()));
+        let senders: Arc<Mutex<Vec<Box<dyn LevelSender + Send>>>> =
+            Arc::new(Mutex::new(Vec::new()));
         let senders_clone = senders.clone();
         let set_async_interrupt_result = anschluss.setze_async_interrupt(trigger, move |level| {
             let senders = &mut *senders_clone.lock();
@@ -108,8 +147,20 @@ impl Kontakt {
     pub fn registriere_trigger_channel(&mut self) -> Receiver<Level> {
         let (sender, receiver) = channel();
         let senders = &mut *self.senders.lock();
-        senders.push(sender);
+        senders.push(Box::new(sender));
         receiver
+    }
+
+    /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
+    /// Das übergebene Funktion wird mit dem neuen [Level] aufgerufen,
+    /// das Ergebnis wird mit dem [Sender] geschickt.
+    pub fn registriere_trigger_sender<T: 'static + Send, F: 'static + FnMut(Level) -> T + Send>(
+        &mut self,
+        sender: Sender<T>,
+        f: F,
+    ) {
+        let senders = &mut *self.senders.lock();
+        senders.push(Box::new((sender, f)));
     }
 
     /// Blockiere den aktuellen Thread bis das aktuelle Trigger-Event ausgelöst wird.
