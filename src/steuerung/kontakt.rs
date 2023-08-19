@@ -1,7 +1,8 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
 use std::{
-    fmt::Debug,
+    fmt::{self, Debug},
+    ops::{Deref, DerefMut},
     sync::{
         mpsc::{channel, Receiver, RecvError, SendError, Sender},
         Arc,
@@ -33,11 +34,17 @@ pub struct Name(pub String);
 /// Hilfs-Trait um existential types zu ermöglichen (Verstecke T).
 trait LevelSender {
     fn send(&mut self, level: Level) -> Result<(), SendError<Level>>;
+
+    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
 impl LevelSender for Sender<Level> {
     fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
         Sender::send(self, level)
+    }
+
+    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as Debug>::fmt(self, f)
     }
 }
 
@@ -46,10 +53,45 @@ impl<T, F: FnMut(Level) -> T> LevelSender for (Sender<T>, F) {
         let (sender, f) = self;
         Sender::send(sender, f(level)).map_err(|SendError(_)| SendError(level))
     }
+
+    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("").field(&self.0).field(&"<closure>").finish()
+    }
+}
+
+/// Ein beliebiger [LevelSender] mit Debug-Implementierung.
+struct SomeLevelSender(Box<dyn LevelSender + Send>);
+
+impl Debug for SomeLevelSender {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SomeLevelSender(")?;
+        self.0.debug_fmt(f)?;
+        f.write_str(")")
+    }
+}
+
+impl<T: 'static + LevelSender + Send> From<T> for SomeLevelSender {
+    fn from(value: T) -> Self {
+        SomeLevelSender(Box::new(value))
+    }
+}
+
+impl Deref for SomeLevelSender {
+    type Target = dyn LevelSender;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl DerefMut for SomeLevelSender {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0.as_mut()
+    }
 }
 
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Kontakt {
     /// Der Name des Kontaktes.
     pub name: Name,
@@ -60,25 +102,7 @@ pub struct Kontakt {
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
-    senders: Arc<Mutex<Vec<Box<dyn LevelSender + Send>>>>,
-}
-
-impl Debug for Kontakt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Kontakt")
-            .field("name", &self.name)
-            .field("trigger", &self.trigger)
-            .field("letztes_level", &self.letztes_level)
-            .field("anschluss", &self.anschluss)
-            .field(
-                "senders",
-                &format!(
-                    "Arc(Mutex({:?}))",
-                    self.senders.lock().iter().map(|_| "<LevelSender>").collect::<Vec<_>>()
-                ),
-            )
-            .finish()
-    }
+    senders: Arc<Mutex<Vec<SomeLevelSender>>>,
 }
 
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
@@ -124,8 +148,7 @@ impl Kontakt {
         cache: Arc<Mutex<Cache>>,
         aktualisieren_sender: Sender<Nachricht>,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
-        let senders: Arc<Mutex<Vec<Box<dyn LevelSender + Send>>>> =
-            Arc::new(Mutex::new(Vec::new()));
+        let senders: Arc<Mutex<Vec<SomeLevelSender>>> = Arc::new(Mutex::new(Vec::new()));
         let initial_level = match trigger {
             Trigger::RisingEdge => Some(Level::Low),
             Trigger::FallingEdge => Some(Level::High),
@@ -187,7 +210,7 @@ impl Kontakt {
     pub fn registriere_trigger_channel(&mut self) -> Receiver<Level> {
         let (sender, receiver) = channel();
         let senders = &mut *self.senders.lock();
-        senders.push(Box::new(sender));
+        senders.push(SomeLevelSender::from(sender));
         receiver
     }
 
@@ -200,7 +223,7 @@ impl Kontakt {
         f: F,
     ) {
         let senders = &mut *self.senders.lock();
-        senders.push(Box::new((sender, f)));
+        senders.push(SomeLevelSender::from((sender, f)));
     }
 
     /// Blockiere den aktuellen Thread bis das aktuelle Trigger-Event ausgelöst wird.
