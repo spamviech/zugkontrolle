@@ -31,8 +31,36 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
+macro_rules! erstelle_existential {
+    ($trait: ident, $(($vis: vis))? $existential: ident, $doc: literal $(, $($derives: ident),* $(,)?)?) => {
+        #[doc = $doc]
+        $(#[derive($($derives),*)])?
+        $($vis)? struct $existential(Box<dyn $trait>);
+
+        impl<T: 'static + $trait + Send> From<T> for $existential {
+            fn from(value: T) -> Self {
+                $existential(Box::new(value))
+            }
+        }
+
+        impl Deref for $existential {
+            type Target = dyn $trait;
+
+            fn deref(&self) -> &Self::Target {
+                self.0.as_ref()
+            }
+        }
+
+        impl DerefMut for $existential {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                self.0.as_mut()
+            }
+        }
+    };
+}
+
 /// Hilfs-Trait um existential types zu ermöglichen (Verstecke T).
-trait LevelSender {
+trait LevelSender: Send {
     fn send(&mut self, level: Level) -> Result<(), SendError<Level>>;
 
     fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
@@ -48,7 +76,7 @@ impl LevelSender for Sender<Level> {
     }
 }
 
-impl<T, F: FnMut(Level) -> T> LevelSender for (Sender<T>, F) {
+impl<T: Send, F: FnMut(Level) -> T + Send> LevelSender for (Sender<T>, F) {
     fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
         let (sender, f) = self;
         Sender::send(sender, f(level)).map_err(|SendError(_)| SendError(level))
@@ -59,8 +87,11 @@ impl<T, F: FnMut(Level) -> T> LevelSender for (Sender<T>, F) {
     }
 }
 
-/// Ein beliebiger [LevelSender] mit Debug-Implementierung.
-struct SomeLevelSender(Box<dyn LevelSender + Send>);
+erstelle_existential! {
+    LevelSender,
+    SomeLevelSender,
+    "Ein beliebiger [LevelSender] mit Debug-Implementierung.",
+}
 
 impl Debug for SomeLevelSender {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -70,25 +101,26 @@ impl Debug for SomeLevelSender {
     }
 }
 
-impl<T: 'static + LevelSender + Send> From<T> for SomeLevelSender {
-    fn from(value: T) -> Self {
-        SomeLevelSender(Box::new(value))
-    }
+/// Das aktuelle level hat sich geändert, das UI muss aktualisiert werden.
+#[derive(Debug, Clone, Copy)]
+pub struct Aktualisieren;
+
+/// Sende eine [Aktualisieren]-Nachricht.
+pub trait AktualisierenSender: Debug + Send {
+    /// Sende eine [Aktualisieren]-Nachricht.
+    fn send(&mut self, level: Aktualisieren) -> Result<(), SendError<Aktualisieren>>;
 }
 
-impl Deref for SomeLevelSender {
-    type Target = dyn LevelSender;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
-    }
+erstelle_existential! {
+    AktualisierenSender,
+    (pub) SomeAktualisierenSender,
+    "Ein beliebiger [AktualisierenSender].",
+    Debug,
 }
 
-impl DerefMut for SomeLevelSender {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.as_mut()
-    }
-}
+/// Hilfs-Trait um Trait-Objekte für beide Traits zu erstellen.
+trait LetztesLevel: Debug + AsMut<Option<Level>> + Send {}
+impl<T: Debug + AsMut<Option<Level>> + Send> LetztesLevel for T {}
 
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
 #[derive(Debug, Clone)]
@@ -98,7 +130,7 @@ pub struct Kontakt {
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
     /// Die letzte bekannte [Level] eines [Kontaktes](Kontakt).
-    letztes_level: Arc<Mutex<Steuerung<Option<Level>>>>,
+    letztes_level: Arc<Mutex<dyn LetztesLevel>>,
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
@@ -135,26 +167,17 @@ impl Drop for Kontakt {
     }
 }
 
-/// Das aktuelle level hat sich geändert, das UI muss aktualisiert werden.
-#[derive(Debug, Clone, Copy)]
-pub struct Aktualisieren;
-
 impl Kontakt {
     /// Erzeuge einen neuen Kontakt.
-    pub fn neu<Nachricht: 'static + From<Aktualisieren> + Send>(
+    pub fn neu(
         name: Name,
         mut anschluss: InputAnschluss,
         trigger: Trigger,
-        cache: Arc<Mutex<Cache>>,
-        aktualisieren_sender: Sender<Nachricht>,
+        letztes_level: impl 'static + Debug + AsMut<Option<Level>> + Send,
+        aktualisieren_sender: SomeAktualisierenSender,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
         let senders: Arc<Mutex<Vec<SomeLevelSender>>> = Arc::new(Mutex::new(Vec::new()));
-        let initial_level = match trigger {
-            Trigger::RisingEdge => Some(Level::Low),
-            Trigger::FallingEdge => Some(Level::High),
-            _ => None,
-        };
-        let letztes_level = Arc::new(Mutex::new(Steuerung::neu(initial_level, cache)));
+        let letztes_level = Arc::new(Mutex::new(letztes_level));
 
         let name_clone = name.clone();
         let senders_clone = senders.clone();
@@ -170,7 +193,7 @@ impl Kontakt {
                     .unwrap_or(true);
                 *letztes_level_mut = Some(level);
                 drop(guard);
-                if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren.into()) {
+                if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
                         "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
                         name_clone.0,
@@ -270,8 +293,7 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    // FIXME beliebigen Nachricht-Typ erlauben
-    type Arg = (Arc<Mutex<Cache>>, Sender<Aktualisieren>);
+    type Arg = (Arc<Mutex<Cache>>, Arc<SomeAktualisierenSender>);
 
     fn reserviere(
         self,
@@ -280,7 +302,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         (cache, aktualisieren_sender): Self::Arg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::*;
-        let (anschluss, fehler, mut anschlüsse) =
+        let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, ()) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
@@ -288,8 +310,15 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 },
                 Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
             };
+        let letztes_level = anschluss.lese().ok();
         match (
-            Kontakt::neu(self.name, anschluss, self.trigger, cache, aktualisieren_sender),
+            Kontakt::neu(
+                self.name,
+                anschluss,
+                self.trigger,
+                Steuerung::neu(letztes_level, cache),
+                todo!("aktualisieren_sender"), // clone nicht möglich!
+            ),
             fehler,
         ) {
             (Ok(anschluss), None) => Wert { anschluss, anschlüsse },
