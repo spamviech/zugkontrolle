@@ -9,12 +9,13 @@ use crate::{
     anschluss::{level::Level, trigger::Trigger},
     gleis::verbindung::Verbindung,
     nachschlagen::impl_nachschlagen,
-    steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitLevel},
+    steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt},
     typen::{
         canvas::{
             pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
+        farbe::{self, Farbe},
         mm::{Länge, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -62,7 +63,7 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName + MitLevel> Zeichnen for Gerade<Anschluss> {
+impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
@@ -71,22 +72,36 @@ impl<Anschluss: MitName + MitLevel> Zeichnen for Gerade<Anschluss> {
     }
 
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        let level = self.kontakt.aktuelles_level();
-        vec![zeichne(
-            spurweite,
-            self.länge,
-            true,
-            None,
-            Vec::new(),
-            pfad::Erbauer::with_normal_axis,
-        )]
+        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+        let mut pfade =
+            vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)];
+        if level_und_trigger.is_some() {
+            pfade.push(zeichne_kontakt(
+                spurweite,
+                self.länge,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            ))
+        }
+        pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
-        vec![(
-            fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
-            Transparenz::Voll,
-        )]
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+        let pfad = fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis);
+        let mut pfade = vec![(pfad, None, Transparenz::Voll)];
+        if let Some((Some(level), trigger)) = level_und_trigger {
+            let (pfad, farbe) = fülle_kontakt(
+                spurweite,
+                self.länge,
+                level,
+                trigger,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            );
+            pfade.push((pfad, farbe, Transparenz::Voll));
+        }
+        pfade
     }
 
     fn beschreibung_und_name(
@@ -139,7 +154,6 @@ pub(crate) fn zeichne<P, A>(
     spurweite: Spurweite,
     länge: Skalar,
     beschränkungen: bool,
-    kontakt: Option<(Trigger, Option<Level>)>,
     transformationen: Vec<Transformation>,
     mit_invertierter_achse: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
@@ -150,25 +164,24 @@ where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = pfad::Erbauer::neu();
+    let mut erbauer = pfad::Erbauer::neu();
     mit_invertierter_achse(
-        &mut path_builder,
-        Box::new(move |builder| {
-            zeichne_internal::<P, A>(spurweite, builder, länge, beschränkungen)
-        }),
+        &mut erbauer,
+        Box::new(move |builder| zeichne_intern::<P, A>(spurweite, builder, länge, beschränkungen)),
     );
-    path_builder.baue_unter_transformationen(transformationen)
+    erbauer.baue_unter_transformationen(transformationen)
 }
 
-fn zeichne_internal<P, A>(
+fn zeichne_intern<P, A>(
     spurweite: Spurweite,
-    path_builder: &mut pfad::Erbauer<P, A>,
+    erbauer: &mut pfad::Erbauer<P, A>,
     länge: Skalar,
     beschränkungen: bool,
 ) where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
+    // Koordinaten
     let gleis_links = Skalar(0.);
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
@@ -177,23 +190,23 @@ fn zeichne_internal<P, A>(
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Beschränkungen
     if beschränkungen {
-        path_builder.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into());
-        path_builder.line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into());
-        path_builder.move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into());
-        path_builder.line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into());
+        erbauer.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into());
+        erbauer.line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into());
+        erbauer.move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into());
+        erbauer.line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into());
     }
     // Gleis
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into());
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
+    erbauer.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+    erbauer.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
+    erbauer.move_to(Vektor { x: gleis_links, y: gleis_unten }.into());
+    erbauer.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
 }
 
-pub(crate) fn fülle<P, A>(
+pub(crate) fn zeichne_kontakt<P, A>(
     spurweite: Spurweite,
     länge: Skalar,
-    transformations: Vec<Transformation>,
-    with_invert_axis: impl FnOnce(
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
     ),
@@ -202,19 +215,55 @@ where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = pfad::Erbauer::neu();
-    with_invert_axis(
-        &mut path_builder,
-        Box::new(move |builder| fülle_internal::<P, A>(spurweite, builder, länge)),
+    let mut erbauer = pfad::Erbauer::neu();
+    mit_invertierter_achse(
+        &mut erbauer,
+        Box::new(move |builder| zeichne_kontakt_intern::<P, A>(spurweite, builder, länge)),
     );
-    path_builder.baue_unter_transformationen(transformations)
+    erbauer.baue_unter_transformationen(transformationen)
 }
 
-fn fülle_internal<P, A>(
+fn zeichne_kontakt_intern<P, A>(
     spurweite: Spurweite,
-    path_builder: &mut pfad::Erbauer<P, A>,
+    erbauer: &mut pfad::Erbauer<P, A>,
     länge: Skalar,
 ) where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    // Koordinaten
+    let gleis_links = Skalar(0.);
+    let beschränkung_oben = Skalar(0.);
+    // Kontakt
+    let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
+    let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into())
+}
+
+pub(crate) fn fülle<P, A>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+) -> Pfad
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    let mut erbauer = pfad::Erbauer::neu();
+    mit_invertierter_achse(
+        &mut erbauer,
+        Box::new(move |builder| fülle_intern::<P, A>(spurweite, builder, länge)),
+    );
+    // Rückgabewert
+    erbauer.baue_unter_transformationen(transformationen)
+}
+
+fn fülle_intern<P, A>(spurweite: Spurweite, erbauer: &mut pfad::Erbauer<P, A>, länge: Skalar)
+where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
 {
@@ -225,11 +274,66 @@ fn fülle_internal<P, A>(
     let gleis_oben = beschränkung_oben + spurweite.abstand();
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Zeichne Umriss
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
-    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into());
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
-    path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+    erbauer.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+    erbauer.line_to(Vektor { x: gleis_links, y: gleis_unten }.into());
+    erbauer.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
+    erbauer.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
+    erbauer.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+}
+
+fn fülle_kontakt<P, A>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    level: Level,
+    trigger: Trigger,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>) -> Farbe>,
+    ) -> Farbe,
+) -> (Pfad, Option<Farbe>)
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    let mut erbauer = pfad::Erbauer::neu();
+    let farbe = mit_invertierter_achse(
+        &mut erbauer,
+        Box::new(move |builder| {
+            fülle_kontakt_intern::<P, A>(spurweite, builder, länge, level, trigger)
+        }),
+    );
+    // Rückgabewert
+    (erbauer.baue_unter_transformationen(transformationen), Some(farbe))
+}
+
+fn fülle_kontakt_intern<P, A>(
+    spurweite: Spurweite,
+    erbauer: &mut pfad::Erbauer<P, A>,
+    länge: Skalar,
+    level: Level,
+    trigger: Trigger,
+) -> Farbe
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    // Koordinaten
+    let gleis_links = Skalar(0.);
+    let beschränkung_oben = Skalar(0.);
+    // Kontakt
+    let farbe = match (level, trigger) {
+        (Level::Low, Trigger::RisingEdge) => farbe::ROT,
+        (Level::High, Trigger::RisingEdge) => farbe::GRÜN,
+        (Level::Low, Trigger::FallingEdge) => farbe::GRÜN,
+        (Level::High, Trigger::FallingEdge) => farbe::ROT,
+        (Level::Low, _trigger) => farbe::BLAU,
+        (Level::High, _trigger) => farbe::GRÜN,
+    };
+    let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
+    let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
+    farbe
 }
 
 pub(crate) fn innerhalb(

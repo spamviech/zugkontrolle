@@ -17,6 +17,7 @@ use crate::{
             pfad::{self, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{Länge, Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -165,7 +166,6 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
             spurweite,
             self.länge,
             true,
-            None,
             rechts_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
@@ -191,13 +191,12 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
         let size: Vektor = self.rechteck(spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
-        let mut pfade = Vec::new();
         let rechts_transformationen = vec![Transformation::Translation(start)];
         let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
@@ -214,6 +213,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                     (Transparenz::Reduziert, Transparenz::Reduziert, Transparenz::Voll)
                 },
             };
+        let mut pfade = Vec::new();
         // Gerade
         pfade.push((
             gerade::fülle(
@@ -222,6 +222,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 rechts_transformationen.clone(),
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             gerade_transparenz,
         ));
         // Links
@@ -233,6 +234,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 links_transformationen,
                 pfad::Erbauer::with_invert_y,
             ),
+            None,
             links_transparenz,
         ));
         // Rechts
@@ -244,9 +246,10 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 rechts_transformationen,
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             rechts_transparenz,
         ));
-        // return value
+        // Rückgabewert
         pfade
     }
 

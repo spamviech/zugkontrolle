@@ -68,15 +68,15 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
         frame.with_save(|frame| {
             bewege_an_position(frame, position);
             // einfärben
-            for (path, transparenz) in definition.fülle(spurweite) {
+            for (pfad, farbe, transparenz) in definition.fülle(spurweite) {
                 let alpha = transparent(rectangle, *streckenabschnitt_fließend)
                     .kombiniere(transparenz)
                     .alpha();
                 frame.with_save(|frame| {
-                    let Farbe { rot, grün, blau } = *streckenabschnitt_farbe;
+                    let Farbe { rot, grün, blau } = farbe.unwrap_or(*streckenabschnitt_farbe);
                     let color = Color { r: rot, g: grün, b: blau, a: alpha };
                     frame.fill(
-                        &path,
+                        &pfad,
                         Fill { style: fill::Style::Solid(color), rule: fill::Rule::EvenOdd },
                     );
                 });

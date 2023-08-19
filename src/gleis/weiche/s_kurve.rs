@@ -21,6 +21,7 @@ use crate::{
             pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{Länge, Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -185,7 +186,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
         }
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformationen = |multiplier: Skalar| {
@@ -388,7 +389,6 @@ where
         spurweite,
         länge,
         true,
-        None,
         transformationen.clone(),
         &mit_invertierter_achse,
     ));
@@ -434,7 +434,7 @@ fn fülle<P, A, PInnen, AInnen>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn FnOnce(&mut pfad::Erbauer<PInnen, AInnen>)>,
     ),
-) -> Vec<(Pfad, Transparenz)>
+) -> Vec<(Pfad, Option<Farbe>, Transparenz)>
 where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
@@ -445,11 +445,13 @@ where
     // Gerade
     pfade.push((
         gerade::fülle(spurweite, länge, transformationen.clone(), &mit_invertierter_achse),
+        None,
         gerade_transparenz,
     ));
     // Kurve nach außen
     pfade.push((
         kurve::fülle(spurweite, radius, winkel, transformationen.clone(), mit_invertierter_achse),
+        None,
         kurve_transparenz,
     ));
     // Kurve nach innen
@@ -462,6 +464,7 @@ where
             transformationen,
             mit_invertierter_achse_kurve_nach_innen,
         ),
+        None,
         kurve_transparenz,
     ));
     // Rückgabewert

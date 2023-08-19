@@ -17,6 +17,7 @@ use crate::{
             pfad::{self, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{L√§nge, Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -169,7 +170,6 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
             spurweite,
             self.l√§nge,
             true,
-            None,
             horizontal_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
@@ -177,7 +177,6 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
             spurweite,
             self.l√§nge,
             true,
-            None,
             gedreht_transformationen.clone(),
             pfad::Erbauer::with_invert_y,
         ));
@@ -204,7 +203,7 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
         pfade
     }
 
-    fn f√ºlle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn f√ºlle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
         let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
         let half_width = width.halbiert();
@@ -214,7 +213,6 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
-        let mut pfade = Vec::new();
         // Transformationen
         let horizontal_transformationen = vec![Transformation::Translation(start)];
         let gedreht_transformationen = vec![
@@ -229,6 +227,7 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
+        let mut pfade = Vec::new();
         // Geraden
         pfade.push((
             gerade::f√ºlle(
@@ -237,6 +236,7 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
                 horizontal_transformationen.clone(),
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             gerade_transparenz,
         ));
         pfade.push((
@@ -246,6 +246,7 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
                 gedreht_transformationen.clone(),
                 pfad::Erbauer::with_invert_y,
             ),
+            None,
             gerade_transparenz,
         ));
         // Kurven
@@ -258,6 +259,7 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
                     horizontal_transformationen,
                     pfad::Erbauer::with_normal_axis,
                 ),
+                None,
                 kurve_transparenz,
             ));
             pfade.push((
@@ -268,10 +270,11 @@ impl<Anschl√ºsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl√
                     gedreht_transformationen,
                     pfad::Erbauer::with_invert_y,
                 ),
+                None,
                 kurve_transparenz,
             ));
         }
-        // return value
+        // R√ºckgabewert
         pfade
     }
 

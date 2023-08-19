@@ -83,8 +83,12 @@ pub trait Zeichnen {
     }
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
-    /// Alle Pfade werden mit `canvas::FillRule::EvenOdd` gefüllt.
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)>;
+    ///
+    /// Alle Pfade werden mit [fill::Rule::EvenOdd](iced::widget::canvas::fill::Rule::EvenOdd) gefüllt.
+    ///
+    /// Wenn ein Pfad ohne Farbe zurückgegeben wird, wird die Farbe des
+    /// [Streckenabschnitts](crate::steuerung::streckenabschnitt::Streckenabschnitt) verwendet.
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad>;

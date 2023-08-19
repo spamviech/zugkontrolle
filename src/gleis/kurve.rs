@@ -14,6 +14,7 @@ use crate::{
             pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -89,7 +90,7 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         )]
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         vec![(
             fülle(
                 spurweite,
@@ -98,6 +99,7 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             Transparenz::Voll,
         )]
     }

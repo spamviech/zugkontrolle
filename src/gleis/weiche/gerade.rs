@@ -14,6 +14,7 @@ use crate::{
             pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{Länge, Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -127,7 +128,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         }
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         let Weiche { länge, radius, winkel, orientierung, .. } = *self;
         let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
@@ -269,14 +270,7 @@ where
     A: From<Bogen> + Into<Bogen>,
 {
     vec![
-        gerade::zeichne(
-            spurweite,
-            länge,
-            true,
-            None,
-            transformationen.clone(),
-            &mit_invertierter_achse,
-        ),
+        gerade::zeichne(spurweite, länge, true, transformationen.clone(), &mit_invertierter_achse),
         kurve::zeichne(
             spurweite,
             radius,
@@ -300,7 +294,7 @@ fn fülle<P, A>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
     ),
-) -> Vec<(Pfad, Transparenz)>
+) -> Vec<(Pfad, Option<Farbe>, Transparenz)>
 where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
@@ -308,10 +302,12 @@ where
     vec![
         (
             gerade::fülle(spurweite, länge, transformationen.clone(), &mit_invertierter_achse),
+            None,
             gerade_transparenz,
         ),
         (
             kurve::fülle(spurweite, radius, winkel, transformationen, mit_invertierter_achse),
+            None,
             kurve_transparenz,
         ),
     ]

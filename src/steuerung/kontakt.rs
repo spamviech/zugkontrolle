@@ -344,26 +344,26 @@ impl MitName for Option<KontaktSerialisiert> {
     }
 }
 
-/// Trait für Typen mit einem aktuellen [Level].
-pub trait MitLevel {
-    /// Erhalte das aktuelle [Level].
-    fn aktuelles_level(&self) -> Option<Level>;
+/// Trait für Typen mit einem [Kontakt].
+pub trait MitKontakt {
+    /// Erhalte das aktuelle [Level] und den gewählten [Trigger].
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)>;
 }
 
-impl MitLevel for () {
-    fn aktuelles_level(&self) -> Option<Level> {
+impl MitKontakt for () {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
         None
     }
 }
 
-impl<T: MitLevel> MitLevel for Option<T> {
-    fn aktuelles_level(&self) -> Option<Level> {
-        self.as_ref().and_then(MitLevel::aktuelles_level)
+impl<T: MitKontakt> MitKontakt for Option<T> {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
+        self.as_ref().and_then(MitKontakt::aktuelles_level_und_trigger)
     }
 }
 
-impl MitLevel for Kontakt {
-    fn aktuelles_level(&self) -> Option<Level> {
-        *self.letztes_level.lock().as_ref()
+impl MitKontakt for Kontakt {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
+        Some((*self.letztes_level.lock().as_ref(), self.trigger))
     }
 }

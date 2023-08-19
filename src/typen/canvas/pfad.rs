@@ -225,36 +225,37 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     /// Alle Methoden der closure verwenden unveränderte Achsen (x',y') = (x,y).
     ///
     /// Convenience-Funktion um nicht permanent no-op closures erstellen zu müssen.
-    #[zugkontrolle_macros::chain]
-    pub fn with_normal_axis(&mut self, action: impl FnOnce(&mut Erbauer<V, B>)) {
+    pub fn with_normal_axis<T>(&mut self, action: impl FnOnce(&mut Erbauer<V, B>) -> T) -> T {
         action(self)
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y).
-    #[zugkontrolle_macros::chain]
-    pub fn with_invert_x(
+    pub fn with_invert_x<T>(
         &mut self,
-        action: impl FnOnce(&mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>),
-    ) {
+        action: impl FnOnce(&mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>) -> T,
+    ) -> T {
+        let mut ergebnis = None;
         take_mut::take(&mut self.builder, |builder| {
             let mut inverted_builder: Erbauer<Invertiert<V, X>, Invertiert<B, X>> =
                 Erbauer { builder, phantom_data: PhantomData };
-            action(&mut inverted_builder);
+            ergebnis = Some(action(&mut inverted_builder));
             inverted_builder.builder
-        })
+        });
+        ergebnis.expect("Ergebnis nicht gesetzt!")
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y).
-    #[zugkontrolle_macros::chain]
-    pub fn with_invert_y(
+    pub fn with_invert_y<T>(
         &mut self,
-        action: impl FnOnce(&mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>),
-    ) {
+        action: impl FnOnce(&mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>) -> T,
+    ) -> T {
+        let mut ergebnis = None;
         take_mut::take(&mut self.builder, |builder| {
             let mut inverted_builder: Erbauer<Invertiert<V, Y>, Invertiert<B, Y>> =
                 Erbauer { builder, phantom_data: PhantomData };
-            action(&mut inverted_builder);
+            ergebnis = Some(action(&mut inverted_builder));
             inverted_builder.builder
-        })
+        });
+        ergebnis.expect("Ergebnis nicht gesetzt!")
     }
 }
