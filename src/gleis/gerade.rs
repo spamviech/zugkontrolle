@@ -234,9 +234,9 @@ fn zeichne_kontakt_intern<P, A>(
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
-    // Kontakt
     let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
     let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
+    // Kontakt
     erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into())
 }
 
@@ -321,19 +321,19 @@ where
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
+    let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
+    let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
     // Kontakt
-    let farbe = match (level, trigger) {
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
+    // Anzeigefarbe
+    match (level, trigger) {
         (Level::Low, Trigger::RisingEdge) => farbe::ROT,
         (Level::High, Trigger::RisingEdge) => farbe::GRÜN,
         (Level::Low, Trigger::FallingEdge) => farbe::GRÜN,
         (Level::High, Trigger::FallingEdge) => farbe::ROT,
         (Level::Low, _trigger) => farbe::BLAU,
         (Level::High, _trigger) => farbe::GRÜN,
-    };
-    let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
-    let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
-    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
-    farbe
+    }
 }
 
 pub(crate) fn innerhalb(
