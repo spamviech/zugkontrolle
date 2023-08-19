@@ -29,6 +29,7 @@
 - aktualisiere iced auf Version 0.10.0
 - Schriftgröße von Beschreibungen skaliert nun ebenfalls
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
+- Kontakte werden auf dem Canvas als Kreise angezeigt
 
 ## 3.0.0
 
