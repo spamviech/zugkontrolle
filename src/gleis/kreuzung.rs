@@ -154,54 +154,54 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
-        let mut paths = Vec::new();
+        let mut pfade = Vec::new();
         // Transformationen
-        let horizontal_transformations = vec![Transformation::Translation(start)];
-        let gedreht_transformations = vec![
+        let horizontal_transformationen = vec![Transformation::Translation(start)];
+        let gedreht_transformationen = vec![
             Transformation::Translation(zentrum),
             Transformation::Rotation(winkel),
-            // transformations with assumed inverted y-Axis
+            // transformationen with assumed inverted y-Axis
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
         // Geraden
-        paths.push(gerade::zeichne(
+        pfade.push(gerade::zeichne(
             spurweite,
             self.länge,
             true,
             None,
-            horizontal_transformations.clone(),
+            horizontal_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
-        paths.push(gerade::zeichne(
+        pfade.push(gerade::zeichne(
             spurweite,
             self.länge,
             true,
             None,
-            gedreht_transformations.clone(),
+            gedreht_transformationen.clone(),
             pfad::Erbauer::with_invert_y,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push(kurve::zeichne(
+            pfade.push(kurve::zeichne(
                 spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
-                horizontal_transformations,
+                horizontal_transformationen,
                 pfad::Erbauer::with_normal_axis,
             ));
-            paths.push(kurve::zeichne(
+            pfade.push(kurve::zeichne(
                 spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
-                gedreht_transformations,
+                gedreht_transformationen,
                 pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
-        paths
+        pfade
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
@@ -214,13 +214,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
-        let mut paths = Vec::new();
+        let mut pfade = Vec::new();
         // Transformationen
-        let horizontal_transformations = vec![Transformation::Translation(start)];
-        let gedreht_transformations = vec![
+        let horizontal_transformationen = vec![Transformation::Translation(start)];
+        let gedreht_transformationen = vec![
             Transformation::Translation(zentrum),
             Transformation::Rotation(winkel),
-            // transformations with assumed inverted y-Axis
+            // transformationen with assumed inverted y-Axis
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
@@ -230,49 +230,49 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
         // Geraden
-        paths.push((
+        pfade.push((
             gerade::fülle(
                 spurweite,
                 self.länge,
-                horizontal_transformations.clone(),
+                horizontal_transformationen.clone(),
                 pfad::Erbauer::with_normal_axis,
             ),
             gerade_transparenz,
         ));
-        paths.push((
+        pfade.push((
             gerade::fülle(
                 spurweite,
                 self.länge,
-                gedreht_transformations.clone(),
+                gedreht_transformationen.clone(),
                 pfad::Erbauer::with_invert_y,
             ),
             gerade_transparenz,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push((
+            pfade.push((
                 kurve::fülle(
                     spurweite,
                     self.radius,
                     winkel,
-                    horizontal_transformations,
+                    horizontal_transformationen,
                     pfad::Erbauer::with_normal_axis,
                 ),
                 kurve_transparenz,
             ));
-            paths.push((
+            pfade.push((
                 kurve::fülle(
                     spurweite,
                     self.radius,
                     winkel,
-                    gedreht_transformations,
+                    gedreht_transformationen,
                     pfad::Erbauer::with_invert_y,
                 ),
                 kurve_transparenz,
             ));
         }
         // return value
-        paths
+        pfade
     }
 
     fn beschreibung_und_name(

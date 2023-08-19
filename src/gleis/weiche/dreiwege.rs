@@ -156,39 +156,39 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
-        let mut paths = Vec::new();
-        let rechts_transformations = vec![Transformation::Translation(start)];
-        let links_transformations =
+        let mut pfade = Vec::new();
+        let rechts_transformationen = vec![Transformation::Translation(start)];
+        let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         // Gerade
-        paths.push(gerade::zeichne(
+        pfade.push(gerade::zeichne(
             spurweite,
             self.länge,
             true,
             None,
-            rechts_transformations.clone(),
+            rechts_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
         // Links
-        paths.push(kurve::zeichne(
+        pfade.push(kurve::zeichne(
             spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
-            links_transformations,
+            links_transformationen,
             pfad::Erbauer::with_invert_y,
         ));
         // Rechts
-        paths.push(kurve::zeichne(
+        pfade.push(kurve::zeichne(
             spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
-            rechts_transformations,
+            rechts_transformationen,
             pfad::Erbauer::with_normal_axis,
         ));
         // return value
-        paths
+        pfade
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
@@ -197,9 +197,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
-        let mut paths = Vec::new();
-        let rechts_transformations = vec![Transformation::Translation(start)];
-        let links_transformations =
+        let mut pfade = Vec::new();
+        let rechts_transformationen = vec![Transformation::Translation(start)];
+        let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         let (gerade_transparenz, links_transparenz, rechts_transparenz) =
             match self.steuerung.aktuelle_richtung() {
@@ -215,39 +215,39 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
                 },
             };
         // Gerade
-        paths.push((
+        pfade.push((
             gerade::fülle(
                 spurweite,
                 self.länge,
-                rechts_transformations.clone(),
+                rechts_transformationen.clone(),
                 pfad::Erbauer::with_normal_axis,
             ),
             gerade_transparenz,
         ));
         // Links
-        paths.push((
+        pfade.push((
             kurve::fülle(
                 spurweite,
                 self.radius,
                 self.winkel,
-                links_transformations,
+                links_transformationen,
                 pfad::Erbauer::with_invert_y,
             ),
             links_transparenz,
         ));
         // Rechts
-        paths.push((
+        pfade.push((
             kurve::fülle(
                 spurweite,
                 self.radius,
                 self.winkel,
-                rechts_transformations,
+                rechts_transformationen,
                 pfad::Erbauer::with_normal_axis,
             ),
             rechts_transparenz,
         ));
         // return value
-        paths
+        pfade
     }
 
     fn beschreibung_und_name(

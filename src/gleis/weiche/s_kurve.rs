@@ -18,7 +18,7 @@ use crate::{
     steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
-            pfad::{self, Pfad, Transformation},
+            pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
         mm::{Länge, Radius, Spurweite},
@@ -47,9 +47,9 @@ pub struct SKurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
     /// Der Winkel der Kurve nach außen.
     pub winkel: Winkel,
     /// Der Radius der Kurve nach innen.
-    pub radius_reverse: Skalar,
+    pub radius_kurve_nach_innen: Skalar,
     /// Der Winkel der Kurve nach innen.
-    pub winkel_reverse: Winkel,
+    pub winkel_kurve_nach_innen: Winkel,
     /// Die Orientierung der SKurvenWeiche.
     pub orientierung: Orientierung,
     /// Eine allgemeine Beschreibung der SKurvenWeiche, z.B. die Produktnummer.
@@ -64,16 +64,16 @@ impl SKurvenWeicheUnit {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        radius_reverse: Radius,
-        winkel_reverse: Winkel,
+        radius_kurve_nach_innen: Radius,
+        winkel_kurve_nach_innen: Winkel,
         orientierung: Orientierung,
     ) -> Self {
         SKurvenWeicheUnit {
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            radius_reverse: radius_reverse.als_skalar(),
-            winkel_reverse,
+            radius_kurve_nach_innen: radius_kurve_nach_innen.als_skalar(),
+            winkel_kurve_nach_innen,
             orientierung,
             beschreibung: None,
             steuerung: (),
@@ -85,8 +85,8 @@ impl SKurvenWeicheUnit {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        radius_reverse: Radius,
-        winkel_reverse: Winkel,
+        radius_kurve_nach_innen: Radius,
+        winkel_kurve_nach_innen: Winkel,
         orientierung: Orientierung,
         beschreibung: impl Into<String>,
     ) -> Self {
@@ -94,8 +94,8 @@ impl SKurvenWeicheUnit {
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            radius_reverse: radius_reverse.als_skalar(),
-            winkel_reverse,
+            radius_kurve_nach_innen: radius_kurve_nach_innen.als_skalar(),
+            winkel_kurve_nach_innen,
             orientierung,
             beschreibung: Some(beschreibung.into()),
             steuerung: (),
@@ -108,10 +108,18 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
     type Verbindungen = Verbindungen;
 
     fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
-        let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
+        let SKurvenWeiche {
+            länge,
+            radius,
+            winkel,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            ..
+        } = *self;
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
-        let rechteck_kurve_reverse = kurve::rechteck(spurweite, radius_reverse, winkel_reverse);
+        let rechteck_kurve_reverse =
+            kurve::rechteck(spurweite, radius_kurve_nach_innen, winkel_kurve_nach_innen);
         let radius_außen = spurweite.radius_begrenzung_außen(radius);
         let radius_innen = spurweite.radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
@@ -131,7 +139,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
-        let s_kurve_transformations = |multiplier: Skalar| {
+        let s_kurve_transformationen = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
@@ -145,77 +153,42 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 }),
             ]
         };
-        // Zeichne Pfad
-        let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
             let size: Vektor = self.rechteck(spurweite).ecke_max();
-            let mut transformations =
+            let transformationen =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
-            // Gerade
-            paths.push(gerade::zeichne(
+            zeichne(
                 spurweite,
                 self.länge,
-                true,
-                None,
-                transformations.clone(),
-                pfad::Erbauer::with_invert_y,
-            ));
-            // Kurve nach außen
-            paths.push(kurve::zeichne(
-                spurweite,
                 self.radius,
                 self.winkel,
-                kurve::Beschränkung::Keine,
-                transformations.clone(),
+                self.radius_kurve_nach_innen,
+                self.winkel_kurve_nach_innen,
+                transformationen,
+                s_kurve_transformationen(Skalar(-1.)),
                 pfad::Erbauer::with_invert_y,
-            ));
-            // Kurve nach innen
-            transformations.extend(s_kurve_transformations(Skalar(-1.)));
-            paths.push(kurve::zeichne(
-                spurweite,
-                self.radius_reverse,
-                self.winkel_reverse,
-                kurve::Beschränkung::Ende,
-                transformations,
                 pfad::Erbauer::with_normal_axis,
-            ));
+            )
         } else {
-            // Gerade
-            paths.push(gerade::zeichne(
+            zeichne(
                 spurweite,
                 self.länge,
-                true,
-                None,
-                Vec::new(),
-                pfad::Erbauer::with_normal_axis,
-            ));
-            // Kurve nach außen
-            paths.push(kurve::zeichne(
-                spurweite,
                 self.radius,
                 self.winkel,
-                kurve::Beschränkung::Keine,
+                self.radius_kurve_nach_innen,
+                self.winkel_kurve_nach_innen,
                 Vec::new(),
+                s_kurve_transformationen(Skalar(1.)),
                 pfad::Erbauer::with_normal_axis,
-            ));
-            // Kurve nach innen
-            paths.push(kurve::zeichne(
-                spurweite,
-                self.radius_reverse,
-                self.winkel_reverse,
-                kurve::Beschränkung::Ende,
-                s_kurve_transformations(Skalar(1.)),
                 pfad::Erbauer::with_invert_y,
-            ));
+            )
         }
-        // return value
-        paths
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
         // utility sizes
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
-        let s_kurve_transformations = |multiplier: Skalar| {
+        let s_kurve_transformationen = |multiplier: Skalar| {
             let winkel = multiplier.0 * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
@@ -234,76 +207,40 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
-        // Zeichne Pfad
-        let mut paths = Vec::new();
         if self.orientierung == Orientierung::Links {
             let size: Vektor = self.rechteck(spurweite).ecke_max();
-            let mut transformations =
+            let transformationen =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
-            // Gerade
-            paths.push((
-                gerade::fülle(
-                    spurweite,
-                    self.länge,
-                    transformations.clone(),
-                    pfad::Erbauer::with_invert_y,
-                ),
+            fülle(
+                spurweite,
+                self.länge,
+                self.radius,
+                self.winkel,
+                self.radius_kurve_nach_innen,
+                self.winkel_kurve_nach_innen,
                 gerade_transparenz,
-            ));
-            // Kurve nach außen
-            paths.push((
-                kurve::fülle(
-                    spurweite,
-                    self.radius,
-                    self.winkel,
-                    transformations.clone(),
-                    pfad::Erbauer::with_invert_y,
-                ),
                 kurve_transparenz,
-            ));
-            // Kurve nach innen
-            transformations.extend(s_kurve_transformations(Skalar(-1.)));
-            paths.push((
-                kurve::fülle(
-                    spurweite,
-                    self.radius_reverse,
-                    self.winkel_reverse,
-                    transformations,
-                    pfad::Erbauer::with_normal_axis,
-                ),
-                kurve_transparenz,
-            ));
+                transformationen,
+                s_kurve_transformationen(Skalar(-1.)),
+                pfad::Erbauer::with_invert_y,
+                pfad::Erbauer::with_normal_axis,
+            )
         } else {
-            // Gerade
-            paths.push((
-                gerade::fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+            fülle(
+                spurweite,
+                self.länge,
+                self.radius,
+                self.winkel,
+                self.radius_kurve_nach_innen,
+                self.winkel_kurve_nach_innen,
                 gerade_transparenz,
-            ));
-            // Kurve nach außen
-            paths.push((
-                kurve::fülle(
-                    spurweite,
-                    self.radius,
-                    self.winkel,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
                 kurve_transparenz,
-            ));
-            // Kurve nach innen
-            paths.push((
-                kurve::fülle(
-                    spurweite,
-                    self.radius_reverse,
-                    self.winkel_reverse,
-                    s_kurve_transformations(Skalar(1.)),
-                    pfad::Erbauer::with_invert_y,
-                ),
-                kurve_transparenz,
-            ));
+                Vec::new(),
+                s_kurve_transformationen(Skalar(1.)),
+                pfad::Erbauer::with_normal_axis,
+                pfad::Erbauer::with_invert_y,
+            )
         }
-        // return value
-        paths
     }
 
     fn beschreibung_und_name(
@@ -373,8 +310,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
             || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
             || kurve::innerhalb(
                 spurweite,
-                self.radius_reverse,
-                self.winkel_reverse,
+                self.radius_kurve_nach_innen,
+                self.winkel_kurve_nach_innen,
                 s_kurve_vector,
                 ungenauigkeit,
             )
@@ -393,7 +330,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 multiplier = Skalar(-1.);
             },
         };
-        let angle_difference = self.winkel - self.winkel_reverse;
+        let angle_difference = self.winkel - self.winkel_kurve_nach_innen;
         let anfang = Vektor {
             x: Skalar(0.),
             y: start_height + multiplier * spurweite.beschränkung().halbiert(),
@@ -408,14 +345,125 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 position: anfang
                     + Vektor {
                         x: self.radius * self.winkel.sin()
-                            + self.radius_reverse * (self.winkel.sin() - angle_difference.sin()),
+                            + self.radius_kurve_nach_innen
+                                * (self.winkel.sin() - angle_difference.sin()),
                         y: multiplier
                             * (self.radius * (Skalar(1.) - self.winkel.cos())
-                                + self.radius_reverse
+                                + self.radius_kurve_nach_innen
                                     * (angle_difference.cos() - self.winkel.cos())),
                     },
                 richtung: multiplier.0 * angle_difference,
             },
         }
     }
+}
+
+fn zeichne<P, A, PInnen, AInnen>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    radius: Skalar,
+    winkel: Winkel,
+    radius_kurve_nach_innen: Skalar,
+    winkel_kurve_nach_innen: Winkel,
+    mut transformationen: Vec<Transformation>,
+    s_kurve_transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+    mit_invertierter_achse_kurve_nach_innen: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<PInnen, AInnen>)>,
+    ),
+) -> Vec<Pfad>
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+    PInnen: From<Vektor> + Into<Vektor>,
+    AInnen: From<Bogen> + Into<Bogen>,
+{
+    let mut pfade = Vec::new();
+    // Gerade
+    pfade.push(gerade::zeichne(
+        spurweite,
+        länge,
+        true,
+        None,
+        transformationen.clone(),
+        &mit_invertierter_achse,
+    ));
+    // Kurve nach außen
+    pfade.push(kurve::zeichne(
+        spurweite,
+        radius,
+        winkel,
+        kurve::Beschränkung::Keine,
+        transformationen.clone(),
+        mit_invertierter_achse,
+    ));
+    // Kurve nach innen
+    transformationen.extend(s_kurve_transformationen);
+    pfade.push(kurve::zeichne(
+        spurweite,
+        radius_kurve_nach_innen,
+        winkel_kurve_nach_innen,
+        kurve::Beschränkung::Ende,
+        transformationen,
+        mit_invertierter_achse_kurve_nach_innen,
+    ));
+    // Rückgabewert
+    pfade
+}
+
+fn fülle<P, A, PInnen, AInnen>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    radius: Skalar,
+    winkel: Winkel,
+    radius_kurve_nach_innen: Skalar,
+    winkel_kurve_nach_innen: Winkel,
+    gerade_transparenz: Transparenz,
+    kurve_transparenz: Transparenz,
+    mut transformationen: Vec<Transformation>,
+    s_kurve_transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+    mit_invertierter_achse_kurve_nach_innen: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<PInnen, AInnen>)>,
+    ),
+) -> Vec<(Pfad, Transparenz)>
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+    PInnen: From<Vektor> + Into<Vektor>,
+    AInnen: From<Bogen> + Into<Bogen>,
+{
+    let mut pfade = Vec::new();
+    // Gerade
+    pfade.push((
+        gerade::fülle(spurweite, länge, transformationen.clone(), &mit_invertierter_achse),
+        gerade_transparenz,
+    ));
+    // Kurve nach außen
+    pfade.push((
+        kurve::fülle(spurweite, radius, winkel, transformationen.clone(), mit_invertierter_achse),
+        kurve_transparenz,
+    ));
+    // Kurve nach innen
+    transformationen.extend(s_kurve_transformationen);
+    pfade.push((
+        kurve::fülle(
+            spurweite,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            transformationen,
+            mit_invertierter_achse_kurve_nach_innen,
+        ),
+        kurve_transparenz,
+    ));
+    // Rückgabewert
+    pfade
 }

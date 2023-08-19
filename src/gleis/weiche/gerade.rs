@@ -11,7 +11,7 @@ use crate::{
     steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
-            pfad::{self, Pfad, Transformation},
+            pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
         mm::{Länge, Radius, Spurweite},
@@ -112,45 +112,18 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         let Weiche { länge, radius, winkel, orientierung, .. } = *self;
         if orientierung == Orientierung::Links {
             let size: Vektor = self.rechteck(spurweite).ecke_max();
-            let transformations =
+            let transformationen =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
-            vec![
-                gerade::zeichne(
-                    spurweite,
-                    länge,
-                    true,
-                    None,
-                    transformations.clone(),
-                    pfad::Erbauer::with_invert_y,
-                ),
-                kurve::zeichne(
-                    spurweite,
-                    radius,
-                    winkel,
-                    kurve::Beschränkung::Ende,
-                    transformations,
-                    pfad::Erbauer::with_invert_y,
-                ),
-            ]
+            zeichne(
+                spurweite,
+                länge,
+                radius,
+                winkel,
+                transformationen,
+                pfad::Erbauer::with_invert_y,
+            )
         } else {
-            vec![
-                gerade::zeichne(
-                    spurweite,
-                    länge,
-                    true,
-                    None,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
-                kurve::zeichne(
-                    spurweite,
-                    radius,
-                    winkel,
-                    kurve::Beschränkung::Ende,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                ),
-            ]
+            zeichne(spurweite, länge, radius, winkel, Vec::new(), pfad::Erbauer::with_normal_axis)
         }
     }
 
@@ -163,46 +136,29 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
         };
         if orientierung == Orientierung::Links {
             let size: Vektor = self.rechteck(spurweite).ecke_max();
-            let transformations =
+            let transformationen =
                 vec![Transformation::Translation(Vektor { x: Skalar(0.), y: size.y })];
-            vec![
-                (
-                    gerade::fülle(
-                        spurweite,
-                        länge,
-                        transformations.clone(),
-                        pfad::Erbauer::with_invert_y,
-                    ),
-                    gerade_transparenz,
-                ),
-                (
-                    kurve::fülle(
-                        spurweite,
-                        radius,
-                        winkel,
-                        transformations,
-                        pfad::Erbauer::with_invert_y,
-                    ),
-                    kurve_transparenz,
-                ),
-            ]
+            fülle(
+                spurweite,
+                länge,
+                radius,
+                winkel,
+                gerade_transparenz,
+                kurve_transparenz,
+                transformationen,
+                pfad::Erbauer::with_invert_y,
+            )
         } else {
-            vec![
-                (
-                    gerade::fülle(spurweite, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
-                    gerade_transparenz,
-                ),
-                (
-                    kurve::fülle(
-                        spurweite,
-                        radius,
-                        winkel,
-                        Vec::new(),
-                        pfad::Erbauer::with_normal_axis,
-                    ),
-                    kurve_transparenz,
-                ),
-            ]
+            fülle(
+                spurweite,
+                länge,
+                radius,
+                winkel,
+                gerade_transparenz,
+                kurve_transparenz,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            )
         }
     }
 
@@ -295,4 +251,68 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Weiche<Anschlüs
             },
         }
     }
+}
+
+fn zeichne<P, A>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    radius: Skalar,
+    winkel: Winkel,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+) -> Vec<Pfad>
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    vec![
+        gerade::zeichne(
+            spurweite,
+            länge,
+            true,
+            None,
+            transformationen.clone(),
+            &mit_invertierter_achse,
+        ),
+        kurve::zeichne(
+            spurweite,
+            radius,
+            winkel,
+            kurve::Beschränkung::Ende,
+            transformationen,
+            mit_invertierter_achse,
+        ),
+    ]
+}
+
+fn fülle<P, A>(
+    spurweite: Spurweite,
+    länge: Skalar,
+    radius: Skalar,
+    winkel: Winkel,
+    gerade_transparenz: Transparenz,
+    kurve_transparenz: Transparenz,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+) -> Vec<(Pfad, Transparenz)>
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    vec![
+        (
+            gerade::fülle(spurweite, länge, transformationen.clone(), &mit_invertierter_achse),
+            gerade_transparenz,
+        ),
+        (
+            kurve::fülle(spurweite, radius, winkel, transformationen, mit_invertierter_achse),
+            kurve_transparenz,
+        ),
+    ]
 }
