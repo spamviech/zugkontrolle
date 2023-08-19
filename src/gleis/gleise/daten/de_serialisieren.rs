@@ -6,7 +6,7 @@ use std::{
     fs,
     hash::Hash,
     io::{self, Read},
-    sync::Arc,
+    sync::{mpsc::Sender, Arc},
 };
 
 use nonempty::NonEmpty;
@@ -46,7 +46,7 @@ use crate::{
         geschwindigkeit::{
             self, BekannterLeiter, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
         },
-        kontakt::{Kontakt, KontaktSerialisiert},
+        kontakt::{self, Kontakt, KontaktSerialisiert, SomeAktualisierenSender},
         plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
@@ -179,7 +179,7 @@ where
 
 impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<S>(
+    fn reserviere<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
         self,
         spurweite: Spurweite,
         lager: &mut anschluss::Lager,
@@ -190,6 +190,7 @@ impl GleiseDatenSerialisiert {
         kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
         fehler: &mut Vec<LadenFehler<S>>,
         canvas: &Arc<Mutex<Cache>>,
+        sender: &Sender<Nachricht>,
     ) -> (GleiseDaten, Anschlüsse) {
         macro_rules! reserviere_anschlüsse {
             ($($rstern: ident: $ty: ty: $steuerung: ident: $map: ident: $arg: expr),* $(,)?) => {
@@ -214,9 +215,10 @@ impl GleiseDatenSerialisiert {
                 )
             };
         }
+        let aktualisieren_sender = SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
         reserviere_anschlüsse! {
-            geraden: Gerade: kontakt: kontakte: &(canvas.clone(), todo!("sender")),
-            kurven: Kurve: kontakt: kontakte: &(canvas.clone(), todo!("sender")),
+            geraden: Gerade: kontakt: kontakte: &(canvas.clone(), aktualisieren_sender.clone()),
+            kurven: Kurve: kontakt: kontakte: &(canvas.clone(), aktualisieren_sender),
             weichen: Weiche: steuerung: gerade_weichen: canvas,
             dreiwege_weichen: DreiwegeWeiche: steuerung: dreiwege_weichen: canvas,
             kurven_weichen: KurvenWeiche: steuerung: kurven_weichen: canvas,
@@ -351,7 +353,7 @@ impl<S> From<FalscherLeiter> for LadenFehler<S> {
     }
 }
 
-fn reserviere_streckenabschnitt_map<S>(
+fn reserviere_streckenabschnitt_map<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     streckenabschnitt_map: StreckenabschnittMapSerialisiert,
@@ -363,6 +365,7 @@ fn reserviere_streckenabschnitt_map<S>(
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
     canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<Nachricht>,
 ) -> (StreckenabschnittMap, Anschlüsse, Option<GleiseDaten>) {
     streckenabschnitt_map.into_iter().fold(
         (HashMap::new(), anschlüsse, None),
@@ -388,6 +391,7 @@ fn reserviere_streckenabschnitt_map<S>(
                 kontakte,
                 laden_fehler,
                 canvas,
+                sender,
             );
 
             if let Some(streckenabschnitt) = streckenabschnitt {
@@ -411,7 +415,7 @@ fn reserviere_streckenabschnitt_map<S>(
 }
 
 #[allow(single_use_lifetimes)]
-fn reserviere_geschwindigkeit_map<L, S>(
+fn reserviere_geschwindigkeit_map<L, S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     geschwindigkeiten_map: GeschwindigkeitMapSerialisiert<S>,
@@ -425,6 +429,7 @@ fn reserviere_geschwindigkeit_map<L, S>(
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
     canvas: &Arc<Mutex<Cache>>,
+    sender: &Sender<Nachricht>,
 ) -> (GeschwindigkeitMap<L>, Anschlüsse, Option<StreckenabschnittMap>)
 where
     L: Serialisiere<S>,
@@ -458,6 +463,7 @@ where
                     kontakte,
                     laden_fehler,
                     canvas,
+                    sender,
                 );
 
             if let Some(fehler_daten) = fehler_daten {
@@ -492,11 +498,12 @@ where
     S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
 {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere(
+    fn reserviere<Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         canvas: &Arc<Mutex<Cache>>,
+        sender: &Sender<Nachricht>,
     ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
@@ -527,6 +534,7 @@ where
             &mut bekannte_kontakte,
             &mut fehler,
             canvas,
+            sender,
         );
 
         let (mut ohne_geschwindigkeit, anschlüsse, fehler_daten) = reserviere_streckenabschnitt_map(
@@ -541,6 +549,7 @@ where
             &mut bekannte_kontakte,
             &mut fehler,
             canvas,
+            sender,
         );
         if let Some(fehler_daten) = fehler_daten {
             ohne_streckenabschnitt.verschmelze(fehler_daten);
@@ -561,6 +570,7 @@ where
                 &mut bekannte_kontakte,
                 &mut fehler,
                 canvas,
+                sender,
             );
         if let Some(fehler_streckenabschnitte) = fehler_streckenabschnitte {
             ohne_geschwindigkeit.extend(fehler_streckenabschnitte);
@@ -621,10 +631,11 @@ impl<L: Leiter> Gleise<L> {
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn laden<S>(
+    pub fn laden<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
+        sender: &Sender<Nachricht>,
     ) -> Result<(), NonEmpty<LadenFehler<S>>>
     where
         L: BekannterLeiter + Serialisiere<S>,
@@ -661,7 +672,7 @@ impl<L: Leiter> Gleise<L> {
 
         // reserviere Anschlüsse
         let (zustand, fehler) = zustand_serialisiert
-            .reserviere(lager, anschlüsse, &self.canvas)
+            .reserviere(lager, anschlüsse, &self.canvas, sender)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
         self.zustand = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {

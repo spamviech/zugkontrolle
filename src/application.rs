@@ -282,6 +282,12 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
     }
 }
 
+impl<L: Leiter, S> From<steuerung::kontakt::Aktualisieren> for Nachricht<L, S> {
+    fn from(_value: steuerung::kontakt::Aktualisieren) -> Self {
+        Nachricht::AsyncAktualisieren
+    }
+}
+
 impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
 where
     T: Clone + Into<AnyGleisUnit>,

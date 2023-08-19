@@ -31,11 +31,50 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-macro_rules! erstelle_existential {
-    ($trait: ident, $(($vis: vis))? $existential: ident, $doc: literal $(, $($derives: ident),* $(,)?)?) => {
-        #[doc = $doc]
-        $(#[derive($($derives),*)])?
+macro_rules! erstelle_sender_trait_existential {
+    ($(($vis: vis),)? $trait: ident, $trait_doc: literal, $existential: ident, $existential_doc: literal, $msg: ty $(,)?) => {
+        #[doc = $trait_doc]
+        #[dyn_clonable::clonable]
+        $($vis)? trait $trait: Clone + Send {
+            #[doc = "Sende eine [$msg]-Nachricht."]
+            fn send(&self, level: $msg) -> Result<(), SendError<$msg>>;
+
+            #[doc = "[Debug]-Ausgabe zur Darstellung eines [$existential]."]
+            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+        }
+
+        impl $trait for Sender<$msg> {
+            fn send(&self, value: $msg) -> Result<(), SendError<$msg>> {
+                Sender::send(self, value)
+            }
+
+            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                <Self as Debug>::fmt(self, f)
+            }
+        }
+
+        impl<T: Send, F: Fn($msg) -> T + Clone + Send> $trait for (Sender<T>, F) {
+            fn send(&self, msg: $msg) -> Result<(), SendError<$msg>> {
+                let (sender, f) = self;
+                Sender::send(sender, f(msg)).map_err(|SendError(_)| SendError(msg))
+            }
+
+            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_tuple("").field(&self.0).field(&"<closure>").finish()
+            }
+        }
+
+        #[doc = $existential_doc]
+        #[derive(Clone)]
         $($vis)? struct $existential(Box<dyn $trait>);
+
+        impl Debug for $existential {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("SomeLevelSender(")?;
+                self.0.debug_fmt(f)?;
+                f.write_str(")")
+            }
+        }
 
         impl<T: 'static + $trait + Send> From<T> for $existential {
             fn from(value: T) -> Self {
@@ -59,63 +98,25 @@ macro_rules! erstelle_existential {
     };
 }
 
-/// Hilfs-Trait um existential types zu ermöglichen (Verstecke T).
-trait LevelSender: Send {
-    fn send(&mut self, level: Level) -> Result<(), SendError<Level>>;
-
-    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-}
-
-impl LevelSender for Sender<Level> {
-    fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
-        Sender::send(self, level)
-    }
-
-    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        <Self as Debug>::fmt(self, f)
-    }
-}
-
-impl<T: Send, F: FnMut(Level) -> T + Send> LevelSender for (Sender<T>, F) {
-    fn send(&mut self, level: Level) -> Result<(), SendError<Level>> {
-        let (sender, f) = self;
-        Sender::send(sender, f(level)).map_err(|SendError(_)| SendError(level))
-    }
-
-    fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("").field(&self.0).field(&"<closure>").finish()
-    }
-}
-
-erstelle_existential! {
+erstelle_sender_trait_existential! {
     LevelSender,
+    "Hilfs-Trait um existential types zu ermöglichen (Verstecke T).",
     SomeLevelSender,
     "Ein beliebiger [LevelSender] mit Debug-Implementierung.",
-}
-
-impl Debug for SomeLevelSender {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("SomeLevelSender(")?;
-        self.0.debug_fmt(f)?;
-        f.write_str(")")
-    }
+    Level,
 }
 
 /// Das aktuelle level hat sich geändert, das UI muss aktualisiert werden.
 #[derive(Debug, Clone, Copy)]
 pub struct Aktualisieren;
 
-/// Sende eine [Aktualisieren]-Nachricht.
-pub trait AktualisierenSender: Debug + Send {
-    /// Sende eine [Aktualisieren]-Nachricht.
-    fn send(&mut self, level: Aktualisieren) -> Result<(), SendError<Aktualisieren>>;
-}
-
-erstelle_existential! {
+erstelle_sender_trait_existential! {
+    (pub),
     AktualisierenSender,
-    (pub) SomeAktualisierenSender,
+    "Sende eine [Aktualisieren]-Nachricht.",
+    SomeAktualisierenSender,
     "Ein beliebiger [AktualisierenSender].",
-    Debug,
+    Aktualisieren,
 }
 
 /// Hilfs-Trait um Trait-Objekte für beide Traits zu erstellen.
@@ -240,11 +241,11 @@ impl Kontakt {
     /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
     /// Das übergebene Funktion wird mit dem neuen [Level] aufgerufen,
     /// das Ergebnis wird mit dem [Sender] geschickt.
-    pub fn registriere_trigger_sender<T: 'static + Send, F: 'static + FnMut(Level) -> T + Send>(
-        &mut self,
-        sender: Sender<T>,
-        f: F,
-    ) {
+    pub fn registriere_trigger_sender<T, F>(&mut self, sender: Sender<T>, f: F)
+    where
+        T: 'static + Send,
+        F: 'static + Fn(Level) -> T + Clone + Send,
+    {
         let senders = &mut *self.senders.lock();
         senders.push(SomeLevelSender::from((sender, f)));
     }
@@ -293,7 +294,7 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    type Arg = (Arc<Mutex<Cache>>, Arc<SomeAktualisierenSender>);
+    type Arg = (Arc<Mutex<Cache>>, SomeAktualisierenSender);
 
     fn reserviere(
         self,
@@ -317,7 +318,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 anschluss,
                 self.trigger,
                 Steuerung::neu(letztes_level, cache),
-                todo!("aktualisieren_sender"), // clone nicht möglich!
+                aktualisieren_sender,
             ),
             fehler,
         ) {

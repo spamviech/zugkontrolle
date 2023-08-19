@@ -503,7 +503,12 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+impl<'t, L, S> Zugkontrolle<L, S>
+where
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    S: 'static + Send,
+{
     /// Lade einen neuen Zustand aus einer Datei.
     #[allow(single_use_lifetimes)]
     pub fn laden(&mut self, pfad: String)
@@ -518,7 +523,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
-        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
+        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad, &self.sender);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(
