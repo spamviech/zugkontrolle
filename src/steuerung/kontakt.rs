@@ -120,8 +120,8 @@ erstelle_sender_trait_existential! {
 }
 
 /// Hilfs-Trait um Trait-Objekte für beide Traits zu erstellen.
-trait LetztesLevel: Debug + AsMut<Option<Level>> + Send {}
-impl<T: Debug + AsMut<Option<Level>> + Send> LetztesLevel for T {}
+trait LetztesLevel: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send {}
+impl<T: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send> LetztesLevel for T {}
 
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
 #[derive(Debug, Clone)]
@@ -174,7 +174,7 @@ impl Kontakt {
         name: Name,
         mut anschluss: InputAnschluss,
         trigger: Trigger,
-        letztes_level: impl 'static + Debug + AsMut<Option<Level>> + Send,
+        letztes_level: impl 'static + Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send,
         aktualisieren_sender: SomeAktualisierenSender,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
         let senders: Arc<Mutex<Vec<SomeLevelSender>>> = Arc::new(Mutex::new(Vec::new()));
@@ -341,5 +341,29 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
 impl MitName for Option<KontaktSerialisiert> {
     fn name(&self) -> Option<&str> {
         self.as_ref().map(|kontakt| kontakt.name.0.as_str())
+    }
+}
+
+/// Trait für Typen mit einem aktuellen [Level].
+pub trait MitLevel {
+    /// Erhalte das aktuelle [Level].
+    fn aktuelles_level(&self) -> Option<Level>;
+}
+
+impl MitLevel for () {
+    fn aktuelles_level(&self) -> Option<Level> {
+        None
+    }
+}
+
+impl<T: MitLevel> MitLevel for Option<T> {
+    fn aktuelles_level(&self) -> Option<Level> {
+        self.as_ref().and_then(MitLevel::aktuelles_level)
+    }
+}
+
+impl MitLevel for Kontakt {
+    fn aktuelles_level(&self) -> Option<Level> {
+        *self.letztes_level.lock().as_ref()
     }
 }
