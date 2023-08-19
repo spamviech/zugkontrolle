@@ -169,6 +169,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
             spurweite,
             self.länge,
             true,
+            None,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
@@ -176,6 +177,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
             spurweite,
             self.länge,
             true,
+            None,
             gedreht_transformations.clone(),
             pfad::Erbauer::with_invert_y,
         ));

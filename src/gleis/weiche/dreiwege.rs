@@ -165,6 +165,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for DreiwegeWeiche<A
             spurweite,
             self.länge,
             true,
+            None,
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
         ));

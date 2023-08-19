@@ -11,7 +11,7 @@ use crate::{
     steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
-            pfad::{self, Pfad, Transformation},
+            pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
         mm::{Länge, Radius, Spurweite},
@@ -133,6 +133,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
                 spurweite,
                 self.länge,
                 false,
+                None,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
             ));
@@ -161,6 +162,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for KurvenWeiche<Ans
                 spurweite,
                 self.länge,
                 false,
+                None,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
             ));

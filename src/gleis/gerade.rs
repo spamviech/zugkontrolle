@@ -6,9 +6,10 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
 use crate::{
+    anschluss::{level::Level, trigger::Trigger},
     gleis::verbindung::Verbindung,
     nachschlagen::impl_nachschlagen,
-    steuerung::kontakt::{Kontakt, KontaktSerialisiert},
+    steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitLevel},
     typen::{
         canvas::{
             pfad::{self, Bogen, Pfad, Transformation},
@@ -61,7 +62,7 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
+impl<Anschluss: MitName + MitLevel> Zeichnen for Gerade<Anschluss> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
@@ -70,7 +71,15 @@ impl<Anschluss: MitName> Zeichnen for Gerade<Anschluss> {
     }
 
     fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
+        let level = self.kontakt.aktuelles_level();
+        vec![zeichne(
+            spurweite,
+            self.länge,
+            true,
+            None,
+            Vec::new(),
+            pfad::Erbauer::with_normal_axis,
+        )]
     }
 
     fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
@@ -130,8 +139,9 @@ pub(crate) fn zeichne<P, A>(
     spurweite: Spurweite,
     länge: Skalar,
     beschränkungen: bool,
-    transformations: Vec<Transformation>,
-    with_invert_axis: impl FnOnce(
+    kontakt: Option<(Trigger, Option<Level>)>,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
     ),
@@ -141,13 +151,13 @@ where
     A: From<Bogen> + Into<Bogen>,
 {
     let mut path_builder = pfad::Erbauer::neu();
-    with_invert_axis(
+    mit_invertierter_achse(
         &mut path_builder,
         Box::new(move |builder| {
             zeichne_internal::<P, A>(spurweite, builder, länge, beschränkungen)
         }),
     );
-    path_builder.baue_unter_transformationen(transformations)
+    path_builder.baue_unter_transformationen(transformationen)
 }
 
 fn zeichne_internal<P, A>(

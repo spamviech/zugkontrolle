@@ -156,6 +156,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 spurweite,
                 self.länge,
                 true,
+                None,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
             ));
@@ -184,6 +185,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for SKurvenWeiche<An
                 spurweite,
                 self.länge,
                 true,
+                None,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
             ));
