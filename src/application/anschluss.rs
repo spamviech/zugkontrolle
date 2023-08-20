@@ -16,7 +16,7 @@ use log::error;
 use crate::{
     anschluss::{
         level::Level,
-        pcf8574::{self, Beschreibung, I2cBus, Variante},
+        pcf8574::{self, Beschreibung, I2cBus, Lager, Variante},
         pin::pwm,
         polarität::Polarität,
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
@@ -104,7 +104,7 @@ where
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input(
         start_wert: Option<&'a InputAnschluss>,
-        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
@@ -125,7 +125,7 @@ where
             beschreibung,
             port,
             modus,
-            interrupt_pins,
+            lager,
             scrollable_style,
             settings,
         )
@@ -134,7 +134,7 @@ where
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input_s(
         start_wert: Option<InputSerialisiert>,
-        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
@@ -151,7 +151,7 @@ where
             beschreibung,
             port,
             modus,
-            interrupt_pins,
+            lager,
             scrollable_style,
             settings,
         )
@@ -163,14 +163,14 @@ where
         beschreibung: Option<Beschreibung>,
         port: Option<kleiner_8>,
         modus: Option<u8>,
-        interrupt_pins: &'a HashMap<Beschreibung, u8>,
+        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             |pin, beschreibung| {
-                interrupt_pins.get(&beschreibung).map_or(
+                lager.interrupt_pin(&beschreibung).map_or(
                     NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
                     |pin| {
                         let text: Text<'_, R> = Text::new(pin.to_string());
@@ -183,7 +183,7 @@ where
             |beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
-                interrupt: if interrupt_pins.get(&beschreibung).is_some() {
+                interrupt: if lager.interrupt_pin(&beschreibung).is_some() {
                     None
                 } else {
                     Some(*pin)

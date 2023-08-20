@@ -83,7 +83,7 @@ where
             streckenabschnitt_aktuell_festlegen,
             bewegen,
             drehen,
-            lager: _,
+            lager,
             speichern_gefärbt,
             bewegung: _,
             message_box,
@@ -136,7 +136,7 @@ where
         );
 
         let zeige_auswahlzustand = |modal: &AuswahlZustand| {
-            AuswahlZustand::view(modal, gleise, *scrollable_style, *i2c_settings)
+            AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
                 .map(modal::Nachricht::äußeres_modal)
         };
         let auswahlzustand =

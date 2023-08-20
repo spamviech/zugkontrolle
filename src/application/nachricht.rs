@@ -8,10 +8,10 @@ use crate::{
     anschluss::OutputSerialisiert,
     application::{
         auswahl::{
-            AuswahlZustand, DreiwegeWeicheNachricht, KurvenWeicheNachricht, WeicheNachricht,
-            WeichenId,
+            AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht,
+            WeicheNachricht, WeichenId,
         },
-        bewegen, geschwindigkeit, lizenzen, modal, streckenabschnitt, weiche,
+        bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt, weiche,
     },
     gleis::{
         gerade::GeradeUnit,
@@ -192,12 +192,12 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
-                GleisSteuerung::Gerade((id, startwert)) => {
-                    todo!("AuswahlZustand::Gerade({id:?}, {startwert:?}")
-                },
-                GleisSteuerung::Kurve((id, startwert)) => {
-                    todo!("AuswahlZustand::Kurve({id:?}, {startwert:?}")
-                },
+                GleisSteuerung::Gerade((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                    AuswahlZustand::Kontakt(startwert, KontaktId::Gerade(id)),
+                ),
+                GleisSteuerung::Kurve((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                    AuswahlZustand::Kontakt(startwert, KontaktId::Kurve(id)),
+                ),
                 GleisSteuerung::Weiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Weiche(startwert, WeichenId::Gerade(id)),
                 ),
@@ -275,6 +275,22 @@ impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
                 Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
             ),
             Löschen(name) => modal::Nachricht::Underlay(Nachricht::LöscheGeschwindigkeit(name)),
+        }
+    }
+}
+impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+{
+    fn from((nachricht, weichen_id): (kontakt::Nachricht, KontaktId)) -> Self {
+        use kontakt::Nachricht::*;
+        match nachricht {
+            Festlegen(steuerung) => {
+                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
+                    KontaktId::Gerade(id) => todo!("AnschlüsseAnpassen::Weiche(id, steuerung)"),
+                    KontaktId::Kurve(id) => todo!("AnschlüsseAnpassen::Kurven(id, steuerung)"),
+                }))
+            },
+            Schließen => modal::Nachricht::VersteckeOverlay,
         }
     }
 }

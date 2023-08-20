@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use iced::{Element, Renderer};
 
 use crate::{
-    anschluss::de_serialisieren::Serialisiere,
+    anschluss::{de_serialisieren::Serialisiere, pcf8574::Lager},
     application::{
         geschwindigkeit::{self, LeiterAnzeige},
         lizenzen,
@@ -28,6 +28,8 @@ use crate::{
     steuerung::{self, kontakt::KontaktSerialisiert},
 };
 
+use super::kontakt;
+
 /// Die Id eines Gleises mit einem [Kontakt](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, PartialEq)]
 pub enum KontaktId {
@@ -35,6 +37,15 @@ pub enum KontaktId {
     Gerade(GleisId<Gerade>),
     /// Die Id einer [Kurve].
     Kurve(GleisId<Kurve>),
+}
+
+impl KontaktId {
+    pub(in crate::application) fn klonen(&self) -> Self {
+        match self {
+            KontaktId::Gerade(id) => KontaktId::Gerade(id.klonen()),
+            KontaktId::Kurve(id) => KontaktId::Kurve(id.klonen()),
+        }
+    }
 }
 
 /// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
@@ -101,7 +112,9 @@ impl Clone for AuswahlZustand {
         match self {
             AuswahlZustand::Streckenabschnitt => AuswahlZustand::Streckenabschnitt,
             AuswahlZustand::Geschwindigkeit => AuswahlZustand::Geschwindigkeit,
-            AuswahlZustand::Kontakt(startwert, id) => todo!(),
+            AuswahlZustand::Kontakt(startwert, id) => {
+                AuswahlZustand::Kontakt(startwert.clone(), id.klonen())
+            },
             AuswahlZustand::Weiche(startwert, id) => {
                 AuswahlZustand::Weiche(startwert.clone(), id.klonen())
             },
@@ -139,6 +152,7 @@ impl AuswahlZustand {
     pub fn view<'t, L, S, Nachricht: 't>(
         &self,
         gleise: &'t Gleise<L>,
+        lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
     ) -> Element<'t, modal::Nachricht<AuswahlZustand, Nachricht>, Renderer<Thema>>
@@ -147,6 +161,7 @@ impl AuswahlZustand {
         S: 't,
         modal::Nachricht<AuswahlZustand, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
+            + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
             + From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
             + From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
@@ -171,7 +186,23 @@ impl AuswahlZustand {
                 ))
                 .map(|nachricht| modal::Nachricht::from(nachricht))
             },
-            AuswahlZustand::Kontakt(kontakt, kontakt_id) => todo!(),
+            AuswahlZustand::Kontakt(kontakt, kontakt_id) => {
+                let gleis_art = match &kontakt_id {
+                    KontaktId::Gerade(_id) => "Gerade",
+                    KontaktId::Kurve(_id) => "Kurve",
+                };
+                let kontakt_id_clone = kontakt_id.klonen();
+                Element::from(kontakt::Auswahl::neu(
+                    gleis_art,
+                    kontakt.clone(),
+                    lager,
+                    scrollable_style,
+                    i2c_settings,
+                ))
+                .map(move |nachricht| {
+                    modal::Nachricht::from((nachricht, kontakt_id_clone.klonen()))
+                })
+            },
             AuswahlZustand::Weiche(weiche, weichen_id) => {
                 let weichen_art = match &weichen_id {
                     WeichenId::Gerade(_id) => "Weiche",

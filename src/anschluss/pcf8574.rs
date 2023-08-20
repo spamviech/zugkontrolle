@@ -6,7 +6,7 @@
 
 use std::{
     array,
-    collections::HashMap,
+    collections::hash_map::{Entry, HashMap},
     fmt::Debug,
     fmt::{self, Display, Formatter},
     hash::Hash,
@@ -111,7 +111,7 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 
 /// Noch verfügbare Pcf8574-[Port]s.
 #[derive(Debug)]
-pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
+pub struct Lager(Arc<RwLock<HashMap<Beschreibung, (Arc<Mutex<Pcf8574>>, [Option<Port>; 8])>>>);
 
 impl Lager {
     /// Erstelle ein neues [Lager].
@@ -129,12 +129,14 @@ impl Lager {
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
+                    let mut array = [None, None, None, None, None, None, None, None];
                     for port_num in kleiner_8::alle_werte() {
                         let port_struct =
                             Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
-                        if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
-                            error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
-                        }
+                        array[usize::from(port_num)] = Some(port_struct);
+                    }
+                    if let Some(bisher) = map.insert(beschreibung, (pcf8574, array)) {
+                        error!("Pcf8574 doppelt erstellt: {bisher:?}")
                     }
                 }
             }
@@ -148,19 +150,42 @@ impl Lager {
         beschreibung: Beschreibung,
         port: kleiner_8,
     ) -> Result<Port, InVerwendung> {
-        debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-        self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
+        debug!("reserviere pcf8574 {beschreibung:?}-{port}");
+        self.0
+            .write()
+            .get_mut(&beschreibung)
+            .and_then(|(_pcf8574, ports)| ports[usize::from(port)].take())
+            .ok_or(InVerwendung { beschreibung, port })
     }
 
     /// Gebe einen Pcf8574-[Port] zurück, damit er wieder verwendet werden kann.
     ///
     /// Wird vom [Drop]-Handler des [Port]s aufgerufen.
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
-        debug!("rückgabe {:?}", port);
-        let port_opt = self.0.write().insert((port.beschreibung().clone(), port.port()), port);
-        if let Some(bisher) = port_opt {
+        debug!("rückgabe {port:?}");
+        let mut guard = self.0.write();
+        let entry = guard.entry(port.beschreibung().clone());
+        let (_pcf8574, ports) = match entry {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => {
+                error!("Port für unbekannten Pcf8574 zurückgegeben: {:?}", port.beschreibung());
+                let pcf8574 = port.pcf8574.clone();
+                let array = [None, None, None, None, None, None, None, None];
+                v.insert((pcf8574, array))
+            },
+        };
+        if let Some(bisher) = ports[usize::from(port.port())].replace(port) {
             error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
         }
+    }
+
+    /// Der Interrupt-Pin für den Pcf8574.
+    pub fn interrupt_pin(&self, beschreibung: &Beschreibung) -> Option<u8> {
+        debug!("lese Interrupt-Pin für pcf8574 {beschreibung:?}");
+        self.0
+            .read()
+            .get(beschreibung)
+            .and_then(|(pcf8574, _ports)| pcf8574.lock().interrupt.as_ref().map(input::Pin::pin))
     }
 }
 

@@ -22,7 +22,11 @@ use iced_widget::{
 };
 
 use crate::{
-    anschluss::{pcf8574::Beschreibung, trigger::Trigger, InputSerialisiert},
+    anschluss::{
+        pcf8574::{Beschreibung, Lager},
+        trigger::Trigger,
+        InputSerialisiert,
+    },
     application::{
         anschluss::{self, make_radios},
         map_mit_zustand::MapMitZustand,
@@ -97,13 +101,13 @@ where
     pub fn neu(
         gleis_art: &'t str,
         kontakt: Option<KontaktSerialisiert>,
-        interrupt_pins: &'t HashMap<Beschreibung, u8>,
+        lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let erzeuge_zustand = move || Zustand::neu(&kontakt.clone());
         let erzeuge_element = move |zustand: &_| {
-            Self::erzeuge_element(gleis_art, zustand, interrupt_pins, scrollable_style, settings)
+            Self::erzeuge_element(gleis_art, zustand, lager, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht,
                       zustand: &mut dyn DerefMut<Target = Zustand>,
@@ -144,7 +148,7 @@ where
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand,
-        interrupt_pins: &'t HashMap<Beschreibung, u8>,
+        lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Element<'t, InterneNachricht, R> {
@@ -156,7 +160,7 @@ where
         column = column.push(text_input);
         let anschluss_auswahl = Element::from(anschluss::Auswahl::neu_input_s(
             Some(anschluss.clone()),
-            interrupt_pins,
+            lager,
             scrollable_style,
             settings,
         ))
