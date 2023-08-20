@@ -6,8 +6,12 @@ use iced::Command;
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{auswahl::AuswahlZustand, bewegen, modal, streckenabschnitt},
+    application::{
+        auswahl::AuswahlZustand, bewegen, geschwindigkeit, lizenzen, modal, streckenabschnitt,
+        weiche,
+    },
     gleis::{
+        self,
         gerade::GeradeUnit,
         gleise::{
             self,
@@ -19,9 +23,9 @@ use crate::{
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::KurveUnit,
         weiche::{
-            dreiwege::DreiwegeWeicheUnit,
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
             gerade::{Weiche, WeicheUnit},
-            kurve::KurvenWeicheUnit,
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
@@ -93,6 +97,16 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
                 Nachricht::AktionGeschwindigkeit(aktion)
             },
         }
+    }
+}
+
+impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
+where
+    T: Clone + Into<AnyGleisUnit>,
+    L: Leiter,
+{
+    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L> {
+        NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
     }
 }
 
@@ -253,13 +267,107 @@ impl<L: Leiter, S> From<steuerung::kontakt::Aktualisieren> for Nachricht<L, S> {
     }
 }
 
-impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
-where
-    T: Clone + Into<AnyGleisUnit>,
-    L: Leiter,
+impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
 {
-    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L> {
-        NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
+    fn from(nachricht: streckenabschnitt::AuswahlNachricht) -> Self {
+        use streckenabschnitt::AuswahlNachricht::*;
+        match nachricht {
+            Schließe => modal::Nachricht::VersteckeOverlay,
+            Wähle(wahl) => modal::Nachricht::Underlay(Nachricht::WähleStreckenabschnitt(wahl)),
+            Hinzufügen(geschwindigkeit, name, farbe, output) => modal::Nachricht::Underlay(
+                Nachricht::HinzufügenStreckenabschnitt(geschwindigkeit, name, farbe, output),
+            ),
+            Lösche(name) => modal::Nachricht::Underlay(Nachricht::LöscheStreckenabschnitt(name)),
+        }
+    }
+}
+
+impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+{
+    fn from(nachricht: geschwindigkeit::AuswahlNachricht<S>) -> Self {
+        use geschwindigkeit::AuswahlNachricht::*;
+        match nachricht {
+            Schließen => modal::Nachricht::VersteckeOverlay,
+            Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
+                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
+            ),
+            Löschen(name) => modal::Nachricht::Underlay(Nachricht::LöscheGeschwindigkeit(name)),
+        }
+    }
+}
+
+/// AuswahlNachricht für die Steuerung einer [Weiche], [Kreuzung] und [SKurvenWeiche].
+type WeicheNachricht = weiche::Nachricht<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+>;
+
+impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+{
+    fn from((nachricht, weichen_id): (WeicheNachricht, WeichenId)) -> Self {
+        use weiche::Nachricht::*;
+        match nachricht {
+            Festlegen(steuerung) => {
+                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
+                    WeichenId::Gerade(id) => AnschlüsseAnpassen::Weiche(id, steuerung),
+                    WeichenId::SKurve(id) => AnschlüsseAnpassen::SKurvenWeiche(id, steuerung),
+                    WeichenId::Kreuzung(id) => AnschlüsseAnpassen::Kreuzung(id, steuerung),
+                }))
+            },
+            Schließen => modal::Nachricht::VersteckeOverlay,
+        }
+    }
+}
+
+/// AuswahlNachricht für die Steuerung einer [DreiwegeWeiche].
+type DreiwegeWeicheNachricht = weiche::Nachricht<
+    gleis::weiche::dreiwege::RichtungInformation,
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+
+impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+{
+    fn from((nachricht, gleis_id): (DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)) -> Self {
+        use weiche::Nachricht::*;
+        match nachricht {
+            Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                AnschlüsseAnpassen::DreiwegeWeiche(gleis_id, steuerung),
+            )),
+            Schließen => modal::Nachricht::VersteckeOverlay,
+        }
+    }
+}
+
+/// AuswahlNachricht für die Steuerung einer [KurvenWeiche].
+type KurvenWeicheNachricht = weiche::Nachricht<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+>;
+
+impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
+    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+{
+    fn from((nachricht, gleis_id): (KurvenWeicheNachricht, GleisId<KurvenWeiche>)) -> Self {
+        use weiche::Nachricht::*;
+        match nachricht {
+            Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+                AnschlüsseAnpassen::KurvenWeiche(gleis_id, steuerung),
+            )),
+            Schließen => modal::Nachricht::VersteckeOverlay,
+        }
+    }
+}
+
+impl<L: Leiter, S> From<lizenzen::Nachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
+    fn from(nachricht: lizenzen::Nachricht) -> Self {
+        use lizenzen::Nachricht::*;
+        match nachricht {
+            Schließen => modal::Nachricht::VersteckeOverlay,
+        }
     }
 }
 

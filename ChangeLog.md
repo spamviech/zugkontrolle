@@ -15,6 +15,7 @@
   - verschiebe MitRichtung nach steuerung::weiche
   - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
   - extrahiere application::Nachricht (+ Hilfsgrößen) und AuswahlZustand in eigene Module
+  - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
 - (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,

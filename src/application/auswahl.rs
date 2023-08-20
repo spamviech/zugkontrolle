@@ -7,8 +7,8 @@ use iced::{Element, Renderer};
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
     application::{
-        geschwindigkeit::{self, LeiterAnzeige},
-        lizenzen::{self, Lizenzen},
+        geschwindigkeit::LeiterAnzeige,
+        lizenzen::Lizenzen,
         modal::{self},
         nachricht::{Nachricht, WeichenId},
         streckenabschnitt,
@@ -18,7 +18,7 @@ use crate::{
     argumente::I2cSettings,
     gleis::{
         self,
-        gleise::{id::GleisId, AnschlüsseAnpassen, Gleise},
+        gleise::{id::GleisId, Gleise},
         weiche::{dreiwege::DreiwegeWeiche, kurve::KurvenWeiche},
     },
     steuerung,
@@ -78,20 +78,15 @@ impl Clone for AuswahlZustand {
 
 impl AuswahlZustand {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, S, MessageBox>(
+    pub fn view<'t, L, S>(
         &self,
         gleise: &'t Gleise<L>,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
-    ) -> Element<
-        't,
-        modal::Nachricht<AuswahlZustand, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
-        Renderer<Thema>,
-    >
+    ) -> Element<'t, modal::Nachricht<AuswahlZustand, Nachricht<L, S>>, Renderer<Thema>>
     where
         L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S>,
         S: 't,
-        MessageBox: 't,
     {
         match self {
             AuswahlZustand::Streckenabschnitt => Element::from(streckenabschnitt::Auswahl::neu(
@@ -99,28 +94,7 @@ impl AuswahlZustand {
                 scrollable_style,
                 i2c_settings,
             ))
-            .map(|message| {
-                use streckenabschnitt::AuswahlNachricht::*;
-                match message {
-                    Schließe => modal::Nachricht::VersteckeOverlay,
-                    Wähle(wahl) => modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                        Nachricht::WähleStreckenabschnitt(wahl),
-                    )),
-                    Hinzufügen(geschwindigkeit, name, farbe, output) => {
-                        modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                            Nachricht::HinzufügenStreckenabschnitt(
-                                geschwindigkeit,
-                                name,
-                                farbe,
-                                output,
-                            ),
-                        ))
-                    },
-                    Lösche(name) => modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                        Nachricht::LöscheStreckenabschnitt(name),
-                    )),
-                }
-            }),
+            .map(|nachricht| modal::Nachricht::from(nachricht)),
             AuswahlZustand::Geschwindigkeit => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
@@ -131,20 +105,7 @@ impl AuswahlZustand {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(|message| {
-                    use geschwindigkeit::AuswahlNachricht::*;
-                    match message {
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                        Hinzufügen(name, geschwindigkeit) => {
-                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
-                            ))
-                        },
-                        Löschen(name) => modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                            Nachricht::LöscheGeschwindigkeit(name),
-                        )),
-                    }
-                })
+                .map(|nachricht| modal::Nachricht::from(nachricht))
             },
             AuswahlZustand::Weiche(weiche, weichen_id) => {
                 let weichen_art = match &weichen_id {
@@ -159,26 +120,8 @@ impl AuswahlZustand {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => {
-                            modal::Nachricht::Underlay(modal::Nachricht::Underlay(
-                                Nachricht::AnschlüsseAnpassen(match &weichen_id_clone {
-                                    WeichenId::Gerade(id) => {
-                                        AnschlüsseAnpassen::Weiche(id.klonen(), steuerung)
-                                    },
-                                    WeichenId::SKurve(id) => {
-                                        AnschlüsseAnpassen::SKurvenWeiche(id.klonen(), steuerung)
-                                    },
-                                    WeichenId::Kreuzung(id) => {
-                                        AnschlüsseAnpassen::Kreuzung(id.klonen(), steuerung)
-                                    },
-                                }),
-                            ))
-                        },
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
+                .map(move |nachricht| {
+                    modal::Nachricht::from((nachricht, weichen_id_clone.klonen()))
                 })
             },
             AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
@@ -189,17 +132,7 @@ impl AuswahlZustand {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                                AnschlüsseAnpassen::DreiwegeWeiche(id_clone.klonen(), steuerung),
-                            )),
-                        ),
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
-                })
+                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.klonen())))
             },
             AuswahlZustand::KurvenWeiche(kurven_weiche, id) => {
                 let id_clone = id.klonen();
@@ -209,21 +142,11 @@ impl AuswahlZustand {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |message| {
-                    use weiche::Nachricht::*;
-                    match message {
-                        Festlegen(steuerung) => modal::Nachricht::Underlay(
-                            modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                                AnschlüsseAnpassen::KurvenWeiche(id_clone.klonen(), steuerung),
-                            )),
-                        ),
-                        Schließen => modal::Nachricht::VersteckeOverlay,
-                    }
-                })
+                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.klonen())))
             },
             AuswahlZustand::ZeigeLizenzen => {
                 Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(scrollable_style))
-                    .map(|lizenzen::Nachricht::Schließen| modal::Nachricht::VersteckeOverlay)
+                    .map(|nachricht| modal::Nachricht::from(nachricht))
             },
         }
     }

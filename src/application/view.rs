@@ -137,6 +137,7 @@ where
 
         let zeige_auswahlzustand = |modal: &AuswahlZustand| {
             AuswahlZustand::view(modal, gleise, *scrollable_style, *i2c_settings)
+                .map(modal::Nachricht::äußeres_modal)
         };
         let auswahlzustand =
             Element::from(Modal::neu(column, zeige_auswahlzustand).schließe_bei_esc());

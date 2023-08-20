@@ -72,6 +72,20 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
             Nachricht::VersteckeOverlay => Nachricht::VersteckeOverlay,
         }
     }
+
+    /// Konvertiere die Nachricht, wenn das [Modal] innerhalb eines äußeren [Modals](Modal) angezeigt wird,
+    /// ohne dieses direkt zu beeinflussen.
+    pub fn äußeres_modal<Außen>(
+        self,
+    ) -> Nachricht<Overlay, Nachricht<Außen, ElementNachricht>> {
+        match self {
+            Nachricht::Underlay(element_nachricht) => {
+                Nachricht::Underlay(Nachricht::Underlay(element_nachricht))
+            },
+            Nachricht::ZeigeOverlay(overlay) => Nachricht::ZeigeOverlay(overlay),
+            Nachricht::VersteckeOverlay => Nachricht::VersteckeOverlay,
+        }
+    }
 }
 
 /// Muss das overlay-Element aktualisiert werden?
