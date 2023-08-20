@@ -23,3 +23,9 @@ __pycache__/
 /deps.png
 build_all.sh
 /licenses/_bak/
+
+# versehentlich/testweise gespeicherter Zustand
+/Märklin.zug
+/Lego.zug
+
+/python_scripts/config.ini
