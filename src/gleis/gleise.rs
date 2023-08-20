@@ -7,7 +7,10 @@ use std::{
 
 use iced::{
     mouse::{self, Cursor},
-    widget::canvas::{event, Event, Geometry, Program},
+    widget::{
+        canvas::{event, Event, Geometry, Program},
+        Radio,
+    },
     Rectangle, Renderer,
 };
 use log::error;
@@ -69,6 +72,12 @@ impl ModusDaten {
             Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: Instant::now() },
             Modus::Fahren => ModusDaten::Fahren,
         }
+    }
+}
+
+impl Modus {
+    pub(crate) fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus, Renderer<Thema>> {
+        Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
 

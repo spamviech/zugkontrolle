@@ -11,15 +11,17 @@
   - lese name+version aus Cargo.toml
   - ausführen unabhängig vom aktuellen Arbeitsverzeichnis möglich
   - stelle sicher ziel-Ordner existiert, bevor scp ausgeführt wird
+- refactoring:
+  - verschiebe MitRichtung nach steuerung::weiche
+  - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
+  - extrahiere application::Nachricht (+ Hilfsgrößen) und AuswahlZustand in eigene Module
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
 - (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,
   wenn initialisieren nicht erfolgreich war (z.B. pcf8574 nicht angeschlossen).
-- verschiebe MitRichtung nach steuerung::weiche
-- verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
 - entferne RwLock aus Gleise-Struktur, um auftretende Deadlocks zu beheben
-- erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
 - entferne die meisten `pub use` re-exports
+- erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
 - ermögliche Auswahl des I2C-Busses bei Anschlüssen
 - alle I2C-Busse sind standard-mäßig deaktiviert
 - neue Gleise erscheinen direkt an der richtigen Position

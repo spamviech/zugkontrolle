@@ -19,14 +19,14 @@ use crate::{
         OutputSerialisiert,
     },
     application::{
-        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, style::thema::Thema, AnschlüsseAnpassen,
-        AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
+        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, nachricht::AnyGleisUnit,
+        style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
         self,
         daten::{v2::BekannterZugtyp, StreckenabschnittMap},
         id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
-        AnschlüsseAnpassenFehler, Gleise,
+        AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
