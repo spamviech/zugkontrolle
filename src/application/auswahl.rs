@@ -7,22 +7,56 @@ use iced::{Element, Renderer};
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
     application::{
-        geschwindigkeit::LeiterAnzeige,
+        geschwindigkeit::{self, LeiterAnzeige},
+        lizenzen,
         lizenzen::Lizenzen,
-        modal::{self},
-        nachricht::{Nachricht, WeichenId},
-        streckenabschnitt,
+        modal, streckenabschnitt,
         style::{sammlung::Sammlung, thema::Thema},
         weiche,
     },
     argumente::I2cSettings,
     gleis::{
         self,
+        gerade::Gerade,
         gleise::{id::GleisId, Gleise},
-        weiche::{dreiwege::DreiwegeWeiche, kurve::KurvenWeiche},
+        kreuzung::Kreuzung,
+        kurve::Kurve,
+        weiche::{
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+        },
     },
-    steuerung,
+    steuerung::{self, kontakt::KontaktSerialisiert},
 };
+
+/// Die Id eines Gleises mit einem [Kontakt](crate::steuerung::kontakt::Kontakt).
+#[derive(Debug, PartialEq)]
+pub enum KontaktId {
+    /// Die Id einer [Geraden](Gerade).
+    Gerade(GleisId<Gerade>),
+    /// Die Id einer [Kurve].
+    Kurve(GleisId<Kurve>),
+}
+
+/// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
+#[derive(Debug, PartialEq)]
+pub enum WeichenId {
+    /// Die Id einer [Weiche].
+    Gerade(GleisId<Weiche>),
+    /// Die Id einer [SKurvenWeiche].
+    SKurve(GleisId<SKurvenWeiche>),
+    /// Die Id einer [Kreuzung].
+    Kreuzung(GleisId<Kreuzung>),
+}
+
+impl WeichenId {
+    pub(in crate::application) fn klonen(&self) -> Self {
+        match self {
+            WeichenId::Gerade(id) => WeichenId::Gerade(id.klonen()),
+            WeichenId::SKurve(id) => WeichenId::SKurve(id.klonen()),
+            WeichenId::Kreuzung(id) => WeichenId::Kreuzung(id.klonen()),
+        }
+    }
+}
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
@@ -43,11 +77,16 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 /// Zustand des Auswahl-Fensters.
 #[derive(Debug, PartialEq)]
 pub enum AuswahlZustand {
-    /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::Streckenabschnitt).
+    /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt,
-    /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::Geschwindigkeit).
+    /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::geschwindigkeit::Geschwindigkeit).
     Geschwindigkeit,
-    /// Hinzufügen/Verändern der Anschlüsse einer [Weiche], [Kreuzung], oder [SKurvenWeiche].
+    /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),
+    /// oder [Kurve](gleis::kurve::Kurve).
+    Kontakt(Option<KontaktSerialisiert>, KontaktId),
+    /// Hinzufügen/Verändern der Anschlüsse einer [Weiche](gleis::weiche::gerade::Weiche),
+    /// [Kreuzung](gleis::kreuzung::Kreuzung),
+    /// oder [SKurvenWeiche](gleis::weiche::s_kurve::SKurvenWeiche).
     Weiche(Option<WeicheSerialisiert>, WeichenId),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
     DreiwegeWeiche(Option<DreiwegeWeicheSerialisiert>, GleisId<DreiwegeWeiche>),
@@ -62,6 +101,7 @@ impl Clone for AuswahlZustand {
         match self {
             AuswahlZustand::Streckenabschnitt => AuswahlZustand::Streckenabschnitt,
             AuswahlZustand::Geschwindigkeit => AuswahlZustand::Geschwindigkeit,
+            AuswahlZustand::Kontakt(startwert, id) => todo!(),
             AuswahlZustand::Weiche(startwert, id) => {
                 AuswahlZustand::Weiche(startwert.clone(), id.klonen())
             },
@@ -76,17 +116,41 @@ impl Clone for AuswahlZustand {
     }
 }
 
+/// AuswahlNachricht für die Steuerung einer [Weiche], [Kreuzung] und [SKurvenWeiche].
+pub(in crate::application) type WeicheNachricht = weiche::Nachricht<
+    gleis::weiche::gerade::Richtung,
+    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+>;
+
+/// AuswahlNachricht für die Steuerung einer [DreiwegeWeiche].
+pub(in crate::application) type DreiwegeWeicheNachricht = weiche::Nachricht<
+    gleis::weiche::dreiwege::RichtungInformation,
+    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+
+/// AuswahlNachricht für die Steuerung einer [KurvenWeiche].
+pub(in crate::application) type KurvenWeicheNachricht = weiche::Nachricht<
+    gleis::weiche::kurve::Richtung,
+    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+>;
+
 impl AuswahlZustand {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, S>(
+    pub fn view<'t, L, S, Nachricht: 't>(
         &self,
         gleise: &'t Gleise<L>,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
-    ) -> Element<'t, modal::Nachricht<AuswahlZustand, Nachricht<L, S>>, Renderer<Thema>>
+    ) -> Element<'t, modal::Nachricht<AuswahlZustand, Nachricht>, Renderer<Thema>>
     where
         L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S>,
         S: 't,
+        modal::Nachricht<AuswahlZustand, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
+            + From<geschwindigkeit::AuswahlNachricht<S>>
+            + From<(WeicheNachricht, WeichenId)>
+            + From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
+            + From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
+            + From<lizenzen::Nachricht>,
     {
         match self {
             AuswahlZustand::Streckenabschnitt => Element::from(streckenabschnitt::Auswahl::neu(
@@ -107,6 +171,7 @@ impl AuswahlZustand {
                 ))
                 .map(|nachricht| modal::Nachricht::from(nachricht))
             },
+            AuswahlZustand::Kontakt(kontakt, kontakt_id) => todo!(),
             AuswahlZustand::Weiche(weiche, weichen_id) => {
                 let weichen_art = match &weichen_id {
                     WeichenId::Gerade(_id) => "Weiche",

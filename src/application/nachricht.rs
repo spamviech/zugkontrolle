@@ -7,11 +7,13 @@ use iced::Command;
 use crate::{
     anschluss::OutputSerialisiert,
     application::{
-        auswahl::AuswahlZustand, bewegen, geschwindigkeit, lizenzen, modal, streckenabschnitt,
-        weiche,
+        auswahl::{
+            AuswahlZustand, DreiwegeWeicheNachricht, KurvenWeicheNachricht, WeicheNachricht,
+            WeichenId,
+        },
+        bewegen, geschwindigkeit, lizenzen, modal, streckenabschnitt, weiche,
     },
     gleis::{
-        self,
         gerade::GeradeUnit,
         gleise::{
             self,
@@ -20,13 +22,13 @@ use crate::{
             AnschlüsseAnpassen, Modus,
         },
         knopf::KnopfNachricht,
-        kreuzung::{Kreuzung, KreuzungUnit},
+        kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
             dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
+            gerade::WeicheUnit,
             kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+            s_kurve::SKurvenWeicheUnit,
         },
     },
     steuerung::{
@@ -55,27 +57,6 @@ pub enum AnyGleisUnit {
     SKurvenWeicheUnit(SKurvenWeicheUnit),
     /// Eine [Kreuzung].
     KreuzungUnit(KreuzungUnit),
-}
-
-/// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
-#[derive(Debug, PartialEq)]
-pub enum WeichenId {
-    /// Die Id einer [Weiche].
-    Gerade(GleisId<Weiche>),
-    /// Die Id einer [SKurvenWeiche].
-    SKurve(GleisId<SKurvenWeiche>),
-    /// Die Id einer [Kreuzung].
-    Kreuzung(GleisId<Kreuzung>),
-}
-
-impl WeichenId {
-    pub(in crate::application) fn klonen(&self) -> Self {
-        match self {
-            WeichenId::Gerade(id) => WeichenId::Gerade(id.klonen()),
-            WeichenId::SKurve(id) => WeichenId::SKurve(id.klonen()),
-            WeichenId::Kreuzung(id) => WeichenId::Kreuzung(id.klonen()),
-        }
-    }
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [Button](iced::widget::Button).
@@ -298,12 +279,6 @@ impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
     }
 }
 
-/// AuswahlNachricht für die Steuerung einer [Weiche], [Kreuzung] und [SKurvenWeiche].
-type WeicheNachricht = weiche::Nachricht<
-    gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
->;
-
 impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
     for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
 {
@@ -322,12 +297,6 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
     }
 }
 
-/// AuswahlNachricht für die Steuerung einer [DreiwegeWeiche].
-type DreiwegeWeicheNachricht = weiche::Nachricht<
-    gleis::weiche::dreiwege::RichtungInformation,
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
->;
-
 impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
     for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
 {
@@ -341,12 +310,6 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
         }
     }
 }
-
-/// AuswahlNachricht für die Steuerung einer [KurvenWeiche].
-type KurvenWeicheNachricht = weiche::Nachricht<
-    gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
->;
 
 impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
     for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
