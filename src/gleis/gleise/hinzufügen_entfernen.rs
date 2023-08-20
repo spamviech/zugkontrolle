@@ -1,6 +1,6 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use std::{convert::identity, fmt::Debug};
+use std::{convert::identity, fmt::Debug, sync::mpsc::Sender};
 
 use log::error;
 use rstar::RTreeObject;
@@ -14,14 +14,17 @@ use crate::{
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
             id::{AnyId, GleisId, StreckenabschnittId},
-            nachricht::mit_any_steuerung_id,
+            nachricht::{mit_any_steuerung_id, GleisSteuerung},
             steuerung::MitSteuerung,
-            AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, GleisSteuerung,
-            Gleise, ModusDaten, StreckenabschnittIdFehler,
+            AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, Gleise, ModusDaten,
+            StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
     },
-    steuerung::geschwindigkeit::Leiter,
+    steuerung::{
+        geschwindigkeit::Leiter,
+        kontakt::{self, SomeAktualisierenSender},
+    },
     typen::{canvas::Position, vektor::Vektor, Zeichnen},
 };
 
@@ -298,26 +301,47 @@ impl<L: Leiter> Gleise<L> {
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(
+    pub fn anschlüsse_anpassen<Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
         &mut self,
         lager: &mut Lager,
-        anschlüsse_anpassen: AnschlüsseAnpassen,
+        gleis_steuerung: GleisSteuerung,
+        sender: &Sender<Nachricht>,
     ) -> Result<(), AnschlüsseAnpassenFehler> {
         let canvas = self.canvas.clone();
-        match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
+        match gleis_steuerung {
+            GleisSteuerung::Gerade((id, anschlüsse_serialisiert)) => {
+                let aktualisieren_sender =
+                    SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
+                self.gleis_anschlüsse_anpassen(
+                    id,
+                    anschlüsse_serialisiert,
+                    lager,
+                    (canvas, aktualisieren_sender),
+                )
+            },
+            GleisSteuerung::Kurve((id, anschlüsse_serialisiert)) => {
+                let aktualisieren_sender =
+                    SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
+                self.gleis_anschlüsse_anpassen(
+                    id,
+                    anschlüsse_serialisiert,
+                    lager,
+                    (canvas, aktualisieren_sender),
+                )
+            },
+            GleisSteuerung::Weiche((id, anschlüsse_serialisiert)) => {
                 self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
+            GleisSteuerung::DreiwegeWeiche((id, anschlüsse_serialisiert)) => {
                 self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
+            GleisSteuerung::KurvenWeiche((id, anschlüsse_serialisiert)) => {
                 self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
+            GleisSteuerung::SKurvenWeiche((id, anschlüsse_serialisiert)) => {
                 self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
+            GleisSteuerung::Kreuzung((id, anschlüsse_serialisiert)) => {
                 self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
             },
         }

@@ -33,6 +33,7 @@
 - Schriftgröße von Beschreibungen skaliert nun ebenfalls
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 - Kontakte werden auf dem Canvas als Kreise angezeigt
+- Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
 
 ## 3.0.0
 

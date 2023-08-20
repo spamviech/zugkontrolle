@@ -26,7 +26,8 @@ use crate::{
         self,
         daten::{v2::BekannterZugtyp, StreckenabschnittMap},
         id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
-        AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gleise,
+        nachricht::GleisSteuerung,
+        AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -295,11 +296,31 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
+    /// Beende die Bewegung des Pivot-Punktes.
+    #[inline(always)]
+    pub fn bewegung_beenden(&mut self) {
+        self.bewegung = None
+    }
+
+    /// Setze den Pivot-Punkt auf den (0,0) zurück.
+    #[inline(always)]
+    pub fn bewegung_zurücksetzen(&mut self) {
+        self.gleise.setze_pivot(Vektor::null_vektor())
+    }
+}
+
+impl<'t, L, S> Zugkontrolle<L, S>
+where
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    S: 'static + Send,
+{
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnschlüsseAnpassen) {
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: GleisSteuerung) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen, &self.sender)
+        {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();
@@ -321,18 +342,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
         }
-    }
-
-    /// Beende die Bewegung des Pivot-Punktes.
-    #[inline(always)]
-    pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
-    }
-
-    /// Setze den Pivot-Punkt auf den (0,0) zurück.
-    #[inline(always)]
-    pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
     }
 }
 

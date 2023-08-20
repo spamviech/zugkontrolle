@@ -5,7 +5,7 @@ use crate::{
     nachschlagen::Nachschlagen,
 };
 
-// re-exports
+// TODO entferne re-exports?
 pub use self::{
     canvas::{
         pfad::{self, Bogen, Pfad, Transformation},

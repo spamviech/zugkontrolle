@@ -1,6 +1,6 @@
 //! Einstellen der Steuerung eines [Kontaktes](crate::steuerung::kontakt::Kontakt).
 
-use std::{collections::HashMap, fmt::Debug, ops::DerefMut};
+use std::{fmt::Debug, ops::DerefMut};
 
 use iced_aw::{
     native::{
@@ -22,11 +22,7 @@ use iced_widget::{
 };
 
 use crate::{
-    anschluss::{
-        pcf8574::{Beschreibung, Lager},
-        trigger::Trigger,
-        InputSerialisiert,
-    },
+    anschluss::{pcf8574::Lager, trigger::Trigger, InputSerialisiert},
     application::{
         anschluss::{self, make_radios},
         map_mit_zustand::MapMitZustand,

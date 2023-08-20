@@ -1,6 +1,6 @@
 //! Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
 
-use std::{collections::HashMap, ops::DerefMut};
+use std::ops::DerefMut;
 
 use iced_aw::{
     native::{NumberInput, TabLabel, Tabs},
