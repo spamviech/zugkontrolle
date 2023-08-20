@@ -125,7 +125,7 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
             );
-            pfade.push((pfad, farbe, Transparenz::Voll));
+            pfade.push((pfad, Some(farbe), Transparenz::Voll));
         }
         pfade
     }
@@ -351,7 +351,7 @@ fn zeichne_kontakt_intern<P, A>(
         + radius_begrenzung_außen
             * Vektor { x: anzeige_winkel.sin(), y: (Skalar(1.) - anzeige_winkel.cos()) };
     // Kontakt
-    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into())
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
 }
 
 pub(crate) fn fülle<P, A>(
@@ -446,7 +446,7 @@ fn fülle_kontakt<P, A>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn FnOnce(&mut pfad::Erbauer<P, A>) -> Farbe>,
     ) -> Farbe,
-) -> (Pfad, Option<Farbe>)
+) -> (Pfad, Farbe)
 where
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
@@ -459,7 +459,7 @@ where
         }),
     );
     // Rückgabewert
-    (erbauer.baue_unter_transformationen(transformationen), Some(farbe))
+    (erbauer.baue_unter_transformationen(transformationen), farbe)
 }
 
 fn fülle_kontakt_intern<P, A>(
@@ -479,7 +479,7 @@ where
     let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
     let radius = (Skalar(0.5) * spurweite.abstand())
         .min(&(Skalar(0.25) * radius_begrenzung_außen * Skalar(winkel.0)));
-    let anzeige_winkel = Winkel(3. * radius.0);
+    let anzeige_winkel = Winkel(3. * radius.0 / radius_begrenzung_außen.0);
     let zentrum = gleis_links_oben
         + radius_begrenzung_außen
             * Vektor { x: anzeige_winkel.sin(), y: (Skalar(1.) - anzeige_winkel.cos()) };
