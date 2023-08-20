@@ -9,7 +9,7 @@ use iced_aw::{
 use iced_core::{event, text, widget::Text, Element, Font, Length, Renderer};
 use iced_widget::{
     scrollable::{self, Scrollable},
-    Column, Radio, Row, Space,
+    Column, Container, Radio, Row, Space,
 };
 use log::error;
 
@@ -170,12 +170,24 @@ where
         Auswahl::neu_mit_interrupt_view(
             ZeigeModus::Pcf8574,
             |pin, beschreibung| {
-                lager.interrupt_pin(&beschreibung).map_or(
-                    NumberInput::new(*pin, 32, InputNachricht::interrupt).into(),
+                let interrupt_pin = lager.interrupt_pin(&beschreibung).map_or(
+                    Element::from(
+                        NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
+                    ),
                     |pin| {
                         let text: Text<'_, R> = Text::new(pin.to_string());
                         Element::from(text)
                     },
+                );
+                Element::from(
+                    Column::new()
+                        .push(
+                            Container::new(Text::new("Interrupt-Pin"))
+                                .width(Length::Fill)
+                                .center_x(),
+                        )
+                        .push(interrupt_pin)
+                        .width(Length::Fixed(100.)),
                 )
             },
             &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
@@ -465,13 +477,18 @@ where
                 [("Normal", Variante::Normal), ("A", Variante::A)],
                 InterneNachricht::Variante,
             ))
-            .push(NumberInput::new(
-                u8::from(*port),
-                u8::from(kleiner_8::MAX),
-                InterneNachricht::Port,
-            ));
+            .push(
+                Column::new()
+                    .push(Container::new(Text::new("Port")).width(Length::Fill).center_x())
+                    .push(NumberInput::new(
+                        u8::from(*port),
+                        u8::from(kleiner_8::MAX),
+                        InterneNachricht::Port,
+                    ))
+                    .width(Length::Fixed(75.)),
+            );
         // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
-        let width = Length::Fixed(350.);
+        let width = Length::Fixed(600.);
         let row = match zeige_modus {
             ZeigeModus::Pcf8574 => {
                 let tabs = vec![
