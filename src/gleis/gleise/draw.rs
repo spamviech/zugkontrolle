@@ -59,8 +59,7 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
-    streckenabschnitt_farbe: &Farbe,
-    streckenabschnitt_fließend: &Fließend,
+    streckenabschnitt: Option<(Farbe, Fließend)>,
 ) {
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
@@ -69,17 +68,27 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
             bewege_an_position(frame, position);
             // einfärben
             for (pfad, farbe, transparenz) in definition.fülle(spurweite) {
-                let alpha = transparent(rectangle, *streckenabschnitt_fließend)
-                    .kombiniere(transparenz)
-                    .alpha();
-                frame.with_save(|frame| {
-                    let Farbe { rot, grün, blau } = farbe.unwrap_or(*streckenabschnitt_farbe);
-                    let color = Color { r: rot, g: grün, b: blau, a: alpha };
-                    frame.fill(
-                        &pfad,
-                        Fill { style: fill::Style::Solid(color), rule: fill::Rule::EvenOdd },
-                    );
-                });
+                let farbe_alpha = match (farbe, streckenabschnitt) {
+                    (None, None) => None,
+                    (None, Some((farbe, fließend))) => Some((
+                        farbe,
+                        transparent(rectangle, fließend).kombiniere(transparenz).alpha(),
+                    )),
+                    (Some(farbe), None) => Some((farbe, 1.)),
+                    (Some(farbe), Some((_farbe, fließend))) => Some((
+                        farbe,
+                        transparent(rectangle, fließend).kombiniere(transparenz).alpha(),
+                    )),
+                };
+                if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
+                    frame.with_save(|frame| {
+                        let color = Color { r: rot, g: grün, b: blau, a: alpha };
+                        frame.fill(
+                            &pfad,
+                            Fill { style: fill::Style::Solid(color), rule: fill::Rule::EvenOdd },
+                        );
+                    });
+                }
             }
         })
     }
@@ -306,23 +315,14 @@ impl<L: Leiter> Gleise<L> {
                 // TODO markiere gehalten als "wird-gelöscht", falls cursor out of bounds ist
                 let ist_gehalten = ist_gehalten_test(gehalten_id.as_ref());
                 // Hintergrund
-                for (streckenabschnitt_opt, daten) in zustand.alle_streckenabschnitte_und_daten() {
-                    let (streckenabschnitt_id, streckenabschnitt)
-                        = if let Some(tuple) = streckenabschnitt_opt
-                    {
-                        tuple
-                    } else {
-                        continue
-                    };
-                    let fließend = streckenabschnitt.fließend();
-                    let farbe = streckenabschnitt.farbe;
+                for (streckenabschnitt, daten) in zustand.alle_streckenabschnitte_und_daten() {
                     macro_rules! transparenz {
                         ($gleis: ident) => {
                             |rectangle, fließend| {
                                 Transparenz::true_reduziert(if modus_bauen {
                                     let any_id_ref =  AnyIdRef::from(GleisIdRef {
                                         rectangle,
-                                        streckenabschnitt: Some(streckenabschnitt_id),
+                                        streckenabschnitt: streckenabschnitt.map(|(id,_s)| id),
                                         phantom: PhantomData::<fn() -> $gleis>
                                     });
                                     ist_gehalten(any_id_ref)
@@ -336,8 +336,7 @@ impl<L: Leiter> Gleise<L> {
                         daten,
                         fülle_alle_gleise,
                         transparenz,
-                        &farbe,
-                        &fließend,
+                        streckenabschnitt.map(|(_id,s)| (s.farbe, s.fließend())),
                     }
                 }
                 // Kontur
