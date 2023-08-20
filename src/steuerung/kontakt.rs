@@ -274,6 +274,13 @@ pub struct KontaktSerialisiert {
     pub trigger: Trigger,
 }
 
+impl KontaktSerialisiert {
+    /// Erstelle einen neuen [KontaktSerialisiert].
+    pub fn neu(name: Name, anschluss: InputSerialisiert, trigger: Trigger) -> Self {
+        KontaktSerialisiert { name, anschluss, trigger }
+    }
+}
+
 impl Serialisiere<KontaktSerialisiert> for Kontakt {
     fn serialisiere(&self) -> KontaktSerialisiert {
         KontaktSerialisiert {

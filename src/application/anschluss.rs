@@ -133,15 +133,15 @@ where
 
     /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
     pub fn neu_input_s(
-        start_wert: Option<&'a InputSerialisiert>,
+        start_wert: Option<InputSerialisiert>,
         interrupt_pins: &'a HashMap<Beschreibung, u8>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
-            Some(InputSerialisiert::Pin { pin }) => (TabId::Pin, Some(*pin), None, None, None),
+            Some(InputSerialisiert::Pin { pin }) => (TabId::Pin, Some(pin), None, None, None),
             Some(InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }) => {
-                (TabId::Pcf8574, None, Some(*beschreibung), Some(*port), *interrupt)
+                (TabId::Pcf8574, None, Some(beschreibung), Some(port), interrupt)
             },
             None => (TabId::Pin, None, None, None, None),
         };
@@ -321,7 +321,7 @@ enum ZeigeModus {
 }
 
 #[allow(single_use_lifetimes)]
-fn make_radios<'a, 'b, T, M, R>(
+pub(in crate::application) fn make_radios<'a, 'b, T, M, R>(
     aktuell: &T,
     elemente: impl IntoIterator<Item = (&'b str, T)>,
     als_nachricht: impl Fn(T) -> M + Clone + 'static,

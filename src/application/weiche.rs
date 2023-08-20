@@ -1,4 +1,4 @@
-//! Einstellen der Steuerung einer [Weiche](crate::steuerung::Weiche).
+//! Einstellen der Steuerung einer [Weiche](crate::steuerung::weiche::Weiche).
 
 use std::{
     fmt::{Debug, Display},
@@ -36,7 +36,7 @@ use crate::{
     steuerung::weiche::{Name, WeicheSerialisiert},
 };
 
-/// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
     name: String,
@@ -77,7 +77,7 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-/// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
+/// Widget zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
 #[derive(Debug)]
 pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
     MapMitZustand<

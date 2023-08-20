@@ -57,6 +57,7 @@ pub mod flat_map;
 pub mod fonts;
 pub mod geschwindigkeit;
 pub mod icon;
+pub mod kontakt;
 pub mod lizenzen;
 pub mod map_mit_zustand;
 pub mod modal;
