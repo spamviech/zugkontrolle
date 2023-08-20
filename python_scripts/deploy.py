@@ -21,12 +21,9 @@ import config
 # check if docker/podman is running
 check_docker_podman()
 
-# build for raspi 32bit in release mode
-bin_path32 = build(target=config.raspi32_target, release=True)
-# automatically transfer to raspi using scp
-send_to_raspi(bin_path32, config.raspberry_user, config.raspberry_address)
-
-# build for raspi 64bit in release mode
-bin_path64 = build(target=config.raspi64_target, release=True)
-# automatically transfer to raspi using scp
-send_to_raspi(bin_path64, config.raspberry_user, config.raspberry_address)
+# only deploy activated targets
+for raspi_target in filter(lambda t: t in config.targets, [config.raspi32_target, config.raspi64_target]):
+    # build for raspi
+    bin_path = build(target=raspi_target, release=True)
+    # automatically transfer to raspi using scp
+    send_to_raspi(bin_path, config.raspberry_user, config.raspberry_address)

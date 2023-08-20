@@ -11,6 +11,8 @@
   - lese name+version aus Cargo.toml
   - ausführen unabhängig vom aktuellen Arbeitsverzeichnis möglich
   - stelle sicher ziel-Ordner existiert, bevor scp ausgeführt wird
+  - config.ini um Einstellungen lokal zu überschreiben
+  - deploy.py "bearbeitet" nur aktivierte targets
 - refactoring:
   - verschiebe MitRichtung nach steuerung::weiche
   - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
