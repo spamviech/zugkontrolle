@@ -20,6 +20,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
+            self,
             daten::{Gleis, RStern},
             id::{AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
             Gehalten, Gleise, ModusDaten, Nachricht,
@@ -226,7 +227,7 @@ struct GehaltenVerbindung {
     andere_gehalten: bool,
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     fn ist_gehalten_und_andere_verbindung<'t, T>(
         &'t self,
         streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
@@ -267,7 +268,10 @@ impl<L: Leiter> Gleise<L> {
         thema: &Thema,
         bounds: iced::Rectangle,
         _cursor: Cursor,
-    ) -> Vec<Geometry> {
+    ) -> Vec<Geometry>
+    where
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
         let spurweite = self.spurweite();
         let Gleise { canvas, zustand, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
@@ -276,7 +280,7 @@ impl<L: Leiter> Gleise<L> {
         // - berücksichtige eigene Position (Punkt + Winkel)
         // - berücksichtige Zoom
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
-        vec![canvas.lock().zeichnen_skaliert_von_pivot(
+        vec![canvas.zeichnen_skaliert_von_pivot(
             renderer,
             bounds.size(),
             &self.pivot,

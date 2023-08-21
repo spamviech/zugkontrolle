@@ -95,50 +95,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
-        let streckenabschnitt = self
-            .streckenabschnitt_aktuell
-            .as_ref()
-            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
-        macro_rules! hinzufügen_gehalten_bei_maus {
-            ($gleis: expr) => {
-                if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
-                    $gleis.mit_none(),
-                    Vektor { x: Skalar(0.), y: klick_höhe },
-                    streckenabschnitt,
-                    false,
-                ) {
-                    error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    self.streckenabschnitt_aktuell = None;
-                    let _ = self.gleise.hinzufügen_gehalten_bei_maus(
-                        $gleis.mit_none(),
-                        Vektor { x: Skalar(0.), y: klick_höhe },
-                        None,
-                        false,
-                    );
-                }
-            };
-        }
-        match gleis {
-            AnyGleisUnit::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
-            AnyGleisUnit::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
-            AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
-            AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
-                hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
-            },
-            AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(kurven_weiche)
-            },
-            AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
-            },
-            AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
-        }
-    }
-
     /// Wähle den aktuellen [Streckenabschnitt].
-    #[inline(always)]
+    #[inline]
     pub fn streckenabschnitt_wählen(
         &mut self,
         streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
@@ -282,9 +240,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Einstellen ob anklicken eines Gleises dessen [Streckenabschnitt] zum
     /// aktuellen Streckenabschnitt ändern soll.
-    #[inline(always)]
+    #[inline]
     pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
-        self.streckenabschnitt_aktuell_festlegen = festlegen
+        self.streckenabschnitt_aktuell_festlegen = festlegen;
     }
 
     /// Setze die Farbe des Speichern-Knopfes zurück.
@@ -297,15 +255,21 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Beende die Bewegung des Pivot-Punktes.
-    #[inline(always)]
+    #[inline]
     pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
+        self.bewegung = None;
     }
 
     /// Setze den Pivot-Punkt auf den (0,0) zurück.
-    #[inline(always)]
+    #[inline]
     pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
+        self.gleise.setze_pivot(Vektor::null_vektor());
+    }
+
+    /// Erzwinge ein neuzeichnen des Canvas.
+    #[inline]
+    pub fn gleise_neuzeichnen(&mut self) {
+        self.gleise.erzwinge_neuzeichnen();
     }
 }
 
@@ -315,12 +279,53 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
+    /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
+    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
+        let streckenabschnitt = self
+            .streckenabschnitt_aktuell
+            .as_ref()
+            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
+        macro_rules! hinzufügen_gehalten_bei_maus {
+            ($gleis: expr) => {
+                if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
+                    $gleis.mit_none(),
+                    Vektor { x: Skalar(0.), y: klick_höhe },
+                    streckenabschnitt,
+                    false,
+                ) {
+                    error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
+                    self.streckenabschnitt_aktuell = None;
+                    let _ = self.gleise.hinzufügen_gehalten_bei_maus(
+                        $gleis.mit_none(),
+                        Vektor { x: Skalar(0.), y: klick_höhe },
+                        None,
+                        false,
+                    );
+                }
+            };
+        }
+        match gleis {
+            AnyGleisUnit::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
+            AnyGleisUnit::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
+            AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
+            AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
+                hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
+            },
+            AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
+                hinzufügen_gehalten_bei_maus!(kurven_weiche)
+            },
+            AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
+                hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
+            },
+            AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
+        }
+    }
+
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: GleisSteuerung) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen, &self.sender)
-        {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();
@@ -439,7 +444,7 @@ where
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    #[inline(always)]
+    #[inline]
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
     }
@@ -452,7 +457,7 @@ where
     S: 'static + Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
-    #[inline(always)]
+    #[inline]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
@@ -532,7 +537,7 @@ where
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
-        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad, &self.sender);
+        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(

@@ -32,7 +32,6 @@ use crate::{
         },
     },
     steuerung::{
-        self,
         geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName},
         plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
         streckenabschnitt::Name as StreckenabschnittName,
@@ -117,26 +116,26 @@ pub enum Nachricht<L: Leiter, S> {
     Winkel(Winkel),
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    /// Wähle den aktuellen [Streckenabschnitt](steuerung::Streckenabschnitt).
+    /// Wähle den aktuellen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     WähleStreckenabschnitt(Option<(StreckenabschnittId, Farbe)>),
-    /// Hinzufügen eines neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
+    /// Hinzufügen eines neuen [Streckenabschnittes](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
-        /// Der Name der assoziierten [Geschwindigkeit](steuerung::Geschwindigkeit).
+        /// Der Name der assoziierten [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
         Option<GeschwindigkeitName>,
-        /// Der Name des neuen [Streckenabschnittes](steuerung::Streckenabschnitt).
+        /// Der Name des neuen [Streckenabschnittes](crate::steuerung::streckenabschnitt::Streckenabschnitt).
         StreckenabschnittName,
         /// Die Farbe, mit der Gleise eingefärbt werden sollen.
         Farbe,
         /// Der verwendete [OutputAnschluss](crate::anschluss::OutputAnschluss).
         OutputSerialisiert,
     ),
-    /// Lösche einen [Streckenabschnitt](steuerung::Streckenabschnitt).
+    /// Lösche einen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     LöscheStreckenabschnitt(StreckenabschnittId),
-    /// Setze den [Streckenabschnitt](steuerung::Streckenabschnitt) des spezifizierten Gleises,
+    /// Setze den [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt) des spezifizierten Gleises,
     /// sofern es über [StreckenabschnittFestlegen](Nachricht::StreckenabschnittFestlegen)
     /// aktiviert wurde.
     SetzeStreckenabschnitt(AnyId),
-    /// Einstellen, ob bei Klick auf ein Gleis der [Streckenabschnitt](steuerung::Streckenabschnitt)
+    /// Einstellen, ob bei Klick auf ein Gleis der [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt)
     /// auf den aktuellen gesetzt werden soll
     /// (beeinflusst Reaktion auf [SetzeStreckenabschnitt](Nachricht::SetzeStreckenabschnitt)).
     StreckenabschnittFestlegen(bool),
@@ -147,11 +146,11 @@ pub enum Nachricht<L: Leiter, S> {
     EntferneSpeichernFarbe(Instant),
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
-    /// Eine Aktion einer [Geschwindigkeit](steuerung::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
+    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im [Fahren](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
-    /// Hinzufügen einer neuen [Geschwindigkeit](steuerung::Geschwindigkeit).
+    /// Hinzufügen einer neuen [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     HinzufügenGeschwindigkeit(GeschwindigkeitName, GeschwindigkeitSerialisiert<S>),
-    /// Löschen einer [Geschwindigkeit](steuerung::Geschwindigkeit).
+    /// Löschen einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     LöscheGeschwindigkeit(GeschwindigkeitName),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(GleisSteuerung),
@@ -160,7 +159,7 @@ pub enum Nachricht<L: Leiter, S> {
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
-    /// Eine GUI-Nachricht für Änderungen des Zustandes des [Gleise]-Typs.
+    /// Eine GUI-Nachricht für Änderungen des Zustandes des [Gleise](crate::gleis::gleise::Gleise)-Typs.
     ///
     /// Notwendig, weil die [update](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
     /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
@@ -169,7 +168,10 @@ pub enum Nachricht<L: Leiter, S> {
     /// Dummy-Nachricht, damit die [view](Application::view)-Methode erneut aufgerufen wird.
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
-    AsyncAktualisieren,
+    AsyncAktualisieren {
+        /// Soll das Canvas der [Gleise](crate::gleis::gleise::Gleise)-Struktur neu gezeichnet werden.
+        gleise_neuzeichnen: bool,
+    },
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
     AsyncFehler {
         /// Der Titel der Fehlermeldung.
@@ -224,7 +226,9 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
 impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
     fn from(fehler: AsyncNachricht) -> Self {
         match fehler {
-            AsyncNachricht::Aktualisieren => Nachricht::AsyncAktualisieren,
+            AsyncNachricht::Aktualisieren => {
+                Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true }
+            },
             AsyncNachricht::Fehler { titel, nachricht } => {
                 Nachricht::AsyncFehler { titel, nachricht }
             },
@@ -242,9 +246,9 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
     }
 }
 
-impl<L: Leiter, S> From<steuerung::kontakt::Aktualisieren> for Nachricht<L, S> {
-    fn from(_value: steuerung::kontakt::Aktualisieren) -> Self {
-        Nachricht::AsyncAktualisieren
+impl<L: Leiter, S> From<gleise::steuerung::Aktualisieren> for Nachricht<L, S> {
+    fn from(_value: gleise::steuerung::Aktualisieren) -> Self {
+        Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true }
     }
 }
 

@@ -1,12 +1,9 @@
 //! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
 //! [Canvas](iced::widget::canvas::Canvas) erzwingt.
 
-use std::{
-    fmt::{self, Debug, Formatter},
-    sync::Arc,
-};
+use std::fmt::{self, Debug, Formatter};
 
-use parking_lot::Mutex;
+use log::error;
 use rstar::RTreeObject;
 
 use crate::{
@@ -19,15 +16,27 @@ use crate::{
         },
     },
     steuerung::{self, geschwindigkeit::Leiter, kontakt::Kontakt},
-    typen::canvas::Cache,
+    util::sender_trait::erstelle_sender_trait_existential,
 };
+
+/// Es gab eine Änderung, die Anzeige muss aktualisiert werden.
+#[derive(Debug, Clone, Copy)]
+pub struct Aktualisieren;
+
+erstelle_sender_trait_existential! {
+    (pub), AktualisierenSender,
+    "Hilfs-Trait um existential types zu ermöglichen (Verstecke T).",
+    SomeAktualisierenSender,
+    "Ein beliebiger [AktualisierenSender].",
+    Aktualisieren,
+}
 
 /// Steuerung eines Gleises.
 /// Bei [AsMut]-Zugriff wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Clone)]
 pub struct Steuerung<T> {
     steuerung: T,
-    canvas: Arc<Mutex<Cache>>,
+    sender: SomeAktualisierenSender,
 }
 
 // Explizite Implementierung, um einen stack-overflow zu vermeiden.
@@ -48,21 +57,23 @@ impl<T> AsRef<T> for Steuerung<T> {
 
 impl<T> AsMut<T> for Steuerung<T> {
     fn as_mut(&mut self) -> &mut T {
-        self.canvas.lock().leeren();
+        if let Err(fehler) = self.sender.send(Aktualisieren) {
+            error!("Kanal für Aktualisieren-Nachrichten einer Steuerung getrennt: {fehler:?}");
+        }
         &mut self.steuerung
     }
 }
 
 impl<T> Steuerung<T> {
     /// Erstelle eine neue [Steuerung].
-    pub fn neu(steuerung: T, canvas: Arc<Mutex<Cache>>) -> Self {
-        Steuerung { steuerung, canvas }
+    pub fn neu(steuerung: T, sender: impl Into<SomeAktualisierenSender>) -> Self {
+        Steuerung { steuerung, sender: sender.into() }
     }
 
     /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
     pub fn konvertiere<'t, S>(&'t self, f: impl FnOnce(&'t T) -> S) -> Steuerung<S> {
-        let Steuerung { steuerung, canvas } = self;
-        Steuerung { steuerung: f(steuerung), canvas: canvas.clone() }
+        let Steuerung { steuerung, sender } = self;
+        Steuerung { steuerung: f(steuerung), sender: sender.clone() }
     }
 
     /// Konsumiere die [Steuerung] und beende die Überwachung.
@@ -80,9 +91,9 @@ impl<T> Steuerung<&Option<T>> {
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
     pub fn nur_some(&self) -> Option<Steuerung<&T>> {
-        let Steuerung { steuerung, canvas } = self;
+        let Steuerung { steuerung, sender } = self;
         if let Some(steuerung) = steuerung {
-            Some(Steuerung { steuerung, canvas: canvas.clone() })
+            Some(Steuerung { steuerung, sender: sender.clone() })
         } else {
             None
         }
@@ -113,9 +124,9 @@ impl<T> Steuerung<&mut Option<T>> {
 
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
     pub fn nur_some(&mut self) -> Option<Steuerung<&mut T>> {
-        let Steuerung { steuerung, canvas } = self;
+        let Steuerung { steuerung, sender } = self;
         if let Some(steuerung) = steuerung {
-            Some(Steuerung { steuerung, canvas: canvas.clone() })
+            Some(Steuerung { steuerung, sender: sender.clone() })
         } else {
             None
         }
@@ -126,32 +137,34 @@ impl<T> Steuerung<&mut Option<T>> {
 pub trait MitSteuerung<'t> {
     /// Die Steuerung für das Gleis.
     type Steuerung: 't;
-    /// Erzeuge eine [Steuerung]-Struktur, ohne die Möglichkeit sie zu verändern.
-    fn steuerung(&'t self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t Self::Steuerung>;
+    /// Erzeuge eine Referenz auf die Steuerung, ohne die Möglichkeit sie zu verändern.
+    fn steuerung(&'t self) -> &'t Self::Steuerung;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
-    /// ein [Neuzeichnen des Canvas](Cache::leeren) auslöst.
-    fn steuerung_mut(&'t mut self, canvas: Arc<Mutex<Cache>>)
-        -> Steuerung<&'t mut Self::Steuerung>;
+    /// ein [Neuzeichnen des Canvas](crate::typen::canvas::Cache::leeren) auslöst.
+    fn steuerung_mut(
+        &'t mut self,
+        sender: impl 'static + AktualisierenSender,
+    ) -> Steuerung<&'t mut Self::Steuerung>;
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachricht> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
     pub(crate) fn mit_steuerung<T: for<'t> MitSteuerung<'t> + DatenAuswahl, V>(
         &self,
         gleis_id: &GleisId<T>,
-        f: impl FnOnce(Steuerung<&<T as MitSteuerung<'_>>::Steuerung>) -> V,
+        f: impl FnOnce(&<T as MitSteuerung<'_>>::Steuerung) -> V,
     ) -> Result<V, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &Gleis<T> = &zustand
+        let Gleis { definition, position: _ }: &Gleis<T> = &self
+            .zustand
             .daten(streckenabschnitt)?
             .rstern()
             .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        let steuerung = definition.steuerung(canvas.clone());
+        let steuerung = definition.steuerung();
         Ok(f(steuerung))
     }
 
@@ -160,18 +173,19 @@ impl<L: Leiter> Gleise<L> {
     pub(crate) fn mit_steuerung_mut<T: for<'t> MitSteuerung<'t> + DatenAuswahl, V>(
         &mut self,
         gleis_id: &GleisId<T>,
+        sender: impl 'static + AktualisierenSender,
         f: impl FnOnce(Steuerung<&mut <T as MitSteuerung<'_>>::Steuerung>) -> V,
     ) -> Result<V, GleisIdFehler> {
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleise { zustand, canvas, .. } = self;
-        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut zustand
+        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut self
+            .zustand
             .daten_mut(streckenabschnitt)?
             .rstern_mut()
             .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
             .next()
             .ok_or(GleisIdFehler::GleisEntfernt)?
             .data;
-        let steuerung = definition.steuerung_mut(canvas.clone());
+        let steuerung = definition.steuerung_mut(sender);
         Ok(f(steuerung))
     }
 }
@@ -180,16 +194,17 @@ macro_rules! impl_mit_steuerung {
     ($type: ty, $steuerung: ty, $ident: ident $(,)?) => {
         impl<'t> MitSteuerung<'t> for $type {
             type Steuerung = $steuerung;
-            #[inline(always)]
-            fn steuerung(&'t self, canvas: Arc<Mutex<Cache>>) -> Steuerung<&'t Self::Steuerung> {
-                Steuerung::neu(&self.$ident, canvas)
+            #[inline]
+            fn steuerung(&'t self) -> &'t Self::Steuerung {
+                &self.$ident
             }
-            #[inline(always)]
+
+            #[inline]
             fn steuerung_mut(
                 &'t mut self,
-                canvas: Arc<Mutex<Cache>>,
+                sender: impl 'static + AktualisierenSender,
             ) -> Steuerung<&'t mut Self::Steuerung> {
-                Steuerung::neu(&mut self.$ident, canvas)
+                Steuerung::neu(&mut self.$ident, sender)
             }
         }
     };

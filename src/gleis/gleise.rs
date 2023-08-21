@@ -2,7 +2,8 @@
 //! [Canvas](iced::widget::canvas::Canvas).
 
 use std::{
-    collections::hash_map::Entry, convert::identity, fmt::Debug, iter, sync::Arc, time::Instant,
+    collections::hash_map::Entry, convert::identity, fmt::Debug, iter, sync::mpsc::Sender,
+    time::Instant,
 };
 
 use iced::{
@@ -15,7 +16,6 @@ use iced::{
 };
 use log::error;
 use nonempty::NonEmpty;
-use parking_lot::Mutex;
 
 use crate::{
     anschluss,
@@ -79,28 +79,41 @@ impl Modus {
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub struct Gleise<L: Leiter> {
-    canvas: Arc<Mutex<Cache>>,
+pub struct Gleise<L: Leiter, AktualisierenNachricht> {
+    canvas: Cache,
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<L>,
     letzte_maus_position: Vektor,
     letzte_canvas_größe: Vektor,
     modus: ModusDaten,
+    sender: Sender<AktualisierenNachricht>,
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
-    pub fn neu(zugtyp: Zugtyp<L>, modus: Modus, pivot: Position, skalieren: Skalar) -> Self {
+    pub fn neu(
+        zugtyp: Zugtyp<L>,
+        modus: Modus,
+        pivot: Position,
+        skalieren: Skalar,
+        sender: Sender<AktualisierenNachricht>,
+    ) -> Self {
         Gleise {
-            canvas: Arc::new(Mutex::new(Cache::neu())),
+            canvas: Cache::neu(),
             pivot,
             skalieren,
             zustand: Zustand::neu(zugtyp),
             letzte_maus_position: Vektor::null_vektor(),
             letzte_canvas_größe: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
+            sender,
         }
+    }
+
+    /// Erzwinge ein neuzeichnen des Canvas.
+    pub fn erzwinge_neuzeichnen(&mut self) {
+        self.canvas.leeren();
     }
 
     /// Aktueller Modus.
@@ -124,25 +137,25 @@ impl<L: Leiter> Gleise<L> {
     /// Bewege aktuellen Pivot-Punkt nach `pivot`.
     pub fn setze_pivot(&mut self, pivot: Vektor) {
         self.pivot.punkt = pivot;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Setze den `winkel` für die aktuelle Darstellung.
     pub fn winkel(&mut self, winkel: Winkel) {
         self.pivot.winkel = winkel;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
         self.pivot.winkel += winkel;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Aktueller Skalierfaktor zur Darstellung.
@@ -153,13 +166,13 @@ impl<L: Leiter> Gleise<L> {
     /// Setze den aktueller Skalierfaktor zur Darstellung.
     pub fn setze_skalierfaktor(&mut self, skalieren: Skalar) {
         self.skalieren = skalieren;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
         self.skalieren *= skalieren;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
     }
 
     /// Füge einen Streckenabschnitt hinzu.
@@ -249,7 +262,7 @@ impl<L: Leiter> Gleise<L> {
         let StreckenabschnittId { geschwindigkeit, name: _ } = &streckenabschnitt_id;
         let streckenabschnitt_map =
             self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        self.canvas.lock().leeren();
+        self.canvas.leeren();
         streckenabschnitt_entfernen(
             streckenabschnitt_map,
             streckenabschnitt_id,
@@ -420,7 +433,7 @@ impl<L: Leiter> Gleise<L> {
     }
 }
 
-impl<L: Debug + Leiter> Gleise<L> {
+impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Existiert bei der neuen Geschwindigkeit ein Streckenabschnitt mit identischem Namen
     /// wird dieser überschrieben und zurückgegeben.
@@ -499,7 +512,7 @@ impl<L: Debug + Leiter> Gleise<L> {
                     }
                 }
                 *streckenabschnitt_id = id_neu;
-                self.canvas.lock().leeren();
+                self.canvas.leeren();
                 Ok(bisher)
             },
             Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
@@ -572,7 +585,12 @@ fn streckenabschnitt_entfernen<T>(
     }
 }
 
-impl<L: Leiter> Program<NonEmpty<Nachricht>, Renderer<Thema>> for Gleise<L> {
+impl<L, AktualisierenNachricht> Program<NonEmpty<Nachricht>, Renderer<Thema>>
+    for Gleise<L, AktualisierenNachricht>
+where
+    L: Leiter,
+    AktualisierenNachricht: 'static + From<steuerung::Aktualisieren> + Send,
+{
     type State = ();
 
     #[inline(always)]

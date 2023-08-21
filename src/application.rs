@@ -84,7 +84,7 @@ pub struct MessageBox {
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_debug(S: Debug)]
 pub struct Zugkontrolle<L: Leiter, S> {
-    gleise: Gleise<L>,
+    gleise: Gleise<L, Nachricht<L, S>>,
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
     i2c_settings: I2cSettings,
@@ -212,7 +212,7 @@ where
 
         let lade_schriftarten = schriftarten.iter().map(|&schriftart| {
             iced::font::load(schriftart).map(|ergebnis| match ergebnis {
-                Ok(()) => Nachricht::AsyncAktualisieren,
+                Ok(()) => Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true },
                 Err(fehler) => Nachricht::AsyncFehler {
                     titel: String::from("Schriftart laden"),
                     nachricht: format!("{fehler:?}"),
@@ -246,9 +246,16 @@ where
         let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
         let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
 
-        let gleise = Gleise::neu(zugtyp, modus, Position { punkt: Vektor { x, y }, winkel }, zoom);
-
         let (sender, receiver) = channel();
+
+        let gleise = Gleise::neu(
+            zugtyp,
+            modus,
+            Position { punkt: Vektor { x, y }, winkel },
+            zoom,
+            sender.clone(),
+        );
+
         let zugkontrolle = Zugkontrolle {
             gleise,
             lager,
@@ -327,9 +334,10 @@ where
                 self.entferne_speichern_farbe(nachricht_zeit)
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
-            Nachricht::AktionGeschwindigkeit(aktion) => {
-                self.async_aktion_ausführen(aktion, Some(Nachricht::AsyncAktualisieren))
-            },
+            Nachricht::AktionGeschwindigkeit(aktion) => self.async_aktion_ausführen(
+                aktion,
+                Some(Nachricht::AsyncAktualisieren { gleise_neuzeichnen: false }),
+            ),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
@@ -342,7 +350,11 @@ where
             Nachricht::GleiseZustandAktualisieren(nachricht) => {
                 self.gleise_zustand_aktualisieren(nachricht)
             },
-            Nachricht::AsyncAktualisieren => {},
+            Nachricht::AsyncAktualisieren { gleise_neuzeichnen } => {
+                if gleise_neuzeichnen {
+                    self.gleise_neuzeichnen()
+                }
+            },
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
 

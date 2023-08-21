@@ -149,9 +149,9 @@ pub(in crate::application) type KurvenWeicheNachricht = weiche::Nachricht<
 
 impl AuswahlZustand {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, S, Nachricht: 't>(
+    pub fn view<'t, L, S, Nachricht: 't, AktualisierenNachricht>(
         &self,
-        gleise: &'t Gleise<L>,
+        gleise: &'t Gleise<L, AktualisierenNachricht>,
         lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,

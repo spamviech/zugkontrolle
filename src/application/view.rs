@@ -62,9 +62,9 @@ where
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>>,
-    <L as Leiter>::Fahrtrichtung: Clone,
-    S: 'static + Clone,
+    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    <L as Leiter>::Fahrtrichtung: Clone + Send,
+    S: 'static + Clone + Send,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
     pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
@@ -261,7 +261,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
     s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
     kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
-    gleise: &'t Gleise<L>,
+    gleise: &'t Gleise<L, Nachricht<L, S>>,
 ) -> Row<
     't,
     modal::Nachricht<AuswahlZustand, modal::Nachricht<MessageBox, Nachricht<L, S>>>,

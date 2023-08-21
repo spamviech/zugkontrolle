@@ -20,9 +20,9 @@ use crate::{
         polarität::Fließend,
         Fehler, OutputAnschluss,
     },
-    gleis::gleise::steuerung::Steuerung,
+    gleis::gleise::steuerung::{SomeAktualisierenSender, Steuerung},
     steuerung::plan::async_ausführen,
-    typen::{canvas::Cache, MitName},
+    typen::MitName,
     util::nachschlagen::Nachschlagen,
 };
 
@@ -54,11 +54,11 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
         name: Name,
         richtung: Richtung,
         anschlüsse: Anschlüsse,
-        cache: Arc<Mutex<Cache>>,
+        sender: impl Into<SomeAktualisierenSender>,
     ) -> Self {
         Weiche {
             name,
-            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, cache))),
+            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, sender))),
             anschlüsse: Arc::new(Mutex::new(anschlüsse)),
         }
     }
@@ -279,18 +279,18 @@ where
     R: Serialisiere<S>,
     S: Reserviere<R, Arg = ()>,
 {
-    type Arg = Arc<Mutex<Cache>>;
+    type Arg = SomeAktualisierenSender;
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         bekannte_anschlüsse: Anschlüsse,
-        canvas: Arc<Mutex<Cache>>,
+        sender: SomeAktualisierenSender,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
         anschlüsse
             .reserviere(lager, bekannte_anschlüsse, ())
-            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas))
+            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))
     }
 }
 

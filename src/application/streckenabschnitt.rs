@@ -128,7 +128,9 @@ struct AuswahlZustand {
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
+    fn neu<L: Leiter, AktualisierenNachricht>(
+        gleise: &Gleise<L, AktualisierenNachricht>,
+    ) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         AuswahlZustand {
             neu_name: String::new(),
@@ -200,8 +202,8 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(
-        gleise: &'a Gleise<L>,
+    pub fn neu<L: Leiter, AktualisierenNachricht>(
+        gleise: &'a Gleise<L, AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Self {

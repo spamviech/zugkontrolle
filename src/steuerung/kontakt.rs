@@ -1,8 +1,7 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
 use std::{
-    fmt::{self, Debug},
-    ops::{Deref, DerefMut},
+    fmt::Debug,
     sync::{
         mpsc::{channel, Receiver, RecvError, SendError, Sender},
         Arc,
@@ -23,100 +22,21 @@ use crate::{
         trigger::Trigger,
         Fehler, InputAnschluss, InputSerialisiert,
     },
-    gleis::gleise::steuerung::Steuerung,
-    typen::{canvas::Cache, MitName},
+    gleis::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung},
+    typen::MitName,
+    util::sender_trait::erstelle_sender_trait_existential,
 };
 
 /// Name eines [Kontaktes](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-macro_rules! erstelle_sender_trait_existential {
-    ($(($vis: vis),)? $trait: ident, $trait_doc: literal, $existential: ident, $existential_doc: literal, $msg: ty $(,)?) => {
-        #[doc = $trait_doc]
-        #[dyn_clonable::clonable]
-        $($vis)? trait $trait: Clone + Send {
-            #[doc = "Sende eine [$msg]-Nachricht."]
-            fn send(&self, level: $msg) -> Result<(), SendError<$msg>>;
-
-            #[doc = "[Debug]-Ausgabe zur Darstellung eines [$existential]."]
-            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-        }
-
-        impl $trait for Sender<$msg> {
-            fn send(&self, value: $msg) -> Result<(), SendError<$msg>> {
-                Sender::send(self, value)
-            }
-
-            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                <Self as Debug>::fmt(self, f)
-            }
-        }
-
-        impl<T: Send, F: Fn($msg) -> T + Clone + Send> $trait for (Sender<T>, F) {
-            fn send(&self, msg: $msg) -> Result<(), SendError<$msg>> {
-                let (sender, f) = self;
-                Sender::send(sender, f(msg)).map_err(|SendError(_)| SendError(msg))
-            }
-
-            fn debug_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.debug_tuple("").field(&self.0).field(&"<closure>").finish()
-            }
-        }
-
-        #[doc = $existential_doc]
-        #[derive(Clone)]
-        $($vis)? struct $existential(Box<dyn $trait>);
-
-        impl Debug for $existential {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("SomeLevelSender(")?;
-                self.0.debug_fmt(f)?;
-                f.write_str(")")
-            }
-        }
-
-        impl<T: 'static + $trait + Send> From<T> for $existential {
-            fn from(value: T) -> Self {
-                $existential(Box::new(value))
-            }
-        }
-
-        impl Deref for $existential {
-            type Target = dyn $trait;
-
-            fn deref(&self) -> &Self::Target {
-                self.0.as_ref()
-            }
-        }
-
-        impl DerefMut for $existential {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                self.0.as_mut()
-            }
-        }
-    };
-}
-
 erstelle_sender_trait_existential! {
     LevelSender,
     "Hilfs-Trait um existential types zu ermöglichen (Verstecke T).",
     SomeLevelSender,
-    "Ein beliebiger [LevelSender] mit Debug-Implementierung.",
+    "Ein beliebiger [LevelSender].",
     Level,
-}
-
-/// Das aktuelle level hat sich geändert, das UI muss aktualisiert werden.
-#[derive(Debug, Clone, Copy)]
-pub struct Aktualisieren;
-
-erstelle_sender_trait_existential! {
-    (pub),
-    AktualisierenSender,
-    "Sende eine [Aktualisieren]-Nachricht.",
-    SomeAktualisierenSender,
-    "Ein beliebiger [AktualisierenSender].",
-    Aktualisieren,
 }
 
 /// Hilfs-Trait um Trait-Objekte für beide Traits zu erstellen.
@@ -187,22 +107,15 @@ impl Kontakt {
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
             anschluss.setze_async_interrupt(Trigger::Both, move |level| {
-                println!("{level:?} ({trigger_copy:?})");
                 let callback_aufrufen = {
-                    println!("\t->lock");
                     let mut guard = letztes_level_clone.lock();
-                    println!("\t->deref");
-                    let mut_ref = &mut *guard;
-                    println!("\t->as_mut");
-                    let letztes_level_mut = mut_ref.as_mut();
-                    println!("\t->{letztes_level_mut:?}");
+                    let letztes_level_mut = guard.as_mut();
                     let callback_aufrufen = letztes_level_mut
                         .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
                         .unwrap_or(true);
                     *letztes_level_mut = Some(level);
                     callback_aufrufen
                 };
-                println!("\t->unlocked");
                 if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
                         "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
@@ -210,7 +123,6 @@ impl Kontakt {
                         fehler
                     );
                 }
-                println!("\t->sending: {callback_aufrufen}");
                 if callback_aufrufen {
                     let senders = &mut *senders_clone.lock();
                     // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
@@ -225,7 +137,6 @@ impl Kontakt {
                         }
                     }
                 }
-                println!("\t->done");
             });
 
         match set_async_interrupt_result {
@@ -312,13 +223,13 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    type Arg = (Arc<Mutex<Cache>>, SomeAktualisierenSender);
+    type Arg = SomeAktualisierenSender;
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        (cache, aktualisieren_sender): Self::Arg,
+        aktualisieren_sender: Self::Arg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::*;
         let (mut anschluss, fehler, mut anschlüsse) =
@@ -335,7 +246,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 self.name,
                 anschluss,
                 self.trigger,
-                Steuerung::neu(letztes_level, cache),
+                Steuerung::neu(letztes_level, aktualisieren_sender.clone()),
                 aktualisieren_sender,
             ),
             fehler,

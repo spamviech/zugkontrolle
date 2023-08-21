@@ -6,11 +6,10 @@ use std::{
     fs,
     hash::Hash,
     io::{self, Read},
-    sync::{mpsc::Sender, Arc},
+    sync::mpsc::Sender,
 };
 
 use nonempty::NonEmpty;
-use parking_lot::Mutex;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree,
@@ -26,11 +25,13 @@ use crate::{
     gleis::{
         gerade::{Gerade, GeradeSerialisiert},
         gleise::{
+            self,
             daten::{
                 v2::{self, BekannterZugtyp},
                 DatenAuswahl, GeschwindigkeitMap, Gleis, GleiseDaten, SelectAll,
                 StreckenabschnittMap, Zustand,
             },
+            steuerung::SomeAktualisierenSender,
             Fehler, Gleise,
         },
         kreuzung::{Kreuzung, KreuzungSerialisiert},
@@ -46,11 +47,11 @@ use crate::{
         geschwindigkeit::{
             self, BekannterLeiter, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
         },
-        kontakt::{self, Kontakt, KontaktSerialisiert, SomeAktualisierenSender},
+        kontakt::{Kontakt, KontaktSerialisiert},
         plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
-    typen::{canvas::Cache, mm::Spurweite, vektor::Vektor, Zeichnen},
+    typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::{FalscherLeiter, Zugtyp, ZugtypSerialisiert},
 };
 
@@ -179,7 +180,7 @@ where
 
 impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
+    fn reserviere<S, Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         spurweite: Spurweite,
         lager: &mut anschluss::Lager,
@@ -189,7 +190,6 @@ impl GleiseDatenSerialisiert {
         dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
         kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
         fehler: &mut Vec<LadenFehler<S>>,
-        canvas: &Arc<Mutex<Cache>>,
         sender: &Sender<Nachricht>,
     ) -> (GleiseDaten, Anschlüsse) {
         macro_rules! reserviere_anschlüsse {
@@ -217,13 +217,13 @@ impl GleiseDatenSerialisiert {
         }
         let aktualisieren_sender = SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
         reserviere_anschlüsse! {
-            geraden: Gerade: kontakt: kontakte: &(canvas.clone(), aktualisieren_sender.clone()),
-            kurven: Kurve: kontakt: kontakte: &(canvas.clone(), aktualisieren_sender),
-            weichen: Weiche: steuerung: gerade_weichen: canvas,
-            dreiwege_weichen: DreiwegeWeiche: steuerung: dreiwege_weichen: canvas,
-            kurven_weichen: KurvenWeiche: steuerung: kurven_weichen: canvas,
-            s_kurven_weichen: SKurvenWeiche: steuerung: gerade_weichen: canvas,
-            kreuzungen: Kreuzung: steuerung: gerade_weichen: canvas,
+            geraden: Gerade: kontakt: kontakte: &aktualisieren_sender,
+            kurven: Kurve: kontakt: kontakte: &aktualisieren_sender,
+            weichen: Weiche: steuerung: gerade_weichen: &aktualisieren_sender,
+            dreiwege_weichen: DreiwegeWeiche: steuerung: dreiwege_weichen: &aktualisieren_sender,
+            kurven_weichen: KurvenWeiche: steuerung: kurven_weichen: &aktualisieren_sender,
+            s_kurven_weichen: SKurvenWeiche: steuerung: gerade_weichen: &aktualisieren_sender,
+            kreuzungen: Kreuzung: steuerung: gerade_weichen: &aktualisieren_sender,
         }
     }
 }
@@ -353,7 +353,10 @@ impl<S> From<FalscherLeiter> for LadenFehler<S> {
     }
 }
 
-fn reserviere_streckenabschnitt_map<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
+fn reserviere_streckenabschnitt_map<
+    S,
+    Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     streckenabschnitt_map: StreckenabschnittMapSerialisiert,
@@ -364,7 +367,6 @@ fn reserviere_streckenabschnitt_map<S, Nachricht: 'static + From<kontakt::Aktual
     dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
-    canvas: &Arc<Mutex<Cache>>,
     sender: &Sender<Nachricht>,
 ) -> (StreckenabschnittMap, Anschlüsse, Option<GleiseDaten>) {
     streckenabschnitt_map.into_iter().fold(
@@ -390,7 +392,6 @@ fn reserviere_streckenabschnitt_map<S, Nachricht: 'static + From<kontakt::Aktual
                 dreiwege_weichen,
                 kontakte,
                 laden_fehler,
-                canvas,
                 sender,
             );
 
@@ -415,7 +416,7 @@ fn reserviere_streckenabschnitt_map<S, Nachricht: 'static + From<kontakt::Aktual
 }
 
 #[allow(single_use_lifetimes)]
-fn reserviere_geschwindigkeit_map<L, S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
+fn reserviere_geschwindigkeit_map<L, S, Nachricht>(
     spurweite: Spurweite,
     lager: &mut anschluss::Lager,
     geschwindigkeiten_map: GeschwindigkeitMapSerialisiert<S>,
@@ -428,12 +429,12 @@ fn reserviere_geschwindigkeit_map<L, S, Nachricht: 'static + From<kontakt::Aktua
     dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
-    canvas: &Arc<Mutex<Cache>>,
     sender: &Sender<Nachricht>,
 ) -> (GeschwindigkeitMap<L>, Anschlüsse, Option<StreckenabschnittMap>)
 where
     L: Serialisiere<S>,
     S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
+    Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
     geschwindigkeiten_map.into_iter().fold(
         (HashMap::new(), anschlüsse, None),
@@ -462,7 +463,6 @@ where
                     dreiwege_weichen,
                     kontakte,
                     laden_fehler,
-                    canvas,
                     sender,
                 );
 
@@ -498,11 +498,10 @@ where
     S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
 {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
+    fn reserviere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        canvas: &Arc<Mutex<Cache>>,
         sender: &Sender<Nachricht>,
     ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), FalscherLeiter> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
@@ -533,7 +532,6 @@ where
             &mut bekannte_dreiwege_weichen,
             &mut bekannte_kontakte,
             &mut fehler,
-            canvas,
             sender,
         );
 
@@ -548,7 +546,6 @@ where
             &mut bekannte_dreiwege_weichen,
             &mut bekannte_kontakte,
             &mut fehler,
-            canvas,
             sender,
         );
         if let Some(fehler_daten) = fehler_daten {
@@ -569,7 +566,6 @@ where
                 &mut bekannte_dreiwege_weichen,
                 &mut bekannte_kontakte,
                 &mut fehler,
-                canvas,
                 sender,
             );
         if let Some(fehler_streckenabschnitte) = fehler_streckenabschnitte {
@@ -585,7 +581,7 @@ where
                 &bekannte_kurven_weichen,
                 &bekannte_dreiwege_weichen,
                 &bekannte_kontakte,
-                &canvas,
+                sender,
             ) {
                 Ok(plan) => plan,
                 Err(anschlüsse) => {
@@ -609,7 +605,7 @@ where
     }
 }
 
-impl<L: Leiter> Gleise<L> {
+impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// in einer Datei.
@@ -631,11 +627,10 @@ impl<L: Leiter> Gleise<L> {
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// aus einer Datei.
     #[allow(single_use_lifetimes)]
-    pub fn laden<S, Nachricht: 'static + From<kontakt::Aktualisieren> + Send>(
+    pub fn laden<S>(
         &mut self,
         lager: &mut anschluss::Lager,
         pfad: impl AsRef<std::path::Path>,
-        sender: &Sender<Nachricht>,
     ) -> Result<(), NonEmpty<LadenFehler<S>>>
     where
         L: BekannterLeiter + Serialisiere<S>,
@@ -647,9 +642,10 @@ impl<L: Leiter> Gleise<L> {
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
-        self.canvas.lock().leeren();
+        self.erzwinge_neuzeichnen();
         let anschlüsse = self.zustand.anschlüsse_ausgeben();
 
         // TODO pivot, skalieren, Modus?
@@ -672,7 +668,7 @@ impl<L: Leiter> Gleise<L> {
 
         // reserviere Anschlüsse
         let (zustand, fehler) = zustand_serialisiert
-            .reserviere(lager, anschlüsse, &self.canvas, sender)
+            .reserviere(lager, anschlüsse, &self.sender)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
         self.zustand = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {
