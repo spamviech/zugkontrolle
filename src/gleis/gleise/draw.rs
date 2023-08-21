@@ -36,14 +36,14 @@ use crate::{
     typen::{
         canvas::{
             pfad::{self, Transformation},
-            Frame,
+            Frame, Position,
         },
         farbe::Farbe,
         mm::Spurweite,
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        Position, Transparenz, Zeichnen,
+        Transparenz, Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
 };

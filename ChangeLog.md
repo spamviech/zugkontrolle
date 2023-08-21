@@ -13,29 +13,34 @@
   - stelle sicher ziel-Ordner existiert, bevor scp ausgeführt wird
   - config.ini um Einstellungen lokal zu überschreiben
   - deploy.py "bearbeitet" nur aktivierte targets
+  - neues "raspi"-feature wird automatisch anhand des targets gesetzt
 - refactoring:
   - verschiebe MitRichtung nach steuerung::weiche
   - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
   - extrahiere application::Nachricht (+ Hilfsgrößen) und AuswahlZustand in eigene Module
   - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
+  - entferne die meisten `pub use` re-exports
+- aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
 - (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,
   wenn initialisieren nicht erfolgreich war (z.B. pcf8574 nicht angeschlossen).
 - entferne RwLock aus Gleise-Struktur, um auftretende Deadlocks zu beheben
-- entferne die meisten `pub use` re-exports
+- ersetzte Mutex in Steuerung-Struktur, um Deadlocks bei gleichzeitigem neuzeichnen zu beheben
 - erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
 - ermögliche Auswahl des I2C-Busses bei Anschlüssen
 - alle I2C-Busse sind standard-mäßig deaktiviert
 - neue Gleise erscheinen direkt an der richtigen Position
 - Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
-- workaround: Schließe Geschwindigkeit-Auswahl nach jeder Aktion, um erneut Eingaben zu akzeptieren
-  Aus irgend einem Grund wird das Modal danach nicht angezeigt.
-- aktualisiere iced auf Version 0.10.0
 - Schriftgröße von Beschreibungen skaliert nun ebenfalls
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 - Kontakte werden auf dem Canvas als Kreise angezeigt
 - Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
+
+### workaround
+
+- Schließe Auswahl-Anzeige nach jeder Aktion, um erneut Eingaben zu akzeptieren.
+  Aus irgend einem Grund wird das Modal danach nicht angezeigt.
 
 ## 3.0.0
 

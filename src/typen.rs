@@ -2,21 +2,15 @@
 
 use crate::{
     gleis::verbindung::{self, Verbindung},
-    util::nachschlagen::Nachschlagen,
-};
-
-// TODO entferne re-exports?
-pub use self::{
-    canvas::{
-        pfad::{self, Bogen, Pfad, Transformation},
-        Cache, Frame, Position,
+    typen::{
+        canvas::{pfad::Pfad, Position},
+        farbe::Farbe,
+        mm::Spurweite,
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
     },
-    farbe::Farbe,
-    mm::{Länge, Radius, Spurweite},
-    rechteck::Rechteck,
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::{Trigonometrie, Winkel, WinkelGradmaß},
+    util::nachschlagen::Nachschlagen,
 };
 
 pub mod canvas;
