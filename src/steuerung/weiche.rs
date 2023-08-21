@@ -21,9 +21,9 @@ use crate::{
         Fehler, OutputAnschluss,
     },
     gleis::gleise::steuerung::Steuerung,
-    nachschlagen::Nachschlagen,
     steuerung::plan::async_ausführen,
     typen::{canvas::Cache, MitName},
+    util::nachschlagen::Nachschlagen,
 };
 
 /// Name einer [Weiche].

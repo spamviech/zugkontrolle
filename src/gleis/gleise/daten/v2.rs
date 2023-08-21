@@ -13,7 +13,6 @@ use crate::{
         polarität::Polarität,
         trigger::Trigger,
     },
-    eingeschränkt::kleiner_8,
     gleis::{
         gerade,
         gleise::daten as aktuell,
@@ -28,7 +27,7 @@ use crate::{
         kontakt, plan, streckenabschnitt, weiche,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
-    void::Void,
+    util::{eingeschränkt::kleiner_8, void::Void},
     zugtyp::Zugtyp,
 };
 

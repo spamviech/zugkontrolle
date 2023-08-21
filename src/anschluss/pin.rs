@@ -3,8 +3,8 @@
 use self::pwm::Pwm;
 use crate::{
     anschluss::level::Level,
-    eingeschränkt::{NichtNegativ, NullBisEins},
     rppal,
+    util::eingeschränkt::{NichtNegativ, NullBisEins},
 };
 
 pub mod input;

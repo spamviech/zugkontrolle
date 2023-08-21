@@ -20,9 +20,7 @@ use crate::{
         self, de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss,
         OutputSerialisiert,
     },
-    eingeschränkt::NichtNegativ,
     gleis::{gleise::steuerung::Steuerung, weiche},
-    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
@@ -30,6 +28,7 @@ use crate::{
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
     typen::canvas::Cache,
+    util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
     zugtyp::Zugtyp,
 };
 

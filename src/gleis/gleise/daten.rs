@@ -27,7 +27,6 @@ use crate::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
-    nachschlagen::Nachschlagen,
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
         plan::{self, Plan},
@@ -42,6 +41,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         Zeichnen,
     },
+    util::nachschlagen::Nachschlagen,
     zugtyp::Zugtyp,
 };
 

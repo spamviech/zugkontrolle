@@ -5,7 +5,6 @@ use std::{fmt::Debug, marker::PhantomData, time::Duration};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    eingeschränkt::NichtNegativ,
     gleis::{
         gerade::GeradeUnit,
         kreuzung::KreuzungUnit,
@@ -17,6 +16,7 @@ use crate::{
     },
     steuerung::geschwindigkeit::{BekannterLeiter, Leiter},
     typen::mm::Spurweite,
+    util::eingeschränkt::NichtNegativ,
 };
 
 pub mod lego;

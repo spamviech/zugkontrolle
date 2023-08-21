@@ -10,8 +10,8 @@ use crate::{
         pin::Pin as EinPin,
         polarität::Polarität,
     },
-    eingeschränkt::{NichtNegativ, NullBisEins},
     rppal::{gpio, pwm},
+    util::eingeschränkt::{NichtNegativ, NullBisEins},
 };
 
 #[allow(variant_size_differences)]

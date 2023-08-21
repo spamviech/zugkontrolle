@@ -10,7 +10,6 @@ pub use crate::gleis::weiche::gerade::{
 };
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
-    nachschlagen::impl_nachschlagen,
     steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
@@ -25,6 +24,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 type AnschlüsseSerialisiert =

@@ -187,13 +187,22 @@ impl Kontakt {
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
             anschluss.setze_async_interrupt(Trigger::Both, move |level| {
-                let mut guard = letztes_level_clone.lock();
-                let letztes_level_mut = guard.as_mut();
-                let callback_aufrufen = letztes_level_mut
-                    .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
-                    .unwrap_or(true);
-                *letztes_level_mut = Some(level);
-                drop(guard);
+                println!("{level:?} ({trigger_copy:?})");
+                let callback_aufrufen = {
+                    println!("\t->lock");
+                    let mut guard = letztes_level_clone.lock();
+                    println!("\t->deref");
+                    let mut_ref = &mut *guard;
+                    println!("\t->as_mut");
+                    let letztes_level_mut = mut_ref.as_mut();
+                    println!("\t->{letztes_level_mut:?}");
+                    let callback_aufrufen = letztes_level_mut
+                        .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
+                        .unwrap_or(true);
+                    *letztes_level_mut = Some(level);
+                    callback_aufrufen
+                };
+                println!("\t->unlocked");
                 if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
                         "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
@@ -201,6 +210,7 @@ impl Kontakt {
                         fehler
                     );
                 }
+                println!("\t->sending: {callback_aufrufen}");
                 if callback_aufrufen {
                     let senders = &mut *senders_clone.lock();
                     // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
@@ -215,6 +225,7 @@ impl Kontakt {
                         }
                     }
                 }
+                println!("\t->done");
             });
 
         match set_async_interrupt_result {

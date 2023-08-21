@@ -14,8 +14,8 @@ use crate::{
         trigger::Trigger,
     },
     argumente::I2cSettings,
-    eingeschränkt::kleiner_8,
     rppal,
+    util::eingeschränkt::kleiner_8,
     zugtyp::FalscherLeiter,
 };
 

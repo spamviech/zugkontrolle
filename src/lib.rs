@@ -39,15 +39,11 @@
 pub mod anschluss;
 pub mod application;
 pub mod argumente;
-#[path = "eingeschränkt.rs"]
-pub mod eingeschränkt;
 pub mod gleis;
-pub mod nachschlagen;
 pub mod rppal;
 pub mod steuerung;
 pub mod typen;
-pub mod unicase_ord;
-pub mod void;
+pub mod util;
 pub mod zugtyp;
 
 #[cfg(test)]

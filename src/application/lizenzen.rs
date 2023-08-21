@@ -29,7 +29,7 @@ use crate::{
             linie::{Linie, TRENNLINIE},
         },
     },
-    unicase_ord::UniCaseOrd,
+    util::unicase_ord::UniCaseOrd,
 };
 
 pub mod texte;

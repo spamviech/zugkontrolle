@@ -24,11 +24,11 @@ use crate::{
         {level::Level, trigger::Trigger},
     },
     argumente::I2cSettings,
-    eingeschränkt::{kleiner_128, kleiner_8},
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
+    util::eingeschränkt::{kleiner_128, kleiner_8},
 };
 
 #[derive(Debug)]

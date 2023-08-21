@@ -2,7 +2,7 @@
 
 use crate::{
     gleis::verbindung::{self, Verbindung},
-    nachschlagen::Nachschlagen,
+    util::nachschlagen::Nachschlagen,
 };
 
 // TODO entferne re-exports?

@@ -31,7 +31,6 @@ use crate::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
-    nachschlagen::Nachschlagen,
     steuerung::geschwindigkeit::Leiter,
     typen::{
         canvas::{
@@ -45,6 +44,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         Position, Transparenz, Zeichnen,
     },
+    util::nachschlagen::Nachschlagen,
 };
 
 pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {

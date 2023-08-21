@@ -24,9 +24,11 @@ use crate::{
         polarität::{Fließend, Polarität},
         OutputAnschluss, OutputSerialisiert,
     },
-    eingeschränkt::{NichtNegativ, NullBisEins},
     steuerung::plan::async_ausführen,
-    void::Void,
+    util::{
+        eingeschränkt::{NichtNegativ, NullBisEins},
+        void::Void,
+    },
 };
 
 /// Name einer [Geschwindigkeit].

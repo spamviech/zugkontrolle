@@ -26,7 +26,7 @@ use crate::{
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
     argumente::I2cSettings,
-    eingeschränkt::{kleiner_8, InvaliderWert},
+    util::eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

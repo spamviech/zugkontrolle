@@ -3,7 +3,6 @@
 use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
 use crate::{
-    eingeschränkt::NichtNegativ,
     gleis::{
         gerade::{Gerade, GeradeUnit},
         kreuzung::{self, Kreuzung, KreuzungUnit},
@@ -18,6 +17,7 @@ use crate::{
         mm::{Länge, Radius, Spurweite},
         winkel::Winkel,
     },
+    util::eingeschränkt::NichtNegativ,
     zugtyp::Zugtyp,
 };
 

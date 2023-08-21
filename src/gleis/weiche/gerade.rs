@@ -7,7 +7,6 @@ use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung, weiche::orientierung::Orientierung},
-    nachschlagen::impl_nachschlagen,
     steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
@@ -22,6 +21,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 type AnschlüsseSerialisiert =

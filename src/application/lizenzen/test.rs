@@ -18,7 +18,7 @@ use crate::{
         verwendete_lizenzen_impl,
     },
     init_test_logging,
-    unicase_ord::UniCaseOrd,
+    util::unicase_ord::UniCaseOrd,
 };
 
 struct OptionD<'t, T>(&'t str, Option<T>);

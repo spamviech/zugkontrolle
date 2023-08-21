@@ -40,7 +40,6 @@ use crate::{
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
     argumente::I2cSettings,
-    eingeschränkt::NichtNegativ,
     steuerung::{
         geschwindigkeit::{
             Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
@@ -48,7 +47,7 @@ use crate::{
         },
         plan::AktionGeschwindigkeit,
     },
-    unicase_ord::UniCaseOrd,
+    util::{eingeschränkt::NichtNegativ, unicase_ord::UniCaseOrd},
 };
 
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {

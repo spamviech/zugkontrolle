@@ -3,7 +3,6 @@
 use std::{marker::PhantomData, time::Duration};
 
 use crate::{
-    eingeschränkt::{NichtNegativ, NullBisEins},
     gleis::{
         gerade::{Gerade, GeradeUnit},
         kreuzung::{self, Kreuzung, KreuzungUnit},
@@ -20,6 +19,7 @@ use crate::{
         mm::{Länge, Radius, Spurweite},
         winkel::WinkelGradmaß,
     },
+    util::eingeschränkt::{NichtNegativ, NullBisEins},
     zugtyp::Zugtyp,
 };
 

@@ -8,7 +8,6 @@ use zugkontrolle_macros::alias_serialisiert_unit;
 use crate::{
     anschluss::{level::Level, trigger::Trigger},
     gleis::verbindung::Verbindung,
-    nachschlagen::impl_nachschlagen,
     steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt},
     typen::{
         canvas::{
@@ -23,6 +22,7 @@ use crate::{
         winkel::{self, Winkel},
         MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 /// Definition einer Gerade.

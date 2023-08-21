@@ -7,7 +7,6 @@ use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
-    nachschlagen::impl_nachschlagen,
     steuerung::{
         self,
         weiche::{MitRichtung, WeicheSteuerung},
@@ -25,6 +24,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 type Anschlüsse = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;

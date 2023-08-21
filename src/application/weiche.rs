@@ -32,8 +32,8 @@ use crate::{
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
     argumente::I2cSettings,
-    nachschlagen::Nachschlagen,
     steuerung::weiche::{Name, WeicheSerialisiert},
+    util::nachschlagen::Nachschlagen,
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).

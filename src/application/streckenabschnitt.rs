@@ -35,7 +35,7 @@ use crate::{
         streckenabschnitt::{Name, Streckenabschnitt},
     },
     typen::farbe::Farbe,
-    unicase_ord::UniCaseOrd,
+    util::unicase_ord::UniCaseOrd,
 };
 
 /// Eine Nachricht des [Anzeige]-Widgets.
