@@ -1,12 +1,18 @@
 //! Ids zur Identifikation der Gleise.
 
-use std::marker::PhantomData;
+use std::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use rstar::primitives::Rectangle;
 
 use crate::{
     gleis::{
         gerade::Gerade,
+        gleise::id::eindeutig::{Id, KeineIdVerfügbar},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -18,6 +24,9 @@ use crate::{
 };
 
 pub mod eindeutig;
+
+#[cfg(test)]
+mod test;
 
 /// Id für einen Streckenabschnitt.
 #[derive(Debug, PartialEq, Eq)]
@@ -56,10 +65,47 @@ impl<T> GleisId<T> {
     }
 }
 
-// Explizite Implementierung wegen Phantomtyp benötigt.
+// Explizite Implementierung wegen Phantomtyp benötigt (derive erzeugt extra-Constraint).
 impl<T> PartialEq for GleisId<T> {
     fn eq(&self, other: &Self) -> bool {
         (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
+    }
+}
+
+/// Id für ein Gleis.
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+pub struct GleisId2<T: 'static>(Arc<Id<T>>);
+
+impl<T> PartialEq for GleisId2<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T> Eq for GleisId2<T> {}
+
+impl<T> PartialOrd for GleisId2<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl<T> Ord for GleisId2<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<T> Hash for GleisId2<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T> GleisId2<T> {
+    /// Erzeuge eine neue [GleisId] für den entsprechenden Typ.
+    pub fn neu() -> Result<GleisId2<T>, KeineIdVerfügbar> {
+        Id::neu().map(|id| GleisId2(Arc::new(id)))
     }
 }
 

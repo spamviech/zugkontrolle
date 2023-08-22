@@ -76,4 +76,23 @@ mod test_util {
             )
         }
     }
+
+    /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [Err].
+    pub(crate) fn expect_true(wert: bool) -> Result<(), ()> {
+        if wert {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [Err].
+    pub(crate) fn expect_eq<T: PartialEq>(a: T, b: T) -> Result<(), ()> {
+        expect_true(a == b)
+    }
+
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    pub(crate) fn expect_ne<T: PartialEq>(a: T, b: T) -> Result<(), ()> {
+        expect_true(a != b)
+    }
 }

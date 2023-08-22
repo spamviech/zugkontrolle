@@ -1,16 +1,17 @@
 //! Erzeuge eindeutige [Ids](Id).
 
 use std::{
-    any::TypeId,
+    any::{type_name, TypeId},
+    cmp::Ordering,
     collections::{
         btree_map::{BTreeMap, Entry},
         BTreeSet,
     },
+    hash::{Hash, Hasher},
     marker::PhantomData,
-    sync::Arc,
 };
 
-use log::error;
+use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
 static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<usize>>> = const_mutex(BTreeMap::new());
@@ -25,28 +26,54 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<usize>> {
     })
 }
 
-/// Eine eindeutige Id für den Typ T.
-///
-/// Im Gegensatz zu [Id] ist dieser Typ nicht klonbar, was eine einfachere [Drop]-Implementierung ermöglicht.
-/// Verwende stattdessen die [Arc]-Funktionalität für mehrere Kopien der selben ID.
-#[derive(zugkontrolle_macros::Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct IdIntern<T: 'static> {
+/// Eine eindeutige [Id] für den Typ T.
+#[derive(zugkontrolle_macros::Debug)]
+pub struct Id<T: 'static> {
     id: usize,
     phantom: PhantomData<fn() -> T>,
 }
 
-impl<T> Drop for IdIntern<T> {
-    fn drop(&mut self) {
-        let mut set = type_set::<T>();
-        if !set.remove(&self.id) {
-            error!("Gedroppte Id war nicht als verwendet markiert: {self:?}");
-        }
+impl<T> PartialEq for Id<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
 
-/// Eine eindeutige Id für den Typ T.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Id<T: 'static>(Arc<IdIntern<T>>);
+impl<T> Eq for Id<T> {}
+
+impl<T> PartialOrd for Id<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+impl<T> Ord for Id<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl<T> Hash for Id<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.phantom.hash(state);
+    }
+}
+
+impl<T> Drop for Id<T> {
+    fn drop(&mut self) {
+        let mut set = type_set::<T>();
+        if !set.remove(&self.id) {
+            error!(
+                "Gedroppte Id '{}' für Typ '{}' war nicht als verwendet markiert!",
+                self.id,
+                type_name::<T>()
+            );
+        } else {
+            trace!("Drop Id '{}' für Typ '{}'.", self.id, type_name::<T>());
+        }
+    }
+}
 
 /// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [Id] verfügbar.
 #[derive(Debug, Clone, Copy)]
@@ -64,34 +91,22 @@ impl<T> Id<T> {
                 return Err(KeineIdVerfügbar);
             }
         }
-        Ok(Id(Arc::new(IdIntern { id, phantom: PhantomData })))
+        trace!("Erzeuge Id '{}' für Typ '{}'.", id, type_name::<T>());
+        Ok(Id { id, phantom: PhantomData })
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    fn expect_eq<T: PartialEq>(a: T, b: T) -> Result<(), ()> {
-        if a == b {
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
-    fn expect_ne<T: PartialEq>(a: T, b: T) -> Result<(), ()> {
-        if a != b {
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
+    use crate::test_util::{expect_eq, expect_true, init_test_logging};
 
     #[test]
     fn eindeutig() -> Result<(), ()> {
+        init_test_logging();
+
         let ids: Vec<_> = (0..32)
-            .map(|i| (i, Id::<()>::neu().expect("test verwendet weniger als usize::MAX Ids.")))
+            .map(|i| (i, Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids.")))
             .filter_map(|(i, id)| (i % 2 == 0).then_some(id))
             .collect();
         let num = ids.len();
@@ -104,33 +119,20 @@ mod test {
 
     #[test]
     fn freigeben() -> Result<(), ()> {
+        init_test_logging();
+
         let ids: Vec<_> = (0..32)
             .map(|i| (i, Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!")))
             .collect();
         drop(ids);
 
         // nach drop der Ids können wieder neue mit ihrem Wert erzeugt werden
-        expect_eq(
+        expect_true(
             VERWENDETE_IDS
                 .lock()
                 .get(&TypeId::of::<()>())
                 .expect("Ids für unit type () wurden vorher erzeugt!")
-                .len(),
-            0,
+                .is_empty(),
         )
-    }
-
-    #[test]
-    fn clone() -> Result<(), ()> {
-        let id = Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
-        let id_clone = id.clone();
-        // durch drop des Original-Werts wird die Id nicht wieder freigegeben.
-        drop(id);
-
-        let ids =
-            (0..32).map(|_i| Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"));
-
-        // alle erzeugten Ids haben einen anderen Wert.
-        ids.map(|id| expect_ne(id_clone.clone(), id)).collect()
     }
 }
