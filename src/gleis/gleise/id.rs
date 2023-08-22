@@ -17,6 +17,8 @@ use crate::{
     typen::vektor::Vektor,
 };
 
+pub mod eindeutig;
+
 /// Id für einen Streckenabschnitt.
 #[derive(Debug, PartialEq, Eq)]
 pub struct StreckenabschnittId {
