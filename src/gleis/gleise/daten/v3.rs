@@ -1,4 +1,4 @@
-//! Struktur zum Speichern aller Gleise.
+//! Serialisierte Strukturen von Version 3.X, die mit Version 4.0.0 geändert wurden.
 
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
@@ -43,10 +43,6 @@ use crate::{
     util::nachschlagen::Nachschlagen,
     zugtyp::{Zugtyp, Zugtyp2},
 };
-
-pub mod de_serialisieren;
-pub mod v2;
-pub mod v3;
 
 /// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]

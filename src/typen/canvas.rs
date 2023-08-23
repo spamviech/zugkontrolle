@@ -9,11 +9,17 @@ use iced::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::typen::{
-    canvas::pfad::{Pfad, Transformation},
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::Winkel,
+use crate::{
+    typen::{
+        canvas::pfad::{Pfad, Transformation},
+        mm::Spurweite,
+        skalar::Skalar,
+        vektor::Vektor,
+        verbindung::{self, Verbindung},
+        winkel::{self, Trigonometrie, Winkel},
+        Zeichnen,
+    },
+    util::nachschlagen::Nachschlagen,
 };
 
 pub mod pfad;
@@ -178,5 +184,31 @@ impl Position {
     /// Vektor nachdem er um den Winkel gedreht wurde.
     pub fn rotation(&self, richtung: Vektor) -> Vektor {
         richtung.rotiert(self.winkel)
+    }
+
+    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
+    pub(crate) fn anliegend_position<T>(
+        spurweite: Spurweite,
+        definition: &T,
+        verbindung_name: &T::VerbindungName,
+        ziel_verbindung: Verbindung,
+    ) -> Position
+    where
+        T: Zeichnen,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+    {
+        let verbindungen = definition.verbindungen(spurweite);
+        let verbindung = verbindungen.erhalte(verbindung_name);
+        let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
+        Position {
+            punkt: Vektor {
+                x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()
+                    + verbindung.position.y * winkel.sin(),
+                y: ziel_verbindung.position.y
+                    - verbindung.position.x * winkel.sin()
+                    - verbindung.position.y * winkel.cos(),
+            },
+            winkel,
+        }
     }
 }
