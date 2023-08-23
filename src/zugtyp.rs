@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::{id::GleisId2, steuerung::MitSteuerung},
+        gleise::{id::DefinitionId2, steuerung::MitSteuerung},
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -64,8 +64,7 @@ pub struct Zugtyp<L: Leiter> {
     pub schalten_zeit: Duration,
 }
 
-pub(crate) type DefinitionMap2<T> =
-    HashMap<GleisId2<<T as MitSteuerung>::SelfUnit>, <T as MitSteuerung>::SelfUnit>;
+pub(crate) type DefinitionMap2<T> = HashMap<DefinitionId2<T>, <T as MitSteuerung>::SelfUnit>;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]

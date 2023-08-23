@@ -139,6 +139,9 @@ pub(crate) use mit_any_id;
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct GleisId2<T>(Arc<Id<T>>);
 
+/// Id für die Definition eines Gleises.
+pub type DefinitionId2<T> = GleisId2<<T as MitSteuerung>::SelfUnit>;
+
 impl<T> PartialEq for GleisId2<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
@@ -173,7 +176,7 @@ impl<T> GleisId2<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(Debug, zugkontrolle_macros::From)]
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AnyId2 {
     /// Eine [Gerade].
     Gerade(GleisId2<Gerade>),
@@ -234,6 +237,8 @@ macro_rules! mit_any_id2 {
     };
 }
 pub(crate) use mit_any_id2;
+
+use super::steuerung::MitSteuerung;
 
 // completely remove any notion of ID?
 #[allow(single_use_lifetimes)]

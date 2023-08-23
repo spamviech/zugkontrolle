@@ -2,9 +2,10 @@
 
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
+use log::error;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
-    RTree, RTreeObject, SelectionFunction, AABB,
+    Envelope, RTree, RTreeObject, SelectionFunction, AABB,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,8 @@ use crate::{
         gleise::{
             id::{
                 eindeutig::KeineIdVerfügbar, mit_any_id, mit_any_id2, AnyId, AnyId2, AnyIdRef,
-                GleisId, GleisId2, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
+                DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
+                StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
@@ -66,7 +68,7 @@ where
     <T as MitSteuerung>::SelfUnit: 'static,
 {
     /// Die [Zeichnen]-Definition des Gleises.
-    pub definition: GleisId2<<T as MitSteuerung>::SelfUnit>,
+    pub definition: DefinitionId2<T>,
     /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
     pub steuerung: <T as MitSteuerung>::Steuerung,
     /// Die Position des Gleises auf dem [Canvas](iced::widget::canvas::Canvas).
@@ -439,8 +441,6 @@ pub(crate) type StreckenabschnittMap2 =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
 type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
 
-pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId2>>;
-
 /// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
 /// sowie der verwendete [Zugtyp].
 #[derive(zugkontrolle_macros::Debug)]
@@ -453,7 +453,6 @@ pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
     pub(in crate::gleis::gleise) geschwindigkeiten: GeschwindigkeitMap2<L>,
     pub(in crate::gleis::gleise) streckenabschnitte: StreckenabschnittMap2,
     pub(in crate::gleis::gleise) gleise: GleiseDaten2,
-    pub(in crate::gleis::gleise) rstern: RStern2,
     pub(in crate::gleis::gleise) pläne: HashMap<plan::Name, Plan<L>>,
 }
 
@@ -465,7 +464,6 @@ impl<L: Leiter> Zustand2<L> {
             geschwindigkeiten: GeschwindigkeitMap2::new(),
             streckenabschnitte: StreckenabschnittMap2::new(),
             gleise: GleiseDaten2::neu(),
-            rstern: RStern2::new(),
             pläne: HashMap::new(),
         }
     }
@@ -483,7 +481,7 @@ impl<L: Leiter> Zustand2<L> {
     }
 
     pub(in crate::gleis::gleise) fn rstern(&self) -> &RStern2 {
-        &self.rstern
+        &self.gleise.rstern
     }
 
     fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
@@ -508,15 +506,6 @@ impl<L: Leiter> Zustand2<L> {
     }
 }
 
-#[derive(Debug, zugkontrolle_macros::From)]
-pub(in crate::gleis::gleise) enum HinzufügenFehler<T: MitSteuerung>
-where
-    <T as MitSteuerung>::SelfUnit: 'static,
-{
-    DefinitionNichtGefunden(GleisId2<<T as MitSteuerung>::SelfUnit>),
-    GleisIdFehler(KeineIdVerfügbar),
-}
-
 impl<L: Leiter> Zustand2<L> {
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen<T>(
@@ -533,27 +522,18 @@ impl<L: Leiter> Zustand2<L> {
         AnyId2: From<GleisId2<T>>,
     {
         let spurweite = self.zugtyp.spurweite;
-        let definition = self
-            .zugtyp
-            .definition_map::<T>()
-            .get(&definition_id)
-            .ok_or(HinzufügenFehler::DefinitionNichtGefunden(definition_id))?;
+        let definition = match self.zugtyp.definition_map::<T>().get(&definition_id) {
+            Some(definition) => definition,
+            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
+        };
         if einrasten {
             position = self.einraste_position(definition, position)
         }
-        // Berechne Bounding Box.
-        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
-        // Erzeuge neue Id.
-        let id = GleisId2::<T>::neu()?;
-        // Füge zu RStern hinzu.
-        self.rstern.insert(GeomWithData::new(rectangle.clone(), AnyId2::from(id.clone())));
-        // Füge zu GleiseDaten hinzu.
-        self.gleise.map_mut().insert(
-            id.clone(),
+        self.gleise.hinzufügen(
+            definition,
+            spurweite,
             Gleis2 { definition: definition_id, steuerung, position, streckenabschnitt },
-        );
-        // Rückgabewert
-        Ok(id)
+        )
     }
 
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
@@ -573,11 +553,10 @@ impl<L: Leiter> Zustand2<L> {
         AnyId2: From<GleisId2<T>>,
     {
         let spurweite = self.zugtyp.spurweite;
-        let definition = self
-            .zugtyp
-            .definition_map::<T>()
-            .get(&definition_id)
-            .ok_or(HinzufügenFehler::DefinitionNichtGefunden(definition_id))?;
+        let definition = match self.zugtyp.definition_map::<T>().get(&definition_id) {
+            Some(definition) => definition,
+            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
+        };
         // berechne neue position
         let position =
             Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung);
@@ -588,30 +567,31 @@ impl<L: Leiter> Zustand2<L> {
     /// Bewege ein Gleis an die neue position.
     fn bewegen_aux<T: Zeichnen + DatenAuswahl>(
         &mut self,
-        gleis_id: &mut GleisId2<T>,
+        gleis_id: GleisId2<T>,
         berechne_position: impl FnOnce(&Zustand2<L>, &Gleis2<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
-        let spurweite = self.zugtyp.spurweite;
-        let GleisId2 { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        // Entferne aktuellen Eintrag.
-        let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
-        let gleis = rstern
-            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        // Füge an neuer Position hinzu.
-        // Wegen Referenz auf self muss rstern kurzfristig vergessen werden.
-        let position_neu = berechne_position(self, &gleis);
-        let definition = gleis.definition;
-        let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position_neu));
-        let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
-        rstern.insert(GeomWithData::new(
-            rectangle.clone(),
-            Gleis { definition, position: position_neu },
-        ));
-        // Aktualisiere GleisId
-        gleis_id.rectangle = rectangle;
-        Ok(())
+        // let spurweite = self.zugtyp.spurweite;
+        // let GleisId2 { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
+        // // Entferne aktuellen Eintrag.
+        // let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
+        // let gleis = rstern
+        //     .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
+        //     .ok_or(GleisIdFehler::GleisEntfernt)?
+        //     .data;
+        // // Füge an neuer Position hinzu.
+        // // Wegen Referenz auf self muss rstern kurzfristig vergessen werden.
+        // let position_neu = berechne_position(self, &gleis);
+        // let definition = gleis.definition;
+        // let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position_neu));
+        // let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
+        // rstern.insert(GeomWithData::new(
+        //     rectangle.clone(),
+        //     Gleis { definition, position: position_neu },
+        // ));
+        // // Aktualisiere GleisId
+        // gleis_id.rectangle = rectangle;
+        // Ok(())
+        todo!()
     }
 
     /// Bewege ein Gleis an die neue position.
@@ -622,12 +602,13 @@ impl<L: Leiter> Zustand2<L> {
         mut position_neu: Position,
         einrasten: bool,
     ) -> Result<(), GleisIdFehler> {
-        self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position: _ }| {
-            if einrasten {
-                position_neu = zustand.einraste_position(definition, position_neu)
-            }
-            position_neu
-        })
+        // self.bewegen_aux(gleis_id, |zustand, Gleis { definition, position: _ }| {
+        //     if einrasten {
+        //         position_neu = zustand.einraste_position(definition, position_neu)
+        //     }
+        //     position_neu
+        // })
+        todo!()
     }
 
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
@@ -641,26 +622,24 @@ impl<L: Leiter> Zustand2<L> {
         T: Zeichnen + DatenAuswahl,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let spurweite = self.zugtyp.spurweite;
-        self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
-            Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung)
-        })
+        // let spurweite = self.zugtyp.spurweite;
+        // self.bewegen_aux(gleis_id, |_zustand, Gleis { definition, position: _ }| {
+        //     Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung)
+        // })
+        todo!()
     }
 
-    /// Entferne das Gleis assoziiert mit der `GleisId`.
+    /// Entferne das Gleis assoziiert mit der [GleisId].
     pub(in crate::gleis::gleise) fn entfernen<T: Zeichnen + DatenAuswahl>(
         &mut self,
         gleis_id: GleisId2<T>,
-    ) -> Result<Gleis<T>, GleisIdFehler> {
-        let GleisId2 { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        // Entferne aktuellen Eintrag.
-        let data = self
-            .daten_mut(&streckenabschnitt)?
-            .rstern_mut::<T>()
-            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        Ok(data)
+    ) -> Result<Gleis2<T>, GleisNichtGefunden2>
+    where
+        T: MitSteuerung + DatenAuswahl2,
+        <T as MitSteuerung>::Steuerung: Debug,
+        AnyId2: From<GleisId2<T>>,
+    {
+        self.gleise.entfernen(gleis_id)
     }
 }
 
@@ -674,81 +653,7 @@ impl<L: Leiter> Zustand2<L> {
         eigene_id: Option<&'t AnyId2>,
         gehalten_id: Option<&'t AnyId2>,
     ) -> (impl 't + Iterator<Item = Verbindung>, bool) {
-        let vektor_genauigkeit = Vektor {
-            x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
-            y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
-        };
-        let kandidaten_rechteck = Rechteck {
-            ecke_a: verbindung.position + vektor_genauigkeit,
-            ecke_b: verbindung.position - vektor_genauigkeit,
-        };
-        let kandidaten = self
-            .rstern
-            .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
-        let mut gehalten = false;
-        let überlappend = kandidaten.flat_map(move |kandidat| {
-            let kandidat_id = &kandidat.data;
-            let mut überlappend = Vec::new();
-
-            fn alle_verbindungen<T, Name>(t: T) -> Vec<Verbindung>
-            where
-                T: verbindung::Nachschlagen<Name>,
-            {
-                t.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
-            }
-
-            macro_rules! erhalte_alle_verbindungen {
-                ($id: expr, $gleisart: ident) => {
-                    self.gleise.$gleisart.get($id).and_then(
-                        |Gleis2 { definition, position, .. }| {
-                            self.zugtyp.$gleisart.get(&definition).map(|definition| {
-                                alle_verbindungen(definition.verbindungen_an_position(
-                                    self.zugtyp.spurweite,
-                                    position.clone(),
-                                ))
-                            })
-                        },
-                    )
-                };
-            }
-
-            if Some(kandidat_id) != eigene_id {
-                let kandidat_verbindungen = match &kandidat_id {
-                    AnyId2::Gerade(id) => {
-                        erhalte_alle_verbindungen!(id, geraden)
-                    },
-                    AnyId2::Kurve(id) => {
-                        erhalte_alle_verbindungen!(id, kurven)
-                    },
-                    AnyId2::Weiche(id) => erhalte_alle_verbindungen!(id, weichen),
-                    AnyId2::DreiwegeWeiche(id) => {
-                        erhalte_alle_verbindungen!(id, dreiwege_weichen)
-                    },
-                    AnyId2::KurvenWeiche(id) => {
-                        erhalte_alle_verbindungen!(id, kurven_weichen)
-                    },
-                    AnyId2::SKurvenWeiche(id) => {
-                        erhalte_alle_verbindungen!(id, s_kurven_weichen)
-                    },
-                    AnyId2::Kreuzung(id) => {
-                        erhalte_alle_verbindungen!(id, kreuzungen)
-                    },
-                }
-                .unwrap_or(Vec::new());
-                for kandidat_verbindung in kandidat_verbindungen {
-                    if (verbindung.position - kandidat_verbindung.position).länge()
-                        < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
-                    {
-                        überlappend.push(kandidat_verbindung.clone())
-                    }
-                }
-            }
-            if !gehalten && gehalten_id.map_or(false, |id| id == kandidat_id) {
-                gehalten = true;
-            }
-            überlappend
-        });
-        (überlappend, gehalten)
+        self.gleise.überlappende_verbindungen(&self.zugtyp, verbindung, eigene_id, gehalten_id)
     }
 }
 
@@ -870,17 +775,21 @@ impl GleiseDaten {
     }
 }
 
-type GleisMap2<T> = HashMap<GleisId2<T>, Gleis2<T>>;
+type GleisMap2<T> = HashMap<GleisId2<T>, (Gleis2<T>, Rectangle<Vektor>)>;
+
+pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId2>>;
 
 #[derive(Debug)]
 pub(crate) struct GleiseDaten2 {
-    pub(in crate::gleis::gleise) geraden: GleisMap2<Gerade>,
-    pub(in crate::gleis::gleise) kurven: GleisMap2<Kurve>,
-    pub(in crate::gleis::gleise) weichen: GleisMap2<Weiche>,
-    pub(in crate::gleis::gleise) dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
-    pub(in crate::gleis::gleise) kurven_weichen: GleisMap2<KurvenWeiche>,
-    pub(in crate::gleis::gleise) s_kurven_weichen: GleisMap2<SKurvenWeiche>,
-    pub(in crate::gleis::gleise) kreuzungen: GleisMap2<Kreuzung>,
+    geraden: GleisMap2<Gerade>,
+    kurven: GleisMap2<Kurve>,
+    weichen: GleisMap2<Weiche>,
+    dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
+    kurven_weichen: GleisMap2<KurvenWeiche>,
+    s_kurven_weichen: GleisMap2<SKurvenWeiche>,
+    kreuzungen: GleisMap2<Kreuzung>,
+    // Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur
+    rstern: RStern2,
 }
 
 impl GleiseDaten2 {
@@ -894,6 +803,7 @@ impl GleiseDaten2 {
             kurven_weichen: GleisMap2::new(),
             s_kurven_weichen: GleisMap2::new(),
             kreuzungen: GleisMap2::new(),
+            rstern: RStern2::new(),
         }
     }
 
@@ -927,6 +837,151 @@ impl GleiseDaten2 {
             s_kurven_weichen,
             kreuzungen,
         }
+    }
+
+    /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [RStern].
+    /// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
+    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+    fn überlappende_verbindungen<'t, L: Leiter>(
+        &'t self,
+        zugtyp: &'t Zugtyp2<L>,
+        verbindung: &'t Verbindung,
+        eigene_id: Option<&'t AnyId2>,
+        gehalten_id: Option<&'t AnyId2>,
+    ) -> (impl 't + Iterator<Item = Verbindung>, bool) {
+        let vektor_genauigkeit = Vektor {
+            x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+            y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+        };
+        let kandidaten_rechteck = Rechteck {
+            ecke_a: verbindung.position + vektor_genauigkeit,
+            ecke_b: verbindung.position - vektor_genauigkeit,
+        };
+        let kandidaten = self
+            .rstern
+            .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
+        let mut gehalten = false;
+        let überlappend =
+            kandidaten.flat_map(move |kandidat| {
+                let kandidat_id = &kandidat.data;
+                let mut überlappend = Vec::new();
+
+                fn alle_verbindungen<T, Name>(t: T) -> Vec<Verbindung>
+                where
+                    T: verbindung::Nachschlagen<Name>,
+                {
+                    t.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
+                }
+
+                macro_rules! erhalte_alle_verbindungen {
+                    ($id: expr, $gleisart: ident) => {
+                        self.$gleisart.get($id).and_then(
+                            |(Gleis2 { definition, position, .. }, _rectangle)| {
+                                zugtyp.$gleisart.get(&definition).map(|definition| {
+                                    alle_verbindungen(definition.verbindungen_an_position(
+                                        zugtyp.spurweite,
+                                        position.clone(),
+                                    ))
+                                })
+                            },
+                        )
+                    };
+                }
+
+                if Some(kandidat_id) != eigene_id {
+                    let kandidat_verbindungen = match &kandidat_id {
+                        AnyId2::Gerade(id) => {
+                            erhalte_alle_verbindungen!(id, geraden)
+                        },
+                        AnyId2::Kurve(id) => {
+                            erhalte_alle_verbindungen!(id, kurven)
+                        },
+                        AnyId2::Weiche(id) => erhalte_alle_verbindungen!(id, weichen),
+                        AnyId2::DreiwegeWeiche(id) => {
+                            erhalte_alle_verbindungen!(id, dreiwege_weichen)
+                        },
+                        AnyId2::KurvenWeiche(id) => {
+                            erhalte_alle_verbindungen!(id, kurven_weichen)
+                        },
+                        AnyId2::SKurvenWeiche(id) => {
+                            erhalte_alle_verbindungen!(id, s_kurven_weichen)
+                        },
+                        AnyId2::Kreuzung(id) => {
+                            erhalte_alle_verbindungen!(id, kreuzungen)
+                        },
+                    }
+                    .unwrap_or(Vec::new());
+                    for kandidat_verbindung in kandidat_verbindungen {
+                        if (verbindung.position - kandidat_verbindung.position).länge()
+                            < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
+                        {
+                            überlappend.push(kandidat_verbindung.clone())
+                        }
+                    }
+                }
+                if !gehalten && gehalten_id.map_or(false, |id| id == kandidat_id) {
+                    gehalten = true;
+                }
+                überlappend
+            });
+        (überlappend, gehalten)
+    }
+}
+
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub(in crate::gleis::gleise) enum HinzufügenFehler<T: MitSteuerung>
+where
+    <T as MitSteuerung>::SelfUnit: 'static,
+{
+    DefinitionNichtGefunden(DefinitionId2<T>),
+    KeineIdVerfügbar(KeineIdVerfügbar),
+}
+
+impl GleiseDaten2 {
+    fn hinzufügen<T>(
+        &mut self,
+        definition: &<T as MitSteuerung>::SelfUnit,
+        spurweite: Spurweite,
+        gleis: Gleis2<T>,
+    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
+    where
+        T: MitSteuerung + DatenAuswahl2,
+        <T as MitSteuerung>::SelfUnit: Zeichnen,
+        AnyId2: From<GleisId2<T>>,
+    {
+        // Erzeuge neue Id.
+        let id = GleisId2::<T>::neu()?;
+        // Berechne Bounding Box.
+        let rectangle =
+            Rectangle::from(definition.rechteck_an_position(spurweite, &gleis.position));
+        // Füge zu RStern hinzu.
+        self.rstern.insert(GeomWithData::new(rectangle.clone(), AnyId2::from(id.clone())));
+        // Füge zu GleiseDaten hinzu.
+        self.map_mut().insert(id.clone(), (gleis, rectangle));
+        // Rückgabewert
+        Ok(id)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::gleis::gleise) struct GleisNichtGefunden2(AnyId2);
+
+impl GleiseDaten2 {
+    fn entfernen<T>(&mut self, gleis_id: GleisId2<T>) -> Result<Gleis2<T>, GleisNichtGefunden2>
+    where
+        T: MitSteuerung + DatenAuswahl2,
+        <T as MitSteuerung>::Steuerung: Debug,
+        AnyId2: From<GleisId2<T>>,
+    {
+        let (gleis, rectangle) = match self.map_mut().remove(&gleis_id) {
+            Some(entry) => entry,
+            None => return Err(GleisNichtGefunden2(AnyId2::from(gleis_id))),
+        };
+        let result = self.rstern.remove(&GeomWithData::new(rectangle, AnyId2::from(gleis_id)));
+        if result.is_none() {
+            error!("Rectangle für Gleis {gleis:?} konnte nicht entfernt werden!");
+        }
+        Ok(gleis)
     }
 }
 
