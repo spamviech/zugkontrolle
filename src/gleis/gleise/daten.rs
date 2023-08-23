@@ -17,8 +17,8 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                mit_any_id, mit_any_id2, AnyId, AnyId2, AnyIdRef, GleisId, GleisId2, GleisIdRef,
-                StreckenabschnittId, StreckenabschnittIdRef,
+                eindeutig::KeineIdVerfügbar, mit_any_id, mit_any_id2, AnyId, AnyId2, AnyIdRef,
+                GleisId, GleisId2, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
@@ -468,123 +468,20 @@ impl<L: Leiter> Zustand2<L> {
         }
     }
 
-    pub(in crate::gleis::gleise) fn streckenabschnitt_map(
-        &self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
-    ) -> Result<&StreckenabschnittMap, GeschwindigkeitEntferntFehler> {
-        // Ok(if let Some(name) = geschwindigkeit {
-        //     &self
-        //         .geschwindigkeiten
-        //         .get(name)
-        //         .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))?
-        //         .1
-        // } else {
-        //     &self.ohne_geschwindigkeit
-        // })
-        todo!()
+    pub(in crate::gleis::gleise) fn zugtyp(&self) -> &Zugtyp2<L> {
+        &self.zugtyp
     }
 
-    pub(in crate::gleis::gleise) fn streckenabschnitt_map_mut(
-        &mut self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
-    ) -> Result<&mut StreckenabschnittMap, GeschwindigkeitEntferntFehler> {
-        // Ok(if let Some(name) = geschwindigkeit {
-        //     &mut self
-        //         .geschwindigkeiten
-        //         .get_mut(name)
-        //         .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))?
-        //         .1
-        // } else {
-        //     &mut self.ohne_geschwindigkeit
-        // })
-        todo!()
+    pub(in crate::gleis::gleise) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap2<L> {
+        &self.geschwindigkeiten
     }
 
-    pub(in crate::gleis::gleise) fn daten(
-        &self,
-        streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&GleiseDaten, StreckenabschnittIdFehler> {
-        // Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
-        //     let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
-        //     let streckenabschnitt_map = self.streckenabschnitt_map(geschwindigkeit.as_ref())?;
-        //     &streckenabschnitt_map
-        //         .get(name)
-        //         .ok_or_else(|| {
-        //             StreckenabschnittIdFehler::StreckenabschnittEntfernt(
-        //                 streckenabschnitt_id.klonen(),
-        //             )
-        //         })?
-        //         .1
-        // } else {
-        //     &self.ohne_streckenabschnitt
-        // })
-        todo!()
+    pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
+        &self.streckenabschnitte
     }
 
-    pub(in crate::gleis::gleise) fn daten_mut(
-        &mut self,
-        streckenabschnitt: &Option<StreckenabschnittId>,
-    ) -> Result<&mut GleiseDaten, StreckenabschnittIdFehler> {
-        // Ok(if let Some(streckenabschnitt_id) = streckenabschnitt {
-        //     let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt_id;
-        //     let streckenabschnitt_map = self.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        //     &mut streckenabschnitt_map
-        //         .get_mut(name)
-        //         .ok_or_else(|| {
-        //             StreckenabschnittIdFehler::StreckenabschnittEntfernt(
-        //                 streckenabschnitt_id.klonen(),
-        //             )
-        //         })?
-        //         .1
-        // } else {
-        //     &mut self.ohne_streckenabschnitt
-        // })
-        todo!()
-    }
-
-    pub(in crate::gleis::gleise) fn alle_streckenabschnitt_daten<'t>(
-        &'t self,
-    ) -> impl Iterator<Item = (Option<StreckenabschnittIdRef<'t>>, &'t GleiseDaten)> {
-        // iter::once((None, &self.ohne_streckenabschnitt))
-        //     .chain(self.ohne_geschwindigkeit.iter().map(|(name, (_streckenabschnitt, daten))| {
-        //         (Some(StreckenabschnittIdRef { geschwindigkeit: None, name }), daten)
-        //     }))
-        //     .chain(self.geschwindigkeiten.iter().flat_map(
-        //         |(geschwindigkeit_name, (_geschwindigkeit, map))| {
-        //             map.iter().map(move |(name, (_streckenabschnitt, daten))| {
-        //                 (
-        //                     Some(StreckenabschnittIdRef {
-        //                         geschwindigkeit: Some(geschwindigkeit_name),
-        //                         name,
-        //                     }),
-        //                     daten,
-        //                 )
-        //             })
-        //         },
-        //     ))
-        todo!();
-        std::iter::empty()
-    }
-
-    pub(in crate::gleis::gleise) fn alle_streckenabschnitte_und_daten<'t>(
-        &'t self,
-    ) -> impl Iterator<
-        Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
-    > {
-        // let iter_map = |geschwindigkeit: Option<&'t _>| {
-        //     move |(name, (streckenabschnitt, daten)): (&'t _, &'t (_, _))| {
-        //         (Some((StreckenabschnittIdRef { geschwindigkeit, name }, streckenabschnitt)), daten)
-        //     }
-        // };
-        // iter::once((None, &self.ohne_streckenabschnitt))
-        //     .chain(self.ohne_geschwindigkeit.iter().map(iter_map(None)))
-        //     .chain(self.geschwindigkeiten.iter().flat_map(
-        //         move |(geschwindigkeit_name, (_geschwindigkeit, map))| {
-        //             map.iter().map(iter_map(Some(geschwindigkeit_name)))
-        //         },
-        //     ))
-        todo!();
-        std::iter::empty()
+    pub(in crate::gleis::gleise) fn rstern(&self) -> &RStern2 {
+        &self.rstern
     }
 
     fn einraste_position<T: Zeichnen>(&self, definition: &T, position: Position) -> Position {
@@ -607,54 +504,77 @@ impl<L: Leiter> Zustand2<L> {
             )
         })
     }
+}
 
+#[derive(Debug, zugkontrolle_macros::From)]
+pub(in crate::gleis::gleise) enum HinzufügenFehler<T: MitSteuerung>
+where
+    <T as MitSteuerung>::SelfUnit: 'static,
+{
+    DefinitionNichtGefunden(GleisId2<<T as MitSteuerung>::SelfUnit>),
+    GleisIdFehler(KeineIdVerfügbar),
+}
+
+impl<L: Leiter> Zustand2<L> {
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(in crate::gleis::gleise) fn hinzufügen<T: Zeichnen + DatenAuswahl>(
+    pub(in crate::gleis::gleise) fn hinzufügen<T>(
         &mut self,
-        definition: T,
+        definition: GleisId2<<T as MitSteuerung>::SelfUnit>,
         mut position: Position,
-        streckenabschnitt: Option<StreckenabschnittId>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler> {
+    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
+    where
+        T: MitSteuerung + Zeichnen,
+        AnyId2: From<GleisId2<T>>,
+    {
         let spurweite = self.zugtyp.spurweite;
+        let definition = self.zugtyp.gleisart.get(definition)?;
         if einrasten {
             position = self.einraste_position(&definition, position)
         }
         // Berechne Bounding Box.
         let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
+        // Erzeuge neue Id.
+        let id = GleisId2::<T>::neu()?;
         // Füge zu RStern hinzu.
-        self.daten_mut(&streckenabschnitt)?
-            .rstern_mut()
-            .insert(GeomWithData::new(rectangle.clone(), Gleis { definition, position }));
+        self.rstern.insert(GeomWithData::new(rectangle.clone(), AnyId2::from(id.clone())));
+        // Füge zu GleiseDaten hinzu.
+        self.gleise.gleisart.insert(
+            id.clone(),
+            Gleis2 { definition, steuerung: None, position, streckenabschnitt },
+        );
         // Rückgabewert
-        Ok(GleisId { rectangle, streckenabschnitt, phantom: PhantomData })
+        Ok(id)
     }
 
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen_anliegend<T>(
         &mut self,
-        definition: T,
-        streckenabschnitt: Option<StreckenabschnittId>,
+        definition_id: GleisId2<<T as MitSteuerung>::SelfUnit>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
+    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
     where
-        T: Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        T: MitSteuerung + Zeichnen,
+        <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        AnyId2: From<GleisId2<T>>,
     {
         let spurweite = self.zugtyp.spurweite;
+        let definition = self.zugtyp.gleisart.get(definition_id)?;
         // berechne neue position
         let position =
             Position::anliegend_position(spurweite, &definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
-        self.hinzufügen(definition, position, streckenabschnitt, false)
+        self.hinzufügen(definition_id, position, streckenabschnitt, false)
     }
 
     /// Bewege ein Gleis an die neue position.
     fn bewegen_aux<T: Zeichnen + DatenAuswahl>(
         &mut self,
-        gleis_id: &mut GleisId<T>,
-        berechne_position: impl FnOnce(&Zustand2<L>, &Gleis<T>) -> Position,
+        gleis_id: &mut GleisId2<T>,
+        berechne_position: impl FnOnce(&Zustand2<L>, &Gleis2<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let spurweite = self.zugtyp.spurweite;
         let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
@@ -683,7 +603,7 @@ impl<L: Leiter> Zustand2<L> {
     #[inline(always)]
     pub(in crate::gleis::gleise) fn bewegen<T: Zeichnen + DatenAuswahl>(
         &mut self,
-        gleis_id: &mut GleisId<T>,
+        gleis_id: &mut GleisId2<T>,
         mut position_neu: Position,
         einrasten: bool,
     ) -> Result<(), GleisIdFehler> {
@@ -698,7 +618,7 @@ impl<L: Leiter> Zustand2<L> {
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
     pub(in crate::gleis::gleise) fn bewegen_anliegend<T>(
         &mut self,
-        gleis_id: &mut GleisId<T>,
+        gleis_id: &mut GleisId2<T>,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<(), GleisIdFehler>
@@ -715,9 +635,9 @@ impl<L: Leiter> Zustand2<L> {
     /// Entferne das Gleis assoziiert mit der `GleisId`.
     pub(in crate::gleis::gleise) fn entfernen<T: Zeichnen + DatenAuswahl>(
         &mut self,
-        gleis_id: GleisId<T>,
+        gleis_id: GleisId2<T>,
     ) -> Result<Gleis<T>, GleisIdFehler> {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        let GleisId2 { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
         // Entferne aktuellen Eintrag.
         let data = self
             .daten_mut(&streckenabschnitt)?
@@ -829,6 +749,7 @@ pub(crate) struct GleiseDaten {
     pub(in crate::gleis::gleise) s_kurven_weichen: RStern<SKurvenWeiche>,
     pub(in crate::gleis::gleise) kreuzungen: RStern<Kreuzung>,
 }
+
 impl GleiseDaten {
     /// Erstelle eine leere `GleiseDaten`-Struktur.
     pub(in crate::gleis::gleise) fn neu() -> Self {

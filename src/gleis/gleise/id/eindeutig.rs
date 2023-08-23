@@ -28,7 +28,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<usize>> {
 
 /// Eine eindeutige [Id] für den Typ T.
 #[derive(zugkontrolle_macros::Debug)]
-pub struct Id<T: 'static> {
+pub struct Id<T> {
     id: usize,
     phantom: PhantomData<fn() -> T>,
 }

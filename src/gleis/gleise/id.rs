@@ -137,7 +137,7 @@ pub(crate) use mit_any_id;
 
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-pub struct GleisId2<T: 'static>(Arc<Id<T>>);
+pub struct GleisId2<T>(Arc<Id<T>>);
 
 impl<T> PartialEq for GleisId2<T> {
     fn eq(&self, other: &Self) -> bool {
