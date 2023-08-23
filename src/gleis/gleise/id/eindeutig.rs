@@ -99,10 +99,10 @@ impl<T> Id<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_util::{expect_eq, expect_true, init_test_logging};
+    use crate::test_util::{expect_eq, expect_true, init_test_logging, Expectation};
 
     #[test]
-    fn eindeutig() -> Result<(), ()> {
+    fn eindeutig() -> Result<(), Expectation> {
         init_test_logging();
 
         let ids: Vec<_> = (0..32)
@@ -114,15 +114,19 @@ mod test {
         let num_eindeutig = set.len();
 
         // die Anzahl an erzeugten Ids ist identisch zur Anzahl der eindeutigen Ids.
-        expect_eq(num, num_eindeutig)
+        expect_eq(num, num_eindeutig)?;
+        Ok(())
     }
 
     #[test]
-    fn freigeben() -> Result<(), ()> {
+    fn freigeben() -> Result<(), Expectation> {
         init_test_logging();
 
+        // verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
+        struct Dummy;
+
         let ids: Vec<_> = (0..32)
-            .map(|i| (i, Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!")))
+            .map(|i| (i, Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!")))
             .collect();
         drop(ids);
 
@@ -130,9 +134,25 @@ mod test {
         expect_true(
             VERWENDETE_IDS
                 .lock()
-                .get(&TypeId::of::<()>())
+                .get(&TypeId::of::<Dummy>())
                 .expect("Ids für unit type () wurden vorher erzeugt!")
                 .is_empty(),
-        )
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn unabhängig() -> Result<(), Expectation> {
+        init_test_logging();
+
+        // verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
+        struct Param<T>(T);
+
+        let a = Id::<Param<()>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
+        let b = Id::<Param<bool>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
+
+        // die erste Id ist identisch (Ids sind unabhängig)
+        expect_eq(a.id, b.id)?;
+        Ok(())
     }
 }
