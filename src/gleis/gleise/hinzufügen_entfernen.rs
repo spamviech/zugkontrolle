@@ -58,7 +58,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         GleisId<T>: Into<AnyId>,
-        T: Debug + Zeichnen + DatenAuswahl + for<'t> MitSteuerung<'t, Steuerung = Option<R>>,
+        T: Debug + Zeichnen + DatenAuswahl + for<'t> MitSteuerung<Steuerung = Option<R>>,
         <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
         R: Serialisiere<S>,
         (GleisId<T>, Option<S>): Into<GleisSteuerung>,
@@ -243,7 +243,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         arg: <S as Reserviere<W>>::Arg,
     ) -> Result<(), AnschlüsseAnpassenFehler>
     where
-        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
+        T: for<'t> MitSteuerung<Steuerung = Option<W>> + DatenAuswahl,
         W: Serialisiere<S>,
         S: Debug + Reserviere<W>,
         <S as Reserviere<W>>::Arg: Clone,

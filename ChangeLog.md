@@ -20,6 +20,7 @@
   - extrahiere application::Nachricht (+ Hilfsgrößen) und AuswahlZustand in eigene Module
   - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
   - entferne die meisten `pub use` re-exports
+  - entferne lifetime vom MitSteuerung
 - aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).

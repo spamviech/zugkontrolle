@@ -16,7 +16,11 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            id::{AnyIdRef, GleisId, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef},
+            id::{
+                AnyIdRef, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
+                StreckenabschnittIdRef,
+            },
+            steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
@@ -53,6 +57,23 @@ pub mod v2;
 pub struct Gleis<T> {
     /// Wie sieht da Gleis aus, welche [Anschlüsse](anschluss::Anschluss) hat es.
     pub definition: T,
+    /// Wo auf dem [Canvas](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
+    pub position: Position,
+}
+
+/// Definition und Position eines Gleises.
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(<T as MitSteuerung>::Steuerung: Debug)]
+#[zugkontrolle_clone(<T as MitSteuerung>::Steuerung: Clone)]
+#[zugkontrolle_clone(<T as MitSteuerung>::SelfUnit: Clone)]
+pub struct Gleis2<T: MitSteuerung>
+where
+    <T as MitSteuerung>::SelfUnit: 'static,
+{
+    /// Wie sieht da Gleis aus.
+    pub definition: GleisId2<<T as MitSteuerung>::SelfUnit>,
+    /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
+    pub steuerung: <T as MitSteuerung>::Steuerung,
     /// Wo auf dem [Canvas](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
     pub position: Position,
 }

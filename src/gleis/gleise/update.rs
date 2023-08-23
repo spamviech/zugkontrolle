@@ -69,7 +69,7 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, &'t <T as MitSteuerung<'t>>::Steuerung);
+type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung);
 
 #[derive(zugkontrolle_macros::From)]
 enum GleisSteuerungRef<'t> {
@@ -82,11 +82,11 @@ enum GleisSteuerungRef<'t> {
     Kreuzung(IdUndSteuerung<'t, Kreuzung>),
 }
 
-fn klone_und_serialisiere<'t, T, R, S>(
-    (id_ref, steuerung): IdUndSteuerung<'t, T>,
+fn klone_und_serialisiere<T, R, S>(
+    (id_ref, steuerung): IdUndSteuerung<'_, T>,
 ) -> IdUndSteuerungSerialisiert<T, Option<S>>
 where
-    T: MitSteuerung<'t, Steuerung = Option<R>>,
+    T: MitSteuerung<Steuerung = Option<R>>,
     R: Serialisiere<S>,
 {
     (id_ref.als_id(), steuerung.as_ref().map(Serialisiere::serialisiere))
@@ -128,8 +128,8 @@ fn gleis_an_position<'t, T>(
     canvas_pos: Vektor,
 ) -> Option<(GleisSteuerungRef<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
-    T: Zeichnen + MitSteuerung<'t>,
-    GleisSteuerungRef<'t>: From<(GleisIdRef<'t, T>, &'t <T as MitSteuerung<'t>>::Steuerung)>,
+    T: Zeichnen + MitSteuerung,
+    GleisSteuerungRef<'t>: From<(GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung)>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
