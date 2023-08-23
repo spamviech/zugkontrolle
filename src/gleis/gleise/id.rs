@@ -196,14 +196,50 @@ pub enum AnyId2 {
 
 impl PartialEq for AnyId2 {
     fn eq(&self, other: &Self) -> bool {
+        use AnyId2::*;
         match (self, other) {
-            (AnyId2::Gerade(l0), AnyId2::Gerade(r0)) => l0 == r0,
-            (AnyId2::Kurve(l0), AnyId2::Kurve(r0)) => l0 == r0,
-            (AnyId2::Weiche(l0), AnyId2::Weiche(r0)) => l0 == r0,
-            (AnyId2::DreiwegeWeiche(l0), AnyId2::DreiwegeWeiche(r0)) => l0 == r0,
-            (AnyId2::KurvenWeiche(l0), AnyId2::KurvenWeiche(r0)) => l0 == r0,
-            (AnyId2::SKurvenWeiche(l0), AnyId2::SKurvenWeiche(r0)) => l0 == r0,
-            (AnyId2::Kreuzung(l0), AnyId2::Kreuzung(r0)) => l0 == r0,
+            (Gerade(l0), Gerade(r0)) => l0 == r0,
+            (Kurve(l0), Kurve(r0)) => l0 == r0,
+            (Weiche(l0), Weiche(r0)) => l0 == r0,
+            (DreiwegeWeiche(l0), DreiwegeWeiche(r0)) => l0 == r0,
+            (KurvenWeiche(l0), KurvenWeiche(r0)) => l0 == r0,
+            (SKurvenWeiche(l0), SKurvenWeiche(r0)) => l0 == r0,
+            (Kreuzung(l0), Kreuzung(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
+/// Id für die Definition eins beliebiges Gleises.
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub enum AnyDefinitionId2 {
+    /// Eine [Gerade].
+    Gerade(DefinitionId2<Gerade>),
+    /// Eine [Kurve].
+    Kurve(DefinitionId2<Kurve>),
+    /// Eine [Weiche].
+    Weiche(DefinitionId2<Weiche>),
+    /// Eine [DreiwegeWeiche].
+    DreiwegeWeiche(DefinitionId2<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
+    KurvenWeiche(DefinitionId2<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
+    SKurvenWeiche(DefinitionId2<SKurvenWeiche>),
+    /// Eine [Kreuzung].
+    Kreuzung(DefinitionId2<Kreuzung>),
+}
+
+impl PartialEq for AnyDefinitionId2 {
+    fn eq(&self, other: &Self) -> bool {
+        use AnyDefinitionId2::*;
+        match (self, other) {
+            (Gerade(l0), Gerade(r0)) => l0 == r0,
+            (Kurve(l0), Kurve(r0)) => l0 == r0,
+            (Weiche(l0), Weiche(r0)) => l0 == r0,
+            (DreiwegeWeiche(l0), DreiwegeWeiche(r0)) => l0 == r0,
+            (KurvenWeiche(l0), KurvenWeiche(r0)) => l0 == r0,
+            (SKurvenWeiche(l0), SKurvenWeiche(r0)) => l0 == r0,
+            (Kreuzung(l0), Kreuzung(r0)) => l0 == r0,
             _ => false,
         }
     }
