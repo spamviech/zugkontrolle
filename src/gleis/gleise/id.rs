@@ -72,43 +72,6 @@ impl<T> PartialEq for GleisId<T> {
     }
 }
 
-/// Id für ein Gleis.
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-pub struct GleisId2<T: 'static>(Arc<Id<T>>);
-
-impl<T> PartialEq for GleisId2<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl<T> Eq for GleisId2<T> {}
-
-impl<T> PartialOrd for GleisId2<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl<T> Ord for GleisId2<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
-    }
-}
-
-impl<T> Hash for GleisId2<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state);
-    }
-}
-
-impl<T> GleisId2<T> {
-    /// Erzeuge eine neue [GleisId] für den entsprechenden Typ.
-    pub fn neu() -> Result<GleisId2<T>, KeineIdVerfügbar> {
-        Id::neu().map(|id| GleisId2(Arc::new(id)))
-    }
-}
-
 /// Id für ein beliebiges Gleis.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum AnyId {
@@ -171,6 +134,106 @@ macro_rules! mit_any_id {
     };
 }
 pub(crate) use mit_any_id;
+
+/// Id für ein Gleis.
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+pub struct GleisId2<T: 'static>(Arc<Id<T>>);
+
+impl<T> PartialEq for GleisId2<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T> Eq for GleisId2<T> {}
+
+impl<T> PartialOrd for GleisId2<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl<T> Ord for GleisId2<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<T> Hash for GleisId2<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T> GleisId2<T> {
+    /// Erzeuge eine neue [GleisId] für den entsprechenden Typ.
+    pub fn neu() -> Result<GleisId2<T>, KeineIdVerfügbar> {
+        Id::neu().map(|id| GleisId2(Arc::new(id)))
+    }
+}
+
+/// Id für ein beliebiges Gleis.
+#[derive(Debug, zugkontrolle_macros::From)]
+pub enum AnyId2 {
+    /// Eine [Gerade].
+    Gerade(GleisId2<Gerade>),
+    /// Eine [Kurve].
+    Kurve(GleisId2<Kurve>),
+    /// Eine [Weiche].
+    Weiche(GleisId2<Weiche>),
+    /// Eine [DreiwegeWeiche].
+    DreiwegeWeiche(GleisId2<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
+    KurvenWeiche(GleisId2<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
+    SKurvenWeiche(GleisId2<SKurvenWeiche>),
+    /// Eine [Kreuzung].
+    Kreuzung(GleisId2<Kreuzung>),
+}
+
+impl PartialEq for AnyId2 {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (AnyId2::Gerade(l0), AnyId2::Gerade(r0)) => l0 == r0,
+            (AnyId2::Kurve(l0), AnyId2::Kurve(r0)) => l0 == r0,
+            (AnyId2::Weiche(l0), AnyId2::Weiche(r0)) => l0 == r0,
+            (AnyId2::DreiwegeWeiche(l0), AnyId2::DreiwegeWeiche(r0)) => l0 == r0,
+            (AnyId2::KurvenWeiche(l0), AnyId2::KurvenWeiche(r0)) => l0 == r0,
+            (AnyId2::SKurvenWeiche(l0), AnyId2::SKurvenWeiche(r0)) => l0 == r0,
+            (AnyId2::Kreuzung(l0), AnyId2::Kreuzung(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
+macro_rules! mit_any_id2 {
+    ($any_id: expr , $function: expr $(, $objekt:expr $(, $extra_arg:expr)*)?) => {
+        match $any_id {
+            crate::gleis::gleise::id::AnyId2::Gerade(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::Kurve(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::Weiche(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::DreiwegeWeiche(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::KurvenWeiche(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::SKurvenWeiche(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+            crate::gleis::gleise::id::AnyId2::Kreuzung(gleis_id) => {
+                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+        }
+    };
+}
+pub(crate) use mit_any_id2;
 
 // completely remove any notion of ID?
 #[allow(single_use_lifetimes)]

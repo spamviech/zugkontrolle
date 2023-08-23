@@ -17,16 +17,15 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                AnyId, AnyIdRef, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
-                StreckenabschnittIdRef,
+                mit_any_id, mit_any_id2, AnyId, AnyId2, AnyIdRef, GleisId, GleisId2, GleisIdRef,
+                StreckenabschnittId, StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
-        verbindung,
-        verbindung::Verbindung,
+        verbindung::{self, Verbindung},
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
@@ -458,8 +457,6 @@ impl<L: Leiter> Zustand<L> {
 
 pub(in crate::gleis::gleise) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
 
-pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId>>;
-
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
     pub(in crate::gleis::gleise) geraden: RStern<Gerade>,
@@ -470,20 +467,6 @@ pub(crate) struct GleiseDaten {
     pub(in crate::gleis::gleise) s_kurven_weichen: RStern<SKurvenWeiche>,
     pub(in crate::gleis::gleise) kreuzungen: RStern<Kreuzung>,
 }
-
-type GleisMap2<T> = HashMap<GleisId2<T>, Gleis2<T>>;
-
-#[derive(Debug)]
-pub(crate) struct GleiseDaten2 {
-    pub(in crate::gleis::gleise) geraden: GleisMap2<Gerade>,
-    pub(in crate::gleis::gleise) kurven: GleisMap2<Kurve>,
-    pub(in crate::gleis::gleise) weichen: GleisMap2<Weiche>,
-    pub(in crate::gleis::gleise) dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
-    pub(in crate::gleis::gleise) kurven_weichen: GleisMap2<KurvenWeiche>,
-    pub(in crate::gleis::gleise) s_kurven_weichen: GleisMap2<SKurvenWeiche>,
-    pub(in crate::gleis::gleise) kreuzungen: GleisMap2<Kreuzung>,
-}
-
 impl GleiseDaten {
     /// Erstelle eine leere `GleiseDaten`-Struktur.
     pub(in crate::gleis::gleise) fn neu() -> Self {
@@ -571,13 +554,159 @@ impl GleiseDaten {
     /// Füge alle Gleise von `neu` zu `self` hinzu.
     fn verschmelze(&mut self, mut neu: GleiseDaten) {
         macro_rules! kombinierte_rstern {
-            ($($rstern:ident),* $(,)?) => {$(
-                for geom_with_data in neu.$rstern.drain_with_selection_function(SelectAll) {
-                    self.$rstern.insert(geom_with_data);
+                ($($rstern:ident),* $(,)?) => {$(
+                    for geom_with_data in neu.$rstern.drain_with_selection_function(SelectAll) {
+                        self.$rstern.insert(geom_with_data);
+                    }
+                )*};
+            }
+        kombinierte_rstern! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
+    }
+}
+
+pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId2>>;
+
+type GleisMap2<T> = HashMap<GleisId2<T>, Gleis2<T>>;
+
+fn alle_verbindungen<T, Name>(t: T) -> Vec<Verbindung>
+where
+    T: verbindung::Nachschlagen<Name>,
+{
+    t.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
+}
+
+macro_rules! erhalte_alle_verbindungen {
+    ($self: expr, $zugtyp:expr, $id: expr, $gleisart: ident) => {
+        $self.$gleisart.get($id).and_then(|Gleis2 { definition, position, .. }| {
+            $zugtyp.$gleisart.get(definition).map(|definition| {
+                alle_verbindungen(
+                    definition.verbindungen_an_position($zugtyp.spurweite, position.clone()),
+                )
+            })
+        })
+    };
+}
+
+#[derive(Debug)]
+pub(crate) struct GleiseDaten2 {
+    pub(in crate::gleis::gleise) geraden: GleisMap2<Gerade>,
+    pub(in crate::gleis::gleise) kurven: GleisMap2<Kurve>,
+    pub(in crate::gleis::gleise) weichen: GleisMap2<Weiche>,
+    pub(in crate::gleis::gleise) dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
+    pub(in crate::gleis::gleise) kurven_weichen: GleisMap2<KurvenWeiche>,
+    pub(in crate::gleis::gleise) s_kurven_weichen: GleisMap2<SKurvenWeiche>,
+    pub(in crate::gleis::gleise) kreuzungen: GleisMap2<Kreuzung>,
+}
+
+impl GleiseDaten2 {
+    /// Erstelle eine leere [GleiseDaten]-Struktur.
+    pub(in crate::gleis::gleise) fn neu() -> Self {
+        GleiseDaten2 {
+            geraden: GleisMap2::new(),
+            kurven: GleisMap2::new(),
+            weichen: GleisMap2::new(),
+            dreiwege_weichen: GleisMap2::new(),
+            kurven_weichen: GleisMap2::new(),
+            s_kurven_weichen: GleisMap2::new(),
+            kreuzungen: GleisMap2::new(),
+        }
+    }
+
+    pub(in crate::gleis::gleise) fn ist_leer(&self) -> bool {
+        [
+            self.geraden.len(),
+            self.kurven.len(),
+            self.weichen.len(),
+            self.dreiwege_weichen.len(),
+            self.kurven_weichen.len(),
+            self.s_kurven_weichen.len(),
+            self.kreuzungen.len(),
+        ]
+        .iter()
+        .all(|size| *size == 0)
+    }
+    /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [RStern].
+    /// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
+    /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+    fn überlappende_verbindungen<'t, T, L: Leiter>(
+        &'t self,
+        rstern: &'t RStern2,
+        zugtyp: Zugtyp2<L>,
+        verbindung: &'t Verbindung,
+        eigene_id: Option<&'t AnyId2>,
+        gehalten_id: Option<&'t AnyId2>,
+    ) -> (impl Iterator<Item = Verbindung> + 't, bool)
+    where
+        T: Zeichnen + DatenAuswahl + 't,
+        AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
+    {
+        let vektor_genauigkeit = Vektor {
+            x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+            y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT,
+        };
+        let kandidaten_rechteck = Rechteck {
+            ecke_a: verbindung.position + vektor_genauigkeit,
+            ecke_b: verbindung.position - vektor_genauigkeit,
+        };
+        let kandidaten = rstern
+            .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
+        let mut gehalten = false;
+        let überlappend = kandidaten.flat_map(move |kandidat| {
+            let kandidat_id = &kandidat.data;
+            let mut überlappend = Vec::new();
+            if Some(kandidat_id) != eigene_id {
+                let kandidat_verbindungen = match &kandidat_id {
+                    AnyId2::Gerade(id) => erhalte_alle_verbindungen!(self, zugtyp, id, geraden),
+                    AnyId2::Kurve(id) => {
+                        erhalte_alle_verbindungen!(self, zugtyp, id, kurven)
+                    },
+                    AnyId2::Weiche(id) => erhalte_alle_verbindungen!(self, zugtyp, id, weichen),
+                    AnyId2::DreiwegeWeiche(id) => {
+                        erhalte_alle_verbindungen!(self, zugtyp, id, dreiwege_weichen)
+                    },
+                    AnyId2::KurvenWeiche(id) => {
+                        erhalte_alle_verbindungen!(self, zugtyp, id, kurven_weichen)
+                    },
+                    AnyId2::SKurvenWeiche(id) => {
+                        erhalte_alle_verbindungen!(self, zugtyp, id, s_kurven_weichen)
+                    },
+                    AnyId2::Kreuzung(id) => {
+                        erhalte_alle_verbindungen!(self, zugtyp, id, kreuzungen)
+                    },
                 }
+                .unwrap_or(Vec::new());
+                for kandidat_verbindung in kandidat_verbindungen {
+                    if (verbindung.position - kandidat_verbindung.position).länge()
+                        < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
+                    {
+                        überlappend.push(kandidat_verbindung.clone())
+                    }
+                }
+            }
+            if !gehalten && gehalten_id.map_or(false, |id| id == kandidat_id) {
+                gehalten = true;
+            }
+            überlappend
+        });
+        (überlappend, gehalten)
+    }
+
+    /// Füge alle Gleise von `neu` zu `self` hinzu.
+    fn verschmelze(&mut self, mut neu: GleiseDaten2) {
+        macro_rules! kombinierte_map {
+            ($($map: ident),* $(,)?) => {$(
+                self.$map.extend(neu.$map.drain());
             )*};
         }
-        kombinierte_rstern! {
+        kombinierte_map! {
             geraden,
             kurven,
             weichen,
