@@ -1,12 +1,13 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [Zugtyp].
 
-use std::{fmt::Debug, marker::PhantomData, time::Duration};
+use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     gleis::{
         gerade::GeradeUnit,
+        gleise::id::GleisId2,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
@@ -49,6 +50,43 @@ pub struct Zugtyp<L: Leiter> {
     pub s_kurven_weichen: Vec<SKurvenWeicheUnit>,
     /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
     pub kreuzungen: Vec<KreuzungUnit>,
+    /// Frequenz in Herz für den Pwm-Antrieb.
+    pub pwm_frequenz: NichtNegativ,
+    /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.
+    pub verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    /// Zeit zum Anhalten vor dem Umdrehen.
+    pub stopp_zeit: Duration,
+    /// Zeit die zum Umdrehen verwendete Überspannung anliegt.
+    pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
+    pub schalten_zeit: Duration,
+}
+
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+pub struct Zugtyp2<L: Leiter> {
+    /// Der Name des Zugtyps.
+    pub name: String,
+    /// Die Leiter-Art des Zugtyps.
+    pub leiter: PhantomData<fn() -> L>,
+    /// Spurweite
+    pub spurweite: Spurweite,
+    /// Alle unterstützten [Geraden](crate::gleis::gerade::Gerade).
+    pub geraden: HashMap<GleisId2<GeradeUnit>, GeradeUnit>,
+    /// Alle unterstützten [Kurven](crate::gleis::kurve::Kurve).
+    pub kurven: HashMap<GleisId2<KurveUnit>, KurveUnit>,
+    /// Alle unterstützten [Weichen](crate::gleis::weiche::gerade::Weiche).
+    pub weichen: HashMap<GleisId2<WeicheUnit>, WeicheUnit>,
+    /// Alle unterstützten [Dreiwege-Weichen](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+    pub dreiwege_weichen: HashMap<GleisId2<DreiwegeWeicheUnit>, DreiwegeWeicheUnit>,
+    /// Alle unterstützten [Kurven-Weichen](crate::gleis::weiche::kurve::KurvenWeiche).
+    pub kurven_weichen: HashMap<GleisId2<KurvenWeicheUnit>, KurvenWeicheUnit>,
+    /// Alle unterstützten [S-Kurven-Weichen](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+    pub s_kurven_weichen: HashMap<GleisId2<SKurvenWeicheUnit>, SKurvenWeicheUnit>,
+    /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
+    pub kreuzungen: HashMap<GleisId2<KreuzungUnit>, KreuzungUnit>,
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,
     /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.

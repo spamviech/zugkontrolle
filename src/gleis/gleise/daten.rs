@@ -17,7 +17,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                AnyIdRef, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
+                AnyId, AnyIdRef, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
                 StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
@@ -46,7 +46,7 @@ use crate::{
         Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
-    zugtyp::Zugtyp,
+    zugtyp::{Zugtyp, Zugtyp2},
 };
 
 pub mod de_serialisieren;
@@ -70,12 +70,14 @@ pub struct Gleis2<T: MitSteuerung>
 where
     <T as MitSteuerung>::SelfUnit: 'static,
 {
-    /// Wie sieht da Gleis aus.
+    /// Die [Zeichnen]-Definition des Gleises.
     pub definition: GleisId2<<T as MitSteuerung>::SelfUnit>,
     /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
     pub steuerung: <T as MitSteuerung>::Steuerung,
-    /// Wo auf dem [Canvas](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
+    /// Die Position des Gleises auf dem [Canvas](iced::widget::canvas::Canvas).
     pub position: Position,
+    /// Der [Streckenabschnitt] des Gleises.
+    pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
 #[allow(single_use_lifetimes)]
@@ -114,7 +116,7 @@ pub(crate) type StreckenabschnittMap =
 type GeschwindigkeitMap<Leiter> =
     HashMap<geschwindigkeit::Name, (Geschwindigkeit<Leiter>, StreckenabschnittMap)>;
 
-/// Alle Gleise, [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
+/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
 /// sowie der verwendete [Zugtyp].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(L: Debug)]
@@ -126,6 +128,26 @@ pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
     pub(in crate::gleis::gleise) ohne_streckenabschnitt: GleiseDaten,
     pub(in crate::gleis::gleise) ohne_geschwindigkeit: StreckenabschnittMap,
     pub(in crate::gleis::gleise) geschwindigkeiten: GeschwindigkeitMap<L>,
+    pub(in crate::gleis::gleise) pläne: HashMap<plan::Name, Plan<L>>,
+}
+
+pub(crate) type StreckenabschnittMap2 =
+    HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
+type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
+
+/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
+/// sowie der verwendete [Zugtyp].
+#[derive(zugkontrolle_macros::Debug)]
+#[zugkontrolle_debug(L: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
+#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
+pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
+    pub(in crate::gleis::gleise) zugtyp: Zugtyp2<L>,
+    pub(in crate::gleis::gleise) geschwindigkeiten: GeschwindigkeitMap2<L>,
+    pub(in crate::gleis::gleise) streckenabschnitte: StreckenabschnittMap2,
+    pub(in crate::gleis::gleise) gleise: GleiseDaten2,
+    pub(in crate::gleis::gleise) rstern: RStern2,
     pub(in crate::gleis::gleise) pläne: HashMap<plan::Name, Plan<L>>,
 }
 
@@ -468,6 +490,8 @@ impl Position {
 
 pub(in crate::gleis::gleise) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
 
+pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId>>;
+
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
     pub(in crate::gleis::gleise) geraden: RStern<Gerade>,
@@ -477,6 +501,19 @@ pub(crate) struct GleiseDaten {
     pub(in crate::gleis::gleise) kurven_weichen: RStern<KurvenWeiche>,
     pub(in crate::gleis::gleise) s_kurven_weichen: RStern<SKurvenWeiche>,
     pub(in crate::gleis::gleise) kreuzungen: RStern<Kreuzung>,
+}
+
+type GleisMap2<T> = HashMap<GleisId2<T>, Gleis2<T>>;
+
+#[derive(Debug)]
+pub(crate) struct GleiseDaten2 {
+    pub(in crate::gleis::gleise) geraden: GleisMap2<Gerade>,
+    pub(in crate::gleis::gleise) kurven: GleisMap2<Kurve>,
+    pub(in crate::gleis::gleise) weichen: GleisMap2<Weiche>,
+    pub(in crate::gleis::gleise) dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
+    pub(in crate::gleis::gleise) kurven_weichen: GleisMap2<KurvenWeiche>,
+    pub(in crate::gleis::gleise) s_kurven_weichen: GleisMap2<SKurvenWeiche>,
+    pub(in crate::gleis::gleise) kreuzungen: GleisMap2<Kreuzung>,
 }
 
 impl GleiseDaten {
