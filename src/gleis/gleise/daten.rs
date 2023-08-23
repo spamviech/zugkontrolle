@@ -40,7 +40,7 @@ use crate::{
         Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
-    zugtyp::{Zugtyp, Zugtyp2},
+    zugtyp::{DefinitionMap2, Zugtyp, Zugtyp2},
 };
 
 pub mod de_serialisieren;
@@ -439,6 +439,8 @@ pub(crate) type StreckenabschnittMap2 =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
 type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
 
+pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId2>>;
+
 /// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
 /// sowie der verwendete [Zugtyp].
 #[derive(zugkontrolle_macros::Debug)]
@@ -519,19 +521,25 @@ impl<L: Leiter> Zustand2<L> {
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen<T>(
         &mut self,
-        definition: GleisId2<<T as MitSteuerung>::SelfUnit>,
+        definition_id: GleisId2<<T as MitSteuerung>::SelfUnit>,
         mut position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
+        steuerung: <T as MitSteuerung>::Steuerung,
         einrasten: bool,
     ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
     where
-        T: MitSteuerung + Zeichnen,
+        T: MitSteuerung + DatenAuswahl2,
+        <T as MitSteuerung>::SelfUnit: Zeichnen,
         AnyId2: From<GleisId2<T>>,
     {
         let spurweite = self.zugtyp.spurweite;
-        let definition = self.zugtyp.gleisart.get(definition)?;
+        let definition = self
+            .zugtyp
+            .definition_map::<T>()
+            .get(&definition_id)
+            .ok_or(HinzufügenFehler::DefinitionNichtGefunden(definition_id))?;
         if einrasten {
-            position = self.einraste_position(&definition, position)
+            position = self.einraste_position(definition, position)
         }
         // Berechne Bounding Box.
         let rectangle = Rectangle::from(definition.rechteck_an_position(spurweite, &position));
@@ -540,9 +548,9 @@ impl<L: Leiter> Zustand2<L> {
         // Füge zu RStern hinzu.
         self.rstern.insert(GeomWithData::new(rectangle.clone(), AnyId2::from(id.clone())));
         // Füge zu GleiseDaten hinzu.
-        self.gleise.gleisart.insert(
+        self.gleise.map_mut().insert(
             id.clone(),
-            Gleis2 { definition, steuerung: None, position, streckenabschnitt },
+            Gleis2 { definition: definition_id, steuerung, position, streckenabschnitt },
         );
         // Rückgabewert
         Ok(id)
@@ -553,21 +561,28 @@ impl<L: Leiter> Zustand2<L> {
         &mut self,
         definition_id: GleisId2<<T as MitSteuerung>::SelfUnit>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-        verbindung_name: &T::VerbindungName,
+        steuerung: <T as MitSteuerung>::Steuerung,
+        verbindung_name: &<<T as MitSteuerung>::SelfUnit as Zeichnen>::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
     where
-        T: MitSteuerung + Zeichnen,
-        <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        T: MitSteuerung + DatenAuswahl2,
+        <T as MitSteuerung>::SelfUnit: Zeichnen,
+        <<T as MitSteuerung>::SelfUnit as Zeichnen>::Verbindungen:
+            verbindung::Nachschlagen<<<T as MitSteuerung>::SelfUnit as Zeichnen>::VerbindungName>,
         AnyId2: From<GleisId2<T>>,
     {
         let spurweite = self.zugtyp.spurweite;
-        let definition = self.zugtyp.gleisart.get(definition_id)?;
+        let definition = self
+            .zugtyp
+            .definition_map::<T>()
+            .get(&definition_id)
+            .ok_or(HinzufügenFehler::DefinitionNichtGefunden(definition_id))?;
         // berechne neue position
         let position =
-            Position::anliegend_position(spurweite, &definition, verbindung_name, ziel_verbindung);
+            Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
-        self.hinzufügen(definition_id, position, streckenabschnitt, false)
+        self.hinzufügen(definition_id, position, streckenabschnitt, steuerung, false)
     }
 
     /// Bewege ein Gleis an die neue position.
@@ -577,7 +592,7 @@ impl<L: Leiter> Zustand2<L> {
         berechne_position: impl FnOnce(&Zustand2<L>, &Gleis2<T>) -> Position,
     ) -> Result<(), GleisIdFehler> {
         let spurweite = self.zugtyp.spurweite;
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
+        let GleisId2 { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
         // Entferne aktuellen Eintrag.
         let rstern = self.daten_mut(&streckenabschnitt)?.rstern_mut::<T>();
         let gleis = rstern
@@ -855,8 +870,6 @@ impl GleiseDaten {
     }
 }
 
-pub(in crate::gleis::gleise) type RStern2 = RTree<GeomWithData<Rectangle<Vektor>, AnyId2>>;
-
 type GleisMap2<T> = HashMap<GleisId2<T>, Gleis2<T>>;
 
 #[derive(Debug)]
@@ -1025,3 +1038,72 @@ impl DatenAuswahl for Kreuzung {
         kreuzungen
     }
 }
+
+/// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
+/// Kein schönes API, daher nur crate-public.
+pub(crate) trait DatenAuswahl2: MitSteuerung + Sized {
+    fn map(gleise: &GleiseDaten2) -> &GleisMap2<Self>;
+    fn map_mut(gleise: &mut GleiseDaten2) -> &mut GleisMap2<Self>;
+
+    fn definition_map<L: Leiter>(zugtyp: &Zugtyp2<L>) -> &DefinitionMap2<Self>;
+    fn definition_map_mut<L: Leiter>(zugtyp: &mut Zugtyp2<L>) -> &mut DefinitionMap2<Self>;
+}
+
+impl GleiseDaten2 {
+    #[inline]
+    pub(in crate::gleis::gleise) fn map<T: DatenAuswahl2>(&self) -> &GleisMap2<T> {
+        <T as DatenAuswahl2>::map(self)
+    }
+    #[inline]
+    pub(in crate::gleis::gleise) fn map_mut<T: DatenAuswahl2>(&mut self) -> &mut GleisMap2<T> {
+        <T as DatenAuswahl2>::map_mut(self)
+    }
+}
+
+impl<L: Leiter> Zugtyp2<L> {
+    #[inline]
+    pub(in crate::gleis::gleise) fn definition_map<T: DatenAuswahl2>(&self) -> &DefinitionMap2<T> {
+        <T as DatenAuswahl2>::definition_map(self)
+    }
+
+    #[inline]
+    pub(in crate::gleis::gleise) fn definition_map_mut<T: DatenAuswahl2>(
+        &mut self,
+    ) -> &mut DefinitionMap2<T> {
+        <T as DatenAuswahl2>::definition_map_mut(self)
+    }
+}
+
+macro_rules! impl_daten_auswahl {
+    ($type: ty, $feld: ident) => {
+        impl DatenAuswahl2 for $type {
+            fn map(GleiseDaten2 { $feld, .. }: &GleiseDaten2) -> &GleisMap2<Self> {
+                $feld
+            }
+
+            fn map_mut(GleiseDaten2 { $feld, .. }: &mut GleiseDaten2) -> &mut GleisMap2<Self> {
+                $feld
+            }
+
+            fn definition_map<L: Leiter>(
+                Zugtyp2 { $feld, .. }: &Zugtyp2<L>,
+            ) -> &DefinitionMap2<Self> {
+                $feld
+            }
+
+            fn definition_map_mut<L: Leiter>(
+                Zugtyp2 { $feld, .. }: &mut Zugtyp2<L>,
+            ) -> &mut DefinitionMap2<Self> {
+                $feld
+            }
+        }
+    };
+}
+
+impl_daten_auswahl! {Gerade, geraden}
+impl_daten_auswahl! {Kurve, kurven}
+impl_daten_auswahl! {Weiche, weichen}
+impl_daten_auswahl! {DreiwegeWeiche, dreiwege_weichen}
+impl_daten_auswahl! {KurvenWeiche, kurven_weichen}
+impl_daten_auswahl! {SKurvenWeiche, s_kurven_weichen}
+impl_daten_auswahl! {Kreuzung, kreuzungen}
