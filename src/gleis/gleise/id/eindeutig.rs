@@ -57,6 +57,7 @@ impl<T> Hash for Id<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
         self.phantom.hash(state);
+        TypeId::of::<T>().hash(state);
     }
 }
 

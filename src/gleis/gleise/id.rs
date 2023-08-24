@@ -216,13 +216,13 @@ pub(in crate::gleis::gleise) use erzeuge_any_enum;
 erzeuge_any_enum! {
     (pub) AnyId2,
     "Id für ein beliebiges Gleis.",
-    [Debug, Clone, PartialEq, Eq],
+    [Debug, Clone, PartialEq, Eq, Hash],
     (GleisId2<[]>),
 }
 erzeuge_any_enum! {
     (pub) AnyDefinitionId2,
     "Id für die Definition eines beliebiges Gleises.",
-    [Debug, Clone, PartialEq, Eq],
+    [Debug, Clone, PartialEq, Eq, Hash],
     (DefinitionId2<[]>),
 }
 erzeuge_any_enum! {
