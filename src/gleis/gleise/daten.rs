@@ -501,7 +501,10 @@ impl<L: Leiter> Zustand2<L> {
     {
         self.gleise.hinzufügen(
             &self.zugtyp,
-            Gleis2 { definition: definition_id, steuerung, position, streckenabschnitt },
+            definition_id,
+            steuerung,
+            position,
+            streckenabschnitt,
             einrasten,
         )
     }
@@ -950,7 +953,10 @@ impl GleiseDaten2 {
     fn hinzufügen<L, T>(
         &mut self,
         zugtyp: &Zugtyp2<L>,
-        mut gleis: Gleis2<T>,
+        definition_id: DefinitionId2<T>,
+        steuerung: <T as MitSteuerung>::Steuerung,
+        mut position: Position,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
     ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
     where
@@ -961,29 +967,32 @@ impl GleiseDaten2 {
         AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
     {
         // Erhalte Definition.
-        let definition = match zugtyp.definition_map::<T>().get(&gleis.definition) {
+        let definition = match zugtyp.definition_map::<T>().get(&definition_id) {
             Some(definition) => definition,
-            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(gleis.definition)),
+            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
         };
         // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
         if einrasten {
-            gleis.position = einraste_position(&self.rstern, zugtyp, definition, gleis.position)
+            position = einraste_position(&self.rstern, zugtyp, definition, position)
         }
         // Erzeuge neue Id.
         let id = GleisId2::<T>::neu()?;
         // Berechne Bounding Box.
         let rectangle =
-            Rectangle::from(definition.rechteck_an_position(zugtyp.spurweite, &gleis.position));
+            Rectangle::from(definition.rechteck_an_position(zugtyp.spurweite, &position));
         // Füge zu RStern hinzu.
         self.rstern.insert(GeomWithData::new(
             rectangle.clone(),
-            (
-                AnyGleisDefinitionId2::from((id.clone(), gleis.definition.clone())),
-                gleis.position.clone(),
-            ),
+            (AnyGleisDefinitionId2::from((id.clone(), definition_id.clone())), position.clone()),
         ));
         // Füge zu GleiseDaten hinzu.
-        let bisher = self.map_mut().insert(id.clone(), (gleis, rectangle));
+        let bisher = self.map_mut().insert(
+            id.clone(),
+            (
+                Gleis2 { definition: definition_id, steuerung, position, streckenabschnitt },
+                rectangle,
+            ),
+        );
         if let Some(bisher) = bisher {
             error!("Gleis {bisher:?} mit Id {id:?} ersetzt!");
         }

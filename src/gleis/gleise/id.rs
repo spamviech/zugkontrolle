@@ -175,61 +175,67 @@ impl<T> GleisId2<T> {
     }
 }
 
-/// Id für ein beliebiges Gleis.
-#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
-pub enum AnyId2 {
-    /// Eine [Gerade].
-    Gerade(GleisId2<Gerade>),
-    /// Eine [Kurve].
-    Kurve(GleisId2<Kurve>),
-    /// Eine [Weiche].
-    Weiche(GleisId2<Weiche>),
-    /// Eine [DreiwegeWeiche].
-    DreiwegeWeiche(GleisId2<DreiwegeWeiche>),
-    /// Eine [KurvenWeiche].
-    KurvenWeiche(GleisId2<KurvenWeiche>),
-    /// Eine [SKurvenWeiche].
-    SKurvenWeiche(GleisId2<SKurvenWeiche>),
-    /// Eine [Kreuzung].
-    Kreuzung(GleisId2<Kreuzung>),
+macro_rules! ersetzte_eckige_klammern {
+    ($ty: ty, [$($acc: tt)*], [] $($tail: tt)*) => {
+        ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
+    };
+    ($ty: ty, [$($acc: tt)*], $head: tt $($tail: tt)*) => {
+        ersetzte_eckige_klammern! {$ty, [$($acc)* $head], $($tail)*}
+    };
+    ($ty: ty, [$($acc: tt)*], ) => {
+        $($acc)*
+    };
 }
 
-/// Id für die Definition eins beliebiges Gleises.
-#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
-pub enum AnyDefinitionId2 {
-    /// Eine [Gerade].
-    Gerade(DefinitionId2<Gerade>),
-    /// Eine [Kurve].
-    Kurve(DefinitionId2<Kurve>),
-    /// Eine [Weiche].
-    Weiche(DefinitionId2<Weiche>),
-    /// Eine [DreiwegeWeiche].
-    DreiwegeWeiche(DefinitionId2<DreiwegeWeiche>),
-    /// Eine [KurvenWeiche].
-    KurvenWeiche(DefinitionId2<KurvenWeiche>),
-    /// Eine [SKurvenWeiche].
-    SKurvenWeiche(DefinitionId2<SKurvenWeiche>),
-    /// Eine [Kreuzung].
-    Kreuzung(DefinitionId2<Kreuzung>),
+macro_rules! erzeuge_any_enum {
+    ($(($vis: vis))? $name: ident, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
+        #[doc = $doc]
+        #[derive(zugkontrolle_macros::From, $($derives),*)]
+        #[allow(unused_qualifications)]
+        $($vis)? enum $name {
+            /// Variante für eine [Gerade](crate::gleis::gerade::Gerade).
+            Gerade($( ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
+            /// Variante für eine [Kurve](crate::gleis::kurve::Kurve).
+            Kurve($( ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
+            /// Variante für eine [Weiche](crate::gleis::weiche::gerade::Weiche).
+            Weiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
+            /// Variante für eine [DreiwegeWeiche](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+            DreiwegeWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
+            /// Variante für eine [KurvenWeiche](crate::gleis::weiche::kurve::KurvenWeiche).
+            KurvenWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
+            /// Variante für eine [SKurvenWeiche](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+            SKurvenWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
+            /// Variante für eine [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+            Kreuzung($( ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
+        }
+    };
 }
 
-/// Id für ein beliebiges Gleis und seine Definition.
-#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
-pub enum AnyGleisDefinitionId2 {
-    /// Eine [Gerade].
-    Gerade(GleisId2<Gerade>, DefinitionId2<Gerade>),
-    /// Eine [Kurve].
-    Kurve(GleisId2<Kurve>, DefinitionId2<Kurve>),
-    /// Eine [Weiche].
-    Weiche(GleisId2<Weiche>, DefinitionId2<Weiche>),
-    /// Eine [DreiwegeWeiche].
-    DreiwegeWeiche(GleisId2<DreiwegeWeiche>, DefinitionId2<DreiwegeWeiche>),
-    /// Eine [KurvenWeiche].
-    KurvenWeiche(GleisId2<KurvenWeiche>, DefinitionId2<KurvenWeiche>),
-    /// Eine [SKurvenWeiche].
-    SKurvenWeiche(GleisId2<SKurvenWeiche>, DefinitionId2<SKurvenWeiche>),
-    /// Eine [Kreuzung].
-    Kreuzung(GleisId2<Kreuzung>, DefinitionId2<Kreuzung>),
+erzeuge_any_enum! {
+    (pub) AnyId2,
+    "Id für ein beliebiges Gleis.",
+    [Debug, Clone, PartialEq, Eq],
+    (GleisId2<[]>),
+}
+erzeuge_any_enum! {
+    (pub) AnyDefinitionId2,
+    "Id für die Definition eines beliebiges Gleises.",
+    [Debug, Clone, PartialEq, Eq],
+    (DefinitionId2<[]>),
+}
+erzeuge_any_enum! {
+    (pub) AnyGleisDefinitionId2,
+    "Id für ein beliebiges Gleis und seine Definition.",
+    [Debug, Clone, PartialEq, Eq],
+    (GleisId2<[]>),
+    (DefinitionId2<[]>),
+}
+erzeuge_any_enum! {
+    (pub) AnyDefinitionIdSteuerung2,
+    "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
+    [Debug, Clone],
+    (DefinitionId2<[]>),
+    (<[] as MitSteuerung>::Steuerung)
 }
 
 macro_rules! mit_any_id2 {
