@@ -18,7 +18,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                eindeutig::KeineIdVerfügbar, mit_any_id, AnyDefinitionId2,
+                eindeutig::KeineIdVerfügbar, erzeuge_any_enum, mit_any_id, AnyDefinitionId2,
                 AnyDefinitionIdSteuerung2, AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef,
                 DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
                 StreckenabschnittIdRef,
@@ -76,6 +76,13 @@ where
     pub position: Position,
     /// Der [Streckenabschnitt] des Gleises.
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
+}
+
+erzeuge_any_enum! {
+    (pub) AnyGleis2,
+    "Ein beliebiges Gleis.",
+    [Debug, Clone],
+    (Gleis2<[]>),
 }
 
 #[allow(single_use_lifetimes)]
@@ -511,7 +518,7 @@ impl<L: Leiter> Zustand2<L> {
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId2<T>, HinzufügenFehler>
     where
-        T: MitSteuerung + DatenAuswahl2,
+        T: MitSteuerung,
         <T as MitSteuerung>::SelfUnit: Zeichnen,
         <<T as MitSteuerung>::SelfUnit as Zeichnen>::Verbindungen:
             verbindung::Nachschlagen<<<T as MitSteuerung>::SelfUnit as Zeichnen>::VerbindungName>,
@@ -593,17 +600,11 @@ impl<L: Leiter> Zustand2<L> {
     }
 
     /// Entferne das Gleis assoziiert mit der [GleisId].
-    pub(in crate::gleis::gleise) fn entfernen<T: Zeichnen + DatenAuswahl>(
+    pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
-        gleis_id: GleisId2<T>,
-    ) -> Result<Gleis2<T>, EntfernenFehler2>
-    where
-        T: MitSteuerung + DatenAuswahl2,
-        <T as MitSteuerung>::Steuerung: Debug,
-        AnyId2: From<GleisId2<T>>,
-        AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
-    {
-        self.gleise.entfernen(gleis_id)
+        gleis_id: impl Into<AnyId2>,
+    ) -> Result<AnyGleis2, EntfernenFehler2> {
+        self.gleise.entfernen(gleis_id.into())
     }
 }
 
@@ -978,7 +979,7 @@ impl GleiseDaten2 {
                     ),
                 ));
                 // Füge zu GleiseDaten hinzu.
-                let bisher = self.map_mut().insert(
+                let bisher = $gleise.insert(
                     id.clone(),
                     (
                         Gleis2 {
@@ -1080,7 +1081,7 @@ impl GleiseDaten2 {
                 }
             };
         }
-        daten_mit_any_id2!(self, zugtyp, [crate::gleis::gleise::id::AnyId2 => id] gleis_id => bewegen_aux!())
+        daten_mit_any_id2!(self, zugtyp, [AnyId2 => id] gleis_id => bewegen_aux!())
     }
 }
 
@@ -1088,32 +1089,30 @@ impl GleiseDaten2 {
 pub(in crate::gleis::gleise) struct EntfernenFehler2(AnyId2);
 
 impl GleiseDaten2 {
-    fn entfernen<T>(&mut self, gleis_id: GleisId2<T>) -> Result<Gleis2<T>, EntfernenFehler2>
-    where
-        T: MitSteuerung + DatenAuswahl2,
-        <T as MitSteuerung>::Steuerung: Debug,
-        AnyId2: From<GleisId2<T>>,
-        AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
-    {
-        // TODO DatenAuswahl2 entfernen
-        let (gleis, rectangle) = match self.map_mut().remove(&gleis_id) {
-            Some(entry) => entry,
-            None => return Err(EntfernenFehler2(AnyId2::from(gleis_id))),
-        };
-        let id_clone = gleis_id.clone();
-        let result = self.rstern.remove(&GeomWithData::new(
-            rectangle,
-            (
-                AnyGleisDefinitionId2::from((gleis_id, gleis.definition.clone())),
-                gleis.position.clone(),
-            ),
-        ));
-        if result.is_none() {
-            error!(
-                "Rectangle für Gleis {gleis:?} mit Id {id_clone:?} konnte nicht entfernt werden!"
-            );
-        }
-        Ok(gleis)
+    fn entfernen(&mut self, gleis_id: AnyId2) -> Result<AnyGleis2, EntfernenFehler2> {
+        macro_rules! entfernen_aux {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
+                let (gleis, rectangle) = match $gleise.remove(&$gleis_id) {
+                    Some(entry) => entry,
+                    None => return Err(EntfernenFehler2(AnyId2::from($gleis_id))),
+                };
+                let id_clone = $gleis_id.clone();
+                let result = self.rstern.remove(&GeomWithData::new(
+                    rectangle,
+                    (
+                        AnyGleisDefinitionId2::from(($gleis_id, gleis.definition.clone())),
+                        gleis.position.clone(),
+                    ),
+                ));
+                if result.is_none() {
+                    error!(
+                        "Rectangle für Gleis {gleis:?} mit Id {id_clone:?} konnte nicht entfernt werden!"
+                    );
+                }
+                Ok(AnyGleis2::from(gleis))
+            };
+        }}
+        daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => entfernen_aux!())
     }
 }
 
@@ -1225,72 +1224,3 @@ impl DatenAuswahl for Kreuzung {
         kreuzungen
     }
 }
-
-/// Trait um eine Referenz auf die Map für den jeweiligen Typ zu bekommen.
-/// Kein schönes API, daher nur crate-public.
-pub(crate) trait DatenAuswahl2: MitSteuerung + Sized {
-    fn map(gleise: &GleiseDaten2) -> &GleisMap2<Self>;
-    fn map_mut(gleise: &mut GleiseDaten2) -> &mut GleisMap2<Self>;
-
-    fn definition_map<L: Leiter>(zugtyp: &Zugtyp2<L>) -> &DefinitionMap2<Self>;
-    fn definition_map_mut<L: Leiter>(zugtyp: &mut Zugtyp2<L>) -> &mut DefinitionMap2<Self>;
-}
-
-impl GleiseDaten2 {
-    #[inline]
-    pub(in crate::gleis::gleise) fn map<T: DatenAuswahl2>(&self) -> &GleisMap2<T> {
-        <T as DatenAuswahl2>::map(self)
-    }
-    #[inline]
-    pub(in crate::gleis::gleise) fn map_mut<T: DatenAuswahl2>(&mut self) -> &mut GleisMap2<T> {
-        <T as DatenAuswahl2>::map_mut(self)
-    }
-}
-
-impl<L: Leiter> Zugtyp2<L> {
-    #[inline]
-    pub(in crate::gleis::gleise) fn definition_map<T: DatenAuswahl2>(&self) -> &DefinitionMap2<T> {
-        <T as DatenAuswahl2>::definition_map(self)
-    }
-
-    #[inline]
-    pub(in crate::gleis::gleise) fn definition_map_mut<T: DatenAuswahl2>(
-        &mut self,
-    ) -> &mut DefinitionMap2<T> {
-        <T as DatenAuswahl2>::definition_map_mut(self)
-    }
-}
-
-macro_rules! impl_daten_auswahl {
-    ($type: ty, $feld: ident) => {
-        impl DatenAuswahl2 for $type {
-            fn map(GleiseDaten2 { $feld, .. }: &GleiseDaten2) -> &GleisMap2<Self> {
-                $feld
-            }
-
-            fn map_mut(GleiseDaten2 { $feld, .. }: &mut GleiseDaten2) -> &mut GleisMap2<Self> {
-                $feld
-            }
-
-            fn definition_map<L: Leiter>(
-                Zugtyp2 { $feld, .. }: &Zugtyp2<L>,
-            ) -> &DefinitionMap2<Self> {
-                $feld
-            }
-
-            fn definition_map_mut<L: Leiter>(
-                Zugtyp2 { $feld, .. }: &mut Zugtyp2<L>,
-            ) -> &mut DefinitionMap2<Self> {
-                $feld
-            }
-        }
-    };
-}
-
-impl_daten_auswahl! {Gerade, geraden}
-impl_daten_auswahl! {Kurve, kurven}
-impl_daten_auswahl! {Weiche, weichen}
-impl_daten_auswahl! {DreiwegeWeiche, dreiwege_weichen}
-impl_daten_auswahl! {KurvenWeiche, kurven_weichen}
-impl_daten_auswahl! {SKurvenWeiche, s_kurven_weichen}
-impl_daten_auswahl! {Kreuzung, kreuzungen}

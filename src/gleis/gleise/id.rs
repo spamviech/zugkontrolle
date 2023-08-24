@@ -177,15 +177,16 @@ impl<T> GleisId2<T> {
 
 macro_rules! ersetzte_eckige_klammern {
     ($ty: ty, [$($acc: tt)*], [] $($tail: tt)*) => {
-        ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
+        $crate::gleis::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
     };
     ($ty: ty, [$($acc: tt)*], $head: tt $($tail: tt)*) => {
-        ersetzte_eckige_klammern! {$ty, [$($acc)* $head], $($tail)*}
+        $crate::gleis::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $head], $($tail)*}
     };
     ($ty: ty, [$($acc: tt)*], ) => {
         $($acc)*
     };
 }
+pub(in crate::gleis::gleise) use ersetzte_eckige_klammern;
 
 macro_rules! erzeuge_any_enum {
     ($(($vis: vis))? $name: ident, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
@@ -194,22 +195,23 @@ macro_rules! erzeuge_any_enum {
         #[allow(unused_qualifications)]
         $($vis)? enum $name {
             /// Variante für eine [Gerade](crate::gleis::gerade::Gerade).
-            Gerade($( ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
+            Gerade($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
             /// Variante für eine [Kurve](crate::gleis::kurve::Kurve).
-            Kurve($( ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
+            Kurve($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
             /// Variante für eine [Weiche](crate::gleis::weiche::gerade::Weiche).
-            Weiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
+            Weiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
             /// Variante für eine [DreiwegeWeiche](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
-            DreiwegeWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
+            DreiwegeWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
             /// Variante für eine [KurvenWeiche](crate::gleis::weiche::kurve::KurvenWeiche).
-            KurvenWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
+            KurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
             /// Variante für eine [SKurvenWeiche](crate::gleis::weiche::s_kurve::SKurvenWeiche).
-            SKurvenWeiche($( ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
+            SKurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
             /// Variante für eine [Kreuzung](crate::gleis::kreuzung::Kreuzung).
-            Kreuzung($( ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
+            Kreuzung($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
         }
     };
 }
+pub(in crate::gleis::gleise) use erzeuge_any_enum;
 
 erzeuge_any_enum! {
     (pub) AnyId2,
