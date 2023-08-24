@@ -919,6 +919,143 @@ impl GleiseDaten2 {
         })
     }
 }
+/// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [RStern].
+/// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
+/// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
+fn überlappende_verbindungen<'t, L: Leiter>(
+    daten: &'t GleiseDaten2,
+    zugtyp: &'t Zugtyp2<L>,
+    verbindung: &'t Verbindung,
+    eigene_id: Option<&'t AnyId2>,
+    gehalten_id: Option<&'t AnyId2>,
+) -> (impl 't + Iterator<Item = Verbindung>, bool) {
+    let vektor_genauigkeit =
+        Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
+    let kandidaten_rechteck = Rechteck {
+        ecke_a: verbindung.position + vektor_genauigkeit,
+        ecke_b: verbindung.position - vektor_genauigkeit,
+    };
+    let kandidaten = daten
+        .rstern
+        .locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
+    let mut gehalten = false;
+    let überlappend = kandidaten.flat_map(move |kandidat| {
+        let kandidat_id = &kandidat.data;
+        let mut überlappend = Vec::new();
+
+        fn alle_verbindungen<T, Name>(t: T) -> Vec<Verbindung>
+        where
+            T: verbindung::Nachschlagen<Name>,
+        {
+            t.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
+        }
+
+        macro_rules! erhalte_alle_verbindungen {
+            ($id: expr, $gleisart: ident) => {
+                daten.$gleisart.get($id).and_then(
+                    |(Gleis2 { definition, position, .. }, _rectangle)| {
+                        zugtyp.$gleisart.get(&definition).map(|definition| {
+                            alle_verbindungen(
+                                definition
+                                    .verbindungen_an_position(zugtyp.spurweite, position.clone()),
+                            )
+                        })
+                    },
+                )
+            };
+        }
+
+        if Some(kandidat_id) != eigene_id {
+            let kandidat_verbindungen = match &kandidat_id {
+                AnyId2::Gerade(id) => {
+                    erhalte_alle_verbindungen!(id, geraden)
+                },
+                AnyId2::Kurve(id) => {
+                    erhalte_alle_verbindungen!(id, kurven)
+                },
+                AnyId2::Weiche(id) => erhalte_alle_verbindungen!(id, weichen),
+                AnyId2::DreiwegeWeiche(id) => {
+                    erhalte_alle_verbindungen!(id, dreiwege_weichen)
+                },
+                AnyId2::KurvenWeiche(id) => {
+                    erhalte_alle_verbindungen!(id, kurven_weichen)
+                },
+                AnyId2::SKurvenWeiche(id) => {
+                    erhalte_alle_verbindungen!(id, s_kurven_weichen)
+                },
+                AnyId2::Kreuzung(id) => {
+                    erhalte_alle_verbindungen!(id, kreuzungen)
+                },
+            }
+            .unwrap_or(Vec::new());
+            for kandidat_verbindung in kandidat_verbindungen {
+                if (verbindung.position - kandidat_verbindung.position).länge()
+                    < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
+                {
+                    überlappend.push(kandidat_verbindung.clone())
+                }
+            }
+        }
+        if !gehalten && gehalten_id.map_or(false, |id| id == kandidat_id) {
+            gehalten = true;
+        }
+        überlappend
+    });
+    (überlappend, gehalten)
+}
+
+fn einraste_position<L: Leiter, T: Zeichnen>(
+    daten: &GleiseDaten2,
+    zugtyp: &Zugtyp2<L>,
+    definition: &T,
+    position: Position,
+) -> Position {
+    let mut snap = None;
+    let verbindungen = definition.verbindungen_an_position(zugtyp.spurweite, position.clone());
+    verbindungen.für_alle(|verbindung_name, verbindung| {
+        if snap.is_none() {
+            let (mut überlappende, _gehalten) =
+                daten.überlappende_verbindungen(zugtyp, verbindung, None, None);
+            snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
+        }
+    });
+    snap.map_or(position, |(einrasten_name, einrasten_verbindung)| {
+        Position::anliegend_position(
+            zugtyp.spurweite,
+            definition,
+            &einrasten_name,
+            einrasten_verbindung,
+        )
+    })
+}
+
+macro_rules! daten_mit_any_id2 {
+    ($daten: expr, $zugtyp: expr, $any_id: expr => $macro: ident ! ( $($extra_arg: expr),* $(,)? ) ) => {
+        match $any_id {
+            crate::gleis::gleise::id::AnyId2::Gerade(gleis_id) => {
+                $macro! (&mut $daten.geraden, & $zugtyp.geraden, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::Kurve(gleis_id) => {
+                $macro! (&mut $daten.kurven, & $zugtyp.kurven, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::Weiche(gleis_id) => {
+                $macro! (&mut $daten.weichen, & $zugtyp.weichen, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::DreiwegeWeiche(gleis_id) => {
+                $macro! (&mut $daten.dreiwege_weichen, & $zugtyp.dreiwege_weichen, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::KurvenWeiche(gleis_id) => {
+                $macro! (&mut $daten.kurven_weichen, & $zugtyp.kurven_weichen, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::SKurvenWeiche(gleis_id) => {
+                $macro! (&mut $daten.s_kurven_weichen, & $zugtyp.s_kurven_weichen, gleis_id $(, $extra_arg)*)
+            }
+            crate::gleis::gleise::id::AnyId2::Kreuzung(gleis_id) => {
+                $macro! (&mut $daten.kreuzungen, & $zugtyp.kreuzungen, gleis_id $(, $extra_arg)*)
+            }
+        }
+    };
+}
 
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub(in crate::gleis::gleise) enum HinzufügenFehler<T: MitSteuerung>
@@ -975,105 +1112,64 @@ pub(in crate::gleis::gleise) enum BewegenFehler2 {
     GleisNichtGefunden(AnyId2),
 }
 
-macro_rules! daten_mit_any_id2 {
-    ($daten: expr, $zugtyp: expr, $any_id: expr => $function: ident ( $($extra_arg:expr),* $(,)? ) ) => {
-        match $any_id {
-            crate::gleis::gleise::id::AnyId2::Gerade(gleis_id) => {
-                $function(&mut $daten.geraden, &mut $zugtyp.geraden, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::Kurve(gleis_id) => {
-                $function(&mut $daten.kurven, &mut $zugtyp.kurven, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::Weiche(gleis_id) => {
-                $function(&mut $daten.weichen, &mut $zugtyp.weichen, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::DreiwegeWeiche(gleis_id) => {
-                $function(&mut $daten.dreiwege_weichen, &mut $zugtyp.dreiwege_weichen, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::KurvenWeiche(gleis_id) => {
-                $function(&mut $daten.kurven_weichen, &mut $zugtyp.kurven_weichen, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::SKurvenWeiche(gleis_id) => {
-                $function(&mut $daten.s_kurven_weichen, &mut $zugtyp.s_kurven_weichen, gleis_id $(, $extra_arg)*)
-            }
-            crate::gleis::gleise::id::AnyId2::Kreuzung(gleis_id) => {
-                $function(&mut $daten.kreuzungen, &mut $zugtyp.kreuzungen, gleis_id $(, $extra_arg)*)
-            }
-        }
-    };
-}
-
 impl GleiseDaten2 {
     fn bewegen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp2<L>,
         gleis_id: AnyId2,
-        neue_position: Position,
+        mut neue_position: Position,
         einrasten: bool,
     ) -> Result<(), BewegenFehler2> {
-        fn bewegen_aux<T>(
-            map: &mut GleisMap2<T>,
-            definition_map: &mut DefinitionMap2<T>,
-            gleis_id: GleisId2<T>,
-            spurweite: Spurweite,
-            rstern: &mut RStern2,
-            mut neue_position: Position,
-            einraste_position: Option<
-                impl FnOnce(&<T as MitSteuerung>::SelfUnit, Position) -> Position,
-            >,
-        ) -> Result<(), BewegenFehler2>
-        where
-            T: MitSteuerung,
-            <T as MitSteuerung>::SelfUnit: Zeichnen,
-            AnyId2: From<GleisId2<T>>,
-            AnyDefinitionId2: From<DefinitionId2<T>>,
-        {
-            // Erhalte Referenz auf das Gleis.
-            match map.get_mut(&gleis_id) {
-                Some((gleis, rectangle)) => match definition_map.get(&gleis.definition) {
-                    Some(definition) => {
-                        let altes_rectangle = rectangle.clone();
-                        // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
-                        if let Some(einraste_position) = einraste_position {
-                            neue_position = einraste_position(definition, neue_position);
-                        }
+        macro_rules! bewegen_aux {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {
+                // Erhalte Referenz auf das Gleis.
+                match $gleise.get_mut(&$gleis_id) {
+                    Some((gleis, rectangle)) => {
+                        let neues_rectangle = match $definitionen.get(&gleis.definition) {
+                            Some(definition) => {
+                                // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
+                                if einrasten {
+                                    neue_position =
+                                        self.einraste_position(zugtyp, definition, neue_position);
+                                }
+                                // Berechne neue Bounding Box.
+                                Rectangle::from(
+                                    definition
+                                        .rechteck_an_position(zugtyp.spurweite, &neue_position),
+                                )
+                            },
+                            None => {
+                                return Err(BewegenFehler2::DefinitionNichtGefunden(
+                                    AnyDefinitionId2::from(gleis.definition.clone()),
+                                ))
+                            },
+                        };
                         // Entferne alten Eintrag aus RStern.
-                        let result = rstern.remove(&GeomWithData::new(
-                            altes_rectangle,
-                            AnyId2::from(gleis_id.clone()),
+                        let result = self.rstern.remove(&GeomWithData::new(
+                            rectangle.clone(),
+                            AnyId2::from($gleis_id.clone()),
                         ));
                         if result.is_none() {
-                            error!("Rectangle für Gleis mit Id {gleis_id:?} konnte nicht entfernt werden!");
+                            error!(
+                                "Rectangle für Gleis mit Id {:?} konnte nicht entfernt werden!",
+                                $gleis_id
+                            );
                         }
-                        // Berechne neue Bounding Box.
-                        let neues_rectangle = Rectangle::from(
-                            definition.rechteck_an_position(spurweite, &neue_position),
-                        );
                         // Füge neuen Eintrag zu RStern hinzu.
-                        rstern.insert(GeomWithData::new(
+                        self.rstern.insert(GeomWithData::new(
                             neues_rectangle.clone(),
-                            AnyId2::from(gleis_id.clone()),
+                            AnyId2::from($gleis_id.clone()),
                         ));
                         // Aktualisiere gespeicherte Position und Bounding Box.
                         gleis.position = neue_position;
                         *rectangle = neues_rectangle;
                         Ok(())
                     },
-                    None => {
-                        return Err(BewegenFehler2::DefinitionNichtGefunden(
-                            AnyDefinitionId2::from(gleis.definition.clone()),
-                        ))
-                    },
-                },
-                None => return Err(BewegenFehler2::GleisNichtGefunden(AnyId2::from(gleis_id))),
-            }
+                    None => return Err(BewegenFehler2::GleisNichtGefunden(AnyId2::from($gleis_id))),
+                }
+            };
         }
-        daten_mit_any_id2!(self, zugtyp, gleis_id => bewegen_aux(
-            zugtyp.spurweite,
-            &mut self.rstern,
-            neue_position,
-            einrasten.then_some(|definition, neue_position| self.einraste_position(zugtyp, definition, neue_position)),
-        ))
+        daten_mit_any_id2!(self, zugtyp, gleis_id => bewegen_aux!())
     }
 }
 
