@@ -20,7 +20,7 @@ use crate::{
         },
     },
     steuerung::{geschwindigkeit, streckenabschnitt},
-    typen::vektor::Vektor,
+    typen::{vektor::Vektor, Zeichnen},
 };
 
 pub mod eindeutig;
@@ -237,7 +237,22 @@ erzeuge_any_enum! {
     "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
     [Debug, Clone],
     (DefinitionId2<[]>),
-    (<[] as MitSteuerung>::Steuerung)
+    (<[] as MitSteuerung>::Steuerung),
+}
+erzeuge_any_enum! {
+    (pub) AnyIdVerbindung2,
+    "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as Zeichnen>::VerbindungName),
+}
+erzeuge_any_enum! {
+    (pub) AnyDefinitionIdSteuerungVerbindung2,
+    "Id für die Definition eines beliebigen Gleises, seine Steuerung und der Name einer seiner Verbindungen.",
+    [Debug, Clone],
+    (DefinitionId2<[]>),
+    (<[] as MitSteuerung>::Steuerung),
+    (<[] as Zeichnen>::VerbindungName),
 }
 
 macro_rules! mit_any_id2 {
