@@ -176,7 +176,7 @@ impl<T> GleisId2<T> {
 }
 
 /// Id für ein beliebiges Gleis.
-#[derive(Debug, Clone, zugkontrolle_macros::From)]
+#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum AnyId2 {
     /// Eine [Gerade].
     Gerade(GleisId2<Gerade>),
@@ -194,24 +194,8 @@ pub enum AnyId2 {
     Kreuzung(GleisId2<Kreuzung>),
 }
 
-impl PartialEq for AnyId2 {
-    fn eq(&self, other: &Self) -> bool {
-        use AnyId2::*;
-        match (self, other) {
-            (Gerade(l0), Gerade(r0)) => l0 == r0,
-            (Kurve(l0), Kurve(r0)) => l0 == r0,
-            (Weiche(l0), Weiche(r0)) => l0 == r0,
-            (DreiwegeWeiche(l0), DreiwegeWeiche(r0)) => l0 == r0,
-            (KurvenWeiche(l0), KurvenWeiche(r0)) => l0 == r0,
-            (SKurvenWeiche(l0), SKurvenWeiche(r0)) => l0 == r0,
-            (Kreuzung(l0), Kreuzung(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
-}
-
 /// Id für die Definition eins beliebiges Gleises.
-#[derive(Debug, Clone, zugkontrolle_macros::From)]
+#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum AnyDefinitionId2 {
     /// Eine [Gerade].
     Gerade(DefinitionId2<Gerade>),
@@ -229,20 +213,23 @@ pub enum AnyDefinitionId2 {
     Kreuzung(DefinitionId2<Kreuzung>),
 }
 
-impl PartialEq for AnyDefinitionId2 {
-    fn eq(&self, other: &Self) -> bool {
-        use AnyDefinitionId2::*;
-        match (self, other) {
-            (Gerade(l0), Gerade(r0)) => l0 == r0,
-            (Kurve(l0), Kurve(r0)) => l0 == r0,
-            (Weiche(l0), Weiche(r0)) => l0 == r0,
-            (DreiwegeWeiche(l0), DreiwegeWeiche(r0)) => l0 == r0,
-            (KurvenWeiche(l0), KurvenWeiche(r0)) => l0 == r0,
-            (SKurvenWeiche(l0), SKurvenWeiche(r0)) => l0 == r0,
-            (Kreuzung(l0), Kreuzung(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
+/// Id für ein beliebiges Gleis und seine Definition.
+#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
+pub enum AnyGleisDefinitionId2 {
+    /// Eine [Gerade].
+    Gerade(GleisId2<Gerade>, DefinitionId2<Gerade>),
+    /// Eine [Kurve].
+    Kurve(GleisId2<Kurve>, DefinitionId2<Kurve>),
+    /// Eine [Weiche].
+    Weiche(GleisId2<Weiche>, DefinitionId2<Weiche>),
+    /// Eine [DreiwegeWeiche].
+    DreiwegeWeiche(GleisId2<DreiwegeWeiche>, DefinitionId2<DreiwegeWeiche>),
+    /// Eine [KurvenWeiche].
+    KurvenWeiche(GleisId2<KurvenWeiche>, DefinitionId2<KurvenWeiche>),
+    /// Eine [SKurvenWeiche].
+    SKurvenWeiche(GleisId2<SKurvenWeiche>, DefinitionId2<SKurvenWeiche>),
+    /// Eine [Kreuzung].
+    Kreuzung(GleisId2<Kreuzung>, DefinitionId2<Kreuzung>),
 }
 
 macro_rules! mit_any_id2 {

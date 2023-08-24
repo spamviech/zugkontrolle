@@ -167,7 +167,7 @@ impl Cache {
 
 /// Position eines Gleises/Textes auf dem Canvas.
 #[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.
     pub punkt: Vektor,
