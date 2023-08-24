@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
+use either::Either;
 use log::error;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
@@ -606,6 +607,18 @@ impl<L: Leiter> Zustand2<L> {
     ) -> Result<AnyGleis2, EntfernenFehler2> {
         self.gleise.entfernen(gleis_id.into())
     }
+
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das Gleis assoziiert mit der [GleisId].
+    ///
+    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
+    /// [Streckenabschnittes](Streckenabschnitt) (falls einer gesetzt war).
+    fn setze_streckenabschnitt(
+        &mut self,
+        gleis_id: impl Into<AnyId2>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+        self.gleise.setze_streckenabschnitt(gleis_id.into(), streckenabschnitt)
+    }
 }
 
 pub(in crate::gleis::gleise) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
@@ -942,6 +955,7 @@ pub(in crate::gleis::gleise) enum HinzufügenFehler {
 }
 
 impl GleiseDaten2 {
+    /// Füge ein neues [Gleis] hinzu.
     fn hinzufügen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp2<L>,
@@ -1009,6 +1023,7 @@ pub(in crate::gleis::gleise) enum BewegenFehler2 {
 }
 
 impl GleiseDaten2 {
+    /// Bewege ein [Gleis] an die `neue_position`.
     fn bewegen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp2<L>,
@@ -1017,69 +1032,59 @@ impl GleiseDaten2 {
         einrasten: bool,
     ) -> Result<(), BewegenFehler2> {
         macro_rules! bewegen_aux {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
                 // Erhalte Referenz auf das Gleis.
-                match $gleise.get_mut(&$gleis_id) {
-                    Some((gleis, rectangle)) => {
-                        let neues_rectangle = match $definitionen.get(&gleis.definition) {
-                            Some(definition) => {
-                                // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
-                                if einrasten {
-                                    neue_position = einraste_position(
-                                        &self.rstern,
-                                        zugtyp,
-                                        definition,
-                                        neue_position,
-                                    );
-                                }
-                                // Berechne neue Bounding Box.
-                                Rectangle::from(
-                                    definition
-                                        .rechteck_an_position(zugtyp.spurweite, &neue_position),
-                                )
-                            },
-                            None => {
-                                return Err(BewegenFehler2::DefinitionNichtGefunden(
-                                    AnyDefinitionId2::from(gleis.definition.clone()),
-                                ))
-                            },
-                        };
-                        // Entferne alten Eintrag aus RStern.
-                        let result = self.rstern.remove(&GeomWithData::new(
-                            rectangle.clone(),
-                            (
-                                AnyGleisDefinitionId2::from((
-                                    $gleis_id.clone(),
-                                    gleis.definition.clone(),
-                                )),
-                                gleis.position.clone(),
-                            ),
-                        ));
-                        if result.is_none() {
-                            error!(
-                                "Rectangle für Gleis mit Id {:?} konnte nicht entfernt werden!",
-                                $gleis_id
-                            );
-                        }
-                        // Füge neuen Eintrag zu RStern hinzu.
-                        self.rstern.insert(GeomWithData::new(
-                            neues_rectangle.clone(),
-                            (
-                                AnyGleisDefinitionId2::from((
-                                    $gleis_id.clone(),
-                                    gleis.definition.clone(),
-                                )),
-                                gleis.position.clone(),
-                            ),
-                        ));
-                        // Aktualisiere gespeicherte Position und Bounding Box.
-                        gleis.position = neue_position;
-                        *rectangle = neues_rectangle;
-                        Ok(())
+                let (gleis, rectangle) = match $gleise.get_mut(&$gleis_id) {
+                    Some(entry) => entry,
+                    None => {
+                        return Err(BewegenFehler2::GleisNichtGefunden(AnyId2::from($gleis_id)));
                     },
-                    None => return Err(BewegenFehler2::GleisNichtGefunden(AnyId2::from($gleis_id))),
+                };
+                let neues_rectangle = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => {
+                        // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
+                        if einrasten {
+                            neue_position =
+                                einraste_position(&self.rstern, zugtyp, definition, neue_position);
+                        }
+                        // Berechne neue Bounding Box.
+                        Rectangle::from(
+                            definition.rechteck_an_position(zugtyp.spurweite, &neue_position),
+                        )
+                    },
+                    None => {
+                        return Err(BewegenFehler2::DefinitionNichtGefunden(
+                            AnyDefinitionId2::from(gleis.definition.clone()),
+                        ))
+                    },
+                };
+                // Entferne alten Eintrag aus RStern.
+                let result = self.rstern.remove(&GeomWithData::new(
+                    rectangle.clone(),
+                    (
+                        AnyGleisDefinitionId2::from(($gleis_id.clone(), gleis.definition.clone())),
+                        gleis.position.clone(),
+                    ),
+                ));
+                if result.is_none() {
+                    error!(
+                        "Rectangle für Gleis mit Id {:?} konnte nicht entfernt werden!",
+                        $gleis_id
+                    );
                 }
-            };
+                // Füge neuen Eintrag zu RStern hinzu.
+                self.rstern.insert(GeomWithData::new(
+                    neues_rectangle.clone(),
+                    (
+                        AnyGleisDefinitionId2::from(($gleis_id.clone(), gleis.definition.clone())),
+                        gleis.position.clone(),
+                    ),
+                ));
+                // Aktualisiere gespeicherte Position und Bounding Box.
+                gleis.position = neue_position;
+                *rectangle = neues_rectangle;
+                Ok(())
+            }};
         }
         daten_mit_any_id2!(self, zugtyp, [AnyId2 => id] gleis_id => bewegen_aux!())
     }
@@ -1089,6 +1094,7 @@ impl GleiseDaten2 {
 pub(in crate::gleis::gleise) struct EntfernenFehler2(AnyId2);
 
 impl GleiseDaten2 {
+    /// Entferne ein [Gleis].
     fn entfernen(&mut self, gleis_id: AnyId2) -> Result<AnyGleis2, EntfernenFehler2> {
         macro_rules! entfernen_aux {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
@@ -1110,9 +1116,40 @@ impl GleiseDaten2 {
                     );
                 }
                 Ok(AnyGleis2::from(gleis))
-            };
-        }}
+            }};
+        }
         daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => entfernen_aux!())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::gleis::gleise) struct SetzteStreckenabschnittFehler2(
+    AnyId2,
+    Option<streckenabschnitt::Name>,
+);
+
+impl GleiseDaten2 {
+    fn setze_streckenabschnitt(
+        &mut self,
+        gleis_id: AnyId2,
+        mut streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+        macro_rules! setze_streckenabschnitt_aux {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get_mut(&$gleis_id) {
+                    Some(entry) => entry,
+                    None => {
+                        return Err(SetzteStreckenabschnittFehler2(
+                            AnyId2::from($gleis_id),
+                            streckenabschnitt,
+                        ))
+                    },
+                };
+                std::mem::swap(&mut gleis.streckenabschnitt, &mut streckenabschnitt);
+                Ok(streckenabschnitt)
+            }};
+        }
+        daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
     }
 }
 
