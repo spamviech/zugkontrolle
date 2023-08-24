@@ -18,9 +18,10 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                eindeutig::KeineIdVerfügbar, mit_any_id, AnyDefinitionId2, AnyGleisDefinitionId2,
-                AnyId, AnyId2, AnyIdRef, DefinitionId2, GleisId, GleisId2, GleisIdRef,
-                StreckenabschnittId, StreckenabschnittIdRef,
+                eindeutig::KeineIdVerfügbar, mit_any_id, AnyDefinitionId2,
+                AnyDefinitionIdSteuerung2, AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef,
+                DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
+                StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
@@ -487,22 +488,14 @@ impl<L: Leiter> Zustand2<L> {
     /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen<T>(
         &mut self,
-        definition_id: GleisId2<<T as MitSteuerung>::SelfUnit>,
+        definition_steuerung: impl Into<AnyDefinitionIdSteuerung2>,
         position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-        steuerung: <T as MitSteuerung>::Steuerung,
         einrasten: bool,
-    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
-    where
-        T: MitSteuerung + DatenAuswahl2,
-        <T as MitSteuerung>::SelfUnit: Zeichnen,
-        <T as MitSteuerung>::Steuerung: Debug,
-        AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
-    {
+    ) -> Result<AnyId2, HinzufügenFehler> {
         self.gleise.hinzufügen(
             &self.zugtyp,
-            definition_id,
-            steuerung,
+            definition_steuerung.into(),
             position,
             streckenabschnitt,
             einrasten,
@@ -512,12 +505,11 @@ impl<L: Leiter> Zustand2<L> {
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen_anliegend<T>(
         &mut self,
-        definition_id: GleisId2<<T as MitSteuerung>::SelfUnit>,
+        definition_steuerung: impl Into<AnyDefinitionIdSteuerung2>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-        steuerung: <T as MitSteuerung>::Steuerung,
         verbindung_name: &<<T as MitSteuerung>::SelfUnit as Zeichnen>::VerbindungName,
         ziel_verbindung: Verbindung,
-    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
+    ) -> Result<GleisId2<T>, HinzufügenFehler>
     where
         T: MitSteuerung + DatenAuswahl2,
         <T as MitSteuerung>::SelfUnit: Zeichnen,
@@ -526,16 +518,17 @@ impl<L: Leiter> Zustand2<L> {
         <T as MitSteuerung>::Steuerung: Debug,
         AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
     {
-        let spurweite = self.zugtyp.spurweite;
-        let definition = match self.zugtyp.definition_map::<T>().get(&definition_id) {
-            Some(definition) => definition,
-            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
-        };
-        // berechne neue position
-        let position =
-            Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung);
+        // let spurweite = self.zugtyp.spurweite;
+        // let definition = match self.zugtyp.definition_map::<T>().get(&definition_id) {
+        //     Some(definition) => definition,
+        //     None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
+        // };
+        // // berechne neue position
+        // let position =
+        //     Position::anliegend_position(spurweite, definition, verbindung_name, ziel_verbindung);
         // füge neues Gleis hinzu
-        self.hinzufügen(definition_id, position, streckenabschnitt, steuerung, false)
+        // self.hinzufügen(definition_steuerung, position, streckenabschnitt, false)
+        todo!()
     }
 
     /// Bewege ein Gleis an die neue position.
@@ -913,91 +906,98 @@ fn einraste_position<L: Leiter, T: Zeichnen>(
 }
 
 macro_rules! daten_mit_any_id2 {
-    ($daten: expr, $zugtyp: expr, $any_id: expr => $macro: ident ! ( $($extra_arg: expr),* $(,)? ) ) => {
+    ($daten: expr, $zugtyp: expr, [$id: ty => $($ident: ident),+] $any_id: expr => $macro: ident ! ( $($extra_arg: expr),* $(,)? ) ) => {{
+        use $id::*;
         match $any_id {
-            crate::gleis::gleise::id::AnyId2::Gerade(gleis_id) => {
-                $macro! (&mut $daten.geraden, & $zugtyp.geraden, gleis_id $(, $extra_arg)*)
+            Gerade( $($ident),+ ) => {
+                $macro! (&mut $daten.geraden, & $zugtyp.geraden, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Kurve(gleis_id) => {
-                $macro! (&mut $daten.kurven, & $zugtyp.kurven, gleis_id $(, $extra_arg)*)
+            Kurve( $($ident),+ ) => {
+                $macro! (&mut $daten.kurven, & $zugtyp.kurven, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Weiche(gleis_id) => {
-                $macro! (&mut $daten.weichen, & $zugtyp.weichen, gleis_id $(, $extra_arg)*)
+            Weiche( $($ident),+ ) => {
+                $macro! (&mut $daten.weichen, & $zugtyp.weichen, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::DreiwegeWeiche(gleis_id) => {
-                $macro! (&mut $daten.dreiwege_weichen, & $zugtyp.dreiwege_weichen, gleis_id $(, $extra_arg)*)
+            DreiwegeWeiche( $($ident),+ ) => {
+                $macro! (&mut $daten.dreiwege_weichen, & $zugtyp.dreiwege_weichen, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::KurvenWeiche(gleis_id) => {
-                $macro! (&mut $daten.kurven_weichen, & $zugtyp.kurven_weichen, gleis_id $(, $extra_arg)*)
+            KurvenWeiche( $($ident),+ ) => {
+                $macro! (&mut $daten.kurven_weichen, & $zugtyp.kurven_weichen, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::SKurvenWeiche(gleis_id) => {
-                $macro! (&mut $daten.s_kurven_weichen, & $zugtyp.s_kurven_weichen, gleis_id $(, $extra_arg)*)
+            SKurvenWeiche( $($ident),+ ) => {
+                $macro! (&mut $daten.s_kurven_weichen, & $zugtyp.s_kurven_weichen, $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Kreuzung(gleis_id) => {
-                $macro! (&mut $daten.kreuzungen, & $zugtyp.kreuzungen, gleis_id $(, $extra_arg)*)
+            Kreuzung( $($ident),+ ) => {
+                $macro! (&mut $daten.kreuzungen, & $zugtyp.kreuzungen, $($ident),+ $(, $extra_arg)*)
             }
         }
-    };
+    }};
 }
 
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub(in crate::gleis::gleise) enum HinzufügenFehler<T: MitSteuerung>
-where
-    <T as MitSteuerung>::SelfUnit: 'static,
-{
-    DefinitionNichtGefunden(DefinitionId2<T>),
+pub(in crate::gleis::gleise) enum HinzufügenFehler {
+    DefinitionNichtGefunden(AnyDefinitionId2),
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
 impl GleiseDaten2 {
-    fn hinzufügen<L, T>(
+    fn hinzufügen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp2<L>,
-        definition_id: DefinitionId2<T>,
-        steuerung: <T as MitSteuerung>::Steuerung,
+        definition_steuerung: AnyDefinitionIdSteuerung2,
         mut position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<GleisId2<T>, HinzufügenFehler<T>>
-    where
-        L: Leiter,
-        T: MitSteuerung + DatenAuswahl2,
-        <T as MitSteuerung>::SelfUnit: Zeichnen,
-        <T as MitSteuerung>::Steuerung: Debug,
-        AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
-    {
-        // Erhalte Definition.
-        let definition = match zugtyp.definition_map::<T>().get(&definition_id) {
-            Some(definition) => definition,
-            None => return Err(HinzufügenFehler::DefinitionNichtGefunden(definition_id)),
-        };
-        // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
-        if einrasten {
-            position = einraste_position(&self.rstern, zugtyp, definition, position)
+    ) -> Result<AnyId2, HinzufügenFehler> {
+        macro_rules! hinzufügen_aux {
+            ($gleise: expr, $definitionen: expr, $definition_id: expr, $steuerung: expr) => {{
+                // Erhalte Definition.
+                let definition = match $definitionen.get(&$definition_id) {
+                    Some(definition) => definition,
+                    None => {
+                        return Err(HinzufügenFehler::DefinitionNichtGefunden(
+                            AnyDefinitionId2::from($definition_id),
+                        ))
+                    },
+                };
+                // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
+                if einrasten {
+                    position = einraste_position(&self.rstern, zugtyp, definition, position)
+                }
+                // Erzeuge neue Id.
+                let id = GleisId2::neu()?;
+                // Berechne Bounding Box.
+                let rectangle =
+                    Rectangle::from(definition.rechteck_an_position(zugtyp.spurweite, &position));
+                // Füge zu RStern hinzu.
+                self.rstern.insert(GeomWithData::new(
+                    rectangle.clone(),
+                    (
+                        AnyGleisDefinitionId2::from((id.clone(), $definition_id.clone())),
+                        position.clone(),
+                    ),
+                ));
+                // Füge zu GleiseDaten hinzu.
+                let bisher = self.map_mut().insert(
+                    id.clone(),
+                    (
+                        Gleis2 {
+                            definition: $definition_id,
+                            steuerung: $steuerung,
+                            position,
+                            streckenabschnitt,
+                        },
+                        rectangle,
+                    ),
+                );
+                if let Some(bisher) = bisher {
+                    error!("Gleis {bisher:?} mit Id {id:?} ersetzt!");
+                }
+                // Rückgabewert
+                Ok(AnyId2::from(id))
+            }};
         }
-        // Erzeuge neue Id.
-        let id = GleisId2::<T>::neu()?;
-        // Berechne Bounding Box.
-        let rectangle =
-            Rectangle::from(definition.rechteck_an_position(zugtyp.spurweite, &position));
-        // Füge zu RStern hinzu.
-        self.rstern.insert(GeomWithData::new(
-            rectangle.clone(),
-            (AnyGleisDefinitionId2::from((id.clone(), definition_id.clone())), position.clone()),
-        ));
-        // Füge zu GleiseDaten hinzu.
-        let bisher = self.map_mut().insert(
-            id.clone(),
-            (
-                Gleis2 { definition: definition_id, steuerung, position, streckenabschnitt },
-                rectangle,
-            ),
-        );
-        if let Some(bisher) = bisher {
-            error!("Gleis {bisher:?} mit Id {id:?} ersetzt!");
-        }
-        // Rückgabewert
-        Ok(id)
+        daten_mit_any_id2!(self, zugtyp, [AnyDefinitionIdSteuerung2 => definition, steuerung] definition_steuerung => hinzufügen_aux!())
     }
 }
 
@@ -1080,7 +1080,7 @@ impl GleiseDaten2 {
                 }
             };
         }
-        daten_mit_any_id2!(self, zugtyp, gleis_id => bewegen_aux!())
+        daten_mit_any_id2!(self, zugtyp, [crate::gleis::gleise::id::AnyId2 => id] gleis_id => bewegen_aux!())
     }
 }
 
@@ -1095,6 +1095,7 @@ impl GleiseDaten2 {
         AnyId2: From<GleisId2<T>>,
         AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
     {
+        // TODO DatenAuswahl2 entfernen
         let (gleis, rectangle) = match self.map_mut().remove(&gleis_id) {
             Some(entry) => entry,
             None => return Err(EntfernenFehler2(AnyId2::from(gleis_id))),
