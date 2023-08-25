@@ -114,11 +114,13 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschlüsse> {
+impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRichtung<Richtung>>
+    Zeichnen<Anschlüsse2> for Kreuzung<Anschlüsse>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let winkel = self.winkel();
         let rechteck_kurve = kurve::rechteck(spurweite, self.radius, winkel);
         let rechteck_gerade = gerade::rechteck(spurweite, self.länge);
@@ -145,9 +147,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         }
     }
 
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
+    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -203,9 +205,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+    fn fülle(
+        &self,
+        anschlüsse: &Anschlüsse2,
+        spurweite: Spurweite,
+    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -280,10 +286,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
 
     fn beschreibung_und_name(
         &self,
+        anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
     ) -> (Position, Option<&str>, Option<&str>) {
         // utility sizes
-        let size: Vektor = self.rechteck(spurweite).ecke_max();
+        let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
@@ -299,12 +306,13 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
 
     fn innerhalb(
         &self,
+        anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> bool {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -333,8 +341,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
                 )))
     }
 
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
-        let Vektor { x: _, y: height } = self.rechteck(spurweite).ecke_max();
+    fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {
+        let Vektor { x: _, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = height.halbiert();
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };

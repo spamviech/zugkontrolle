@@ -26,7 +26,7 @@ use crate::{
     },
     gleis::{
         gerade::GeradeUnit,
-        gleise::{id::StreckenabschnittId, Gleise, Modus},
+        gleise::{id::StreckenabschnittId, steuerung::MitSteuerung, Gleise, Modus},
         knopf::Knopf,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
@@ -292,7 +292,9 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 buttons: &'t Vec<Knopf<T>>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
-                T: Zeichnen + Clone + Into<AnyGleisUnit>,
+                // T: MitSteuerung,
+                // <T as MitSteuerung>::SelfUnit: Zeichnen<T> + Clone + Into<AnyGleisUnit>,
+                T: Zeichnen<()> + Clone + Into<AnyGleisUnit>,
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {
                     for button in buttons {

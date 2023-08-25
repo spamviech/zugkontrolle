@@ -31,7 +31,7 @@ use crate::{
                 DatenAuswahl, GeschwindigkeitMap, Gleis, GleiseDaten, SelectAll,
                 StreckenabschnittMap, Zustand,
             },
-            steuerung::SomeAktualisierenSender,
+            steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
         },
         kreuzung::{Kreuzung, KreuzungSerialisiert},
@@ -145,7 +145,9 @@ fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
     arg: &<Ts as Reserviere<T>>::Arg,
 ) -> (Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>, Anschlüsse)
 where
-    T: Zeichnen,
+    // T: MitSteuerung,
+    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+    T: Zeichnen<()>,
     Ts: Reserviere<T>,
     <Ts as Reserviere<T>>::Arg: Clone,
     S: Clone + Serialisiere<Ss>,
@@ -172,7 +174,7 @@ where
         }
         // Gleis mit BoundingBox speichern
         let rectangle =
-            Rectangle::from(gleis.definition.rechteck_an_position(spurweite, &gleis.position));
+            Rectangle::from(gleis.definition.rechteck_an_position(&(), spurweite, &gleis.position));
         gleise.push(GeomWithData::new(rectangle, gleis));
         (gleise, anschlüsse)
     })

@@ -65,16 +65,19 @@ impl Transparenz {
 }
 
 /// Trait für Typen, die auf einem [Frame](crate::typen::canvas::Frame) gezeichnet werden können.
-pub trait Zeichnen {
+pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck;
+    fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    /// Einschließendes Rechteck, wenn sich das Gleis an der `Position` befindet.
-    fn rechteck_an_position(&self, spurweite: Spurweite, position: &Position) -> Rechteck {
-        self.rechteck(spurweite)
+    /// Einschließendes Rechteck, wenn sich das Gleis an der [Position] befindet.
+    fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
+        self.rechteck(t, spurweite)
             .respektiere_rotation_chain(&position.winkel)
             .verschiebe_chain(&position.punkt)
     }
+
+    /// Erzeuge die Pfade für Darstellung der Linien.
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad>;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     ///
@@ -82,42 +85,46 @@ pub trait Zeichnen {
     ///
     /// Wenn ein Pfad ohne Farbe zurückgegeben wird, wird die Farbe des
     /// [Streckenabschnitts](crate::steuerung::streckenabschnitt::Streckenabschnitt) verwendet.
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
 
-    /// Erzeuge die Pfade für Darstellung der Linien.
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad>;
+    /// [Position] und Text für Beschreibung und Name (falls verfügbar).
+    fn beschreibung_und_name(
+        &self,
+        t: &T,
+        spurweite: Spurweite,
+    ) -> (Position, Option<&str>, Option<&str>);
 
-    /// Position für, sowie Beschreibung und Name (falls verfügbar).
-    fn beschreibung_und_name(&self, spurweite: Spurweite)
-        -> (Position, Option<&str>, Option<&str>);
-
-    /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
+    /// Zeigt der [Vektor] auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(
         &self,
+        t: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> bool;
 
-    /// Identifier for `Verbindungen`.
+    /// Identifier for [Self::Verbindungen].
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
-    /// Speicher-Typ für `Verbindung`.
-    /// Muss `verbindung::Nachschlagen<Self::VerbindungName>` implementieren.
+
+    /// Speicher-Typ für [Verbindung].
+    /// Muss [verbindung::Nachschlagen<Self::VerbindungName>] implementieren.
     type Verbindungen: verbindung::Nachschlagen<Self::VerbindungName>;
+
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen;
+    fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen;
 
-    /// Absolute Position der Verbindungen, wenn sich das Gleis an der `Position` befindet.
+    /// Absolute Position der Verbindungen, wenn sich das Gleis an der [Position] befindet.
     fn verbindungen_an_position(
         &self,
+        t: &T,
         spurweite: Spurweite,
         position: Position,
     ) -> Self::Verbindungen {
-        self.verbindungen(spurweite).zuordnen(
+        self.verbindungen(t, spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| Verbindung {
                 position: position.transformation(verbindung_position),
                 richtung: position.winkel + richtung,

@@ -244,7 +244,7 @@ erzeuge_any_enum! {
     "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",
     [Debug, Clone],
     (GleisId2<[]>),
-    (<[] as Zeichnen>::VerbindungName),
+    (<[] as Zeichnen<()>>::VerbindungName),
 }
 erzeuge_any_enum! {
     (pub) AnyDefinitionIdSteuerungVerbindung2,
@@ -252,7 +252,7 @@ erzeuge_any_enum! {
     [Debug, Clone],
     (DefinitionId2<[]>),
     (<[] as MitSteuerung>::Steuerung),
-    (<[] as Zeichnen>::VerbindungName),
+    (<[] as Zeichnen<()>>::VerbindungName),
 }
 
 macro_rules! mit_any_id2 {

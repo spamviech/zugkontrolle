@@ -128,7 +128,7 @@ fn gleis_an_position<'t, T>(
     canvas_pos: Vektor,
 ) -> Option<(GleisSteuerungRef<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
-    T: Zeichnen + MitSteuerung,
+    T: Zeichnen<()> + MitSteuerung,
     GleisSteuerungRef<'t>: From<(GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung)>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
@@ -136,7 +136,7 @@ where
         let Gleis { definition, position } = &geom_with_data.data;
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+        if definition.innerhalb(&(), spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             let (streckenabschnitt_id, streckenabschnitt) =
                 if let Some((id, streckenabschnitt)) = streckenabschnitt {
                     (Some(id), Some(streckenabschnitt))

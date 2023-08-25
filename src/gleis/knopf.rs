@@ -49,11 +49,11 @@ impl<T> Knopf<T> {
     }
 }
 
-impl<T: Zeichnen> Knopf<T> {
+impl<T: Zeichnen<()>> Knopf<T> {
     /// Die Dimensionen des [Knopfes](Knopf).
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
-            .rechteck(self.spurweite)
+            .rechteck(&(), self.spurweite)
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
@@ -66,7 +66,7 @@ impl<T: Zeichnen> Knopf<T> {
         Nachricht: 'static,
         T: KnopfNachricht<Nachricht>,
     {
-        let größe = self.gleis.rechteck(self.spurweite).größe();
+        let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
         let höhe = (DOUBLE_PADDING + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
@@ -84,7 +84,7 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Renderer<Thema>>
+impl<T: Zeichnen<()> + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Renderer<Thema>>
     for Knopf<T>
 {
     type State = Zustand;
@@ -116,7 +116,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                 },
             );
             let spurweite = self.spurweite;
-            let rechteck = self.gleis.rechteck(spurweite);
+            let rechteck = self.gleis.rechteck(&(), spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(-rechteck_position));
             let größe = rechteck.größe();
@@ -133,7 +133,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                     Skalar(0.5) * Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING },
                 ));
             }
-            for path in self.gleis.zeichne(spurweite) {
+            for path in self.gleis.zeichne(&(), spurweite) {
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -146,7 +146,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                 });
             }
             if let (relative_position, Some(content), _unit_name) =
-                self.gleis.beschreibung_und_name(spurweite)
+                self.gleis.beschreibung_und_name(&(), spurweite)
             {
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);

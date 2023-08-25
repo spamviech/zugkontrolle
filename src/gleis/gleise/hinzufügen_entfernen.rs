@@ -29,7 +29,7 @@ use crate::{
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(crate) fn hinzufügen<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn hinzufügen<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         definition: T,
         position: Position,
@@ -58,8 +58,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
         GleisId<T>: Into<AnyId>,
-        T: Debug + Zeichnen + DatenAuswahl + for<'t> MitSteuerung<Steuerung = Option<R>>,
-        <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+        T: Debug + Zeichnen<()> + DatenAuswahl + for<'t> MitSteuerung<Steuerung = Option<R>>,
+        <T as Zeichnen<()>>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
         R: Serialisiere<S>,
         (GleisId<T>, Option<S>): Into<GleisSteuerung>,
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
@@ -82,11 +82,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
-    pub(crate) fn hinzufügen_anliegend<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn hinzufügen_anliegend<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         definition: T,
         streckenabschnitt: Option<StreckenabschnittId>,
-        verbindung_name: &<T as Zeichnen>::VerbindungName,
+        verbindung_name: &<T as Zeichnen<()>>::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
     where
@@ -106,7 +106,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Bewege ein Gleis an die neue position.
-    pub(crate) fn bewegen<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn bewegen<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
         position_neu: Position,
@@ -124,10 +124,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    pub(crate) fn bewegen_anliegend<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn bewegen_anliegend<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
-        verbindung_name: &<T as Zeichnen>::VerbindungName,
+        verbindung_name: &<T as Zeichnen<()>>::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Result<(), GleisIdFehler>
     where
@@ -142,7 +142,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn entfernen<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         gleis_id: GleisId<T>,
     ) -> Result<Gleis<T>, GleisIdFehler>
@@ -160,7 +160,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     #[inline(always)]
     pub(crate) fn entfernen_unit<T>(&mut self, gleis_id: GleisId<T>) -> Result<(), GleisIdFehler>
     where
-        T: Debug + Zeichnen + DatenAuswahl,
+        T: Debug + Zeichnen<()> + DatenAuswahl,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
         let _gleis = self.zustand.entfernen(gleis_id)?;
@@ -195,7 +195,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Setze den Streckenabschnitt für das spezifizierte Gleis.
-    pub(crate) fn setze_streckenabschnitt<T: Debug + Zeichnen + DatenAuswahl>(
+    pub(crate) fn setze_streckenabschnitt<T: Debug + Zeichnen<()> + DatenAuswahl>(
         &mut self,
         gleis_id: &mut GleisId<T>,
         streckenabschnitt_neu: Option<StreckenabschnittId>,

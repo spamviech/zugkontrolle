@@ -23,6 +23,7 @@ use crate::{
             self,
             daten::{Gleis, RStern},
             id::{AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
+            steuerung::MitSteuerung,
             Gehalten, Gleise, ModusDaten, Nachricht,
         },
         kreuzung::Kreuzung,
@@ -55,20 +56,24 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-fn fülle_alle_gleise<'t, T: Zeichnen>(
+fn fülle_alle_gleise<'t, T>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     transparent: impl Fn(&'t Rectangle<Vektor>, Fließend) -> Transparenz,
     streckenabschnitt: Option<(Farbe, Fließend)>,
-) {
+) where
+    // T: MitSteuerung,
+    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+    T: Zeichnen<()>,
+{
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
             bewege_an_position(frame, position);
             // einfärben
-            for (pfad, farbe, transparenz) in definition.fülle(spurweite) {
+            for (pfad, farbe, transparenz) in definition.fülle(&(), spurweite) {
                 let farbe_alpha = match (farbe, streckenabschnitt) {
                     (None, None) => None,
                     (None, Some((farbe, fließend))) => Some((
@@ -95,20 +100,24 @@ fn fülle_alle_gleise<'t, T: Zeichnen>(
     }
 }
 
-fn zeichne_alle_gleise<'t, T: Zeichnen>(
+fn zeichne_alle_gleise<'t, T>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
     farbe: Farbe,
-) {
+) where
+    // T: MitSteuerung,
+    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+    T: Zeichnen<()>,
+{
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
         frame.with_save(|frame| {
             bewege_an_position(frame, position);
             // zeichne Kontur
-            for path in definition.zeichne(spurweite) {
+            for path in definition.zeichne(&(), spurweite) {
                 frame.with_save(|frame| {
                     let a = Transparenz::true_reduziert(ist_gehalten(rectangle)).alpha();
                     frame.stroke(
@@ -132,7 +141,9 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     ist_gehalten_und_andere_verbindung: F,
 ) where
     't: 'r + 's,
-    T: Zeichnen,
+    // T: MitSteuerung,
+    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+    T: Zeichnen<()>,
     F: Fn(&'r Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung,
 {
     for geom_with_data in rstern.iter() {
@@ -141,7 +152,7 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
         frame.with_save(|frame| {
             bewege_an_position(frame, position);
             // zeichne anchor points
-            definition.verbindungen(spurweite).für_alle(|_name, &verbindung| {
+            definition.verbindungen(&(), spurweite).für_alle(|_name, &verbindung| {
                 let verbindung_an_position = Verbindung {
                     position: position.transformation(verbindung.position),
                     richtung: position.winkel + verbindung.richtung,
@@ -181,18 +192,23 @@ fn zeichne_alle_anchor_points<'r, 's, 't, T, F>(
     }
 }
 
-fn schreibe_alle_beschreibungen<'t, T: Zeichnen>(
+fn schreibe_alle_beschreibungen<'t, T>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     rstern: &'t RStern<T>,
     ist_gehalten: impl Fn(&'t Rectangle<Vektor>) -> bool,
     farbe: Farbe,
     skalieren: Skalar,
-) {
+) where
+    // T: MitSteuerung,
+    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+    T: Zeichnen<()>,
+{
     for geom_with_data in rstern.iter() {
         let rectangle = geom_with_data.geom();
         let Gleis { definition, position } = &geom_with_data.data;
-        let (relative_position, beschreibung, name) = definition.beschreibung_und_name(spurweite);
+        let (relative_position, beschreibung, name) =
+            definition.beschreibung_und_name(&(), spurweite);
         if let Some(content) = match (beschreibung, name) {
             (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
             (None, Some(name)) => Some(String::from(name)),
@@ -234,7 +250,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         gehalten_id: Option<&'t AnyIdRef<'t>>,
     ) -> impl 't + Fn(&'t Rectangle<Vektor>, Verbindung) -> GehaltenVerbindung
     where
-        T: Zeichnen,
+        // T: MitSteuerung,
+        // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
+        T: Zeichnen<()>,
         AnyIdRef<'t>: From<GleisIdRef<'t, T>>,
     {
         let ist_gehalten = ist_gehalten_test(gehalten_id);

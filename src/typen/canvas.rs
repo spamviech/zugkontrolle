@@ -187,17 +187,18 @@ impl Position {
     }
 
     /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
-    pub(crate) fn anliegend_position<T>(
-        spurweite: Spurweite,
+    pub(crate) fn anliegend_position<T, Z>(
         definition: &T,
+        z: &Z,
+        spurweite: Spurweite,
         verbindung_name: &T::VerbindungName,
         ziel_verbindung: Verbindung,
     ) -> Position
     where
-        T: Zeichnen,
+        T: Zeichnen<Z>,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let verbindungen = definition.verbindungen(spurweite);
+        let verbindungen = definition.verbindungen(z, spurweite);
         let verbindung = verbindungen.erhalte(verbindung_name);
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
         Position {

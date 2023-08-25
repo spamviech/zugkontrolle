@@ -72,15 +72,17 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
+impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2>
+    for Kurve<Anschlüsse>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.radius, self.winkel)
     }
 
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
+    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
         let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
         let mut pfade = vec![zeichne(
             spurweite,
@@ -102,7 +104,11 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
         pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+    fn fülle(
+        &self,
+        anschlüsse: &Anschlüsse2,
+        spurweite: Spurweite,
+    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
         let mut pfade = vec![(
             fülle(
@@ -132,6 +138,7 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
 
     fn beschreibung_und_name(
         &self,
+        anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
     ) -> (Position, Option<&str>, Option<&str>) {
         let half_angle = 0.5 * self.winkel;
@@ -151,6 +158,7 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
 
     fn innerhalb(
         &self,
+        anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -158,7 +166,7 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Kurve<Anschluss> {
         innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+    fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {
