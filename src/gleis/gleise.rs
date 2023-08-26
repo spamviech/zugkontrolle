@@ -180,20 +180,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Füge einen Streckenabschnitt hinzu.
     /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
-    #[inline(always)]
     pub fn streckenabschnitt_hinzufügen(
-        &mut self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
-        name: streckenabschnitt::Name,
-        streckenabschnitt: Streckenabschnitt,
-    ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
-    {
-        self.streckenabschnitt_hinzufügen_aux(geschwindigkeit, name, streckenabschnitt)
-    }
-
-    /// Füge einen Streckenabschnitt mit angenommenen Fließend-Zustand hinzu.
-    /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
-    fn streckenabschnitt_hinzufügen_aux(
         &mut self,
         geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
@@ -493,7 +480,7 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
                 )?;
                 (None, streckenabschnitt)
             };
-        match self.streckenabschnitt_hinzufügen_aux(
+        match self.streckenabschnitt_hinzufügen(
             geschwindigkeit_neu,
             name.clone(),
             streckenabschnitt,
