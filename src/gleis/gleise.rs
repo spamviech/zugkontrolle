@@ -21,7 +21,7 @@ use crate::{
     anschluss,
     application::style::thema::Thema,
     gleis::gleise::{
-        daten::{GleiseDaten, StreckenabschnittMap, Zustand},
+        daten::{GleiseDaten, StreckenabschnittMap, Zustand, Zustand2},
         id::{StreckenabschnittId, StreckenabschnittIdRef},
         nachricht::{Gehalten, Nachricht},
     },
@@ -36,7 +36,7 @@ use crate::{
         vektor::Vektor,
         winkel::Winkel,
     },
-    zugtyp::{FalscherLeiter, Zugtyp},
+    zugtyp::{FalscherLeiter, Zugtyp, Zugtyp2},
 };
 
 pub mod daten;
@@ -84,6 +84,7 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
     pivot: Position,
     skalieren: Skalar,
     zustand: Zustand<L>,
+    zustand2: Zustand2<L>,
     letzte_maus_position: Vektor,
     letzte_canvas_größe: Vektor,
     modus: ModusDaten,
@@ -94,6 +95,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
     pub fn neu(
         zugtyp: Zugtyp<L>,
+        zugtyp2: Zugtyp2<L>,
         modus: Modus,
         pivot: Position,
         skalieren: Skalar,
@@ -104,6 +106,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             pivot,
             skalieren,
             zustand: Zustand::neu(zugtyp),
+            zustand2: Zustand2::neu(zugtyp2),
             letzte_maus_position: Vektor::null_vektor(),
             letzte_canvas_größe: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),

@@ -31,19 +31,25 @@ use crate::{
     },
     argumente::{Argumente, I2cSettings, ZugtypArgument},
     gleis::{
-        gerade::GeradeUnit,
-        gleise::{daten::v2::BekannterZugtyp, id::StreckenabschnittId, Gleise},
+        gerade::{Gerade, GeradeUnit},
+        gleise::{
+            daten::v2::BekannterZugtyp,
+            id::{DefinitionId2, StreckenabschnittId},
+            Gleise,
+        },
         knopf::Knopf,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
+        kreuzung::{Kreuzung, KreuzungUnit},
+        kurve::{Kurve, KurveUnit},
         weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
     steuerung::geschwindigkeit::{BekannterLeiter, Leiter},
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
-    zugtyp::Zugtyp,
+    zugtyp::{Zugtyp, Zugtyp2},
 };
 
 pub mod anschluss;
@@ -233,6 +239,86 @@ where
             };
         };
 
+        let zugtyp2 = {
+            let geraden = zugtyp
+                .geraden
+                .iter()
+                .map(|gleis| {
+                    (DefinitionId2::<Gerade>::neu().expect("Zu viele Geraden!"), gleis.clone())
+                })
+                .collect();
+            let kurven = zugtyp
+                .kurven
+                .iter()
+                .map(|gleis| {
+                    (DefinitionId2::<Kurve>::neu().expect("Zu viele Kurven!"), gleis.clone())
+                })
+                .collect();
+            let weichen = zugtyp
+                .weichen
+                .iter()
+                .map(|gleis| {
+                    (DefinitionId2::<Weiche>::neu().expect("Zu viele Weichen!"), gleis.clone())
+                })
+                .collect();
+            let dreiwege_weichen = zugtyp
+                .dreiwege_weichen
+                .iter()
+                .map(|gleis| {
+                    (
+                        DefinitionId2::<DreiwegeWeiche>::neu().expect("Zu viele DreiwegeWeichen!"),
+                        gleis.clone(),
+                    )
+                })
+                .collect();
+            let kurven_weichen = zugtyp
+                .kurven_weichen
+                .iter()
+                .map(|gleis| {
+                    (
+                        DefinitionId2::<KurvenWeiche>::neu().expect("Zu viele KurvenWeichen!"),
+                        gleis.clone(),
+                    )
+                })
+                .collect();
+            let s_kurven_weichen = zugtyp
+                .s_kurven_weichen
+                .iter()
+                .map(|gleis| {
+                    (
+                        DefinitionId2::<SKurvenWeiche>::neu().expect("Zu viele SKurvenWeichen!"),
+                        gleis.clone(),
+                    )
+                })
+                .collect();
+            let kreuzungen = zugtyp
+                .kreuzungen
+                .iter()
+                .map(|gleis| {
+                    (DefinitionId2::<Kreuzung>::neu().expect("Zu viele Kreuzungen!"), gleis.clone())
+                })
+                .collect();
+            Zugtyp2 {
+                name: zugtyp.name.clone(),
+                leiter: zugtyp.leiter.clone(),
+                spurweite: zugtyp.spurweite,
+                geraden,
+                kurven,
+                weichen,
+                dreiwege_weichen,
+                kurven_weichen,
+                s_kurven_weichen,
+                kreuzungen,
+                pwm_frequenz: zugtyp.pwm_frequenz.clone(),
+                verhältnis_fahrspannung_überspannung: zugtyp
+                    .verhältnis_fahrspannung_überspannung
+                    .clone(),
+                stopp_zeit: zugtyp.stopp_zeit.clone(),
+                umdrehen_zeit: zugtyp.umdrehen_zeit.clone(),
+                schalten_zeit: zugtyp.schalten_zeit.clone(),
+            }
+        };
+
         macro_rules! erstelle_knopf {
             () => {
                 |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
@@ -250,6 +336,7 @@ where
 
         let gleise = Gleise::neu(
             zugtyp,
+            zugtyp2,
             modus,
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
