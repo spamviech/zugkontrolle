@@ -65,6 +65,9 @@ impl Transparenz {
 }
 
 /// Trait für Typen, die auf einem [Frame](crate::typen::canvas::Frame) gezeichnet werden können.
+///
+/// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [zeichne](Zeichnen::zeichne),
+/// [beschreibung_und_name](Zeichnen::beschreibung_und_name).
 pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;

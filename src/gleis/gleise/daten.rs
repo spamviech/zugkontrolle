@@ -3,6 +3,13 @@
 use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
 
 use either::Either;
+use iced::{
+    widget::canvas::{
+        fill::{self, Fill},
+        stroke::{self, Stroke},
+    },
+    Color,
+};
 use log::error;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
@@ -14,6 +21,7 @@ use crate::{
     anschluss::{
         self,
         de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        polarität::Fließend,
     },
     gleis::{
         gerade::Gerade,
@@ -40,8 +48,13 @@ use crate::{
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
-        canvas::Position, mm::Spurweite, rechteck::Rechteck, skalar::Skalar, vektor::Vektor,
-        Zeichnen,
+        canvas::{pfad::Transformation, Frame, Position},
+        farbe::Farbe,
+        mm::Spurweite,
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
+        Transparenz, Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
     zugtyp::{DefinitionMap2, Zugtyp, Zugtyp2},
@@ -884,27 +897,29 @@ fn einraste_position<L: Leiter, T: Zeichnen<Z>, Z>(
 macro_rules! daten_mit_any_id2 {
     ($daten: expr, $zugtyp: expr, [$id: ty => $($ident: ident),+] $any_id: expr => $macro: ident ! ( $($extra_arg: expr),* $(,)? ) ) => {{
         use $id::*;
+        #[allow(unused_variables)]
+        let GleiseDaten2 {geraden, kurven, weichen, dreiwege_weichen, kurven_weichen, s_kurven_weichen, kreuzungen, ..} = $daten;
         match $any_id {
             Gerade( $($ident),+ ) => {
-                $macro! (&mut $daten.geraden, & $zugtyp.geraden, $($ident),+ $(, $extra_arg)*)
+                $macro! (geraden, & $zugtyp.geraden, $($ident),+ $(, $extra_arg)*)
             }
             Kurve( $($ident),+ ) => {
-                $macro! (&mut $daten.kurven, & $zugtyp.kurven, $($ident),+ $(, $extra_arg)*)
+                $macro! (kurven, & $zugtyp.kurven, $($ident),+ $(, $extra_arg)*)
             }
             Weiche( $($ident),+ ) => {
-                $macro! (&mut $daten.weichen, & $zugtyp.weichen, $($ident),+ $(, $extra_arg)*)
+                $macro! (weichen, & $zugtyp.weichen, $($ident),+ $(, $extra_arg)*)
             }
             DreiwegeWeiche( $($ident),+ ) => {
-                $macro! (&mut $daten.dreiwege_weichen, & $zugtyp.dreiwege_weichen, $($ident),+ $(, $extra_arg)*)
+                $macro! (dreiwege_weichen, & $zugtyp.dreiwege_weichen, $($ident),+ $(, $extra_arg)*)
             }
             KurvenWeiche( $($ident),+ ) => {
-                $macro! (&mut $daten.kurven_weichen, & $zugtyp.kurven_weichen, $($ident),+ $(, $extra_arg)*)
+                $macro! (kurven_weichen, & $zugtyp.kurven_weichen, $($ident),+ $(, $extra_arg)*)
             }
             SKurvenWeiche( $($ident),+ ) => {
-                $macro! (&mut $daten.s_kurven_weichen, & $zugtyp.s_kurven_weichen, $($ident),+ $(, $extra_arg)*)
+                $macro! (s_kurven_weichen, & $zugtyp.s_kurven_weichen, $($ident),+ $(, $extra_arg)*)
             }
             Kreuzung( $($ident),+ ) => {
-                $macro! (&mut $daten.kreuzungen, & $zugtyp.kreuzungen, $($ident),+ $(, $extra_arg)*)
+                $macro! (kreuzungen, & $zugtyp.kreuzungen, $($ident),+ $(, $extra_arg)*)
             }
         }
     }};
@@ -1202,6 +1217,137 @@ impl GleiseDaten2 {
             }};
         }
         daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
+    }
+}
+
+pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
+    // bewege Kontext zur Position
+    frame.transformation(&Transformation::Translation(position.punkt));
+    // drehe Kontext um (0,0)
+    frame.transformation(&Transformation::Rotation(position.winkel));
+}
+
+impl GleiseDaten2 {
+    fn fülle_alle_gleise<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: Zugtyp2<L>,
+        transparent: impl Fn(AnyId2, Fließend) -> Transparenz,
+        streckenabschnitt: Option<(Farbe, Fließend)>,
+    ) {
+        macro_rules! zeichne_gleis {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
+                    Some(gleis) => gleis,
+                    None => {
+                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
+                        continue;
+                    },
+                };
+                let definition = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => definition,
+                    None => {
+                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
+                        continue;
+                    },
+                };
+                frame.with_save(|frame| {
+                    bewege_an_position(frame, $position);
+                    // einfärben
+                    for (pfad, farbe, transparenz) in definition.fülle(&(), $spurweite) {
+                        let farbe_alpha = match (farbe, streckenabschnitt) {
+                            (None, None) => None,
+                            (None, Some((farbe, fließend))) => Some((
+                                farbe,
+                                transparent(AnyId2::from($gleis_id.clone()), fließend)
+                                    .kombiniere(transparenz)
+                                    .alpha(),
+                            )),
+                            (Some(farbe), None) => Some((farbe, 1.)),
+                            (Some(farbe), Some((_farbe, fließend))) => Some((
+                                farbe,
+                                transparent(AnyId2::from($gleis_id.clone()), fließend)
+                                    .kombiniere(transparenz)
+                                    .alpha(),
+                            )),
+                        };
+                        if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
+                            frame.with_save(|frame| {
+                                let color = Color { r: rot, g: grün, b: blau, a: alpha };
+                                frame.fill(
+                                    &pfad,
+                                    Fill {
+                                        style: fill::Style::Solid(color),
+                                        rule: fill::Rule::EvenOdd,
+                                    },
+                                );
+                            });
+                        }
+                    }
+                })
+            }};
+        }
+        for geom_with_data in self.rstern.iter() {
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            daten_mit_any_id2!(
+                self, zugtyp, [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => zeichne_gleis!(zugtyp.spurweite, position)
+            )
+        }
+    }
+
+    fn zeichne_alle_gleise<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: Zugtyp2<L>,
+        ist_gehalten: impl Fn(AnyId2) -> bool,
+        farbe: Farbe,
+    ) {
+        macro_rules! zeichne_gleis {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
+                    Some(gleis) => gleis,
+                    None => {
+                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
+                        continue;
+                    },
+                };
+                let definition = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => definition,
+                    None => {
+                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
+                        continue;
+                    },
+                };
+                frame.with_save(|frame| {
+                    bewege_an_position(frame, $position);
+                    // zeichne Kontur
+                    for path in definition.zeichne(&gleis.steuerung, $spurweite) {
+                        frame.with_save(|frame| {
+                            let a = Transparenz::true_reduziert(ist_gehalten(AnyId2::from(
+                                $gleis_id.clone(),
+                            )))
+                            .alpha();
+                            frame.stroke(
+                                &path,
+                                Stroke {
+                                    style: stroke::Style::Solid(Color { a, ..Color::from(farbe) }),
+                                    width: 1.5,
+                                    ..Stroke::default()
+                                },
+                            );
+                        });
+                    }
+                })
+            }};
+        }
+        for geom_with_data in self.rstern.iter() {
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            daten_mit_any_id2!(
+                self, zugtyp, [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => zeichne_gleis!(zugtyp.spurweite, position)
+            )
+        }
     }
 }
 
