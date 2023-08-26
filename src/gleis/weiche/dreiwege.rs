@@ -133,13 +133,13 @@ impl WeicheSteuerung<Richtung> for RichtungInformation {
     }
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRichtung<Richtung>>
-    Zeichnen<Anschlüsse2> for DreiwegeWeiche<Anschlüsse>
+impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
+    for DreiwegeWeiche<Anschlüsse>
 {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
@@ -207,7 +207,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         let (gerade_transparenz, links_transparenz, rechts_transparenz) =
-            match self.steuerung.aktuelle_richtung() {
+            match anschlüsse.aktuelle_richtung() {
                 None => (Transparenz::Voll, Transparenz::Voll, Transparenz::Voll),
                 Some(Richtung::Gerade) => {
                     (Transparenz::Voll, Transparenz::Reduziert, Transparenz::Reduziert)
@@ -259,11 +259,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
-        anschlüsse: &Anschlüsse2,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
@@ -274,7 +274,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
                 winkel: winkel::ZERO,
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.steuerung.name(),
+            anschlüsse.name(),
         )
     }
 

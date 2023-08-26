@@ -72,18 +72,16 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2>
-    for Kurve<Anschlüsse>
-{
+impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Kurve<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.radius, self.winkel)
     }
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
-        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
         let mut pfade = vec![zeichne(
             spurweite,
             self.radius,
@@ -109,7 +107,7 @@ impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeic
         anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
     ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
-        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
         let mut pfade = vec![(
             fülle(
                 spurweite,
@@ -136,11 +134,11 @@ impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeic
         pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
-        anschlüsse: &Anschlüsse2,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         let half_angle = 0.5 * self.winkel;
         (
             Position {
@@ -152,13 +150,13 @@ impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeic
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.kontakt.name(),
+            anschlüsse.name(),
         )
     }
 
     fn innerhalb(
         &self,
-        anschlüsse: &Anschlüsse2,
+        _anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -166,7 +164,9 @@ impl<Anschlüsse: MitName + MitKontakt, Anschlüsse2: MitName + MitKontakt> Zeic
         innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {
+    fn verbindungen(
+        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
+    ) -> Self::Verbindungen {
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {

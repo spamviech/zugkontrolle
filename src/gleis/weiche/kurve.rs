@@ -97,13 +97,13 @@ pub enum VerbindungName {
     Außen,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRichtung<Richtung>>
-    Zeichnen<Anschlüsse2> for KurvenWeiche<Anschlüsse>
+impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
+    for KurvenWeiche<Anschlüsse>
 {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
@@ -149,7 +149,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         // utility sizes
         let außen_transformation =
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
-        let (innen_transparenz, außen_transparenz) = match self.steuerung.aktuelle_richtung() {
+        let (innen_transparenz, außen_transparenz) = match anschlüsse.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
             Some(Richtung::Innen) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Außen) => (Transparenz::Reduziert, Transparenz::Voll),
@@ -184,11 +184,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         }
     }
 
-    fn beschreibung_und_name(
-        &self,
-        anschlüsse: &Anschlüsse2,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
@@ -211,7 +211,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.steuerung.name(),
+            anschlüsse.name(),
         )
     }
 

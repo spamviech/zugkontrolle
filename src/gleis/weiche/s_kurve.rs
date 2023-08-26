@@ -104,13 +104,13 @@ impl SKurvenWeicheUnit {
     }
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRichtung<Richtung>>
-    Zeichnen<Anschlüsse2> for SKurvenWeiche<Anschlüsse>
+impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
+    for SKurvenWeiche<Anschlüsse>
 {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let SKurvenWeiche {
             länge,
             radius,
@@ -209,7 +209,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
                 }),
             ]
         };
-        let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
+        let (gerade_transparenz, kurve_transparenz) = match anschlüsse.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
@@ -250,11 +250,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         }
     }
 
-    fn beschreibung_und_name(
-        &self,
-        anschlüsse: &Anschlüsse2,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         let start_height: Skalar;
         let multiplier: Skalar;
         match self.orientierung {
@@ -277,7 +277,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.steuerung.name(),
+            anschlüsse.name(),
         )
     }
 

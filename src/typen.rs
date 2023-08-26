@@ -88,11 +88,11 @@ pub trait Zeichnen<T> {
     fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
 
     /// [Position] und Text für Beschreibung und Name (falls verfügbar).
-    fn beschreibung_und_name(
-        &self,
-        t: &T,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        t: &'t T,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>);
+    ) -> (Position, Option<&'s str>, Option<&'t str>);
 
     /// Zeigt der [Vektor] auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(

@@ -114,13 +114,13 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRichtung<Richtung>>
-    Zeichnen<Anschlüsse2> for Kreuzung<Anschlüsse>
+impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
+    for Kreuzung<Anschlüsse>
 {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let winkel = self.winkel();
         let rechteck_kurve = kurve::rechteck(spurweite, self.radius, winkel);
         let rechteck_gerade = gerade::rechteck(spurweite, self.länge);
@@ -228,7 +228,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
-        let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
+        let (gerade_transparenz, kurve_transparenz) = match anschlüsse.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
@@ -284,11 +284,11 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
         pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
-        anschlüsse: &Anschlüsse2,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         // utility sizes
         let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
@@ -300,7 +300,7 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>, Anschlüsse2: MitName + MitRi
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.steuerung.name(),
+            anschlüsse.name(),
         )
     }
 
