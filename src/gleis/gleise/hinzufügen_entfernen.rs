@@ -13,8 +13,15 @@ use crate::{
     gleis::{
         gleise::{
             self,
-            daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-            id::{AnyId, GleisId, StreckenabschnittId},
+            daten::{
+                AnyGleis2, BewegenFehler2, DatenAuswahl, EntfernenFehler2, Gleis,
+                HinzufügenFehler2, SelectEnvelope, SetzteStreckenabschnittFehler2, Zustand,
+            },
+            id::{
+                AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
+                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdVerbindung2, GleisId,
+                StreckenabschnittId,
+            },
             nachricht::{mit_any_steuerung_id, GleisSteuerung},
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, Gleise, ModusDaten,
@@ -22,7 +29,10 @@ use crate::{
         },
         verbindung::{self, Verbindung},
     },
-    steuerung::geschwindigkeit::Leiter,
+    steuerung::{
+        geschwindigkeit::{self, Leiter},
+        streckenabschnitt,
+    },
     typen::{canvas::Position, vektor::Vektor, Zeichnen},
 };
 
@@ -45,6 +55,17 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.erzwinge_neuzeichnen();
         // Rückgabewert
         Ok(gleis_id)
+    }
+
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
+    pub(crate) fn hinzufügen2(
+        &mut self,
+        definition_steuerung: AnyDefinitionIdSteuerung2,
+        position: Position,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+        einrasten: bool,
+    ) -> Result<AnyId2, HinzufügenFehler2> {
+        self.zustand2.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
@@ -80,6 +101,34 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(gleis_id)
     }
 
+    /// Füge ein Gleis zur letzten bekannten Maus-Position,
+    /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
+    pub(crate) fn hinzufügen_gehalten_bei_maus2<R, S>(
+        &mut self,
+        definition_steuerung: AnyDefinitionIdSteuerung2,
+        halte_position: Vektor,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+        einrasten: bool,
+    ) -> Result<AnyId2, HinzufügenFehler2>
+    where
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
+        let punkt = self.letzte_maus_position - halte_position;
+        let winkel = -self.pivot.winkel;
+        let gleis_id = self.hinzufügen2(
+            definition_steuerung,
+            Position { punkt, winkel },
+            streckenabschnitt,
+            einrasten,
+        )?;
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            let gleis_steuerung = todo!();
+            // let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
+            *gehalten = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
+        }
+        Ok(gleis_id)
+    }
+
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
     pub(crate) fn hinzufügen_anliegend<T: Debug + Zeichnen<()> + DatenAuswahl>(
@@ -104,6 +153,21 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(gleis_id)
     }
 
+    /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung`
+    /// mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
+    pub(in crate::gleis::gleise) fn hinzufügen_anliegend2(
+        &mut self,
+        definition_steuerung_verbindung: impl Into<AnyDefinitionIdSteuerungVerbindung2>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+        ziel_verbindung: Verbindung,
+    ) -> Result<AnyId2, HinzufügenFehler2> {
+        self.zustand2.hinzufügen_anliegend(
+            definition_steuerung_verbindung.into(),
+            streckenabschnitt,
+            ziel_verbindung,
+        )
+    }
+
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Bewege ein Gleis an die neue position.
     pub(crate) fn bewegen<T: Debug + Zeichnen<()> + DatenAuswahl>(
@@ -120,6 +184,16 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.erzwinge_neuzeichnen();
         // Rückgabewert
         Ok(())
+    }
+
+    /// Bewege ein [Gleis] an die neue [Position].
+    pub(in crate::gleis::gleise) fn bewegen2(
+        &mut self,
+        gleis_id: impl Into<AnyId2>,
+        position: Position,
+        einrasten: bool,
+    ) -> Result<(), BewegenFehler2> {
+        self.zustand2.bewegen(gleis_id.into(), position, einrasten)
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
@@ -140,6 +214,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(())
     }
 
+    /// Bewege ein [Gleis], so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
+    pub(in crate::gleis::gleise) fn bewegen_anliegend2(
+        &mut self,
+        id_verbindung: impl Into<AnyIdVerbindung2>,
+        ziel_verbindung: Verbindung,
+    ) -> Result<(), BewegenFehler2> {
+        self.zustand2.bewegen_anliegend(id_verbindung.into(), ziel_verbindung)
+    }
+
     #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Entferne das Gleis assoziiert mit der `GleisId`.
     pub(crate) fn entfernen<T: Debug + Zeichnen<()> + DatenAuswahl>(
@@ -154,6 +237,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.erzwinge_neuzeichnen();
         // Rückgabewert
         Ok(gleis)
+    }
+
+    /// Entferne das [Gleis] assoziiert mit der [GleisId].
+    pub(in crate::gleis::gleise) fn entfernen2(
+        &mut self,
+        gleis_id: impl Into<AnyId2>,
+    ) -> Result<AnyGleis2, EntfernenFehler2> {
+        self.zustand2.entfernen(gleis_id.into())
     }
 
     /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
@@ -232,6 +323,19 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Err(fehler.into())
             },
         }
+    }
+
+    /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)
+    /// für das [Gleis] assoziiert mit der [GleisId].
+    ///
+    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
+    /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
+    pub(in crate::gleis::gleise) fn setze_streckenabschnitt2(
+        &mut self,
+        gleis_id: impl Into<AnyId2>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+        self.zustand2.setze_streckenabschnitt(gleis_id, streckenabschnitt)
     }
 
     #[allow(single_use_lifetimes)]

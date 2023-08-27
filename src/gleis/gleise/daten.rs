@@ -522,7 +522,7 @@ impl<L: Leiter> Zustand2<L> {
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
-    pub(in crate::gleis::gleise) fn hinzufügen<T>(
+    pub(in crate::gleis::gleise) fn hinzufügen(
         &mut self,
         definition_steuerung: impl Into<AnyDefinitionIdSteuerung2>,
         position: Position,
@@ -540,7 +540,7 @@ impl<L: Leiter> Zustand2<L> {
 
     /// Füge ein neues [Gleis] mit `verbindung_name` anliegend an `ziel_verbindung`
     /// mit dem gewählten [Streckenabschnitt] hinzu.
-    pub(in crate::gleis::gleise) fn hinzufügen_anliegend<T>(
+    pub(in crate::gleis::gleise) fn hinzufügen_anliegend(
         &mut self,
         definition_steuerung_verbindung: impl Into<AnyDefinitionIdSteuerungVerbindung2>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -554,8 +554,8 @@ impl<L: Leiter> Zustand2<L> {
         )
     }
 
-    /// Bewege ein [Gleis] an die neue position.
-    pub(in crate::gleis::gleise) fn bewegen<T>(
+    /// Bewege ein [Gleis] an die neue [Position].
+    pub(in crate::gleis::gleise) fn bewegen(
         &mut self,
         gleis_id: impl Into<AnyId2>,
         position: Position,
@@ -565,7 +565,7 @@ impl<L: Leiter> Zustand2<L> {
     }
 
     /// Bewege ein [Gleis], so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    pub(in crate::gleis::gleise) fn bewegen_anliegend<T, Name>(
+    pub(in crate::gleis::gleise) fn bewegen_anliegend(
         &mut self,
         id_verbindung: impl Into<AnyIdVerbindung2>,
         ziel_verbindung: Verbindung,
@@ -948,8 +948,9 @@ macro_rules! daten_mit_any_id2 {
     }};
 }
 
+/// Fehler beim [hinzufügen](crate::gleis::gleise::Gleise::hinzufügen) eines Gleises.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub(in crate::gleis::gleise) enum HinzufügenFehler2 {
+pub enum HinzufügenFehler2 {
     DefinitionNichtGefunden(AnyDefinitionId2),
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
@@ -1057,8 +1058,9 @@ impl GleiseDaten2 {
     }
 }
 
+/// Fehler beim [bewegen](crate::gleis::gleise::Gleise::bewegen) eines Gleises.
 #[derive(Debug, Clone)]
-pub(in crate::gleis::gleise) enum BewegenFehler2 {
+pub enum BewegenFehler2 {
     DefinitionNichtGefunden(AnyDefinitionId2),
     GleisNichtGefunden(AnyId2),
 }
@@ -1180,6 +1182,7 @@ impl GleiseDaten2 {
     }
 }
 
+/// Fehler beim [entfernen](crate::gleis::gleise::Gleise::entfernen) eines Gleises.
 #[derive(Debug, Clone)]
 pub(in crate::gleis::gleise) struct EntfernenFehler2(AnyId2);
 
@@ -1212,11 +1215,9 @@ impl GleiseDaten2 {
     }
 }
 
+/// Fehler beim [setzen des Streckenabschnitts](crate::gleis::gleise::Gleise::setzte_streckenabschnitt) eines Gleises.
 #[derive(Debug, Clone)]
-pub(in crate::gleis::gleise) struct SetzteStreckenabschnittFehler2(
-    AnyId2,
-    Option<streckenabschnitt::Name>,
-);
+pub struct SetzteStreckenabschnittFehler2(AnyId2, Option<streckenabschnitt::Name>);
 
 impl GleiseDaten2 {
     fn setze_streckenabschnitt(
@@ -1436,7 +1437,7 @@ fn schreibe_gleis_beschreibung_name<T>(
 
 impl GleiseDaten2 {
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    fn darstellen_aller_gleise<L: Leiter>(
+    pub(in crate::gleis::gleise) fn darstellen_aller_gleise<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp2<L>,
