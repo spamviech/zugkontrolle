@@ -1227,6 +1227,79 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
+/// Färbe den Hintergrund eines Gleises.
+fn fülle_gleis<T>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    definition: &<T as MitSteuerung>::SelfUnit,
+    steuerung: &<T as MitSteuerung>::Steuerung,
+    gleis_id: &GleisId2<T>,
+    transparent: impl Fn(AnyId2, Fließend) -> Transparenz,
+    streckenabschnitt: Option<(Farbe, Fließend)>,
+) where
+    AnyId2: From<GleisId2<T>>,
+    T: MitSteuerung,
+    <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
+{
+    for (pfad, farbe, transparenz) in definition.fülle(steuerung, spurweite) {
+        let farbe_alpha = match (farbe, streckenabschnitt) {
+            (None, None) => None,
+            (None, Some((farbe, fließend))) => Some((
+                farbe,
+                transparent(AnyId2::from(gleis_id.clone()), fließend)
+                    .kombiniere(transparenz)
+                    .alpha(),
+            )),
+            (Some(farbe), None) => Some((farbe, 1.)),
+            (Some(farbe), Some((_farbe, fließend))) => Some((
+                farbe,
+                transparent(AnyId2::from(gleis_id.clone()), fließend)
+                    .kombiniere(transparenz)
+                    .alpha(),
+            )),
+        };
+        if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
+            frame.with_save(|frame| {
+                let color = Color { r: rot, g: grün, b: blau, a: alpha };
+                frame.fill(
+                    &pfad,
+                    Fill { style: fill::Style::Solid(color), rule: fill::Rule::EvenOdd },
+                );
+            });
+        }
+    }
+}
+
+/// Zeichne die Kontur eines Gleises.
+fn zeichne_gleis<T>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    definition: &<T as MitSteuerung>::SelfUnit,
+    steuerung: &<T as MitSteuerung>::Steuerung,
+    gleis_id: &GleisId2<T>,
+    ist_gehalten: impl Fn(AnyId2) -> bool,
+    farbe: Farbe,
+) where
+    AnyId2: From<GleisId2<T>>,
+    T: MitSteuerung,
+    <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
+{
+    for path in definition.zeichne(steuerung, spurweite) {
+        frame.with_save(|frame| {
+            let a =
+                Transparenz::true_reduziert(ist_gehalten(AnyId2::from(gleis_id.clone()))).alpha();
+            frame.stroke(
+                &path,
+                Stroke {
+                    style: stroke::Style::Solid(Color { a, ..Color::from(farbe) }),
+                    width: 1.5,
+                    ..Stroke::default()
+                },
+            );
+        });
+    }
+}
+
 impl GleiseDaten2 {
     fn fülle_alle_gleise<L: Leiter>(
         &self,
@@ -1253,37 +1326,16 @@ impl GleiseDaten2 {
                 };
                 frame.with_save(|frame| {
                     bewege_an_position(frame, $position);
-                    // einfärben
-                    for (pfad, farbe, transparenz) in definition.fülle(&(), $spurweite) {
-                        let farbe_alpha = match (farbe, streckenabschnitt) {
-                            (None, None) => None,
-                            (None, Some((farbe, fließend))) => Some((
-                                farbe,
-                                transparent(AnyId2::from($gleis_id.clone()), fließend)
-                                    .kombiniere(transparenz)
-                                    .alpha(),
-                            )),
-                            (Some(farbe), None) => Some((farbe, 1.)),
-                            (Some(farbe), Some((_farbe, fließend))) => Some((
-                                farbe,
-                                transparent(AnyId2::from($gleis_id.clone()), fließend)
-                                    .kombiniere(transparenz)
-                                    .alpha(),
-                            )),
-                        };
-                        if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
-                            frame.with_save(|frame| {
-                                let color = Color { r: rot, g: grün, b: blau, a: alpha };
-                                frame.fill(
-                                    &pfad,
-                                    Fill {
-                                        style: fill::Style::Solid(color),
-                                        rule: fill::Rule::EvenOdd,
-                                    },
-                                );
-                            });
-                        }
-                    }
+                    // Färbe Hintergrund.
+                    fülle_gleis(
+                        frame,
+                        $spurweite,
+                        definition,
+                        &gleis.steuerung,
+                        $gleis_id,
+                        &transparent,
+                        streckenabschnitt,
+                    );
                 })
             }};
         }
@@ -1321,23 +1373,16 @@ impl GleiseDaten2 {
                 };
                 frame.with_save(|frame| {
                     bewege_an_position(frame, $position);
-                    // zeichne Kontur
-                    for path in definition.zeichne(&gleis.steuerung, $spurweite) {
-                        frame.with_save(|frame| {
-                            let a = Transparenz::true_reduziert(ist_gehalten(AnyId2::from(
-                                $gleis_id.clone(),
-                            )))
-                            .alpha();
-                            frame.stroke(
-                                &path,
-                                Stroke {
-                                    style: stroke::Style::Solid(Color { a, ..Color::from(farbe) }),
-                                    width: 1.5,
-                                    ..Stroke::default()
-                                },
-                            );
-                        });
-                    }
+                    // Zeichne Kontur.
+                    zeichne_gleis(
+                        frame,
+                        $spurweite,
+                        definition,
+                        &gleis.steuerung,
+                        $gleis_id,
+                        &ist_gehalten,
+                        farbe,
+                    );
                 })
             }};
         }
