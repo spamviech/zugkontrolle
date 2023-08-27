@@ -43,58 +43,56 @@ type StKurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum GleisSteuerung {
     /// [GleisId] und [KontaktSerialisiert] einer [Gerade].
-    Gerade(IdUndSteuerungSerialisiert<Gerade, Option<KontaktSerialisiert>>),
+    Gerade(GleisId<Gerade>, Option<KontaktSerialisiert>),
     /// [GleisId] und [KontaktSerialisiert] einer [Kurve].
-    Kurve(IdUndSteuerungSerialisiert<Kurve, Option<KontaktSerialisiert>>),
+    Kurve(GleisId<Kurve>, Option<KontaktSerialisiert>),
     /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Weiche].
-    Weiche(IdUndSteuerungSerialisiert<Weiche, Option<StWeicheSerialisiert>>),
+    Weiche(GleisId<Weiche>, Option<StWeicheSerialisiert>),
     /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [KurvenWeiche].
-    KurvenWeiche(IdUndSteuerungSerialisiert<KurvenWeiche, Option<StKurvenWeicheSerialisiert>>),
+    KurvenWeiche(GleisId<KurvenWeiche>, Option<StKurvenWeicheSerialisiert>),
     /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [DreiwegeWeiche].
-    DreiwegeWeiche(
-        IdUndSteuerungSerialisiert<DreiwegeWeiche, Option<StDreiwegeWeicheSerialisiert>>,
-    ),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<StDreiwegeWeicheSerialisiert>),
     /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [SKurvenWeiche].
-    SKurvenWeiche(IdUndSteuerungSerialisiert<SKurvenWeiche, Option<StWeicheSerialisiert>>),
+    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<StWeicheSerialisiert>),
     /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Kreuzung].
-    Kreuzung(IdUndSteuerungSerialisiert<Kreuzung, Option<StWeicheSerialisiert>>),
+    Kreuzung(GleisId<Kreuzung>, Option<StWeicheSerialisiert>),
 }
 
 impl GleisSteuerung {
     pub(in crate::gleis::gleise) fn id(&self) -> AnyIdRef<'_> {
         match self {
-            GleisSteuerung::Gerade((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::Kurve((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::Weiche((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::KurvenWeiche((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::DreiwegeWeiche((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::SKurvenWeiche((id, _steuerung)) => id.als_ref().into(),
-            GleisSteuerung::Kreuzung((id, _steuerung)) => id.als_ref().into(),
+            GleisSteuerung::Gerade(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::Kurve(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::Weiche(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::KurvenWeiche(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::DreiwegeWeiche(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::SKurvenWeiche(id, _steuerung) => id.als_ref().into(),
+            GleisSteuerung::Kreuzung(id, _steuerung) => id.als_ref().into(),
         }
     }
 
     pub(crate) fn klonen(&self) -> GleisSteuerung {
         match self {
-            GleisSteuerung::Gerade((id, steuerung)) => {
-                GleisSteuerung::Gerade((id.klonen(), steuerung.clone()))
+            GleisSteuerung::Gerade(id, steuerung) => {
+                GleisSteuerung::Gerade(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::Kurve((id, steuerung)) => {
-                GleisSteuerung::Kurve((id.klonen(), steuerung.clone()))
+            GleisSteuerung::Kurve(id, steuerung) => {
+                GleisSteuerung::Kurve(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::Weiche((id, steuerung)) => {
-                GleisSteuerung::Weiche((id.klonen(), steuerung.clone()))
+            GleisSteuerung::Weiche(id, steuerung) => {
+                GleisSteuerung::Weiche(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::KurvenWeiche((id, steuerung)) => {
-                GleisSteuerung::KurvenWeiche((id.klonen(), steuerung.clone()))
+            GleisSteuerung::KurvenWeiche(id, steuerung) => {
+                GleisSteuerung::KurvenWeiche(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::DreiwegeWeiche((id, steuerung)) => {
-                GleisSteuerung::DreiwegeWeiche((id.klonen(), steuerung.clone()))
+            GleisSteuerung::DreiwegeWeiche(id, steuerung) => {
+                GleisSteuerung::DreiwegeWeiche(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::SKurvenWeiche((id, steuerung)) => {
-                GleisSteuerung::SKurvenWeiche((id.klonen(), steuerung.clone()))
+            GleisSteuerung::SKurvenWeiche(id, steuerung) => {
+                GleisSteuerung::SKurvenWeiche(id.klonen(), steuerung.clone())
             },
-            GleisSteuerung::Kreuzung((id, steuerung)) => {
-                GleisSteuerung::Kreuzung((id.klonen(), steuerung.clone()))
+            GleisSteuerung::Kreuzung(id, steuerung) => {
+                GleisSteuerung::Kreuzung(id.klonen(), steuerung.clone())
             },
         }
     }
@@ -103,25 +101,25 @@ impl GleisSteuerung {
 macro_rules! mit_any_steuerung_id {
     ($gleis_steuerung: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $gleis_steuerung {
-            GleisSteuerung::Gerade((gleis_id, _steuerung)) => {
+            GleisSteuerung::Gerade(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::Kurve((gleis_id, _steuerung)) => {
+            GleisSteuerung::Kurve(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::Weiche((gleis_id, _steuerung)) => {
+            GleisSteuerung::Weiche(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::DreiwegeWeiche((gleis_id, _steuerung)) => {
+            GleisSteuerung::DreiwegeWeiche(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::KurvenWeiche((gleis_id, _steuerung)) => {
+            GleisSteuerung::KurvenWeiche(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::SKurvenWeiche((gleis_id, _steuerung)) => {
+            GleisSteuerung::SKurvenWeiche(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            GleisSteuerung::Kreuzung((gleis_id, _steuerung)) => {
+            GleisSteuerung::Kreuzung(gleis_id, _steuerung) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
         }

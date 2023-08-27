@@ -194,25 +194,25 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
-                GleisSteuerung::Gerade((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                GleisSteuerung::Gerade(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Kontakt(startwert, KontaktId::Gerade(id)),
                 ),
-                GleisSteuerung::Kurve((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                GleisSteuerung::Kurve(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Kontakt(startwert, KontaktId::Kurve(id)),
                 ),
-                GleisSteuerung::Weiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                GleisSteuerung::Weiche(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Weiche(startwert, WeichenId::Gerade(id)),
                 ),
-                GleisSteuerung::KurvenWeiche((id, startwert)) => {
+                GleisSteuerung::KurvenWeiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(startwert, id))
                 },
-                GleisSteuerung::DreiwegeWeiche((id, startwert)) => {
+                GleisSteuerung::DreiwegeWeiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(startwert, id))
                 },
-                GleisSteuerung::SKurvenWeiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                GleisSteuerung::SKurvenWeiche(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Weiche(startwert, WeichenId::SKurve(id)),
                 ),
-                GleisSteuerung::Kreuzung((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                GleisSteuerung::Kreuzung(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Weiche(startwert, WeichenId::Kreuzung(id)),
                 ),
             },
@@ -290,8 +290,8 @@ impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    KontaktId::Gerade(id) => GleisSteuerung::Gerade((id, steuerung)),
-                    KontaktId::Kurve(id) => GleisSteuerung::Kurve((id, steuerung)),
+                    KontaktId::Gerade(id) => GleisSteuerung::Gerade(id, steuerung),
+                    KontaktId::Kurve(id) => GleisSteuerung::Kurve(id, steuerung),
                 }))
             },
             Schließen => modal::Nachricht::VersteckeOverlay,
@@ -307,9 +307,9 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    WeichenId::Gerade(id) => GleisSteuerung::Weiche((id, steuerung)),
-                    WeichenId::SKurve(id) => GleisSteuerung::SKurvenWeiche((id, steuerung)),
-                    WeichenId::Kreuzung(id) => GleisSteuerung::Kreuzung((id, steuerung)),
+                    WeichenId::Gerade(id) => GleisSteuerung::Weiche(id, steuerung),
+                    WeichenId::SKurve(id) => GleisSteuerung::SKurvenWeiche(id, steuerung),
+                    WeichenId::Kreuzung(id) => GleisSteuerung::Kreuzung(id, steuerung),
                 }))
             },
             Schließen => modal::Nachricht::VersteckeOverlay,
@@ -324,7 +324,7 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
         use weiche::Nachricht::*;
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                GleisSteuerung::DreiwegeWeiche((gleis_id, steuerung)),
+                GleisSteuerung::DreiwegeWeiche(gleis_id, steuerung),
             )),
             Schließen => modal::Nachricht::VersteckeOverlay,
         }
@@ -338,7 +338,7 @@ impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
         use weiche::Nachricht::*;
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                GleisSteuerung::KurvenWeiche((gleis_id, steuerung)),
+                GleisSteuerung::KurvenWeiche(gleis_id, steuerung),
             )),
             Schließen => modal::Nachricht::VersteckeOverlay,
         }

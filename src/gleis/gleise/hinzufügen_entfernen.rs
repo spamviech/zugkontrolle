@@ -315,49 +315,46 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let aktualisieren_sender =
             SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from));
         match gleis_steuerung {
-            GleisSteuerung::Gerade((id, anschlüsse_serialisiert)) => self
+            GleisSteuerung::Gerade(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
+                id,
+                anschlüsse_serialisiert,
+                lager,
+                aktualisieren_sender,
+            ),
+            GleisSteuerung::Kurve(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
+                id,
+                anschlüsse_serialisiert,
+                lager,
+                aktualisieren_sender,
+            ),
+            GleisSteuerung::Weiche(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
+                id,
+                anschlüsse_serialisiert,
+                lager,
+                aktualisieren_sender,
+            ),
+            GleisSteuerung::DreiwegeWeiche(id, anschlüsse_serialisiert) => self
                 .gleis_anschlüsse_anpassen(
                     id,
                     anschlüsse_serialisiert,
                     lager,
                     aktualisieren_sender,
                 ),
-            GleisSteuerung::Kurve((id, anschlüsse_serialisiert)) => self
+            GleisSteuerung::KurvenWeiche(id, anschlüsse_serialisiert) => self
                 .gleis_anschlüsse_anpassen(
                     id,
                     anschlüsse_serialisiert,
                     lager,
                     aktualisieren_sender,
                 ),
-            GleisSteuerung::Weiche((id, anschlüsse_serialisiert)) => self
+            GleisSteuerung::SKurvenWeiche(id, anschlüsse_serialisiert) => self
                 .gleis_anschlüsse_anpassen(
                     id,
                     anschlüsse_serialisiert,
                     lager,
                     aktualisieren_sender,
                 ),
-            GleisSteuerung::DreiwegeWeiche((id, anschlüsse_serialisiert)) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::KurvenWeiche((id, anschlüsse_serialisiert)) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::SKurvenWeiche((id, anschlüsse_serialisiert)) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::Kreuzung((id, anschlüsse_serialisiert)) => self
+            GleisSteuerung::Kreuzung(id, anschlüsse_serialisiert) => self
                 .gleis_anschlüsse_anpassen(
                     id,
                     anschlüsse_serialisiert,

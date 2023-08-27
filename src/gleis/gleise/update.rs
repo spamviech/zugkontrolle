@@ -96,25 +96,25 @@ impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
     fn from(gleis_steuerung_ref: GleisSteuerungRef<'_>) -> Self {
         match gleis_steuerung_ref {
             GleisSteuerungRef::Gerade(steuerung_ref) => {
-                GleisSteuerung::Gerade(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::Kurve(steuerung_ref) => {
-                GleisSteuerung::Kurve(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::Weiche(steuerung_ref) => {
-                GleisSteuerung::Weiche(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::KurvenWeiche(steuerung_ref) => {
-                GleisSteuerung::KurvenWeiche(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::DreiwegeWeiche(steuerung_ref) => {
-                GleisSteuerung::DreiwegeWeiche(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::SKurvenWeiche(steuerung_ref) => {
-                GleisSteuerung::SKurvenWeiche(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
             GleisSteuerungRef::Kreuzung(steuerung_ref) => {
-                GleisSteuerung::Kreuzung(klone_und_serialisiere(steuerung_ref))
+                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
             },
         }
     }
