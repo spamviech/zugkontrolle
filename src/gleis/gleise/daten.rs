@@ -7,6 +7,7 @@ use iced::{
     widget::canvas::{
         fill::{self, Fill},
         stroke::{self, Stroke},
+        Text,
     },
     Color,
 };
@@ -23,6 +24,7 @@ use crate::{
         de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         polarität::Fließend,
     },
+    application::fonts::standard_text,
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -1300,6 +1302,41 @@ fn zeichne_gleis<T>(
     }
 }
 
+/// Erzeuge den Text für Beschreibung und Name eines Gleises.
+fn schreibe_gleis_beschreibung_name<T>(
+    frame: &mut Frame<'_>,
+    spurweite: Spurweite,
+    definition: &<T as MitSteuerung>::SelfUnit,
+    steuerung: &<T as MitSteuerung>::Steuerung,
+    gleis_id: &GleisId2<T>,
+    ist_gehalten: impl Fn(AnyId2) -> bool,
+    farbe: Farbe,
+    skalieren: Skalar,
+) where
+    AnyId2: From<GleisId2<T>>,
+    T: MitSteuerung,
+    <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
+{
+    let (relative_position, beschreibung, name) =
+        definition.beschreibung_und_name(steuerung, spurweite);
+    if let Some(content) = match (beschreibung, name) {
+        (Some(beschreibung), Some(name)) => Some(format!("{} ({})", name, beschreibung)),
+        (None, Some(name)) => Some(String::from(name)),
+        (Some(beschreibung), None) => Some(String::from(beschreibung)),
+        (None, None) => None,
+    } {
+        frame.with_save(|frame| {
+            bewege_an_position(frame, &relative_position);
+            let a =
+                Transparenz::true_reduziert(ist_gehalten(AnyId2::from(gleis_id.clone()))).alpha();
+            let mut text =
+                Text { content, color: Color { a, ..Color::from(farbe) }, ..standard_text() };
+            text.size *= skalieren.0;
+            frame.fill_text(text);
+        })
+    }
+}
+
 impl GleiseDaten2 {
     fn darstellen_aller_gleise<L: Leiter>(
         &self,
@@ -1308,7 +1345,8 @@ impl GleiseDaten2 {
         transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
         streckenabschnitt: Option<(Farbe, Fließend)>,
         ist_gehalten: impl Fn(AnyId2) -> bool,
-        farbe_kontur: Farbe,
+        farbe: Farbe,
+        skalieren: Skalar,
     ) {
         macro_rules! gleis_darstellen {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
@@ -1346,7 +1384,18 @@ impl GleiseDaten2 {
                         &gleis.steuerung,
                         $gleis_id,
                         &ist_gehalten,
-                        farbe_kontur,
+                        farbe,
+                    );
+                    // Schreibe Name und Beschreibung.
+                    schreibe_gleis_beschreibung_name(
+                        frame,
+                        $spurweite,
+                        definition,
+                        &gleis.steuerung,
+                        $gleis_id,
+                        &ist_gehalten,
+                        farbe,
+                        skalieren,
                     );
                 })
             }};
