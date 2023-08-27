@@ -50,12 +50,16 @@ use crate::{
         streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
-        canvas::{pfad::Transformation, Frame, Position},
+        canvas::{
+            pfad::{self, Transformation},
+            Frame, Position,
+        },
         farbe::Farbe,
         mm::Spurweite,
         rechteck::Rechteck,
         skalar::Skalar,
         vektor::Vektor,
+        winkel::{self, Trigonometrie, Winkel},
         Transparenz, Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
@@ -486,11 +490,11 @@ type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkei
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
-    pub(in crate::gleis::gleise) zugtyp: Zugtyp2<L>,
-    pub(in crate::gleis::gleise) geschwindigkeiten: GeschwindigkeitMap2<L>,
-    pub(in crate::gleis::gleise) streckenabschnitte: StreckenabschnittMap2,
-    pub(in crate::gleis::gleise) gleise: GleiseDaten2,
-    pub(in crate::gleis::gleise) pläne: HashMap<plan::Name, Plan<L>>,
+    zugtyp: Zugtyp2<L>,
+    geschwindigkeiten: GeschwindigkeitMap2<L>,
+    streckenabschnitte: StreckenabschnittMap2,
+    gleise: GleiseDaten2,
+    pläne: HashMap<plan::Name, Plan<L>>,
 }
 
 impl<L: Leiter> Zustand2<L> {
@@ -515,10 +519,6 @@ impl<L: Leiter> Zustand2<L> {
 
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
         &self.streckenabschnitte
-    }
-
-    pub(in crate::gleis::gleise) fn rstern(&self) -> &RStern2 {
-        &self.gleise.rstern
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
@@ -585,12 +585,33 @@ impl<L: Leiter> Zustand2<L> {
     ///
     /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
     /// [Streckenabschnittes](Streckenabschnitt) (falls einer gesetzt war).
-    fn setze_streckenabschnitt(
+    pub(in crate::gleis::gleise) fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId2>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
         self.gleise.setze_streckenabschnitt(gleis_id.into(), streckenabschnitt)
+    }
+
+    /// Füge die Darstellung aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn darstellen_aller_gleise(
+        &self,
+        frame: &mut Frame<'_>,
+        transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
+        streckenabschnitt: Option<(Farbe, Fließend)>,
+        ist_gehalten: impl Fn(AnyId2) -> bool,
+        farbe: Farbe,
+        skalieren: Skalar,
+    ) {
+        self.gleise.darstellen_aller_gleise(
+            frame,
+            &self.zugtyp,
+            transparent_hintergrund,
+            streckenabschnitt,
+            ist_gehalten,
+            farbe,
+            skalieren,
+        )
     }
 }
 
@@ -719,7 +740,7 @@ pub(in crate::gleis::gleise) type RStern2 =
     RTree<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId2, Position)>>;
 
 #[derive(Debug)]
-pub(crate) struct GleiseDaten2 {
+struct GleiseDaten2 {
     geraden: GleisMap2<Gerade>,
     kurven: GleisMap2<Kurve>,
     weichen: GleisMap2<Weiche>,
@@ -787,7 +808,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
     zugtyp: &'t Zugtyp2<L>,
     verbindung: &'t Verbindung,
     eigene_id: Option<&'t AnyId2>,
-    gehalten_id: Option<&'t AnyId2>,
+    ist_gehalten: impl 't + Fn(AnyId2) -> bool,
 ) -> (impl 't + Iterator<Item = Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
@@ -821,7 +842,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
                                 zugtyp.spurweite,
                                 position.clone(),
                             )),
-                            gehalten_id.map_or(false, |id| *id == kandidat_id),
+                            ist_gehalten(kandidat_id),
                         )
                     })
                 })
@@ -881,7 +902,7 @@ fn einraste_position<L: Leiter, T: Zeichnen<Z>, Z>(
     verbindungen.für_alle(|verbindung_name, verbindung| {
         if snap.is_none() {
             let (mut überlappende, _gehalten) =
-                überlappende_verbindungen(rstern, zugtyp, verbindung, None, None);
+                überlappende_verbindungen(rstern, zugtyp, verbindung, None, |_gleis_id| false);
             snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
         }
     });
@@ -1302,6 +1323,82 @@ fn zeichne_gleis<T>(
     }
 }
 
+pub(in crate::gleis::gleise) struct GehaltenVerbindung {
+    gehalten: bool,
+    andere_entgegengesetzt: bool,
+    andere_gehalten: bool,
+}
+
+fn ist_gehalten_und_andere_verbindung<L: Leiter>(
+    rstern: &RStern2,
+    zugtyp: &Zugtyp2<L>,
+    ist_gehalten: impl Fn(AnyId2) -> bool,
+    gleis_id: AnyId2,
+    verbindung: Verbindung,
+) -> GehaltenVerbindung {
+    let gehalten = ist_gehalten(gleis_id.clone());
+    let (mut überlappende, andere_gehalten) =
+        überlappende_verbindungen(rstern, zugtyp, &verbindung, Some(&gleis_id), &ist_gehalten);
+    let ist_entgegengesetzt = |überlappend: &Verbindung| {
+        (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs() < Winkel(0.1)
+    };
+    let andere_entgegengesetzt = überlappende.find(ist_entgegengesetzt).is_some();
+    GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten }
+}
+
+/// Zeichne die Verbindungen eines Gleises.
+fn zeichne_verbindungen<T, L: Leiter>(
+    frame: &mut Frame<'_>,
+    rstern: &RStern2,
+    zugtyp: &Zugtyp2<L>,
+    definition: &<T as MitSteuerung>::SelfUnit,
+    steuerung: &<T as MitSteuerung>::Steuerung,
+    gleis_id: &GleisId2<T>,
+    ist_gehalten: impl Fn(AnyId2) -> bool,
+    position: &Position,
+) where
+    AnyId2: From<GleisId2<T>>,
+    T: MitSteuerung,
+    <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
+{
+    // zeichne Verbindungen
+    definition.verbindungen(steuerung, zugtyp.spurweite).für_alle(|_name, &verbindung| {
+        let verbindung_an_position = Verbindung {
+            position: position.transformation(verbindung.position),
+            richtung: position.winkel + verbindung.richtung,
+        };
+        let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
+            ist_gehalten_und_andere_verbindung(
+                rstern,
+                zugtyp,
+                &ist_gehalten,
+                AnyId2::from(gleis_id.clone()),
+                verbindung_an_position,
+            );
+        frame.with_save(|frame| {
+            let a = Transparenz::true_reduziert(gehalten).alpha();
+            let g = if andere_entgegengesetzt { 1. } else { 0. };
+            let color = Color { r: 0., g, b: 1. - g, a };
+            let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
+            let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
+            let verbindung_position = verbindung.position;
+            let mut path_builder = pfad::Erbauer::neu();
+            path_builder.move_to(verbindung_position + richtung_seite);
+            path_builder.line_to(verbindung_position + richtung);
+            path_builder.line_to(verbindung_position - richtung_seite);
+            let path = path_builder.baue();
+            frame.stroke(
+                &path,
+                Stroke { style: stroke::Style::Solid(color), width: 1.5, ..Stroke::default() },
+            );
+            // Füllen für verbundene/einrasten bei drag&drop
+            if andere_gehalten {
+                frame.fill(&path, Fill { style: fill::Style::Solid(color), ..Fill::default() });
+            }
+        });
+    });
+}
+
 /// Erzeuge den Text für Beschreibung und Name eines Gleises.
 fn schreibe_gleis_beschreibung_name<T>(
     frame: &mut Frame<'_>,
@@ -1338,10 +1435,11 @@ fn schreibe_gleis_beschreibung_name<T>(
 }
 
 impl GleiseDaten2 {
+    /// Füge die Darstellung aller Gleise dem Frame hinzu.
     fn darstellen_aller_gleise<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: Zugtyp2<L>,
+        zugtyp: &Zugtyp2<L>,
         transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
         streckenabschnitt: Option<(Farbe, Fließend)>,
         ist_gehalten: impl Fn(AnyId2) -> bool,
@@ -1385,6 +1483,17 @@ impl GleiseDaten2 {
                         $gleis_id,
                         &ist_gehalten,
                         farbe,
+                    );
+                    // Zeichne Verbindungen.
+                    zeichne_verbindungen(
+                        frame,
+                        &self.rstern,
+                        zugtyp,
+                        definition,
+                        &gleis.steuerung,
+                        $gleis_id,
+                        &ist_gehalten,
+                        $position,
                     );
                     // Schreibe Name und Beschreibung.
                     schreibe_gleis_beschreibung_name(
