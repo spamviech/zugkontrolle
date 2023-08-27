@@ -1301,14 +1301,16 @@ fn zeichne_gleis<T>(
 }
 
 impl GleiseDaten2 {
-    fn fülle_alle_gleise<L: Leiter>(
+    fn darstellen_aller_gleise<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: Zugtyp2<L>,
-        transparent: impl Fn(AnyId2, Fließend) -> Transparenz,
+        transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
         streckenabschnitt: Option<(Farbe, Fließend)>,
+        ist_gehalten: impl Fn(AnyId2) -> bool,
+        farbe_kontur: Farbe,
     ) {
-        macro_rules! zeichne_gleis {
+        macro_rules! gleis_darstellen {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
                 let (gleis, _rectangle) = match $gleise.get($gleis_id) {
                     Some(gleis) => gleis,
@@ -1333,46 +1335,9 @@ impl GleiseDaten2 {
                         definition,
                         &gleis.steuerung,
                         $gleis_id,
-                        &transparent,
+                        &transparent_hintergrund,
                         streckenabschnitt,
                     );
-                })
-            }};
-        }
-        for geom_with_data in self.rstern.iter() {
-            let (gleis_definition_id, position) = &geom_with_data.data;
-            daten_mit_any_id2!(
-                self, zugtyp, [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
-                => zeichne_gleis!(zugtyp.spurweite, position)
-            )
-        }
-    }
-
-    fn zeichne_alle_gleise<L: Leiter>(
-        &self,
-        frame: &mut Frame<'_>,
-        zugtyp: Zugtyp2<L>,
-        ist_gehalten: impl Fn(AnyId2) -> bool,
-        farbe: Farbe,
-    ) {
-        macro_rules! zeichne_gleis {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
-                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
-                    Some(gleis) => gleis,
-                    None => {
-                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
-                        continue;
-                    },
-                };
-                let definition = match $definitionen.get(&gleis.definition) {
-                    Some(definition) => definition,
-                    None => {
-                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
-                        continue;
-                    },
-                };
-                frame.with_save(|frame| {
-                    bewege_an_position(frame, $position);
                     // Zeichne Kontur.
                     zeichne_gleis(
                         frame,
@@ -1381,7 +1346,7 @@ impl GleiseDaten2 {
                         &gleis.steuerung,
                         $gleis_id,
                         &ist_gehalten,
-                        farbe,
+                        farbe_kontur,
                     );
                 })
             }};
@@ -1390,7 +1355,7 @@ impl GleiseDaten2 {
             let (gleis_definition_id, position) = &geom_with_data.data;
             daten_mit_any_id2!(
                 self, zugtyp, [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
-                => zeichne_gleis!(zugtyp.spurweite, position)
+                => gleis_darstellen!(zugtyp.spurweite, position)
             )
         }
     }
