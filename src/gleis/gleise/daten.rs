@@ -598,7 +598,6 @@ impl<L: Leiter> Zustand2<L> {
         &self,
         frame: &mut Frame<'_>,
         transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
-        streckenabschnitt: Option<(Farbe, Fließend)>,
         ist_gehalten: impl Fn(AnyId2) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
@@ -606,8 +605,8 @@ impl<L: Leiter> Zustand2<L> {
         self.gleise.darstellen_aller_gleise(
             frame,
             &self.zugtyp,
+            &self.streckenabschnitte,
             transparent_hintergrund,
-            streckenabschnitt,
             ist_gehalten,
             farbe,
             skalieren,
@@ -1441,8 +1440,8 @@ impl GleiseDaten2 {
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp2<L>,
+        streckenabschnitte: &StreckenabschnittMap2,
         transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
-        streckenabschnitt: Option<(Farbe, Fließend)>,
         ist_gehalten: impl Fn(AnyId2) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
@@ -1463,6 +1462,13 @@ impl GleiseDaten2 {
                         continue;
                     },
                 };
+                let streckenabschnitt = gleis
+                    .streckenabschnitt
+                    .as_ref()
+                    .and_then(|name| streckenabschnitte.get(name))
+                    .map(|(streckenabschnitt, _geschwindigkeit)| {
+                        (streckenabschnitt.farbe, streckenabschnitt.fließend())
+                    });
                 frame.with_save(|frame| {
                     bewege_an_position(frame, $position);
                     // Färbe Hintergrund.
