@@ -6,7 +6,7 @@ use crate::{
     gleis::{
         self,
         gerade::Gerade,
-        gleise::id::{AnyId, AnyIdRef, GleisId},
+        gleise::id::{AnyId, AnyIdRef, AnyIdSteuerung2, GleisId},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -38,7 +38,6 @@ type StKurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-// FIXME sind die ganzen Typ-Aliase notwendig? Record-Felder wären vmtl. besser
 /// [GleisId] und serialisierte Steuerung eines Gleises.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum GleisSteuerung {
@@ -130,6 +129,14 @@ pub(crate) use mit_any_steuerung_id;
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {
     pub(in crate::gleis::gleise) gleis_steuerung: GleisSteuerung,
+    pub(in crate::gleis::gleise) halte_position: Vektor,
+    pub(in crate::gleis::gleise) winkel: Winkel,
+    pub(in crate::gleis::gleise) bewegt: bool,
+}
+
+#[derive(Debug)]
+pub(in crate::gleis::gleise) struct Gehalten2 {
+    pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung2,
     pub(in crate::gleis::gleise) halte_position: Vektor,
     pub(in crate::gleis::gleise) winkel: Winkel,
     pub(in crate::gleis::gleise) bewegt: bool,

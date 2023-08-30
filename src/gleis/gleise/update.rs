@@ -304,7 +304,7 @@ where
                     })
             });
             match modus {
-                ModusDaten::Bauen { gehalten, letzter_klick } => {
+                ModusDaten::Bauen { gehalten, gehalten2, letzter_klick } => {
                     let now = Instant::now();
                     messages.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
                     let diff = now.checked_duration_since(*letzter_klick).unwrap_or(Duration::MAX);

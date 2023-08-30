@@ -1,52 +1,26 @@
 //! [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
 
-use std::marker::PhantomData;
-
 use iced::{
     mouse::Cursor,
-    widget::canvas::{
-        fill::{self, Fill},
-        stroke::{self, Stroke},
-        Geometry, Program, Text,
-    },
-    Color, Renderer,
+    widget::canvas::{Geometry, Program},
+    Renderer,
 };
 use nonempty::NonEmpty;
-use rstar::primitives::Rectangle;
 
 use crate::{
     anschluss::polarität::Fließend,
-    application::{fonts::standard_text, style::thema::Thema},
-    gleis::{
-        gerade::Gerade,
-        gleise::{
-            self,
-            daten::{Gleis, RStern},
-            id::{AnyId2, AnyIdRef, GleisIdRef, StreckenabschnittIdRef},
-            steuerung::MitSteuerung,
-            Gehalten, Gleise, ModusDaten, Nachricht,
-        },
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        verbindung::Verbindung,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
+    application::style::thema::Thema,
+    gleis::gleise::{
+        self,
+        id::AnyId2,
+        nachricht::{Gehalten2, Nachricht},
+        Gleise, ModusDaten,
     },
     steuerung::geschwindigkeit::Leiter,
     typen::{
-        canvas::{
-            pfad::{self, Transformation},
-            Frame, Position,
-        },
-        farbe::Farbe,
-        mm::Spurweite,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie, Winkel},
-        Transparenz, Zeichnen,
+        canvas::{pfad::Transformation, Frame, Position},
+        Transparenz,
     },
-    util::nachschlagen::Nachschlagen,
 };
 
 pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
@@ -69,8 +43,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
-        let spurweite = self.spurweite();
-        let Gleise { canvas, zustand, modus, .. } = self;
+        let Gleise { canvas, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
         // bounds müssen an Position angepasst werden:
         // - ignoriere screen-position (verwende nur height+width, i.e. size)
@@ -87,15 +60,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 let gehalten_id: Option<AnyId2>;
                 let modus_bauen: bool;
                 match modus {
-                    ModusDaten::Bauen {
-                        gehalten: Some(Gehalten { gleis_steuerung, .. }), ..
-                    } => {
-                        gehalten_id = todo!();
-                        // gehalten_id = Some(gleis_steuerung.id());
-                        modus_bauen = true;
-                    },
-                    ModusDaten::Bauen { gehalten: None, .. } => {
-                        gehalten_id = None;
+                    ModusDaten::Bauen { gehalten2, .. } => {
+                        gehalten_id = gehalten2
+                            .as_ref()
+                            .map(|Gehalten2 { gleis_steuerung, .. }| gleis_steuerung.id());
                         modus_bauen = true;
                     },
                     ModusDaten::Fahren => {

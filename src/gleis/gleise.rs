@@ -23,7 +23,7 @@ use crate::{
     gleis::gleise::{
         daten::{GleiseDaten, StreckenabschnittMap, Zustand, Zustand2},
         id::{StreckenabschnittId, StreckenabschnittIdRef},
-        nachricht::{Gehalten, Nachricht},
+        nachricht::{Gehalten, Gehalten2, Nachricht},
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -53,7 +53,7 @@ pub mod update;
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten: Option<Gehalten>, letzter_klick: Instant },
+    Bauen { gehalten: Option<Gehalten>, gehalten2: Option<Gehalten2>, letzter_klick: Instant },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
@@ -61,7 +61,9 @@ enum ModusDaten {
 impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
-            Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: Instant::now() },
+            Modus::Bauen => {
+                ModusDaten::Bauen { gehalten: None, gehalten2: None, letzter_klick: Instant::now() }
+            },
             Modus::Fahren => ModusDaten::Fahren,
         }
     }

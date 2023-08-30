@@ -12,7 +12,10 @@ use rstar::primitives::Rectangle;
 use crate::{
     gleis::{
         gerade::Gerade,
-        gleise::id::eindeutig::{Id, KeineIdVerfügbar},
+        gleise::{
+            id::eindeutig::{Id, KeineIdVerfügbar},
+            steuerung::MitSteuerung,
+        },
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -233,6 +236,13 @@ erzeuge_any_enum! {
     (DefinitionId2<[]>),
 }
 erzeuge_any_enum! {
+    (pub) AnyIdSteuerung2,
+    "Id für ein beliebiges Gleis und seine Steuerung.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as MitSteuerung>::Steuerung),
+}
+erzeuge_any_enum! {
     (pub) AnyDefinitionIdSteuerung2,
     "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
     [Debug, Clone],
@@ -255,38 +265,62 @@ erzeuge_any_enum! {
     (<[] as Zeichnen<()>>::VerbindungName),
 }
 
+macro_rules! als_ref {
+    (mut $wert: expr) => {
+        &mut $wert
+    };
+    ($wert: expr) => {
+        &$wert
+    };
+}
+pub(crate) use als_ref;
+
 macro_rules! mit_any_id2 {
-    ($any_id: expr , $function: expr $(, $objekt:expr $(, $extra_arg:expr)*)?) => {
+    (
+        { $($($mut:tt)? $collection: expr),* },
+        [$id: ty => $($ident: ident),+] $any_id: expr =>
+        $macro: ident ! ( $($extra_arg: expr),* $(,)? )
+    ) => {{
+        use $id::*;
         match $any_id {
-            crate::gleis::gleise::id::AnyId2::Gerade(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            Gerade( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Kurve(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            Kurve( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Weiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            Weiche( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::DreiwegeWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            DreiwegeWeiche( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::KurvenWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            KurvenWeiche( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::SKurvenWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            SKurvenWeiche( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
-            crate::gleis::gleise::id::AnyId2::Kreuzung(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            Kreuzung( $($ident),+ ) => {
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
         }
-    };
+    }};
 }
 pub(crate) use mit_any_id2;
 
-use super::steuerung::MitSteuerung;
+impl AnyIdSteuerung2 {
+    /// Erhalte die [AnyId].
+    pub fn id(&self) -> AnyId2 {
+        macro_rules! erhalte_id {
+            ($id: expr, $steuerung: expr) => {
+                AnyId2::from($id.clone())
+            };
+        }
+        mit_any_id2!({}, [AnyIdSteuerung2 => gleis_id, _steuerung] self => erhalte_id!())
+    }
+}
 
-// completely remove any notion of ID?
 #[allow(single_use_lifetimes)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct StreckenabschnittIdRef<'t> {
