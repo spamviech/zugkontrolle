@@ -22,10 +22,10 @@ use crate::{
         gleise::{
             self,
             daten::{Gleis, GleiseDaten, RStern},
-            id::{mit_any_id, GleisIdRef, StreckenabschnittIdRef},
+            id::{mit_any_id, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
             nachricht::{
-                GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht, ZustandAktualisieren,
-                ZustandAktualisierenEnum,
+                Gehalten2, GleisSteuerung, GleisSteuerung2, IdUndSteuerungSerialisiert, Nachricht,
+                ZustandAktualisieren, ZustandAktualisierenEnum,
             },
             steuerung::{MitSteuerung, Steuerung},
             Gehalten, GleisIdFehler, Gleise, ModusDaten,
@@ -316,17 +316,21 @@ where
                             _streckenabschnitt,
                         )) = gleis_an_position
                         {
-                            let gleis_steuerung = GleisSteuerung::from(gleis_steuerung_ref);
+                            let gleis_steuerung_serialisiert: GleisSteuerung2 = todo!();
+                            let gleis_steuerung: AnyIdSteuerung2 = todo!();
+                            let _ = ();
+                            // let gleis_steuerung = GleisSteuerung::from(gleis_steuerung_ref);
                             if diff < DOUBLE_CLICK_TIME {
-                                messages
-                                    .push(Nachricht::AnschlüsseAnpassen(gleis_steuerung.klonen()));
+                                messages.push(Nachricht::AnschlüsseAnpassen(
+                                    gleis_steuerung_serialisiert.clone(),
+                                ));
                                 messages.push(Nachricht::from(
                                     ZustandAktualisierenEnum::GehaltenAktualisieren(None),
                                 ))
                             } else {
                                 messages.push(Nachricht::from(
                                     ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
-                                        Gehalten {
+                                        Gehalten2 {
                                             gleis_steuerung,
                                             halte_position,
                                             winkel,
@@ -398,9 +402,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 messages.extend(nachrichten);
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
-                    if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten {
-                        let gleis_id = gleis_steuerung.id().als_id();
+                if let ModusDaten::Bauen { gehalten2, .. } = &self.modus {
+                    if let Some(Gehalten2 { gleis_steuerung, bewegt, .. }) = gehalten2 {
+                        let gleis_id = gleis_steuerung.id();
                         if *bewegt {
                             if !cursor.is_over(bounds) {
                                 messages.push(Nachricht::from(
@@ -461,8 +465,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GehaltenAktualisieren(wert) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-                    *gehalten = wert;
+                if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
+                    *gehalten2 = wert;
                 }
                 Ok(())
             },
@@ -470,7 +474,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 self.gehalten_bewegen(canvas_pos)
             },
             ZustandAktualisierenEnum::GleisEntfernen(gleis_id) => {
-                mit_any_id!(gleis_id, Gleise::entfernen_unit, self)
+                let _id = self.entfernen2(gleis_id).map_err(|_| {
+                    let err: GleisIdFehler = todo!();
+                    err
+                })?;
+                Ok(())
             },
         }
     }

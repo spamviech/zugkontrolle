@@ -25,18 +25,22 @@ use crate::{
         MessageBox, Zugkontrolle,
     },
     gleis::{
-        gerade::GeradeUnit,
-        gleise::{id::StreckenabschnittId, steuerung::MitSteuerung, Gleise, Modus},
+        gerade::{Gerade, GeradeUnit},
+        gleise::{
+            id::{AnyDefinitionId2, AnyDefinitionIdSteuerung2, DefinitionId2, StreckenabschnittId},
+            steuerung::MitSteuerung,
+            Gleise, Modus,
+        },
         knopf::Knopf,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
+        kreuzung::Kreuzung,
+        kurve::Kurve,
         weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
     steuerung::geschwindigkeit::Leiter,
-    typen::{farbe::Farbe, skalar::Skalar, Zeichnen},
+    typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen},
+    zugtyp::DefinitionMap2,
 };
 
 trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
@@ -104,18 +108,7 @@ where
             initialer_pfad,
             speichern_gefärbt.map(|(gefärbt, _färbe_zeit)| gefärbt),
         );
-        let row_mit_scrollable = row_mit_scrollable(
-            aktueller_modus,
-            *scrollable_style,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            gleise,
-        );
+        let row_mit_scrollable = row_mit_scrollable(aktueller_modus, *scrollable_style, gleise);
         let canvas = Element::new(FlatMap::neu(
             Box::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
             |nachrichten| {
@@ -254,13 +247,6 @@ where
 fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
-    geraden: &'t Vec<Knopf<GeradeUnit>>,
-    kurven: &'t Vec<Knopf<KurveUnit>>,
-    weichen: &'t Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: &'t Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
     gleise: &'t Gleise<L, Nachricht<L, S>>,
 ) -> Row<
     't,
@@ -270,14 +256,15 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
+
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_breite = None;
             macro_rules! max_breite_berechnen {
-                ($($vec: expr),* $(,)?) => {
+                ($($map: expr),* $(,)?) => {
                     $(
-                        for button in $vec.iter() {
-                            let größe = button.rechteck().größe();
+                        for button in $map.values() {
+                            let größe = button.rechteck(&(), gleise.spurweite()).größe();
                             let breite = Some(größe.x.0);
                             if breite > max_breite {
                                 max_breite = breite;
@@ -287,37 +274,45 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 }
             }
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
-                max_breite: &mut Option<f32>,
+                spurweite: Spurweite,
+                max_breite: Option<f32>,
                 scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Thema>>,
-                buttons: &'t Vec<Knopf<T>>,
+                buttons: &'t DefinitionMap2<T>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
-                // T: MitSteuerung,
-                // <T as MitSteuerung>::SelfUnit: Zeichnen<T> + Clone + Into<AnyGleisUnit>,
-                T: Zeichnen<()> + Clone + Into<AnyGleisUnit>,
+                T: MitSteuerung,
+                DefinitionId2<T>: Into<AnyDefinitionId2>,
+                <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {
-                    for button in buttons {
+                    for (id, button) in buttons.iter() {
+                        let knopf = Knopf::neu(button.clone(), id.clone(), spurweite);
                         scrollable_column =
-                            scrollable_column.push(button.als_iced_widget(*max_breite))
+                            scrollable_column.push(knopf.als_iced_widget(max_breite))
                     }
                     scrollable_column
                 })
             }
             macro_rules! knöpfe_hinzufügen {
-                ($($vec: expr),* $(,)?) => {
-                    max_breite_berechnen!($($vec),*);
-                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable_column, $vec);)*
+                ($($map: expr),* $(,)?) => {
+                    max_breite_berechnen!($($map),*);
+                    // $(knöpfe_hinzufügen(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
                 }
             }
+            knöpfe_hinzufügen::<L, S, _, Gerade>(
+                gleise.spurweite(),
+                max_breite,
+                &mut scrollable_column,
+                &gleise.zugtyp2().geraden,
+            );
             knöpfe_hinzufügen!(
-                geraden,
-                kurven,
-                weichen,
-                dreiwege_weichen,
-                kurven_weichen,
-                s_kurven_weichen,
-                kreuzungen
+                &gleise.zugtyp2().geraden,
+                &gleise.zugtyp2().kurven,
+                &gleise.zugtyp2().weichen,
+                &gleise.zugtyp2().dreiwege_weichen,
+                &gleise.zugtyp2().kurven_weichen,
+                &gleise.zugtyp2().s_kurven_weichen,
+                &gleise.zugtyp2().kreuzungen,
             );
             if let Some(max) = max_breite {
                 width = Length::Fixed(max);

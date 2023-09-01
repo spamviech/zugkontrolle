@@ -419,9 +419,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &self.zustand.zugtyp
     }
 
+    /// Verwendeter Zugtyp.
+    pub fn zugtyp2<'t>(&'t self) -> &'t Zugtyp2<L> {
+        self.zustand2.zugtyp()
+    }
+
     /// Spurweite des verwendeten Zugtyps.
     pub fn spurweite(&self) -> Spurweite {
-        self.zugtyp().spurweite
+        self.zugtyp2().spurweite
     }
 }
 

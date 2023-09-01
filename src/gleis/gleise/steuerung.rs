@@ -15,7 +15,11 @@ use crate::{
             GleisIdFehler, Gleise,
         },
     },
-    steuerung::{self, geschwindigkeit::Leiter, kontakt::Kontakt},
+    steuerung::{
+        self,
+        geschwindigkeit::Leiter,
+        kontakt::{Kontakt, KontaktSerialisiert},
+    },
     util::sender_trait::erstelle_sender_trait_existential,
 };
 
@@ -139,6 +143,8 @@ pub trait MitSteuerung {
     type SelfUnit;
     /// Die Steuerung für das Gleis.
     type Steuerung;
+    /// Die serialisierte Steuerung für das Gleis.
+    type Serialisiert;
     /// Erzeuge eine Referenz auf die Steuerung, ohne die Möglichkeit sie zu verändern.
     fn steuerung(&self) -> &Self::Steuerung;
     /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
@@ -193,11 +199,13 @@ impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachrich
 }
 
 macro_rules! impl_mit_steuerung {
-    ($($path: ident)::*, $steuerung: ty, $ident: ident $(,)?) => {
+    ($($path: ident)::*, $steuerung: ty, $serialisiert: ty, $ident: ident $(,)?) => {
         impl MitSteuerung for $($path)::* {
             type SelfUnit = $($path)::* <()>;
 
             type Steuerung = $steuerung;
+
+            type Serialisiert = $serialisiert;
 
             #[inline]
             fn steuerung(&self) -> &Self::Steuerung {
@@ -216,23 +224,27 @@ macro_rules! impl_mit_steuerung {
 }
 
 type OptionWeiche<Richtung, Anschlüsse> = Option<steuerung::weiche::Weiche<Richtung, Anschlüsse>>;
+type OptionWeicheSerialisiert<Richtung, AnschlüsseSerialisiert> =
+    Option<steuerung::weiche::WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>;
 
 macro_rules! impl_mit_steuerung_weiche {
     (gleis $(:: $pfad: ident)*, $type: ident $(,)?) => {
         impl_mit_steuerung! {
             gleis $(:: $pfad)* :: $type,
             OptionWeiche<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsse>,
+            OptionWeicheSerialisiert<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsseSerialisiert>,
             steuerung,
         }
     }
 }
 
-impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, kontakt}
-impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, kontakt}
+impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>,Option<KontaktSerialisiert>, kontakt}
+impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>,Option<KontaktSerialisiert>, kontakt}
 impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
 impl_mit_steuerung! {
     gleis::weiche::dreiwege::DreiwegeWeiche,
     OptionWeiche<gleis::weiche::dreiwege::RichtungInformation, gleis::weiche::dreiwege::RichtungAnschlüsse>,
+    OptionWeicheSerialisiert<gleis::weiche::dreiwege::RichtungInformation, gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert>,
     steuerung,
 }
 impl_mit_steuerung_weiche! {gleis::weiche::kurve, KurvenWeiche}

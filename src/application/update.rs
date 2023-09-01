@@ -25,8 +25,11 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{v2::BekannterZugtyp, StreckenabschnittMap},
-        id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
-        nachricht::GleisSteuerung,
+        id::{
+            mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2, StreckenabschnittId,
+            StreckenabschnittIdRef,
+        },
+        nachricht::GleisSteuerung2,
         AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
@@ -217,15 +220,13 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
-    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId2) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(fehler) = mit_any_id!(
-                &mut any_id,
-                Gleise::setze_streckenabschnitt,
-                &mut self.gleise,
+            if let Err(fehler) = self.gleise.setze_streckenabschnitt2(
+                any_id,
                 self.streckenabschnitt_aktuell
                     .as_ref()
-                    .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen())
+                    .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.name.clone()),
             ) {
                 self.zeige_message_box(
                     "Gleis entfernt".to_string(),
@@ -280,52 +281,32 @@ where
     S: 'static + Send,
 {
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
+    pub fn gleis_hinzufügen(
+        &mut self,
+        definition_steuerung: AnyDefinitionIdSteuerung2,
+        klick_höhe: Skalar,
+    ) {
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
             .as_ref()
             .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
-        macro_rules! hinzufügen_gehalten_bei_maus {
-            ($gleis: expr) => {
-                if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
-                    $gleis.mit_none(),
-                    Vektor { x: Skalar(0.), y: klick_höhe },
-                    streckenabschnitt,
-                    false,
-                ) {
-                    error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    self.streckenabschnitt_aktuell = None;
-                    let _ = self.gleise.hinzufügen_gehalten_bei_maus(
-                        $gleis.mit_none(),
-                        Vektor { x: Skalar(0.), y: klick_höhe },
-                        None,
-                        false,
-                    );
-                }
-            };
-        }
-        match gleis {
-            AnyGleisUnit::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
-            AnyGleisUnit::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
-            AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
-            AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
-                hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
-            },
-            AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(kurven_weiche)
-            },
-            AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
-            },
-            AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
+        let streckenabschnitt2 =
+            streckenabschnitt.map(|streckenabschnitt_id| streckenabschnitt_id.name.clone());
+        if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus2(
+            definition_steuerung,
+            Vektor { x: Skalar(0.), y: klick_höhe },
+            streckenabschnitt2,
+            false,
+        ) {
+            self.zeige_message_box(format!("Fehler beim Gleis hinzufügen!"), format!("{fehler:?}"));
         }
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: GleisSteuerung) {
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: GleisSteuerung2) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen2(&mut self.lager, anschlüsse_anpassen) {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();

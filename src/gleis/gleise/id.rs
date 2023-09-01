@@ -10,6 +10,7 @@ use std::{
 use rstar::primitives::Rectangle;
 
 use crate::{
+    anschluss::de_serialisieren::Serialisiere,
     gleis::{
         gerade::Gerade,
         gleise::{

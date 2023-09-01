@@ -19,12 +19,12 @@ use crate::{
             },
             id::{
                 AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
-                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdVerbindung2, GleisId,
+                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdSteuerung2, AnyIdVerbindung2, GleisId,
                 StreckenabschnittId,
             },
-            nachricht::{mit_any_steuerung_id, GleisSteuerung},
+            nachricht::{mit_any_steuerung_id, GleisSteuerung, GleisSteuerung2},
             steuerung::{MitSteuerung, SomeAktualisierenSender},
-            AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, Gleise, ModusDaten,
+            AnschlüsseAnpassenFehler, Gehalten, Gehalten2, GleisIdFehler, Gleise, ModusDaten,
             StreckenabschnittIdFehler,
         },
         verbindung::{self, Verbindung},
@@ -103,7 +103,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_gehalten_bei_maus2<R, S>(
+    pub(crate) fn hinzufügen_gehalten_bei_maus2(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung2,
         halte_position: Vektor,
@@ -116,15 +116,29 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let punkt = self.letzte_maus_position - halte_position;
         let winkel = -self.pivot.winkel;
         let gleis_id = self.hinzufügen2(
-            definition_steuerung,
+            definition_steuerung.clone(),
             Position { punkt, winkel },
             streckenabschnitt,
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            let gleis_steuerung = todo!();
+        if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
+            let gleis_steuerung = match (&gleis_id, definition_steuerung) {
+                (AnyId2::Gerade(id), AnyDefinitionIdSteuerung2::Gerade(_definition, steuerung)) => {
+                    AnyIdSteuerung2::Gerade(id.clone(), steuerung)
+                },
+                (AnyId2::Kurve(_), AnyDefinitionIdSteuerung2::Kurve(_, _)) => todo!(),
+                (AnyId2::DreiwegeWeiche(_), AnyDefinitionIdSteuerung2::DreiwegeWeiche(_, _)) => {
+                    todo!()
+                },
+                (AnyId2::KurvenWeiche(_), AnyDefinitionIdSteuerung2::KurvenWeiche(_, _)) => todo!(),
+                (AnyId2::SKurvenWeiche(_), AnyDefinitionIdSteuerung2::SKurvenWeiche(_, _)) => {
+                    todo!()
+                },
+                (AnyId2::Kreuzung(_), AnyDefinitionIdSteuerung2::Kreuzung(_, _)) => todo!(),
+                wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
+            };
             // let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
-            *gehalten = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
+            *gehalten2 = Some(Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt: true });
         }
         Ok(gleis_id)
     }
@@ -330,7 +344,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
     /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
-    pub(in crate::gleis::gleise) fn setze_streckenabschnitt2(
+    pub fn setze_streckenabschnitt2(
         &mut self,
         gleis_id: impl Into<AnyId2>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -466,5 +480,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     aktualisieren_sender,
                 ),
         }
+    }
+
+    /// Passe die Anschlüsse für ein Gleis an.
+    pub fn anschlüsse_anpassen2(
+        &mut self,
+        lager: &mut Lager,
+        gleis_steuerung: GleisSteuerung2,
+    ) -> Result<(), AnschlüsseAnpassenFehler> {
+        todo!("anschlüsse_anpassen")
     }
 }

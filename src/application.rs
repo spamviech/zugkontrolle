@@ -47,7 +47,10 @@ use crate::{
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
-    steuerung::geschwindigkeit::{BekannterLeiter, Leiter},
+    steuerung::{
+        self,
+        geschwindigkeit::{BekannterLeiter, Leiter},
+    },
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
     zugtyp::{Zugtyp, Zugtyp2},
 };
@@ -319,18 +322,25 @@ where
             }
         };
 
-        macro_rules! erstelle_knopf {
-            () => {
-                |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
-            };
-        }
-        let geraden = zugtyp.geraden.iter().map(erstelle_knopf!()).collect();
-        let kurven = zugtyp.kurven.iter().map(erstelle_knopf!()).collect();
-        let weichen = zugtyp.weichen.iter().map(erstelle_knopf!()).collect();
-        let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_knopf!()).collect();
-        let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
+        // macro_rules! erstelle_knopf {
+        //     () => {
+        //         |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
+        //     };
+        // }
+        // let geraden = zugtyp.geraden.iter().map(erstelle_knopf!()).collect();
+        // let kurven = zugtyp.kurven.iter().map(erstelle_knopf!()).collect();
+        // let weichen = zugtyp.weichen.iter().map(erstelle_knopf!()).collect();
+        // let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_knopf!()).collect();
+        // let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
+        // let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
+        // let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
+        let geraden = Vec::new();
+        let kurven = Vec::new();
+        let weichen = Vec::new();
+        let dreiwege_weichen = Vec::new();
+        let kurven_weichen = Vec::new();
+        let s_kurven_weichen = Vec::new();
+        let kreuzungen = Vec::new();
 
         let (sender, receiver) = channel();
 
@@ -378,7 +388,9 @@ where
         let mut command = Command::none();
 
         match message {
-            Nachricht::Gleis { gleis, klick_höhe } => self.gleis_hinzufügen(gleis, klick_höhe),
+            Nachricht::Gleis { definition_steuerung, klick_höhe } => {
+                self.gleis_hinzufügen(definition_steuerung, klick_höhe)
+            },
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
                 command = self.bewegung_starten(bewegung)

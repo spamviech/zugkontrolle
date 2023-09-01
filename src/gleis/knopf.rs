@@ -16,7 +16,7 @@ use iced::{
 
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
-    gleis::gleise::draw::bewege_an_position,
+    gleis::gleise::{draw::bewege_an_position, id::GleisId2},
     typen::{
         canvas::{
             pfad::{Pfad, Transformation},
@@ -37,15 +37,16 @@ const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 
 /// Ein Knopf, der ein Gleis anzeigt.
 #[derive(Debug)]
-pub struct Knopf<T> {
+pub struct Knopf<T: 'static> {
     gleis: T,
+    id: GleisId2<T>,
     spurweite: Spurweite,
 }
 
 impl<T> Knopf<T> {
     /// Erstelle einen neuen [Knopf].
-    pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
-        Knopf { gleis, spurweite }
+    pub fn neu(gleis: T, id: GleisId2<T>, spurweite: Spurweite) -> Self {
+        Knopf { gleis, id, spurweite }
     }
 }
 
@@ -64,7 +65,7 @@ impl<T: Zeichnen<()>> Knopf<T> {
     ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
         Nachricht: 'static,
-        T: KnopfNachricht<Nachricht>,
+        GleisId2<T>: KnopfNachricht<Nachricht>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
@@ -84,8 +85,10 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen<()> + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Renderer<Thema>>
-    for Knopf<T>
+impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<T>
+where
+    T: Zeichnen<()>,
+    GleisId2<T>: KnopfNachricht<Nachricht>,
 {
     type State = Zustand;
 
@@ -177,7 +180,7 @@ impl<T: Zeichnen<()> + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, 
                 let Point { x, y } = cursor.position_in(bounds).unwrap_or(Point { x: 0., y: 0. });
                 (
                     event::Status::Captured,
-                    Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
+                    Some(self.id.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
             },
             _ => (event::Status::Ignored, None),

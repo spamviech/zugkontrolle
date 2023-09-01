@@ -6,7 +6,10 @@ use crate::{
     gleis::{
         self,
         gerade::Gerade,
-        gleise::id::{AnyId, AnyIdRef, AnyIdSteuerung2, GleisId},
+        gleise::{
+            id::{erzeuge_any_enum, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, GleisId, GleisId2},
+            steuerung::MitSteuerung,
+        },
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -126,6 +129,14 @@ macro_rules! mit_any_steuerung_id {
 }
 pub(crate) use mit_any_steuerung_id;
 
+erzeuge_any_enum! {
+    (pub) GleisSteuerung2,
+    "Id für ein beliebiges Gleis und seine serialisierte Steuerung.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as MitSteuerung>::Serialisiert),
+}
+
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {
     pub(in crate::gleis::gleise) gleis_steuerung: GleisSteuerung,
@@ -147,14 +158,14 @@ pub(in crate::gleis::gleise) struct Gehalten2 {
 #[non_exhaustive]
 pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
-    SetzeStreckenabschnitt(AnyId),
+    SetzeStreckenabschnitt(AnyId2),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
     /// Die Anschlüsse für ein Gleis sollen angepasst werden.
-    AnschlüsseAnpassen(GleisSteuerung),
+    AnschlüsseAnpassen(GleisSteuerung2),
     /// Eine GUI-Nachricht für Änderungen des Zustandes.
     ///
     /// Notwendig, weil die [update](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
@@ -176,11 +187,11 @@ pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Canvas-Größe.
     LetzteCanvasGröße(Vektor),
     /// Aktualisiere das aktuell gehaltene Gleis.
-    GehaltenAktualisieren(Option<Gehalten>),
+    GehaltenAktualisieren(Option<Gehalten2>),
     /// Bewege ein Gleis an die neue Position.
     GehaltenBewegen(Vektor),
     /// Entferne ein Gleis.
-    GleisEntfernen(AnyId),
+    GleisEntfernen(AnyId2),
 }
 
 impl From<ZustandAktualisierenEnum> for Nachricht {
