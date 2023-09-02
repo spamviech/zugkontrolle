@@ -97,13 +97,6 @@ pub struct Zugkontrolle<L: Leiter, S> {
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
     i2c_settings: I2cSettings,
-    geraden: Vec<Knopf<GeradeUnit>>,
-    kurven: Vec<Knopf<KurveUnit>>,
-    weichen: Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: Vec<Knopf<KreuzungUnit>>,
     streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
     streckenabschnitt_aktuell_festlegen: bool,
     bewegen: Bewegen,
@@ -334,13 +327,6 @@ where
         // let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
         // let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
         // let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
-        let geraden = Vec::new();
-        let kurven = Vec::new();
-        let weichen = Vec::new();
-        let dreiwege_weichen = Vec::new();
-        let kurven_weichen = Vec::new();
-        let s_kurven_weichen = Vec::new();
-        let kreuzungen = Vec::new();
 
         let (sender, receiver) = channel();
 
@@ -358,13 +344,6 @@ where
             lager,
             scrollable_style: style::sammlung::Sammlung::neu(10.),
             i2c_settings,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
             streckenabschnitt_aktuell: None,
             streckenabschnitt_aktuell_festlegen: false,
             bewegen: Bewegen::neu(),

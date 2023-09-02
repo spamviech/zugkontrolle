@@ -76,13 +76,6 @@ where
             gleise,
             scrollable_style,
             i2c_settings,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             bewegen,
@@ -286,7 +279,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {
                     for (id, button) in buttons.iter() {
-                        let knopf = Knopf::neu(button.clone(), id.clone(), spurweite);
+                        let knopf = Knopf::neu(button, id.clone(), spurweite);
                         scrollable_column =
                             scrollable_column.push(knopf.als_iced_widget(max_breite))
                     }

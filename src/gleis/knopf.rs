@@ -37,20 +37,20 @@ const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 
 /// Ein Knopf, der ein Gleis anzeigt.
 #[derive(Debug)]
-pub struct Knopf<T: 'static> {
-    gleis: T,
+pub struct Knopf<'t, T: 'static> {
+    gleis: &'t T,
     id: GleisId2<T>,
     spurweite: Spurweite,
 }
 
-impl<T> Knopf<T> {
+impl<'t, T> Knopf<'t, T> {
     /// Erstelle einen neuen [Knopf].
-    pub fn neu(gleis: T, id: GleisId2<T>, spurweite: Spurweite) -> Self {
+    pub fn neu(gleis: &'t T, id: GleisId2<T>, spurweite: Spurweite) -> Self {
         Knopf { gleis, id, spurweite }
     }
 }
 
-impl<T: Zeichnen<()>> Knopf<T> {
+impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     /// Die Dimensionen des [Knopfes](Knopf).
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
@@ -59,8 +59,8 @@ impl<T: Zeichnen<()>> Knopf<T> {
     }
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
-    pub fn als_iced_widget<'t, Nachricht>(
-        &'t self,
+    pub fn als_iced_widget<Nachricht>(
+        self,
         breite: Option<f32>,
     ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
@@ -85,7 +85,7 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<T>
+impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
 where
     T: Zeichnen<()>,
     GleisId2<T>: KnopfNachricht<Nachricht>,
