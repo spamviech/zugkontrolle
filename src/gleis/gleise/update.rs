@@ -21,7 +21,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{Gleis, GleiseDaten, RStern},
+            daten::{Gleis, GleiseDaten, RStern, RStern2},
             id::{mit_any_id, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
             nachricht::{
                 Gehalten2, GleisSteuerung, GleisSteuerung2, IdUndSteuerungSerialisiert, Nachricht,
@@ -40,7 +40,7 @@ use crate::{
     steuerung::{
         geschwindigkeit::Leiter,
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
-        streckenabschnitt::Streckenabschnitt,
+        streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{
         canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,

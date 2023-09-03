@@ -29,10 +29,11 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                eindeutig::KeineIdVerfügbar, erzeuge_any_enum, mit_any_id, AnyDefinitionId2,
-                AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
-                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef, AnyIdVerbindung2, DefinitionId2,
-                GleisId, GleisId2, GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
+                eindeutig::KeineIdVerfügbar, erzeuge_any_enum, mit_any_id, mit_any_id2,
+                AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
+                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, AnyIdVerbindung2,
+                DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
+                StreckenabschnittIdRef,
             },
             steuerung::MitSteuerung,
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
@@ -799,6 +800,8 @@ impl GleiseDaten2 {
     }
 }
 
+const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
+
 /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [RStern].
 /// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
 /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
@@ -916,37 +919,6 @@ fn einraste_position<L: Leiter, T: Zeichnen<Z>, Z>(
     })
 }
 
-macro_rules! daten_mit_any_id2 {
-    ($daten: expr, $zugtyp: expr, [$id: ty => $($ident: ident),+] $any_id: expr => $macro: ident ! ( $($extra_arg: expr),* $(,)? ) ) => {{
-        use $id::*;
-        #[allow(unused_variables)]
-        let GleiseDaten2 {geraden, kurven, weichen, dreiwege_weichen, kurven_weichen, s_kurven_weichen, kreuzungen, ..} = $daten;
-        match $any_id {
-            Gerade( $($ident),+ ) => {
-                $macro! (geraden, & $zugtyp.geraden, $($ident),+ $(, $extra_arg)*)
-            }
-            Kurve( $($ident),+ ) => {
-                $macro! (kurven, & $zugtyp.kurven, $($ident),+ $(, $extra_arg)*)
-            }
-            Weiche( $($ident),+ ) => {
-                $macro! (weichen, & $zugtyp.weichen, $($ident),+ $(, $extra_arg)*)
-            }
-            DreiwegeWeiche( $($ident),+ ) => {
-                $macro! (dreiwege_weichen, & $zugtyp.dreiwege_weichen, $($ident),+ $(, $extra_arg)*)
-            }
-            KurvenWeiche( $($ident),+ ) => {
-                $macro! (kurven_weichen, & $zugtyp.kurven_weichen, $($ident),+ $(, $extra_arg)*)
-            }
-            SKurvenWeiche( $($ident),+ ) => {
-                $macro! (s_kurven_weichen, & $zugtyp.s_kurven_weichen, $($ident),+ $(, $extra_arg)*)
-            }
-            Kreuzung( $($ident),+ ) => {
-                $macro! (kreuzungen, & $zugtyp.kreuzungen, $($ident),+ $(, $extra_arg)*)
-            }
-        }
-    }};
-}
-
 /// Fehler beim [hinzufügen](crate::gleis::gleise::Gleise::hinzufügen) eines Gleises.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum HinzufügenFehler2 {
@@ -1015,7 +987,11 @@ impl GleiseDaten2 {
                 Ok(AnyId2::from(id))
             }};
         }
-        daten_mit_any_id2!(self, zugtyp, [AnyDefinitionIdSteuerung2 => definition, steuerung] definition_steuerung => hinzufügen_aux!())
+        mit_any_id2!(
+            {mut self, ref zugtyp},
+            [AnyDefinitionIdSteuerung2 => definition, steuerung] definition_steuerung
+             =>hinzufügen_aux!()
+        )
     }
 
     /// Füge ein neues [Gleis] mit `verbindung_name` anliegend an `ziel_verbindung`
@@ -1049,8 +1025,9 @@ impl GleiseDaten2 {
                 )
             }};
         }
-        let (position, definition_steuerung) = daten_mit_any_id2!(
-            self, zugtyp, [AnyDefinitionIdSteuerungVerbindung2 => definition_id, steuerung, verbindung_name] definition_steuerung_verbindung
+        let (position, definition_steuerung) = mit_any_id2!(
+            {mut self, ref zugtyp},
+            [AnyDefinitionIdSteuerungVerbindung2 => definition_id, steuerung, verbindung_name] definition_steuerung_verbindung
             => anliegend_position!()
         );
         self.hinzufügen(zugtyp, definition_steuerung, position, streckenabschnitt, false)
@@ -1135,7 +1112,7 @@ impl GleiseDaten2 {
                 Ok(())
             }};
         }
-        daten_mit_any_id2!(self, zugtyp, [AnyId2 => id] gleis_id => bewegen_aux!())
+        mit_any_id2!({mut self, ref zugtyp}, [AnyId2 => id] gleis_id => bewegen_aux!())
     }
 
     /// Bewege ein [Gleis], so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
@@ -1173,8 +1150,9 @@ impl GleiseDaten2 {
                 )
             }};
         }
-        let (position, any_id) = daten_mit_any_id2!(
-            self, zugtyp, [AnyIdVerbindung2 => id, verbindung] id_verbindung
+        let (position, any_id) = mit_any_id2!(
+            {mut self, ref zugtyp},
+            [AnyIdVerbindung2 => id, verbindung] id_verbindung
             => anliegend_position!()
         );
         self.bewegen(zugtyp, any_id, position, false)
@@ -1189,7 +1167,7 @@ impl GleiseDaten2 {
     /// Entferne ein [Gleis].
     fn entfernen(&mut self, gleis_id: AnyId2) -> Result<AnyGleis2, EntfernenFehler2> {
         macro_rules! entfernen_aux {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
+            ($gleise: expr, $gleis_id: expr) => {{
                 let (gleis, rectangle) = match $gleise.remove(&$gleis_id) {
                     Some(entry) => entry,
                     None => return Err(EntfernenFehler2(AnyId2::from($gleis_id))),
@@ -1210,7 +1188,7 @@ impl GleiseDaten2 {
                 Ok(AnyGleis2::from(gleis))
             }};
         }
-        daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => entfernen_aux!())
+        mit_any_id2!({mut self}, [AnyId2 => id] gleis_id => entfernen_aux!())
     }
 }
 
@@ -1225,7 +1203,7 @@ impl GleiseDaten2 {
         mut streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
         macro_rules! setze_streckenabschnitt_aux {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
+            ($gleise: expr, $gleis_id: expr) => {{
                 let (gleis, _rectangle) = match $gleise.get_mut(&$gleis_id) {
                     Some(entry) => entry,
                     None => {
@@ -1239,7 +1217,7 @@ impl GleiseDaten2 {
                 Ok(streckenabschnitt)
             }};
         }
-        daten_mit_any_id2!(self, (), [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
+        mit_any_id2!({mut self}, [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
     }
 }
 
@@ -1518,15 +1496,55 @@ impl GleiseDaten2 {
         }
         for geom_with_data in self.rstern.iter() {
             let (gleis_definition_id, position) = &geom_with_data.data;
-            daten_mit_any_id2!(
-                self, zugtyp, [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+            mit_any_id2!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
                 => gleis_darstellen!(zugtyp.spurweite, position)
             )
         }
     }
 }
 
-const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
+// TODO innerhalb auf enum umstellen, dass zwischen
+// wirklich_innerhalb und innerhalb_toleranz unterscheidet?
+const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
+
+impl GleiseDaten2 {
+    /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
+    fn gleis_an_position2<T: Leiter>(
+        &self,
+        zugtyp: &Zugtyp2<T>,
+        canvas_pos: Vektor,
+    ) -> Option<(AnyIdSteuerung2, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
+        for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
+            let rectangle = geom_with_data.geom();
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            let relative_pos = canvas_pos - position.punkt;
+            let rotated_pos = relative_pos.rotiert(-position.winkel);
+            // if definition.innerhalb(&(), zugtyp.spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+            //     let (streckenabschnitt_id, streckenabschnitt) =
+            //         if let Some((id, streckenabschnitt)) = streckenabschnitt {
+            //             (Some(id), Some(streckenabschnitt))
+            //         } else {
+            //             (None, None)
+            //         };
+            //     let gleis_id_ref: GleisIdRef<'t, T> = GleisIdRef {
+            //         rectangle,
+            //         streckenabschnitt: streckenabschnitt_id,
+            //         phantom: PhantomData,
+            //     };
+            //     return Some((
+            //         (gleis_id_ref, definition.steuerung()).into(),
+            //         relative_pos,
+            //         position.winkel,
+            //         streckenabschnitt,
+            //     ));
+            // }
+            todo!()
+        }
+        None
+    }
+}
 
 /// SelectionFunction, die jedes Element akzeptiert.
 /// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe [GleiseDaten::verschmelze]).

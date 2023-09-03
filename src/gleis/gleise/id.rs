@@ -270,6 +270,9 @@ macro_rules! als_ref {
     (mut $wert: expr) => {
         &mut $wert
     };
+    (ref $wert: expr) => {
+        &$wert
+    };
     ($wert: expr) => {
         &$wert
     };
@@ -278,32 +281,62 @@ pub(crate) use als_ref;
 
 macro_rules! mit_any_id2 {
     (
-        { $($($mut:tt)? $collection: expr),* },
-        [$id: ty => $($ident: ident),+] $any_id: expr =>
-        $macro: ident ! ( $($extra_arg: expr),* $(,)? )
+        { $($($mut: tt)? $collection: expr),* },
+        [$id: ty => $($ident: ident),+] $any_id: expr
+        => $macro: ident ! ( $($extra_arg: expr),* $(,)? )
     ) => {{
         use $id::*;
         match $any_id {
             Gerade( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.geraden) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kurve( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kurven) , )* $($ident),+ $(, $extra_arg)*)
             }
             Weiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             DreiwegeWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.dreiwege_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             KurvenWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             SKurvenWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.s_kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kreuzung( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kreuzungen) , )* $($ident),+ $(, $extra_arg)*)
+            }
+        }
+    }};
+    (
+        { $($($mut:tt)? $collection: expr),* },
+        [$id: ty => $($ident: ident),+] $any_id: expr
+        => $function: ident ( $($extra_arg: expr),* $(,)? )
+    ) => {{
+        use $id::*;
+        match $any_id {
+            Gerade( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            Kurve( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            Weiche( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            DreiwegeWeiche( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            KurvenWeiche( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            SKurvenWeiche( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+            }
+            Kreuzung( $($ident),+ ) => {
+                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
         }
     }};
