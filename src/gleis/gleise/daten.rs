@@ -35,7 +35,7 @@ use crate::{
                 DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
                 StreckenabschnittIdRef,
             },
-            steuerung::MitSteuerung,
+            steuerung::{MitSteuerung, SomeAktualisierenSender, Steuerung},
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
         },
         kreuzung::Kreuzung,
@@ -1487,42 +1487,35 @@ impl GleiseDaten2 {
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 impl GleiseDaten2 {
-    /// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
+    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
     fn gleis_an_position2<T: Leiter>(
         &self,
         zugtyp: &Zugtyp2<T>,
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung2, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
-            let rectangle = geom_with_data.geom();
             let (gleis_definition_id, position) = &geom_with_data.data;
             let relative_pos = canvas_pos - position.punkt;
             let rotated_pos = relative_pos.rotiert(-position.winkel);
             macro_rules! gleis_an_position_aux {
-                ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
-                    todo!()
+                ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr) => {{
+                    let (gleis, _rectangle) = $gleise.get($gleis_id)?;
+                    let definition = $definitionen.get($definition_id)?;
+                    if definition.innerhalb(&(), zugtyp.spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
+                        return Some((
+                            AnyIdSteuerung2::from(($gleis_id.clone(), gleis.steuerung.clone())),
+                            relative_pos,
+                            position.winkel,
+                            gleis.streckenabschnitt.clone(),
+                        ));
+                    }
                 }};
             }
-            // if definition.innerhalb(&(), zugtyp.spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
-            //     let (streckenabschnitt_id, streckenabschnitt) =
-            //         if let Some((id, streckenabschnitt)) = streckenabschnitt {
-            //             (Some(id), Some(streckenabschnitt))
-            //         } else {
-            //             (None, None)
-            //         };
-            //     let gleis_id_ref: GleisIdRef<'t, T> = GleisIdRef {
-            //         rectangle,
-            //         streckenabschnitt: streckenabschnitt_id,
-            //         phantom: PhantomData,
-            //     };
-            //     return Some((
-            //         (gleis_id_ref, definition.steuerung()).into(),
-            //         relative_pos,
-            //         position.winkel,
-            //         streckenabschnitt,
-            //     ));
-            // }
-            todo!()
+            mit_any_id2!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => gleis_an_position_aux!()
+            );
         }
         None
     }
