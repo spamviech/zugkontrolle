@@ -833,11 +833,11 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         }
 
         macro_rules! erhalte_alle_verbindungen {
-            ($gleis_id: expr, $definition_id: expr, $gleisart: ident) => {{
+            ($definitionen:expr, $gleis_id: expr, $definition_id: expr) => {{
                 let kandidat_id = AnyId2::from($gleis_id.clone());
                 let nicht_eigene_id = Some(&kandidat_id) != eigene_id;
                 nicht_eigene_id.then(|| {
-                    zugtyp.$gleisart.get(&$definition_id).map(|definition| {
+                    $definitionen.get(&$definition_id).map(|definition| {
                         (
                             alle_verbindungen(definition.verbindungen_an_position(
                                 &(),
@@ -852,30 +852,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         }
 
         let (kandidat_verbindungen, kandidat_ist_gehalten) = {
-            use AnyGleisDefinitionId2::*;
-            match &kandidat_ids {
-                Gerade(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, geraden)
-                },
-                Kurve(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, kurven)
-                },
-                Weiche(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, weichen)
-                },
-                DreiwegeWeiche(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, dreiwege_weichen)
-                },
-                KurvenWeiche(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, kurven_weichen)
-                },
-                SKurvenWeiche(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, s_kurven_weichen)
-                },
-                Kreuzung(gleis_id, definition_id) => {
-                    erhalte_alle_verbindungen!(gleis_id, definition_id, kreuzungen)
-                },
-            }
+            mit_any_id2!({ref zugtyp}, [AnyGleisDefinitionId2 => gleis_id, definition_id] &kandidat_ids => erhalte_alle_verbindungen!())
         }
         .flatten()
         .unwrap_or((Vec::new(), false));
@@ -1521,6 +1498,11 @@ impl GleiseDaten2 {
             let (gleis_definition_id, position) = &geom_with_data.data;
             let relative_pos = canvas_pos - position.punkt;
             let rotated_pos = relative_pos.rotiert(-position.winkel);
+            macro_rules! gleis_an_position_aux {
+                ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                    todo!()
+                }};
+            }
             // if definition.innerhalb(&(), zugtyp.spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
             //     let (streckenabschnitt_id, streckenabschnitt) =
             //         if let Some((id, streckenabschnitt)) = streckenabschnitt {
