@@ -21,8 +21,10 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{Gleis, GleiseDaten, RStern, RStern2, Zustand2},
-            id::{mit_any_id, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
+            daten::{
+                BewegenFehler2, EntfernenFehler2, Gleis, GleiseDaten, RStern, RStern2, Zustand2,
+            },
+            id::{mit_any_id, AnyId2, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
             nachricht::{
                 AnyIdSteuerungSerialisiert2, Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert,
                 Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum,
@@ -410,13 +412,22 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
         (event_status, Some(messages))
     }
+}
 
+/// Fehler, die bei [zustand_aktualisieren](Gleise::zustand_aktualisieren) auftreten können.
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub enum AktualisierenFehler2 {
+    BewegenFehler(BewegenFehler2),
+    EntfernenFehler(EntfernenFehler2),
+}
+
+impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Folge-Method für [update](Gleise::update), in der die notwendigen
     /// Zustands-Änderungen durchgeführt werden.
     pub fn zustand_aktualisieren(
         &mut self,
         nachricht: ZustandAktualisieren,
-    ) -> Result<(), GleisIdFehler> {
+    ) -> Result<(), AktualisierenFehler2> {
         match nachricht.0 {
             ZustandAktualisierenEnum::LetzteMausPosition(position) => {
                 self.letzte_maus_position = position;
@@ -439,13 +450,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GehaltenBewegen(canvas_pos) => {
-                self.gehalten_bewegen(canvas_pos)
+                let _ = self.gehalten_bewegen(canvas_pos)?;
+                Ok(())
             },
             ZustandAktualisierenEnum::GleisEntfernen(gleis_id) => {
-                let _id = self.entfernen2(gleis_id).map_err(|_| {
-                    let err: GleisIdFehler = todo!();
-                    err
-                })?;
+                let _id = self.entfernen2(gleis_id)?;
                 Ok(())
             },
         }

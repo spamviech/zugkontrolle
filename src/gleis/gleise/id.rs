@@ -217,55 +217,6 @@ macro_rules! erzeuge_any_enum {
 }
 pub(in crate::gleis::gleise) use erzeuge_any_enum;
 
-erzeuge_any_enum! {
-    (pub) AnyId2,
-    "Id für ein beliebiges Gleis.",
-    [Debug, Clone, PartialEq, Eq, Hash],
-    (GleisId2<[]>),
-}
-erzeuge_any_enum! {
-    (pub) AnyDefinitionId2,
-    "Id für die Definition eines beliebiges Gleises.",
-    [Debug, Clone, PartialEq, Eq, Hash],
-    (DefinitionId2<[]>),
-}
-erzeuge_any_enum! {
-    (pub) AnyGleisDefinitionId2,
-    "Id für ein beliebiges Gleis und seine Definition.",
-    [Debug, Clone, PartialEq, Eq],
-    (GleisId2<[]>),
-    (DefinitionId2<[]>),
-}
-erzeuge_any_enum! {
-    (pub) AnyIdSteuerung2,
-    "Id für ein beliebiges Gleis und seine Steuerung.",
-    [Debug, Clone],
-    (GleisId2<[]>),
-    (<[] as MitSteuerung>::Steuerung),
-}
-erzeuge_any_enum! {
-    (pub) AnyDefinitionIdSteuerung2,
-    "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
-    [Debug, Clone],
-    (DefinitionId2<[]>),
-    (<[] as MitSteuerung>::Steuerung),
-}
-erzeuge_any_enum! {
-    (pub) AnyIdVerbindung2,
-    "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",
-    [Debug, Clone],
-    (GleisId2<[]>),
-    (<[] as Zeichnen<()>>::VerbindungName),
-}
-erzeuge_any_enum! {
-    (pub) AnyDefinitionIdSteuerungVerbindung2,
-    "Id für die Definition eines beliebigen Gleises, seine Steuerung und der Name einer seiner Verbindungen.",
-    [Debug, Clone],
-    (DefinitionId2<[]>),
-    (<[] as MitSteuerung>::Steuerung),
-    (<[] as Zeichnen<()>>::VerbindungName),
-}
-
 macro_rules! als_ref {
     (mut $wert: expr) => {
         &mut $wert
@@ -343,16 +294,75 @@ macro_rules! mit_any_id2 {
 }
 pub(crate) use mit_any_id2;
 
+erzeuge_any_enum! {
+    (pub) AnyId2,
+    "Id für ein beliebiges Gleis.",
+    [Debug, Clone, PartialEq, Eq, Hash],
+    (GleisId2<[]>),
+}
+
+erzeuge_any_enum! {
+    (pub) AnyDefinitionId2,
+    "Id für die Definition eines beliebiges Gleises.",
+    [Debug, Clone, PartialEq, Eq, Hash],
+    (DefinitionId2<[]>),
+}
+
+erzeuge_any_enum! {
+    (pub) AnyGleisDefinitionId2,
+    "Id für ein beliebiges Gleis und seine Definition.",
+    [Debug, Clone, PartialEq, Eq],
+    (GleisId2<[]>),
+    (DefinitionId2<[]>),
+}
+
+erzeuge_any_enum! {
+    (pub) AnyIdSteuerung2,
+    "Id für ein beliebiges Gleis und seine Steuerung.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as MitSteuerung>::Steuerung),
+}
+
 impl AnyIdSteuerung2 {
-    /// Erhalte die [AnyId].
+    /// Erhalte die [Id](AnyId) eines Gleises.
     pub fn id(&self) -> AnyId2 {
-        macro_rules! erhalte_id {
+        macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {
                 AnyId2::from($id.clone())
             };
         }
-        mit_any_id2!({}, [AnyIdSteuerung2 => gleis_id, _steuerung] self => erhalte_id!())
+        mit_any_id2!(
+            {},
+            [AnyIdSteuerung2 => id, _steuerung] self
+            =>id_aux!()
+        )
     }
+}
+
+erzeuge_any_enum! {
+    (pub) AnyDefinitionIdSteuerung2,
+    "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
+    [Debug, Clone],
+    (DefinitionId2<[]>),
+    (<[] as MitSteuerung>::Steuerung),
+}
+
+erzeuge_any_enum! {
+    (pub) AnyIdVerbindung2,
+    "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as Zeichnen<()>>::VerbindungName),
+}
+
+erzeuge_any_enum! {
+    (pub) AnyDefinitionIdSteuerungVerbindung2,
+    "Id für die Definition eines beliebigen Gleises, seine Steuerung und der Name einer seiner Verbindungen.",
+    [Debug, Clone],
+    (DefinitionId2<[]>),
+    (<[] as MitSteuerung>::Steuerung),
+    (<[] as Zeichnen<()>>::VerbindungName),
 }
 
 #[allow(single_use_lifetimes)]

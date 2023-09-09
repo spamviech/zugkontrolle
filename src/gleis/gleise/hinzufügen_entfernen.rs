@@ -279,18 +279,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
         &mut self,
         canvas_pos: Vektor,
-    ) -> Result<(), GleisIdFehler> {
-        if let ModusDaten::Bauen { gehalten, gehalten2, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
+    ) -> Result<(), BewegenFehler2> {
+        if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
+            if let Some(Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
                 let punkt = canvas_pos - halte_position;
-                let mut_ref = &mut self.zustand;
-                mit_any_steuerung_id!(
-                    gleis_steuerung,
-                    Zustand::bewegen,
-                    mut_ref,
-                    Position { punkt, winkel: *winkel },
-                    true
-                )?;
+                let id = gleis_steuerung.id();
+                self.zustand2.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
                 *bewegt = true;
                 self.erzwinge_neuzeichnen();
             }

@@ -1172,7 +1172,7 @@ impl GleiseDaten2 {
 
 /// Fehler beim [entfernen](crate::gleis::gleise::Gleise::entfernen) eines Gleises.
 #[derive(Debug, Clone)]
-pub(in crate::gleis::gleise) struct EntfernenFehler2(AnyId2);
+pub struct EntfernenFehler2(AnyId2);
 
 impl GleiseDaten2 {
     /// Entferne ein [Gleis].
