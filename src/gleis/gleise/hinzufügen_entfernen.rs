@@ -126,18 +126,27 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 (AnyId2::Gerade(id), AnyDefinitionIdSteuerung2::Gerade(_definition, steuerung)) => {
                     AnyIdSteuerung2::Gerade(id.clone(), steuerung)
                 },
-                (AnyId2::Kurve(_), AnyDefinitionIdSteuerung2::Kurve(_, _)) => todo!(),
-                (AnyId2::DreiwegeWeiche(_), AnyDefinitionIdSteuerung2::DreiwegeWeiche(_, _)) => {
-                    todo!()
+                (AnyId2::Kurve(id), AnyDefinitionIdSteuerung2::Kurve(_definition, steuerung)) => {
+                    AnyIdSteuerung2::Kurve(id.clone(), steuerung)
                 },
-                (AnyId2::KurvenWeiche(_), AnyDefinitionIdSteuerung2::KurvenWeiche(_, _)) => todo!(),
-                (AnyId2::SKurvenWeiche(_), AnyDefinitionIdSteuerung2::SKurvenWeiche(_, _)) => {
-                    todo!()
-                },
-                (AnyId2::Kreuzung(_), AnyDefinitionIdSteuerung2::Kreuzung(_, _)) => todo!(),
+                (
+                    AnyId2::DreiwegeWeiche(id),
+                    AnyDefinitionIdSteuerung2::DreiwegeWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung2::DreiwegeWeiche(id.clone(), steuerung),
+                (
+                    AnyId2::KurvenWeiche(id),
+                    AnyDefinitionIdSteuerung2::KurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung2::KurvenWeiche(id.clone(), steuerung),
+                (
+                    AnyId2::SKurvenWeiche(id),
+                    AnyDefinitionIdSteuerung2::SKurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung2::SKurvenWeiche(id.clone(), steuerung),
+                (
+                    AnyId2::Kreuzung(id),
+                    AnyDefinitionIdSteuerung2::Kreuzung(_definition, steuerung),
+                ) => AnyIdSteuerung2::Kreuzung(id.clone(), steuerung),
                 wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
             };
-            // let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
             *gehalten2 = Some(Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt: true });
         }
         Ok(gleis_id)
