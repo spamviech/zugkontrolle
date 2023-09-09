@@ -29,7 +29,7 @@ use crate::{
             mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2, StreckenabschnittId,
             StreckenabschnittIdRef,
         },
-        nachricht::GleisSteuerung2,
+        nachricht::AnyIdSteuerungSerialisiert2,
         AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
@@ -303,7 +303,7 @@ where
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: GleisSteuerung2) {
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert2) {
         use AnschlüsseAnpassenFehler::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen2(&mut self.lager, anschlüsse_anpassen) {

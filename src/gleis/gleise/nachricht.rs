@@ -3,11 +3,15 @@
 use std::time::Instant;
 
 use crate::{
+    anschluss::de_serialisieren::Serialisiere,
     gleis::{
         self,
         gerade::Gerade,
         gleise::{
-            id::{erzeuge_any_enum, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, GleisId, GleisId2},
+            id::{
+                erzeuge_any_enum, mit_any_id2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, GleisId,
+                GleisId2,
+            },
             steuerung::MitSteuerung,
         },
         kreuzung::Kreuzung,
@@ -130,11 +134,30 @@ macro_rules! mit_any_steuerung_id {
 pub(crate) use mit_any_steuerung_id;
 
 erzeuge_any_enum! {
-    (pub) GleisSteuerung2,
+    (pub) AnyIdSteuerungSerialisiert2,
     "Id für ein beliebiges Gleis und seine serialisierte Steuerung.",
     [Debug, Clone],
     (GleisId2<[]>),
     (<[] as MitSteuerung>::Serialisiert),
+}
+
+impl AnyIdSteuerung2 {
+    /// Serialisiere die Steuerung des Gleises.
+    pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert2 {
+        macro_rules! serialisiere_aux {
+            ($id: expr, $steuerung: expr) => {
+                AnyIdSteuerungSerialisiert2::from((
+                    $id.clone(),
+                    $steuerung.as_ref().map(|steuerung| Serialisiere::serialisiere(steuerung)),
+                ))
+            };
+        }
+        mit_any_id2!(
+            {},
+            [AnyIdSteuerung2 => id, steuerung] self
+            => serialisiere_aux!()
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -165,7 +188,7 @@ pub enum Nachricht {
     /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
     /// Die Anschlüsse für ein Gleis sollen angepasst werden.
-    AnschlüsseAnpassen(GleisSteuerung2),
+    AnschlüsseAnpassen(AnyIdSteuerungSerialisiert2),
     /// Eine GUI-Nachricht für Änderungen des Zustandes.
     ///
     /// Notwendig, weil die [update](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt

@@ -24,8 +24,8 @@ use crate::{
             daten::{Gleis, GleiseDaten, RStern, RStern2, Zustand2},
             id::{mit_any_id, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
             nachricht::{
-                Gehalten2, GleisSteuerung, GleisSteuerung2, IdUndSteuerungSerialisiert, Nachricht,
-                ZustandAktualisieren, ZustandAktualisierenEnum,
+                AnyIdSteuerungSerialisiert2, Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert,
+                Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum,
             },
             steuerung::{MitSteuerung, Steuerung},
             Gehalten, GleisIdFehler, Gleise, ModusDaten,
@@ -159,18 +159,39 @@ where
     None
 }
 
+/// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
+fn aktion_bauen(
+    nachrichten: &mut Vec<Nachricht>,
+    gleis_steuerung: AnyIdSteuerung2,
+    now: Instant,
+    letzter_klick: Instant,
+    halte_position: Vektor,
+    winkel: Winkel,
+) {
+    let diff = now.checked_duration_since(letzter_klick).unwrap_or(Duration::MAX);
+    let gleis_steuerung_serialisiert = gleis_steuerung.serialisiere();
+    if diff < DOUBLE_CLICK_TIME {
+        nachrichten.push(Nachricht::AnschlüsseAnpassen(gleis_steuerung_serialisiert));
+        nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(None)))
+    } else {
+        nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
+            Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt: false },
+        ))));
+    }
+}
+
 /// Aktion für ein im Modus "Fahren" angeklicktes Gleis.
 fn aktion_fahren<AktualisierenNachricht>(
-    gleis_steuerung_ref: GleisSteuerungRef<'_>,
+    gleis_steuerung: AnyIdSteuerung2,
     streckenabschnitt: Option<&Streckenabschnitt>,
     sender: Sender<AktualisierenNachricht>,
 ) -> Option<Nachricht>
 where
     AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
-    use GleisSteuerungRef::*;
-    match gleis_steuerung_ref {
-        Gerade(_) | Kurve(_) => streckenabschnitt.map(|streckenabschnitt| {
+    use AnyIdSteuerung2::*;
+    match gleis_steuerung {
+        Gerade(_, _) | Kurve(_, _) => streckenabschnitt.map(|streckenabschnitt| {
             let fließend = !streckenabschnitt.fließend();
             Nachricht::StreckenabschnittUmschalten(AktionStreckenabschnitt::Strom {
                 streckenabschnitt: Steuerung::neu(
@@ -180,7 +201,7 @@ where
                 fließend,
             })
         }),
-        Weiche((_id, steuerung)) => steuerung.as_ref().map(|steuerung| {
+        Weiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::*;
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
@@ -191,7 +212,7 @@ where
                 richtung,
             }))
         }),
-        KurvenWeiche((_id, steuerung)) => steuerung.as_ref().map(|steuerung| {
+        KurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::kurve::Richtung::*;
             let richtung = match steuerung.richtung() {
                 Innen => Außen,
@@ -202,7 +223,7 @@ where
                 richtung,
             }))
         }),
-        DreiwegeWeiche((_id, steuerung)) => steuerung.as_ref().map(|steuerung| {
+        DreiwegeWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::dreiwege::{Richtung::*, RichtungInformation};
             let richtung = match steuerung.richtung() {
                 RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Links } => Rechts,
@@ -221,7 +242,7 @@ where
                 richtung,
             }))
         }),
-        SKurvenWeiche((_id, steuerung)) => steuerung.as_ref().map(|steuerung| {
+        SKurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::*;
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
@@ -232,7 +253,7 @@ where
                 richtung,
             }))
         }),
-        Kreuzung((_id, steuerung)) => steuerung.as_ref().map(|steuerung| {
+        Kreuzung(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::*;
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
@@ -263,102 +284,45 @@ where
     L: Leiter,
     AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
-    let mut messages = Vec::new();
+    let mut nachrichten = Vec::new();
     let mut status = event::Status::Ignored;
     if cursor.is_over(bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position2 = zustand2.gleis_an_position2(canvas_pos);
-            let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
-                let GleiseDaten {
-                    geraden,
-                    kurven,
-                    weichen,
-                    kurven_weichen,
-                    dreiwege_weichen,
-                    s_kurven_weichen,
-                    kreuzungen,
-                } = maps;
-                acc.or_else(|| gleis_an_position(spurweite, streckenabschnitt, geraden, canvas_pos))
-                    .or_else(|| gleis_an_position(spurweite, streckenabschnitt, kurven, canvas_pos))
-                    .or_else(|| {
-                        gleis_an_position(spurweite, streckenabschnitt, weichen, canvas_pos)
-                    })
-                    .or_else(|| {
-                        gleis_an_position(
-                            spurweite,
-                            streckenabschnitt,
-                            dreiwege_weichen,
-                            canvas_pos,
-                        )
-                    })
-                    .or_else(|| {
-                        gleis_an_position(spurweite, streckenabschnitt, kurven_weichen, canvas_pos)
-                    })
-                    .or_else(|| {
-                        gleis_an_position(
-                            spurweite,
-                            streckenabschnitt,
-                            s_kurven_weichen,
-                            canvas_pos,
-                        )
-                    })
-                    .or_else(|| {
-                        gleis_an_position(spurweite, streckenabschnitt, kreuzungen, canvas_pos)
-                    })
-            });
             match modus {
                 ModusDaten::Bauen { gehalten, gehalten2, letzter_klick } => {
                     let now = Instant::now();
-                    messages.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
-                    let diff = now.checked_duration_since(*letzter_klick).unwrap_or(Duration::MAX);
-                    if gehalten.is_none() {
-                        if let Some((
-                            gleis_steuerung_ref,
-                            halte_position,
-                            winkel,
-                            _streckenabschnitt,
-                        )) = gleis_an_position
+                    nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
+                    if gehalten2.is_none() {
+                        if let Some((gleis_steuerung, halte_position, winkel, _streckenabschnitt)) =
+                            gleis_an_position2
                         {
-                            let gleis_steuerung_serialisiert: GleisSteuerung2 = todo!();
-                            let gleis_steuerung: AnyIdSteuerung2 = todo!();
-                            let _ = ();
-                            // let gleis_steuerung = GleisSteuerung::from(gleis_steuerung_ref);
-                            if diff < DOUBLE_CLICK_TIME {
-                                messages.push(Nachricht::AnschlüsseAnpassen(
-                                    gleis_steuerung_serialisiert.clone(),
-                                ));
-                                messages.push(Nachricht::from(
-                                    ZustandAktualisierenEnum::GehaltenAktualisieren(None),
-                                ))
-                            } else {
-                                messages.push(Nachricht::from(
-                                    ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
-                                        Gehalten2 {
-                                            gleis_steuerung,
-                                            halte_position,
-                                            winkel,
-                                            bewegt: false,
-                                        },
-                                    )),
-                                ));
-                            }
+                            aktion_bauen(
+                                &mut nachrichten,
+                                gleis_steuerung,
+                                now,
+                                *letzter_klick,
+                                halte_position,
+                                winkel,
+                            );
                             status = event::Status::Captured;
                         }
                     }
                 },
                 ModusDaten::Fahren => {
-                    if let Some((
-                        gleis_steuerung_ref,
-                        _halte_position,
-                        _winkel,
-                        streckenabschnitt,
-                    )) = gleis_an_position
+                    if let Some((id_steuerung, _halte_position, _winkel, streckenabschnitt)) =
+                        gleis_an_position2
                     {
-                        let message =
-                            aktion_fahren(gleis_steuerung_ref, streckenabschnitt, sender.clone());
+                        let nachricht = aktion_fahren(
+                            id_steuerung,
+                            streckenabschnitt.map(
+                                |(_name, streckenabschnitt, _geschwindigkeit)| streckenabschnitt,
+                            ),
+                            sender.clone(),
+                        );
 
-                        if let Some(message) = message {
-                            messages.push(message);
+                        if let Some(nachricht) = nachricht {
+                            nachrichten.push(nachricht);
                             status = event::Status::Captured
                         }
                     }
@@ -366,7 +330,7 @@ where
             }
         }
     }
-    (status, messages)
+    (status, nachrichten)
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {

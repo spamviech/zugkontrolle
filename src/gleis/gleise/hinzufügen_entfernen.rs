@@ -22,7 +22,7 @@ use crate::{
                 AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdSteuerung2, AnyIdVerbindung2, GleisId,
                 StreckenabschnittId,
             },
-            nachricht::{mit_any_steuerung_id, GleisSteuerung, GleisSteuerung2},
+            nachricht::{mit_any_steuerung_id, AnyIdSteuerungSerialisiert2, GleisSteuerung},
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             AnschlüsseAnpassenFehler, Gehalten, Gehalten2, GleisIdFehler, Gleise, ModusDaten,
             StreckenabschnittIdFehler,
@@ -280,7 +280,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         canvas_pos: Vektor,
     ) -> Result<(), GleisIdFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+        if let ModusDaten::Bauen { gehalten, gehalten2, .. } = &mut self.modus {
             if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
                 let punkt = canvas_pos - halte_position;
                 let mut_ref = &mut self.zustand;
@@ -486,7 +486,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn anschlüsse_anpassen2(
         &mut self,
         lager: &mut Lager,
-        gleis_steuerung: GleisSteuerung2,
+        gleis_steuerung: AnyIdSteuerungSerialisiert2,
     ) -> Result<(), AnschlüsseAnpassenFehler> {
         todo!("anschlüsse_anpassen")
     }
