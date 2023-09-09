@@ -21,7 +21,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{Gleis, GleiseDaten, RStern, RStern2},
+            daten::{Gleis, GleiseDaten, RStern, RStern2, Zustand2},
             id::{mit_any_id, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
             nachricht::{
                 Gehalten2, GleisSteuerung, GleisSteuerung2, IdUndSteuerungSerialisiert, Nachricht,
@@ -246,7 +246,7 @@ where
     }
 }
 
-fn aktion_gleis_an_position<'t, AktualisierenNachricht>(
+fn aktion_gleis_an_position<'t, L, AktualisierenNachricht>(
     bounds: Rectangle,
     cursor: &'t Cursor,
     spurweite: Spurweite,
@@ -254,17 +254,20 @@ fn aktion_gleis_an_position<'t, AktualisierenNachricht>(
     daten_iter: impl Iterator<
         Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
     >,
+    zustand2: &Zustand2<L>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
     sender: &Sender<AktualisierenNachricht>,
 ) -> (event::Status, Vec<Nachricht>)
 where
+    L: Leiter,
     AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
     let mut messages = Vec::new();
     let mut status = event::Status::Ignored;
     if cursor.is_over(bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
+            let gleis_an_position2 = zustand2.gleis_an_position2(canvas_pos);
             let gleis_an_position = daten_iter.fold(None, |acc, (streckenabschnitt, maps)| {
                 let GleiseDaten {
                     geraden,
@@ -387,13 +390,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
-                let Gleise { zustand, pivot, skalieren, modus, .. } = self;
+                let Gleise { zustand, zustand2, pivot, skalieren, modus, .. } = self;
                 let (status, nachrichten) = aktion_gleis_an_position(
                     bounds,
                     &cursor,
                     spurweite,
                     modus,
                     zustand.alle_streckenabschnitte_und_daten(),
+                    zustand2,
                     pivot,
                     skalieren,
                     &self.sender,

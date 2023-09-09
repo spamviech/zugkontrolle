@@ -613,6 +613,40 @@ impl<L: Leiter> Zustand2<L> {
             skalieren,
         )
     }
+
+    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
+    pub(in crate::gleis::gleise) fn gleis_an_position2(
+        &self,
+        canvas_pos: Vektor,
+    ) -> Option<(
+        AnyIdSteuerung2,
+        Vektor,
+        Winkel,
+        Option<(
+            streckenabschnitt::Name,
+            &Streckenabschnitt,
+            Option<(geschwindigkeit::Name, &Geschwindigkeit<L>)>,
+        )>,
+    )> {
+        let (id_steuerung, position, winkel, streckenabschnitt_id) =
+            self.gleise.gleis_an_position2(&self.zugtyp, canvas_pos)?;
+        let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_id| {
+            self.streckenabschnitte.get(&streckenabschnitt_id).map(
+                |(streckenabschnitt, geschwindigkeit_id)| {
+                    (
+                        streckenabschnitt_id,
+                        streckenabschnitt,
+                        geschwindigkeit_id.as_ref().and_then(|geschwindigkeit_id| {
+                            self.geschwindigkeiten.get(geschwindigkeit_id).map(|geschwindigkeit| {
+                                (geschwindigkeit_id.clone(), geschwindigkeit)
+                            })
+                        }),
+                    )
+                },
+            )
+        });
+        Some((id_steuerung, position, winkel, streckenabschnitt))
+    }
 }
 
 pub(in crate::gleis::gleise) type RStern<T> = RTree<GeomWithData<Rectangle<Vektor>, Gleis<T>>>;
@@ -1488,9 +1522,9 @@ const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 impl GleiseDaten2 {
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
-    fn gleis_an_position2<T: Leiter>(
+    fn gleis_an_position2<L: Leiter>(
         &self,
-        zugtyp: &Zugtyp2<T>,
+        zugtyp: &Zugtyp2<L>,
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung2, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
