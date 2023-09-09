@@ -15,14 +15,15 @@ use crate::{
             self,
             daten::{
                 AnyGleis2, BewegenFehler2, DatenAuswahl, EntfernenFehler2, Gleis,
-                HinzufügenFehler2, SelectEnvelope, SetzteStreckenabschnittFehler2, Zustand,
+                HinzufügenFehler2, SelectEnvelope, SetzteStreckenabschnittFehler2,
+                SteuerungAktualisierenFehler2, Zustand,
             },
             id::{
                 AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
-                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdSteuerung2, AnyIdVerbindung2, GleisId,
-                StreckenabschnittId,
+                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2,
+                AnyIdVerbindung2, GleisId, StreckenabschnittId,
             },
-            nachricht::{mit_any_steuerung_id, AnyIdSteuerungSerialisiert2, GleisSteuerung},
+            nachricht::{mit_any_steuerung_id, GleisSteuerung},
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             AnschlüsseAnpassenFehler, Gehalten, Gehalten2, GleisIdFehler, Gleise, ModusDaten,
             StreckenabschnittIdFehler,
@@ -490,7 +491,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert2,
-    ) -> Result<(), AnschlüsseAnpassenFehler> {
-        todo!("anschlüsse_anpassen")
+    ) -> Result<(), SteuerungAktualisierenFehler2>
+    where
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
+        self.zustand2.steuerung_aktualisieren(
+            lager,
+            gleis_steuerung,
+            SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from)),
+        )
     }
 }

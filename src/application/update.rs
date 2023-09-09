@@ -24,12 +24,11 @@ use crate::{
     },
     gleis::gleise::{
         self,
-        daten::{v2::BekannterZugtyp, StreckenabschnittMap},
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2, StreckenabschnittMap},
         id::{
-            mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2, StreckenabschnittId,
-            StreckenabschnittIdRef,
+            mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2,
+            AnyIdSteuerungSerialisiert2, StreckenabschnittId, StreckenabschnittIdRef,
         },
-        nachricht::AnyIdSteuerungSerialisiert2,
         AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
@@ -304,7 +303,7 @@ where
 
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert2) {
-        use AnschlüsseAnpassenFehler::*;
+        use SteuerungAktualisierenFehler2::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen2(&mut self.lager, anschlüsse_anpassen) {
             Ok(()) => {},
@@ -318,10 +317,10 @@ where
                 }
                 fehlermeldung = Some((titel, nachricht));
             },
-            Err(GleisEntfernt(fehler)) => {
+            Err(GleisNichtGefunden(id)) => {
                 fehlermeldung = Some((
                     "Gleis entfernt!".to_owned(),
-                    format!("Anschlüsse anpassen für ein entferntes Gleis: {fehler:?}"),
+                    format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
                 ));
             },
         }

@@ -348,6 +348,33 @@ erzeuge_any_enum! {
     (<[] as MitSteuerung>::Steuerung),
 }
 
+impl AnyIdSteuerung2 {
+    /// Serialisiere die Steuerung des Gleises.
+    pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert2 {
+        macro_rules! serialisiere_aux {
+            ($id: expr, $steuerung: expr) => {
+                AnyIdSteuerungSerialisiert2::from((
+                    $id.clone(),
+                    $steuerung.as_ref().map(|steuerung| Serialisiere::serialisiere(steuerung)),
+                ))
+            };
+        }
+        mit_any_id2!(
+            {},
+            [AnyIdSteuerung2 => id, steuerung] self
+            => serialisiere_aux!()
+        )
+    }
+}
+
+erzeuge_any_enum! {
+    (pub) AnyIdSteuerungSerialisiert2,
+    "Id für ein beliebiges Gleis und seine serialisierte Steuerung.",
+    [Debug, Clone],
+    (GleisId2<[]>),
+    (<[] as MitSteuerung>::Serialisiert),
+}
+
 erzeuge_any_enum! {
     (pub) AnyIdVerbindung2,
     "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",

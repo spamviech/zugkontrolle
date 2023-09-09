@@ -9,8 +9,8 @@ use crate::{
         gerade::Gerade,
         gleise::{
             id::{
-                erzeuge_any_enum, mit_any_id2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, GleisId,
-                GleisId2,
+                erzeuge_any_enum, mit_any_id2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2,
+                AnyIdSteuerungSerialisiert2, GleisId, GleisId2,
             },
             steuerung::MitSteuerung,
         },
@@ -132,33 +132,6 @@ macro_rules! mit_any_steuerung_id {
     };
 }
 pub(crate) use mit_any_steuerung_id;
-
-erzeuge_any_enum! {
-    (pub) AnyIdSteuerungSerialisiert2,
-    "Id für ein beliebiges Gleis und seine serialisierte Steuerung.",
-    [Debug, Clone],
-    (GleisId2<[]>),
-    (<[] as MitSteuerung>::Serialisiert),
-}
-
-impl AnyIdSteuerung2 {
-    /// Serialisiere die Steuerung des Gleises.
-    pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert2 {
-        macro_rules! serialisiere_aux {
-            ($id: expr, $steuerung: expr) => {
-                AnyIdSteuerungSerialisiert2::from((
-                    $id.clone(),
-                    $steuerung.as_ref().map(|steuerung| Serialisiere::serialisiere(steuerung)),
-                ))
-            };
-        }
-        mit_any_id2!(
-            {},
-            [AnyIdSteuerung2 => id, steuerung] self
-            => serialisiere_aux!()
-        )
-    }
-}
 
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {

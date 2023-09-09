@@ -12,6 +12,7 @@ use iced::{
     Color,
 };
 use log::error;
+use nonempty::NonEmpty;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     Envelope, RTree, RTreeObject, SelectionFunction, AABB,
@@ -23,6 +24,7 @@ use crate::{
         self,
         de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         polarität::Fließend,
+        Lager,
     },
     application::fonts::standard_text,
     gleis::{
@@ -31,9 +33,9 @@ use crate::{
             id::{
                 eindeutig::KeineIdVerfügbar, erzeuge_any_enum, mit_any_id, mit_any_id2,
                 AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2,
-                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2, AnyIdVerbindung2,
-                DefinitionId2, GleisId, GleisId2, GleisIdRef, StreckenabschnittId,
-                StreckenabschnittIdRef,
+                AnyGleisDefinitionId2, AnyId, AnyId2, AnyIdRef, AnyIdSteuerung2,
+                AnyIdSteuerungSerialisiert2, AnyIdVerbindung2, DefinitionId2, GleisId, GleisId2,
+                GleisIdRef, StreckenabschnittId, StreckenabschnittIdRef,
             },
             steuerung::{MitSteuerung, SomeAktualisierenSender, Steuerung},
             GeschwindigkeitEntferntFehler, GleisIdFehler, StreckenabschnittIdFehler,
@@ -592,6 +594,16 @@ impl<L: Leiter> Zustand2<L> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
         self.gleise.setze_streckenabschnitt(gleis_id.into(), streckenabschnitt)
+    }
+
+    /// Aktualisiere die Steuerung für ein [Gleis].
+    pub(in crate::gleis::gleise) fn steuerung_aktualisieren(
+        &mut self,
+        lager: &mut Lager,
+        gleis_steuerung: AnyIdSteuerungSerialisiert2,
+        sender: SomeAktualisierenSender,
+    ) -> Result<(), SteuerungAktualisierenFehler2> {
+        self.gleise.steuerung_aktualisieren(lager, gleis_steuerung, sender)
     }
 
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
@@ -1208,6 +1220,10 @@ impl GleiseDaten2 {
 pub struct SetzteStreckenabschnittFehler2(AnyId2, Option<streckenabschnitt::Name>);
 
 impl GleiseDaten2 {
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [GleisId].
+    ///
+    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
+    /// [Streckenabschnittes](Streckenabschnitt) (falls einer gesetzt war).
     fn setze_streckenabschnitt(
         &mut self,
         gleis_id: AnyId2,
@@ -1229,6 +1245,91 @@ impl GleiseDaten2 {
             }};
         }
         mit_any_id2!({mut self}, [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
+    }
+}
+
+/// Fehler beim aktualisieren der Steuerung eines Gleises.
+#[derive(Debug)]
+pub enum SteuerungAktualisierenFehler2 {
+    /// Das Gleis wurde nicht gefunden.
+    GleisNichtGefunden(AnyId2),
+    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
+    Deserialisieren {
+        /// Der Fehler beim reservieren der neuen Anschlüsse.
+        fehler: NonEmpty<anschluss::Fehler>,
+        /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
+        /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
+        wiederherstellen_fehler: Option<(NonEmpty<anschluss::Fehler>, String)>,
+    },
+}
+
+impl GleiseDaten2 {
+    /// Aktualisiere die Steuerung für ein [Gleis].
+    fn steuerung_aktualisieren(
+        &mut self,
+        lager: &mut Lager,
+        gleis_steuerung: AnyIdSteuerungSerialisiert2,
+        sender: SomeAktualisierenSender,
+    ) -> Result<(), SteuerungAktualisierenFehler2> {
+        macro_rules! steuerung_aktualisieren_aux {
+            ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
+                let (Gleis2 { definition, steuerung, position, streckenabschnitt }, _rectangle) =
+                    $gleise.get_mut(&$gleis_id).ok_or(
+                        SteuerungAktualisierenFehler2::GleisNichtGefunden(AnyId2::from($gleis_id)),
+                    )?;
+
+                let anschlüsse_serialisiert =
+                    if let Some(anschlüsse_serialisiert) = $anschlüsse_serialisiert {
+                        anschlüsse_serialisiert
+                    } else {
+                        let _ = steuerung.take();
+                        return Ok(());
+                    };
+                let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
+                    (Some(s.serialisiere()), s.anschlüsse())
+                } else {
+                    (None, Anschlüsse::default())
+                };
+                use Ergebnis::*;
+                let (fehler, anschlüsse) =
+                    match anschlüsse_serialisiert.reserviere(lager, anschlüsse, sender.clone()) {
+                        Wert { anschluss, .. } => {
+                            let _ = steuerung.insert(anschluss);
+                            return Ok(());
+                        },
+                        FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                            anschlüsse.anhängen(anschluss.anschlüsse());
+                            (fehler, anschlüsse)
+                        },
+                        Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+                    };
+                let mut wiederherstellen_fehler = None;
+                if let Some(steuerung_serialisiert) = steuerung_serialisiert {
+                    let serialisiert_string = format!("{steuerung_serialisiert:?}");
+                    match steuerung_serialisiert.reserviere(lager, anschlüsse, sender) {
+                        Wert { anschluss, .. } => {
+                            let _ = steuerung.insert(anschluss);
+                        },
+                        FehlerMitErsatzwert { anschluss, fehler, .. } => {
+                            let _ = steuerung.insert(anschluss);
+                            wiederherstellen_fehler = Some((fehler, serialisiert_string));
+                        },
+                        Fehler { fehler, .. } => {
+                            wiederherstellen_fehler = Some((fehler, serialisiert_string))
+                        },
+                    }
+                }
+                Err(SteuerungAktualisierenFehler2::Deserialisieren {
+                    fehler,
+                    wiederherstellen_fehler,
+                })
+            }};
+        }
+        mit_any_id2!(
+            {mut self},
+            [AnyIdSteuerungSerialisiert2 => gleis_id, steuerung_serialisiert] gleis_steuerung
+            => steuerung_aktualisieren_aux!()
+        )
     }
 }
 

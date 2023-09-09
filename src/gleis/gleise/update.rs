@@ -24,10 +24,13 @@ use crate::{
             daten::{
                 BewegenFehler2, EntfernenFehler2, Gleis, GleiseDaten, RStern, RStern2, Zustand2,
             },
-            id::{mit_any_id, AnyId2, AnyIdSteuerung2, GleisIdRef, StreckenabschnittIdRef},
+            id::{
+                mit_any_id, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2, GleisIdRef,
+                StreckenabschnittIdRef,
+            },
             nachricht::{
-                AnyIdSteuerungSerialisiert2, Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert,
-                Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum,
+                Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht,
+                ZustandAktualisieren, ZustandAktualisierenEnum,
             },
             steuerung::{MitSteuerung, Steuerung},
             Gehalten, GleisIdFehler, Gleise, ModusDaten,

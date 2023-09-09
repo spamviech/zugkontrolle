@@ -19,11 +19,9 @@ use crate::{
             self,
             id::{
                 mit_any_id2, AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerung2,
-                GleisId, GleisId2, StreckenabschnittId,
+                AnyIdSteuerungSerialisiert2, GleisId, GleisId2, StreckenabschnittId,
             },
-            nachricht::{
-                AnyIdSteuerungSerialisiert2, GleisSteuerung, Nachricht as GleiseNachricht,
-            },
+            nachricht::{GleisSteuerung, Nachricht as GleiseNachricht},
             Modus,
         },
         knopf::KnopfNachricht,
