@@ -163,17 +163,18 @@ impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachrich
         gleis_id: &GleisId<T>,
         f: impl FnOnce(&<T as MitSteuerung>::Steuerung) -> V,
     ) -> Result<V, GleisIdFehler> {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleis { definition, position: _ }: &Gleis<T> = &self
-            .zustand
-            .daten(streckenabschnitt)?
-            .rstern()
-            .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        let steuerung = definition.steuerung();
-        Ok(f(steuerung))
+        // let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        // let Gleis { definition, position: _ }: &Gleis<T> = &self
+        //     .zustand
+        //     .daten(streckenabschnitt)?
+        //     .rstern()
+        //     .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
+        //     .next()
+        //     .ok_or(GleisIdFehler::GleisEntfernt)?
+        //     .data;
+        // let steuerung = definition.steuerung();
+        // Ok(f(steuerung))
+        todo!()
     }
 
     #[zugkontrolle_macros::erstelle_daten_methoden]
@@ -184,17 +185,18 @@ impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachrich
         sender: impl 'static + AktualisierenSender,
         f: impl FnOnce(Steuerung<&mut <T as MitSteuerung>::Steuerung>) -> V,
     ) -> Result<V, GleisIdFehler> {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        let Gleis { definition, position: _ }: &mut Gleis<T> = &mut self
-            .zustand
-            .daten_mut(streckenabschnitt)?
-            .rstern_mut()
-            .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
-            .next()
-            .ok_or(GleisIdFehler::GleisEntfernt)?
-            .data;
-        let steuerung = definition.steuerung_mut(sender);
-        Ok(f(steuerung))
+        // let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
+        // let Gleis { definition, position: _ }: &mut Gleis<T> = &mut self
+        //     .zustand
+        //     .daten_mut(streckenabschnitt)?
+        //     .rstern_mut()
+        //     .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
+        //     .next()
+        //     .ok_or(GleisIdFehler::GleisEntfernt)?
+        //     .data;
+        // let steuerung = definition.steuerung_mut(sender);
+        // Ok(f(steuerung))
+        todo!()
     }
 }
 

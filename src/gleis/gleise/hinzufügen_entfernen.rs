@@ -50,12 +50,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let gleis_id =
-            self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(gleis_id)
+        // let gleis_id =
+        //     self.zustand.hinzufügen(definition, position, streckenabschnitt, einrasten)?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(gleis_id)
+        todo!()
     }
 
     /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
@@ -165,16 +166,17 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let gleis_id = self.zustand.hinzufügen_anliegend(
-            definition,
-            streckenabschnitt,
-            verbindung_name,
-            ziel_verbindung,
-        )?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(gleis_id)
+        // let gleis_id = self.zustand.hinzufügen_anliegend(
+        //     definition,
+        //     streckenabschnitt,
+        //     verbindung_name,
+        //     ziel_verbindung,
+        // )?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(gleis_id)
+        todo!()
     }
 
     /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung`
@@ -203,11 +205,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(())
+        // self.zustand.bewegen(gleis_id, position_neu, einrasten)?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(())
+        todo!()
     }
 
     /// Bewege ein [Gleis] an die neue [Position].
@@ -231,11 +234,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(())
+        // self.zustand.bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(())
+        todo!()
     }
 
     /// Bewege ein [Gleis], so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
@@ -256,11 +260,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let gleis = self.zustand.entfernen(gleis_id)?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(gleis)
+        // let gleis = self.zustand.entfernen(gleis_id)?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(gleis)
+        todo!()
     }
 
     /// Entferne das [Gleis] assoziiert mit der [GleisId].
@@ -278,11 +283,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         T: Debug + Zeichnen<()> + DatenAuswahl,
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let _gleis = self.zustand.entfernen(gleis_id)?;
-        // Erzwinge Neuzeichnen
-        self.erzwinge_neuzeichnen();
-        // Rückgabewert
-        Ok(())
+        // let _gleis = self.zustand.entfernen(gleis_id)?;
+        // // Erzwinge Neuzeichnen
+        // self.erzwinge_neuzeichnen();
+        // // Rückgabewert
+        // Ok(())
+        todo!()
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
@@ -312,35 +318,36 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
     {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let bisherige_daten = self.zustand.daten_mut(streckenabschnitt)?;
-        // Entferne aktuellen Eintrag.
-        let geom_with_data = bisherige_daten
-            .rstern_mut::<T>()
-            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisIdFehler::GleisEntfernt)?;
-        // Füge Eintrag bei neuem Streckenabschnitt hinzu.
-        match self.zustand.daten_mut(&streckenabschnitt_neu) {
-            Ok(neue_daten) => {
-                neue_daten.rstern_mut().insert(geom_with_data);
-                gleis_id.streckenabschnitt = streckenabschnitt_neu;
-                Ok(())
-            },
-            Err(fehler) => {
-                let daten = match self.zustand.daten_mut(&streckenabschnitt) {
-                    Ok(bisherige_daten) => bisherige_daten,
-                    Err(wiederherstellen_fehler) => {
-                        error!(
-                        "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nStreckenabschnitt für Gleis entfernt: {:?}",
-                        wiederherstellen_fehler, geom_with_data.data
-                    );
-                        &mut self.zustand.ohne_streckenabschnitt
-                    },
-                };
-                daten.rstern_mut().insert(geom_with_data);
-                Err(fehler.into())
-            },
-        }
+        // let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
+        // let bisherige_daten = self.zustand.daten_mut(streckenabschnitt)?;
+        // // Entferne aktuellen Eintrag.
+        // let geom_with_data = bisherige_daten
+        //     .rstern_mut::<T>()
+        //     .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
+        //     .ok_or(GleisIdFehler::GleisEntfernt)?;
+        // // Füge Eintrag bei neuem Streckenabschnitt hinzu.
+        // match self.zustand.daten_mut(&streckenabschnitt_neu) {
+        //     Ok(neue_daten) => {
+        //         neue_daten.rstern_mut().insert(geom_with_data);
+        //         gleis_id.streckenabschnitt = streckenabschnitt_neu;
+        //         Ok(())
+        //     },
+        //     Err(fehler) => {
+        //         let daten = match self.zustand.daten_mut(&streckenabschnitt) {
+        //             Ok(bisherige_daten) => bisherige_daten,
+        //             Err(wiederherstellen_fehler) => {
+        //                 error!(
+        //                 "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nStreckenabschnitt für Gleis entfernt: {:?}",
+        //                 wiederherstellen_fehler, geom_with_data.data
+        //             );
+        //                 &mut self.zustand.ohne_streckenabschnitt
+        //             },
+        //         };
+        //         daten.rstern_mut().insert(geom_with_data);
+        //         Err(fehler.into())
+        //     },
+        // }
+        todo!()
     }
 
     /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)

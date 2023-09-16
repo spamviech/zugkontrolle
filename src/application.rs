@@ -315,23 +315,9 @@ where
             }
         };
 
-        // macro_rules! erstelle_knopf {
-        //     () => {
-        //         |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
-        //     };
-        // }
-        // let geraden = zugtyp.geraden.iter().map(erstelle_knopf!()).collect();
-        // let kurven = zugtyp.kurven.iter().map(erstelle_knopf!()).collect();
-        // let weichen = zugtyp.weichen.iter().map(erstelle_knopf!()).collect();
-        // let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_knopf!()).collect();
-        // let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        // let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        // let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
-
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp,
             zugtyp2,
             modus,
             Position { punkt: Vektor { x, y }, winkel },

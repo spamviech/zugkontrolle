@@ -277,9 +277,6 @@ fn aktion_gleis_an_position<'t, L, AktualisierenNachricht>(
     cursor: &'t Cursor,
     spurweite: Spurweite,
     modus: &'t ModusDaten,
-    daten_iter: impl Iterator<
-        Item = (Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>, &'t GleiseDaten),
-    >,
     zustand2: &Zustand2<L>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
@@ -359,13 +356,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let spurweite = self.spurweite();
-                let Gleise { zustand, zustand2, pivot, skalieren, modus, .. } = self;
+                let Gleise { zustand2, pivot, skalieren, modus, .. } = self;
                 let (status, nachrichten) = aktion_gleis_an_position(
                     bounds,
                     &cursor,
                     spurweite,
                     modus,
-                    zustand.alle_streckenabschnitte_und_daten(),
                     zustand2,
                     pivot,
                     skalieren,
