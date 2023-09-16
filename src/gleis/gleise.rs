@@ -181,34 +181,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Ein vorher gespeicherter Streckenabschnitt mit identischem Namen wird zurückgegeben.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
-        mut streckenabschnitt: Streckenabschnitt,
-    ) -> Result<(StreckenabschnittId, Option<Streckenabschnitt>), StreckenabschnittHinzufügenFehler>
-    {
-        // let streckenabschnitt_map = match self.zustand.streckenabschnitt_map_mut(geschwindigkeit) {
-        //     Ok(streckenabschnitt_map) => streckenabschnitt_map,
-        //     Err(GeschwindigkeitEntferntFehler(name)) => {
-        //         return Err(StreckenabschnittHinzufügenFehler::GeschwindigkeitEntfernt(
-        //             name,
-        //             streckenabschnitt,
-        //         ))
-        //     },
-        // };
-        // let entry = streckenabschnitt_map.entry(name.clone());
-        // let bisher = match entry {
-        //     Entry::Occupied(mut occupied) => {
-        //         let bisher = occupied.get_mut();
-        //         std::mem::swap(&mut bisher.0, &mut streckenabschnitt);
-        //         Some(streckenabschnitt)
-        //     },
-        //     Entry::Vacant(vacant) => {
-        //         let _mut_ref = vacant.insert((streckenabschnitt, GleiseDaten::neu()));
-        //         None
-        //     },
-        // };
-        // Ok((StreckenabschnittId { geschwindigkeit: geschwindigkeit.cloned(), name }, bisher))
-        todo!()
+        streckenabschnitt: Streckenabschnitt,
+        geschwindigkeit: Option<geschwindigkeit::Name>,
+    ) -> Option<(Streckenabschnitt, Option<geschwindigkeit::Name>)> {
+        self.zustand2.streckenabschnitt_hinzufügen(name, streckenabschnitt, geschwindigkeit)
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).

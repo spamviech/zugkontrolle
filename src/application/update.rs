@@ -165,10 +165,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 ));
                 let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
 
-                if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
-                    geschwindigkeit,
-                    name,
+                if let Some(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
+                    name.clone(),
                     streckenabschnitt,
+                    geschwindigkeit.cloned(),
                 ) {
                     let bisherige_nachricht = if let Some((_titel, mut nachricht)) = fehlermeldung {
                         nachricht.push('\n');
@@ -177,10 +177,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                         String::new()
                     };
                     fehlermeldung = Some((
-                        format!("Streckenabschnitt {:?} anpassen", id),
+                        format!("Streckenabschnitt {:?} anpassen", name),
                         format!(
                             "{}Streckenabschnitt {:?} angepasst: {:?}",
-                            bisherige_nachricht, id, ersetzt
+                            bisherige_nachricht, name, ersetzt
                         ),
                     ));
                 }

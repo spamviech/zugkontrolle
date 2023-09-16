@@ -128,7 +128,7 @@ impl<R, T: Reserviere<R>> Reserviere<Gleis<R>> for Gleis<T> {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         arg: Self::Arg,
     ) -> Ergebnis<Gleis<R>> {
@@ -520,8 +520,25 @@ impl<L: Leiter> Zustand2<L> {
         &self.geschwindigkeiten
     }
 
+    pub(in crate::gleis::gleise) fn geschwindigkeit_hinzufügen(
+        &mut self,
+        name: geschwindigkeit::Name,
+        geschwindigkeit: Geschwindigkeit<L>,
+    ) -> Option<Geschwindigkeit<L>> {
+        self.geschwindigkeiten.insert(name, geschwindigkeit)
+    }
+
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
         &self.streckenabschnitte
+    }
+
+    pub(in crate::gleis::gleise) fn streckenabschnitt_hinzufügen(
+        &mut self,
+        name: streckenabschnitt::Name,
+        streckenabschnitt: Streckenabschnitt,
+        geschwindigkeit: Option<geschwindigkeit::Name>,
+    ) -> Option<(Streckenabschnitt, Option<geschwindigkeit::Name>)> {
+        self.streckenabschnitte.insert(name, (streckenabschnitt, geschwindigkeit))
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
