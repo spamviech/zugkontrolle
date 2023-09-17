@@ -101,7 +101,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     #[inline]
     pub fn streckenabschnitt_wählen(
         &mut self,
-        streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
+        streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
     ) {
         self.streckenabschnitt_aktuell = streckenabschnitt
     }
@@ -153,13 +153,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
         if let Some(streckenabschnitt) = streckenabschnitt {
             {
-                self.streckenabschnitt_aktuell = Some((
-                    StreckenabschnittId {
-                        geschwindigkeit: geschwindigkeit.cloned(),
-                        name: name.clone(),
-                    },
-                    farbe,
-                ));
+                self.streckenabschnitt_aktuell = Some((name.clone(), farbe));
                 let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
 
                 if let Some(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
@@ -190,25 +184,24 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Lösche einen [Streckenabschnitt].
-    pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
+    pub fn streckenabschnitt_löschen(&mut self, name: &streckenabschnitt::Name) {
         if self
             .streckenabschnitt_aktuell
             .as_ref()
-            .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
+            .map_or(false, |(aktuell_name, _farbe)| aktuell_name == name)
         {
             self.streckenabschnitt_aktuell = None
         }
 
         let nicht_gefunden_nachricht = format!(
-            "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
-            streckenabschnitt_id
+            "Streckenabschnitt {} sollte entfernt werden, aber wurde nicht gefunden!",
+            name.0
         );
-        match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
-            Ok(None) => error!("{nicht_gefunden_nachricht}"),
-            Ok(Some(_)) => {},
-            Err(fehler) => self.zeige_message_box(
-                "Fehler bei Streckenabschnitt löschen!".to_string(),
-                format!("{:?}", fehler),
+        match self.gleise.streckenabschnitt_entfernen(name) {
+            Ok(_) => {},
+            Err(name) => error!(
+                "Streckenabschnitt {} sollte entfernt werden, aber wurde nicht gefunden!",
+                name.0
             ),
         }
     }
@@ -222,7 +215,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 any_id,
                 self.streckenabschnitt_aktuell
                     .as_ref()
-                    .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.name.clone()),
+                    .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone()),
             ) {
                 self.zeige_message_box(
                     "Gleis entfernt".to_string(),
@@ -285,9 +278,9 @@ where
         let streckenabschnitt = self
             .streckenabschnitt_aktuell
             .as_ref()
-            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
+            .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
         let streckenabschnitt2 =
-            streckenabschnitt.map(|streckenabschnitt_id| streckenabschnitt_id.name.clone());
+            streckenabschnitt.map(|streckenabschnitt_name| streckenabschnitt_name.clone());
         if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus2(
             definition_steuerung,
             Vektor { x: Skalar(0.), y: klick_höhe },

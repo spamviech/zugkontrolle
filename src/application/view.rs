@@ -38,7 +38,7 @@ use crate::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
-    steuerung::geschwindigkeit::Leiter,
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
     typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen},
     zugtyp::DefinitionMap2,
 };
@@ -161,7 +161,7 @@ const SKALIEREN_BREITE: f32 = 75.;
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
-    streckenabschnitt_aktuell: &'t Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt_aktuell: &'t Option<(StreckenabschnittName, Farbe)>,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,

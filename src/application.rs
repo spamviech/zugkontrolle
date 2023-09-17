@@ -50,6 +50,7 @@ use crate::{
     steuerung::{
         self,
         geschwindigkeit::{BekannterLeiter, Leiter},
+        streckenabschnitt::Name as StreckenabschnittName,
     },
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
     zugtyp::{Zugtyp, Zugtyp2},
@@ -97,7 +98,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
     i2c_settings: I2cSettings,
-    streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt_aktuell: Option<(StreckenabschnittName, Farbe)>,
     streckenabschnitt_aktuell_festlegen: bool,
     bewegen: Bewegen,
     drehen: Drehen,
@@ -382,8 +383,8 @@ where
                 farbe,
                 anschluss_definition,
             ),
-            Nachricht::LöscheStreckenabschnitt(streckenabschnitt_id) => {
-                self.streckenabschnitt_löschen(streckenabschnitt_id)
+            Nachricht::LöscheStreckenabschnitt(streckenabschnitt_name) => {
+                self.streckenabschnitt_löschen(&streckenabschnitt_name)
             },
             Nachricht::SetzeStreckenabschnitt(any_id) => {
                 self.gleis_setzte_streckenabschnitt(any_id)

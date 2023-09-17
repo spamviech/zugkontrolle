@@ -550,6 +550,20 @@ impl<L: Leiter> Zustand2<L> {
         self.geschwindigkeiten.insert(name, geschwindigkeit)
     }
 
+    pub(in crate::gleis::gleise) fn geschwindigkeit_entfernen(
+        &mut self,
+        name: &geschwindigkeit::Name,
+    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+        for (_name, (_streckenabschnitt, geschwindigkeit)) in self.streckenabschnitte.iter_mut() {
+            if Some(name) == geschwindigkeit.as_ref() {
+                *geschwindigkeit = None;
+            }
+        }
+        self.geschwindigkeiten
+            .remove(name)
+            .ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+    }
+
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
         &self.streckenabschnitte
     }
@@ -583,6 +597,17 @@ impl<L: Leiter> Zustand2<L> {
         geschwindigkeit: Option<geschwindigkeit::Name>,
     ) -> Option<(Streckenabschnitt, Option<geschwindigkeit::Name>)> {
         self.streckenabschnitte.insert(name, (streckenabschnitt, geschwindigkeit))
+    }
+
+    pub(in crate::gleis::gleise) fn streckenabschnitt_entfernen(
+        &mut self,
+        name: &streckenabschnitt::Name,
+    ) -> Result<(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler2>
+    {
+        self.gleise.entferne_streckenabschnitt(name);
+        self.streckenabschnitte
+            .remove(name)
+            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
@@ -1306,6 +1331,33 @@ impl GleiseDaten2 {
             }};
         }
         mit_any_id2!({mut self}, [AnyId2 => id] gleis_id => setze_streckenabschnitt_aux!())
+    }
+
+    /// Entferne einen [Streckenabschnitt] aus allen Gleisen.
+    fn entferne_streckenabschnitt(&mut self, streckenabschnitt: &streckenabschnitt::Name) {
+        for (id, (gleis, _rectangle)) in self.geraden.iter_mut() {
+            if Some(streckenabschnitt) == gleis.streckenabschnitt.as_ref() {
+                gleis.streckenabschnitt = None;
+            }
+        }
+        macro_rules! entferne_streckenabschnitt_aux {
+            ($($gleis_map: ident),* $(,)?) => {{$(
+                for (id, (gleis, _rectangle)) in self.$gleis_map.iter_mut() {
+                    if Some(streckenabschnitt) == gleis.streckenabschnitt.as_ref() {
+                        gleis.streckenabschnitt = None;
+                    }
+                }
+            )*}};
+        }
+        entferne_streckenabschnitt_aux!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        )
     }
 }
 

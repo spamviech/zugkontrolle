@@ -131,7 +131,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
     /// Wähle den aktuellen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
-    WähleStreckenabschnitt(Option<(StreckenabschnittId, Farbe)>),
+    WähleStreckenabschnitt(Option<(StreckenabschnittName, Farbe)>),
     /// Hinzufügen eines neuen [Streckenabschnittes](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
         /// Der Name der assoziierten [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
@@ -144,7 +144,7 @@ pub enum Nachricht<L: Leiter, S> {
         OutputSerialisiert,
     ),
     /// Lösche einen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
-    LöscheStreckenabschnitt(StreckenabschnittId),
+    LöscheStreckenabschnitt(StreckenabschnittName),
     /// Setze den [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt) des spezifizierten Gleises,
     /// sofern es über [StreckenabschnittFestlegen](Nachricht::StreckenabschnittFestlegen)
     /// aktiviert wurde.

@@ -216,19 +216,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Schlägt fehl, wenn noch Gleise den Streckenabschnitt zugeordnet waren.
     pub fn streckenabschnitt_entfernen(
         &mut self,
-        streckenabschnitt_id: StreckenabschnittId,
-    ) -> Result<Option<Streckenabschnitt>, StreckenabschnittBearbeitenFehler> {
-        // let StreckenabschnittId { geschwindigkeit, name: _ } = &streckenabschnitt_id;
-        // let streckenabschnitt_map =
-        //     self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        // self.canvas.leeren();
-        // streckenabschnitt_entfernen(
-        //     streckenabschnitt_map,
-        //     streckenabschnitt_id,
-        //     Some,
-        //     |_streckenabschnitt_id| Ok(None),
-        // )
-        todo!()
+        name: &streckenabschnitt::Name,
+    ) -> Result<Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+        self.zustand2
+            .streckenabschnitt_entfernen(name)
+            .map(|(streckenabschnitt, _geschwindigkeit)| streckenabschnitt)
     }
 
     /// Alle aktuell bekannten Streckenabschnitte.

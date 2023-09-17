@@ -32,7 +32,7 @@ use crate::{
     gleis::gleise::{id::StreckenabschnittId, Gleise},
     steuerung::{
         geschwindigkeit::{self, Leiter},
-        streckenabschnitt::{Name, Streckenabschnitt},
+        streckenabschnitt::{self, Name, Streckenabschnitt},
     },
     typen::farbe::Farbe,
     util::unicase_ord::UniCaseOrd,
@@ -67,15 +67,11 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(
-        zustand: &'a Option<(StreckenabschnittId, Farbe)>,
-        festlegen: bool,
-        overlay: Overlay,
-    ) -> Self {
+    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
-        let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
-            children.push(Text::new(&streckenabschnitt_id.name.0).into());
+        let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
+            children.push(Text::new(&streckenabschnitt_name.0).into());
             style::streckenabschnitt::anzeige_farbe(*farbe)
         } else {
             children.push(
@@ -171,11 +167,11 @@ pub enum AuswahlNachricht {
     /// Schließe das Auswahl-Fenster.
     Schließe,
     /// Wähle den aktuellen Streckenabschnitt.
-    Wähle(Option<(StreckenabschnittId, Farbe)>),
+    Wähle(Option<(Name, Farbe)>),
     /// Füge einen neuen Streckenabschnitt hinzu.
     Hinzufügen(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
     /// Lösche einen Streckenabschnitt.
-    Lösche(StreckenabschnittId),
+    Lösche(Name),
 }
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
@@ -220,9 +216,7 @@ where
                 InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
                 InterneAuswahlNachricht::Wähle(wahl) => {
                     vec![
-                        AuswahlNachricht::Wähle(
-                            wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
-                        ),
+                        AuswahlNachricht::Wähle(wahl.map(|(name, farbe)| (name, farbe))),
                         AuswahlNachricht::Schließe,
                     ]
                 },
@@ -236,7 +230,7 @@ where
                     vec![nachricht]
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
-                    vec![AuswahlNachricht::Lösche(erstelle_id(name))]
+                    vec![AuswahlNachricht::Lösche(name)]
                 },
                 InterneAuswahlNachricht::Name(name) => {
                     zustand.neu_name = name;
