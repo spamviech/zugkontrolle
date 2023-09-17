@@ -115,10 +115,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         anschluss_definition: OutputSerialisiert,
     ) {
         let id_ref = StreckenabschnittIdRef { geschwindigkeit, name: &name };
-        let message_opt = match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
-            geschwindigkeit: geschwindigkeit.cloned(),
-            name: name.clone(),
-        }) {
+        let message_opt = match self.gleise.streckenabschnitt_mut(&name) {
             Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {

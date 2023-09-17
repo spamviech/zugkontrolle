@@ -21,7 +21,10 @@ use crate::{
     anschluss,
     application::style::thema::Thema,
     gleis::gleise::{
-        daten::{GleiseDaten, StreckenabschnittMap, Zustand, Zustand2},
+        daten::{
+            GeschwindigkeitEntferntFehler2, GleiseDaten, StreckenabschnittEntferntFehler2,
+            StreckenabschnittMap, Zustand, Zustand2,
+        },
         id::{StreckenabschnittId, StreckenabschnittIdRef},
         nachricht::{Gehalten, Gehalten2, Nachricht},
     },
@@ -191,34 +194,21 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt<'s>(
         &'s self,
-        streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<&'s Streckenabschnitt, StreckenabschnittIdFehler> {
-        // let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        // let streckenabschnitt_map = self.zustand.streckenabschnitt_map(geschwindigkeit.as_ref())?;
-        // streckenabschnitt_map
-        //     .get(name)
-        //     .map(|(streckenabschnitt, _daten)| streckenabschnitt)
-        //     .ok_or_else(|| {
-        //         StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
-        //     })
-        todo!()
+        streckenabschnitt: &streckenabschnitt::Name,
+    ) -> Result<&'s Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+        self.zustand2
+            .streckenabschnitt(streckenabschnitt)
+            .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
-        streckenabschnitt: &StreckenabschnittId,
-    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittIdFehler> {
-        // let StreckenabschnittId { geschwindigkeit, name } = streckenabschnitt;
-        // let streckenabschnitt_map =
-        //     self.zustand.streckenabschnitt_map_mut(geschwindigkeit.as_ref())?;
-        // streckenabschnitt_map
-        //     .get_mut(name)
-        //     .map(|(streckenabschnitt, _daten)| streckenabschnitt)
-        //     .ok_or_else(|| {
-        //         StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt.klonen())
-        //     })
-        todo!()
+        streckenabschnitt: &streckenabschnitt::Name,
+    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+        self.zustand2
+            .streckenabschnitt_mut(streckenabschnitt)
+            .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
 
     /// Entferne einen Streckenabschnitt.

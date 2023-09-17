@@ -500,6 +500,12 @@ pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
     pläne: HashMap<plan::Name, Plan<L>>,
 }
 
+/// Die gesuchte [Geschwindigkeit] wurde entfernt.
+pub struct GeschwindigkeitEntferntFehler2(pub geschwindigkeit::Name);
+
+/// Der gesuchte [Streckenabschnitt] wurde entfernt.
+pub struct StreckenabschnittEntferntFehler2(pub streckenabschnitt::Name);
+
 impl<L: Leiter> Zustand2<L> {
     /// Erstelle einen neuen [Zustand].
     pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp2<L>) -> Self {
@@ -520,6 +526,22 @@ impl<L: Leiter> Zustand2<L> {
         &self.geschwindigkeiten
     }
 
+    pub(in crate::gleis::gleise) fn geschwindigkeit(
+        &self,
+        name: &geschwindigkeit::Name,
+    ) -> Result<&Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+        self.geschwindigkeiten.get(name).ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+    }
+
+    pub(in crate::gleis::gleise) fn geschwindigkeit_mut(
+        &mut self,
+        name: &geschwindigkeit::Name,
+    ) -> Result<&mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+        self.geschwindigkeiten
+            .get_mut(name)
+            .ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+    }
+
     pub(in crate::gleis::gleise) fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -530,6 +552,28 @@ impl<L: Leiter> Zustand2<L> {
 
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
         &self.streckenabschnitte
+    }
+
+    pub(in crate::gleis::gleise) fn streckenabschnitt(
+        &self,
+        name: &streckenabschnitt::Name,
+    ) -> Result<&(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler2>
+    {
+        self.streckenabschnitte
+            .get(name)
+            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
+    }
+
+    pub(in crate::gleis::gleise) fn streckenabschnitt_mut(
+        &mut self,
+        name: &streckenabschnitt::Name,
+    ) -> Result<
+        &mut (Streckenabschnitt, Option<geschwindigkeit::Name>),
+        StreckenabschnittEntferntFehler2,
+    > {
+        self.streckenabschnitte
+            .get_mut(name)
+            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn streckenabschnitt_hinzufügen(
