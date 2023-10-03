@@ -108,6 +108,20 @@ erzeuge_any_enum! {
     (Gleis2<[]>),
 }
 
+erzeuge_any_enum! {
+    (pub(crate)) AnyGleisRef2<'t>,
+    "Ein beliebiges Gleis.",
+    [Debug, Clone],
+    (&'t Gleis2<[]>),
+}
+
+erzeuge_any_enum! {
+    (pub(crate)) AnyGleisMut2<'t>,
+    "Ein beliebiges Gleis.",
+    [Debug],
+    (&'t mut Gleis2<[]>),
+}
+
 #[allow(single_use_lifetimes)]
 impl<T, S> Serialisiere<Gleis<S>> for Gleis<T>
 where

@@ -193,11 +193,11 @@ macro_rules! ersetzte_eckige_klammern {
 pub(in crate::gleis::gleise) use ersetzte_eckige_klammern;
 
 macro_rules! erzeuge_any_enum {
-    ($(($vis: vis))? $name: ident, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
+    ($(($vis: vis))? $name: ident$(<$($lt: lifetime),*>)?, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
         #[doc = $doc]
         #[derive(zugkontrolle_macros::From, $($derives),*)]
         #[allow(unused_qualifications)]
-        $($vis)? enum $name {
+        $($vis)? enum $name$(<$($lt),*>)? {
             /// Variante für eine [Gerade](crate::gleis::gerade::Gerade).
             Gerade($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
             /// Variante für eine [Kurve](crate::gleis::kurve::Kurve).

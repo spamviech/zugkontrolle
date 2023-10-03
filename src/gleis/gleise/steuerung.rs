@@ -11,7 +11,7 @@ use crate::{
         self,
         gleise::{
             daten::{DatenAuswahl, Gleis, SelectEnvelope},
-            id::GleisId,
+            id::{AnyId2, GleisId},
             GleisIdFehler, Gleise,
         },
     },
