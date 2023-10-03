@@ -68,7 +68,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
-        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp());
+        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp2());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
         }
@@ -85,7 +85,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         S: 'static + Send,
     {
         let join_handle = aktion
-            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp()), self.sender.clone());
+            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp2()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = thread::spawn(move || {
@@ -322,7 +322,7 @@ where
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
     /// Entferne eine [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+    pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
@@ -341,13 +341,11 @@ where
         geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
     ) {
         let Zugkontrolle { gleise, .. } = self;
-        let (alt_serialisiert_und_map, anschlüsse) =
-            if let Some((geschwindigkeit, streckenabschnitt_map)) =
-                gleise.geschwindigkeit_mit_streckenabschnitten_entfernen(&name)
-            {
+        let (alt_serialisiert, anschlüsse) =
+            if let Ok(geschwindigkeit) = gleise.geschwindigkeit_entfernen(&name) {
                 let serialisiert = geschwindigkeit.serialisiere();
                 let anschlüsse = geschwindigkeit.anschlüsse();
-                (Some((serialisiert, streckenabschnitt_map)), anschlüsse)
+                (Some(serialisiert), anschlüsse)
             } else {
                 (None, Anschlüsse::default())
             };
@@ -355,22 +353,17 @@ where
         let (fehler, anschlüsse) =
             match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
-                    let streckenabschnitt_map = if let Some((serialisiert, streckenabschnitt_map)) =
-                        alt_serialisiert_und_map
-                    {
+                    if let Some(serialisiert) = alt_serialisiert {
                         self.zeige_message_box(
                             format!("Geschwindigkeit {} anpassen", name.0),
                             format!("Geschwindigkeit {} angepasst: {:?}", name.0, serialisiert),
                         );
-                        streckenabschnitt_map
-                    } else {
-                        StreckenabschnittMap::new()
                     };
-                    let _ = self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                        name,
-                        geschwindigkeit,
-                        streckenabschnitt_map,
-                    );
+                    if let Some(bisher) =
+                        self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
+                    {
+                        error!("Geschwindigkeit {bisher} beim wiederherstellen überschrieben!");
+                    }
                     return;
                 },
                 FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
@@ -381,7 +374,7 @@ where
             };
 
         let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
-        if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
+        if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
             let (geschwindigkeit, fehler) =
                 match serialisiert.reserviere(&mut self.lager, anschlüsse, ()) {
@@ -394,11 +387,7 @@ where
             if let Some(geschwindigkeit) = geschwindigkeit {
                 // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
                 // nachdem nur wiederhergestellt wird
-                let _ = gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                    name.clone(),
-                    geschwindigkeit,
-                    streckenabschnitt_map,
-                );
+                let _ = gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
             }
             if let Some(fehler) = fehler {
                 fehlermeldung.push_str(&format!(

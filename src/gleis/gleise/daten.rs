@@ -501,9 +501,11 @@ pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
 }
 
 /// Die gesuchte [Geschwindigkeit] wurde entfernt.
+#[derive(Debug)]
 pub struct GeschwindigkeitEntferntFehler2(pub geschwindigkeit::Name);
 
 /// Der gesuchte [Streckenabschnitt] wurde entfernt.
+#[derive(Debug)]
 pub struct StreckenabschnittEntferntFehler2(pub streckenabschnitt::Name);
 
 impl<L: Leiter> Zustand2<L> {

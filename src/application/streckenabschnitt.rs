@@ -29,10 +29,10 @@ use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
     argumente::I2cSettings,
-    gleis::gleise::{id::StreckenabschnittId, Gleise},
+    gleis::gleise::Gleise,
     steuerung::{
         geschwindigkeit::{self, Leiter},
-        streckenabschnitt::{self, Name, Streckenabschnitt},
+        streckenabschnitt::{Name, Streckenabschnitt},
     },
     typen::farbe::Farbe,
     util::unicase_ord::UniCaseOrd,
@@ -132,11 +132,9 @@ impl AuswahlZustand {
             neu_name: String::new(),
             neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            streckenabschnitte: gleise.aus_allen_streckenabschnitten(
-                |streckenabschnitt_id, streckenabschnitt| {
-                    Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
-                },
-            ),
+            streckenabschnitte: gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
+                Self::iter_map((name, streckenabschnitt))
+            }),
         }
     }
 
@@ -211,7 +209,6 @@ where
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
-            let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
                 InterneAuswahlNachricht::Wähle(wahl) => {

@@ -406,7 +406,7 @@ where
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
-            Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
+            Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(&name),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 self.anschlüsse_anpassen(anschlüsse_anpassen)
             },
