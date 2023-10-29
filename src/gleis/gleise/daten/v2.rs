@@ -28,7 +28,7 @@ use crate::{
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     util::{eingeschränkt::kleiner_8, void::Void},
-    zugtyp::Zugtyp,
+    zugtyp::Zugtyp2,
 };
 
 /// Beschreibung eines [anschluss::pcf85747::Pcf8574].
@@ -451,7 +451,7 @@ pub trait BekannterZugtyp: BekannterLeiter {
     type V2;
 
     /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
+    fn bekannter_zugtyp(name: &str) -> Option<&'static Zugtyp2<Self>>;
 }
 
 #[derive(Deserialize)]
@@ -491,9 +491,9 @@ enum MittelleiterSerialisiertEnum {
 impl BekannterZugtyp for Mittelleiter {
     type V2 = MittelleiterSerialisiert;
 
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+    fn bekannter_zugtyp(name: &str) -> Option<&'static Zugtyp2<Self>> {
         if name == "Märklin" {
-            Some(Zugtyp::märklin())
+            Some(Zugtyp2::märklin())
         } else {
             None
         }
@@ -554,9 +554,9 @@ enum ZweileiterSerialisiertEnum {
 impl BekannterZugtyp for Zweileiter {
     type V2 = ZweileiterSerialisiert;
 
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+    fn bekannter_zugtyp(name: &str) -> Option<&'static Zugtyp2<Self>> {
         if name == "Lego" {
-            Some(Zugtyp::lego())
+            Some(Zugtyp2::lego())
         } else {
             None
         }
@@ -632,7 +632,7 @@ pub(crate) struct GleiseVecs<LeiterV2> {
     pläne: HashMap<plan::Name, Void>,
 }
 
-impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
+impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
     TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>>
     for aktuell::de_serialisieren::ZustandSerialisiert<L, S>
 {
@@ -696,7 +696,7 @@ impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
             })
             .collect();
         Ok(aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp: zugtyp.into(),
+            zugtyp: zugtyp.clone().into(),
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,

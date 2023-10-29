@@ -9,8 +9,12 @@ use std::{
     sync::mpsc::Sender,
 };
 
-use bincode::{DefaultOptions, Options};
+use bincode::config::{
+    DefaultOptions, FixintEncoding, Options, RejectTrailing, WithOtherIntEncoding,
+    WithOtherTrailing,
+};
 use nonempty::NonEmpty;
+use once_cell::sync::Lazy;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree,
@@ -29,8 +33,8 @@ use crate::{
             self,
             daten::{
                 v2::{self, BekannterZugtyp},
-                DatenAuswahl, GeschwindigkeitMap, Gleis, GleiseDaten, SelectAll,
-                StreckenabschnittMap, Zustand,
+                DatenAuswahl, GeschwindigkeitMap, Gleis, Gleis2, GleiseDaten, SelectAll,
+                StreckenabschnittMap, Zustand, Zustand2,
             },
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
@@ -53,8 +57,14 @@ use crate::{
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::{FalscherLeiter, Zugtyp, ZugtypSerialisiert},
+    zugtyp::{Zugtyp, ZugtypDeserialisierenFehler, ZugtypSerialisiert},
 };
+
+// Im Gegensatz zu [DefaultOptions] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
+// https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
+static BINCODE_OPTIONS: Lazy<
+    WithOtherTrailing<WithOtherIntEncoding<DefaultOptions, FixintEncoding>, RejectTrailing>,
+> = Lazy::new(|| DefaultOptions::new().with_fixint_encoding().reject_trailing_bytes());
 
 /// Fehler der beim [Laden](Gleise::laden) auftreten kann.
 #[derive(Debug, zugkontrolle_macros::From)]
@@ -257,101 +267,103 @@ pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
     pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
-impl<L: Leiter> Zustand<L> {
+impl<L: Leiter> Zustand2<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
     pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
     where
         L: Serialisiere<S> + BekannterLeiter,
         <L as Leiter>::Fahrtrichtung: Clone,
     {
-        let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
-            map.iter()
-                .map(|(name, (streckenabschnitt, daten))| {
-                    (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
-                })
-                .collect()
-        };
+        // let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
+        //     map.iter()
+        //         .map(|(name, (streckenabschnitt, daten))| {
+        //             (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
+        //         })
+        //         .collect()
+        // };
 
-        ZustandSerialisiert {
-            zugtyp: self.zugtyp.clone().into(),
-            ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
-            ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
-            geschwindigkeiten: self
-                .geschwindigkeiten
-                .iter()
-                .map(|(name, (geschwindigkeit, streckenabschnitt_map))| {
-                    (
-                        name.clone(),
-                        (
-                            geschwindigkeit.serialisiere(),
-                            serialisiere_streckenabschnitt_map(streckenabschnitt_map),
-                        ),
-                    )
-                })
-                .collect(),
-            pläne: self
-                .pläne
-                .iter()
-                .map(|(name, plan)| (name.clone(), plan.serialisiere()))
-                .collect(),
-        }
+        // ZustandSerialisiert {
+        //     zugtyp: self.zugtyp.clone().into(),
+        //     ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
+        //     ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
+        //     geschwindigkeiten: self
+        //         .geschwindigkeiten
+        //         .iter()
+        //         .map(|(name, (geschwindigkeit, streckenabschnitt_map))| {
+        //             (
+        //                 name.clone(),
+        //                 (
+        //                     geschwindigkeit.serialisiere(),
+        //                     serialisiere_streckenabschnitt_map(streckenabschnitt_map),
+        //                 ),
+        //             )
+        //         })
+        //         .collect(),
+        //     pläne: self
+        //         .pläne
+        //         .iter()
+        //         .map(|(name, plan)| (name.clone(), plan.serialisiere()))
+        //         .collect(),
+        // }
+        todo!()
     }
 
     fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
     where
         L: Serialisiere<S>,
     {
-        #[allow(single_use_lifetimes)]
-        fn collect_gleis_anschlüsse<T, S>(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse)
-        where
-            T: DatenAuswahl + Serialisiere<S>,
-        {
-            while let Some(geom_with_data) =
-                daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
-            {
-                anschlüsse.anhängen(geom_with_data.data.definition.anschlüsse())
-            }
-        }
-        fn collect_daten_anschlüsse(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse) {
-            macro_rules! collect_gleis_anschlüsse {
-                ($($typ: ident - $serialisiert: ident),* $(,)?) => {$(
-                    collect_gleis_anschlüsse::<$typ, $serialisiert>(daten, anschlüsse)
-                );*}
-            }
-            collect_gleis_anschlüsse! {
-                Gerade - GeradeSerialisiert,
-                Kurve - KurveSerialisiert,
-                Weiche - WeicheSerialisiert,
-                DreiwegeWeiche - DreiwegeWeicheSerialisiert,
-                KurvenWeiche - KurvenWeicheSerialisiert,
-                SKurvenWeiche - SKurvenWeicheSerialisiert,
-                Kreuzung - KreuzungSerialisiert,
-            }
-        }
-        fn collect_streckenabschnitt_map_anschlüsse(
-            streckenabschnitt_map: &mut StreckenabschnittMap,
-            anschlüsse: &mut Anschlüsse,
-        ) {
-            for (_name, (streckenabschnitt, mut daten)) in streckenabschnitt_map.drain() {
-                anschlüsse.anhängen(streckenabschnitt.anschlüsse());
-                collect_daten_anschlüsse(&mut daten, anschlüsse);
-            }
-        }
+        // #[allow(single_use_lifetimes)]
+        // fn collect_gleis_anschlüsse<T, S>(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse)
+        // where
+        //     T: DatenAuswahl + Serialisiere<S>,
+        // {
+        //     while let Some(geom_with_data) =
+        //         daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
+        //     {
+        //         anschlüsse.anhängen(geom_with_data.data.definition.anschlüsse())
+        //     }
+        // }
+        // fn collect_daten_anschlüsse(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse) {
+        //     macro_rules! collect_gleis_anschlüsse {
+        //         ($($typ: ident - $serialisiert: ident),* $(,)?) => {$(
+        //             collect_gleis_anschlüsse::<$typ, $serialisiert>(daten, anschlüsse)
+        //         );*}
+        //     }
+        //     collect_gleis_anschlüsse! {
+        //         Gerade - GeradeSerialisiert,
+        //         Kurve - KurveSerialisiert,
+        //         Weiche - WeicheSerialisiert,
+        //         DreiwegeWeiche - DreiwegeWeicheSerialisiert,
+        //         KurvenWeiche - KurvenWeicheSerialisiert,
+        //         SKurvenWeiche - SKurvenWeicheSerialisiert,
+        //         Kreuzung - KreuzungSerialisiert,
+        //     }
+        // }
+        // fn collect_streckenabschnitt_map_anschlüsse(
+        //     streckenabschnitt_map: &mut StreckenabschnittMap,
+        //     anschlüsse: &mut Anschlüsse,
+        // ) {
+        //     for (_name, (streckenabschnitt, mut daten)) in streckenabschnitt_map.drain() {
+        //         anschlüsse.anhängen(streckenabschnitt.anschlüsse());
+        //         collect_daten_anschlüsse(&mut daten, anschlüsse);
+        //     }
+        // }
 
-        let mut anschlüsse = Anschlüsse::default();
-        collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
-        collect_streckenabschnitt_map_anschlüsse(&mut self.ohne_geschwindigkeit, &mut anschlüsse);
-        for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
-        {
-            anschlüsse.anhängen(geschwindigkeit.anschlüsse());
-            collect_streckenabschnitt_map_anschlüsse(&mut streckenabschnitt_map, &mut anschlüsse);
-        }
-        anschlüsse
+        // let mut anschlüsse = Anschlüsse::default();
+        // collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
+        // collect_streckenabschnitt_map_anschlüsse(&mut self.ohne_geschwindigkeit, &mut anschlüsse);
+        // for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
+        // {
+        //     anschlüsse.anhängen(geschwindigkeit.anschlüsse());
+        //     collect_streckenabschnitt_map_anschlüsse(&mut streckenabschnitt_map, &mut anschlüsse);
+        // }
+        // anschlüsse
+        todo!()
     }
 }
 
-impl<S> From<FalscherLeiter> for LadenFehler<S> {
-    fn from(fehler: FalscherLeiter) -> Self {
+impl<S> From<ZugtypDeserialisierenFehler> for LadenFehler<S> {
+    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
@@ -506,7 +518,7 @@ where
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         sender: &Sender<Nachricht>,
-    ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), FalscherLeiter> {
+    ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), ZugtypDeserialisierenFehler> {
         let mut bekannte_geschwindigkeiten = HashMap::new();
         let mut bekannte_streckenabschnitte = HashMap::new();
         let mut bekannte_gerade_weichen = HashMap::new();
@@ -522,7 +534,9 @@ where
             pläne: pläne_serialisiert,
         } = self;
 
-        let zugtyp = Zugtyp::try_from(zugtyp)?;
+        // let zugtyp = Zugtyp::try_from(zugtyp)?;
+        let zugtyp: Zugtyp<L> = todo!();
+        let _ = ();
 
         let mut fehler = Vec::new();
 
@@ -621,11 +635,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         <L as Leiter>::Fahrtrichtung: Clone + Serialize,
         S: Serialize,
     {
-        // let serialisiert: ZustandSerialisiert<L, S> = self.zustand.serialisiere();
-        let serialisiert: ZustandSerialisiert<L, S> = todo!();
-        let _ = ();
+        let serialisiert: ZustandSerialisiert<L, S> = self.zustand2.serialisiere();
         let file = fs::File::create(pfad)?;
-        bincode::serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
+        BINCODE_OPTIONS.serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
 
     /// Lade Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
@@ -664,13 +676,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let _ =
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
-        // Im Gegensatz zu [DefaultOptions] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
-        // https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
-        let options = DefaultOptions::new().with_fixint_encoding().reject_trailing_bytes();
-        let zustand_serialisiert: ZustandSerialisiert<L, S> = options
+        let zustand_serialisiert: ZustandSerialisiert<L, S> = BINCODE_OPTIONS
             .deserialize(slice)
             .or_else(|aktuell| {
-                match options.deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                match BINCODE_OPTIONS
+                    .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
+                {
                     Ok(v2) => v2.try_into().map_err(LadenFehler::from),
                     Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
                 }

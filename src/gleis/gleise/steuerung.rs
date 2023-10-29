@@ -240,8 +240,8 @@ macro_rules! impl_mit_steuerung_weiche {
     }
 }
 
-impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>,Option<KontaktSerialisiert>, kontakt}
-impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>,Option<KontaktSerialisiert>, kontakt}
+impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
+impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
 impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
 impl_mit_steuerung! {
     gleis::weiche::dreiwege::DreiwegeWeiche,

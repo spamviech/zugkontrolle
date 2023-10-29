@@ -32,7 +32,7 @@ use crate::{
         vektor::Vektor,
         winkel::Winkel,
     },
-    zugtyp::{FalscherLeiter, Zugtyp2},
+    zugtyp::{Zugtyp2, ZugtypDeserialisierenFehler},
 };
 
 pub mod daten;
@@ -383,8 +383,8 @@ pub enum Fehler {
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
 
-impl From<FalscherLeiter> for Fehler {
-    fn from(fehler: FalscherLeiter) -> Self {
+impl From<ZugtypDeserialisierenFehler> for Fehler {
+    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
         Fehler::Anschluss(fehler.into())
     }
 }

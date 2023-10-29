@@ -2,16 +2,20 @@
 
 use std::{marker::PhantomData, time::Duration};
 
+use once_cell::sync::Lazy;
+
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
+        gleise::id::DefinitionId2,
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
-            dreiwege::DreiwegeWeicheUnit,
-            gerade::WeicheUnit,
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
             kurve::{KurvenWeiche, KurvenWeicheUnit},
             orientierung::Orientierung,
+            s_kurve::SKurvenWeiche,
         },
     },
     steuerung::geschwindigkeit::Mittelleiter,
@@ -20,54 +24,74 @@ use crate::{
         winkel::WinkelGradmaß,
     },
     util::eingeschränkt::{NichtNegativ, NullBisEins},
-    zugtyp::Zugtyp,
+    zugtyp::{erzeuge_maps, Zugtyp2},
 };
 
-impl Zugtyp<Mittelleiter> {
+static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
+    let geraden = [
+        gerade_5106(),
+        gerade_5107(),
+        gerade_5108(),
+        gerade_5109(),
+        gerade_5110(),
+        gerade_5129(),
+        gerade_5208(),
+        gerade_5210(),
+    ];
+    let kurven = [
+        kurve_5100(),
+        kurve_5101(),
+        kurve_5102(),
+        kurve_5120(),
+        kurve_5200(),
+        kurve_5201(),
+        kurve_5205(),
+        kurve_5206(),
+    ];
+    let weichen = [
+        weiche_5117_links(),
+        weiche_5117_rechts(),
+        weiche_5137_links(),
+        weiche_5137_rechts(),
+        weiche_5202_links(),
+        weiche_5202_rechts(),
+    ];
+    let dreiwege_weichen = [dreiwege_weiche_5214()];
+    let kurven_weichen = [kurven_weiche_5140_links(), kurven_weiche_5140_rechts()];
+    let s_kurven_weichen = [];
+    let kreuzungen = [kreuzung_5128(), kreuzung_5207()];
+    erzeuge_maps!(
+        geraden: Gerade | "Anzahl der Geraden kann man an den Händen abzählen.",
+        kurven: Kurve | "Anzahl der Kurven kann man an den Händen abzählen.",
+        weichen: Weiche | "Anzahl der Weichen kann man an den Händen abzählen.",
+        dreiwege_weichen: DreiwegeWeiche | "Anzahl der Dreiwege-Weichen kann man an den Händen abzählen.",
+        kurven_weichen: KurvenWeiche | "Anzahl der Kurven-Weichen kann man an den Händen abzählen.",
+        s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
+        kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
+    );
+    Zugtyp2 {
+        name: "Märklin".to_string(),
+        leiter: PhantomData,
+        spurweite: Spurweite::neu(16.5),
+        geraden,
+        kurven,
+        weichen,
+        dreiwege_weichen,
+        kurven_weichen,
+        s_kurven_weichen,
+        kreuzungen,
+        pwm_frequenz: NichtNegativ::neu_unchecked(50.),
+        verhältnis_fahrspannung_überspannung: NullBisEins::neu_unchecked(16. / 25.),
+        stopp_zeit: Duration::from_millis(500),
+        umdrehen_zeit: Duration::from_millis(500),
+        schalten_zeit: Duration::from_millis(400),
+    }
+});
+
+impl Zugtyp2<Mittelleiter> {
     /// Märklin
-    pub fn märklin() -> Zugtyp<Mittelleiter> {
-        Zugtyp {
-            name: "Märklin".to_string(),
-            leiter: PhantomData,
-            spurweite: Spurweite::neu(16.5),
-            geraden: vec![
-                gerade_5106(),
-                gerade_5107(),
-                gerade_5108(),
-                gerade_5109(),
-                gerade_5110(),
-                gerade_5129(),
-                gerade_5208(),
-                gerade_5210(),
-            ],
-            kurven: vec![
-                kurve_5100(),
-                kurve_5101(),
-                kurve_5102(),
-                kurve_5120(),
-                kurve_5200(),
-                kurve_5201(),
-                kurve_5205(),
-                kurve_5206(),
-            ],
-            weichen: vec![
-                weiche_5117_links(),
-                weiche_5117_rechts(),
-                weiche_5137_links(),
-                weiche_5137_rechts(),
-                weiche_5202_links(),
-                weiche_5202_rechts(),
-            ],
-            dreiwege_weichen: vec![dreiwege_weiche_5214()],
-            kurven_weichen: vec![kurven_weiche_5140_links(), kurven_weiche_5140_rechts()],
-            s_kurven_weichen: vec![],
-            kreuzungen: vec![kreuzung_5128(), kreuzung_5207()],
-            pwm_frequenz: NichtNegativ::neu_unchecked(50.),
-            verhältnis_fahrspannung_überspannung: NullBisEins::neu_unchecked(16. / 25.),
-            stopp_zeit: Duration::from_millis(500),
-            umdrehen_zeit: Duration::from_millis(500),
-            schalten_zeit: Duration::from_millis(400),
-        }
+    pub fn märklin() -> &'static Zugtyp2<Mittelleiter> {
+        &MÄRKLIN
     }
 }
 

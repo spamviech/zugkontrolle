@@ -2,12 +2,17 @@
 
 use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
+use once_cell::sync::Lazy;
+
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
+            dreiwege::DreiwegeWeiche,
+            gerade::Weiche,
+            kurve::KurvenWeiche,
             orientierung::Orientierung,
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
@@ -18,29 +23,49 @@ use crate::{
         winkel::Winkel,
     },
     util::eingeschränkt::NichtNegativ,
-    zugtyp::Zugtyp,
+    zugtyp::{erzeuge_maps, Zugtyp2},
 };
 
-impl Zugtyp<Zweileiter> {
+static LEGO: Lazy<Zugtyp2<Zweileiter>> = Lazy::new(|| {
+    let geraden = [gerade()];
+    let kurven = [kurve()];
+    let weichen = [];
+    let dreiwege_weichen = [];
+    let kurven_weichen = [];
+    let s_kurven_weichen = [weiche(Orientierung::Links), weiche(Orientierung::Rechts)];
+    let kreuzungen = [kreuzung()];
+    erzeuge_maps!(
+        geraden: Gerade | "Anzahl der Geraden kann man an den Händen abzählen.",
+        kurven: Kurve | "Anzahl der Kurven kann man an den Händen abzählen.",
+        weichen: Weiche | "Anzahl der Weichen kann man an den Händen abzählen.",
+        dreiwege_weichen: DreiwegeWeiche | "Anzahl der Dreiwege-Weichen kann man an den Händen abzählen.",
+        kurven_weichen: KurvenWeiche | "Anzahl der Kurven-Weichen kann man an den Händen abzählen.",
+        s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
+        kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
+    );
+    Zugtyp2 {
+        name: "Lego".to_string(),
+        leiter: PhantomData,
+        spurweite: Spurweite::neu(38.),
+        geraden,
+        kurven,
+        weichen,
+        dreiwege_weichen,
+        kurven_weichen,
+        s_kurven_weichen,
+        kreuzungen,
+        pwm_frequenz: NichtNegativ::neu_unchecked(50.),
+        verhältnis_fahrspannung_überspannung: PhantomData,
+        stopp_zeit: Duration::from_millis(500),
+        umdrehen_zeit: PhantomData,
+        schalten_zeit: Duration::from_millis(400),
+    }
+});
+
+impl Zugtyp2<Zweileiter> {
     /// Lego
-    pub fn lego() -> Zugtyp<Zweileiter> {
-        Zugtyp {
-            name: "Lego".to_string(),
-            leiter: PhantomData,
-            spurweite: Spurweite::neu(38.),
-            geraden: vec![gerade()],
-            kurven: vec![kurve()],
-            weichen: vec![],
-            dreiwege_weichen: vec![],
-            kurven_weichen: vec![],
-            s_kurven_weichen: vec![weiche(Orientierung::Links), weiche(Orientierung::Rechts)],
-            kreuzungen: vec![kreuzung()],
-            pwm_frequenz: NichtNegativ::neu_unchecked(50.),
-            verhältnis_fahrspannung_überspannung: PhantomData,
-            stopp_zeit: Duration::from_millis(500),
-            umdrehen_zeit: PhantomData,
-            schalten_zeit: Duration::from_millis(400),
-        }
+    pub fn lego() -> &'static Zugtyp2<Zweileiter> {
+        &LEGO
     }
 }
 

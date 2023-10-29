@@ -122,7 +122,7 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
-type Flags<L> = (Argumente, Lager, Zugtyp<L>, &'static [&'static [u8]]);
+type Flags<L> = (Argumente, Lager, &'static Zugtyp2<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 #[inline(always)]
@@ -156,7 +156,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     fn erstelle_settings<L: Leiter>(
         argumente: Argumente,
         lager: Lager,
-        zugtyp: Zugtyp<L>,
+        zugtyp: &'static Zugtyp2<L>,
     ) -> Settings<Flags<L>> {
         Settings {
             window: iced::window::Settings {
@@ -170,10 +170,10 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     }
     match zugtyp {
         ZugtypArgument::Märklin => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::märklin()))
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp2::märklin()))
         },
         ZugtypArgument::Lego => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::lego()))
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp2::lego()))
         },
     }?;
 
@@ -209,7 +209,7 @@ where
     type Theme = Thema;
 
     fn new(
-        (argumente, lager, zugtyp, schriftarten): Self::Flags,
+        (argumente, lager, zugtyp2, schriftarten): Self::Flags,
     ) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
@@ -230,96 +230,16 @@ where
         } else {
             lade_zustand = Command::none();
             initialer_pfad = {
-                let mut pfad = zugtyp.name.clone();
+                let mut pfad = zugtyp2.name.clone();
                 pfad.push_str(".zug");
                 pfad
             };
         };
 
-        let zugtyp2 = {
-            let geraden = zugtyp
-                .geraden
-                .iter()
-                .map(|gleis| {
-                    (DefinitionId2::<Gerade>::neu().expect("Zu viele Geraden!"), gleis.clone())
-                })
-                .collect();
-            let kurven = zugtyp
-                .kurven
-                .iter()
-                .map(|gleis| {
-                    (DefinitionId2::<Kurve>::neu().expect("Zu viele Kurven!"), gleis.clone())
-                })
-                .collect();
-            let weichen = zugtyp
-                .weichen
-                .iter()
-                .map(|gleis| {
-                    (DefinitionId2::<Weiche>::neu().expect("Zu viele Weichen!"), gleis.clone())
-                })
-                .collect();
-            let dreiwege_weichen = zugtyp
-                .dreiwege_weichen
-                .iter()
-                .map(|gleis| {
-                    (
-                        DefinitionId2::<DreiwegeWeiche>::neu().expect("Zu viele DreiwegeWeichen!"),
-                        gleis.clone(),
-                    )
-                })
-                .collect();
-            let kurven_weichen = zugtyp
-                .kurven_weichen
-                .iter()
-                .map(|gleis| {
-                    (
-                        DefinitionId2::<KurvenWeiche>::neu().expect("Zu viele KurvenWeichen!"),
-                        gleis.clone(),
-                    )
-                })
-                .collect();
-            let s_kurven_weichen = zugtyp
-                .s_kurven_weichen
-                .iter()
-                .map(|gleis| {
-                    (
-                        DefinitionId2::<SKurvenWeiche>::neu().expect("Zu viele SKurvenWeichen!"),
-                        gleis.clone(),
-                    )
-                })
-                .collect();
-            let kreuzungen = zugtyp
-                .kreuzungen
-                .iter()
-                .map(|gleis| {
-                    (DefinitionId2::<Kreuzung>::neu().expect("Zu viele Kreuzungen!"), gleis.clone())
-                })
-                .collect();
-            Zugtyp2 {
-                name: zugtyp.name.clone(),
-                leiter: zugtyp.leiter.clone(),
-                spurweite: zugtyp.spurweite,
-                geraden,
-                kurven,
-                weichen,
-                dreiwege_weichen,
-                kurven_weichen,
-                s_kurven_weichen,
-                kreuzungen,
-                pwm_frequenz: zugtyp.pwm_frequenz.clone(),
-                verhältnis_fahrspannung_überspannung: zugtyp
-                    .verhältnis_fahrspannung_überspannung
-                    .clone(),
-                stopp_zeit: zugtyp.stopp_zeit.clone(),
-                umdrehen_zeit: zugtyp.umdrehen_zeit.clone(),
-                schalten_zeit: zugtyp.schalten_zeit.clone(),
-            }
-        };
-
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp2,
+            zugtyp2.clone(),
             modus,
             Position { punkt: Vektor { x, y }, winkel },
             zoom,

@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::{id::DefinitionId2, steuerung::MitSteuerung},
+        gleise::{
+            id::{eindeutig::KeineIdVerfügbar, DefinitionId2, GleisId2},
+            steuerung::MitSteuerung,
+        },
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -145,11 +148,32 @@ pub struct ZugtypSerialisiert<L: Leiter> {
 }
 
 /// Der Leiter stimmt nicht mit dem Namen überein.
-#[derive(Debug, Clone)]
-pub struct FalscherLeiter(pub String);
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub enum ZugtypDeserialisierenFehler {
+    FalscherLeiter(String),
+    KeineIdVerfügbar(KeineIdVerfügbar),
+}
 
-impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert<L>> for Zugtyp<L> {
-    type Error = FalscherLeiter;
+macro_rules! erzeuge_maps {
+    ($($gleise: ident : $typ: ty),* $(,)?) => {$(
+        #[allow(unused_qualifications)]
+        let $gleise = $gleise
+            .into_iter()
+            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?, definition)) )
+            .collect::<Result<crate::zugtyp::DefinitionMap2<$typ>, crate::zugtyp::ZugtypDeserialisierenFehler>>()?;
+    )*};
+    ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)?) => {$(
+        #[allow(unused_qualifications)]
+        let $gleise = $gleise
+            .into_iter()
+            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?, definition)) )
+            .collect::<Result<crate::zugtyp::DefinitionMap2<$typ>, crate::zugtyp::ZugtypDeserialisierenFehler>>().expect($expect_msg);
+    )*};
+}
+use erzeuge_maps;
+
+impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert<L>> for Zugtyp2<L> {
+    type Error = ZugtypDeserialisierenFehler;
 
     fn try_from(serialisiert: ZugtypSerialisiert<L>) -> Result<Self, Self::Error> {
         let ZugtypSerialisiert {
@@ -171,9 +195,18 @@ impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert<L>> for Zugtyp<L> {
         } = serialisiert;
         let gesucht = L::NAME.to_owned();
         if leiter != gesucht {
-            return Err(FalscherLeiter(leiter));
+            return Err(ZugtypDeserialisierenFehler::FalscherLeiter(leiter));
         }
-        Ok(Zugtyp {
+        erzeuge_maps!(
+            geraden: Gerade,
+            kurven: Kurve,
+            weichen: Weiche,
+            dreiwege_weichen: DreiwegeWeiche,
+            kurven_weichen: KurvenWeiche,
+            s_kurven_weichen: SKurvenWeiche,
+            kreuzungen: Kreuzung,
+        );
+        Ok(Zugtyp2 {
             name,
             leiter: PhantomData,
             spurweite,
@@ -193,11 +226,11 @@ impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert<L>> for Zugtyp<L> {
     }
 }
 
-impl<L: BekannterLeiter> From<Zugtyp<L>> for ZugtypSerialisiert<L> {
-    fn from(zugtyp: Zugtyp<L>) -> Self {
-        let Zugtyp {
+impl<L: BekannterLeiter> From<Zugtyp2<L>> for ZugtypSerialisiert<L> {
+    fn from(zugtyp: Zugtyp2<L>) -> Self {
+        let Zugtyp2 {
             name,
-            leiter: _,
+            leiter: PhantomData,
             spurweite,
             geraden,
             kurven,
@@ -213,6 +246,20 @@ impl<L: BekannterLeiter> From<Zugtyp<L>> for ZugtypSerialisiert<L> {
             schalten_zeit,
         } = zugtyp;
         let leiter = L::NAME.to_owned();
+        macro_rules! erzeuge_vecs {
+            ($($gleise: ident),* $(,)?) => {$(
+                let $gleise = $gleise.into_values().collect();
+            )*};
+        }
+        erzeuge_vecs!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
         ZugtypSerialisiert {
             name,
             leiter,

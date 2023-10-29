@@ -16,7 +16,7 @@ use crate::{
     argumente::I2cSettings,
     rppal,
     util::eingeschränkt::kleiner_8,
-    zugtyp::FalscherLeiter,
+    zugtyp::ZugtypDeserialisierenFehler,
 };
 
 pub mod de_serialisieren;
@@ -612,8 +612,8 @@ pub enum Fehler {
     Pcf8574(pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [Anschluss]es.
     Reservieren(ReservierenFehler),
-    /// Der Name des Leiters stimmt nicht überein.
-    FalscherLeiter(FalscherLeiter),
+    /// Fehler beim Deserialisieren des Zugtyps.
+    ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.
