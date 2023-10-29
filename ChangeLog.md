@@ -37,6 +37,7 @@
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 - Kontakte werden auf dem Canvas als Kreise angezeigt
 - Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
+- Zusätzliche "trailing" Bytes werden beim Laden nicht mehr ignoriert. Stattdessen kommt es zu einem Fehler.
 
 ### workaround
 

@@ -9,6 +9,7 @@ use std::{
     sync::mpsc::Sender,
 };
 
+use bincode::{DefaultOptions, Options};
 use nonempty::NonEmpty;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
@@ -663,9 +664,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let _ =
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
-        let zustand_serialisiert: ZustandSerialisiert<L, S> = bincode::deserialize(slice)
+        // Im Gegensatz zu [DefaultOptions] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
+        // https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
+        let options = DefaultOptions::new().with_fixint_encoding().reject_trailing_bytes();
+        let zustand_serialisiert: ZustandSerialisiert<L, S> = options
+            .deserialize(slice)
             .or_else(|aktuell| {
-                match bincode::deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                match options.deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
                     Ok(v2) => v2.try_into().map_err(LadenFehler::from),
                     Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
                 }
