@@ -223,7 +223,6 @@ where
 impl<S, R> Reserviere<Option<R>> for Option<S>
 where
     S: Reserviere<R>,
-    R: Serialisiere<S>,
 {
     type Arg = <S as Reserviere<R>>::Arg;
 

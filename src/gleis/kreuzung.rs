@@ -31,7 +31,7 @@ type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 
-/// Definition einer [Kreuzung].
+/// Definition einer Kreuzung.
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Kreuzung<Anschlüsse = Option<self::Anschlüsse>> {

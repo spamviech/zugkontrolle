@@ -1,7 +1,12 @@
 //! Serialisierte Strukturen von Version 3.X, die mit Version 4.0.0 geändert wurden.
 
 use std::{
-    collections::HashMap, fmt::Debug, hash::Hash, io, marker::PhantomData, sync::mpsc::Sender,
+    collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
+    io,
+    marker::PhantomData,
+    sync::{mpsc::Sender, Arc},
     time::Duration,
 };
 
@@ -10,6 +15,7 @@ use bincode::config::{
     WithOtherTrailing,
 };
 use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     RTree, RTreeObject, SelectionFunction, AABB,
@@ -55,7 +61,7 @@ use crate::{
     },
     typen::{
         canvas::Position, mm::Spurweite, rechteck::Rechteck, skalar::Skalar, vektor::Vektor,
-        Zeichnen,
+        winkel::Winkel, Zeichnen,
     },
     util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
     zugtyp::ZugtypDeserialisierenFehler,
@@ -815,5 +821,1138 @@ pub mod zugtyp {
         pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
         /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
         pub schalten_zeit: Duration,
+    }
+}
+
+// FIXME in der selben Datei definiert + use * zum einfacheren Sammeln
+use self::gleis::*;
+pub mod gleis {
+    use super::*;
+
+    use self::gerade::*;
+    pub mod gerade {
+        use super::*;
+
+        /// Definition einer Gerade.
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        pub struct Gerade<Anschluss = Option<Kontakt>> {
+            /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
+            pub länge: Skalar,
+            /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
+            pub beschreibung: Option<String>,
+            /// Der Anschluss für einen [Kontakt] an der Schiene.
+            pub kontakt: Anschluss,
+        }
+
+        #[doc = r" Eine Variante ohne Anschlüsse."]
+        pub type GeradeSerialisiert = Gerade<Option<KontaktSerialisiert>>;
+        #[doc = r" Eine serialisierbare Repräsentation."]
+        pub type GeradeUnit = Gerade<()>;
+        impl crate::anschluss::de_serialisieren::Serialisiere<GeradeSerialisiert> for Gerade {
+            fn serialisiere(&self) -> GeradeSerialisiert {
+                let Gerade { länge, beschreibung, kontakt } = self;
+                GeradeSerialisiert {
+                    länge: länge.clone(),
+                    beschreibung: beschreibung.clone(),
+                    kontakt: kontakt.as_ref().map(|steuerung| steuerung.serialisiere()),
+                }
+            }
+            fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                if let Some(steuerung) = self.kontakt {
+                    anschlüsse.anhängen(steuerung.anschlüsse());
+                }
+                anschlüsse
+            }
+        }
+        impl crate::anschluss::de_serialisieren::Reserviere<Gerade> for GeradeSerialisiert {
+            #[allow(unused_qualifications)]
+            type Arg =
+                <Option<KontaktSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                    Option<Kontakt>,
+                >>::Arg;
+            fn reserviere(
+                self,
+                lager: &mut crate::anschluss::Lager,
+                anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                arg: Self::Arg,
+            ) -> crate::anschluss::de_serialisieren::Ergebnis<Gerade> {
+                let Gerade { länge, beschreibung, kontakt } = self;
+                (kontakt).reserviere(lager, anschlüsse, arg).konvertiere(|(kontakt)| Gerade {
+                    länge,
+                    beschreibung,
+                    kontakt,
+                })
+            }
+        }
+    }
+
+    use self::kreuzung::*;
+    pub mod kreuzung {
+        use super::*;
+
+        use super::weiche::gerade::{
+            Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert
+        };
+
+        /// Definition einer Kreuzung.
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        pub struct Kreuzung<Anschlüsse = Option<self::Anschlüsse>> {
+            /// Die Länge der Geraden.
+            pub länge: Skalar,
+            /// Der Kurvenradius; legt automatisch den Winkel fest.
+            pub radius: Skalar,
+            /// Werden die Kurven gezeichnet, oder nur die Geraden.
+            pub variante: Variante,
+            /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
+            pub beschreibung: Option<String>,
+            /// Die Anschlüsse zum Schalten der Kreuzung.
+            pub steuerung: Anschlüsse,
+        }
+
+        /// Werden die Kurven gezeichnet, oder nur die Geraden.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+        pub enum Variante {
+            /// Zeichne die Kurven und die Geraden.
+            MitKurve,
+            /// Zeichne nur die Geraden.
+            OhneKurve,
+        }
+
+        type Anschlüsse = super::steuerung::Weiche<Richtung, RichtungAnschlüsse>;
+        type AnschlüsseSerialisiert =
+            super::steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+
+        #[doc = r" Eine Variante ohne Anschlüsse."]
+        pub type KreuzungSerialisiert = Kreuzung<Option<AnschlüsseSerialisiert>>;
+        #[doc = r" Eine serialisierbare Repräsentation."]
+        pub type KreuzungUnit = Kreuzung<()>;
+        impl crate::anschluss::de_serialisieren::Serialisiere<KreuzungSerialisiert> for Kreuzung {
+            fn serialisiere(&self) -> KreuzungSerialisiert {
+                let Kreuzung { länge, radius, variante, beschreibung, steuerung } = self;
+                KreuzungSerialisiert {
+                    länge: länge.clone(),
+                    radius: radius.clone(),
+                    variante: variante.clone(),
+                    beschreibung: beschreibung.clone(),
+                    steuerung: steuerung
+                        .as_ref()
+                        .map(|steuerung| todo!("steuerung.serialisiere()")),
+                }
+            }
+            fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                if let Some(steuerung) = self.steuerung {
+                    anschlüsse.anhängen(todo!("steuerung.anschlüsse()"));
+                }
+                anschlüsse
+            }
+        }
+        impl crate::anschluss::de_serialisieren::Reserviere<Kreuzung> for KreuzungSerialisiert {
+            #[allow(unused_qualifications)]
+            type Arg =
+            <Option<AnschlüsseSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                Option<self::Anschlüsse>,
+            >>::Arg;
+            fn reserviere(
+                self,
+                lager: &mut crate::anschluss::Lager,
+                anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                arg: Self::Arg,
+            ) -> crate::anschluss::de_serialisieren::Ergebnis<Kreuzung> {
+                let Kreuzung { länge, radius, variante, beschreibung, steuerung } = self;
+                (steuerung).reserviere(lager, anschlüsse, arg).konvertiere(|(steuerung)| Kreuzung {
+                    länge,
+                    radius,
+                    variante,
+                    beschreibung,
+                    steuerung,
+                })
+            }
+        }
+    }
+
+    use self::kurve::*;
+    pub mod kurve {
+        use super::*;
+
+        /// Definition einer Kurve.
+        ///
+        /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+        #[derive(Clone, Debug, Serialize, Deserialize)]
+        pub struct Kurve<Anschluss = Option<Kontakt>> {
+            /// Der Radius auf dem Canvas.
+            pub radius: Skalar,
+            /// Der Winkel der Kurve.
+            pub winkel: Winkel,
+            /// Eine allgemeine Beschreibung der Kurve, z.B. die Produktnummer.
+            pub beschreibung: Option<String>,
+            /// Der Anschluss für einen [Kontakt] an der Schiene.
+            pub kontakt: Anschluss,
+        }
+
+        #[doc = r" Eine Variante ohne Anschlüsse."]
+        pub type KurveSerialisiert = Kurve<Option<KontaktSerialisiert>>;
+        #[doc = r" Eine serialisierbare Repräsentation."]
+        pub type KurveUnit = Kurve<()>;
+        impl crate::anschluss::de_serialisieren::Serialisiere<KurveSerialisiert> for Kurve {
+            fn serialisiere(&self) -> KurveSerialisiert {
+                let Kurve { radius, winkel, beschreibung, kontakt } = self;
+                KurveSerialisiert {
+                    radius: radius.clone(),
+                    winkel: winkel.clone(),
+                    beschreibung: beschreibung.clone(),
+                    kontakt: kontakt.as_ref().map(|steuerung| steuerung.serialisiere()),
+                }
+            }
+            fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                if let Some(steuerung) = self.kontakt {
+                    anschlüsse.anhängen(steuerung.anschlüsse());
+                }
+                anschlüsse
+            }
+        }
+        impl crate::anschluss::de_serialisieren::Reserviere<Kurve> for KurveSerialisiert {
+            #[allow(unused_qualifications)]
+            type Arg =
+                <Option<KontaktSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                    Option<Kontakt>,
+                >>::Arg;
+            fn reserviere(
+                self,
+                lager: &mut crate::anschluss::Lager,
+                anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                arg: Self::Arg,
+            ) -> crate::anschluss::de_serialisieren::Ergebnis<Kurve> {
+                let Kurve { radius, winkel, beschreibung, kontakt } = self;
+                (kontakt).reserviere(lager, anschlüsse, arg).konvertiere(|(kontakt)| Kurve {
+                    radius,
+                    winkel,
+                    beschreibung,
+                    kontakt,
+                })
+            }
+        }
+    }
+
+    use self::weiche::*;
+    pub mod weiche {
+        use super::*;
+
+        use self::dreiwege::*;
+        pub mod dreiwege {
+            use super::*;
+
+            type Anschlüsse = super::steuerung::Weiche<RichtungInformation, RichtungAnschlüsse>;
+            type AnschlüsseSerialisiert = super::steuerung::WeicheSerialisiert<
+                RichtungInformation,
+                RichtungAnschlüsseSerialisiert,
+            >;
+
+            /// Die aktuelle und letzte [Richtung] einer [DreiwegeWeiche].
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+            pub struct RichtungInformation {
+                /// Die aktuelle [Richtung] der [DreiwegeWeiche].
+                pub aktuelle_richtung: Richtung,
+                /// Die [Richtung] vor der aktuellen [Richtung].
+                pub letzte_richtung: Richtung,
+            }
+
+            impl Default for RichtungInformation {
+                fn default() -> Self {
+                    RichtungInformation {
+                        aktuelle_richtung: Richtung::Gerade,
+                        letzte_richtung: Richtung::Rechts,
+                    }
+                }
+            }
+
+            /// Definition einer Dreiwege-Weiche.
+            ///
+            /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+            #[derive(Clone, Debug, Serialize, Deserialize)]
+            pub struct DreiwegeWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+                /// Die Länge der Gerade.
+                pub länge: Skalar,
+                /// Der Radius der Kurven.
+                pub radius: Skalar,
+                /// Der Winkel der Kurven.
+                pub winkel: Winkel,
+                /// Eine allgemeine Beschreibung der DreiwegeWeiche, z.B. die Produktnummer.
+                pub beschreibung: Option<String>,
+                /// Die Anschlüsse zum Schalten der DreiwegeWeiche.
+                pub steuerung: Anschlüsse,
+            }
+
+            #[doc = r" Eine Variante ohne Anschlüsse."]
+            pub type DreiwegeWeicheSerialisiert = DreiwegeWeiche<Option<AnschlüsseSerialisiert>>;
+            #[doc = r" Eine serialisierbare Repräsentation."]
+            pub type DreiwegeWeicheUnit = DreiwegeWeiche<()>;
+            impl crate::anschluss::de_serialisieren::Serialisiere<DreiwegeWeicheSerialisiert>
+                for DreiwegeWeiche
+            {
+                fn serialisiere(&self) -> DreiwegeWeicheSerialisiert {
+                    let DreiwegeWeiche { länge, radius, winkel, beschreibung, steuerung } = self;
+                    DreiwegeWeicheSerialisiert {
+                        länge: länge.clone(),
+                        radius: radius.clone(),
+                        winkel: winkel.clone(),
+                        beschreibung: beschreibung.clone(),
+                        steuerung: steuerung
+                            .as_ref()
+                            .map(|steuerung| todo!("steuerung.serialisiere()")),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    if let Some(steuerung) = self.steuerung {
+                        anschlüsse.anhängen(todo!("steuerung.anschlüsse()"));
+                    }
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<DreiwegeWeiche> for DreiwegeWeicheSerialisiert {
+                #[allow(unused_qualifications)]
+                type Arg =
+            <Option<AnschlüsseSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                Option<self::Anschlüsse>,
+            >>::Arg;
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    arg: Self::Arg,
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<DreiwegeWeiche> {
+                    let DreiwegeWeiche { länge, radius, winkel, beschreibung, steuerung } = self;
+                    (steuerung).reserviere(lager, anschlüsse, arg).konvertiere(|(steuerung)| {
+                        DreiwegeWeiche { länge, radius, winkel, beschreibung, steuerung }
+                    })
+                }
+            }
+
+            #[doc = r" Mögliche Richtungen zum Schalten."]
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+            pub enum Richtung {
+                #[allow(missing_docs)]
+                Gerade,
+                #[allow(missing_docs)]
+                Links,
+                #[allow(missing_docs)]
+                Rechts,
+            }
+            #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+            pub struct RichtungAnschlüsseSerialisiert {
+                #[doc = "[Richtung::Gerade]"]
+                pub gerade: crate::anschluss::OutputSerialisiert,
+                #[doc = "[Richtung::Links]"]
+                pub links: crate::anschluss::OutputSerialisiert,
+                #[doc = "[Richtung::Rechts]"]
+                pub rechts: crate::anschluss::OutputSerialisiert,
+            }
+            impl
+                crate::util::nachschlagen::Nachschlagen<
+                    Richtung,
+                    crate::anschluss::OutputSerialisiert,
+                > for RichtungAnschlüsseSerialisiert
+            {
+                fn erhalte(&self, key: &Richtung) -> &crate::anschluss::OutputSerialisiert {
+                    match key {
+                        Richtung::Gerade => &self.gerade,
+                        Richtung::Links => &self.links,
+                        Richtung::Rechts => &self.rechts,
+                    }
+                }
+                fn erhalte_mut(
+                    &mut self,
+                    key: &Richtung,
+                ) -> &mut crate::anschluss::OutputSerialisiert {
+                    match key {
+                        Richtung::Gerade => &mut self.gerade,
+                        Richtung::Links => &mut self.links,
+                        Richtung::Rechts => &mut self.rechts,
+                    }
+                }
+                fn für_alle<F: FnMut(Richtung, &crate::anschluss::OutputSerialisiert)>(
+                    &self,
+                    mut action: F,
+                ) {
+                    action(Richtung::Gerade, &self.gerade);
+                    action(Richtung::Links, &self.links);
+                    action(Richtung::Rechts, &self.rechts)
+                }
+                fn zuordnen<
+                    F: Fn(
+                        &crate::anschluss::OutputSerialisiert,
+                    ) -> crate::anschluss::OutputSerialisiert,
+                >(
+                    &self,
+                    mut action: F,
+                ) -> Self {
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: action(&self.gerade),
+                        links: action(&self.links),
+                        rechts: action(&self.rechts),
+                    }
+                }
+                fn referenzen<'t>(
+                    &'t self,
+                ) -> Vec<(Richtung, &'t crate::anschluss::OutputSerialisiert)> {
+                    let RichtungAnschlüsseSerialisiert { gerade, links, rechts } = self;
+                    vec![
+                        (Richtung::Gerade, gerade),
+                        (Richtung::Links, links),
+                        (Richtung::Rechts, rechts),
+                    ]
+                }
+                fn referenzen_mut<'t>(
+                    &'t mut self,
+                ) -> Vec<(Richtung, &'t mut crate::anschluss::OutputSerialisiert)> {
+                    let RichtungAnschlüsseSerialisiert { gerade, links, rechts } = self;
+                    vec![
+                        (Richtung::Gerade, gerade),
+                        (Richtung::Links, links),
+                        (Richtung::Rechts, rechts),
+                    ]
+                }
+            }
+            #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+            #[derive(Debug)]
+            pub struct RichtungAnschlüsse {
+                #[doc = "[Richtung::Gerade]"]
+                pub gerade: crate::anschluss::OutputAnschluss,
+                #[doc = "[Richtung::Links]"]
+                pub links: crate::anschluss::OutputAnschluss,
+                #[doc = "[Richtung::Rechts]"]
+                pub rechts: crate::anschluss::OutputAnschluss,
+            }
+            impl
+                crate::util::nachschlagen::Nachschlagen<Richtung, crate::anschluss::OutputAnschluss>
+                for RichtungAnschlüsse
+            {
+                fn erhalte(&self, key: &Richtung) -> &crate::anschluss::OutputAnschluss {
+                    match key {
+                        Richtung::Gerade => &self.gerade,
+                        Richtung::Links => &self.links,
+                        Richtung::Rechts => &self.rechts,
+                    }
+                }
+                fn erhalte_mut(
+                    &mut self,
+                    key: &Richtung,
+                ) -> &mut crate::anschluss::OutputAnschluss {
+                    match key {
+                        Richtung::Gerade => &mut self.gerade,
+                        Richtung::Links => &mut self.links,
+                        Richtung::Rechts => &mut self.rechts,
+                    }
+                }
+                fn für_alle<F: FnMut(Richtung, &crate::anschluss::OutputAnschluss)>(
+                    &self,
+                    mut action: F,
+                ) {
+                    action(Richtung::Gerade, &self.gerade);
+                    action(Richtung::Links, &self.links);
+                    action(Richtung::Rechts, &self.rechts)
+                }
+                fn zuordnen<
+                    F: Fn(&crate::anschluss::OutputAnschluss) -> crate::anschluss::OutputAnschluss,
+                >(
+                    &self,
+                    mut action: F,
+                ) -> Self {
+                    RichtungAnschlüsse {
+                        gerade: action(&self.gerade),
+                        links: action(&self.links),
+                        rechts: action(&self.rechts),
+                    }
+                }
+                fn referenzen<'t>(
+                    &'t self,
+                ) -> Vec<(Richtung, &'t crate::anschluss::OutputAnschluss)> {
+                    let RichtungAnschlüsse { gerade, links, rechts } = self;
+                    vec![
+                        (Richtung::Gerade, gerade),
+                        (Richtung::Links, links),
+                        (Richtung::Rechts, rechts),
+                    ]
+                }
+                fn referenzen_mut<'t>(
+                    &'t mut self,
+                ) -> Vec<(Richtung, &'t mut crate::anschluss::OutputAnschluss)> {
+                    let RichtungAnschlüsse { gerade, links, rechts } = self;
+                    vec![
+                        (Richtung::Gerade, gerade),
+                        (Richtung::Links, links),
+                        (Richtung::Rechts, rechts),
+                    ]
+                }
+            }
+            impl Default for Richtung {
+                fn default() -> Self {
+                    Richtung::Gerade
+                }
+            }
+            impl std::fmt::Display for Richtung {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(
+                        f,
+                        "{}",
+                        match self {
+                            Richtung::Gerade => "Gerade",
+                            Richtung::Links => "Links",
+                            Richtung::Rechts => "Rechts",
+                        }
+                    )
+                }
+            }
+            #[allow(unused_qualifications)]
+            impl crate::steuerung::weiche::MitRichtung<Richtung> for Richtung {
+                fn aktuelle_richtung(&self) -> Option<Richtung> {
+                    Some(*self)
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Serialisiere<RichtungAnschlüsseSerialisiert>
+                for RichtungAnschlüsse
+            {
+                fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {
+                    let RichtungAnschlüsse { gerade, links, rechts } = self;
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: gerade.serialisiere(),
+                        links: links.serialisiere(),
+                        rechts: rechts.serialisiere(),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    anschlüsse.anhängen(self.gerade.anschlüsse());
+                    anschlüsse.anhängen(self.links.anschlüsse());
+                    anschlüsse.anhängen(self.rechts.anschlüsse());
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse>
+                for RichtungAnschlüsseSerialisiert
+            {
+                type Arg = ();
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    _arg: (),
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse>
+                {
+                    let RichtungAnschlüsseSerialisiert { gerade, links, rechts } = self;
+                    #[allow(unused_parens)]
+                    (gerade, links, rechts).reserviere(lager, anschlüsse, ((), (), ())).konvertiere(
+                        |(gerade, links, rechts)| RichtungAnschlüsse { gerade, links, rechts },
+                    )
+                }
+            }
+            impl Default for RichtungAnschlüsseSerialisiert {
+                fn default() -> Self {
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: crate::anschluss::OutputSerialisiert::Pin {
+                            pin: 0,
+                            polarität: crate::anschluss::polarität::Polarität::Normal,
+                        },
+                        links: crate::anschluss::OutputSerialisiert::Pin {
+                            pin: 0,
+                            polarität: crate::anschluss::polarität::Polarität::Normal,
+                        },
+                        rechts: crate::anschluss::OutputSerialisiert::Pin {
+                            pin: 0,
+                            polarität: crate::anschluss::polarität::Polarität::Normal,
+                        },
+                    }
+                }
+            }
+        }
+
+        use self::gerade::*;
+        pub mod gerade {
+            use super::*;
+
+            use super::orientierung::Orientierung;
+
+            type AnschlüsseSerialisiert =
+                super::steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+            type Anschlüsse = super::steuerung::Weiche<Richtung, RichtungAnschlüsse>;
+
+            /// Definition einer Weiche.
+            ///
+            /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+            #[derive(Clone, Debug, Serialize, Deserialize)]
+            pub struct Weiche<Anschlüsse = Option<self::Anschlüsse>> {
+                /// Die Länge der Geraden.
+                pub länge: Skalar,
+                /// Der Radius der Kurve.
+                pub radius: Skalar,
+                /// Der Winkel der Kurve.
+                pub winkel: Winkel,
+                /// Die Orientierung der Weiche.
+                pub orientierung: Orientierung,
+                /// Eine allgemeine Beschreibung der Weiche, z.B. die Produktnummer.
+                pub beschreibung: Option<String>,
+                /// Die Anschlüsse zum Schalten der Weiche.
+                pub steuerung: Anschlüsse,
+            }
+
+            #[doc = r" Eine Variante ohne Anschlüsse."]
+            pub type WeicheSerialisiert = Weiche<Option<AnschlüsseSerialisiert>>;
+            #[doc = r" Eine serialisierbare Repräsentation."]
+            pub type WeicheUnit = Weiche<()>;
+            impl crate::anschluss::de_serialisieren::Serialisiere<WeicheSerialisiert> for Weiche {
+                fn serialisiere(&self) -> WeicheSerialisiert {
+                    let Weiche { länge, radius, winkel, orientierung, beschreibung, steuerung } =
+                        self;
+                    WeicheSerialisiert {
+                        länge: länge.clone(),
+                        radius: radius.clone(),
+                        winkel: winkel.clone(),
+                        orientierung: orientierung.clone(),
+                        beschreibung: beschreibung.clone(),
+                        steuerung: steuerung
+                            .as_ref()
+                            .map(|steuerung| todo!("steuerung.serialisiere()")),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    if let Some(steuerung) = self.steuerung {
+                        anschlüsse.anhängen(todo!("steuerung.anschlüsse()"));
+                    }
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<Weiche> for WeicheSerialisiert {
+                #[allow(unused_qualifications)]
+                type Arg =
+            <Option<AnschlüsseSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                Option<self::Anschlüsse>,
+            >>::Arg;
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    arg: Self::Arg,
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<Weiche> {
+                    let Weiche { länge, radius, winkel, orientierung, beschreibung, steuerung } =
+                        self;
+                    (steuerung).reserviere(lager, anschlüsse, arg).konvertiere(|(steuerung)| {
+                        Weiche { länge, radius, winkel, orientierung, beschreibung, steuerung }
+                    })
+                }
+            }
+
+            #[doc = r" Mögliche Richtungen zum Schalten."]
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+            pub enum Richtung {
+                #[allow(missing_docs)]
+                Gerade,
+                #[allow(missing_docs)]
+                Kurve,
+            }
+            #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+            pub struct RichtungAnschlüsseSerialisiert {
+                #[doc = "[Richtung::Gerade]"]
+                pub gerade: crate::anschluss::OutputSerialisiert,
+                #[doc = "[Richtung::Kurve]"]
+                pub kurve: crate::anschluss::OutputSerialisiert,
+            }
+            impl
+                crate::util::nachschlagen::Nachschlagen<
+                    Richtung,
+                    crate::anschluss::OutputSerialisiert,
+                > for RichtungAnschlüsseSerialisiert
+            {
+                fn erhalte(&self, key: &Richtung) -> &crate::anschluss::OutputSerialisiert {
+                    match key {
+                        Richtung::Gerade => &self.gerade,
+                        Richtung::Kurve => &self.kurve,
+                    }
+                }
+                fn erhalte_mut(
+                    &mut self,
+                    key: &Richtung,
+                ) -> &mut crate::anschluss::OutputSerialisiert {
+                    match key {
+                        Richtung::Gerade => &mut self.gerade,
+                        Richtung::Kurve => &mut self.kurve,
+                    }
+                }
+                fn für_alle<F: FnMut(Richtung, &crate::anschluss::OutputSerialisiert)>(
+                    &self,
+                    mut action: F,
+                ) {
+                    action(Richtung::Gerade, &self.gerade);
+                    action(Richtung::Kurve, &self.kurve)
+                }
+                fn zuordnen<
+                    F: Fn(
+                        &crate::anschluss::OutputSerialisiert,
+                    ) -> crate::anschluss::OutputSerialisiert,
+                >(
+                    &self,
+                    mut action: F,
+                ) -> Self {
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: action(&self.gerade),
+                        kurve: action(&self.kurve),
+                    }
+                }
+                fn referenzen<'t>(
+                    &'t self,
+                ) -> Vec<(Richtung, &'t crate::anschluss::OutputSerialisiert)> {
+                    let RichtungAnschlüsseSerialisiert { gerade, kurve } = self;
+                    vec![(Richtung::Gerade, gerade), (Richtung::Kurve, kurve)]
+                }
+                fn referenzen_mut<'t>(
+                    &'t mut self,
+                ) -> Vec<(Richtung, &'t mut crate::anschluss::OutputSerialisiert)> {
+                    let RichtungAnschlüsseSerialisiert { gerade, kurve } = self;
+                    vec![(Richtung::Gerade, gerade), (Richtung::Kurve, kurve)]
+                }
+            }
+            #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+            #[derive(Debug)]
+            pub struct RichtungAnschlüsse {
+                #[doc = "[Richtung::Gerade]"]
+                pub gerade: crate::anschluss::OutputAnschluss,
+                #[doc = "[Richtung::Kurve]"]
+                pub kurve: crate::anschluss::OutputAnschluss,
+            }
+            impl
+                crate::util::nachschlagen::Nachschlagen<Richtung, crate::anschluss::OutputAnschluss>
+                for RichtungAnschlüsse
+            {
+                fn erhalte(&self, key: &Richtung) -> &crate::anschluss::OutputAnschluss {
+                    match key {
+                        Richtung::Gerade => &self.gerade,
+                        Richtung::Kurve => &self.kurve,
+                    }
+                }
+                fn erhalte_mut(
+                    &mut self,
+                    key: &Richtung,
+                ) -> &mut crate::anschluss::OutputAnschluss {
+                    match key {
+                        Richtung::Gerade => &mut self.gerade,
+                        Richtung::Kurve => &mut self.kurve,
+                    }
+                }
+                fn für_alle<F: FnMut(Richtung, &crate::anschluss::OutputAnschluss)>(
+                    &self,
+                    mut action: F,
+                ) {
+                    action(Richtung::Gerade, &self.gerade);
+                    action(Richtung::Kurve, &self.kurve)
+                }
+                fn zuordnen<
+                    F: Fn(&crate::anschluss::OutputAnschluss) -> crate::anschluss::OutputAnschluss,
+                >(
+                    &self,
+                    mut action: F,
+                ) -> Self {
+                    RichtungAnschlüsse { gerade: action(&self.gerade), kurve: action(&self.kurve) }
+                }
+                fn referenzen<'t>(
+                    &'t self,
+                ) -> Vec<(Richtung, &'t crate::anschluss::OutputAnschluss)> {
+                    let RichtungAnschlüsse { gerade, kurve } = self;
+                    vec![(Richtung::Gerade, gerade), (Richtung::Kurve, kurve)]
+                }
+                fn referenzen_mut<'t>(
+                    &'t mut self,
+                ) -> Vec<(Richtung, &'t mut crate::anschluss::OutputAnschluss)> {
+                    let RichtungAnschlüsse { gerade, kurve } = self;
+                    vec![(Richtung::Gerade, gerade), (Richtung::Kurve, kurve)]
+                }
+            }
+            impl Default for Richtung {
+                fn default() -> Self {
+                    Richtung::Gerade
+                }
+            }
+            impl std::fmt::Display for Richtung {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(
+                        f,
+                        "{}",
+                        match self {
+                            Richtung::Gerade => "Gerade",
+                            Richtung::Kurve => "Kurve",
+                        }
+                    )
+                }
+            }
+            #[allow(unused_qualifications)]
+            impl crate::steuerung::weiche::MitRichtung<Richtung> for Richtung {
+                fn aktuelle_richtung(&self) -> Option<Richtung> {
+                    Some(*self)
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Serialisiere<RichtungAnschlüsseSerialisiert>
+                for RichtungAnschlüsse
+            {
+                fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {
+                    let RichtungAnschlüsse { gerade, kurve } = self;
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: gerade.serialisiere(),
+                        kurve: kurve.serialisiere(),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    anschlüsse.anhängen(self.gerade.anschlüsse());
+                    anschlüsse.anhängen(self.kurve.anschlüsse());
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse>
+                for RichtungAnschlüsseSerialisiert
+            {
+                type Arg = ();
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    _arg: (),
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse>
+                {
+                    let RichtungAnschlüsseSerialisiert { gerade, kurve } = self;
+                    #[allow(unused_parens)]
+                    (gerade, kurve)
+                        .reserviere(lager, anschlüsse, ((), ()))
+                        .konvertiere(|(gerade, kurve)| RichtungAnschlüsse { gerade, kurve })
+                }
+            }
+            impl Default for RichtungAnschlüsseSerialisiert {
+                fn default() -> Self {
+                    RichtungAnschlüsseSerialisiert {
+                        gerade: crate::anschluss::OutputSerialisiert::Pin {
+                            pin: 0,
+                            polarität: crate::anschluss::polarität::Polarität::Normal,
+                        },
+                        kurve: crate::anschluss::OutputSerialisiert::Pin {
+                            pin: 0,
+                            polarität: crate::anschluss::polarität::Polarität::Normal,
+                        },
+                    }
+                }
+            }
+        }
+
+        use self::kurve::*;
+        pub mod kurve {
+            use super::*;
+
+            use super::orientierung::Orientierung;
+
+            type AnschlüsseSerialisiert =
+                super::steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+            type Anschlüsse = super::steuerung::Weiche<Richtung, RichtungAnschlüsse>;
+
+            /// Definition einer Kurven-Weiche.
+            ///
+            /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+            #[derive(Clone, Debug, Serialize, Deserialize)]
+            pub struct KurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+                /// Die Länge der Geraden vor der äußeren Kurve.
+                pub länge: Skalar,
+                /// Der Radius der Kurven.
+                pub radius: Skalar,
+                /// Der Winkel der Kurven.
+                pub winkel: Winkel,
+                /// Die Orientierung der KurvenWeiche.
+                pub orientierung: Orientierung,
+                /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
+                pub beschreibung: Option<String>,
+                /// Die Anschlüsse zum Schalten der KurvenWeiche.
+                pub steuerung: Anschlüsse,
+            }
+
+            #[doc = r" Eine Variante ohne Anschlüsse."]
+            pub type KurvenWeicheSerialisiert = KurvenWeiche<Option<AnschlüsseSerialisiert>>;
+            #[doc = r" Eine serialisierbare Repräsentation."]
+            pub type KurvenWeicheUnit = KurvenWeiche<()>;
+            impl crate::anschluss::de_serialisieren::Serialisiere<KurvenWeicheSerialisiert> for KurvenWeiche {
+                fn serialisiere(&self) -> KurvenWeicheSerialisiert {
+                    let KurvenWeiche {
+                        länge,
+                        radius,
+                        winkel,
+                        orientierung,
+                        beschreibung,
+                        steuerung,
+                    } = self;
+                    KurvenWeicheSerialisiert {
+                        länge: länge.clone(),
+                        radius: radius.clone(),
+                        winkel: winkel.clone(),
+                        orientierung: orientierung.clone(),
+                        beschreibung: beschreibung.clone(),
+                        steuerung: steuerung
+                            .as_ref()
+                            .map(|steuerung| todo!("steuerung.serialisiere()")),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    if let Some(steuerung) = self.steuerung {
+                        anschlüsse.anhängen(todo!("steuerung.anschlüsse()"));
+                    }
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<KurvenWeiche> for KurvenWeicheSerialisiert {
+                #[allow(unused_qualifications)]
+                type Arg =
+                    <Option<AnschlüsseSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                        Option<self::Anschlüsse>,
+                    >>::Arg;
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    arg: Self::Arg,
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<KurvenWeiche> {
+                    let KurvenWeiche {
+                        länge,
+                        radius,
+                        winkel,
+                        orientierung,
+                        beschreibung,
+                        steuerung,
+                    } = self;
+                    (steuerung).reserviere(lager, anschlüsse, arg).konvertiere(|(steuerung)| {
+                        KurvenWeiche {
+                            länge,
+                            radius,
+                            winkel,
+                            orientierung,
+                            beschreibung,
+                            steuerung,
+                        }
+                    })
+                }
+            }
+        }
+
+        use self::s_kurve::*;
+        pub mod s_kurve {
+            use super::*;
+
+            type AnschlüsseSerialisiert =
+                super::steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
+            type Anschlüsse = super::steuerung::Weiche<Richtung, RichtungAnschlüsse>;
+
+            /// Definition einer Weiche mit S-Kurve.
+            ///
+            /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
+            #[derive(Clone, Debug, Serialize, Deserialize)]
+            pub struct SKurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+                /// Die Länge der Geraden.
+                pub länge: Skalar,
+                /// Der Radius der Kurve nach außen.
+                pub radius: Skalar,
+                /// Der Winkel der Kurve nach außen.
+                pub winkel: Winkel,
+                /// Der Radius der Kurve nach innen.
+                pub radius_kurve_nach_innen: Skalar,
+                /// Der Winkel der Kurve nach innen.
+                pub winkel_kurve_nach_innen: Winkel,
+                /// Die Orientierung der SKurvenWeiche.
+                pub orientierung: Orientierung,
+                /// Eine allgemeine Beschreibung der SKurvenWeiche, z.B. die Produktnummer.
+                pub beschreibung: Option<String>,
+                /// Die Anschlüsse zum Schalten der SKurvenWeiche.
+                pub steuerung: Anschlüsse,
+            }
+
+            #[doc = r" Eine Variante ohne Anschlüsse."]
+            pub type SKurvenWeicheSerialisiert = SKurvenWeiche<Option<AnschlüsseSerialisiert>>;
+            #[doc = r" Eine serialisierbare Repräsentation."]
+            pub type SKurvenWeicheUnit = SKurvenWeiche<()>;
+            impl crate::anschluss::de_serialisieren::Serialisiere<SKurvenWeicheSerialisiert> for SKurvenWeiche {
+                fn serialisiere(&self) -> SKurvenWeicheSerialisiert {
+                    let SKurvenWeiche {
+                        länge,
+                        radius,
+                        winkel,
+                        radius_kurve_nach_innen,
+                        winkel_kurve_nach_innen,
+                        orientierung,
+                        beschreibung,
+                        steuerung,
+                    } = self;
+                    SKurvenWeicheSerialisiert {
+                        länge: länge.clone(),
+                        radius: radius.clone(),
+                        winkel: winkel.clone(),
+                        radius_kurve_nach_innen: radius_kurve_nach_innen.clone(),
+                        winkel_kurve_nach_innen: winkel_kurve_nach_innen.clone(),
+                        orientierung: orientierung.clone(),
+                        beschreibung: beschreibung.clone(),
+                        steuerung: steuerung
+                            .as_ref()
+                            .map(|steuerung| todo!("steuerung.serialisiere()")),
+                    }
+                }
+                fn anschlüsse(self) -> crate::anschluss::de_serialisieren::Anschlüsse {
+                    let mut anschlüsse = crate::anschluss::de_serialisieren::Anschlüsse::default();
+                    if let Some(steuerung) = self.steuerung {
+                        anschlüsse.anhängen(todo!("(steuerung.anschlüsse()"));
+                    }
+                    anschlüsse
+                }
+            }
+            impl crate::anschluss::de_serialisieren::Reserviere<SKurvenWeiche> for SKurvenWeicheSerialisiert {
+                #[allow(unused_qualifications)]
+                type Arg =
+                    <Option<AnschlüsseSerialisiert> as crate::anschluss::de_serialisieren::Reserviere<
+                        Option<self::Anschlüsse>,
+                    >>::Arg;
+                fn reserviere(
+                    self,
+                    lager: &mut crate::anschluss::Lager,
+                    anschlüsse: crate::anschluss::de_serialisieren::Anschlüsse,
+                    arg: Self::Arg,
+                ) -> crate::anschluss::de_serialisieren::Ergebnis<SKurvenWeiche> {
+                    let SKurvenWeiche {
+                        länge,
+                        radius,
+                        winkel,
+                        radius_kurve_nach_innen,
+                        winkel_kurve_nach_innen,
+                        orientierung,
+                        beschreibung,
+                        steuerung,
+                    } = self;
+                    (steuerung).reserviere(lager, anschlüsse, arg).konvertiere(|(steuerung)| {
+                        SKurvenWeiche {
+                            länge,
+                            radius,
+                            winkel,
+                            radius_kurve_nach_innen,
+                            winkel_kurve_nach_innen,
+                            orientierung,
+                            beschreibung,
+                            steuerung,
+                        }
+                    })
+                }
+            }
+
+            use self::orientierung::*;
+            pub mod orientierung {
+                use super::*;
+
+                /// Die Orientierung einer [Weiche], in welche Richtung geht die Kurve.
+                #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+                pub enum Orientierung {
+                    /// Die Kurve geht nach links.
+                    Links,
+                    /// Die Kurve geht nach rechts.
+                    Rechts,
+                }
+            }
+        }
+    }
+
+    use self::steuerung::*;
+    pub mod steuerung {
+        use super::*;
+
+        /// Serialisierbare Repräsentation der Steuerung einer [Weiche].
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
+            /// Der Name der Weiche.
+            pub name: Name,
+            /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+            pub richtung: Richtung,
+            /// Die Anschlüsse der Weiche.
+            pub anschlüsse: Anschlüsse,
+        }
+
+        /// Name einer [Weiche].
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+        pub struct Name(pub String);
+
+        // FIXME remove
+        // inklusive Kreuzung
+        /// [Name], aktuelle Richtung und Anschlüsse einer Weiche.
+        #[derive(Debug, zugkontrolle_macros::Clone)]
+        pub struct Weiche<Richtung, Anschlüsse> {
+            /// Der Name der Weiche.
+            pub name: Name,
+            /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+            richtung: Arc<Mutex<Steuerung<Richtung>>>,
+            /// Die Anschlüsse der Weiche.
+            anschlüsse: Arc<Mutex<Anschlüsse>>,
+        }
+
+        impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
+            /// Erstelle eine neue [Weichen-Steuerung](Weiche).
+            pub fn neu(
+                name: Name,
+                richtung: Richtung,
+                anschlüsse: Anschlüsse,
+                sender: impl Into<SomeAktualisierenSender>,
+            ) -> Self {
+                Weiche {
+                    name,
+                    richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, sender))),
+                    anschlüsse: Arc::new(Mutex::new(anschlüsse)),
+                }
+            }
+        }
+
+        /// Steuerung eines Gleises.
+        /// Bei [AsMut]-Zugriff wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
+        #[derive(Clone)]
+        pub struct Steuerung<T> {
+            steuerung: T,
+            sender: SomeAktualisierenSender,
+        }
+
+        impl<T> Steuerung<T> {
+            /// Erstelle eine neue [Steuerung].
+            pub fn neu(steuerung: T, sender: impl Into<SomeAktualisierenSender>) -> Self {
+                Steuerung { steuerung, sender: sender.into() }
+            }
+        }
+
+        // Explizite Implementierung, um einen stack-overflow zu vermeiden.
+        impl<T: Debug> Debug for Steuerung<T> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct("Steuerung")
+                    .field("steuerung", &self.steuerung)
+                    .field("canvas", &"<Cache>")
+                    .finish()
+            }
+        }
+
+        #[allow(single_use_lifetimes)]
+        impl<Richtung, R, S> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, S>
+        where
+            S: Reserviere<R, Arg = ()>,
+        {
+            type Arg = SomeAktualisierenSender;
+
+            fn reserviere(
+                self,
+                lager: &mut anschluss::Lager,
+                bekannte_anschlüsse: Anschlüsse,
+                sender: SomeAktualisierenSender,
+            ) -> crate::anschluss::de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
+                let WeicheSerialisiert { name, richtung, anschlüsse } = self;
+                anschlüsse
+                    .reserviere(lager, bekannte_anschlüsse, ())
+                    .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))
+            }
+        }
     }
 }
