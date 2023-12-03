@@ -43,21 +43,21 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                     param_fields.into_iter().map(|field| &field.ident).collect();
                 let other_fields: Vec<_> =
                     other_fields.into_iter().map(|field| &field.ident).collect();
-                let save_ident = format_ident!("{}Serialisiert", ident);
+                let serialisiert_ident = format_ident!("{}Serialisiert", ident);
                 let unit_ident = format_ident!("{}Unit", ident);
                 let params_start = if params.is_empty() { quote!() } else { quote!(#(#params),*,) };
                 type_definitionen = Some(quote! {
-                    /// Eine Variante ohne Anschlüsse.
-                    #vis type #save_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
                     /// Eine serialisierbare Repräsentation.
+                    #vis type #serialisiert_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
+                    /// Eine Variante ohne Anschlüsse.
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere<
-                        #save_ident<#(#params),*>
+                        #serialisiert_ident<#(#params),*>
                     > for #ident<#(#params),*>
                     {
-                        fn serialisiere(&self) -> #save_ident<#(#params),*> {
+                        fn serialisiere(&self) -> #serialisiert_ident<#(#params),*> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                            #save_ident {
+                            #serialisiert_ident {
                                 #(#other_fields: #other_fields.clone()),*,
                                 #(
                                     #param_fields: #param_fields.as_ref().map(
@@ -76,7 +76,7 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             anschlüsse
                         }
                     }
-                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #save_ident<#(#params),*> {
+                    impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
                         #[allow(unused_qualifications)]
                         type Arg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::Arg;
 
