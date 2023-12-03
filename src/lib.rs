@@ -84,6 +84,7 @@ mod test_util {
         ExpectTrue(ExpectTrue),
         ExpectEq(ExpectEq),
         ExpectNe(ExpectNe),
+        ExpectGt(ExpectGt),
     }
 
     #[derive(Debug)]
@@ -112,5 +113,13 @@ mod test_util {
     /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
     pub(crate) fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectNe> {
         expect_true(a != b).map_err(|_| ExpectNe(Box::new(a), Box::new(b)))
+    }
+
+    #[derive(Debug)]
+    pub(crate) struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
+
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    pub(crate) fn expect_gt<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectGt> {
+        expect_true(a != b).map_err(|_| ExpectGt(Box::new(a), Box::new(b)))
     }
 }

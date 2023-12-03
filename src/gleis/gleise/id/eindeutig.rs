@@ -14,9 +14,9 @@ use std::{
 use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
-static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<usize>>> = const_mutex(BTreeMap::new());
+static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<u32>>> = const_mutex(BTreeMap::new());
 
-fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<usize>> {
+fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<u32>> {
     MutexGuard::map(VERWENDETE_IDS.lock(), |id_map| {
         let type_id = TypeId::of::<T>();
         match id_map.entry(type_id) {
@@ -29,7 +29,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<usize>> {
 /// Eine eindeutige [Id] für den Typ T.
 #[derive(zugkontrolle_macros::Debug)]
 pub struct Id<T: 'static> {
-    id: usize,
+    id: u32,
     phantom: PhantomData<fn() -> T>,
 }
 
@@ -84,7 +84,7 @@ impl<T> Id<T> {
     /// Erhalte eine bisher unbenutzte [Id].
     pub fn neu() -> Result<Id<T>, KeineIdVerfügbar> {
         let mut set = type_set::<T>();
-        let initial = if let Some(last) = set.last() { last.wrapping_add(1) } else { usize::MIN };
+        let initial = if let Some(last) = set.last() { last.wrapping_add(1) } else { u32::MIN };
         let mut id = initial;
         while !set.insert(id) {
             id = id.wrapping_add(1);
@@ -95,11 +95,24 @@ impl<T> Id<T> {
         trace!("Erzeuge Id '{}' für Typ '{}'.", id, type_name::<T>());
         Ok(Id { id, phantom: PhantomData })
     }
+
+    /// Erhalte eine eindeutige Zahl für die [Id].
+    ///
+    /// Die selbe [Id] wird bei jedem Aufruf die selbe Zahl zurückgeben.
+    /// Zwei gleichzeitig existierende [Ids](Id) werden unterschiedliche Zahlen zurückgeben.
+    ///
+    /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [Id] die selbe Zahl zurückgibt.
+    pub fn u32(&self) -> u32 {
+        self.id
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use std::collections::HashSet;
+
     use crate::test_util::{expect_eq, expect_true, init_test_logging, Expectation};
 
     #[test]
@@ -111,7 +124,28 @@ mod test {
             .filter_map(|(i, id)| (i % 2 == 0).then_some(id))
             .collect();
         let num = ids.len();
-        let set: BTreeSet<_> = ids.into_iter().collect();
+        let btree_set: BTreeSet<_> = ids.iter().collect();
+        let btree_num = btree_set.len();
+        let hash_set: HashSet<_> = ids.into_iter().collect();
+        let hash_num = hash_set.len();
+
+        // die Anzahl an erzeugten Ids ist identisch zur Anzahl der eindeutigen Ids,
+        // unabhängig der verwendeten set-Variante.
+        expect_eq(num, btree_num)?;
+        expect_eq(num, hash_num)?;
+        Ok(())
+    }
+
+    #[test]
+    fn u32_eindeutig() -> Result<(), Expectation> {
+        init_test_logging();
+
+        let ids: Vec<_> = (0..32)
+            .map(|_i| Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids."))
+            .collect();
+        let u32s: Vec<_> = ids.iter().map(Id::u32).collect();
+        let num = u32s.len();
+        let set: BTreeSet<_> = u32s.into_iter().collect();
         let num_eindeutig = set.len();
 
         // die Anzahl an erzeugten Ids ist identisch zur Anzahl der eindeutigen Ids.
@@ -127,7 +161,7 @@ mod test {
         struct Dummy;
 
         let ids: Vec<_> = (0..32)
-            .map(|i| (i, Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!")))
+            .map(|_i| Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!"))
             .collect();
         drop(ids);
 

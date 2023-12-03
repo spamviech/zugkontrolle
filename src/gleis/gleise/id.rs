@@ -177,6 +177,17 @@ impl<T> GleisId2<T> {
     pub fn neu() -> Result<GleisId2<T>, KeineIdVerfügbar> {
         Id::neu().map(|id| GleisId2(Arc::new(id)))
     }
+
+    /// Erhalte eine eindeutige Zahl für die [GleisId].
+    ///
+    /// Die selbe [GleisId], sowie alle ihre Kopien, werde bei jedem Aufruf die selbe Zahl zurückgeben.
+    /// Zwei gleichzeitig existierende [GleisIds](GleisId) werden unterschiedliche Zahlen zurückgeben.
+    ///
+    /// Sobald die letzte Kopie einer [GleisId] gedroppt wird kann es sein,
+    /// dass eine andere [GleisId] die selbe Zahl zurückgibt.
+    pub fn u32(&self) -> u32 {
+        self.0.u32()
+    }
 }
 
 macro_rules! ersetzte_eckige_klammern {
