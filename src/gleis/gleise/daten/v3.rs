@@ -49,6 +49,20 @@ pub(crate) struct GleiseDatenSerialisiert {
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
+impl GleiseDatenSerialisiert {
+    pub(crate) const fn neu() -> GleiseDatenSerialisiert {
+        GleiseDatenSerialisiert {
+            geraden: Vec::new(),
+            kurven: Vec::new(),
+            weichen: Vec::new(),
+            dreiwege_weichen: Vec::new(),
+            kurven_weichen: Vec::new(),
+            s_kurven_weichen: Vec::new(),
+            kreuzungen: Vec::new(),
+        }
+    }
+}
+
 impl From<GleiseDatenSerialisiert>
     for crate::gleis::gleise::daten::de_serialisieren::GleiseDatenSerialisiert
 {

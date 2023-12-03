@@ -17,7 +17,7 @@ type AnschlüsseSerialisiert =
 
 /// Definition einer Kreuzung.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KreuzungSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
+pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Kurvenradius; legt automatisch den Winkel fest.

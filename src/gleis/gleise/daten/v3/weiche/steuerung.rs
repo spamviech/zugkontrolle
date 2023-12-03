@@ -13,6 +13,13 @@ pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
     pub anschlüsse: Anschlüsse,
 }
 
+impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
+    /// Erstelle eine neue [WeicheSerialisiert].
+    pub(crate) fn neu(name: Name, richtung: Richtung, anschlüsse: Anschlüsse) -> Self {
+        WeicheSerialisiert { name, richtung, anschlüsse }
+    }
+}
+
 /// Name einer [Weiche](WeicheSerialisiert).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);

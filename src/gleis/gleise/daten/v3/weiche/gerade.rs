@@ -44,8 +44,8 @@ pub enum Richtung {
 /// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    #[doc = "[Richtung::Gerade]"]
+    /// [Richtung::Gerade]
     pub gerade: crate::anschluss::OutputSerialisiert,
-    #[doc = "[Richtung::Kurve]"]
+    /// [Richtung::Kurve]
     pub kurve: crate::anschluss::OutputSerialisiert,
 }

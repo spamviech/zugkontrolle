@@ -8,13 +8,13 @@ use crate::{
 };
 
 type AnschlüsseSerialisiert =
-    steuerung::WeicheSerialisiert<gerade::Richtung, gerade::RichtungAnschlüsseSerialisiert>;
+    steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Kurven-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurvenWeicheSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
+pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
     /// Der Radius der Kurven.
@@ -31,3 +31,21 @@ pub struct KurvenWeicheSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
 
 /// Eine Variante ohne Anschlüsse.
 pub type KurvenWeicheUnit = KurvenWeicheSerialisiert<()>;
+
+/// Mögliche Richtungen zum Schalten.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Richtung {
+    #[allow(missing_docs)]
+    Innen,
+    #[allow(missing_docs)]
+    Außen,
+}
+
+/// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RichtungAnschlüsseSerialisiert {
+    /// [Richtung::Innen]
+    pub innen: crate::anschluss::OutputSerialisiert,
+    /// [Richtung::Außen]
+    pub außen: crate::anschluss::OutputSerialisiert,
+}

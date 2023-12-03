@@ -14,7 +14,7 @@ type AnschlüsseSerialisiert =
 ///
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SKurvenWeicheSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
+pub struct SKurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Radius der Kurve nach außen.

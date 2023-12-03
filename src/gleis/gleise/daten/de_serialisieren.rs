@@ -682,7 +682,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 match BINCODE_OPTIONS
                     .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
                 {
-                    Ok(v2) => v2.try_into().map_err(LadenFehler::from),
+                    Ok(v2) => todo!("v2.try_into().map_err(LadenFehler::from)"),
                     Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
                 }
             })
