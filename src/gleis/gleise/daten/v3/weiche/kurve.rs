@@ -14,7 +14,7 @@ type AnschlüsseSerialisiert =
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurvenWeicheSerialisiert {
+pub struct KurvenWeicheSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
     /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
     /// Der Radius der Kurven.
@@ -26,5 +26,8 @@ pub struct KurvenWeicheSerialisiert {
     /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
     /// Die Anschlüsse zum Schalten der KurvenWeiche.
-    pub steuerung: AnschlüsseSerialisiert,
+    pub steuerung: Anschlüsse,
 }
+
+/// Eine Variante ohne Anschlüsse.
+pub type KurvenWeicheUnit = KurvenWeicheSerialisiert<()>;

@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::de_serialisieren::Anschlüsse,
     gleis::gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
     typen::{skalar::Skalar, winkel::Winkel},
 };
@@ -15,7 +14,7 @@ type AnschlüsseSerialisiert =
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Weiche<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct WeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Radius der Kurve.
@@ -30,12 +29,10 @@ pub struct Weiche<Anschlüsse = Option<self::Anschlüsse>> {
     pub steuerung: Anschlüsse,
 }
 
-#[doc = r" Eine Variante ohne Anschlüsse."]
-pub type WeicheSerialisiert = Weiche<Option<AnschlüsseSerialisiert>>;
-#[doc = r" Eine serialisierbare Repräsentation."]
-pub type WeicheUnit = Weiche<()>;
+/// Eine Variante ohne Anschlüsse.
+pub type WeicheUnit = WeicheSerialisiert<()>;
 
-#[doc = r" Mögliche Richtungen zum Schalten."]
+/// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
     #[allow(missing_docs)]
@@ -43,7 +40,8 @@ pub enum Richtung {
     #[allow(missing_docs)]
     Kurve,
 }
-#[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+
+/// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
     #[doc = "[Richtung::Gerade]"]

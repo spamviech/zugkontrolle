@@ -23,7 +23,7 @@ type AnschlüsseSerialisiert =
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DreiwegeWeicheSerialisiert {
+pub struct DreiwegeWeicheSerialisiert<Anschlüsse = AnschlüsseSerialisiert> {
     /// Die Länge der Gerade.
     pub länge: Skalar,
     /// Der Radius der Kurven.
@@ -33,8 +33,11 @@ pub struct DreiwegeWeicheSerialisiert {
     /// Eine allgemeine Beschreibung der DreiwegeWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
     /// Die Anschlüsse zum Schalten der DreiwegeWeiche.
-    pub steuerung: AnschlüsseSerialisiert,
+    pub steuerung: Anschlüsse,
 }
+
+/// Eine Variante ohne Anschlüsse.
+pub type DreiwegeWeicheUnit = DreiwegeWeicheSerialisiert<()>;
 
 #[doc = r" Mögliche Richtungen zum Schalten."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -5,7 +5,7 @@ use std::{fmt::Debug, time::Duration};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::{
+    gleis::gleise::daten::v3::{
         gerade::GeradeUnit,
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
@@ -18,8 +18,6 @@ use crate::{
     typen::mm::Spurweite,
     util::eingeschränkt::NichtNegativ,
 };
-
-// TODO <Gleis>Unit auch in v3 definieren
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]

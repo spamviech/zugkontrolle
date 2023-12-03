@@ -6,11 +6,14 @@ use crate::{steuerung::kontakt::KontaktSerialisiert, typen::skalar::Skalar};
 
 /// Definition einer Gerade.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GeradeSerialisiert {
+pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
     pub länge: Skalar,
     /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
     /// Der Anschluss für einen [Kontakt] an der Schiene.
-    pub kontakt: Option<KontaktSerialisiert>,
+    pub kontakt: Anschluss,
 }
+
+/// Eine Variante ohne Anschlüsse.
+pub type GeradeUnit = GeradeSerialisiert<()>;

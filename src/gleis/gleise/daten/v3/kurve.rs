@@ -13,7 +13,7 @@ use crate::{
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KurveSerialisiert {
+pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     /// Der Radius auf dem Canvas.
     pub radius: Skalar,
     /// Der Winkel der Kurve.
@@ -21,5 +21,8 @@ pub struct KurveSerialisiert {
     /// Eine allgemeine Beschreibung der Kurve, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
     /// Der Anschluss für einen [Kontakt] an der Schiene.
-    pub kontakt: Option<KontaktSerialisiert>,
+    pub kontakt: Anschluss,
 }
+
+/// Eine Variante ohne Anschlüsse.
+pub type KurveUnit = KurveSerialisiert<()>;
