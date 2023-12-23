@@ -225,7 +225,8 @@ pub struct IdMaps {
 }
 
 impl IdMaps {
-    pub const fn neu() -> IdMaps {
+    /// Erzeuge eine neue, leere [IdMaps]
+    pub fn neu() -> IdMaps {
         IdMaps {
             geraden: HashMap::new(),
             kurven: HashMap::new(),
@@ -247,11 +248,13 @@ macro_rules! erzeuge_maps2 {
             .into_iter()
             .fold(
                 Ok((HashMap::new(), HashMap::new())),
-                |acc, (stored_id, definition)| -> Result<_, crate::zugtyp::ZugtypDeserialisierenFehler> {
+                |acc, (gespeicherte_id, definition)| -> Result<_, crate::zugtyp::ZugtypDeserialisierenFehler> {
                     if let Ok((mut gleise, mut ids)) = acc {
                         let id = crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?;
-                        ids.insert(stored_id, id);
-                        gleise.insert(id, definition);
+                        // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
+                        let _ = ids.insert(gespeicherte_id, id.clone());
+                        // id ist eindeutig, da es von GleisId::neu garantiert wird
+                        let _ = gleise.insert(id, definition);
                         Ok((gleise, ids))
                     } else {
                         acc
