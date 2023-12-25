@@ -139,6 +139,8 @@ macro_rules! mit_any_id {
 }
 pub(crate) use mit_any_id;
 
+pub use eindeutig::Repräsentation;
+
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct GleisId2<T: 'static>(Arc<Id<T>>);
@@ -185,8 +187,8 @@ impl<T> GleisId2<T> {
     ///
     /// Sobald die letzte Kopie einer [GleisId] gedroppt wird kann es sein,
     /// dass eine andere [GleisId] die selbe Zahl zurückgibt.
-    pub fn u32(&self) -> u32 {
-        self.0.u32()
+    pub fn repräsentation(&self) -> Repräsentation {
+        self.0.repräsentation()
     }
 }
 

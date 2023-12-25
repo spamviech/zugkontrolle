@@ -14,9 +14,15 @@ use std::{
 use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
-static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<u32>>> = const_mutex(BTreeMap::new());
+/// Zahlen-typ, der über [Id::Repräsentation] erhalten werden kann.
+///
+/// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [Id] diese Repräsentation.
+pub type Repräsentation = u32;
 
-fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<u32>> {
+static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<Repräsentation>>> =
+    const_mutex(BTreeMap::new());
+
+fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>> {
     MutexGuard::map(VERWENDETE_IDS.lock(), |id_map| {
         let type_id = TypeId::of::<T>();
         match id_map.entry(type_id) {
@@ -29,7 +35,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<u32>> {
 /// Eine eindeutige [Id] für den Typ T.
 #[derive(zugkontrolle_macros::Debug)]
 pub struct Id<T: 'static> {
-    id: u32,
+    id: Repräsentation,
     phantom: PhantomData<fn() -> T>,
 }
 
@@ -84,7 +90,8 @@ impl<T> Id<T> {
     /// Erhalte eine bisher unbenutzte [Id].
     pub fn neu() -> Result<Id<T>, KeineIdVerfügbar> {
         let mut set = type_set::<T>();
-        let initial = if let Some(last) = set.last() { last.wrapping_add(1) } else { u32::MIN };
+        let initial =
+            if let Some(last) = set.last() { last.wrapping_add(1) } else { Repräsentation::MIN };
         let mut id = initial;
         while !set.insert(id) {
             id = id.wrapping_add(1);
@@ -102,7 +109,7 @@ impl<T> Id<T> {
     /// Zwei gleichzeitig existierende [Ids](Id) werden unterschiedliche Zahlen zurückgeben.
     ///
     /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [Id] die selbe Zahl zurückgibt.
-    pub fn u32(&self) -> u32 {
+    pub fn repräsentation(&self) -> Repräsentation {
         self.id
     }
 }
@@ -137,15 +144,15 @@ mod test {
     }
 
     #[test]
-    fn u32_eindeutig() -> Result<(), Expectation> {
+    fn repräsentation_eindeutig() -> Result<(), Expectation> {
         init_test_logging();
 
         let ids: Vec<_> = (0..32)
-            .map(|_i| Id::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids."))
+            .map(|_i| Id::<()>::neu().expect("Test verwendet weniger als Repräsentation::MAX Ids."))
             .collect();
-        let u32s: Vec<_> = ids.iter().map(Id::u32).collect();
-        let num = u32s.len();
-        let set: BTreeSet<_> = u32s.into_iter().collect();
+        let repräsentationen: Vec<_> = ids.iter().map(Id::repräsentation).collect();
+        let num = repräsentationen.len();
+        let set: BTreeSet<_> = repräsentationen.into_iter().collect();
         let num_eindeutig = set.len();
 
         // die Anzahl an erzeugten Ids ist identisch zur Anzahl der eindeutigen Ids.

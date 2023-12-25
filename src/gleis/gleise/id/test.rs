@@ -29,15 +29,15 @@ fn eindeutig() -> Result<(), Expectation> {
 }
 
 #[test]
-fn u32_eindeutig() -> Result<(), Expectation> {
+fn repräsentation_eindeutig() -> Result<(), Expectation> {
     init_test_logging();
 
     let ids: Vec<_> = (0..32)
         .map(|_i| GleisId2::<()>::neu().expect("test verwendet weniger als usize::MAX Ids."))
         .collect();
-    let u32s: Vec<_> = ids.iter().map(GleisId2::u32).collect();
-    let num = u32s.len();
-    let set: BTreeSet<_> = u32s.into_iter().collect();
+    let repräsentationen: Vec<_> = ids.iter().map(GleisId2::repräsentation).collect();
+    let num = repräsentationen.len();
+    let set: BTreeSet<_> = repräsentationen.into_iter().collect();
     let num_eindeutig = set.len();
 
     // die Anzahl an erzeugten Ids ist identisch zur Anzahl der eindeutigen Ids.
@@ -46,20 +46,20 @@ fn u32_eindeutig() -> Result<(), Expectation> {
 }
 
 #[test]
-fn u32_kopie_identisch() -> Result<(), Expectation> {
+fn repräsentation_kopie_identisch() -> Result<(), Expectation> {
     init_test_logging();
 
     let id = GleisId2::<()>::neu().expect("Erste Id.");
-    let mut u32s = vec![id.u32()];
+    let mut repräsentationen = vec![id.repräsentation()];
     // eine Kopie liefert das selbe Ergebnis
     let clone = id.clone();
-    u32s.push(clone.u32());
+    repräsentationen.push(clone.repräsentation());
     // ein erneuter Aufruf liefert das selbe Ergebnis
-    u32s.push(id.u32());
-    u32s.push(clone.u32());
+    repräsentationen.push(id.repräsentation());
+    repräsentationen.push(clone.repräsentation());
 
-    let num = u32s.len();
-    let set: BTreeSet<_> = u32s.into_iter().collect();
+    let num = repräsentationen.len();
+    let set: BTreeSet<_> = repräsentationen.into_iter().collect();
     let num_eindeutig = set.len();
 
     // Alle Ids sind identisch, dementsprechend hat die Menge nur ein Element.
