@@ -72,6 +72,7 @@ use crate::{
 pub mod de_serialisieren;
 pub mod v2;
 pub mod v3;
+pub mod v4;
 
 /// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]

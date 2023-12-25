@@ -63,9 +63,7 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl From<GleiseDatenSerialisiert>
-    for crate::gleis::gleise::daten::de_serialisieren::GleiseDatenSerialisiert
-{
+impl From<GleiseDatenSerialisiert> for crate::gleis::gleise::daten::v4::GleiseDatenSerialisiert {
     fn from(value: GleiseDatenSerialisiert) -> Self {
         todo!()
     }
@@ -98,7 +96,7 @@ pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
 }
 
 impl<L: Leiter, S> From<ZustandSerialisiert<L, S>>
-    for crate::gleis::gleise::daten::de_serialisieren::ZustandSerialisiert<L, S>
+    for crate::gleis::gleise::daten::v4::ZustandSerialisiert<L, S>
 {
     fn from(value: ZustandSerialisiert<L, S>) -> Self {
         todo!()
