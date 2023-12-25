@@ -1,72 +1,35 @@
 //! Serialisierte Strukturen von Version 4.X.
 
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    fs,
-    hash::Hash,
-    io::{self, Read},
-    sync::mpsc::Sender,
-};
+use std::{collections::HashMap, fmt::Debug};
 
-use bincode::config::{
-    DefaultOptions, FixintEncoding, Options, RejectTrailing, WithOtherIntEncoding,
-    WithOtherTrailing,
-};
-use nonempty::NonEmpty;
-use once_cell::sync::Lazy;
-use rstar::{
-    primitives::{GeomWithData, Rectangle},
-    RTree,
-};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        OutputSerialisiert,
-    },
     gleis::{
-        gerade::{Gerade, GeradeSerialisiert},
+        gerade::Gerade,
         gleise::{
-            self,
-            daten::{
-                v2::{self, BekannterZugtyp},
-                v3, DatenAuswahl, GeschwindigkeitMap, Gleis, Gleis2, GleiseDaten, SelectAll,
-                StreckenabschnittMap, Zustand, Zustand2,
-            },
-            steuerung::{MitSteuerung, SomeAktualisierenSender},
-            Fehler, Gleise,
+            id::{self},
+            steuerung::MitSteuerung,
         },
-        kreuzung::{Kreuzung, KreuzungSerialisiert},
-        kurve::{Kurve, KurveSerialisiert},
+        kreuzung::Kreuzung,
+        kurve::Kurve,
         weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert},
-            gerade::{Weiche, WeicheSerialisiert},
-            kurve::{KurvenWeiche, KurvenWeicheSerialisiert},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert},
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
     steuerung::{
-        geschwindigkeit::{
-            self, BekannterLeiter, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
-        },
-        kontakt::{Kontakt, KontaktSerialisiert},
-        plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
-        streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
+        plan::{self, PlanSerialisiert},
+        streckenabschnitt::{self},
     },
-    typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::{Zugtyp, ZugtypDeserialisierenFehler, ZugtypSerialisiert2},
+    typen::canvas::Position,
+    zugtyp::ZugtypSerialisiert2,
 };
 
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
-    HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert)>;
+    HashMap<streckenabschnitt::Name, GleiseDatenSerialisiert>;
 pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
-    HashMap<
-        geschwindigkeit::Name,
-        (GeschwindigkeitSerialisiert<LeiterSerialisiert>, StreckenabschnittMapSerialisiert),
-    >;
+    HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 
 #[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
 #[zugkontrolle_debug(L: Debug)]
@@ -80,33 +43,57 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSe
 ))]
 pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
     pub(crate) zugtyp: ZugtypSerialisiert2<L>,
-    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
+    pub(crate) gleise: GleiseDatenSerialisiert,
     pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
+}
+
+type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>>;
+
+/// Definition und Position eines Gleises.
+#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
+#[zugkontrolle_debug(<T as MitSteuerung>::Serialisiert: Debug)]
+#[zugkontrolle_clone(<T as MitSteuerung>::Serialisiert: Clone)]
+#[serde(bound(
+    serialize = "T: MitSteuerung, <T as MitSteuerung>::Serialisiert: Serialize",
+    deserialize = "T: MitSteuerung, <T as MitSteuerung>::Serialisiert: Deserialize<'de>",
+))]
+pub struct GleisSerialisiert<T: MitSteuerung>
+where
+    <T as MitSteuerung>::SelfUnit: 'static,
+{
+    /// Die [Zeichnen]-Definition des Gleises.
+    pub definition: id::Repräsentation,
+    /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
+    pub steuerung: <T as MitSteuerung>::Serialisiert,
+    /// Die Position des Gleises auf dem [Canvas](iced::widget::canvas::Canvas).
+    pub position: Position,
+    /// Der [Streckenabschnitt] des Gleises.
+    pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct GleiseDatenSerialisiert {
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
+    pub(crate) geraden: GleisMapSerialisiert<Gerade>,
+    pub(crate) kurven: GleisMapSerialisiert<Kurve>,
+    pub(crate) weichen: GleisMapSerialisiert<Weiche>,
+    pub(crate) dreiwege_weichen: GleisMapSerialisiert<DreiwegeWeiche>,
+    pub(crate) kurven_weichen: GleisMapSerialisiert<KurvenWeiche>,
+    pub(crate) s_kurven_weichen: GleisMapSerialisiert<SKurvenWeiche>,
+    pub(crate) kreuzungen: GleisMapSerialisiert<Kreuzung>,
 }
 
 impl GleiseDatenSerialisiert {
     pub(crate) fn neu() -> Self {
         GleiseDatenSerialisiert {
-            geraden: Vec::new(),
-            kurven: Vec::new(),
-            weichen: Vec::new(),
-            dreiwege_weichen: Vec::new(),
-            kurven_weichen: Vec::new(),
-            s_kurven_weichen: Vec::new(),
-            kreuzungen: Vec::new(),
+            geraden: GleisMapSerialisiert::new(),
+            kurven: GleisMapSerialisiert::new(),
+            weichen: GleisMapSerialisiert::new(),
+            dreiwege_weichen: GleisMapSerialisiert::new(),
+            kurven_weichen: GleisMapSerialisiert::new(),
+            s_kurven_weichen: GleisMapSerialisiert::new(),
+            kreuzungen: GleisMapSerialisiert::new(),
         }
     }
 }
