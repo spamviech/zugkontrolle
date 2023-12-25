@@ -33,7 +33,7 @@ use crate::{
             self,
             daten::{
                 v2::{self, BekannterZugtyp},
-                DatenAuswahl, GeschwindigkeitMap, Gleis, Gleis2, GleiseDaten, SelectAll,
+                v3, DatenAuswahl, GeschwindigkeitMap, Gleis, Gleis2, GleiseDaten, SelectAll,
                 StreckenabschnittMap, Zustand, Zustand2,
             },
             steuerung::{MitSteuerung, SomeAktualisierenSender},
@@ -77,6 +77,8 @@ pub enum LadenFehler<S> {
     BincodeDeserialisieren {
         /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
         aktuell: bincode::Error,
+        /// Fehler beim Deserialisieren nach Version-3 Speicherformat.
+        v3: bincode::Error,
         /// Fehler beim Deserialisieren nach Version-2 Speicherformat.
         v2: bincode::Error,
     },
@@ -679,11 +681,16 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let zustand_serialisiert: ZustandSerialisiert<L, S> = BINCODE_OPTIONS
             .deserialize(slice)
             .or_else(|aktuell| {
-                match BINCODE_OPTIONS
-                    .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
-                {
-                    Ok(v2) => todo!("v2.try_into().map_err(LadenFehler::from)"),
-                    Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v2 }),
+                match BINCODE_OPTIONS.deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
+                    Ok(v3) => todo!("v3.try_into().map_err(LadenFehler::from)"),
+                    Err(v3) => {
+                        match BINCODE_OPTIONS
+                            .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
+                        {
+                            Ok(v2) => todo!("v2.try_into().map_err(LadenFehler::from)"),
+                            Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
+                        }
+                    },
                 }
             })
             .map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
