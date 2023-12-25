@@ -33,14 +33,16 @@ use crate::{
             self,
             daten::{
                 v2::{self, BekannterZugtyp},
-                v3,
+                v3::{self, Gleis},
                 v4::{
                     GeschwindigkeitMapSerialisiert, GleiseDatenSerialisiert,
                     StreckenabschnittMapSerialisiert, ZustandSerialisiert,
                 },
-                DatenAuswahl, GeschwindigkeitMap, Gleis, Gleis2, GleiseDaten, SelectAll,
-                StreckenabschnittMap, Zustand, Zustand2,
+                GeschwindigkeitMap2, Gleis2, GleiseDaten2, SelectAll, StreckenabschnittMap2,
+                Zustand2,
             },
+            id::{self, DefinitionId2, GleisId2},
+            nachricht::GleisSteuerung,
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
         },
@@ -64,6 +66,8 @@ use crate::{
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::{Zugtyp, ZugtypDeserialisierenFehler, ZugtypSerialisiert2},
 };
+
+use super::v4::GleisSerialisiert;
 
 // Im Gegensatz zu [DefaultOptions] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
 // https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
@@ -96,7 +100,7 @@ pub enum LadenFehler<S> {
     },
 }
 
-impl GleiseDaten {
+impl GleiseDaten2 {
     /// Erzeuge eine Serialisierbare Repräsentation
     fn serialisiere(&self) -> GleiseDatenSerialisiert {
         // macro_rules! rstern_to_vecs {
@@ -129,28 +133,30 @@ impl GleiseDaten {
 
 #[allow(single_use_lifetimes)]
 fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
-    spurweite: Spurweite,
     lager: &mut anschluss::Lager,
-    serialisiert: Vec<Gleis<Ts>>,
+    serialisiert: Vec<GleisSerialisiert<T>>,
     anschlüsse: Anschlüsse,
-    steuerung: impl Fn(&T) -> &Option<S>,
-    map: &mut HashMap<Ss, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
-    arg: &<Ts as Reserviere<T>>::Arg,
-) -> (Vec<GeomWithData<Rectangle<Vektor>, Gleis<T>>>, Anschlüsse)
+    bekannte_definition_ids: &mut HashMap<id::Repräsentation, DefinitionId2<T>>,
+    arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::Arg,
+) -> (Vec<Gleis2<T>>, Anschlüsse)
 where
-    // T: MitSteuerung,
-    // <T as MitSteuerung>::SelfUnit: Zeichnen<T>,
-    T: Zeichnen<()>,
-    Ts: Reserviere<T>,
-    <Ts as Reserviere<T>>::Arg: Clone,
+    T: 'static + MitSteuerung<Serialisiert = Ts>,
+    Ts: Reserviere<<T as MitSteuerung>::Steuerung>,
+    <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::Arg: Clone,
     S: Clone + Serialisiere<Ss>,
     Ss: Eq + Hash,
 {
     use Ergebnis::*;
     serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
         let mut gleise = acc.0;
-        let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(lager, acc.1, arg.clone()) {
+        // TODO Reserviere anpassen um referenz-Argument zu erlauben
+        let id_repräsentation = gleis_serialisiert.definition;
+        let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(
+            lager,
+            acc.1,
+            (bekannte_definition_ids.clone(), arg.clone()),
+        ) {
             Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
             FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                 laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
@@ -161,15 +167,8 @@ where
                 return (gleise, anschlüsse);
             },
         };
-        // Bekannte Steuerung sichern
-        if let Some(steuerung) = steuerung(&gleis.definition) {
-            let serialisiert = steuerung.serialisiere();
-            let _ = map.insert(serialisiert, steuerung.clone());
-        }
-        // Gleis mit BoundingBox speichern
-        let rectangle =
-            Rectangle::from(gleis.definition.rechteck_an_position(&(), spurweite, &gleis.position));
-        gleise.push(GeomWithData::new(rectangle, gleis));
+        let _ = bekannte_definition_ids.insert(id_repräsentation, gleis.definition.clone());
+        gleise.push(gleis);
         (gleise, anschlüsse)
     })
 }
@@ -185,9 +184,10 @@ impl GleiseDatenSerialisiert {
         kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
         dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
         kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
+        bekannte_ids: (), // TODO
         fehler: &mut Vec<LadenFehler<S>>,
         sender: &Sender<Nachricht>,
-    ) -> (GleiseDaten, Anschlüsse) {
+    ) -> (GleiseDaten2, Anschlüsse) {
         // macro_rules! reserviere_anschlüsse {
         //     ($($rstern: ident: $ty: ty: $steuerung: ident: $map: ident: $arg: expr),* $(,)?) => {
         //         $(
@@ -200,6 +200,7 @@ impl GleiseDatenSerialisiert {
         //                     |gleis: &$ty| &gleis.$steuerung,
         //                     $map,
         //                     fehler,
+        //                     $bekannte_ids,
         //                     $arg,
         //                 );
         //         )*
@@ -341,7 +342,7 @@ fn reserviere_streckenabschnitt_map<
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
     sender: &Sender<Nachricht>,
-) -> (StreckenabschnittMap, Anschlüsse, Option<GleiseDaten>) {
+) -> (StreckenabschnittMap2, Anschlüsse, Option<GleiseDaten2>) {
     // streckenabschnitt_map.into_iter().fold(
     //     (HashMap::new(), anschlüsse, None),
     //     |(mut map, anschlüsse, mut fehler_daten), (name, (streckenabschnitt, daten))| {
@@ -364,6 +365,7 @@ fn reserviere_streckenabschnitt_map<
     //             kurven_weichen,
     //             dreiwege_weichen,
     //             kontakte,
+    //             todo!("bekannte_ids"),
     //             laden_fehler,
     //             sender,
     //         );
@@ -395,7 +397,7 @@ fn reserviere_geschwindigkeit_map<L, S, Nachricht>(
     lager: &mut anschluss::Lager,
     geschwindigkeiten_map: GeschwindigkeitMapSerialisiert<S>,
     anschlüsse: Anschlüsse,
-    ohne_streckenabschnitt: &mut GleiseDaten,
+    ohne_streckenabschnitt: &mut GleiseDaten2,
     geschwindigkeiten: &mut HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
     streckenabschnitte: &mut HashMap<OutputSerialisiert, Streckenabschnitt>,
     gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
@@ -404,7 +406,7 @@ fn reserviere_geschwindigkeit_map<L, S, Nachricht>(
     kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
     laden_fehler: &mut Vec<LadenFehler<S>>,
     sender: &Sender<Nachricht>,
-) -> (GeschwindigkeitMap<L>, Anschlüsse, Option<StreckenabschnittMap>)
+) -> (GeschwindigkeitMap2<L>, Anschlüsse, Option<StreckenabschnittMap2>)
 where
     L: Serialisiere<S>,
     S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
@@ -478,7 +480,7 @@ where
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         sender: &Sender<Nachricht>,
-    ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), ZugtypDeserialisierenFehler> {
+    ) -> Result<(Zustand2<L>, Vec<LadenFehler<S>>), ZugtypDeserialisierenFehler> {
         // let mut bekannte_geschwindigkeiten = HashMap::new();
         // let mut bekannte_streckenabschnitte = HashMap::new();
         // let mut bekannte_gerade_weichen = HashMap::new();

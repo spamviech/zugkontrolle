@@ -2,7 +2,7 @@
 
 use either::Either;
 use log::error;
-use nonempty::NonEmpty;
+use nonempty::{nonempty, NonEmpty};
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
@@ -18,6 +18,15 @@ pub struct Anschlüsse {
 }
 
 impl Anschlüsse {
+    /// Erzeuge eine leere [Anschlüsse]-Struktur.
+    pub const fn neu() -> Anschlüsse {
+        Anschlüsse {
+            pwm_pins: Vec::new(),
+            output_anschlüsse: Vec::new(),
+            input_anschlüsse: Vec::new(),
+        }
+    }
+
     /// Füge weitere Anschlüsse zu den jeweiligen [Vec] hinzu.
     pub fn anhängen(&mut self, andere: Anschlüsse) {
         let Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse } = andere;
@@ -83,6 +92,15 @@ pub enum Ergebnis<R> {
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
+}
+
+impl<R, Fehler: Into<anschluss::Fehler>> From<(Result<R, Fehler>, Anschlüsse)> for Ergebnis<R> {
+    fn from((result, anschlüsse): (Result<R, Fehler>, Anschlüsse)) -> Self {
+        match result {
+            Ok(anschluss) => Ergebnis::Wert { anschluss, anschlüsse },
+            Err(fehler) => Ergebnis::Fehler { fehler: nonempty![fehler.into()], anschlüsse },
+        }
+    }
 }
 
 impl<R> Ergebnis<R> {

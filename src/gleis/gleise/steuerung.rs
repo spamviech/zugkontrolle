@@ -10,7 +10,7 @@ use crate::{
     gleis::{
         self,
         gleise::{
-            daten::{DatenAuswahl, Gleis, SelectEnvelope},
+            daten::{Gleis2, SelectEnvelope},
             id::{AnyId2, GleisId},
             GleisIdFehler, Gleise,
         },
@@ -156,9 +156,9 @@ pub trait MitSteuerung {
 }
 
 impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachricht> {
-    #[zugkontrolle_macros::erstelle_daten_methoden]
+    // #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn mit_steuerung<T: MitSteuerung + DatenAuswahl, V>(
+    pub(crate) fn mit_steuerung<T: MitSteuerung, V>(
         &self,
         gleis_id: &GleisId<T>,
         f: impl FnOnce(&<T as MitSteuerung>::Steuerung) -> V,
@@ -177,9 +177,9 @@ impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachrich
         todo!()
     }
 
-    #[zugkontrolle_macros::erstelle_daten_methoden]
+    // #[zugkontrolle_macros::erstelle_daten_methoden]
     /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn mit_steuerung_mut<T: MitSteuerung + DatenAuswahl, V>(
+    pub(crate) fn mit_steuerung_mut<T: MitSteuerung, V>(
         &mut self,
         gleis_id: &GleisId<T>,
         sender: impl 'static + AktualisierenSender,

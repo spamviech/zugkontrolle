@@ -21,9 +21,7 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{
-                BewegenFehler2, EntfernenFehler2, Gleis, GleiseDaten, RStern, RStern2, Zustand2,
-            },
+            daten::{BewegenFehler2, EntfernenFehler2, Gleis2, GleiseDaten2, RStern2, Zustand2},
             id::{
                 mit_any_id, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2, GleisIdRef,
                 StreckenabschnittIdRef,
@@ -129,16 +127,18 @@ impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
 fn gleis_an_position<'t, T>(
     spurweite: Spurweite,
     streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
-    rstern: &'t RStern<T>,
+    rstern: &'t RStern2,
     canvas_pos: Vektor,
 ) -> Option<(GleisSteuerungRef<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
 where
     T: Zeichnen<()> + MitSteuerung,
+    <T as MitSteuerung>::Steuerung: 't,
     GleisSteuerungRef<'t>: From<(GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung)>,
 {
     for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
         let rectangle = geom_with_data.geom();
-        let Gleis { definition, position } = &geom_with_data.data;
+        let (id, position) = &geom_with_data.data;
+        let definition: T = todo!("definition");
         let relative_pos = canvas_pos - position.punkt;
         let rotated_pos = relative_pos.rotiert(-position.winkel);
         if definition.innerhalb(&(), spurweite, rotated_pos, KLICK_GENAUIGKEIT) {

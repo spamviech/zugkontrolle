@@ -24,7 +24,7 @@ use crate::{
     },
     gleis::gleise::{
         self,
-        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2, StreckenabschnittMap},
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2, StreckenabschnittMap2},
         id::{
             mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2,
             AnyIdSteuerungSerialisiert2, StreckenabschnittId, StreckenabschnittIdRef,

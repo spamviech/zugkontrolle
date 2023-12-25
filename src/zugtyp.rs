@@ -342,7 +342,7 @@ impl<L: BekannterLeiter> From<Zugtyp2<L>> for ZugtypSerialisiert2<L> {
         let leiter = L::NAME.to_owned();
         macro_rules! erzeuge_maps {
             ($($gleise: ident),* $(,)?) => {$(
-                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.u32(), gleis)).collect();
+                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.repräsentation(), gleis)).collect();
             )*};
         }
         erzeuge_maps!(

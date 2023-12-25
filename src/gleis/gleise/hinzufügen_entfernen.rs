@@ -11,7 +11,7 @@ use crate::{
         gleise::{
             self,
             daten::{
-                AnyGleis2, BewegenFehler2, DatenAuswahl, EntfernenFehler2, HinzufügenFehler2,
+                AnyGleis2, BewegenFehler2, EntfernenFehler2, HinzufügenFehler2,
                 SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
             },
             id::{
@@ -172,7 +172,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         arg: <S as Reserviere<W>>::Arg,
     ) -> Result<(), AnschlüsseAnpassenFehler>
     where
-        T: for<'t> MitSteuerung<Steuerung = Option<W>> + DatenAuswahl,
+        T: for<'t> MitSteuerung<Steuerung = Option<W>>,
         W: Serialisiere<S>,
         S: Debug + Reserviere<W>,
         <S as Reserviere<W>>::Arg: Clone,

@@ -14,6 +14,7 @@ use crate::{
         trigger::Trigger,
     },
     argumente::I2cSettings,
+    gleis::gleise::id::eindeutig::KeineIdVerfügbar,
     rppal,
     util::eingeschränkt::kleiner_8,
     zugtyp::ZugtypDeserialisierenFehler,
@@ -621,6 +622,9 @@ pub enum Fehler {
         /// Der Name des aktuellen Leiters.
         leiter: &'static str,
     },
+    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
 impl From<pin::ReservierenFehler> for Fehler {
