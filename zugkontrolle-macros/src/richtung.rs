@@ -38,7 +38,6 @@ pub(crate) fn erstelle_richtung(args: TokenStream, item: syn::ItemEnum) -> Token
             .iter()
             .map(|variant| format_ident!("{}", &variant.to_string().to_snake_case()))
             .collect();
-        let unit_args: Vec<_> = enum_variants.iter().map(|_| quote!(())).collect();
         let stacked_unit_tuple_args = enum_variants.iter().fold(None, |tokens, _ident| {
             Some(if let Some(tokens) = tokens {
                 quote! {((), #tokens)}
@@ -107,7 +106,7 @@ pub(crate) fn erstelle_richtung(args: TokenStream, item: syn::ItemEnum) -> Token
                     let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
                     #[allow(unused_parens)]
                     (#(#struct_fields),*)
-                        .reserviere(lager, anschlüsse, (#(#unit_args),*), &#stacked_unit_tuple_args, &mut #stacked_unit_tuple_args)
+                        .reserviere(lager, anschlüsse, #stacked_unit_tuple_args, &#stacked_unit_tuple_args, &mut #stacked_unit_tuple_args)
                         .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
                 }
             }
