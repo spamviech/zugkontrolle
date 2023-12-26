@@ -155,9 +155,9 @@ where
         let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(
             lager,
             acc.1,
-            (bekannte_definition_ids.clone(), arg.clone()),
+            (arg.clone()),
             &(),
-            &mut (),
+            bekannte_definition_ids,
         ) {
             Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
             FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {

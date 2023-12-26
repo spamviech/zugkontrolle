@@ -1,6 +1,11 @@
 //! Struktur zum Speichern aller Gleise.
 
-use std::{collections::HashMap, fmt::Debug, iter, marker::PhantomData};
+use std::{
+    collections::hash_map::{Entry, HashMap},
+    fmt::Debug,
+    iter,
+    marker::PhantomData,
+};
 
 use either::Either;
 use iced::{
@@ -12,7 +17,7 @@ use iced::{
     Color,
 };
 use log::error;
-use nonempty::NonEmpty;
+use nonempty::{nonempty, NonEmpty};
 use rstar::{
     primitives::{GeomWithData, Rectangle},
     Envelope, RTree, RTreeObject, SelectionFunction, AABB,
@@ -141,44 +146,44 @@ where
 impl<T> Reserviere<Gleis2<T>> for GleisSerialisiert<T>
 where
     T: 'static + MitSteuerung,
-    <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung>,
+    <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung, MutRefArg = ()>,
 {
-    type MoveArg = (
-        HashMap<id::Repräsentation, DefinitionId2<T>>,
-        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
-    );
+    type MoveArg =
+        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg;
     type RefArg =
         <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::RefArg;
-    type MutRefArg = <<T as MitSteuerung>::Serialisiert as Reserviere<
-        <T as MitSteuerung>::Steuerung,
-    >>::MutRefArg;
+    type MutRefArg = HashMap<id::Repräsentation, DefinitionId2<T>>;
 
     fn reserviere(
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
-        (bekannte_ids, move_arg_steuerung): Self::MoveArg,
+        move_arg_steuerung: Self::MoveArg,
         ref_arg_steuerung: &Self::RefArg,
-        mut_ref_arg_steuerung: &mut Self::MutRefArg,
+        bekannte_definition_ids: &mut Self::MutRefArg,
     ) -> Ergebnis<Gleis2<T>> {
         let GleisSerialisiert { definition, position, steuerung, streckenabschnitt } = self;
-        let id = match bekannte_ids.get(&definition) {
-            Some(id) => Ergebnis::Wert { anschluss: id.clone(), anschlüsse },
-            None => Ergebnis::from((GleisId2::neu(), anschlüsse)),
+        let gespeicherte_id = definition;
+        let id = match bekannte_definition_ids.entry(definition) {
+            Entry::Occupied(occupied) => {
+                Ergebnis::Wert { anschluss: occupied.get().clone(), anschlüsse }
+            },
+            Entry::Vacant(vacant) => match GleisId2::neu() {
+                Ok(id) => {
+                    // Mapping gespeicherte Zahl->DefinitionId speichern
+                    vacant.insert(id.clone());
+                    Ergebnis::Wert { anschluss: id, anschlüsse }
+                },
+                Err(fehler) => Ergebnis::Fehler { fehler: nonempty![fehler.into()], anschlüsse },
+            },
         };
-        id.reserviere_ebenfalls(
-            lager,
-            steuerung,
-            move_arg_steuerung,
-            ref_arg_steuerung,
-            mut_ref_arg_steuerung,
-        )
-        .konvertiere(|(definition, steuerung)| Gleis2 {
-            definition,
-            position,
-            steuerung,
-            streckenabschnitt,
-        })
+        id.reserviere_ebenfalls(lager, steuerung, move_arg_steuerung, ref_arg_steuerung, &mut ())
+            .konvertiere(|(definition, steuerung)| Gleis2 {
+                definition,
+                position,
+                steuerung,
+                streckenabschnitt,
+            })
     }
 }
 

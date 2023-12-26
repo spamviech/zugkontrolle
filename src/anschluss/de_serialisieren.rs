@@ -94,15 +94,6 @@ pub enum Ergebnis<R> {
     },
 }
 
-impl<R, Fehler: Into<anschluss::Fehler>> From<(Result<R, Fehler>, Anschlüsse)> for Ergebnis<R> {
-    fn from((result, anschlüsse): (Result<R, Fehler>, Anschlüsse)) -> Self {
-        match result {
-            Ok(anschluss) => Ergebnis::Wert { anschluss, anschlüsse },
-            Err(fehler) => Ergebnis::Fehler { fehler: nonempty![fehler.into()], anschlüsse },
-        }
-    }
-}
-
 impl<R> Ergebnis<R> {
     /// Konvertiere den `anschluss` mit der übergebenen Funktion.
     pub fn konvertiere<T>(self, f: impl FnOnce(R) -> T) -> Ergebnis<T> {
@@ -483,6 +474,7 @@ macro_rules! impl_serialisiere_tuple {
 
 impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA}
 impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB}
+// TODO fix type error with (mut_)ref_arg: (a0, (a, b, c)) statt (a0, (a, (b, c)))
 // impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC}
 // impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC, d-dd-ddd-dddd: D-SD}
 // impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC, d-dd-ddd-dddd: D-SD, e-ee-eee-eeee: E-SE}
