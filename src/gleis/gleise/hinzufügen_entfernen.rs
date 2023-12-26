@@ -198,7 +198,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 let (fehler, anschlüsse) = match anschlüsse_serialisiert.reserviere(
                     lager,
                     anschlüsse,
-                    move_arg,
+                    move_arg.clone(),
                     &(),
                     &mut (),
                 ) {
