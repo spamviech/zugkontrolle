@@ -103,31 +103,33 @@ pub enum LadenFehler<S> {
 impl GleiseDaten2 {
     /// Erzeuge eine Serialisierbare Repräsentation
     fn serialisiere(&self) -> GleiseDatenSerialisiert {
-        // macro_rules! rstern_to_vecs {
-        //     ($($rstern:ident),* $(,)?) => {
-        //         GleiseDatenSerialisiert {
-        //             $($rstern: self.$rstern.iter().map(
-        //                 |GeomWithData {data, ..}| {
-        //                     Gleis {
-        //                         position: data.position.clone(),
-        //                         definition: data.definition.serialisiere(),
-        //                     }
-        //                 })
-        //                 .collect()
-        //             ),*
-        //         }
-        //     };
-        // }
-        // rstern_to_vecs! {
-        //     geraden,
-        //     kurven,
-        //     weichen,
-        //     dreiwege_weichen,
-        //     kurven_weichen,
-        //     s_kurven_weichen,
-        //     kreuzungen,
-        // }
-        todo!("GleiseDaten::serialisiere")
+        macro_rules! konvertiere_maps {
+            ($($map:ident),* $(,)?) => {
+                GleiseDatenSerialisiert {
+                    $($map: self.$map.iter().map(
+                        |(id, (gleis, _rectangle))| (
+                            id.repräsentation(),
+                            GleisSerialisiert {
+                                definition: gleis.definition.repräsentation(),
+                                steuerung: gleis.steuerung.serialisiere(),
+                                position: gleis.position.clone(),
+                                streckenabschnitt: gleis.streckenabschnitt.clone(),
+                            }
+                        ))
+                        .collect()
+                    ),*
+                }
+            };
+        }
+        konvertiere_maps! {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        }
     }
 }
 
@@ -150,12 +152,11 @@ where
     use Ergebnis::*;
     serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
         let mut gleise = acc.0;
-        // TODO Reserviere anpassen um referenz-Argument zu erlauben
         let id_repräsentation = gleis_serialisiert.definition;
         let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(
             lager,
             acc.1,
-            (arg.clone()),
+            arg.clone(),
             &(),
             bekannte_definition_ids,
         ) {
