@@ -197,7 +197,9 @@ where
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
     S: 'static + Debug + Clone + Eq + Hash + Unpin + Send,
-    S: Reserviere<L, Arg = ()> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
+        + Serialize
+        + for<'de> Deserialize<'de>,
     // zusätzlicher Constraint für v2-Kompatibilität
     L: BekannterZugtyp,
     S: From<<L as BekannterZugtyp>::V2>,

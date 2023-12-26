@@ -49,8 +49,10 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                 type_definitionen = Some(quote! {
                     /// Eine serialisierbare Repräsentation.
                     #vis type #serialisiert_ident<#(#params),*> = #ident<#params_start Option<#arg>>;
+
                     /// Eine Variante ohne Anschlüsse.
                     #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
+
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Serialisiere<
                         #serialisiert_ident<#(#params),*>
                     > for #ident<#(#params),*>
@@ -76,24 +78,30 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             anschlüsse
                         }
                     }
+
                     impl<#(#params),*> #base_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
                         #[allow(unused_qualifications)]
-                        type Arg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::Arg;
+                        type MoveArg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::MoveArg;
+                        type RefArg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::RefArg;
+                        type MutRefArg = <Option<#arg> as #base_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::MutRefArg;
 
                         fn reserviere(
                             self,
                             lager: &mut #base_ident::anschluss::Lager,
                             anschlüsse: #base_ident::anschluss::de_serialisieren::Anschlüsse,
-                            arg: Self::Arg,
+                            move_arg: Self::MoveArg,
+                            ref_arg: &Self::RefArg,
+                            mut_ref_arg: &mut Self::MutRefArg,
                         ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                             let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                             (#(#param_fields),*)
-                                .reserviere(lager, anschlüsse, arg)
+                                .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
                                 .konvertiere(|(#(#param_fields),*)| {
                                     #ident { #(#other_fields),*, #(#param_fields),* }
                                 })
                         }
                     }
+
                     impl<#(#params),*> #ident<#(#params),*> {
                         /// Clone in eine äquivalente Darstellung ohne Anschlüsse.
                         pub fn mit_unit(&self) -> #unit_ident<#(#params),*> {
@@ -104,6 +112,7 @@ pub(crate) fn alias_serialisiert_unit(arg: TokenStream, item: syn::ItemStruct) -
                             }
                         }
                     }
+
                     impl<#(#params),*> #unit_ident<#(#params),*> {
                         /// Clone in eine äquivalente Darstellung mit [None] als Anschlüsse.
                         pub fn mit_none<T>(&self) -> #ident<#params_start Option<T>> {

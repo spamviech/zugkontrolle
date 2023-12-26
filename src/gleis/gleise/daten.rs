@@ -143,25 +143,42 @@ where
     T: 'static + MitSteuerung,
     <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung>,
 {
-    type Arg = (
+    type MoveArg = (
         HashMap<id::Repräsentation, DefinitionId2<T>>,
-        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::Arg,
+        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
     );
+    type RefArg =
+        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::RefArg;
+    type MutRefArg = <<T as MitSteuerung>::Serialisiert as Reserviere<
+        <T as MitSteuerung>::Steuerung,
+    >>::MutRefArg;
 
     fn reserviere(
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
-        (bekannte_ids, arg_steuerung): Self::Arg,
+        (bekannte_ids, move_arg_steuerung): Self::MoveArg,
+        ref_arg_steuerung: &Self::RefArg,
+        mut_ref_arg_steuerung: &mut Self::MutRefArg,
     ) -> Ergebnis<Gleis2<T>> {
         let GleisSerialisiert { definition, position, steuerung, streckenabschnitt } = self;
         let id = match bekannte_ids.get(&definition) {
             Some(id) => Ergebnis::Wert { anschluss: id.clone(), anschlüsse },
             None => Ergebnis::from((GleisId2::neu(), anschlüsse)),
         };
-        id.reserviere_ebenfalls(lager, steuerung, arg_steuerung).konvertiere(
-            |(definition, steuerung)| Gleis2 { definition, position, steuerung, streckenabschnitt },
+        id.reserviere_ebenfalls(
+            lager,
+            steuerung,
+            move_arg_steuerung,
+            ref_arg_steuerung,
+            mut_ref_arg_steuerung,
         )
+        .konvertiere(|(definition, steuerung)| Gleis2 {
+            definition,
+            position,
+            steuerung,
+            streckenabschnitt,
+        })
     }
 }
 
@@ -972,7 +989,7 @@ impl GleiseDaten2 {
                 };
                 use Ergebnis::*;
                 let (fehler, anschlüsse) =
-                    match anschlüsse_serialisiert.reserviere(lager, anschlüsse, sender.clone()) {
+                    match anschlüsse_serialisiert.reserviere(lager, anschlüsse, sender.clone(), &(), &mut ()) {
                         Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                             return Ok(());
@@ -986,7 +1003,7 @@ impl GleiseDaten2 {
                 let mut wiederherstellen_fehler = None;
                 if let Some(steuerung_serialisiert) = steuerung_serialisiert {
                     let serialisiert_string = format!("{steuerung_serialisiert:?}");
-                    match steuerung_serialisiert.reserviere(lager, anschlüsse, sender) {
+                    match steuerung_serialisiert.reserviere(lager, anschlüsse, sender, &(), &mut ()) {
                         Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                         },

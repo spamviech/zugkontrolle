@@ -1,6 +1,7 @@
 //! Methoden für die [update](iced::Application::update)-Methode des [iced::Application]-Traits.
 
 use std::{
+    cell::Ref,
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
@@ -140,12 +141,17 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
         // beim hinzufügen.
         use Ergebnis::*;
-        let (streckenabschnitt, fehler) =
-            match anschluss_definition.reserviere(&mut self.lager, Anschlüsse::default(), ()) {
-                Wert { anschluss, .. } => (Some(anschluss), None),
-                FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
-                Fehler { fehler, .. } => (None, Some(fehler)),
-            };
+        let (streckenabschnitt, fehler) = match anschluss_definition.reserviere(
+            &mut self.lager,
+            Anschlüsse::default(),
+            (),
+            &(),
+            &mut (),
+        ) {
+            Wert { anschluss, .. } => (Some(anschluss), None),
+            FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
+            Fehler { fehler, .. } => (None, Some(fehler)),
+        };
 
         let mut fehlermeldung = fehler.map(|fehler| {
             (format!("Hinzufügen Streckenabschnitt {:?}", id_ref), format!("{:?}", fehler))
@@ -332,7 +338,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
     L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S> + Display,
-    S: Debug + Clone + Reserviere<L, Arg = ()>,
+    S: Debug + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
@@ -351,7 +357,7 @@ where
             };
         use Ergebnis::*;
         let (fehler, anschlüsse) =
-            match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
+            match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
                     if let Some(serialisiert) = alt_serialisiert {
                         self.zeige_message_box(
@@ -377,7 +383,7 @@ where
         if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
             let (geschwindigkeit, fehler) =
-                match serialisiert.reserviere(&mut self.lager, anschlüsse, ()) {
+                match serialisiert.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                     Wert { anschluss, .. } => (Some(anschluss), None),
                     FehlerMitErsatzwert { anschluss, fehler, .. } => {
                         (Some(anschluss), Some(fehler))
@@ -490,7 +496,7 @@ where
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
+        S: Debug + Clone + Eq + Hash + Reserviere<L, MoveArg = ()> + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,

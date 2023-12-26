@@ -291,13 +291,17 @@ impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
 }
 
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<OutputAnschluss> {
         let neue_polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
@@ -490,12 +494,16 @@ impl Serialisiere<InputSerialisiert> for InputAnschluss {
 }
 
 impl Reserviere<InputAnschluss> for InputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<InputAnschluss> {
         let mut gesuchter_anschluss = None;
         let mut gesuchter_interrupt = None;

@@ -169,13 +169,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         id: GleisId<T>,
         anschlüsse_serialisiert: Option<S>,
         lager: &mut Lager,
-        arg: <S as Reserviere<W>>::Arg,
+        move_arg: <S as Reserviere<W>>::MoveArg,
     ) -> Result<(), AnschlüsseAnpassenFehler>
     where
         T: for<'t> MitSteuerung<Steuerung = Option<W>>,
         W: Serialisiere<S>,
-        S: Debug + Reserviere<W>,
-        <S as Reserviere<W>>::Arg: Clone,
+        S: Debug + Reserviere<W, RefArg = (), MutRefArg = ()>,
+        <S as Reserviere<W>>::MoveArg: Clone,
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
         use Ergebnis::*;
@@ -195,22 +195,33 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 } else {
                     (None, Anschlüsse::default())
                 };
-                let (fehler, anschlüsse) =
-                    match anschlüsse_serialisiert.reserviere(lager, anschlüsse, arg.clone()) {
-                        Wert { anschluss, .. } => {
-                            let _ = steuerung.insert(anschluss);
-                            return Ok(());
-                        },
-                        FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
-                            anschlüsse.anhängen(anschluss.anschlüsse());
-                            (fehler, anschlüsse)
-                        },
-                        Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
-                    };
+                let (fehler, anschlüsse) = match anschlüsse_serialisiert.reserviere(
+                    lager,
+                    anschlüsse,
+                    move_arg,
+                    &(),
+                    &mut (),
+                ) {
+                    Wert { anschluss, .. } => {
+                        let _ = steuerung.insert(anschluss);
+                        return Ok(());
+                    },
+                    FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                        anschlüsse.anhängen(anschluss.anschlüsse());
+                        (fehler, anschlüsse)
+                    },
+                    Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+                };
                 let mut wiederherstellen_fehler = None;
                 if let Some(steuerung_serialisiert) = steuerung_serialisiert {
                     let serialisiert_string = format!("{steuerung_serialisiert:?}");
-                    match steuerung_serialisiert.reserviere(lager, anschlüsse, arg) {
+                    match steuerung_serialisiert.reserviere(
+                        lager,
+                        anschlüsse,
+                        move_arg,
+                        &(),
+                        &mut (),
+                    ) {
                         Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                         },

@@ -38,7 +38,7 @@ pub(crate) fn erstelle_richtung(args: TokenStream, item: syn::ItemEnum) -> Token
             .iter()
             .map(|variant| format_ident!("{}", &variant.to_string().to_snake_case()))
             .collect();
-        let unit_args = enum_variants.iter().map(|_| quote!(()));
+        let unit_args: Vec<_> = enum_variants.iter().map(|_| quote!(())).collect();
 
         enum_definition = Some(quote! {
             #[zugkontrolle_macros::impl_nachschlagen(#base_ident::anschluss::OutputAnschluss, RichtungAnschlüsse, Debug)]
@@ -85,17 +85,22 @@ pub(crate) fn erstelle_richtung(args: TokenStream, item: syn::ItemEnum) -> Token
                 }
             }
             impl #base_ident::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
-                type Arg = ();
+                type MoveArg = ();
+                type RefArg = ();
+                type MutRefArg = ();
+
                 fn reserviere(
                     self,
                     lager: &mut #base_ident::anschluss::Lager,
                     anschlüsse: #base_ident::anschluss::de_serialisieren::Anschlüsse,
-                    _arg: (),
+                    _move_arg: Self::MoveArg,
+                    _ref_arg: &Self::RefArg,
+                    _mut_ref_arg: &mut Self::MutRefArg,
                 ) -> #base_ident::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                     let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
                     #[allow(unused_parens)]
                     (#(#struct_fields),*)
-                        .reserviere(lager, anschlüsse, (#(#unit_args),*))
+                        .reserviere(lager, anschlüsse, (#(#unit_args),*), (#(&#unit_args),*), (#(&mut #unit_args),*))
                         .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
                 }
             }

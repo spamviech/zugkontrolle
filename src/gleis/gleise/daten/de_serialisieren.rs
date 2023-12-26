@@ -138,12 +138,12 @@ fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
     anschlüsse: Anschlüsse,
     laden_fehler: &mut Vec<LadenFehler<L>>,
     bekannte_definition_ids: &mut HashMap<id::Repräsentation, DefinitionId2<T>>,
-    arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::Arg,
+    arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
 ) -> (Vec<Gleis2<T>>, Anschlüsse)
 where
     T: 'static + MitSteuerung<Serialisiert = Ts>,
-    Ts: Reserviere<<T as MitSteuerung>::Steuerung>,
-    <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::Arg: Clone,
+    Ts: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = (), MutRefArg = ()>,
+    <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg: Clone,
     S: Clone + Serialisiere<Ss>,
     Ss: Eq + Hash,
 {
@@ -156,6 +156,8 @@ where
             lager,
             acc.1,
             (bekannte_definition_ids.clone(), arg.clone()),
+            &(),
+            &mut (),
         ) {
             Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
             FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
@@ -409,7 +411,7 @@ fn reserviere_geschwindigkeit_map<L, S, Nachricht>(
 ) -> (GeschwindigkeitMap2<L>, Anschlüsse, Option<StreckenabschnittMap2>)
 where
     L: Serialisiere<S>,
-    S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
+    S: Clone + Eq + Hash + Reserviere<L, MoveArg = ()>,
     Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
     // geschwindigkeiten_map.into_iter().fold(
@@ -472,7 +474,7 @@ where
 impl<L, S> ZustandSerialisiert<L, S>
 where
     L: Serialisiere<S> + BekannterLeiter,
-    S: Clone + Eq + Hash + Reserviere<L, Arg = ()>,
+    S: Clone + Eq + Hash + Reserviere<L, MoveArg = ()>,
 {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
@@ -617,7 +619,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
+        S: Clone + Eq + Hash + Reserviere<L, MoveArg = ()> + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,
