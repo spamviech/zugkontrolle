@@ -2,7 +2,7 @@
 
 use either::Either;
 use log::error;
-use nonempty::{nonempty, NonEmpty};
+use nonempty::NonEmpty;
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
@@ -399,8 +399,17 @@ where
     }
 }
 
+macro_rules! tuple_arg_type {
+    ($arg: ident: $type: ident - $serialisiert: ident $(,)?) => {
+        <$serialisiert as Reserviere<$type>>::$arg
+    };
+    ($arg: ident: $head_type: ident - $head_serialisiert: ident, $($tail_type: ident - $tail_serialisiert: ident),+ $(,)?) => {
+        (<$head_serialisiert as Reserviere<$head_type>>::$arg, tuple_arg_type!($arg: $($tail_type - $tail_serialisiert),+))
+    };
+}
+
 macro_rules! impl_serialisiere_tuple {
-    ($($name: ident - $move_arg_name: ident - $ref_arg_name: ident - $mut_ref_arg_name: ident : $type: ident - $serialisiert: ident),+) => {
+    ($($name: ident : $type: ident - $serialisiert: ident),+) => {
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
@@ -439,11 +448,11 @@ macro_rules! impl_serialisiere_tuple {
             )+
         {
             #[allow(unused_parens)]
-            type MoveArg = (<S0 as Reserviere<A0>>::MoveArg, $(<$serialisiert as Reserviere<$type>>::MoveArg),+);
+            type MoveArg = tuple_arg_type!(MoveArg: A0 - S0, $($type - $serialisiert),+);
             #[allow(unused_parens)]
-            type RefArg = (<S0 as Reserviere<A0>>::RefArg, ($(<$serialisiert as Reserviere<$type>>::RefArg),+));
+            type RefArg = tuple_arg_type!(RefArg: A0 - S0, $($type - $serialisiert),+);
             #[allow(unused_parens)]
-            type MutRefArg = (<S0 as Reserviere<A0>>::MutRefArg, ($(<$serialisiert as Reserviere<$type>>::MutRefArg),+));
+            type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
                 lager: &mut anschluss::Lager,
@@ -453,14 +462,14 @@ macro_rules! impl_serialisiere_tuple {
                 mut_ref_arg: &mut Self::MutRefArg,
             ) -> Ergebnis<(A0, $($type),+)> {
                 let (a0, $($name),+) = self;
-                let (move_arg_0, $($move_arg_name),+) = move_arg;
+                let (move_arg_0, move_tail_tuple) = move_arg;
                 let (ref_arg_0, ref_tail_tuple) = ref_arg;
                 let (mut_ref_arg_0, mut_ref_tail_tuple) = mut_ref_arg;
                 let reserviert = a0.reserviere(lager, anschlüsse, move_arg_0, ref_arg_0, mut_ref_arg_0);
                 reserviert.reserviere_ebenfalls_mit(
                     lager,
                     ($($name),+),
-                    ($($move_arg_name),+),
+                    move_tail_tuple,
                     ref_tail_tuple,
                     mut_ref_tail_tuple,
                     #[allow(unused_parens)]
@@ -472,10 +481,12 @@ macro_rules! impl_serialisiere_tuple {
     };
 }
 
-impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA}
-impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB}
-// TODO fix type error with (mut_)ref_arg: (a0, (a, b, c)) statt (a0, (a, (b, c)))
-// impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC}
-// impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC, d-dd-ddd-dddd: D-SD}
-// impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC, d-dd-ddd-dddd: D-SD, e-ee-eee-eeee: E-SE}
-// impl_serialisiere_tuple! {a-aa-aaa-aaaa: A-SA, b-bb-bbb-bbbb: B-SB, c-cc-ccc-cccc: C-SC, d-dd-ddd-dddd: D-SD, e-ee-eee-eeee: E-SE, f-ff-fff-ffff: F-SF}
+impl_serialisiere_tuple! {a: A-SA}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH, i: I-SI}
