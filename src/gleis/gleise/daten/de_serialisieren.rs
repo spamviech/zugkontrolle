@@ -26,6 +26,7 @@ use crate::{
     anschluss::{
         self,
         de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        pin::input,
         OutputSerialisiert,
     },
     gleis::{
@@ -36,13 +37,13 @@ use crate::{
                 v2::{self, BekannterZugtyp},
                 v3::{self, kreuzung, Gleis},
                 v4::{
-                    GeschwindigkeitMapSerialisiert, GleiseDatenSerialisiert,
+                    GeschwindigkeitMapSerialisiert, GleisSerialisiert, GleiseDatenSerialisiert,
                     StreckenabschnittMapSerialisiert, ZugtypSerialisiert2, ZustandSerialisiert,
                 },
-                GeschwindigkeitMap2, Gleis2, GleiseDaten2, SelectAll, StreckenabschnittMap2,
-                Zustand2,
+                GeschwindigkeitMap2, Gleis2, GleisMap2, GleiseDaten2, SelectAll,
+                StreckenabschnittMap2, Zustand2,
             },
-            id::{self, eindeutig::KeineIdVerfügbar, DefinitionId2, GleisId2},
+            id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2, DefinitionId2, GleisId2},
             nachricht::GleisSteuerung,
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
@@ -65,10 +66,8 @@ use crate::{
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::Zugtyp2,
+    zugtyp::{DefinitionMap2, Zugtyp2},
 };
-
-use super::v4::GleisSerialisiert;
 
 // Im Gegensatz zu [DefaultOptions] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
 // https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
@@ -99,6 +98,36 @@ pub enum LadenFehler<S> {
         /// Die unbekannten Anschlüsse.
         anschlüsse: UnbekannteAnschlüsse<S>,
     },
+}
+
+impl<S> From<input::Fehler> for LadenFehler<S> {
+    fn from(fehler: input::Fehler) -> Self {
+        LadenFehler::Anschluss(fehler.into())
+    }
+}
+
+impl<S> From<anschluss::pcf8574::Fehler> for LadenFehler<S> {
+    fn from(fehler: anschluss::pcf8574::Fehler) -> Self {
+        LadenFehler::Anschluss(fehler.into())
+    }
+}
+
+impl<S> From<anschluss::pin::ReservierenFehler> for LadenFehler<S> {
+    fn from(fehler: anschluss::pin::ReservierenFehler) -> Self {
+        LadenFehler::Anschluss(fehler.into())
+    }
+}
+
+impl<S> From<ZugtypDeserialisierenFehler> for LadenFehler<S> {
+    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
+        LadenFehler::Anschluss(fehler.into())
+    }
+}
+
+impl<S> From<KeineIdVerfügbar> for LadenFehler<S> {
+    fn from(fehler: KeineIdVerfügbar) -> Self {
+        LadenFehler::Anschluss(fehler.into())
+    }
 }
 
 impl GleiseDaten2 {
@@ -136,61 +165,160 @@ impl GleiseDaten2 {
 
 fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
     lager: &mut anschluss::Lager,
-    serialisiert: Vec<GleisSerialisiert<T>>,
+    serialisiert: impl IntoIterator<Item = (id::Repräsentation, GleisSerialisiert<T>)>,
+    definitionen: &DefinitionMap2<T>,
+    spurweite: Spurweite,
     anschlüsse: Anschlüsse,
     laden_fehler: &mut Vec<LadenFehler<L>>,
-    bekannte_definition_ids: &mut HashMap<id::Repräsentation, DefinitionId2<T>>,
+    bekannte_ids: &mut HashMap<id::Repräsentation, GleisId2<T>>,
+    bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId2<T>>,
     arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
-) -> (Vec<Gleis2<T>>, Anschlüsse)
+) -> (GleisMap2<T>, Anschlüsse)
 where
     T: 'static + MitSteuerung<Serialisiert = Ts>,
     Ts: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = (), MutRefArg = ()>,
     <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg: Clone,
+    <T as MitSteuerung>::SelfUnit: Zeichnen<()>,
+    AnyDefinitionId2: From<DefinitionId2<T>>,
     S: Clone + Serialisiere<Ss>,
     Ss: Eq + Hash,
 {
     use Ergebnis::*;
-    serialisiert.into_iter().fold((Vec::new(), anschlüsse), |acc, gleis_serialisiert| {
-        let mut gleise = acc.0;
-        let id_repräsentation = gleis_serialisiert.definition;
-        let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(
-            lager,
-            acc.1,
-            arg.clone(),
-            &(),
-            bekannte_definition_ids,
-        ) {
-            Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
-            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
-                (anschluss, anschlüsse)
-            },
-            Fehler { fehler, anschlüsse } => {
-                laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
+    serialisiert.into_iter().fold(
+        (GleisMap2::new(), anschlüsse),
+        |(mut gleise, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
+            let id = match bekannte_ids.get(&gespeicherte_id) {
+                Some(id) => id.clone(),
+                None => match GleisId2::neu() {
+                    Ok(id) => id,
+                    Err(fehler) => {
+                        laden_fehler.push(fehler.into());
+                        return (gleise, anschlüsse);
+                    },
+                },
+            };
+            let (gleis, anschlüsse) = match gleis_serialisiert.reserviere(
+                lager,
+                anschlüsse,
+                arg.clone(),
+                bekannte_definition_ids,
+                &mut (),
+            ) {
+                Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
+                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                    laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
+                    (anschluss, anschlüsse)
+                },
+                Fehler { fehler, anschlüsse } => {
+                    laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
+                    return (gleise, anschlüsse);
+                },
+            };
+            let Some(definition) = definitionen.get(&gleis.definition) else {
+                laden_fehler.push(LadenFehler::from(anschluss::Fehler::UnbekannteDefintion {
+                    id: gleis.definition.into(),
+                }));
                 return (gleise, anschlüsse);
-            },
-        };
-        let _ = bekannte_definition_ids.insert(id_repräsentation, gleis.definition.clone());
-        gleise.push(gleis);
-        (gleise, anschlüsse)
-    })
+            };
+            let rechteck = definition.rechteck(&(), spurweite);
+            let _ = bekannte_ids.insert(gespeicherte_id, id.clone());
+            let _ = gleise.insert(id, (gleis, rechteck.into()));
+            (gleise, anschlüsse)
+        },
+    )
+}
+
+/// Mapping von der Zahl aus der serialisierten Darstellung zur [DefinitionId].
+#[derive(Debug)]
+pub struct DefinitionIdMaps {
+    geraden: HashMap<u32, DefinitionId2<Gerade>>,
+    kurven: HashMap<u32, DefinitionId2<Kurve>>,
+    weichen: HashMap<u32, DefinitionId2<Weiche>>,
+    dreiwege_weichen: HashMap<u32, DefinitionId2<DreiwegeWeiche>>,
+    kurven_weichen: HashMap<u32, DefinitionId2<KurvenWeiche>>,
+    s_kurven_weichen: HashMap<u32, DefinitionId2<SKurvenWeiche>>,
+    kreuzungen: HashMap<u32, DefinitionId2<Kreuzung>>,
+}
+
+impl DefinitionIdMaps {
+    /// Erzeuge eine neue, leere [DefinitionIdMaps].
+    pub fn neu() -> DefinitionIdMaps {
+        DefinitionIdMaps {
+            geraden: HashMap::new(),
+            kurven: HashMap::new(),
+            weichen: HashMap::new(),
+            dreiwege_weichen: HashMap::new(),
+            kurven_weichen: HashMap::new(),
+            s_kurven_weichen: HashMap::new(),
+            kreuzungen: HashMap::new(),
+        }
+    }
+}
+
+/// Mapping von der Zahl aus der serialisierten Darstellung zur [GleisId].
+#[derive(Debug)]
+pub struct IdMaps {
+    geraden: HashMap<u32, GleisId2<Gerade>>,
+    kurven: HashMap<u32, GleisId2<Kurve>>,
+    weichen: HashMap<u32, GleisId2<Weiche>>,
+    dreiwege_weichen: HashMap<u32, GleisId2<DreiwegeWeiche>>,
+    kurven_weichen: HashMap<u32, GleisId2<KurvenWeiche>>,
+    s_kurven_weichen: HashMap<u32, GleisId2<SKurvenWeiche>>,
+    kreuzungen: HashMap<u32, GleisId2<Kreuzung>>,
+    definitionen: DefinitionIdMaps,
+}
+
+impl IdMaps {
+    /// Erzeuge eine neue, leere [IdMaps].
+    pub fn neu() -> IdMaps {
+        IdMaps {
+            geraden: HashMap::new(),
+            kurven: HashMap::new(),
+            weichen: HashMap::new(),
+            dreiwege_weichen: HashMap::new(),
+            kurven_weichen: HashMap::new(),
+            s_kurven_weichen: HashMap::new(),
+            kreuzungen: HashMap::new(),
+            definitionen: DefinitionIdMaps::neu(),
+        }
+    }
 }
 
 impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<S, Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    fn reserviere<L, S, Nachricht>(
         self,
-        spurweite: Spurweite,
+        zugtyp: &Zugtyp2<L>,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        gerade_weichen: &mut HashMap<plan::GeradeWeicheSerialisiert, plan::GeradeWeiche>,
-        kurven_weichen: &mut HashMap<plan::KurvenWeicheSerialisiert, plan::KurvenWeiche>,
-        dreiwege_weichen: &mut HashMap<plan::DreiwegeWeicheSerialisiert, plan::DreiwegeWeiche>,
-        kontakte: &mut HashMap<KontaktSerialisiert, Kontakt>,
-        bekannte_ids: (), // TODO
+        bekannte_ids: &mut IdMaps,
         fehler: &mut Vec<LadenFehler<S>>,
         sender: &Sender<Nachricht>,
-    ) -> (GleiseDaten2, Anschlüsse) {
+    ) -> (GleiseDaten2, Anschlüsse)
+    where
+        L: Leiter,
+        Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
+        let GleiseDatenSerialisiert {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        } = self;
+        // TODO
+        let daten = GleiseDaten2 {
+            geraden: todo!(),
+            kurven: todo!(),
+            weichen: todo!(),
+            dreiwege_weichen: todo!(),
+            kurven_weichen: todo!(),
+            s_kurven_weichen: todo!(),
+            kreuzungen: todo!(),
+            rstern: todo!(),
+        };
         // macro_rules! reserviere_anschlüsse {
         //     ($($rstern: ident: $ty: ty: $steuerung: ident: $map: ident: $arg: expr),* $(,)?) => {
         //         $(
@@ -300,12 +428,6 @@ impl<L: Leiter> Zustand2<L> {
         collect_anschlüsse!((s_kurven_weiche, _streckenabschnitt): s_kurven_weichen);
         collect_anschlüsse!((kreuzung, _streckenabschnitt): kreuzungen);
         anschlüsse
-    }
-}
-
-impl<S> From<ZugtypDeserialisierenFehler> for LadenFehler<S> {
-    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
-        LadenFehler::Anschluss(fehler.into())
     }
 }
 
@@ -660,36 +782,9 @@ pub enum ZugtypDeserialisierenFehler {
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
-/// Mapping von der Zahl aus der serialisierten Darstellung zur [GleisId].
-#[derive(Debug)]
-pub struct IdMaps {
-    geraden: HashMap<u32, DefinitionId2<Gerade>>,
-    kurven: HashMap<u32, DefinitionId2<Kurve>>,
-    weichen: HashMap<u32, DefinitionId2<Weiche>>,
-    dreiwege_weichen: HashMap<u32, DefinitionId2<DreiwegeWeiche>>,
-    kurven_weichen: HashMap<u32, DefinitionId2<KurvenWeiche>>,
-    s_kurven_weichen: HashMap<u32, DefinitionId2<SKurvenWeiche>>,
-    kreuzungen: HashMap<u32, DefinitionId2<Kreuzung>>,
-}
-
-impl IdMaps {
-    /// Erzeuge eine neue, leere [IdMaps]
-    pub fn neu() -> IdMaps {
-        IdMaps {
-            geraden: HashMap::new(),
-            kurven: HashMap::new(),
-            weichen: HashMap::new(),
-            dreiwege_weichen: HashMap::new(),
-            kurven_weichen: HashMap::new(),
-            s_kurven_weichen: HashMap::new(),
-            kreuzungen: HashMap::new(),
-        }
-    }
-}
-
 macro_rules! erzeuge_zugtyp_maps2 {
     ($($gleise: ident : $typ: ty),* $(,)?) => {
-        let mut id_maps = IdMaps::neu();
+        let mut id_maps = DefinitionIdMaps::neu();
         $(
         #[allow(unused_qualifications)]
         let ($gleise, ids) = $gleise

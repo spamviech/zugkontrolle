@@ -1,6 +1,9 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    any::TypeId,
+    fmt::{self, Display, Formatter},
+};
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
@@ -15,7 +18,8 @@ use crate::{
     },
     argumente::I2cSettings,
     gleis::gleise::{
-        daten::de_serialisieren::ZugtypDeserialisierenFehler, id::eindeutig::KeineIdVerfügbar,
+        daten::de_serialisieren::ZugtypDeserialisierenFehler,
+        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2},
     },
     rppal,
     util::eingeschränkt::kleiner_8,
@@ -624,6 +628,10 @@ pub enum Fehler {
     Reservieren(ReservierenFehler),
     /// Fehler beim Deserialisieren des Zugtyps.
     ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
+    /// Ein Gleis wurde mit unbekannter [DefintionId] gespeichert.
+    UnbekannteGespeicherteDefintion { id: id::Repräsentation, ty: TypeId },
+    /// Ein Gleis mit unbekannter [DefintionId].
+    UnbekannteDefintion { id: AnyDefinitionId2 },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.

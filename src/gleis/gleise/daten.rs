@@ -1,6 +1,7 @@
 //! Struktur zum Speichern aller Gleise.
 
 use std::{
+    any::TypeId,
     collections::hash_map::{Entry, HashMap},
     fmt::Debug,
     iter,
@@ -146,40 +147,38 @@ where
 impl<T> Reserviere<Gleis2<T>> for GleisSerialisiert<T>
 where
     T: 'static + MitSteuerung,
-    <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung, MutRefArg = ()>,
+    <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = ()>,
 {
     type MoveArg =
         <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg;
-    type RefArg =
-        <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::RefArg;
-    type MutRefArg = HashMap<id::Repräsentation, DefinitionId2<T>>;
+    type RefArg = HashMap<id::Repräsentation, DefinitionId2<T>>;
+    type MutRefArg = <<T as MitSteuerung>::Serialisiert as Reserviere<
+        <T as MitSteuerung>::Steuerung,
+    >>::MutRefArg;
 
     fn reserviere(
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg_steuerung: Self::MoveArg,
-        ref_arg_steuerung: &Self::RefArg,
-        bekannte_definition_ids: &mut Self::MutRefArg,
+        bekannte_definition_ids: &Self::RefArg,
+        mut_ref_arg_steuerung: &mut Self::MutRefArg,
     ) -> Ergebnis<Gleis2<T>> {
         let GleisSerialisiert { definition, position, steuerung, streckenabschnitt } = self;
         let gespeicherte_id = definition;
-        let id = match bekannte_definition_ids.entry(definition) {
-            Entry::Occupied(occupied) => {
-                Ergebnis::Wert { anschluss: occupied.get().clone(), anschlüsse }
-            },
-            Entry::Vacant(vacant) => match GleisId2::neu() {
-                Ok(id) => {
-                    // Mapping gespeicherte Zahl->DefinitionId speichern
-                    vacant.insert(id.clone());
-                    Ergebnis::Wert { anschluss: id, anschlüsse }
-                },
-                Err(fehler) => Ergebnis::Fehler { fehler: nonempty![fehler.into()], anschlüsse },
-            },
+        let Some(id) = bekannte_definition_ids.get(&definition) else {
+            return Ergebnis::Fehler {
+                fehler: nonempty![anschluss::Fehler::UnbekannteGespeicherteDefintion {
+                    id: definition,
+                    ty: TypeId::of::<T>()
+                }],
+                anschlüsse,
+            };
         };
-        id.reserviere_ebenfalls(lager, steuerung, move_arg_steuerung, ref_arg_steuerung, &mut ())
-            .konvertiere(|(definition, steuerung)| Gleis2 {
-                definition,
+        steuerung
+            .reserviere(lager, anschlüsse, move_arg_steuerung, &(), mut_ref_arg_steuerung)
+            .konvertiere(|steuerung| Gleis2 {
+                definition: id.clone(),
                 position,
                 steuerung,
                 streckenabschnitt,

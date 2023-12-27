@@ -23,7 +23,7 @@ use crate::{
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
-        streckenabschnitt::{self,StreckenabschnittSerialisiert},
+        streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::{canvas::Position, mm::Spurweite},
     util::eingeschränkt::NichtNegativ,
