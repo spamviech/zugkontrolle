@@ -64,7 +64,7 @@ use crate::{
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
     typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
-    zugtyp::{Zugtyp, ZugtypDeserialisierenFehler, ZugtypSerialisiert2},
+    zugtyp::{ ZugtypDeserialisierenFehler, ZugtypSerialisiert2},
 };
 
 use super::v4::GleisSerialisiert;
@@ -133,7 +133,6 @@ impl GleiseDaten2 {
     }
 }
 
-#[allow(single_use_lifetimes)]
 fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
     lager: &mut anschluss::Lager,
     serialisiert: Vec<GleisSerialisiert<T>>,

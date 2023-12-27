@@ -53,7 +53,7 @@ use crate::{
         streckenabschnitt::Name as StreckenabschnittName,
     },
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
-    zugtyp::{Zugtyp, Zugtyp2},
+    zugtyp::Zugtyp2,
 };
 
 pub mod anschluss;

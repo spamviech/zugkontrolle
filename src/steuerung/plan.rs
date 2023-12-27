@@ -27,7 +27,7 @@ use crate::{
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
     util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
-    zugtyp::{Zugtyp, Zugtyp2},
+    zugtyp::Zugtyp2,
 };
 
 /// Name eines [Plans](Plan).

@@ -71,7 +71,7 @@ use crate::{
         Transparenz, Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
-    zugtyp::{DefinitionMap2, Zugtyp, Zugtyp2},
+    zugtyp::{DefinitionMap2, Zugtyp2},
 };
 
 use self::v4::GleisSerialisiert;
