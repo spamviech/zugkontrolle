@@ -34,7 +34,7 @@ use crate::{
             self,
             daten::{
                 v2::{self, BekannterZugtyp},
-                v3::{self, Gleis},
+                v3::{self, kreuzung, Gleis},
                 v4::{
                     GeschwindigkeitMapSerialisiert, GleiseDatenSerialisiert,
                     StreckenabschnittMapSerialisiert, ZugtypSerialisiert2, ZustandSerialisiert,
@@ -274,53 +274,41 @@ impl<L: Leiter> Zustand2<L> {
     where
         L: Serialisiere<S>,
     {
-        // #[allow(single_use_lifetimes)]
-        // fn collect_gleis_anschlüsse<T, S>(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse)
-        // where
-        //     T: DatenAuswahl + Serialisiere<S>,
-        // {
-        //     while let Some(geom_with_data) =
-        //         daten.rstern_mut::<T>().remove_with_selection_function(SelectAll)
-        //     {
-        //         anschlüsse.anhängen(geom_with_data.data.definition.anschlüsse())
-        //     }
-        // }
-        // fn collect_daten_anschlüsse(daten: &mut GleiseDaten, anschlüsse: &mut Anschlüsse) {
-        //     macro_rules! collect_gleis_anschlüsse {
-        //         ($($typ: ident - $serialisiert: ident),* $(,)?) => {$(
-        //             collect_gleis_anschlüsse::<$typ, $serialisiert>(daten, anschlüsse)
-        //         );*}
-        //     }
-        //     collect_gleis_anschlüsse! {
-        //         Gerade - GeradeSerialisiert,
-        //         Kurve - KurveSerialisiert,
-        //         Weiche - WeicheSerialisiert,
-        //         DreiwegeWeiche - DreiwegeWeicheSerialisiert,
-        //         KurvenWeiche - KurvenWeicheSerialisiert,
-        //         SKurvenWeiche - SKurvenWeicheSerialisiert,
-        //         Kreuzung - KreuzungSerialisiert,
-        //     }
-        // }
-        // fn collect_streckenabschnitt_map_anschlüsse(
-        //     streckenabschnitt_map: &mut StreckenabschnittMap,
-        //     anschlüsse: &mut Anschlüsse,
-        // ) {
-        //     for (_name, (streckenabschnitt, mut daten)) in streckenabschnitt_map.drain() {
-        //         anschlüsse.anhängen(streckenabschnitt.anschlüsse());
-        //         collect_daten_anschlüsse(&mut daten, anschlüsse);
-        //     }
-        // }
-
-        // let mut anschlüsse = Anschlüsse::default();
-        // collect_daten_anschlüsse(&mut self.ohne_streckenabschnitt, &mut anschlüsse);
-        // collect_streckenabschnitt_map_anschlüsse(&mut self.ohne_geschwindigkeit, &mut anschlüsse);
-        // for (_name, (geschwindigkeit, mut streckenabschnitt_map)) in self.geschwindigkeiten.drain()
-        // {
-        //     anschlüsse.anhängen(geschwindigkeit.anschlüsse());
-        //     collect_streckenabschnitt_map_anschlüsse(&mut streckenabschnitt_map, &mut anschlüsse);
-        // }
-        // anschlüsse
-        todo!("Zustand2::anschlüsse_ausgeben")
+        let Zustand2 { zugtyp: _, geschwindigkeiten, streckenabschnitte, gleise, pläne: _ } = self;
+        let GleiseDaten2 {
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            rstern: _,
+        } = gleise;
+        let mut anschlüsse = Anschlüsse::default();
+        macro_rules! head {
+            ($head: ident $(, $tail: ident)* $(,)?) => {
+                $head
+            };
+        }
+        macro_rules! collect_anschlüsse {
+            (($($matching: ident),+) : $map: ident) => {
+                #[allow(unused_parens)]
+                for (_id, ($($matching),+)) in $map.drain() {
+                    anschlüsse.anhängen(head!($($matching),+).anschlüsse());
+                }
+            };
+        }
+        collect_anschlüsse!((geschwindigkeit): geschwindigkeiten);
+        collect_anschlüsse!((streckenabschnitt, _geschwindigkeit): streckenabschnitte);
+        collect_anschlüsse!((gerade, _streckenabschnitt): geraden);
+        collect_anschlüsse!((kurve, _streckenabschnitt): kurven);
+        collect_anschlüsse!((weiche, _streckenabschnitt): weichen);
+        collect_anschlüsse!((dreiwege_weiche, _streckenabschnitt): dreiwege_weichen);
+        collect_anschlüsse!((kurven_weiche, _streckenabschnitt): kurven_weichen);
+        collect_anschlüsse!((s_kurven_weiche, _streckenabschnitt): s_kurven_weichen);
+        collect_anschlüsse!((kreuzung, _streckenabschnitt): kreuzungen);
+        anschlüsse
     }
 }
 
