@@ -229,6 +229,12 @@ impl GleiseDatenSerialisiert {
     }
 }
 
+macro_rules! head {
+    ($head: ident $(, $tail: ident)* $(,)?) => {
+        $head
+    };
+}
+
 impl<L: Leiter> Zustand2<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
     pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
@@ -236,38 +242,28 @@ impl<L: Leiter> Zustand2<L> {
         L: Serialisiere<S> + BekannterLeiter,
         <L as Leiter>::Fahrtrichtung: Clone,
     {
-        // let serialisiere_streckenabschnitt_map = |map: &StreckenabschnittMap| {
-        //     map.iter()
-        //         .map(|(name, (streckenabschnitt, daten))| {
-        //             (name.clone(), (streckenabschnitt.serialisiere(), daten.serialisiere()))
-        //         })
-        //         .collect()
-        // };
-
-        // ZustandSerialisiert {
-        //     zugtyp: self.zugtyp.clone().into(),
-        //     ohne_streckenabschnitt: self.ohne_streckenabschnitt.serialisiere(),
-        //     ohne_geschwindigkeit: serialisiere_streckenabschnitt_map(&self.ohne_geschwindigkeit),
-        //     geschwindigkeiten: self
-        //         .geschwindigkeiten
-        //         .iter()
-        //         .map(|(name, (geschwindigkeit, streckenabschnitt_map))| {
-        //             (
-        //                 name.clone(),
-        //                 (
-        //                     geschwindigkeit.serialisiere(),
-        //                     serialisiere_streckenabschnitt_map(streckenabschnitt_map),
-        //                 ),
-        //             )
-        //         })
-        //         .collect(),
-        //     pläne: self
-        //         .pläne
-        //         .iter()
-        //         .map(|(name, plan)| (name.clone(), plan.serialisiere()))
-        //         .collect(),
-        // }
-        todo!("Zustand2::serialisiere")
+        let Zustand2 { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne } = self;
+        macro_rules! serialisiere_maps {
+            ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
+                #[allow(unused_parens)]
+                let $map = $map
+                    .iter()
+                    .map(|(id, ($($matching),*))| (id.$serialize_id(), head!($($matching),*).serialisiere()))
+                    .collect();
+            )*};
+        }
+        serialisiere_maps!(
+            (geschwindigkeit): geschwindigkeiten - clone,
+            (streckenabschnitt, _geschwindigkeit): streckenabschnitte - clone,
+            (plan): pläne - clone,
+        );
+        ZustandSerialisiert {
+            zugtyp: zugtyp.clone().into(),
+            geschwindigkeiten,
+            streckenabschnitte,
+            gleise: gleise.serialisiere(),
+            pläne,
+        }
     }
 
     fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
@@ -286,11 +282,6 @@ impl<L: Leiter> Zustand2<L> {
             rstern: _,
         } = gleise;
         let mut anschlüsse = Anschlüsse::default();
-        macro_rules! head {
-            ($head: ident $(, $tail: ident)* $(,)?) => {
-                $head
-            };
-        }
         macro_rules! collect_anschlüsse {
             (($($matching: ident),+) : $map: ident) => {
                 #[allow(unused_parens)]

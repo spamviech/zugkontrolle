@@ -23,7 +23,7 @@ use crate::{
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
-        streckenabschnitt::{self},
+        streckenabschnitt::{self,StreckenabschnittSerialisiert},
     },
     typen::{canvas::Position, mm::Spurweite},
     util::eingeschränkt::NichtNegativ,
@@ -31,7 +31,7 @@ use crate::{
 };
 
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
-    HashMap<streckenabschnitt::Name, GleiseDatenSerialisiert>;
+    HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 
