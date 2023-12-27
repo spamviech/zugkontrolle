@@ -21,6 +21,8 @@
   - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
   - entferne die meisten `pub use` re-exports
   - entferne lifetime vom MitSteuerung
+  - verschiebe \*Serialisiert-Definitionen für Sammel-Strukturen nach gleis::gleise::de_serialiseren::v4
+  - Neue implementierung für Ids (jetzt zahlen-basiert).
 - aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
@@ -38,6 +40,9 @@
 - Kontakte werden auf dem Canvas als Kreise angezeigt
 - Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
 - Zusätzliche "trailing" Bytes werden beim Laden nicht mehr ignoriert. Stattdessen kommt es zu einem Fehler.
+- Neues ID-basiertes Speicherformat.
+  - Weiterhin sehr stark an wirklich verwendete Datenstrukturen angelehnt.
+  - Gleis-Definitionen kommen nur noch ein mal vor.
 
 ### workaround
 
