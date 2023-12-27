@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::id::DefinitionId2,
+        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps2,
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -24,7 +24,7 @@ use crate::{
         winkel::WinkelGradmaß,
     },
     util::eingeschränkt::{NichtNegativ, NullBisEins},
-    zugtyp::{erzeuge_maps, Zugtyp2},
+    zugtyp::Zugtyp2,
 };
 
 static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
@@ -60,7 +60,7 @@ static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
     let kurven_weichen = [kurven_weiche_5140_links(), kurven_weiche_5140_rechts()];
     let s_kurven_weichen = [];
     let kreuzungen = [kreuzung_5128(), kreuzung_5207()];
-    erzeuge_maps!(
+    erzeuge_zugtyp_maps2!(
         geraden: Gerade | "Anzahl der Geraden kann man an den Händen abzählen.",
         kurven: Kurve | "Anzahl der Kurven kann man an den Händen abzählen.",
         weichen: Weiche | "Anzahl der Weichen kann man an den Händen abzählen.",

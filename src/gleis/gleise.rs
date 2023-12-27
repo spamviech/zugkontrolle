@@ -17,7 +17,10 @@ use crate::{
     anschluss,
     application::style::thema::Thema,
     gleis::gleise::{
-        daten::{GeschwindigkeitEntferntFehler2, StreckenabschnittEntferntFehler2, Zustand2},
+        daten::{
+            de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler2,
+            StreckenabschnittEntferntFehler2, Zustand2,
+        },
         id::StreckenabschnittId,
         nachricht::{Gehalten, Gehalten2, Nachricht},
     },
@@ -32,7 +35,7 @@ use crate::{
         vektor::Vektor,
         winkel::Winkel,
     },
-    zugtyp::{Zugtyp2, ZugtypDeserialisierenFehler},
+    zugtyp::Zugtyp2,
 };
 
 pub mod daten;

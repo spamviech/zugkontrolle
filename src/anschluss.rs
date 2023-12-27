@@ -14,10 +14,11 @@ use crate::{
         trigger::Trigger,
     },
     argumente::I2cSettings,
-    gleis::gleise::id::eindeutig::KeineIdVerfügbar,
+    gleis::gleise::{
+        daten::de_serialisieren::ZugtypDeserialisierenFehler, id::eindeutig::KeineIdVerfügbar,
+    },
     rppal,
     util::eingeschränkt::kleiner_8,
-    zugtyp::ZugtypDeserialisierenFehler,
 };
 
 pub mod de_serialisieren;
