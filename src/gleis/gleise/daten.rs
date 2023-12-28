@@ -1243,7 +1243,7 @@ impl GleiseDaten2 {
         farbe: Farbe,
         skalieren: Skalar,
     ) {
-        macro_rules! gleis_darstellen {
+        macro_rules! färbe_hintergrund {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
                 let (gleis, _rectangle) = match $gleise.get($gleis_id) {
                     Some(gleis) => gleis,
@@ -1278,6 +1278,27 @@ impl GleiseDaten2 {
                         &transparent_hintergrund,
                         streckenabschnitt,
                     );
+                })
+            }};
+        }
+        macro_rules! zeichne_kontur {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
+                    Some(gleis) => gleis,
+                    None => {
+                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
+                        continue;
+                    },
+                };
+                let definition = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => definition,
+                    None => {
+                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
+                        continue;
+                    },
+                };
+                frame.with_save(|frame| {
+                    bewege_an_position(frame, $position);
                     // Zeichne Kontur.
                     zeichne_gleis(
                         frame,
@@ -1288,6 +1309,27 @@ impl GleiseDaten2 {
                         &ist_gehalten,
                         farbe,
                     );
+                })
+            }};
+        }
+        macro_rules! zeichne_verbindungen {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
+                    Some(gleis) => gleis,
+                    None => {
+                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
+                        continue;
+                    },
+                };
+                let definition = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => definition,
+                    None => {
+                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
+                        continue;
+                    },
+                };
+                frame.with_save(|frame| {
+                    bewege_an_position(frame, $position);
                     // Zeichne Verbindungen.
                     zeichne_verbindungen(
                         frame,
@@ -1299,6 +1341,27 @@ impl GleiseDaten2 {
                         &ist_gehalten,
                         $position,
                     );
+                })
+            }};
+        }
+        macro_rules! schreibe_name_und_beschreibung {
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+                let (gleis, _rectangle) = match $gleise.get($gleis_id) {
+                    Some(gleis) => gleis,
+                    None => {
+                        error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
+                        continue;
+                    },
+                };
+                let definition = match $definitionen.get(&gleis.definition) {
+                    Some(definition) => definition,
+                    None => {
+                        error!("Definition mit Id '{:?}' nicht gefunden!", $definition_id);
+                        continue;
+                    },
+                };
+                frame.with_save(|frame| {
+                    bewege_an_position(frame, $position);
                     // Schreibe Name und Beschreibung.
                     schreibe_gleis_beschreibung_name(
                         frame,
@@ -1318,8 +1381,23 @@ impl GleiseDaten2 {
             mit_any_id2!(
                 {ref self, ref zugtyp},
                 [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
-                => gleis_darstellen!(zugtyp.spurweite, position)
-            )
+                => färbe_hintergrund!(zugtyp.spurweite, position)
+            );
+            mit_any_id2!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => zeichne_kontur!(zugtyp.spurweite, position)
+            );
+            mit_any_id2!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => zeichne_verbindungen!(zugtyp.spurweite, position)
+            );
+            mit_any_id2!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId2 => gleis_id, definition_id] gleis_definition_id
+                => schreibe_name_und_beschreibung!(zugtyp.spurweite, position)
+            );
         }
     }
 }
