@@ -444,6 +444,161 @@ impl<L: Leiter> Zustand2<L> {
     }
 }
 
+/// Der Leiter stimmt nicht mit dem Namen überein.
+#[derive(Debug, Clone, zugkontrolle_macros::From)]
+pub enum ZugtypDeserialisierenFehler {
+    FalscherLeiter(String),
+    KeineIdVerfügbar(KeineIdVerfügbar),
+}
+
+macro_rules! erzeuge_zugtyp_maps2 {
+    ($($gleise: ident : $typ: ty),* $(,)?) => {
+        let mut id_maps = DefinitionIdMaps::neu();
+        $(
+        #[allow(unused_qualifications)]
+        let ($gleise, ids) = $gleise
+            .into_iter()
+            .fold(
+                Ok((HashMap::new(), HashMap::new())),
+                |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
+                    if let Ok((mut gleise, mut ids)) = acc {
+                        let id = crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?;
+                        // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
+                        let _ = ids.insert(gespeicherte_id, id.clone());
+                        // id ist eindeutig, da es von GleisId::neu garantiert wird
+                        let _ = gleise.insert(id, definition);
+                        Ok((gleise, ids))
+                    } else {
+                        acc
+                    }
+                }
+            )?;
+        id_maps.$gleise = ids;
+        )*
+    };
+    ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)?) => {$(
+        #[allow(unused_qualifications)]
+        let $gleise = $gleise
+            .into_iter()
+            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?, definition)) )
+            .collect::<
+                Result<
+                    crate::zugtyp::DefinitionMap2<$typ>,
+                    crate::gleis::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler
+                >
+            >().expect($expect_msg);
+    )*};
+}
+pub(crate) use erzeuge_zugtyp_maps2;
+
+impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert2<L>> for Zugtyp2<L> {
+    type Error = ZugtypDeserialisierenFehler;
+
+    fn try_from(serialisiert: ZugtypSerialisiert2<L>) -> Result<Self, Self::Error> {
+        let ZugtypSerialisiert2 {
+            name,
+            leiter,
+            spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        } = serialisiert;
+        let gesucht = L::NAME.to_owned();
+        if leiter != gesucht {
+            return Err(ZugtypDeserialisierenFehler::FalscherLeiter(leiter));
+        }
+        erzeuge_zugtyp_maps2!(
+            geraden: Gerade,
+            kurven: Kurve,
+            weichen: Weiche,
+            dreiwege_weichen: DreiwegeWeiche,
+            kurven_weichen: KurvenWeiche,
+            s_kurven_weichen: SKurvenWeiche,
+            kreuzungen: Kreuzung,
+        );
+        Ok(Zugtyp2 {
+            name,
+            leiter: PhantomData,
+            spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        })
+    }
+}
+
+impl<L: BekannterLeiter> From<Zugtyp2<L>> for ZugtypSerialisiert2<L> {
+    fn from(zugtyp: Zugtyp2<L>) -> Self {
+        let Zugtyp2 {
+            name,
+            leiter: PhantomData,
+            spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        } = zugtyp;
+        let leiter = L::NAME.to_owned();
+        macro_rules! erzeuge_zugtyp_maps {
+            ($($gleise: ident),* $(,)?) => {$(
+                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.repräsentation(), gleis)).collect();
+            )*};
+        }
+        erzeuge_zugtyp_maps!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
+        ZugtypSerialisiert2 {
+            name,
+            leiter,
+            spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        }
+    }
+}
+
 fn reserviere_streckenabschnitt_map<
     S,
     Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
@@ -784,161 +939,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             Err(non_empty)
         } else {
             Ok(())
-        }
-    }
-}
-
-/// Der Leiter stimmt nicht mit dem Namen überein.
-#[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub enum ZugtypDeserialisierenFehler {
-    FalscherLeiter(String),
-    KeineIdVerfügbar(KeineIdVerfügbar),
-}
-
-macro_rules! erzeuge_zugtyp_maps2 {
-    ($($gleise: ident : $typ: ty),* $(,)?) => {
-        let mut id_maps = DefinitionIdMaps::neu();
-        $(
-        #[allow(unused_qualifications)]
-        let ($gleise, ids) = $gleise
-            .into_iter()
-            .fold(
-                Ok((HashMap::new(), HashMap::new())),
-                |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
-                    if let Ok((mut gleise, mut ids)) = acc {
-                        let id = crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?;
-                        // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
-                        let _ = ids.insert(gespeicherte_id, id.clone());
-                        // id ist eindeutig, da es von GleisId::neu garantiert wird
-                        let _ = gleise.insert(id, definition);
-                        Ok((gleise, ids))
-                    } else {
-                        acc
-                    }
-                }
-            )?;
-        id_maps.$gleise = ids;
-        )*
-    };
-    ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)?) => {$(
-        #[allow(unused_qualifications)]
-        let $gleise = $gleise
-            .into_iter()
-            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?, definition)) )
-            .collect::<
-                Result<
-                    crate::zugtyp::DefinitionMap2<$typ>,
-                    crate::gleis::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler
-                >
-            >().expect($expect_msg);
-    )*};
-}
-pub(crate) use erzeuge_zugtyp_maps2;
-
-impl<L: BekannterLeiter> TryFrom<ZugtypSerialisiert2<L>> for Zugtyp2<L> {
-    type Error = ZugtypDeserialisierenFehler;
-
-    fn try_from(serialisiert: ZugtypSerialisiert2<L>) -> Result<Self, Self::Error> {
-        let ZugtypSerialisiert2 {
-            name,
-            leiter,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            schalten_zeit,
-        } = serialisiert;
-        let gesucht = L::NAME.to_owned();
-        if leiter != gesucht {
-            return Err(ZugtypDeserialisierenFehler::FalscherLeiter(leiter));
-        }
-        erzeuge_zugtyp_maps2!(
-            geraden: Gerade,
-            kurven: Kurve,
-            weichen: Weiche,
-            dreiwege_weichen: DreiwegeWeiche,
-            kurven_weichen: KurvenWeiche,
-            s_kurven_weichen: SKurvenWeiche,
-            kreuzungen: Kreuzung,
-        );
-        Ok(Zugtyp2 {
-            name,
-            leiter: PhantomData,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            schalten_zeit,
-        })
-    }
-}
-
-impl<L: BekannterLeiter> From<Zugtyp2<L>> for ZugtypSerialisiert2<L> {
-    fn from(zugtyp: Zugtyp2<L>) -> Self {
-        let Zugtyp2 {
-            name,
-            leiter: PhantomData,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            schalten_zeit,
-        } = zugtyp;
-        let leiter = L::NAME.to_owned();
-        macro_rules! erzeuge_zugtyp_maps {
-            ($($gleise: ident),* $(,)?) => {$(
-                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.repräsentation(), gleis)).collect();
-            )*};
-        }
-        erzeuge_zugtyp_maps!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        );
-        ZugtypSerialisiert2 {
-            name,
-            leiter,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            schalten_zeit,
         }
     }
 }
