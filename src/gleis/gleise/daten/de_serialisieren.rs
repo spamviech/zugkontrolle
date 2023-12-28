@@ -382,48 +382,12 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl<L: Leiter> Zustand2<L> {
-    /// Erzeuge eine Serialisierbare Repräsentation.
-    pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
-    where
-        L: Serialisiere<S> + BekannterLeiter,
-        <L as Leiter>::Fahrtrichtung: Clone,
-    {
-        let Zustand2 { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne } = self;
-        macro_rules! serialisiere_head_clone_tail {
-            ($head: ident $(, $tail: ident)* $(,)?) => {
-                ($head.serialisiere() $(, $tail.clone())*)
-            };
-        }
-        macro_rules! serialisiere_maps {
-            ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
-                #[allow(unused_parens)]
-                let $map = $map
-                    .iter()
-                    .map(|(id, ($($matching),*))| (id.$serialize_id(), serialisiere_head_clone_tail!($($matching),*)))
-                    .collect();
-            )*};
-        }
-        serialisiere_maps!(
-            (geschwindigkeit): geschwindigkeiten - clone,
-            (streckenabschnitt, geschwindigkeit): streckenabschnitte - clone,
-            (plan): pläne - clone,
-        );
-        ZustandSerialisiert {
-            zugtyp: zugtyp.serialisiere(),
-            geschwindigkeiten,
-            streckenabschnitte,
-            gleise: gleise.serialisiere(),
-            pläne,
-        }
-    }
-
-    fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
-    where
-        L: Serialisiere<S>,
-    {
-        let Zustand2 { zugtyp: _, geschwindigkeiten, streckenabschnitte, gleise, pläne: _ } = self;
-        let GleiseDaten2 {
+impl<L: BekannterLeiter> Zugtyp2<L> {
+    fn serialisiere(&self) -> ZugtypSerialisiert2<L> {
+        let Zugtyp2 {
+            name,
+            leiter: PhantomData,
+            spurweite,
             geraden,
             kurven,
             weichen,
@@ -431,32 +395,44 @@ impl<L: Leiter> Zustand2<L> {
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-            rstern: _,
-        } = gleise;
-        let mut anschlüsse = Anschlüsse::default();
-        macro_rules! head {
-            ($head: ident $(, $tail: ident)* $(,)?) => {
-                $head
-            };
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            schalten_zeit,
+        } = self;
+        let leiter = L::NAME.to_owned();
+        macro_rules! erzeuge_zugtyp_maps {
+            ($($gleise: ident),* $(,)?) => {$(
+                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.repräsentation(), gleis.clone())).collect();
+            )*};
         }
-        macro_rules! collect_anschlüsse {
-            (($($matching: ident),+) : $map: ident) => {
-                #[allow(unused_parens)]
-                for (_id, ($($matching),+)) in $map.drain() {
-                    anschlüsse.anhängen(head!($($matching),+).anschlüsse());
-                }
-            };
+        erzeuge_zugtyp_maps!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
+        ZugtypSerialisiert2 {
+            name: name.clone(),
+            leiter,
+            spurweite: *spurweite,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            pwm_frequenz: *pwm_frequenz,
+            verhältnis_fahrspannung_überspannung: verhältnis_fahrspannung_überspannung.clone(),
+            stopp_zeit: *stopp_zeit,
+            umdrehen_zeit: umdrehen_zeit.clone(),
+            schalten_zeit: *schalten_zeit,
         }
-        collect_anschlüsse!((geschwindigkeit): geschwindigkeiten);
-        collect_anschlüsse!((streckenabschnitt, _geschwindigkeit): streckenabschnitte);
-        collect_anschlüsse!((gerade, _streckenabschnitt): geraden);
-        collect_anschlüsse!((kurve, _streckenabschnitt): kurven);
-        collect_anschlüsse!((weiche, _streckenabschnitt): weichen);
-        collect_anschlüsse!((dreiwege_weiche, _streckenabschnitt): dreiwege_weichen);
-        collect_anschlüsse!((kurven_weiche, _streckenabschnitt): kurven_weichen);
-        collect_anschlüsse!((s_kurven_weiche, _streckenabschnitt): s_kurven_weichen);
-        collect_anschlüsse!((kreuzung, _streckenabschnitt): kreuzungen);
-        anschlüsse
     }
 }
 
@@ -565,44 +541,48 @@ impl<L: BekannterLeiter> ZugtypSerialisiert2<L> {
     }
 }
 
-impl<L: BekannterLeiter> Zugtyp2<L> {
-    fn serialisiere(&self) -> ZugtypSerialisiert2<L> {
-        let Zugtyp2 {
-            name,
-            leiter: PhantomData,
-            spurweite,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            pwm_frequenz,
-            verhältnis_fahrspannung_überspannung,
-            stopp_zeit,
-            umdrehen_zeit,
-            schalten_zeit,
-        } = self;
-        let leiter = L::NAME.to_owned();
-        macro_rules! erzeuge_zugtyp_maps {
-            ($($gleise: ident),* $(,)?) => {$(
-                let $gleise = $gleise.into_iter().map(|(id, gleis)| (id.repräsentation(), gleis.clone())).collect();
+impl<L: Leiter> Zustand2<L> {
+    /// Erzeuge eine Serialisierbare Repräsentation.
+    pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
+    where
+        L: Serialisiere<S> + BekannterLeiter,
+        <L as Leiter>::Fahrtrichtung: Clone,
+    {
+        let Zustand2 { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne } = self;
+        macro_rules! serialisiere_head_clone_tail {
+            ($head: ident $(, $tail: ident)* $(,)?) => {
+                ($head.serialisiere() $(, $tail.clone())*)
+            };
+        }
+        macro_rules! serialisiere_maps {
+            ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
+                #[allow(unused_parens)]
+                let $map = $map
+                    .iter()
+                    .map(|(id, ($($matching),*))| (id.$serialize_id(), serialisiere_head_clone_tail!($($matching),*)))
+                    .collect();
             )*};
         }
-        erzeuge_zugtyp_maps!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
+        serialisiere_maps!(
+            (geschwindigkeit): geschwindigkeiten - clone,
+            (streckenabschnitt, geschwindigkeit): streckenabschnitte - clone,
+            (plan): pläne - clone,
         );
-        ZugtypSerialisiert2 {
-            name: name.clone(),
-            leiter,
-            spurweite: *spurweite,
+        ZustandSerialisiert {
+            zugtyp: zugtyp.serialisiere(),
+            geschwindigkeiten,
+            streckenabschnitte,
+            gleise: gleise.serialisiere(),
+            pläne,
+        }
+    }
+
+    fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
+    where
+        L: Serialisiere<S>,
+    {
+        let Zustand2 { zugtyp: _, geschwindigkeiten, streckenabschnitte, gleise, pläne: _ } = self;
+        let GleiseDaten2 {
             geraden,
             kurven,
             weichen,
@@ -610,12 +590,32 @@ impl<L: BekannterLeiter> Zugtyp2<L> {
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-            pwm_frequenz: *pwm_frequenz,
-            verhältnis_fahrspannung_überspannung: verhältnis_fahrspannung_überspannung.clone(),
-            stopp_zeit: *stopp_zeit,
-            umdrehen_zeit: umdrehen_zeit.clone(),
-            schalten_zeit: *schalten_zeit,
+            rstern: _,
+        } = gleise;
+        let mut anschlüsse = Anschlüsse::default();
+        macro_rules! head {
+            ($head: ident $(, $tail: ident)* $(,)?) => {
+                $head
+            };
         }
+        macro_rules! collect_anschlüsse {
+            (($($matching: ident),+) : $map: ident) => {
+                #[allow(unused_parens)]
+                for (_id, ($($matching),+)) in $map.drain() {
+                    anschlüsse.anhängen(head!($($matching),+).anschlüsse());
+                }
+            };
+        }
+        collect_anschlüsse!((geschwindigkeit): geschwindigkeiten);
+        collect_anschlüsse!((streckenabschnitt, _geschwindigkeit): streckenabschnitte);
+        collect_anschlüsse!((gerade, _streckenabschnitt): geraden);
+        collect_anschlüsse!((kurve, _streckenabschnitt): kurven);
+        collect_anschlüsse!((weiche, _streckenabschnitt): weichen);
+        collect_anschlüsse!((dreiwege_weiche, _streckenabschnitt): dreiwege_weichen);
+        collect_anschlüsse!((kurven_weiche, _streckenabschnitt): kurven_weichen);
+        collect_anschlüsse!((s_kurven_weiche, _streckenabschnitt): s_kurven_weichen);
+        collect_anschlüsse!((kreuzung, _streckenabschnitt): kreuzungen);
+        anschlüsse
     }
 }
 
