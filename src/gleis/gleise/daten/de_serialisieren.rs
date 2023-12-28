@@ -65,7 +65,7 @@ use crate::{
             self, BekannterLeiter, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
         },
         kontakt::{Kontakt, KontaktSerialisiert},
-        plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
+        plan::{self, PlanSerialisiert, SteuerungMaps, UnbekannteAnschlüsse},
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
     typen::{canvas::Position, mm::Spurweite, vektor::Vektor, Zeichnen},
@@ -167,25 +167,27 @@ impl GleiseDaten2 {
 }
 
 #[must_use]
-fn reserviere_anschlüsse<T, Ts, L>(
+fn reserviere_anschlüsse<T, S, Ss, L>(
     lager: &mut anschluss::Lager,
     serialisiert: impl IntoIterator<Item = (id::Repräsentation, GleisSerialisiert<T>)>,
     spurweite: Spurweite,
     definitionen: &DefinitionMap2<T>,
     anschlüsse: Anschlüsse,
+    bekannte_steuerungen: &mut HashMap<Ss, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
     bekannte_ids: &mut HashMap<id::Repräsentation, GleisId2<T>>,
     bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId2<T>>,
-    arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
+    arg: &<Ss as Reserviere<S>>::MoveArg,
 ) -> (
     GleisMap2<T>,
     Vec<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId2, Position)>>,
     Anschlüsse,
 )
 where
-    T: 'static + MitSteuerung<Serialisiert = Ts>,
-    Ts: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = (), MutRefArg = ()>,
-    <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg: Clone,
+    T: 'static + MitSteuerung<Steuerung = Option<S>, Serialisiert = Option<Ss>>,
+    S: Clone + Serialisiere<Ss>,
+    Ss: Eq + Hash + Reserviere<S, RefArg = (), MutRefArg = ()>,
+    <Ss as Reserviere<S>>::MoveArg: Clone,
     <T as MitSteuerung>::SelfUnit: Zeichnen<()>,
     AnyDefinitionId2: From<DefinitionId2<T>>,
     AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
@@ -227,8 +229,14 @@ where
                 }));
                 return (gleise, rstern_elemente, anschlüsse);
             };
-            let rectangle = Rectangle::from(definition.rechteck(&(), spurweite));
+            // Bekannte Steuerung sichern
+            if let Some(steuerung) = &gleis.steuerung {
+                let _ = bekannte_steuerungen.insert(steuerung.serialisiere(), steuerung.clone());
+            }
+            // Bekannte Id sichern
             let _ = bekannte_ids.insert(gespeicherte_id, id.clone());
+            // Rstern-Elemente (rectangle, id, position) sichern
+            let rectangle = Rectangle::from(definition.rechteck(&(), spurweite));
             rstern_elemente.push(GeomWithData::new(
                 rectangle,
                 (
@@ -236,7 +244,9 @@ where
                     gleis.position.clone(),
                 ),
             ));
+            // Akkumulator aktualisieren
             let _ = gleise.insert(id, (gleis, rectangle));
+
             (gleise, rstern_elemente, anschlüsse)
         },
     )
@@ -244,7 +254,7 @@ where
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [DefinitionId].
 #[derive(Debug)]
-pub struct DefinitionIdMaps {
+pub(crate) struct DefinitionIdMaps {
     geraden: HashMap<u32, DefinitionId2<Gerade>>,
     kurven: HashMap<u32, DefinitionId2<Kurve>>,
     weichen: HashMap<u32, DefinitionId2<Weiche>>,
@@ -256,7 +266,7 @@ pub struct DefinitionIdMaps {
 
 impl DefinitionIdMaps {
     /// Erzeuge eine neue, leere [DefinitionIdMaps].
-    pub fn neu() -> DefinitionIdMaps {
+    pub(crate) fn neu() -> DefinitionIdMaps {
         DefinitionIdMaps {
             geraden: HashMap::new(),
             kurven: HashMap::new(),
@@ -271,7 +281,7 @@ impl DefinitionIdMaps {
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [GleisId].
 #[derive(Debug)]
-pub struct IdMaps {
+pub(crate) struct IdMaps {
     geraden: HashMap<u32, GleisId2<Gerade>>,
     kurven: HashMap<u32, GleisId2<Kurve>>,
     weichen: HashMap<u32, GleisId2<Weiche>>,
@@ -284,7 +294,7 @@ pub struct IdMaps {
 
 impl IdMaps {
     /// Erzeuge eine neue, leere [IdMaps].
-    pub fn neu() -> IdMaps {
+    pub(crate) fn neu() -> IdMaps {
         IdMaps {
             geraden: HashMap::new(),
             kurven: HashMap::new(),
@@ -307,6 +317,7 @@ impl GleiseDatenSerialisiert {
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         bekannte_ids: &mut IdMaps,
+        bekannte_steuerungen: &mut SteuerungMaps<L, S>,
         laden_fehler: &mut Vec<LadenFehler<S>>,
         sender: &Sender<Nachricht>,
     ) -> (GleiseDaten2, Anschlüsse)
@@ -328,13 +339,14 @@ impl GleiseDatenSerialisiert {
         let mut rstern_elemente = Vec::new();
 
         macro_rules! reserviere_anschlüsse {
-            ($anschlüsse: ident => $($gleise: ident),* $(,)?) => {$(
+            ($anschlüsse: ident => $($gleise: ident - $steuerungen: ident),* $(,)?) => {$(
                 let ($gleise, neue_rstern_elemente, $anschlüsse) = reserviere_anschlüsse(
                     lager,
                     $gleise,
                     zugtyp.spurweite,
                     &zugtyp.$gleise,
                     $anschlüsse,
+                    &mut bekannte_steuerungen.$steuerungen,
                     laden_fehler,
                     &mut bekannte_ids.$gleise,
                     &bekannte_ids.definitionen.$gleise,
@@ -346,13 +358,13 @@ impl GleiseDatenSerialisiert {
 
         reserviere_anschlüsse!(
             anschlüsse =>
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
+            geraden - kontakte,
+            kurven - kontakte,
+            weichen - gerade_weichen,
+            dreiwege_weichen - dreiwege_weichen,
+            kurven_weichen - kurven_weichen,
+            s_kurven_weichen - gerade_weichen,
+            kreuzungen - gerade_weichen,
         );
 
         let daten = GleiseDaten2 {
@@ -609,7 +621,7 @@ impl<L: BekannterLeiter> Zugtyp2<L> {
 
 impl<L, S> ZustandSerialisiert<L, S>
 where
-    L: BekannterLeiter,
+    L: BekannterLeiter + Serialisiere<S>,
     S: Clone + Eq + Hash + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Reserviere alle benötigten Anschlüsse.
@@ -625,34 +637,40 @@ where
         let (zugtyp, bekannte_definition_ids) = zugtyp.reserviere()?;
 
         let mut bekannte_ids = IdMaps { definitionen: bekannte_definition_ids, ..IdMaps::neu() };
+        let mut bekannte_steuerungen = SteuerungMaps::neu();
 
         let mut laden_fehler: Vec<LadenFehler<S>> = Vec::new();
 
         macro_rules! reserviere_maps {
-            ($anschlüsse: ident => $($elemente: ident $(, $extra_info: ident)?);* $(;)? ) => {$(
+            ($anschlüsse: ident => $($elemente: ident $(, $extra_info: ident - $hash_eq_steuerung: ident)?);* $(;)? ) => {$(
                 #[allow(unused_parens)]
                 let ($elemente, $anschlüsse) = $elemente.into_iter().fold(
                     (HashMap::new(), $anschlüsse),
                     |(mut elemente, anschlüsse), (name, (serialisiert $(, $extra_info)?))| {
                         let ergebnis = serialisiert.reserviere(lager, anschlüsse, (), &(), &mut ());
-                        let anschlüsse = match ergebnis {
+                        let (anschluss, fehler, anschlüsse) = match ergebnis {
                             Ergebnis::Wert { anschluss, anschlüsse } => {
-                                // Name ist eindeutig, da die serialisierte Struktur ebenfalls eine HashMap war.
-                                let _ = elemente.insert(name, (anschluss $(, $extra_info.clone())?));
-                                anschlüsse
+                                (Some(anschluss), None, anschlüsse)
                             },
                             Ergebnis::FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                                // Name ist eindeutig, da die serialisierte Struktur ebenfalls eine HashMap war.
-                                let _ = elemente.insert(name, (anschluss $(, $extra_info.clone())?));
-                                laden_fehler.extend(fehler.map(LadenFehler::from));
-                                anschlüsse
+                                (Some(anschluss), Some(fehler), anschlüsse)
                             },
                             Ergebnis::Fehler { fehler, anschlüsse } => {
-                                // Name ist eindeutig, da die serialisierte Struktur ebenfalls eine HashMap war.
-                                laden_fehler.extend(fehler.map(LadenFehler::from));
-                                anschlüsse
+                                (None, Some(fehler), anschlüsse)
                             },
                         };
+                        if let Some(anschluss) = anschluss {
+                            // Speichere bekannte Steuerungen
+                            let _ = bekannte_steuerungen.$elemente.insert(
+                                anschluss.serialisiere() $(.$hash_eq_steuerung())?,
+                                anschluss.clone()
+                            );
+                            // Name ist eindeutig, da die serialisierte Struktur ebenfalls eine HashMap war.
+                            let _ = elemente.insert(name, (anschluss $(, $extra_info.clone())?));
+                        }
+                        if let Some(fehler) = fehler {
+                            laden_fehler.extend(fehler.map(LadenFehler::from));
+                        }
                         (elemente, anschlüsse)
                     },
                 );
@@ -662,19 +680,32 @@ where
         reserviere_maps!(
             anschlüsse =>
             geschwindigkeiten;
-            streckenabschnitte, geschwindigkeit;
+            streckenabschnitte, geschwindigkeit - anschluss;
         );
-        let (gleise, anschlüsse) = gleise.reserviere(
+        let (gleise, _anschlüsse) = gleise.reserviere(
             &zugtyp,
             lager,
             anschlüsse,
             &mut bekannte_ids,
+            &mut bekannte_steuerungen,
             &mut laden_fehler,
             sender,
         );
-        // let (pläne, anschlüsse) = reserviere_map(lager, pläne, anschlüsse, &mut laden_fehler);
-        let pläne = todo!("Pläne reservieren/deserialisieren");
-        let _ = ();
+        let pläne = pläne.into_iter().fold(HashMap::new(), |mut pläne, (name, plan)| {
+            let plan = match plan.deserialisiere(&bekannte_steuerungen, sender) {
+                Ok(plan) => plan,
+                Err(fehler) => {
+                    laden_fehler.push(LadenFehler::UnbekannteAnschlüsse {
+                        plan: name,
+                        anschlüsse: fehler,
+                    });
+                    return pläne;
+                },
+            };
+            // Name ist eindeutig, da die serialisierte Struktur ebenfalls eine HashMap war.
+            let _ = pläne.insert(name, plan);
+            pläne
+        });
 
         let zustand = Zustand2 { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne };
         Ok((zustand, laden_fehler))
