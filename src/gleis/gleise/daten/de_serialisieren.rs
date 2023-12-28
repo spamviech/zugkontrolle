@@ -236,7 +236,8 @@ where
             // Bekannte Id sichern
             let _ = bekannte_ids.insert(gespeicherte_id, id.clone());
             // Rstern-Elemente (rectangle, id, position) sichern
-            let rectangle = Rectangle::from(definition.rechteck(&(), spurweite));
+            let rectangle =
+                Rectangle::from(definition.rechteck_an_position(&(), spurweite, &gleis.position));
             rstern_elemente.push(GeomWithData::new(
                 rectangle,
                 (
