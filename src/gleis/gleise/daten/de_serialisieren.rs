@@ -741,7 +741,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         pfad: impl AsRef<std::path::Path>,
     ) -> Result<(), NonEmpty<LadenFehler<S>>>
     where
-        L: BekannterLeiter + Serialisiere<S>,
+        L: 'static + BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
@@ -773,12 +773,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             .deserialize(slice)
             .or_else(|aktuell| {
                 match BINCODE_OPTIONS.deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
-                    Ok(v3) => todo!("v3.try_into().map_err(LadenFehler::from)"),
+                    Ok(v3) => Ok(ZustandSerialisiert::from(v3)),
                     Err(v3) => {
                         match BINCODE_OPTIONS
                             .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
                         {
-                            Ok(v2) => todo!("v2.try_into().map_err(LadenFehler::from)"),
+                            Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
+                                Ok(v3) => Ok(ZustandSerialisiert::from(v3)),
+                                Err(fehler) => Err(LadenFehler::from(fehler)),
+                            },
                             Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
                         }
                     },
