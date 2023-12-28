@@ -40,10 +40,13 @@ use crate::{
                     GeschwindigkeitMapSerialisiert, GleisSerialisiert, GleiseDatenSerialisiert,
                     StreckenabschnittMapSerialisiert, ZugtypSerialisiert2, ZustandSerialisiert,
                 },
-                GeschwindigkeitMap2, Gleis2, GleisMap2, GleiseDaten2, SelectAll,
+                GeschwindigkeitMap2, Gleis2, GleisMap2, GleiseDaten2, RStern2, SelectAll,
                 StreckenabschnittMap2, Zustand2,
             },
-            id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2, DefinitionId2, GleisId2},
+            id::{
+                self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2, AnyGleisDefinitionId2,
+                DefinitionId2, GleisId2,
+            },
             nachricht::GleisSteuerung,
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
@@ -65,7 +68,7 @@ use crate::{
         plan::{self, PlanSerialisiert, UnbekannteAnschlüsse},
         streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
-    typen::{mm::Spurweite, vektor::Vektor, Zeichnen},
+    typen::{canvas::Position, mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::{DefinitionMap2, Zugtyp2},
 };
 
@@ -163,37 +166,41 @@ impl GleiseDaten2 {
     }
 }
 
-fn reserviere_anschlüsse<T, Ts, S, Ss, L>(
+#[must_use]
+fn reserviere_anschlüsse<T, Ts, L>(
     lager: &mut anschluss::Lager,
     serialisiert: impl IntoIterator<Item = (id::Repräsentation, GleisSerialisiert<T>)>,
-    definitionen: &DefinitionMap2<T>,
     spurweite: Spurweite,
+    definitionen: &DefinitionMap2<T>,
     anschlüsse: Anschlüsse,
     laden_fehler: &mut Vec<LadenFehler<L>>,
     bekannte_ids: &mut HashMap<id::Repräsentation, GleisId2<T>>,
     bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId2<T>>,
     arg: &<Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg,
-) -> (GleisMap2<T>, Anschlüsse)
+) -> (
+    GleisMap2<T>,
+    Vec<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId2, Position)>>,
+    Anschlüsse,
+)
 where
     T: 'static + MitSteuerung<Serialisiert = Ts>,
     Ts: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = (), MutRefArg = ()>,
     <Ts as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg: Clone,
     <T as MitSteuerung>::SelfUnit: Zeichnen<()>,
     AnyDefinitionId2: From<DefinitionId2<T>>,
-    S: Clone + Serialisiere<Ss>,
-    Ss: Eq + Hash,
+    AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
 {
     use Ergebnis::*;
     serialisiert.into_iter().fold(
-        (GleisMap2::new(), anschlüsse),
-        |(mut gleise, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
+        (GleisMap2::new(), Vec::new(), anschlüsse),
+        |(mut gleise, mut rstern_elemente, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
             let id = match bekannte_ids.get(&gespeicherte_id) {
                 Some(id) => id.clone(),
                 None => match GleisId2::neu() {
                     Ok(id) => id,
                     Err(fehler) => {
                         laden_fehler.push(fehler.into());
-                        return (gleise, anschlüsse);
+                        return (gleise, rstern_elemente, anschlüsse);
                     },
                 },
             };
@@ -211,19 +218,26 @@ where
                 },
                 Fehler { fehler, anschlüsse } => {
                     laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
-                    return (gleise, anschlüsse);
+                    return (gleise, rstern_elemente, anschlüsse);
                 },
             };
             let Some(definition) = definitionen.get(&gleis.definition) else {
                 laden_fehler.push(LadenFehler::from(anschluss::Fehler::UnbekannteDefintion {
                     id: gleis.definition.into(),
                 }));
-                return (gleise, anschlüsse);
+                return (gleise, rstern_elemente, anschlüsse);
             };
-            let rechteck = definition.rechteck(&(), spurweite);
+            let rectangle = Rectangle::from(definition.rechteck(&(), spurweite));
             let _ = bekannte_ids.insert(gespeicherte_id, id.clone());
-            let _ = gleise.insert(id, (gleis, rechteck.into()));
-            (gleise, anschlüsse)
+            rstern_elemente.push(GeomWithData::new(
+                rectangle,
+                (
+                    AnyGleisDefinitionId2::from((id.clone(), gleis.definition.clone())),
+                    gleis.position.clone(),
+                ),
+            ));
+            let _ = gleise.insert(id, (gleis, rectangle));
+            (gleise, rstern_elemente, anschlüsse)
         },
     )
 }
@@ -286,13 +300,14 @@ impl IdMaps {
 
 impl GleiseDatenSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
+    #[must_use]
     fn reserviere<L, S, Nachricht>(
         self,
         zugtyp: &Zugtyp2<L>,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
         bekannte_ids: &mut IdMaps,
-        fehler: &mut Vec<LadenFehler<S>>,
+        laden_fehler: &mut Vec<LadenFehler<S>>,
         sender: &Sender<Nachricht>,
     ) -> (GleiseDaten2, Anschlüsse)
     where
@@ -308,52 +323,50 @@ impl GleiseDatenSerialisiert {
             s_kurven_weichen,
             kreuzungen,
         } = self;
-        // TODO
+        let aktualisieren_sender = SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
+
+        let mut rstern_elemente = Vec::new();
+
+        macro_rules! reserviere_anschlüsse {
+            ($anschlüsse: ident => $($gleise: ident),* $(,)?) => {$(
+                let ($gleise, neue_rstern_elemente, $anschlüsse) = reserviere_anschlüsse(
+                    lager,
+                    $gleise,
+                    zugtyp.spurweite,
+                    &zugtyp.$gleise,
+                    $anschlüsse,
+                    laden_fehler,
+                    &mut bekannte_ids.$gleise,
+                    &bekannte_ids.definitionen.$gleise,
+                    &aktualisieren_sender,
+                );
+                rstern_elemente.extend(neue_rstern_elemente);
+            )*};
+        }
+
+        reserviere_anschlüsse!(
+            anschlüsse =>
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
+
         let daten = GleiseDaten2 {
-            geraden: todo!(),
-            kurven: todo!(),
-            weichen: todo!(),
-            dreiwege_weichen: todo!(),
-            kurven_weichen: todo!(),
-            s_kurven_weichen: todo!(),
-            kreuzungen: todo!(),
-            rstern: todo!(),
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            rstern: RStern2::bulk_load(rstern_elemente),
         };
-        // macro_rules! reserviere_anschlüsse {
-        //     ($($rstern: ident: $ty: ty: $steuerung: ident: $map: ident: $arg: expr),* $(,)?) => {
-        //         $(
-        //             let ($rstern, anschlüsse) =
-        //                 reserviere_anschlüsse(
-        //                     spurweite,
-        //                     lager,
-        //                     self.$rstern,
-        //                     anschlüsse,
-        //                     |gleis: &$ty| &gleis.$steuerung,
-        //                     $map,
-        //                     fehler,
-        //                     $bekannte_ids,
-        //                     $arg,
-        //                 );
-        //         )*
-        //         (
-        //             GleiseDaten {
-        //                 $($rstern: RTree::bulk_load($rstern)),*
-        //             },
-        //             anschlüsse,
-        //         )
-        //     };
-        // }
-        // let aktualisieren_sender = SomeAktualisierenSender::from((sender.clone(), Nachricht::from));
-        // reserviere_anschlüsse! {
-        //     geraden: Gerade: kontakt: kontakte: &aktualisieren_sender,
-        //     kurven: Kurve: kontakt: kontakte: &aktualisieren_sender,
-        //     weichen: Weiche: steuerung: gerade_weichen: &aktualisieren_sender,
-        //     dreiwege_weichen: DreiwegeWeiche: steuerung: dreiwege_weichen: &aktualisieren_sender,
-        //     kurven_weichen: KurvenWeiche: steuerung: kurven_weichen: &aktualisieren_sender,
-        //     s_kurven_weichen: SKurvenWeiche: steuerung: gerade_weichen: &aktualisieren_sender,
-        //     kreuzungen: Kreuzung: steuerung: gerade_weichen: &aktualisieren_sender,
-        // }
-        todo!("GleiseDatenSerialisiert::reserviere")
+
+        (daten, anschlüsse)
     }
 }
 
