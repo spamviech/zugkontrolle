@@ -68,6 +68,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 (AnyId2::Kurve(id), AnyDefinitionIdSteuerung2::Kurve(_definition, steuerung)) => {
                     AnyIdSteuerung2::Kurve(id.clone(), steuerung)
                 },
+                (AnyId2::Weiche(id), AnyDefinitionIdSteuerung2::Weiche(_definition, steuerung)) => {
+                    AnyIdSteuerung2::Weiche(id.clone(), steuerung)
+                },
                 (
                     AnyId2::DreiwegeWeiche(id),
                     AnyDefinitionIdSteuerung2::DreiwegeWeiche(_definition, steuerung),
