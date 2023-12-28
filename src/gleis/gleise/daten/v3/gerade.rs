@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{steuerung::kontakt::KontaktSerialisiert, typen::skalar::Skalar};
 
 /// Definition einer Gerade.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
     pub länge: Skalar,

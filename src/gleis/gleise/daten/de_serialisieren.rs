@@ -717,7 +717,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// in einer Datei.
-    #[allow(single_use_lifetimes)]
     pub fn speichern<S>(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
     where
         L: Serialisiere<S> + BekannterLeiter,
@@ -734,7 +733,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Lade Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
     /// aus einer Datei.
-    #[allow(single_use_lifetimes)]
     pub fn laden<S>(
         &mut self,
         lager: &mut anschluss::Lager,

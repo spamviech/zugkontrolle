@@ -137,6 +137,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "assoc"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfdc70193dadb9d7287fa4b633f15f90c876915b31f6af17da307fc59c9859a8"
+
+[[package]]
 name = "atomic-polyfill"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3425,6 +3431,7 @@ checksum = "c110ba09c9b3a43edd4803d570df0da2414fed6e822e22b976a4e3ef50860701"
 name = "zugkontrolle"
 version = "4.0.0"
 dependencies = [
+ "assoc",
  "bincode",
  "difference",
  "dyn-clonable",

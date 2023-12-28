@@ -1,16 +1,13 @@
 //! Serialisierte Strukturen von Version 4.X.
 
-use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
+use std::{collections::HashMap, fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::{
-            id::{self, eindeutig::KeineIdVerfügbar, DefinitionId2},
-            steuerung::MitSteuerung,
-        },
+        gleise::{id, steuerung::MitSteuerung},
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -21,7 +18,7 @@ use crate::{
         },
     },
     steuerung::{
-        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
@@ -64,10 +61,7 @@ type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>
     serialize = "T: MitSteuerung, <T as MitSteuerung>::Serialisiert: Serialize",
     deserialize = "T: MitSteuerung, <T as MitSteuerung>::Serialisiert: Deserialize<'de>",
 ))]
-pub struct GleisSerialisiert<T: MitSteuerung>
-where
-    <T as MitSteuerung>::SelfUnit: 'static,
-{
+pub struct GleisSerialisiert<T: MitSteuerung> {
     /// Die [Zeichnen]-Definition des Gleises.
     pub definition: id::Repräsentation,
     /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
