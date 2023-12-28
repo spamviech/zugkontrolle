@@ -726,9 +726,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.erzwinge_neuzeichnen();
-        // let anschlüsse = self.zustand.anschlüsse_ausgeben();
-        let anschlüsse = todo!("Gleise::laden");
-        let _ = ();
+        let anschlüsse = self.zustand2.anschlüsse_ausgeben();
 
         // TODO pivot, skalieren, Modus?
         // last_mouse, last_size nicht anpassen
@@ -760,9 +758,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let (zustand, fehler) = zustand_serialisiert
             .reserviere(lager, anschlüsse, &self.sender)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
-        // self.zustand = zustand;
-        todo!("Gleise::laden");
-        let _ = ();
+        self.zustand2 = zustand;
         if let Some(non_empty) = NonEmpty::from_vec(fehler) {
             Err(non_empty)
         } else {
