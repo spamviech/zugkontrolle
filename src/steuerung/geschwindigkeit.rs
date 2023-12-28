@@ -342,7 +342,6 @@ impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Ges
 #[allow(single_use_lifetimes)]
 impl<T, S> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<S>
 where
-    T: Serialisiere<S>,
     S: Reserviere<T>,
 {
     type MoveArg = <S as Reserviere<T>>::MoveArg;

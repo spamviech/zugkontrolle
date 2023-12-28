@@ -168,9 +168,10 @@ where
         let gespeicherte_id = definition;
         let Some(id) = bekannte_definition_ids.get(&definition) else {
             return Ergebnis::Fehler {
-                fehler: nonempty![anschluss::Fehler::UnbekannteGespeicherteDefintion {
+                fehler: nonempty![anschluss::Fehler::UnbekannteGespeicherteDefinition {
                     id: definition,
-                    ty: TypeId::of::<T>()
+                    type_id: TypeId::of::<T>(),
+                    type_name: std::any::type_name::<T>()
                 }],
                 anschlüsse,
             };

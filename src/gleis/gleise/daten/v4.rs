@@ -27,11 +27,12 @@ use crate::{
     },
     typen::{canvas::Position, mm::Spurweite},
     util::eingeschränkt::NichtNegativ,
-    zugtyp::Zugtyp2,
 };
 
-pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
-    HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
+pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<
+    streckenabschnitt::Name,
+    (StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>),
+>;
 pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 

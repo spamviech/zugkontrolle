@@ -628,10 +628,14 @@ pub enum Fehler {
     Reservieren(ReservierenFehler),
     /// Fehler beim Deserialisieren des Zugtyps.
     ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
-    /// Ein Gleis wurde mit unbekannter [DefintionId] gespeichert.
-    UnbekannteGespeicherteDefintion { id: id::Repräsentation, ty: TypeId },
-    /// Ein Gleis mit unbekannter [DefintionId].
-    UnbekannteDefintion { id: AnyDefinitionId2 },
+    /// Ein Gleis wurde mit unbekannter [DefinitionId] gespeichert.
+    UnbekannteGespeicherteDefinition {
+        id: id::Repräsentation,
+        type_id: TypeId,
+        type_name: &'static str,
+    },
+    /// Ein Gleis mit unbekannter [DefinitionId].
+    UnbekannteDefinition { id: AnyDefinitionId2 },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.

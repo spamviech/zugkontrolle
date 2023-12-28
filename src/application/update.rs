@@ -496,7 +496,12 @@ where
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Debug + Clone + Eq + Hash + Reserviere<L, MoveArg = ()> + for<'de> Deserialize<'de>,
+        S: Debug
+            + Clone
+            + Eq
+            + Hash
+            + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
+            + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,
