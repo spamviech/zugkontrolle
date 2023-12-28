@@ -287,25 +287,19 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 })
             }
             macro_rules! knöpfe_hinzufügen {
-                ($($map: expr),* $(,)?) => {
+                ($($map: expr => $type: ty),* $(,)?) => {
                     max_breite_berechnen!($($map),*);
-                    // $(knöpfe_hinzufügen(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
+                    $(knöpfe_hinzufügen::<L, S, _, $type>(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
                 }
             }
-            knöpfe_hinzufügen::<L, S, _, Gerade>(
-                gleise.spurweite(),
-                max_breite,
-                &mut scrollable_column,
-                &gleise.zugtyp2().geraden,
-            );
             knöpfe_hinzufügen!(
-                &gleise.zugtyp2().geraden,
-                &gleise.zugtyp2().kurven,
-                &gleise.zugtyp2().weichen,
-                &gleise.zugtyp2().dreiwege_weichen,
-                &gleise.zugtyp2().kurven_weichen,
-                &gleise.zugtyp2().s_kurven_weichen,
-                &gleise.zugtyp2().kreuzungen,
+                &gleise.zugtyp2().geraden => Gerade,
+                &gleise.zugtyp2().kurven => Kurve,
+                &gleise.zugtyp2().weichen => Weiche,
+                &gleise.zugtyp2().dreiwege_weichen => DreiwegeWeiche,
+                &gleise.zugtyp2().kurven_weichen => KurvenWeiche,
+                &gleise.zugtyp2().s_kurven_weichen => SKurvenWeiche,
+                &gleise.zugtyp2().kreuzungen => Kreuzung,
             );
             if let Some(max) = max_breite {
                 width = Length::Fixed(max);
