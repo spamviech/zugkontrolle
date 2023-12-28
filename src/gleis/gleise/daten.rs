@@ -590,10 +590,11 @@ fn überlappende_verbindungen<'t, L: Leiter>(
     (überlappend, gehalten)
 }
 
-fn einraste_position<L: Leiter, T: Zeichnen<Z>, Z>(
+fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     rstern: &RStern2,
     zugtyp: &Zugtyp2<L>,
-    definition: &T,
+    definition: &U,
+    id: Option<AnyId2>,
     z: &Z,
     position: Position,
 ) -> Position {
@@ -602,7 +603,9 @@ fn einraste_position<L: Leiter, T: Zeichnen<Z>, Z>(
     verbindungen.für_alle(|verbindung_name, verbindung| {
         if snap.is_none() {
             let (mut überlappende, _gehalten) =
-                überlappende_verbindungen(rstern, zugtyp, verbindung, None, |_gleis_id| false);
+                überlappende_verbindungen(rstern, zugtyp, verbindung, id.as_ref(), |_gleis_id| {
+                    false
+                });
             snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
         }
     });
@@ -647,7 +650,8 @@ impl GleiseDaten2 {
                 };
                 // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
                 if einrasten {
-                    position = einraste_position(&self.rstern, zugtyp, definition, &(), position)
+                    position =
+                        einraste_position(&self.rstern, zugtyp, definition, None, &(), position)
                 }
                 // Erzeuge neue Id.
                 let id = GleisId2::neu()?;
@@ -765,6 +769,7 @@ impl GleiseDaten2 {
                                 &self.rstern,
                                 zugtyp,
                                 definition,
+                                Some(AnyId2::from($gleis_id.clone())),
                                 &(),
                                 neue_position,
                             );
@@ -801,7 +806,7 @@ impl GleiseDaten2 {
                     neues_rectangle.clone(),
                     (
                         AnyGleisDefinitionId2::from(($gleis_id.clone(), gleis.definition.clone())),
-                        gleis.position.clone(),
+                        neue_position.clone(),
                     ),
                 ));
                 // Aktualisiere gespeicherte Position und Bounding Box.
