@@ -178,7 +178,7 @@ impl GleiseDatenSerialisiert {
                 $(
                     let definitionen = &mut zugtyp.$gleis_art;
                     let definitionen_invertiert = &mut definition_maps.$gleis_art;
-                    let ($gleis_art, _nächste_definition_id, nächste_gleis_id) = $gleis_art.into_iter().fold(
+                    let ($gleis_art, nächste_definition_id, nächste_gleis_id) = $gleis_art.into_iter().fold(
                         (HashMap::new(), nächste_ids.definitionen.$gleis_art, nächste_ids.$gleis_art),
                         |(mut elemente, mut nächste_definition_id, gleis_id), gleis| {
                             let Gleis { definition, position } = gleis;
@@ -187,6 +187,7 @@ impl GleiseDatenSerialisiert {
                                 return (elemente, nächste_definition_id, gleis_id);
                             };
                             let steuerung = definition.$steuerung.clone().map(Into::into);
+                            let v3_definition = definition.clone();
                             let (definition_id, definition)
                                 = match definitionen_invertiert.entry(definition.clone()) {
                                     Entry::Occupied(occupied) => occupied.get().clone(),
@@ -216,6 +217,7 @@ impl GleiseDatenSerialisiert {
                         },
                     );
                     nächste_ids.$gleis_art = nächste_gleis_id;
+                    nächste_ids.definitionen.$gleis_art = nächste_definition_id;
                 )*
                 v4::GleiseDatenSerialisiert { $($gleis_art),* }
             }};
