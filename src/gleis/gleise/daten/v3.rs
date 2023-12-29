@@ -163,7 +163,6 @@ impl NächsteIds {
 }
 
 impl GleiseDatenSerialisiert {
-    // FIXME Resultat ist falsch/nicht stabil
     fn v4<L: Leiter>(
         self,
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,
@@ -187,7 +186,6 @@ impl GleiseDatenSerialisiert {
                                 return (elemente, nächste_definition_id, gleis_id);
                             };
                             let steuerung = definition.$steuerung.clone().map(Into::into);
-                            let v3_definition = definition.clone();
                             let (definition_id, definition)
                                 = match definitionen_invertiert.entry(definition.clone()) {
                                     Entry::Occupied(occupied) => occupied.get().clone(),
