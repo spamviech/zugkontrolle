@@ -130,7 +130,7 @@ where
             Element::from(Modal::neu(column, zeige_auswahlzustand).schließe_bei_esc());
 
         let zeige_message_box = |message_box: &MessageBox| {
-            let MessageBox { titel, nachricht } = message_box;
+            let MessageBox { titel, nachricht, zeitstempel: _ } = message_box;
             Element::new(
                 iced_aw::Card::new(
                     Text::new(titel.clone()),

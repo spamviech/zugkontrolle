@@ -67,6 +67,7 @@ pub mod weiche;
 pub struct MessageBox {
     titel: String,
     nachricht: String,
+    zeitstempel: Instant,
 }
 
 /// Die Anwendung inklusive des GUI.

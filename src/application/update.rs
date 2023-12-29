@@ -56,7 +56,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        self.message_box = Some(MessageBox { titel, nachricht });
+        self.message_box = Some(MessageBox { titel, nachricht, zeitstempel: Instant::now() });
     }
 
     /// Führe eine Aktion aus.
