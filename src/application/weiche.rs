@@ -133,17 +133,14 @@ where
                     Vec::new()
                 },
                 InterneNachricht::Festlegen => {
-                    vec![
-                        Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
-                            Name(zustand.name.clone()),
-                            RichtungInformation::default(),
-                            zustand.anschlüsse.clone(),
-                        ))),
-                        Nachricht::Schließen,
-                    ]
+                    vec![Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
+                        Name(zustand.name.clone()),
+                        RichtungInformation::default(),
+                        zustand.anschlüsse.clone(),
+                    )))]
                 },
                 InterneNachricht::Entfernen => {
-                    vec![Nachricht::Festlegen(None), Nachricht::Schließen]
+                    vec![Nachricht::Festlegen(None)]
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }

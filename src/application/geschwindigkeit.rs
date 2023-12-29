@@ -381,14 +381,10 @@ where
                         Name(zustand.neu_name.clone()),
                         GeschwindigkeitSerialisiert { leiter },
                     );
-                    // HACK: ohne die Schließen-Nachricht wird keine Eingabe akzeptiert,
-                    // bis das nächste mal "Esc" gedrückt wird (Modal wird geschlossen)
-                    vec![nachricht, AuswahlNachricht::Schließen]
+                    vec![nachricht]
                 },
                 InterneAuswahlNachricht::Löschen(name) => {
-                    // HACK: ohne die Schließen-Nachricht wird keine Eingabe akzeptiert,
-                    // bis das nächste mal "Esc" gedrückt wird (Modal wird geschlossen)
-                    vec![AuswahlNachricht::Löschen(name), AuswahlNachricht::Schließen]
+                    vec![AuswahlNachricht::Löschen(name)]
                 },
             }
         };

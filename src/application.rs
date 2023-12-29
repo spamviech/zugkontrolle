@@ -284,7 +284,7 @@ where
                 farbe,
                 anschluss_definition,
             ) => self.streckenabschnitt_hinzufügen(
-                geschwindigkeit.as_ref(),
+                geschwindigkeit,
                 name,
                 farbe,
                 anschluss_definition,

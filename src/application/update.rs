@@ -104,37 +104,34 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Füge einen neuen [Streckenabschnitt] hinzu.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
+        geschwindigkeit: Option<geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        let message_opt = match self.gleise.streckenabschnitt_mut(&name) {
+        // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
+        // vermeidet (unmöglichen) Fehlerfall mit doppeltem Namen beim hinzufügen.
+        match self.gleise.streckenabschnitt_mut(&name) {
             Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
+                let titel = format!("Streckenabschnitt {} anpassen", name.0);
                 let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
                 {
                     format!("{:?}", fehler)
                 } else {
                     format!("Streckenabschnitt {} angepasst.", name.0)
                 };
-                Some((format!("Streckenabschnitt {} anpassen", name.0), fehlermeldung))
+                self.zeige_message_box(titel, fehlermeldung);
+                return;
             },
-            _fehler => None,
+            _fehler => {},
         };
-        if let Some((titel, nachricht)) = message_opt {
-            self.zeige_message_box(titel, nachricht);
-            return;
-        }
-        // Streckenabschnitt hat nur einen Anschluss,
-        // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
-        // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
-        // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
-        // beim hinzufügen.
+        // Streckenabschnitt hat nur einen Anschluss.
+        // Nachdem dieser unterschiedlich ist, kann der aktuelle Anschluss ignoriert werden.
         use Ergebnis::*;
-        let (streckenabschnitt, fehler) = match anschluss_definition.reserviere(
+        let (anschluss, fehler) = match anschluss_definition.reserviere(
             &mut self.lager,
             Anschlüsse::default(),
             (),
@@ -150,15 +147,15 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{:?}", fehler))
         });
 
-        if let Some(streckenabschnitt) = streckenabschnitt {
+        if let Some(anschluss) = anschluss {
             {
                 self.streckenabschnitt_aktuell = Some((name.clone(), farbe));
-                let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
+                let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
 
                 if let Some(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
                     name.clone(),
                     streckenabschnitt,
-                    geschwindigkeit.cloned(),
+                    geschwindigkeit,
                 ) {
                     let bisherige_nachricht = if let Some((_titel, mut nachricht)) = fehlermeldung {
                         nachricht.push('\n');
@@ -307,6 +304,9 @@ where
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
+        } else {
+            // TODO schließe Auswahl-Modal
+            // FIXME Widget-Werte werden zurückgesetzt!
         }
     }
 }

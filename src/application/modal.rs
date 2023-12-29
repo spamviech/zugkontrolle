@@ -95,8 +95,6 @@ enum OverlayElement {
     Aktuell,
     /// Das Overlay wurde geändert. Element und Kind-Zustand müssen aktualisiert werden.
     Geändert,
-    /// Das initiale Element soll gezeigt werden. Element und Kind-Zustand müssen evtl. aktualisiert werden.
-    Initial,
 }
 
 /// Zustand des [Modal]-Widgets.
@@ -115,8 +113,7 @@ impl<Overlay> Zustand<Overlay> {
         Overlay: Clone,
     {
         let initial = overlay.clone();
-        let aktualisiere_element =
-            if overlay.is_some() { OverlayElement::Initial } else { OverlayElement::Aktuell };
+        let aktualisiere_element = OverlayElement::Geändert;
         Zustand { overlay, initial, aktualisiere_element, viewport: Rectangle::default() }
     }
 
@@ -169,7 +166,7 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     let hat_overlay = overlay.is_some();
-    let mut aktualisiere_element_und_state = || {
+    let mut aktualisiere_element_und_children = || {
         *overlay = neues_overlay.as_ref().map(|neues_overlay| {
             let element = zeige_overlay(neues_overlay);
             Container::new(element)
@@ -184,15 +181,14 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
         *state_overlay = Tree::new(overlay.as_ref().unwrap_or_else(|| &dummy));
     };
     match *aktualisiere_overlay {
-        OverlayElement::Aktuell => {},
-        OverlayElement::Geändert => {
-            aktualisiere_element_und_state();
-            *aktualisiere_overlay = OverlayElement::Aktuell;
-        },
-        OverlayElement::Initial => {
+        OverlayElement::Aktuell => {
             if hat_overlay != neues_overlay.is_some() {
-                aktualisiere_element_und_state();
+                aktualisiere_element_und_children();
             }
+        },
+        OverlayElement::Geändert => {
+            aktualisiere_element_und_children();
+            *aktualisiere_overlay = OverlayElement::Aktuell;
         },
     }
 }
@@ -409,13 +405,15 @@ where
         renderer: &R,
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
-        let [state_underlay, state_overlay] = state.children.as_mut_slice() else {unreachable!("Invalide children-Anzahl!")};
-        let element_overlay: Option<overlay::Element<'s, Nachricht<Overlay, ElementNachricht>, R>> =
-            self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer);
         if zustand.initial != self.initiales_overlay {
             // Wenn sich initiales_overlay ändert muss der Zustand zurückgesetzt werden.
             *zustand = Zustand::<Overlay>::neu(self.initiales_overlay.clone());
         }
+        let [state_underlay, state_overlay] = state.children.as_mut_slice() else {
+            unreachable!("Invalide children-Anzahl!")
+        };
+        let element_overlay: Option<overlay::Element<'s, Nachricht<Overlay, ElementNachricht>, R>> =
+            self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer);
         aktualisiere_overlay_element(
             &mut self.overlay,
             state_overlay,
@@ -423,7 +421,7 @@ where
             &zustand.overlay,
             &mut zustand.aktualisiere_element,
         );
-        let modal_overlay = &mut self.overlay;
+        let modal_overlay = self.overlay.as_mut();
         let overlay = ModalOverlay { modal_overlay, element_overlay, zustand, state_overlay };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
     }
@@ -479,7 +477,7 @@ impl<M, R: Renderer> From<Dummy> for Element<'_, M, R> {
 }
 
 struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, R> {
-    modal_overlay: &'a mut Option<Element<'e, Nachricht<Overlay, ElementNachricht>, R>>,
+    modal_overlay: Option<&'a mut Element<'e, Nachricht<Overlay, ElementNachricht>, R>>,
     state_overlay: &'a mut Tree,
     element_overlay: Option<overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     zustand: &'a mut Zustand<Overlay>,

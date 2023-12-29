@@ -123,17 +123,14 @@ where
                     Vec::new()
                 },
                 InterneNachricht::Festlegen => {
-                    vec![
-                        Nachricht::Festlegen(Some(KontaktSerialisiert::neu(
-                            Name(zustand.name.clone()),
-                            zustand.anschluss.clone(),
-                            zustand.trigger,
-                        ))),
-                        Nachricht::Schließen,
-                    ]
+                    vec![Nachricht::Festlegen(Some(KontaktSerialisiert::neu(
+                        Name(zustand.name.clone()),
+                        zustand.anschluss.clone(),
+                        zustand.trigger,
+                    )))]
                 },
                 InterneNachricht::Entfernen => {
-                    vec![Nachricht::Festlegen(None), Nachricht::Schließen]
+                    vec![Nachricht::Festlegen(None)]
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
