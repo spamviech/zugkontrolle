@@ -3,7 +3,7 @@
 use std::collections::{BTreeSet, HashSet};
 
 use crate::{
-    gleis::gleise::id::GleisId2,
+    gleis::gleise::id::GleisId,
     test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, ExpectNe, Expectation},
 };
 
@@ -12,7 +12,7 @@ fn eindeutig() -> Result<(), Expectation> {
     init_test_logging();
 
     let ids: Vec<_> = (0..32)
-        .map(|i| (i, GleisId2::<()>::neu().expect("test verwendet weniger als usize::MAX Ids.")))
+        .map(|i| (i, GleisId::<()>::neu().expect("test verwendet weniger als usize::MAX Ids.")))
         .filter_map(|(i, id)| (i % 7 != 0).then_some(id))
         .collect();
     let num = ids.len();
@@ -33,9 +33,9 @@ fn repräsentation_eindeutig() -> Result<(), Expectation> {
     init_test_logging();
 
     let ids: Vec<_> = (0..32)
-        .map(|_i| GleisId2::<()>::neu().expect("test verwendet weniger als usize::MAX Ids."))
+        .map(|_i| GleisId::<()>::neu().expect("test verwendet weniger als usize::MAX Ids."))
         .collect();
-    let repräsentationen: Vec<_> = ids.iter().map(GleisId2::repräsentation).collect();
+    let repräsentationen: Vec<_> = ids.iter().map(GleisId::repräsentation).collect();
     let num = repräsentationen.len();
     let set: BTreeSet<_> = repräsentationen.into_iter().collect();
     let num_eindeutig = set.len();
@@ -49,7 +49,7 @@ fn repräsentation_eindeutig() -> Result<(), Expectation> {
 fn repräsentation_kopie_identisch() -> Result<(), Expectation> {
     init_test_logging();
 
-    let id = GleisId2::<()>::neu().expect("Erste Id.");
+    let id = GleisId::<()>::neu().expect("Erste Id.");
     let mut repräsentationen = vec![id.repräsentation()];
     // eine Kopie liefert das selbe Ergebnis
     let clone = id.clone();
@@ -72,13 +72,13 @@ fn repräsentation_kopie_identisch() -> Result<(), Expectation> {
 fn clone() -> Result<(), Expectation> {
     init_test_logging();
 
-    let id = GleisId2::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
+    let id = GleisId::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
     let id_clone = id.clone();
     // durch drop des Original-Werts wird die Id nicht wieder freigegeben.
     drop(id);
 
-    let ids = (0..32)
-        .map(|_i| GleisId2::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"));
+    let ids =
+        (0..32).map(|_i| GleisId::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"));
 
     // alle erzeugten Ids haben einen anderen Wert.
     ids.map(|id| expect_ne(id_clone.clone(), id)).collect::<Result<_, ExpectNe>>()?;

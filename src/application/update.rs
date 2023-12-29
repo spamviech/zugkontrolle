@@ -25,7 +25,7 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2},
-        id::{AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerungSerialisiert2},
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -205,7 +205,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
-    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId2) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen {
             if let Err(fehler) = self.gleise.setze_streckenabschnitt2(
                 any_id,
@@ -268,7 +268,7 @@ where
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
     pub fn gleis_hinzufügen(
         &mut self,
-        definition_steuerung: AnyDefinitionIdSteuerung2,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         klick_höhe: Skalar,
     ) {
         let streckenabschnitt = self
@@ -288,7 +288,7 @@ where
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert2) {
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
         use SteuerungAktualisierenFehler2::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen2(&mut self.lager, anschlüsse_anpassen) {

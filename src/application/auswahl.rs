@@ -18,7 +18,7 @@ use crate::{
     gleis::{
         self,
         gerade::Gerade,
-        gleise::{id::GleisId2, Gleise},
+        gleise::{id::GleisId, Gleise},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -34,20 +34,20 @@ use super::kontakt;
 #[derive(Debug, Clone, PartialEq)]
 pub enum KontaktId {
     /// Die Id einer [Geraden](Gerade).
-    Gerade(GleisId2<Gerade>),
+    Gerade(GleisId<Gerade>),
     /// Die Id einer [Kurve].
-    Kurve(GleisId2<Kurve>),
+    Kurve(GleisId<Kurve>),
 }
 
 /// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
 #[derive(Debug, Clone, PartialEq)]
 pub enum WeichenId {
     /// Die Id einer [Weiche].
-    Gerade(GleisId2<Weiche>),
+    Gerade(GleisId<Weiche>),
     /// Die Id einer [SKurvenWeiche].
-    SKurve(GleisId2<SKurvenWeiche>),
+    SKurve(GleisId<SKurvenWeiche>),
     /// Die Id einer [Kreuzung].
-    Kreuzung(GleisId2<Kreuzung>),
+    Kreuzung(GleisId<Kreuzung>),
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
@@ -81,9 +81,9 @@ pub enum AuswahlZustand {
     /// oder [SKurvenWeiche](gleis::weiche::s_kurve::SKurvenWeiche).
     Weiche(Option<WeicheSerialisiert>, WeichenId),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(Option<DreiwegeWeicheSerialisiert>, GleisId2<DreiwegeWeiche>),
+    DreiwegeWeiche(Option<DreiwegeWeicheSerialisiert>, GleisId<DreiwegeWeiche>),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(Option<KurvenWeicheSerialisiert>, GleisId2<KurvenWeiche>),
+    KurvenWeiche(Option<KurvenWeicheSerialisiert>, GleisId<KurvenWeiche>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen,
 }
@@ -144,8 +144,8 @@ impl AuswahlZustand {
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
-            + From<(DreiwegeWeicheNachricht, GleisId2<DreiwegeWeiche>)>
-            + From<(KurvenWeicheNachricht, GleisId2<KurvenWeiche>)>
+            + From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
+            + From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
             + From<lizenzen::Nachricht>,
     {
         match self {

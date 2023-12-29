@@ -28,7 +28,7 @@ use crate::{
     gleis::{
         gerade::Gerade,
         gleise::{
-            id::{AnyDefinitionId2, DefinitionId2},
+            id::{AnyDefinitionId, DefinitionId},
             steuerung::MitSteuerung,
             Gleise, Modus,
         },
@@ -275,7 +275,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
                 T: MitSteuerung,
-                DefinitionId2<T>: Into<AnyDefinitionId2>,
+                DefinitionId<T>: Into<AnyDefinitionId>,
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {

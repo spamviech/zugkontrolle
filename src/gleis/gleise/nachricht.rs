@@ -3,14 +3,14 @@
 use std::time::Instant;
 
 use crate::{
-    gleis::gleise::id::{AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2},
+    gleis::gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
     typen::{vektor::Vektor, winkel::Winkel},
 };
 
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {
-    pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung2,
+    pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung,
     pub(in crate::gleis::gleise) halte_position: Vektor,
     pub(in crate::gleis::gleise) winkel: Winkel,
     pub(in crate::gleis::gleise) bewegt: bool,
@@ -21,14 +21,14 @@ pub(in crate::gleis::gleise) struct Gehalten {
 #[non_exhaustive]
 pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
-    SetzeStreckenabschnitt(AnyId2),
+    SetzeStreckenabschnitt(AnyId),
     /// Ein Gleis mit [Streckenabschnitt] ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche] wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
     /// Die Anschlüsse für ein Gleis sollen angepasst werden.
-    AnschlüsseAnpassen(AnyIdSteuerungSerialisiert2),
+    AnschlüsseAnpassen(AnyIdSteuerungSerialisiert),
     /// Eine GUI-Nachricht für Änderungen des Zustandes.
     ///
     /// Notwendig, weil die [update](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
@@ -54,7 +54,7 @@ pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Bewege ein Gleis an die neue Position.
     GehaltenBewegen(Vektor),
     /// Entferne ein Gleis.
-    GleisEntfernen(AnyId2),
+    GleisEntfernen(AnyId),
 }
 
 impl From<ZustandAktualisierenEnum> for Nachricht {

@@ -39,8 +39,8 @@ use crate::{
                 GleisMap, GleiseDaten, RStern, Zustand,
             },
             id::{
-                self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2, AnyGleisDefinitionId2,
-                DefinitionId2, GleisId2,
+                self, eindeutig::KeineIdVerfügbar, AnyDefinitionId, AnyGleisDefinitionId,
+                DefinitionId, GleisId,
             },
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
@@ -162,22 +162,18 @@ fn reserviere_anschlüsse<T, S, Ss, L>(
     anschlüsse: Anschlüsse,
     bekannte_steuerungen: &mut HashMap<Ss, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
-    bekannte_ids: &mut HashMap<id::Repräsentation, GleisId2<T>>,
-    bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId2<T>>,
+    bekannte_ids: &mut HashMap<id::Repräsentation, GleisId<T>>,
+    bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId<T>>,
     arg: &<Ss as Reserviere<S>>::MoveArg,
-) -> (
-    GleisMap<T>,
-    Vec<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId2, Position)>>,
-    Anschlüsse,
-)
+) -> (GleisMap<T>, Vec<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId, Position)>>, Anschlüsse)
 where
     T: 'static + MitSteuerung<Steuerung = Option<S>, Serialisiert = Option<Ss>>,
     S: Clone + Serialisiere<Ss>,
     Ss: Eq + Hash + Reserviere<S, RefArg = (), MutRefArg = ()>,
     <Ss as Reserviere<S>>::MoveArg: Clone,
     <T as MitSteuerung>::SelfUnit: Zeichnen<()>,
-    AnyDefinitionId2: From<DefinitionId2<T>>,
-    AnyGleisDefinitionId2: From<(GleisId2<T>, DefinitionId2<T>)>,
+    AnyDefinitionId: From<DefinitionId<T>>,
+    AnyGleisDefinitionId: From<(GleisId<T>, DefinitionId<T>)>,
 {
     use Ergebnis::*;
     serialisiert.into_iter().fold(
@@ -185,7 +181,7 @@ where
         |(mut gleise, mut rstern_elemente, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
             let id = match bekannte_ids.get(&gespeicherte_id) {
                 Some(id) => id.clone(),
-                None => match GleisId2::neu() {
+                None => match GleisId::neu() {
                     Ok(id) => id,
                     Err(fehler) => {
                         laden_fehler.push(fehler.into());
@@ -228,7 +224,7 @@ where
             rstern_elemente.push(GeomWithData::new(
                 rectangle,
                 (
-                    AnyGleisDefinitionId2::from((id.clone(), gleis.definition.clone())),
+                    AnyGleisDefinitionId::from((id.clone(), gleis.definition.clone())),
                     gleis.position.clone(),
                 ),
             ));
@@ -243,13 +239,13 @@ where
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [DefinitionId].
 #[derive(Debug)]
 pub(crate) struct DefinitionIdMaps {
-    geraden: HashMap<u32, DefinitionId2<Gerade>>,
-    kurven: HashMap<u32, DefinitionId2<Kurve>>,
-    weichen: HashMap<u32, DefinitionId2<Weiche>>,
-    dreiwege_weichen: HashMap<u32, DefinitionId2<DreiwegeWeiche>>,
-    kurven_weichen: HashMap<u32, DefinitionId2<KurvenWeiche>>,
-    s_kurven_weichen: HashMap<u32, DefinitionId2<SKurvenWeiche>>,
-    kreuzungen: HashMap<u32, DefinitionId2<Kreuzung>>,
+    geraden: HashMap<u32, DefinitionId<Gerade>>,
+    kurven: HashMap<u32, DefinitionId<Kurve>>,
+    weichen: HashMap<u32, DefinitionId<Weiche>>,
+    dreiwege_weichen: HashMap<u32, DefinitionId<DreiwegeWeiche>>,
+    kurven_weichen: HashMap<u32, DefinitionId<KurvenWeiche>>,
+    s_kurven_weichen: HashMap<u32, DefinitionId<SKurvenWeiche>>,
+    kreuzungen: HashMap<u32, DefinitionId<Kreuzung>>,
 }
 
 impl DefinitionIdMaps {
@@ -270,13 +266,13 @@ impl DefinitionIdMaps {
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [GleisId].
 #[derive(Debug)]
 pub(crate) struct IdMaps {
-    geraden: HashMap<u32, GleisId2<Gerade>>,
-    kurven: HashMap<u32, GleisId2<Kurve>>,
-    weichen: HashMap<u32, GleisId2<Weiche>>,
-    dreiwege_weichen: HashMap<u32, GleisId2<DreiwegeWeiche>>,
-    kurven_weichen: HashMap<u32, GleisId2<KurvenWeiche>>,
-    s_kurven_weichen: HashMap<u32, GleisId2<SKurvenWeiche>>,
-    kreuzungen: HashMap<u32, GleisId2<Kreuzung>>,
+    geraden: HashMap<u32, GleisId<Gerade>>,
+    kurven: HashMap<u32, GleisId<Kurve>>,
+    weichen: HashMap<u32, GleisId<Weiche>>,
+    dreiwege_weichen: HashMap<u32, GleisId<DreiwegeWeiche>>,
+    kurven_weichen: HashMap<u32, GleisId<KurvenWeiche>>,
+    s_kurven_weichen: HashMap<u32, GleisId<SKurvenWeiche>>,
+    kreuzungen: HashMap<u32, GleisId<Kreuzung>>,
     definitionen: DefinitionIdMaps,
 }
 
@@ -444,7 +440,7 @@ macro_rules! erzeuge_zugtyp_maps2 {
                 Ok((HashMap::new(), HashMap::new())),
                 |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
                     if let Ok((mut gleise, mut ids)) = acc {
-                        let id = crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?;
+                        let id = crate::gleis::gleise::id::DefinitionId::<$typ>::neu()?;
                         // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
                         let _ = ids.insert(gespeicherte_id, id.clone());
                         // id ist eindeutig, da es von GleisId::neu garantiert wird
@@ -462,7 +458,7 @@ macro_rules! erzeuge_zugtyp_maps2 {
         #[allow(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
-            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId2::<$typ>::neu()?, definition)) )
+            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId::<$typ>::neu()?, definition)) )
             .collect::<
                 Result<
                     crate::zugtyp::DefinitionMap<$typ>,

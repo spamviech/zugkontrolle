@@ -8,7 +8,7 @@ use crate::{
             AnyGleis2, BewegenFehler2, EntfernenFehler2, HinzufügenFehler2,
             SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
         },
-        id::{AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2},
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         steuerung::SomeAktualisierenSender,
         Gehalten, Gleise, ModusDaten,
     },
@@ -20,11 +20,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
     pub(crate) fn hinzufügen2(
         &mut self,
-        definition_steuerung: AnyDefinitionIdSteuerung2,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId2, HinzufügenFehler2> {
+    ) -> Result<AnyId, HinzufügenFehler2> {
         self.zustand.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
@@ -32,11 +32,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
     pub(crate) fn hinzufügen_gehalten_bei_maus2(
         &mut self,
-        definition_steuerung: AnyDefinitionIdSteuerung2,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         halte_position: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId2, HinzufügenFehler2>
+    ) -> Result<AnyId, HinzufügenFehler2>
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
@@ -50,31 +50,31 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         )?;
         if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
             let gleis_steuerung = match (&gleis_id, definition_steuerung) {
-                (AnyId2::Gerade(id), AnyDefinitionIdSteuerung2::Gerade(_definition, steuerung)) => {
-                    AnyIdSteuerung2::Gerade(id.clone(), steuerung)
+                (AnyId::Gerade(id), AnyDefinitionIdSteuerung::Gerade(_definition, steuerung)) => {
+                    AnyIdSteuerung::Gerade(id.clone(), steuerung)
                 },
-                (AnyId2::Kurve(id), AnyDefinitionIdSteuerung2::Kurve(_definition, steuerung)) => {
-                    AnyIdSteuerung2::Kurve(id.clone(), steuerung)
+                (AnyId::Kurve(id), AnyDefinitionIdSteuerung::Kurve(_definition, steuerung)) => {
+                    AnyIdSteuerung::Kurve(id.clone(), steuerung)
                 },
-                (AnyId2::Weiche(id), AnyDefinitionIdSteuerung2::Weiche(_definition, steuerung)) => {
-                    AnyIdSteuerung2::Weiche(id.clone(), steuerung)
+                (AnyId::Weiche(id), AnyDefinitionIdSteuerung::Weiche(_definition, steuerung)) => {
+                    AnyIdSteuerung::Weiche(id.clone(), steuerung)
                 },
                 (
-                    AnyId2::DreiwegeWeiche(id),
-                    AnyDefinitionIdSteuerung2::DreiwegeWeiche(_definition, steuerung),
-                ) => AnyIdSteuerung2::DreiwegeWeiche(id.clone(), steuerung),
+                    AnyId::DreiwegeWeiche(id),
+                    AnyDefinitionIdSteuerung::DreiwegeWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::DreiwegeWeiche(id.clone(), steuerung),
                 (
-                    AnyId2::KurvenWeiche(id),
-                    AnyDefinitionIdSteuerung2::KurvenWeiche(_definition, steuerung),
-                ) => AnyIdSteuerung2::KurvenWeiche(id.clone(), steuerung),
+                    AnyId::KurvenWeiche(id),
+                    AnyDefinitionIdSteuerung::KurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::KurvenWeiche(id.clone(), steuerung),
                 (
-                    AnyId2::SKurvenWeiche(id),
-                    AnyDefinitionIdSteuerung2::SKurvenWeiche(_definition, steuerung),
-                ) => AnyIdSteuerung2::SKurvenWeiche(id.clone(), steuerung),
+                    AnyId::SKurvenWeiche(id),
+                    AnyDefinitionIdSteuerung::SKurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::SKurvenWeiche(id.clone(), steuerung),
                 (
-                    AnyId2::Kreuzung(id),
-                    AnyDefinitionIdSteuerung2::Kreuzung(_definition, steuerung),
-                ) => AnyIdSteuerung2::Kreuzung(id.clone(), steuerung),
+                    AnyId::Kreuzung(id),
+                    AnyDefinitionIdSteuerung::Kreuzung(_definition, steuerung),
+                ) => AnyIdSteuerung::Kreuzung(id.clone(), steuerung),
                 wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
             };
             *gehalten2 = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
@@ -85,7 +85,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Entferne das [Gleis] assoziiert mit der [GleisId].
     pub(in crate::gleis::gleise) fn entfernen2(
         &mut self,
-        gleis_id: impl Into<AnyId2>,
+        gleis_id: impl Into<AnyId>,
     ) -> Result<AnyGleis2, EntfernenFehler2> {
         self.zustand.entfernen(gleis_id.into())
     }
@@ -114,7 +114,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
     pub fn setze_streckenabschnitt2(
         &mut self,
-        gleis_id: impl Into<AnyId2>,
+        gleis_id: impl Into<AnyId>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
         self.zustand.setze_streckenabschnitt(gleis_id, streckenabschnitt)
@@ -124,7 +124,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn anschlüsse_anpassen2(
         &mut self,
         lager: &mut Lager,
-        gleis_steuerung: AnyIdSteuerungSerialisiert2,
+        gleis_steuerung: AnyIdSteuerungSerialisiert,
     ) -> Result<(), SteuerungAktualisierenFehler2>
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,

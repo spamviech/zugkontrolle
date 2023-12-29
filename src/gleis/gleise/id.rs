@@ -24,41 +24,41 @@ pub use eindeutig::Repräsentation;
 
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-pub struct GleisId2<T: 'static>(Arc<Id<T>>);
+pub struct GleisId<T: 'static>(Arc<Id<T>>);
 
 /// Id für die Definition eines Gleises.
-pub type DefinitionId2<T> = GleisId2<<T as MitSteuerung>::SelfUnit>;
+pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 
-impl<T> PartialEq for GleisId2<T> {
+impl<T> PartialEq for GleisId<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
 
-impl<T> Eq for GleisId2<T> {}
+impl<T> Eq for GleisId<T> {}
 
-impl<T> PartialOrd for GleisId2<T> {
+impl<T> PartialOrd for GleisId<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
     }
 }
 
-impl<T> Ord for GleisId2<T> {
+impl<T> Ord for GleisId<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 }
 
-impl<T> Hash for GleisId2<T> {
+impl<T> Hash for GleisId<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state);
     }
 }
 
-impl<T> GleisId2<T> {
+impl<T> GleisId<T> {
     /// Erzeuge eine neue [GleisId] für den entsprechenden Typ.
-    pub fn neu() -> Result<GleisId2<T>, KeineIdVerfügbar> {
-        Id::neu().map(|id| GleisId2(Arc::new(id)))
+    pub fn neu() -> Result<GleisId<T>, KeineIdVerfügbar> {
+        Id::neu().map(|id| GleisId(Arc::new(id)))
     }
 
     /// Erhalte eine eindeutige Zahl für die [GleisId].
@@ -124,7 +124,7 @@ macro_rules! als_ref {
 }
 pub(crate) use als_ref;
 
-macro_rules! mit_any_id2 {
+macro_rules! mit_any_id {
     (
         { $($($mut: tt)? $collection: expr),* },
         [$id: ty => $($ident: ident),+] $any_id: expr
@@ -186,102 +186,102 @@ macro_rules! mit_any_id2 {
         }
     }};
 }
-pub(crate) use mit_any_id2;
+pub(crate) use mit_any_id;
 
 erzeuge_any_enum! {
-    (pub) AnyId2,
+    (pub) AnyId,
     "Id für ein beliebiges Gleis.",
     [Debug, Clone, PartialEq, Eq, Hash],
-    (GleisId2<[]>),
+    (GleisId<[]>),
 }
 
 erzeuge_any_enum! {
-    (pub) AnyDefinitionId2,
+    (pub) AnyDefinitionId,
     "Id für die Definition eines beliebiges Gleises.",
     [Debug, Clone, PartialEq, Eq, Hash],
-    (DefinitionId2<[]>),
+    (DefinitionId<[]>),
 }
 
 erzeuge_any_enum! {
-    (pub) AnyGleisDefinitionId2,
+    (pub) AnyGleisDefinitionId,
     "Id für ein beliebiges Gleis und seine Definition.",
     [Debug, Clone, PartialEq, Eq],
-    (GleisId2<[]>),
-    (DefinitionId2<[]>),
+    (GleisId<[]>),
+    (DefinitionId<[]>),
 }
 
 erzeuge_any_enum! {
-    (pub) AnyIdSteuerung2,
+    (pub) AnyIdSteuerung,
     "Id für ein beliebiges Gleis und seine Steuerung.",
     [Debug, Clone],
-    (GleisId2<[]>),
+    (GleisId<[]>),
     (<[] as MitSteuerung>::Steuerung),
 }
 
-impl AnyIdSteuerung2 {
+impl AnyIdSteuerung {
     /// Erhalte die [Id](AnyId) eines Gleises.
-    pub fn id(&self) -> AnyId2 {
+    pub fn id(&self) -> AnyId {
         macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {
-                AnyId2::from($id.clone())
+                AnyId::from($id.clone())
             };
         }
-        mit_any_id2!(
+        mit_any_id!(
             {},
-            [AnyIdSteuerung2 => id, _steuerung] self
+            [AnyIdSteuerung => id, _steuerung] self
             =>id_aux!()
         )
     }
 }
 
 erzeuge_any_enum! {
-    (pub) AnyDefinitionIdSteuerung2,
+    (pub) AnyDefinitionIdSteuerung,
     "Id für die Definition eines beliebigen Gleises und seine Steuerung.",
     [Debug, Clone],
-    (DefinitionId2<[]>),
+    (DefinitionId<[]>),
     (<[] as MitSteuerung>::Steuerung),
 }
 
-impl AnyIdSteuerung2 {
+impl AnyIdSteuerung {
     /// Serialisiere die Steuerung des Gleises.
-    pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert2 {
+    pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert {
         macro_rules! serialisiere_aux {
             ($id: expr, $steuerung: expr) => {
-                AnyIdSteuerungSerialisiert2::from((
+                AnyIdSteuerungSerialisiert::from((
                     $id.clone(),
                     $steuerung.as_ref().map(|steuerung| Serialisiere::serialisiere(steuerung)),
                 ))
             };
         }
-        mit_any_id2!(
+        mit_any_id!(
             {},
-            [AnyIdSteuerung2 => id, steuerung] self
+            [AnyIdSteuerung => id, steuerung] self
             => serialisiere_aux!()
         )
     }
 }
 
 erzeuge_any_enum! {
-    (pub) AnyIdSteuerungSerialisiert2,
+    (pub) AnyIdSteuerungSerialisiert,
     "Id für ein beliebiges Gleis und seine serialisierte Steuerung.",
     [Debug, Clone],
-    (GleisId2<[]>),
+    (GleisId<[]>),
     (<[] as MitSteuerung>::Serialisiert),
 }
 
 erzeuge_any_enum! {
-    (pub) AnyIdVerbindung2,
+    (pub) AnyIdVerbindung,
     "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",
     [Debug, Clone],
-    (GleisId2<[]>),
+    (GleisId<[]>),
     (<[] as Zeichnen<()>>::VerbindungName),
 }
 
 erzeuge_any_enum! {
-    (pub) AnyDefinitionIdSteuerungVerbindung2,
+    (pub) AnyDefinitionIdSteuerungVerbindung,
     "Id für die Definition eines beliebigen Gleises, seine Steuerung und der Name einer seiner Verbindungen.",
     [Debug, Clone],
-    (DefinitionId2<[]>),
+    (DefinitionId<[]>),
     (<[] as MitSteuerung>::Steuerung),
     (<[] as Zeichnen<()>>::VerbindungName),
 }

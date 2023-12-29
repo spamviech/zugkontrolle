@@ -5,7 +5,7 @@ use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration}
 use crate::{
     gleis::{
         gerade::Gerade,
-        gleise::{id::DefinitionId2, steuerung::MitSteuerung},
+        gleise::{id::DefinitionId, steuerung::MitSteuerung},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -22,7 +22,7 @@ pub mod lego;
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 
-pub(crate) type DefinitionMap<T> = HashMap<DefinitionId2<T>, <T as MitSteuerung>::SelfUnit>;
+pub(crate) type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]

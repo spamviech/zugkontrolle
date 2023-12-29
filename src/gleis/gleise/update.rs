@@ -19,7 +19,7 @@ use crate::{
         gleise::{
             self,
             daten::{BewegenFehler2, EntfernenFehler2, Zustand},
-            id::AnyIdSteuerung2,
+            id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
             Gleise, ModusDaten,
@@ -55,7 +55,7 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
 fn aktion_bauen(
     nachrichten: &mut Vec<Nachricht>,
-    gleis_steuerung: AnyIdSteuerung2,
+    gleis_steuerung: AnyIdSteuerung,
     now: Instant,
     letzter_klick: Instant,
     halte_position: Vektor,
@@ -75,14 +75,14 @@ fn aktion_bauen(
 
 /// Aktion für ein im Modus "Fahren" angeklicktes Gleis.
 fn aktion_fahren<AktualisierenNachricht>(
-    gleis_steuerung: AnyIdSteuerung2,
+    gleis_steuerung: AnyIdSteuerung,
     streckenabschnitt: Option<&Streckenabschnitt>,
     sender: Sender<AktualisierenNachricht>,
 ) -> Option<Nachricht>
 where
     AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
-    use AnyIdSteuerung2::*;
+    use AnyIdSteuerung::*;
     match gleis_steuerung {
         Gerade(_, _) | Kurve(_, _) => streckenabschnitt.map(|streckenabschnitt| {
             let fließend = !streckenabschnitt.fließend();

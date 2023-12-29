@@ -12,7 +12,7 @@ use crate::{
     application::style::thema::Thema,
     gleis::gleise::{
         self,
-        id::AnyId2,
+        id::AnyId,
         nachricht::{Gehalten, Nachricht},
         Gleise, ModusDaten,
     },
@@ -57,7 +57,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<AnyId2>;
+                let gehalten_id: Option<AnyId>;
                 let modus_bauen: bool;
                 match modus {
                     ModusDaten::Bauen { gehalten, .. } => {

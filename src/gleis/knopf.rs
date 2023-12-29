@@ -16,7 +16,7 @@ use iced::{
 
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
-    gleis::gleise::{draw::bewege_an_position, id::GleisId2},
+    gleis::gleise::{draw::bewege_an_position, id::GleisId},
     typen::{
         canvas::{
             pfad::{Pfad, Transformation},
@@ -39,13 +39,13 @@ const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 #[derive(Debug)]
 pub struct Knopf<'t, T: 'static> {
     gleis: &'t T,
-    id: GleisId2<T>,
+    id: GleisId<T>,
     spurweite: Spurweite,
 }
 
 impl<'t, T> Knopf<'t, T> {
     /// Erstelle einen neuen [Knopf].
-    pub fn neu(gleis: &'t T, id: GleisId2<T>, spurweite: Spurweite) -> Self {
+    pub fn neu(gleis: &'t T, id: GleisId<T>, spurweite: Spurweite) -> Self {
         Knopf { gleis, id, spurweite }
     }
 }
@@ -65,7 +65,7 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
         Nachricht: 'static,
-        GleisId2<T>: KnopfNachricht<Nachricht>,
+        GleisId<T>: KnopfNachricht<Nachricht>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
@@ -88,7 +88,7 @@ pub struct Zustand {
 impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
 where
     T: Zeichnen<()>,
-    GleisId2<T>: KnopfNachricht<Nachricht>,
+    GleisId<T>: KnopfNachricht<Nachricht>,
 {
     type State = Zustand;
 

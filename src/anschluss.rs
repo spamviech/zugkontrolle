@@ -19,7 +19,7 @@ use crate::{
     argumente::I2cSettings,
     gleis::gleise::{
         daten::de_serialisieren::ZugtypDeserialisierenFehler,
-        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2},
+        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
     },
     rppal,
     util::eingeschränkt::kleiner_8,
@@ -640,7 +640,7 @@ pub enum Fehler {
     /// Ein Gleis mit unbekannter [DefinitionId].
     UnbekannteDefinition {
         /// Die Id ohne zugehörigen Eintrag im [Zugtyp].
-        id: AnyDefinitionId2,
+        id: AnyDefinitionId,
     },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
