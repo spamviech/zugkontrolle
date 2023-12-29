@@ -117,10 +117,9 @@ impl GleiseDatenSerialisiert {
         self,
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,
         definition_maps: &mut DefinitionMaps,
+        fehler: &mut Vec<KeineIdVerfügbar>,
         streckenabschnitt: &Option<streckenabschnitt::Name>,
-    ) -> (v4::GleiseDatenSerialisiert, Option<NonEmpty<KeineIdVerfügbar>>) {
-        let mut fehler = Vec::new();
-
+    ) -> v4::GleiseDatenSerialisiert {
         macro_rules! erstelle_maps {
             ($($gleis_art: ident - $steuerung: ident : $typ: ident),* $(,)?) => {{
                 let GleiseDatenSerialisiert { $($gleis_art),* } = self;
@@ -169,7 +168,7 @@ impl GleiseDatenSerialisiert {
             }};
         }
 
-        let v4 = erstelle_maps!(
+        erstelle_maps!(
             geraden - kontakt : Gerade,
             kurven - kontakt : Kurve,
             weichen - steuerung : Weiche,
@@ -177,9 +176,7 @@ impl GleiseDatenSerialisiert {
             kurven_weichen - steuerung : KurvenWeiche,
             s_kurven_weichen - steuerung : SKurvenWeiche,
             kreuzungen - steuerung : Kreuzung,
-        );
-
-        (v4, NonEmpty::from_vec(fehler))
+        )
     }
 }
 
@@ -209,8 +206,8 @@ pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
     pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
-impl<L: Leiter, S> From<ZustandSerialisiert<L, S>> for v4::ZustandSerialisiert<L, S> {
-    fn from(value: ZustandSerialisiert<L, S>) -> Self {
+impl<L: Leiter, S> ZustandSerialisiert<L, S> {
+    pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZustandSerialisiert<L, S> {
         todo!()
     }
 }

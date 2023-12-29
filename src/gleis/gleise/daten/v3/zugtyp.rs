@@ -2,7 +2,6 @@
 
 use std::{collections::HashMap, fmt::Debug, time::Duration};
 
-use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -68,9 +67,7 @@ pub struct ZugtypSerialisiert<L: Leiter> {
 }
 
 impl<L: Leiter> ZugtypSerialisiert<L> {
-    fn v4(self) -> (v4::ZugtypSerialisiert2<L>, Option<NonEmpty<KeineIdVerfügbar>>) {
-        let mut fehler = Vec::new();
-
+    pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZugtypSerialisiert2<L> {
         macro_rules! erstelle_maps {
             ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
                 let ZugtypSerialisiert {
@@ -111,7 +108,7 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
             }};
         }
 
-        let zugtyp = erstelle_maps!(
+        erstelle_maps!(
             geraden : GeradeUnit,
             kurven : KurveUnit,
             weichen : WeicheUnit,
@@ -119,8 +116,6 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
             kurven_weichen : KurvenWeicheUnit,
             s_kurven_weichen : SKurvenWeicheUnit,
             kreuzungen : KreuzungUnit,
-        );
-
-        (zugtyp, NonEmpty::from_vec(fehler))
+        )
     }
 }

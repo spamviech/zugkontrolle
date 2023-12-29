@@ -16,10 +16,7 @@ use bincode::config::{
 };
 use nonempty::NonEmpty;
 use once_cell::sync::Lazy;
-use rstar::{
-    primitives::{GeomWithData, Rectangle},
-    RTree,
-};
+use rstar::primitives::{GeomWithData, Rectangle};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -27,46 +24,36 @@ use crate::{
         self,
         de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
         pin::input,
-        OutputSerialisiert,
     },
     gleis::{
-        gerade::{Gerade, GeradeSerialisiert},
+        gerade::Gerade,
         gleise::{
             self,
             daten::{
                 v2::{self, BekannterZugtyp},
-                v3::{self, kreuzung, Gleis},
+                v3::{self},
                 v4::{
-                    GeschwindigkeitMapSerialisiert, GleisSerialisiert, GleiseDatenSerialisiert,
-                    StreckenabschnittMapSerialisiert, ZugtypSerialisiert2, ZustandSerialisiert,
+                    GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert2,
+                    ZustandSerialisiert,
                 },
-                GeschwindigkeitMap2, Gleis2, GleisMap2, GleiseDaten2, RStern2, SelectAll,
-                StreckenabschnittMap2, Zustand2,
+                GleisMap2, GleiseDaten2, RStern2, Zustand2,
             },
             id::{
                 self, eindeutig::KeineIdVerfügbar, AnyDefinitionId2, AnyGleisDefinitionId2,
                 DefinitionId2, GleisId2,
             },
-            nachricht::GleisSteuerung,
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
         },
-        kreuzung::{Kreuzung, KreuzungSerialisiert},
-        kurve::{Kurve, KurveSerialisiert},
+        kreuzung::Kreuzung,
+        kurve::Kurve,
         weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheSerialisiert},
-            gerade::{Weiche, WeicheSerialisiert},
-            kurve::{KurvenWeiche, KurvenWeicheSerialisiert},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheSerialisiert},
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
     steuerung::{
-        geschwindigkeit::{
-            self, BekannterLeiter, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
-        },
-        kontakt::{Kontakt, KontaktSerialisiert},
-        plan::{self, PlanSerialisiert, SteuerungMaps, UnbekannteAnschlüsse},
-        streckenabschnitt::{self, Streckenabschnitt, StreckenabschnittSerialisiert},
+        geschwindigkeit::{BekannterLeiter, Leiter},
+        plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
     },
     typen::{canvas::Position, mm::Spurweite, vektor::Vektor, Zeichnen},
     zugtyp::{DefinitionMap2, Zugtyp2},
@@ -440,7 +427,10 @@ impl<L: BekannterLeiter> Zugtyp2<L> {
 /// Der Leiter stimmt nicht mit dem Namen überein.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum ZugtypDeserialisierenFehler {
+    /// Der Leiter des Zugtyps stimmt nicht mit dem Kommandozeilen-Argument überein.
     FalscherLeiter(String),
+    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
@@ -767,17 +757,18 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let _ =
             file.read_to_end(&mut content).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
+        let mut id_fehler = Vec::new();
         let zustand_serialisiert: ZustandSerialisiert<L, S> = BINCODE_OPTIONS
             .deserialize(slice)
             .or_else(|aktuell| {
                 match BINCODE_OPTIONS.deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
-                    Ok(v3) => Ok(ZustandSerialisiert::from(v3)),
+                    Ok(v3) => Ok(v3.v4(&mut id_fehler)),
                     Err(v3) => {
                         match BINCODE_OPTIONS
                             .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
                         {
                             Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
-                                Ok(v3) => Ok(ZustandSerialisiert::from(v3)),
+                                Ok(v3) => Ok(v3.v4(&mut id_fehler)),
                                 Err(fehler) => Err(LadenFehler::from(fehler)),
                             },
                             Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
@@ -788,11 +779,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             .map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
 
         // reserviere Anschlüsse
-        let (zustand, fehler) = zustand_serialisiert
+        let (zustand, reservieren_fehler) = zustand_serialisiert
             .reserviere(lager, anschlüsse, &self.sender)
             .map_err(|fehler| NonEmpty::singleton(LadenFehler::from(fehler)))?;
         self.zustand2 = zustand;
-        if let Some(non_empty) = NonEmpty::from_vec(fehler) {
+        if let Some(non_empty) = NonEmpty::collect(
+            id_fehler.into_iter().map(LadenFehler::from).chain(reservieren_fehler),
+        ) {
             Err(non_empty)
         } else {
             Ok(())
