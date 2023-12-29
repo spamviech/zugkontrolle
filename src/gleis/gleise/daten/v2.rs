@@ -20,7 +20,7 @@ use crate::{
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
     util::{eingeschränkt::kleiner_8, void::Void},
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
 /// Beschreibung eines [anschluss::pcf85747::Pcf8574].
@@ -507,7 +507,7 @@ impl BekannterZugtyp for Mittelleiter {
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Märklin" {
-            Some(Zugtyp2::märklin().serialisiere().v3())
+            Some(Zugtyp::märklin().serialisiere().v3())
         } else {
             None
         }
@@ -570,7 +570,7 @@ impl BekannterZugtyp for Zweileiter {
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Lego" {
-            Some(Zugtyp2::lego().serialisiere().v3())
+            Some(Zugtyp::lego().serialisiere().v3())
         } else {
             None
         }

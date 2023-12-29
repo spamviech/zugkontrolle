@@ -165,7 +165,7 @@ impl NächsteIds {
 impl GleiseDatenSerialisiert {
     fn v4<L: Leiter>(
         self,
-        zugtyp: &mut v4::ZugtypSerialisiert2<L>,
+        zugtyp: &mut v4::ZugtypSerialisiert<L>,
         definition_maps: &mut DefinitionMaps,
         nächste_ids: &mut NächsteIds,
         fehler: &mut Vec<KeineIdVerfügbar>,

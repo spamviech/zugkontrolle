@@ -10,7 +10,7 @@ use crate::{
         },
         id::{AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2},
         steuerung::SomeAktualisierenSender,
-        Gehalten2, Gleise, ModusDaten,
+        Gehalten, Gleise, ModusDaten,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
     typen::{canvas::Position, vektor::Vektor},
@@ -25,7 +25,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
     ) -> Result<AnyId2, HinzufügenFehler2> {
-        self.zustand2.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
+        self.zustand.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
@@ -48,7 +48,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             streckenabschnitt,
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
+        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
             let gleis_steuerung = match (&gleis_id, definition_steuerung) {
                 (AnyId2::Gerade(id), AnyDefinitionIdSteuerung2::Gerade(_definition, steuerung)) => {
                     AnyIdSteuerung2::Gerade(id.clone(), steuerung)
@@ -77,7 +77,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 ) => AnyIdSteuerung2::Kreuzung(id.clone(), steuerung),
                 wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
             };
-            *gehalten2 = Some(Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt: true });
+            *gehalten2 = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
         }
         Ok(gleis_id)
     }
@@ -87,7 +87,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         gleis_id: impl Into<AnyId2>,
     ) -> Result<AnyGleis2, EntfernenFehler2> {
-        self.zustand2.entfernen(gleis_id.into())
+        self.zustand.entfernen(gleis_id.into())
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
@@ -95,11 +95,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         canvas_pos: Vektor,
     ) -> Result<(), BewegenFehler2> {
-        if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
-            if let Some(Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
+        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
+            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
                 let punkt = canvas_pos - halte_position;
                 let id = gleis_steuerung.id();
-                self.zustand2.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
+                self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
                 *bewegt = true;
                 self.erzwinge_neuzeichnen();
             }
@@ -117,7 +117,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         gleis_id: impl Into<AnyId2>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
-        self.zustand2.setze_streckenabschnitt(gleis_id, streckenabschnitt)
+        self.zustand.setze_streckenabschnitt(gleis_id, streckenabschnitt)
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
@@ -129,7 +129,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
-        self.zustand2.steuerung_aktualisieren(
+        self.zustand.steuerung_aktualisieren(
             lager,
             gleis_steuerung,
             SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from)),

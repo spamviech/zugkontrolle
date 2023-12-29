@@ -58,7 +58,7 @@ pub(crate) enum GleisSteuerung {
 }
 
 #[derive(Debug)]
-pub(in crate::gleis::gleise) struct Gehalten2 {
+pub(in crate::gleis::gleise) struct Gehalten {
     pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung2,
     pub(in crate::gleis::gleise) halte_position: Vektor,
     pub(in crate::gleis::gleise) winkel: Winkel,
@@ -99,7 +99,7 @@ pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Canvas-Größe.
     LetzteCanvasGröße(Vektor),
     /// Aktualisiere das aktuell gehaltene Gleis.
-    GehaltenAktualisieren(Option<Gehalten2>),
+    GehaltenAktualisieren(Option<Gehalten>),
     /// Bewege ein Gleis an die neue Position.
     GehaltenBewegen(Vektor),
     /// Entferne ein Gleis.

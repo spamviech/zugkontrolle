@@ -20,10 +20,10 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{BewegenFehler2, EntfernenFehler2, Zustand2},
+            daten::{BewegenFehler2, EntfernenFehler2, Zustand},
             id::{AnyIdSteuerung2, GleisIdRef},
             nachricht::{
-                Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht,
+                Gehalten, GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht,
                 ZustandAktualisieren, ZustandAktualisierenEnum,
             },
             steuerung::{MitSteuerung, Steuerung},
@@ -129,7 +129,7 @@ fn aktion_bauen(
         nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(None)))
     } else {
         nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
-            Gehalten2 { gleis_steuerung, halte_position, winkel, bewegt: false },
+            Gehalten { gleis_steuerung, halte_position, winkel, bewegt: false },
         ))));
     }
 }
@@ -225,7 +225,7 @@ fn aktion_gleis_an_position<'t, L, AktualisierenNachricht>(
     bounds: Rectangle,
     cursor: &'t Cursor,
     modus: &'t ModusDaten,
-    zustand2: &Zustand2<L>,
+    zustand2: &Zustand<L>,
     pivot: &'t Position,
     skalieren: &'t Skalar,
     sender: &Sender<AktualisierenNachricht>,
@@ -240,7 +240,7 @@ where
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position2 = zustand2.gleis_an_position2(canvas_pos);
             match modus {
-                ModusDaten::Bauen { gehalten2, letzter_klick } => {
+                ModusDaten::Bauen { gehalten: gehalten2, letzter_klick } => {
                     let now = Instant::now();
                     nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
                     if gehalten2.is_none() {
@@ -303,7 +303,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             }))];
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let Gleise { zustand2, pivot, skalieren, modus, .. } = self;
+                let Gleise { zustand: zustand2, pivot, skalieren, modus, .. } = self;
                 let (status, nachrichten) = aktion_gleis_an_position(
                     bounds,
                     &cursor,
@@ -317,8 +317,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 messages.extend(nachrichten);
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten2, .. } = &self.modus {
-                    if let Some(Gehalten2 { gleis_steuerung, bewegt, .. }) = gehalten2 {
+                if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &self.modus {
+                    if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten2 {
                         let gleis_id = gleis_steuerung.id();
                         if *bewegt {
                             if !cursor.is_over(bounds) {
@@ -391,7 +391,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GehaltenAktualisieren(wert) => {
-                if let ModusDaten::Bauen { gehalten2, .. } = &mut self.modus {
+                if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
                     *gehalten2 = wert;
                 }
                 Ok(())

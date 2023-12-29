@@ -24,10 +24,10 @@ use crate::{
         winkel::Winkel,
     },
     util::eingeschränkt::NichtNegativ,
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
-static LEGO: Lazy<Zugtyp2<Zweileiter>> = Lazy::new(|| {
+static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
     let geraden = [gerade()];
     let kurven = [kurve()];
     let weichen = [];
@@ -44,7 +44,7 @@ static LEGO: Lazy<Zugtyp2<Zweileiter>> = Lazy::new(|| {
         s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
         kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
     );
-    Zugtyp2 {
+    Zugtyp {
         name: "Lego".to_string(),
         leiter: PhantomData,
         spurweite: Spurweite::neu(38.),
@@ -63,9 +63,9 @@ static LEGO: Lazy<Zugtyp2<Zweileiter>> = Lazy::new(|| {
     }
 });
 
-impl Zugtyp2<Zweileiter> {
+impl Zugtyp<Zweileiter> {
     /// Lego
-    pub fn lego() -> &'static Zugtyp2<Zweileiter> {
+    pub fn lego() -> &'static Zugtyp<Zweileiter> {
         &LEGO
     }
 }

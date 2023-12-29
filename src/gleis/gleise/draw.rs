@@ -13,7 +13,7 @@ use crate::{
     gleis::gleise::{
         self,
         id::AnyId2,
-        nachricht::{Gehalten2, Nachricht},
+        nachricht::{Gehalten, Nachricht},
         Gleise, ModusDaten,
     },
     steuerung::geschwindigkeit::Leiter,
@@ -60,10 +60,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 let gehalten_id: Option<AnyId2>;
                 let modus_bauen: bool;
                 match modus {
-                    ModusDaten::Bauen { gehalten2, .. } => {
-                        gehalten_id = gehalten2
+                    ModusDaten::Bauen { gehalten, .. } => {
+                        gehalten_id = gehalten
                             .as_ref()
-                            .map(|Gehalten2 { gleis_steuerung, .. }| gleis_steuerung.id());
+                            .map(|Gehalten { gleis_steuerung, .. }| gleis_steuerung.id());
                         modus_bauen = true;
                     },
                     ModusDaten::Fahren => {
@@ -80,7 +80,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     })
                 };
 
-                self.zustand2.darstellen_aller_gleise(
+                self.zustand.darstellen_aller_gleise(
                     frame,
                     transparent_hintergrund,
                     ist_gehalten,

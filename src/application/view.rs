@@ -41,7 +41,7 @@ use crate::{
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
     typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen},
-    zugtyp::DefinitionMap2,
+    zugtyp::DefinitionMap,
 };
 
 trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
@@ -271,7 +271,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 spurweite: Spurweite,
                 max_breite: Option<f32>,
                 scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Thema>>,
-                buttons: &'t DefinitionMap2<T>,
+                buttons: &'t DefinitionMap<T>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
                 T: MitSteuerung,

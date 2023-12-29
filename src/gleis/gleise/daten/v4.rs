@@ -44,7 +44,7 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSe
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
-    pub(crate) zugtyp: ZugtypSerialisiert2<L>,
+    pub(crate) zugtyp: ZugtypSerialisiert<L>,
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
     pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
     pub(crate) gleise: GleiseDatenSerialisiert,
@@ -110,7 +110,7 @@ impl GleiseDatenSerialisiert {
     serialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize",
     deserialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>",
 ))]
-pub struct ZugtypSerialisiert2<L: Leiter> {
+pub struct ZugtypSerialisiert<L: Leiter> {
     /// Der Name des Zugtyps.
     pub name: String,
     /// Der [Name der Leiter-Art](BekannterLeiter::NAME) des Zugtyps.

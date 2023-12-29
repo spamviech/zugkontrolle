@@ -67,7 +67,7 @@ pub struct ZugtypSerialisiert<L: Leiter> {
 }
 
 impl<L: Leiter> ZugtypSerialisiert<L> {
-    pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZugtypSerialisiert2<L> {
+    pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZugtypSerialisiert<L> {
         macro_rules! erstelle_maps {
             ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
                 let ZugtypSerialisiert {
@@ -94,7 +94,7 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
                         }
                     );
                 )*
-                v4::ZugtypSerialisiert2 {
+                v4::ZugtypSerialisiert {
                     name,
                     leiter,
                     spurweite,
@@ -120,11 +120,11 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
     }
 }
 
-impl<L: Leiter> v4::ZugtypSerialisiert2<L> {
+impl<L: Leiter> v4::ZugtypSerialisiert<L> {
     pub(crate) fn v3(self) -> ZugtypSerialisiert<L> {
         macro_rules! erstelle_maps {
             ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
-                let v4::ZugtypSerialisiert2 {
+                let v4::ZugtypSerialisiert {
                     name,
                     leiter,
                     spurweite,

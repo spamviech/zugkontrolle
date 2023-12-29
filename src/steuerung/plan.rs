@@ -27,7 +27,7 @@ use crate::{
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
     util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
 /// Name eines [Plans](Plan).
@@ -67,9 +67,9 @@ pub struct Einstellungen<L: Leiter> {
     pub schalten_zeit: Duration,
 }
 
-impl<L: Leiter> From<Zugtyp2<L>> for Einstellungen<L> {
-    fn from(zugtyp: Zugtyp2<L>) -> Self {
-        let Zugtyp2 {
+impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
+    fn from(zugtyp: Zugtyp<L>) -> Self {
+        let Zugtyp {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
@@ -87,9 +87,9 @@ impl<L: Leiter> From<Zugtyp2<L>> for Einstellungen<L> {
     }
 }
 
-impl<L: Leiter> From<&Zugtyp2<L>> for Einstellungen<L> {
-    fn from(zugtyp: &Zugtyp2<L>) -> Self {
-        let Zugtyp2 {
+impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
+    fn from(zugtyp: &Zugtyp<L>) -> Self {
+        let Zugtyp {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,

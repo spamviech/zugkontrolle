@@ -61,7 +61,7 @@ use crate::{
         Transparenz, Zeichnen,
     },
     util::nachschlagen::Nachschlagen,
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
 use self::v4::GleisSerialisiert;
@@ -78,7 +78,7 @@ pub mod v4;
 #[zugkontrolle_debug(<T as MitSteuerung>::Steuerung: Debug)]
 #[zugkontrolle_clone(<T as MitSteuerung>::Steuerung: Clone)]
 #[zugkontrolle_clone(<T as MitSteuerung>::SelfUnit: Clone)]
-pub struct Gleis2<T: MitSteuerung>
+pub struct Gleis<T: MitSteuerung>
 where
     <T as MitSteuerung>::SelfUnit: 'static,
 {
@@ -96,25 +96,25 @@ erzeuge_any_enum! {
     (pub) AnyGleis2,
     "Ein beliebiges Gleis.",
     [Debug, Clone],
-    (Gleis2<[]>),
+    (Gleis<[]>),
 }
 
 erzeuge_any_enum! {
     (pub(crate)) AnyGleisRef2<'t>,
     "Ein beliebiges Gleis.",
     [Debug, Clone],
-    (&'t Gleis2<[]>),
+    (&'t Gleis<[]>),
 }
 
 erzeuge_any_enum! {
     (pub(crate)) AnyGleisMut2<'t>,
     "Ein beliebiges Gleis.",
     [Debug],
-    (&'t mut Gleis2<[]>),
+    (&'t mut Gleis<[]>),
 }
 
 #[allow(single_use_lifetimes)]
-impl<T> Serialisiere<GleisSerialisiert<T>> for Gleis2<T>
+impl<T> Serialisiere<GleisSerialisiert<T>> for Gleis<T>
 where
     T: MitSteuerung,
     <T as MitSteuerung>::Steuerung: Serialisiere<<T as MitSteuerung>::Serialisiert>,
@@ -133,7 +133,7 @@ where
     }
 }
 
-impl<T> Reserviere<Gleis2<T>> for GleisSerialisiert<T>
+impl<T> Reserviere<Gleis<T>> for GleisSerialisiert<T>
 where
     T: 'static + MitSteuerung,
     <T as MitSteuerung>::Serialisiert: Reserviere<<T as MitSteuerung>::Steuerung, RefArg = ()>,
@@ -152,7 +152,7 @@ where
         move_arg_steuerung: Self::MoveArg,
         bekannte_definition_ids: &Self::RefArg,
         mut_ref_arg_steuerung: &mut Self::MutRefArg,
-    ) -> Ergebnis<Gleis2<T>> {
+    ) -> Ergebnis<Gleis<T>> {
         let GleisSerialisiert { definition, position, steuerung, streckenabschnitt } = self;
         let Some(id) = bekannte_definition_ids.get(&definition) else {
             return Ergebnis::Fehler {
@@ -166,7 +166,7 @@ where
         };
         steuerung
             .reserviere(lager, anschlüsse, move_arg_steuerung, &(), mut_ref_arg_steuerung)
-            .konvertiere(|steuerung| Gleis2 {
+            .konvertiere(|steuerung| Gleis {
                 definition: id.clone(),
                 position,
                 steuerung,
@@ -186,11 +186,11 @@ type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkei
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub(in crate::gleis::gleise) struct Zustand2<L: Leiter> {
-    zugtyp: Zugtyp2<L>,
+pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
+    zugtyp: Zugtyp<L>,
     geschwindigkeiten: GeschwindigkeitMap2<L>,
     streckenabschnitte: StreckenabschnittMap2,
-    gleise: GleiseDaten2,
+    gleise: GleiseDaten,
     pläne: HashMap<plan::Name, Plan<L>>,
 }
 
@@ -202,19 +202,19 @@ pub struct GeschwindigkeitEntferntFehler2(pub geschwindigkeit::Name);
 #[derive(Debug)]
 pub struct StreckenabschnittEntferntFehler2(pub streckenabschnitt::Name);
 
-impl<L: Leiter> Zustand2<L> {
+impl<L: Leiter> Zustand<L> {
     /// Erstelle einen neuen [Zustand].
-    pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp2<L>) -> Self {
-        Zustand2 {
+    pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp<L>) -> Self {
+        Zustand {
             zugtyp,
             geschwindigkeiten: GeschwindigkeitMap2::new(),
             streckenabschnitte: StreckenabschnittMap2::new(),
-            gleise: GleiseDaten2::neu(),
+            gleise: GleiseDaten::neu(),
             pläne: HashMap::new(),
         }
     }
 
-    pub(in crate::gleis::gleise) fn zugtyp(&self) -> &Zugtyp2<L> {
+    pub(in crate::gleis::gleise) fn zugtyp(&self) -> &Zugtyp<L> {
         &self.zugtyp
     }
 
@@ -418,36 +418,36 @@ impl<L: Leiter> Zustand2<L> {
     }
 }
 
-type GleisMap2<T> = HashMap<GleisId2<T>, (Gleis2<T>, Rectangle<Vektor>)>;
+type GleisMap<T> = HashMap<GleisId2<T>, (Gleis<T>, Rectangle<Vektor>)>;
 
-pub(in crate::gleis::gleise) type RStern2 =
+pub(in crate::gleis::gleise) type RStern =
     RTree<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId2, Position)>>;
 
 #[derive(Debug)]
-pub(crate) struct GleiseDaten2 {
-    geraden: GleisMap2<Gerade>,
-    kurven: GleisMap2<Kurve>,
-    weichen: GleisMap2<Weiche>,
-    dreiwege_weichen: GleisMap2<DreiwegeWeiche>,
-    kurven_weichen: GleisMap2<KurvenWeiche>,
-    s_kurven_weichen: GleisMap2<SKurvenWeiche>,
-    kreuzungen: GleisMap2<Kreuzung>,
+pub(crate) struct GleiseDaten {
+    geraden: GleisMap<Gerade>,
+    kurven: GleisMap<Kurve>,
+    weichen: GleisMap<Weiche>,
+    dreiwege_weichen: GleisMap<DreiwegeWeiche>,
+    kurven_weichen: GleisMap<KurvenWeiche>,
+    s_kurven_weichen: GleisMap<SKurvenWeiche>,
+    kreuzungen: GleisMap<Kreuzung>,
     // Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur
-    rstern: RStern2,
+    rstern: RStern,
 }
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Erstelle eine leere [GleiseDaten]-Struktur.
     pub(in crate::gleis::gleise) fn neu() -> Self {
-        GleiseDaten2 {
-            geraden: GleisMap2::new(),
-            kurven: GleisMap2::new(),
-            weichen: GleisMap2::new(),
-            dreiwege_weichen: GleisMap2::new(),
-            kurven_weichen: GleisMap2::new(),
-            s_kurven_weichen: GleisMap2::new(),
-            kreuzungen: GleisMap2::new(),
-            rstern: RStern2::new(),
+        GleiseDaten {
+            geraden: GleisMap::new(),
+            kurven: GleisMap::new(),
+            weichen: GleisMap::new(),
+            dreiwege_weichen: GleisMap::new(),
+            kurven_weichen: GleisMap::new(),
+            s_kurven_weichen: GleisMap::new(),
+            kreuzungen: GleisMap::new(),
+            rstern: RStern::new(),
         }
     }
 }
@@ -458,8 +458,8 @@ const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 /// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
 /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
 fn überlappende_verbindungen<'t, L: Leiter>(
-    rstern: &'t RStern2,
-    zugtyp: &'t Zugtyp2<L>,
+    rstern: &'t RStern,
+    zugtyp: &'t Zugtyp<L>,
     verbindung: &'t Verbindung,
     eigene_id: Option<&'t AnyId2>,
     ist_gehalten: impl 't + Fn(AnyId2) -> bool,
@@ -522,8 +522,8 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 }
 
 fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
-    rstern: &RStern2,
-    zugtyp: &Zugtyp2<L>,
+    rstern: &RStern,
+    zugtyp: &Zugtyp<L>,
     definition: &U,
     id: Option<AnyId2>,
     z: &Z,
@@ -560,11 +560,11 @@ pub enum HinzufügenFehler2 {
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Füge ein neues [Gleis] hinzu.
     fn hinzufügen<L: Leiter>(
         &mut self,
-        zugtyp: &Zugtyp2<L>,
+        zugtyp: &Zugtyp<L>,
         definition_steuerung: AnyDefinitionIdSteuerung2,
         mut position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -606,7 +606,7 @@ impl GleiseDaten2 {
                 let bisher = $gleise.insert(
                     id.clone(),
                     (
-                        Gleis2 {
+                        Gleis {
                             definition: $definition_id,
                             steuerung: $steuerung,
                             position,
@@ -639,11 +639,11 @@ pub enum BewegenFehler2 {
     GleisNichtGefunden(AnyId2),
 }
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Bewege ein [Gleis] an die `neue_position`.
     fn bewegen<L: Leiter>(
         &mut self,
-        zugtyp: &Zugtyp2<L>,
+        zugtyp: &Zugtyp<L>,
         gleis_id: AnyId2,
         mut neue_position: Position,
         einrasten: bool,
@@ -719,7 +719,7 @@ impl GleiseDaten2 {
 #[derive(Debug, Clone)]
 pub struct EntfernenFehler2(AnyId2);
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Entferne ein [Gleis].
     fn entfernen(&mut self, gleis_id: AnyId2) -> Result<AnyGleis2, EntfernenFehler2> {
         macro_rules! entfernen_aux {
@@ -752,7 +752,7 @@ impl GleiseDaten2 {
 #[derive(Debug, Clone)]
 pub struct SetzteStreckenabschnittFehler2(AnyId2, Option<streckenabschnitt::Name>);
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [GleisId].
     ///
     /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
@@ -823,7 +823,7 @@ pub enum SteuerungAktualisierenFehler2 {
     },
 }
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Aktualisiere die Steuerung für ein [Gleis].
     fn steuerung_aktualisieren(
         &mut self,
@@ -833,7 +833,7 @@ impl GleiseDaten2 {
     ) -> Result<(), SteuerungAktualisierenFehler2> {
         macro_rules! steuerung_aktualisieren_aux {
             ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
-                let (Gleis2 { steuerung, .. }, _rectangle) =
+                let (Gleis { steuerung, .. }, _rectangle) =
                     $gleise.get_mut(&$gleis_id).ok_or(
                         SteuerungAktualisierenFehler2::GleisNichtGefunden(AnyId2::from($gleis_id)),
                     )?;
@@ -980,8 +980,8 @@ pub(in crate::gleis::gleise) struct GehaltenVerbindung {
 }
 
 fn ist_gehalten_und_andere_verbindung<L: Leiter>(
-    rstern: &RStern2,
-    zugtyp: &Zugtyp2<L>,
+    rstern: &RStern,
+    zugtyp: &Zugtyp<L>,
     ist_gehalten: impl Fn(AnyId2) -> bool,
     gleis_id: AnyId2,
     verbindung: Verbindung,
@@ -999,8 +999,8 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
 /// Zeichne die Verbindungen eines Gleises.
 fn zeichne_verbindungen<T, L: Leiter>(
     frame: &mut Frame<'_>,
-    rstern: &RStern2,
-    zugtyp: &Zugtyp2<L>,
+    rstern: &RStern,
+    zugtyp: &Zugtyp<L>,
     definition: &<T as MitSteuerung>::SelfUnit,
     steuerung: &<T as MitSteuerung>::Steuerung,
     gleis_id: &GleisId2<T>,
@@ -1084,12 +1084,12 @@ fn schreibe_gleis_beschreibung_name<T>(
     }
 }
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
     pub(in crate::gleis::gleise) fn darstellen_aller_gleise<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp2<L>,
+        zugtyp: &Zugtyp<L>,
         streckenabschnitte: &StreckenabschnittMap2,
         transparent_hintergrund: impl Fn(AnyId2, Fließend) -> Transparenz,
         ist_gehalten: impl Fn(AnyId2) -> bool,
@@ -1259,11 +1259,11 @@ impl GleiseDaten2 {
 // wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
-impl GleiseDaten2 {
+impl GleiseDaten {
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
     fn gleis_an_position2<L: Leiter>(
         &self,
-        zugtyp: &Zugtyp2<L>,
+        zugtyp: &Zugtyp<L>,
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung2, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {

@@ -22,13 +22,13 @@ pub mod lego;
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 
-pub(crate) type DefinitionMap2<T> = HashMap<DefinitionId2<T>, <T as MitSteuerung>::SelfUnit>;
+pub(crate) type DefinitionMap<T> = HashMap<DefinitionId2<T>, <T as MitSteuerung>::SelfUnit>;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-pub struct Zugtyp2<L: Leiter> {
+pub struct Zugtyp<L: Leiter> {
     /// Der Name des Zugtyps.
     pub name: String,
     /// Die Leiter-Art des Zugtyps.
@@ -36,19 +36,19 @@ pub struct Zugtyp2<L: Leiter> {
     /// Spurweite
     pub spurweite: Spurweite,
     /// Alle unterstützten [Geraden](crate::gleis::gerade::Gerade).
-    pub geraden: DefinitionMap2<Gerade>,
+    pub geraden: DefinitionMap<Gerade>,
     /// Alle unterstützten [Kurven](crate::gleis::kurve::Kurve).
-    pub kurven: DefinitionMap2<Kurve>,
+    pub kurven: DefinitionMap<Kurve>,
     /// Alle unterstützten [Weichen](crate::gleis::weiche::gerade::Weiche).
-    pub weichen: DefinitionMap2<Weiche>,
+    pub weichen: DefinitionMap<Weiche>,
     /// Alle unterstützten [Dreiwege-Weichen](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
-    pub dreiwege_weichen: DefinitionMap2<DreiwegeWeiche>,
+    pub dreiwege_weichen: DefinitionMap<DreiwegeWeiche>,
     /// Alle unterstützten [Kurven-Weichen](crate::gleis::weiche::kurve::KurvenWeiche).
-    pub kurven_weichen: DefinitionMap2<KurvenWeiche>,
+    pub kurven_weichen: DefinitionMap<KurvenWeiche>,
     /// Alle unterstützten [S-Kurven-Weichen](crate::gleis::weiche::s_kurve::SKurvenWeiche).
-    pub s_kurven_weichen: DefinitionMap2<SKurvenWeiche>,
+    pub s_kurven_weichen: DefinitionMap<SKurvenWeiche>,
     /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
-    pub kreuzungen: DefinitionMap2<Kreuzung>,
+    pub kreuzungen: DefinitionMap<Kreuzung>,
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,
     /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.

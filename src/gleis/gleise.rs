@@ -19,9 +19,9 @@ use crate::{
     gleis::gleise::{
         daten::{
             de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler2,
-            StreckenabschnittEntferntFehler2, Zustand2,
+            StreckenabschnittEntferntFehler2, Zustand,
         },
-        nachricht::{Gehalten2, Nachricht},
+        nachricht::{Gehalten, Nachricht},
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -34,7 +34,7 @@ use crate::{
         vektor::Vektor,
         winkel::Winkel,
     },
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
 pub mod daten;
@@ -51,7 +51,7 @@ pub mod update;
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten2: Option<Gehalten2>, letzter_klick: Instant },
+    Bauen { gehalten: Option<Gehalten>, letzter_klick: Instant },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
@@ -59,7 +59,7 @@ enum ModusDaten {
 impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
-            Modus::Bauen => ModusDaten::Bauen { gehalten2: None, letzter_klick: Instant::now() },
+            Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: Instant::now() },
             Modus::Fahren => ModusDaten::Fahren,
         }
     }
@@ -81,7 +81,7 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
     canvas: Cache,
     pivot: Position,
     skalieren: Skalar,
-    zustand2: Zustand2<L>,
+    zustand: Zustand<L>,
     letzte_maus_position: Vektor,
     letzte_canvas_größe: Vektor,
     modus: ModusDaten,
@@ -91,7 +91,7 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Erstelle ein neues, leeres [Gleise]-struct.
     pub fn neu(
-        zugtyp2: Zugtyp2<L>,
+        zugtyp2: Zugtyp<L>,
         modus: Modus,
         pivot: Position,
         skalieren: Skalar,
@@ -101,7 +101,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             canvas: Cache::neu(),
             pivot,
             skalieren,
-            zustand2: Zustand2::neu(zugtyp2),
+            zustand: Zustand::neu(zugtyp2),
             letzte_maus_position: Vektor::null_vektor(),
             letzte_canvas_größe: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
@@ -181,7 +181,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         streckenabschnitt: Streckenabschnitt,
         geschwindigkeit: Option<geschwindigkeit::Name>,
     ) -> Option<(Streckenabschnitt, Option<geschwindigkeit::Name>)> {
-        self.zustand2.streckenabschnitt_hinzufügen(name, streckenabschnitt, geschwindigkeit)
+        self.zustand.streckenabschnitt_hinzufügen(name, streckenabschnitt, geschwindigkeit)
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
@@ -189,7 +189,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &'s self,
         streckenabschnitt: &streckenabschnitt::Name,
     ) -> Result<&'s Streckenabschnitt, StreckenabschnittEntferntFehler2> {
-        self.zustand2
+        self.zustand
             .streckenabschnitt(streckenabschnitt)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
@@ -199,7 +199,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &'s mut self,
         streckenabschnitt: &streckenabschnitt::Name,
     ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittEntferntFehler2> {
-        self.zustand2
+        self.zustand
             .streckenabschnitt_mut(streckenabschnitt)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
@@ -211,7 +211,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         name: &streckenabschnitt::Name,
     ) -> Result<Streckenabschnitt, StreckenabschnittEntferntFehler2> {
-        self.zustand2
+        self.zustand
             .streckenabschnitt_entfernen(name)
             .map(|(streckenabschnitt, _geschwindigkeit)| streckenabschnitt)
     }
@@ -224,7 +224,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         C: FromIterator<T>,
     {
-        self.zustand2
+        self.zustand
             .streckenabschnitte()
             .iter()
             .map(|(name, (streckenabschnitt, _geschwindigkeit))| f(name, streckenabschnitt))
@@ -239,7 +239,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         name: geschwindigkeit::Name,
         geschwindigkeit: Geschwindigkeit<L>,
     ) -> Option<Geschwindigkeit<L>> {
-        self.zustand2.geschwindigkeit_hinzufügen(name, geschwindigkeit)
+        self.zustand.geschwindigkeit_hinzufügen(name, geschwindigkeit)
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
@@ -247,7 +247,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &'s self,
         name: &geschwindigkeit::Name,
     ) -> Result<&'s Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
-        self.zustand2.geschwindigkeit(name)
+        self.zustand.geschwindigkeit(name)
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
@@ -255,7 +255,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &'s mut self,
         name: &geschwindigkeit::Name,
     ) -> Result<&'s mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
-        self.zustand2.geschwindigkeit_mut(name)
+        self.zustand.geschwindigkeit_mut(name)
     }
 
     /// Entferne eine Geschwindigkeit.
@@ -265,7 +265,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         name: &geschwindigkeit::Name,
     ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
-        self.zustand2.geschwindigkeit_entfernen(name)
+        self.zustand.geschwindigkeit_entfernen(name)
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
@@ -273,7 +273,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &self,
         mut f: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
     ) {
-        self.zustand2
+        self.zustand
             .geschwindigkeiten()
             .iter()
             .for_each(|(name, geschwindigkeit)| f(name, geschwindigkeit))
@@ -287,7 +287,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         C: FromIterator<T>,
     {
-        self.zustand2
+        self.zustand
             .geschwindigkeiten()
             .iter()
             .map(|(name, geschwindigkeit)| f(name, geschwindigkeit))
@@ -295,8 +295,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Verwendeter Zugtyp.
-    pub fn zugtyp2<'t>(&'t self) -> &'t Zugtyp2<L> {
-        self.zustand2.zugtyp()
+    pub fn zugtyp2<'t>(&'t self) -> &'t Zugtyp<L> {
+        self.zustand.zugtyp()
     }
 
     /// Spurweite des verwendeten Zugtyps.
@@ -314,7 +314,7 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
         mut geschwindigkeit: Option<geschwindigkeit::Name>,
     ) -> Result<Option<geschwindigkeit::Name>, StreckenabschnittEntferntFehler2> {
         let (_streckenabschnitt, bisherige_geschwindigkeit) =
-            self.zustand2.streckenabschnitt_mut(name)?;
+            self.zustand.streckenabschnitt_mut(name)?;
         std::mem::swap(bisherige_geschwindigkeit, &mut geschwindigkeit);
         Ok(geschwindigkeit)
     }
@@ -358,7 +358,7 @@ where
         cursor: Cursor,
     ) -> mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { gehalten2: Some(_gehalten), .. } if cursor.is_over(bounds) => {
+            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(bounds) => {
                 mouse::Interaction::Pointer
             },
             _ => mouse::Interaction::default(),

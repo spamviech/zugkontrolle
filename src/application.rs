@@ -36,7 +36,7 @@ use crate::{
         streckenabschnitt::Name as StreckenabschnittName,
     },
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
 pub mod anschluss;
@@ -105,7 +105,7 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
-type Flags<L> = (Argumente, Lager, &'static Zugtyp2<L>, &'static [&'static [u8]]);
+type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 #[inline(always)]
@@ -139,7 +139,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     fn erstelle_settings<L: Leiter>(
         argumente: Argumente,
         lager: Lager,
-        zugtyp: &'static Zugtyp2<L>,
+        zugtyp: &'static Zugtyp<L>,
     ) -> Settings<Flags<L>> {
         Settings {
             window: iced::window::Settings {
@@ -153,10 +153,10 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     }
     match zugtyp {
         ZugtypArgument::Märklin => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp2::märklin()))
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::märklin()))
         },
         ZugtypArgument::Lego => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp2::lego()))
+            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::lego()))
         },
     }?;
 

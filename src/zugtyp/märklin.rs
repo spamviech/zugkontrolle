@@ -24,10 +24,10 @@ use crate::{
         winkel::WinkelGradmaß,
     },
     util::eingeschränkt::{NichtNegativ, NullBisEins},
-    zugtyp::Zugtyp2,
+    zugtyp::Zugtyp,
 };
 
-static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
+static MÄRKLIN: Lazy<Zugtyp<Mittelleiter>> = Lazy::new(|| {
     let geraden = [
         gerade_5106(),
         gerade_5107(),
@@ -69,7 +69,7 @@ static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
         s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
         kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
     );
-    Zugtyp2 {
+    Zugtyp {
         name: "Märklin".to_string(),
         leiter: PhantomData,
         spurweite: Spurweite::neu(16.5),
@@ -88,9 +88,9 @@ static MÄRKLIN: Lazy<Zugtyp2<Mittelleiter>> = Lazy::new(|| {
     }
 });
 
-impl Zugtyp2<Mittelleiter> {
+impl Zugtyp<Mittelleiter> {
     /// Märklin
-    pub fn märklin() -> &'static Zugtyp2<Mittelleiter> {
+    pub fn märklin() -> &'static Zugtyp<Mittelleiter> {
         &MÄRKLIN
     }
 }
