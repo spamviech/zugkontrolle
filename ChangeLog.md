@@ -4,6 +4,12 @@
 
 - füge Lizenz für `fdeflate` hinzu
 - neues Feature "raspi", ersetzt bisherige target-spezifische Logik
+- Kontakte werden auf dem Canvas als Kreise angezeigt
+- Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
+- Zusätzliche "trailing" Bytes werden beim Laden nicht mehr ignoriert. Stattdessen kommt es zu einem Fehler.
+- Neues ID-basiertes Speicherformat.
+  - Weiterhin sehr stark an wirklich verwendete Datenstrukturen angelehnt.
+  - Gleis-Definitionen kommen nur noch ein mal vor.
 - verbessere build-scripts:
   - neue targets: 64-bit raspi, x86_64 linux
   - erkenne automatisch host target-triple
@@ -21,7 +27,7 @@
   - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
   - entferne die meisten `pub use` re-exports
   - entferne lifetime vom MitSteuerung
-  - verschiebe \*Serialisiert-Definitionen für Sammel-Strukturen nach gleis::gleise::de_serialiseren::v4
+  - verschiebe \*Serialisiert-Definitionen für Sammel-Strukturen nach gleis::gleise::de_serialisieren::v4
   - Neue Implementierung für Ids (jetzt zahlen-basiert).
 - aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
@@ -37,12 +43,8 @@
 - Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
 - Schriftgröße von Beschreibungen skaliert nun ebenfalls
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
-- Kontakte werden auf dem Canvas als Kreise angezeigt
-- Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
-- Zusätzliche "trailing" Bytes werden beim Laden nicht mehr ignoriert. Stattdessen kommt es zu einem Fehler.
-- Neues ID-basiertes Speicherformat.
-  - Weiterhin sehr stark an wirklich verwendete Datenstrukturen angelehnt.
-  - Gleis-Definitionen kommen nur noch ein mal vor.
+- Reserviere hat jetzt zusätzlich RefArg und MutRefArg als (veränderliche) Referenz-Argumente für reserviere
+- Anpassen der Fehler-Enums
 
 ### workaround
 
