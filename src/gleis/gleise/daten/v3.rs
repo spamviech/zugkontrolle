@@ -1,11 +1,9 @@
 //! Serialisierte Strukturen von Version 3.X, die mit Version 4.0.0 geändert wurden.
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    fmt::Debug,
-};
+use std::{collections::HashMap, fmt::Debug};
 
 use assoc::vec::{AssocExt, Entry};
+use nonempty::NonEmpty;
 use num_traits::{bounds::LowerBounded, CheckedAdd, One};
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +41,7 @@ use crate::{
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::canvas::Position,
+    util::enumerate_checked::EnumerateCheckedExt,
 };
 
 pub mod gerade;
@@ -52,35 +51,6 @@ pub mod weiche;
 pub mod zugtyp;
 
 type AssocList<K, V> = Vec<(K, V)>;
-
-struct EnumerateChecked<C, I> {
-    next: Option<C>,
-    iterator: I,
-}
-
-trait EnumerateCheckedExt<C, I> {
-    fn enumerate_checked(self) -> EnumerateChecked<C, I>;
-}
-
-impl<C: LowerBounded, I: Iterator> EnumerateCheckedExt<C, I> for I {
-    fn enumerate_checked(self) -> EnumerateChecked<C, I> {
-        EnumerateChecked { next: Some(<C as LowerBounded>::min_value()), iterator: self }
-    }
-}
-
-impl<C, I> Iterator for EnumerateChecked<C, I>
-where
-    C: Clone + CheckedAdd + One,
-    I: Iterator,
-{
-    type Item = (Option<C>, <I as Iterator>::Item);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let count = self.next.clone();
-        self.next = self.next.clone().and_then(|next| next.checked_add(&<C as One>::one()));
-        self.iterator.next().map(|item| (count, item))
-    }
-}
 
 /// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,7 +118,7 @@ impl GleiseDatenSerialisiert {
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,
         definition_maps: &mut DefinitionMaps,
         streckenabschnitt: &Option<streckenabschnitt::Name>,
-    ) -> (v4::GleiseDatenSerialisiert, Vec<KeineIdVerfügbar>) {
+    ) -> (v4::GleiseDatenSerialisiert, Option<NonEmpty<KeineIdVerfügbar>>) {
         let mut fehler = Vec::new();
 
         macro_rules! erstelle_maps {
@@ -209,7 +179,7 @@ impl GleiseDatenSerialisiert {
             kreuzungen - steuerung : Kreuzung,
         );
 
-        (v4, fehler)
+        (v4, NonEmpty::from_vec(fehler))
     }
 }
 
