@@ -215,7 +215,6 @@ where
         if self.initialer_zustand.1 && (self.initialer_zustand.0 != *zustand) {
             self.initialer_zustand.1 = false;
             self.element = (self.erzeuge_element)(zustand);
-            state.children = vec![Tree::new(&self.element)];
         }
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
