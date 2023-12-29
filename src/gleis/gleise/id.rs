@@ -3,96 +3,22 @@
 use std::{
     cmp::Ordering,
     hash::{Hash, Hasher},
-    marker::PhantomData,
     sync::Arc,
 };
 
-use rstar::primitives::Rectangle;
-
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
-    gleis::{
-        gerade::Gerade,
-        gleise::{
-            id::eindeutig::{Id, KeineIdVerfügbar},
-            steuerung::MitSteuerung,
-        },
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
+    gleis::gleise::{
+        id::eindeutig::{Id, KeineIdVerfügbar},
+        steuerung::MitSteuerung,
     },
-    steuerung::{geschwindigkeit, streckenabschnitt},
-    typen::{vektor::Vektor, Zeichnen},
+    typen::Zeichnen,
 };
 
 pub mod eindeutig;
 
 #[cfg(test)]
 mod test;
-
-/// Id für einen Streckenabschnitt.
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct StreckenabschnittId {
-    pub(crate) geschwindigkeit: Option<geschwindigkeit::Name>,
-    pub(crate) name: streckenabschnitt::Name,
-}
-
-impl StreckenabschnittId {
-    pub(crate) fn als_ref<'t>(&'t self) -> StreckenabschnittIdRef<'t> {
-        StreckenabschnittIdRef { geschwindigkeit: self.geschwindigkeit.as_ref(), name: &self.name }
-    }
-}
-
-/// Id für ein Gleis.
-#[derive(zugkontrolle_macros::Debug)]
-pub(crate) struct GleisId<T> {
-    pub(in crate::gleis::gleise) rectangle: Rectangle<Vektor>,
-    pub(in crate::gleis::gleise) streckenabschnitt: Option<StreckenabschnittId>,
-    pub(in crate::gleis::gleise) phantom: PhantomData<fn() -> T>,
-}
-
-// Explizite Implementierung wegen Phantomtyp benötigt (derive erzeugt extra-Constraint).
-impl<T> PartialEq for GleisId<T> {
-    fn eq(&self, other: &Self) -> bool {
-        (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
-    }
-}
-
-/// Id für ein beliebiges Gleis.
-#[derive(Debug, zugkontrolle_macros::From)]
-pub(crate) enum AnyId {
-    /// Eine [Gerade].
-    Gerade(GleisId<Gerade>),
-    /// Eine [Kurve].
-    Kurve(GleisId<Kurve>),
-    /// Eine [Weiche].
-    Weiche(GleisId<Weiche>),
-    /// Eine [DreiwegeWeiche].
-    DreiwegeWeiche(GleisId<DreiwegeWeiche>),
-    /// Eine [KurvenWeiche].
-    KurvenWeiche(GleisId<KurvenWeiche>),
-    /// Eine [SKurvenWeiche].
-    SKurvenWeiche(GleisId<SKurvenWeiche>),
-    /// Eine [Kreuzung].
-    Kreuzung(GleisId<Kreuzung>),
-}
-
-impl PartialEq for AnyId {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (AnyId::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
-            (AnyId::Kurve(l0), AnyId::Kurve(r0)) => l0 == r0,
-            (AnyId::Weiche(l0), AnyId::Weiche(r0)) => l0 == r0,
-            (AnyId::DreiwegeWeiche(l0), AnyId::DreiwegeWeiche(r0)) => l0 == r0,
-            (AnyId::KurvenWeiche(l0), AnyId::KurvenWeiche(r0)) => l0 == r0,
-            (AnyId::SKurvenWeiche(l0), AnyId::SKurvenWeiche(r0)) => l0 == r0,
-            (AnyId::Kreuzung(l0), AnyId::Kreuzung(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
-}
 
 pub use eindeutig::Repräsentation;
 
@@ -358,106 +284,4 @@ erzeuge_any_enum! {
     (DefinitionId2<[]>),
     (<[] as MitSteuerung>::Steuerung),
     (<[] as Zeichnen<()>>::VerbindungName),
-}
-
-#[allow(single_use_lifetimes)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct StreckenabschnittIdRef<'t> {
-    pub(crate) geschwindigkeit: Option<&'t geschwindigkeit::Name>,
-    pub(crate) name: &'t streckenabschnitt::Name,
-}
-
-impl PartialEq<StreckenabschnittId> for StreckenabschnittIdRef<'_> {
-    fn eq(&self, other: &StreckenabschnittId) -> bool {
-        (self.geschwindigkeit == other.geschwindigkeit.as_ref()) && (*self.name == other.name)
-    }
-}
-
-impl StreckenabschnittIdRef<'_> {
-    /// Klone die Referenzen um eine neue Id zu erzeugen.
-    pub(in crate::gleis::gleise) fn als_id(self) -> StreckenabschnittId {
-        StreckenabschnittId {
-            geschwindigkeit: self.geschwindigkeit.cloned(),
-            name: self.name.clone(),
-        }
-    }
-}
-
-// completely remove any notion of ID?
-#[derive(zugkontrolle_macros::Debug)]
-pub(crate) struct GleisIdRef<'t, T> {
-    pub(in crate::gleis::gleise) rectangle: &'t Rectangle<Vektor>,
-    pub(in crate::gleis::gleise) streckenabschnitt: Option<StreckenabschnittIdRef<'t>>,
-    pub(in crate::gleis::gleise) phantom: PhantomData<fn() -> T>,
-}
-
-impl<'s, T> PartialEq<GleisIdRef<'s, T>> for GleisIdRef<'_, T> {
-    fn eq(&self, other: &GleisIdRef<'s, T>) -> bool {
-        (self.rectangle == other.rectangle) && (self.streckenabschnitt == other.streckenabschnitt)
-    }
-}
-
-impl<T> PartialEq<GleisId<T>> for GleisIdRef<'_, T> {
-    fn eq(&self, other: &GleisId<T>) -> bool {
-        (self.rectangle == &other.rectangle)
-            && self.streckenabschnitt
-                == other.streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref)
-    }
-}
-
-impl<T> GleisIdRef<'_, T> {
-    pub(in crate::gleis::gleise) fn als_id(self) -> GleisId<T> {
-        GleisId {
-            rectangle: *self.rectangle,
-            streckenabschnitt: self.streckenabschnitt.map(|id_ref| id_ref.als_id()),
-            phantom: self.phantom,
-        }
-    }
-}
-
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::From)]
-pub(in crate::gleis::gleise) enum AnyIdRef<'t> {
-    Gerade(GleisIdRef<'t, Gerade>),
-    Kurve(GleisIdRef<'t, Kurve>),
-    Weiche(GleisIdRef<'t, Weiche>),
-    DreiwegeWeiche(GleisIdRef<'t, DreiwegeWeiche>),
-    KurvenWeiche(GleisIdRef<'t, KurvenWeiche>),
-    SKurvenWeiche(GleisIdRef<'t, SKurvenWeiche>),
-    Kreuzung(GleisIdRef<'t, Kreuzung>),
-}
-
-impl<'t> PartialEq<AnyIdRef<'t>> for AnyIdRef<'_> {
-    fn eq(&self, other: &AnyIdRef<'t>) -> bool {
-        match (self, other) {
-            (AnyIdRef::Gerade(l0), AnyIdRef::Gerade(r0)) => l0 == r0,
-            (AnyIdRef::Kurve(l0), AnyIdRef::Kurve(r0)) => l0 == r0,
-            (AnyIdRef::Weiche(l0), AnyIdRef::Weiche(r0)) => l0 == r0,
-            (AnyIdRef::DreiwegeWeiche(l0), AnyIdRef::DreiwegeWeiche(r0)) => l0 == r0,
-            (AnyIdRef::KurvenWeiche(l0), AnyIdRef::KurvenWeiche(r0)) => l0 == r0,
-            (AnyIdRef::SKurvenWeiche(l0), AnyIdRef::SKurvenWeiche(r0)) => l0 == r0,
-            (AnyIdRef::Kreuzung(l0), AnyIdRef::Kreuzung(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<AnyId> for AnyIdRef<'_> {
-    fn eq(&self, other: &AnyId) -> bool {
-        match (self, other) {
-            (AnyIdRef::Gerade(l0), AnyId::Gerade(r0)) => l0 == r0,
-            (AnyIdRef::Kurve(l0), AnyId::Kurve(r0)) => l0 == r0,
-            (AnyIdRef::Weiche(l0), AnyId::Weiche(r0)) => l0 == r0,
-            (AnyIdRef::DreiwegeWeiche(l0), AnyId::DreiwegeWeiche(r0)) => l0 == r0,
-            (AnyIdRef::KurvenWeiche(l0), AnyId::KurvenWeiche(r0)) => l0 == r0,
-            (AnyIdRef::SKurvenWeiche(l0), AnyId::SKurvenWeiche(r0)) => l0 == r0,
-            (AnyIdRef::Kreuzung(l0), AnyId::Kreuzung(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
-}
-
-impl<'t> PartialEq<AnyIdRef<'t>> for AnyId {
-    fn eq(&self, other: &AnyIdRef<'t>) -> bool {
-        other.eq(self)
-    }
 }

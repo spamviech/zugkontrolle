@@ -25,9 +25,7 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2},
-        id::{
-            AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerungSerialisiert2, StreckenabschnittIdRef,
-        },
+        id::{AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerungSerialisiert2},
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -112,7 +110,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        let id_ref = StreckenabschnittIdRef { geschwindigkeit, name: &name };
         let message_opt = match self.gleise.streckenabschnitt_mut(&name) {
             Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
@@ -122,9 +119,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 {
                     format!("{:?}", fehler)
                 } else {
-                    format!("Streckenabschnitt {:?} angepasst.", id_ref)
+                    format!("Streckenabschnitt {} angepasst.", name.0)
                 };
-                Some((format!("Streckenabschnitt {:?} anpassen", id_ref), fehlermeldung))
+                Some((format!("Streckenabschnitt {} anpassen", name.0), fehlermeldung))
             },
             _fehler => None,
         };
@@ -151,7 +148,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         };
 
         let mut fehlermeldung = fehler.map(|fehler| {
-            (format!("Hinzufügen Streckenabschnitt {:?}", id_ref), format!("{:?}", fehler))
+            (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{:?}", fehler))
         });
 
         if let Some(streckenabschnitt) = streckenabschnitt {

@@ -14,27 +14,17 @@ use log::error;
 use nonempty::{nonempty, NonEmpty};
 
 use crate::{
-    anschluss::de_serialisieren::Serialisiere,
     application::style::thema::Thema,
     gleis::{
-        gerade::Gerade,
         gleise::{
             self,
             daten::{BewegenFehler2, EntfernenFehler2, Zustand},
-            id::{AnyIdSteuerung2, GleisIdRef},
-            nachricht::{
-                Gehalten, GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht,
-                ZustandAktualisieren, ZustandAktualisierenEnum,
-            },
-            steuerung::{MitSteuerung, Steuerung},
+            id::AnyIdSteuerung2,
+            nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
+            steuerung::Steuerung,
             Gleise, ModusDaten,
         },
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            self, dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche,
-            s_kurve::SKurvenWeiche,
-        },
+        weiche,
     },
     steuerung::{
         geschwindigkeit::Leiter,
@@ -61,57 +51,6 @@ fn berechne_canvas_position(
 }
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
-
-type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung);
-
-#[derive(zugkontrolle_macros::From)]
-enum GleisSteuerungRef<'t> {
-    Gerade(IdUndSteuerung<'t, Gerade>),
-    Kurve(IdUndSteuerung<'t, Kurve>),
-    Weiche(IdUndSteuerung<'t, Weiche>),
-    KurvenWeiche(IdUndSteuerung<'t, KurvenWeiche>),
-    DreiwegeWeiche(IdUndSteuerung<'t, DreiwegeWeiche>),
-    SKurvenWeiche(IdUndSteuerung<'t, SKurvenWeiche>),
-    Kreuzung(IdUndSteuerung<'t, Kreuzung>),
-}
-
-fn klone_und_serialisiere<T, R, S>(
-    (id_ref, steuerung): IdUndSteuerung<'_, T>,
-) -> IdUndSteuerungSerialisiert<T, Option<S>>
-where
-    T: MitSteuerung<Steuerung = Option<R>>,
-    R: Serialisiere<S>,
-{
-    (id_ref.als_id(), steuerung.as_ref().map(Serialisiere::serialisiere))
-}
-
-impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
-    fn from(gleis_steuerung_ref: GleisSteuerungRef<'_>) -> Self {
-        match gleis_steuerung_ref {
-            GleisSteuerungRef::Gerade(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::Kurve(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::Weiche(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::KurvenWeiche(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::DreiwegeWeiche(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::SKurvenWeiche(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-            GleisSteuerungRef::Kreuzung(steuerung_ref) => {
-                GleisSteuerung::from(klone_und_serialisiere(steuerung_ref))
-            },
-        }
-    }
-}
 
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
 fn aktion_bauen(

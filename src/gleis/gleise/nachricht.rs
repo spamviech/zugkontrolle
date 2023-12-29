@@ -3,59 +3,10 @@
 use std::time::Instant;
 
 use crate::{
-    gleis::{
-        self,
-        gerade::Gerade,
-        gleise::id::{AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2, GleisId},
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
-    steuerung::{
-        kontakt::KontaktSerialisiert,
-        plan::{AktionStreckenabschnitt, AnyAktionSchalten},
-    },
+    gleis::gleise::id::{AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2},
+    steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
     typen::{vektor::Vektor, winkel::Winkel},
 };
-
-pub(in crate::gleis::gleise) type IdUndSteuerungSerialisiert<T, S> = (GleisId<T>, S);
-
-// Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-type StWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
->;
-
-type StDreiwegeWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::dreiwege::RichtungInformation,
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
->;
-
-type StKurvenWeicheSerialisiert = crate::steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
->;
-
-/// [GleisId] und serialisierte Steuerung eines Gleises.
-#[derive(Debug, zugkontrolle_macros::From)]
-pub(crate) enum GleisSteuerung {
-    /// [GleisId] und [KontaktSerialisiert] einer [Gerade].
-    Gerade(GleisId<Gerade>, Option<KontaktSerialisiert>),
-    /// [GleisId] und [KontaktSerialisiert] einer [Kurve].
-    Kurve(GleisId<Kurve>, Option<KontaktSerialisiert>),
-    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Weiche].
-    Weiche(GleisId<Weiche>, Option<StWeicheSerialisiert>),
-    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [KurvenWeiche].
-    KurvenWeiche(GleisId<KurvenWeiche>, Option<StKurvenWeicheSerialisiert>),
-    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [DreiwegeWeiche].
-    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<StDreiwegeWeicheSerialisiert>),
-    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [SKurvenWeiche].
-    SKurvenWeiche(GleisId<SKurvenWeiche>, Option<StWeicheSerialisiert>),
-    /// [GleisId] und [WeicheSerialisiert](crate::steuerung::weiche::WeicheSerialisiert) einer [Kreuzung].
-    Kreuzung(GleisId<Kreuzung>, Option<StWeicheSerialisiert>),
-}
 
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {
