@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::gleise::daten::v3::weiche::steuerung,
+    gleis::{gleise::daten::v3::weiche::steuerung, weiche::dreiwege as v4},
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
@@ -16,13 +16,23 @@ pub struct RichtungInformation {
     pub letzte_richtung: Richtung,
 }
 
+impl From<RichtungInformation> for v4::RichtungInformation {
+    fn from(wert: RichtungInformation) -> Self {
+        let RichtungInformation { aktuelle_richtung, letzte_richtung } = wert;
+        v4::RichtungInformation {
+            aktuelle_richtung: aktuelle_richtung.into(),
+            letzte_richtung: letzte_richtung.into(),
+        }
+    }
+}
+
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Dreiwege-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Gerade.
     pub länge: Skalar,
@@ -39,6 +49,13 @@ pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisie
 /// Eine Variante ohne Anschlüsse.
 pub type DreiwegeWeicheUnit = DreiwegeWeicheSerialisiert<()>;
 
+impl<A> From<DreiwegeWeicheSerialisiert<A>> for v4::DreiwegeWeicheUnit {
+    fn from(wert: DreiwegeWeicheSerialisiert<A>) -> Self {
+        let DreiwegeWeicheSerialisiert { länge, radius, winkel, beschreibung, steuerung: _ } = wert;
+        v4::DreiwegeWeicheUnit { länge, radius, winkel, beschreibung, steuerung: () }
+    }
+}
+
 #[doc = r" Mögliche Richtungen zum Schalten."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
@@ -50,6 +67,16 @@ pub enum Richtung {
     Rechts,
 }
 
+impl From<Richtung> for v4::Richtung {
+    fn from(wert: Richtung) -> Self {
+        match wert {
+            Richtung::Gerade => v4::Richtung::Gerade,
+            Richtung::Links => v4::Richtung::Links,
+            Richtung::Rechts => v4::Richtung::Rechts,
+        }
+    }
+}
+
 #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
@@ -59,4 +86,11 @@ pub struct RichtungAnschlüsseSerialisiert {
     pub links: crate::anschluss::OutputSerialisiert,
     #[doc = "[Richtung::Rechts]"]
     pub rechts: crate::anschluss::OutputSerialisiert,
+}
+
+impl From<RichtungAnschlüsseSerialisiert> for v4::RichtungAnschlüsseSerialisiert {
+    fn from(wert: RichtungAnschlüsseSerialisiert) -> Self {
+        let RichtungAnschlüsseSerialisiert { gerade, links, rechts } = wert;
+        v4::RichtungAnschlüsseSerialisiert { gerade, links, rechts }
+    }
 }

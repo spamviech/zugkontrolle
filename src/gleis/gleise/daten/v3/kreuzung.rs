@@ -5,9 +5,12 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::gleise::daten::v3::weiche::{
-        gerade::{Richtung, RichtungAnschlüsseSerialisiert},
-        steuerung,
+    gleis::{
+        gleise::daten::v3::weiche::{
+            gerade::{Richtung, RichtungAnschlüsseSerialisiert},
+            steuerung,
+        },
+        kreuzung as v4,
     },
     typen::skalar::Skalar,
 };
@@ -16,7 +19,7 @@ type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Kreuzung.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
@@ -33,6 +36,13 @@ pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
 /// Eine Variante ohne Anschlüsse.
 pub type KreuzungUnit = KreuzungSerialisiert<()>;
 
+impl<A> From<KreuzungSerialisiert<A>> for v4::KreuzungUnit {
+    fn from(wert: KreuzungSerialisiert<A>) -> Self {
+        let KreuzungSerialisiert { länge, radius, variante, beschreibung, steuerung: _ } = wert;
+        v4::KreuzungUnit { länge, radius, variante: variante.into(), beschreibung, steuerung: () }
+    }
+}
+
 /// Werden die Kurven gezeichnet, oder nur die Geraden.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
@@ -40,4 +50,13 @@ pub enum Variante {
     MitKurve,
     /// Zeichne nur die Geraden.
     OhneKurve,
+}
+
+impl From<Variante> for v4::Variante {
+    fn from(wert: Variante) -> Self {
+        match wert {
+            Variante::MitKurve => v4::Variante::MitKurve,
+            Variante::OhneKurve => v4::Variante::OhneKurve,
+        }
+    }
 }

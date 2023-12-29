@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    gleis::kurve as v4,
     steuerung::kontakt::KontaktSerialisiert,
     typen::{skalar::Skalar, winkel::Winkel},
 };
@@ -12,7 +13,7 @@ use crate::{
 /// Definition einer Kurve.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     /// Der Radius auf dem Canvas.
     pub radius: Skalar,
@@ -26,3 +27,10 @@ pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
 
 /// Eine Variante ohne Anschlüsse.
 pub type KurveUnit = KurveSerialisiert<()>;
+
+impl<A> From<KurveSerialisiert<A>> for v4::KurveUnit {
+    fn from(gerade: KurveSerialisiert<A>) -> Self {
+        let KurveSerialisiert { radius, winkel, beschreibung, kontakt: _ } = gerade;
+        v4::KurveUnit { radius, winkel, beschreibung, kontakt: () }
+    }
+}

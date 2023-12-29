@@ -3,7 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::gleise::daten::v3::weiche::{gerade, orientierung::Orientierung, steuerung},
+    gleis::{
+        gleise::daten::v3::weiche::{gerade, orientierung::Orientierung, steuerung},
+        weiche::s_kurve as v4,
+    },
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
@@ -13,7 +16,7 @@ type AnschlüsseSerialisiert =
 /// Definition einer Weiche mit S-Kurve.
 ///
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SKurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
@@ -35,3 +38,28 @@ pub struct SKurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisier
 
 /// Eine Variante ohne Anschlüsse.
 pub type SKurvenWeicheUnit = SKurvenWeicheSerialisiert<()>;
+
+impl<A> From<SKurvenWeicheSerialisiert<A>> for v4::SKurvenWeicheUnit {
+    fn from(wert: SKurvenWeicheSerialisiert<A>) -> Self {
+        let SKurvenWeicheSerialisiert {
+            länge,
+            radius,
+            winkel,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            orientierung,
+            beschreibung,
+            steuerung: _,
+        } = wert;
+        v4::SKurvenWeicheUnit {
+            länge,
+            radius,
+            winkel,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            orientierung: orientierung.into(),
+            beschreibung,
+            steuerung: (),
+        }
+    }
+}

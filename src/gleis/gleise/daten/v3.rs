@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     gleis::{
-        gerade::Gerade,
+        gerade::{Gerade, GeradeUnit},
         gleise::{
             daten::{
                 v3::{
@@ -27,6 +27,14 @@ use crate::{
                 v4,
             },
             id::{self, eindeutig::KeineIdVerfügbar},
+        },
+        kreuzung::{Kreuzung, KreuzungUnit},
+        kurve::{Kurve, KurveUnit},
+        weiche::{
+            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+            gerade::{Weiche, WeicheUnit},
+            kurve::{KurvenWeiche, KurvenWeicheUnit},
+            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
     steuerung::{
@@ -108,68 +116,99 @@ impl GleiseDatenSerialisiert {
     }
 }
 
+#[derive(Debug)]
+struct DefinitionMaps {
+    geraden: AssocList<GeradeSerialisiert, (id::Repräsentation, GeradeUnit)>,
+    kurven: AssocList<KurveSerialisiert, (id::Repräsentation, KurveUnit)>,
+    weichen: AssocList<WeicheSerialisiert, (id::Repräsentation, WeicheUnit)>,
+    dreiwege_weichen:
+        AssocList<DreiwegeWeicheSerialisiert, (id::Repräsentation, DreiwegeWeicheUnit)>,
+    kurven_weichen: AssocList<KurvenWeicheSerialisiert, (id::Repräsentation, KurvenWeicheUnit)>,
+    s_kurven_weichen: AssocList<SKurvenWeicheSerialisiert, (id::Repräsentation, SKurvenWeicheUnit)>,
+    kreuzungen: AssocList<KreuzungSerialisiert, (id::Repräsentation, KreuzungUnit)>,
+}
+
+impl DefinitionMaps {
+    fn neu() -> DefinitionMaps {
+        DefinitionMaps {
+            geraden: AssocList::new(),
+            kurven: AssocList::new(),
+            weichen: AssocList::new(),
+            dreiwege_weichen: AssocList::new(),
+            kurven_weichen: AssocList::new(),
+            s_kurven_weichen: AssocList::new(),
+            kreuzungen: AssocList::new(),
+        }
+    }
+}
+
 impl GleiseDatenSerialisiert {
-    fn v4(
+    fn v4<L: Leiter>(
         self,
+        zugtyp: &mut v4::ZugtypSerialisiert2<L>,
+        definition_maps: &mut DefinitionMaps,
         streckenabschnitt: &Option<streckenabschnitt::Name>,
     ) -> (v4::GleiseDatenSerialisiert, Vec<KeineIdVerfügbar>) {
-        // TODO als argument (Sammel-Struktur, je Gleis-Art neue Map)?
-        let mut definitionen: BTreeMap<id::Repräsentation, _> = BTreeMap::new();
-        let mut definitionen_invertiert = AssocList::new();
-
-        let GleiseDatenSerialisiert {
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-        } = self;
-
         let mut fehler = Vec::new();
 
-        let mut v4_geraden = HashMap::new();
-        for (gleis_id, gleis) in geraden.into_iter().enumerate_checked() {
-            let Some(gleis_id) = gleis_id else {
-                fehler.push(KeineIdVerfügbar);
-                continue;
-            };
-            let Gleis { definition, position } = gleis;
-            let steuerung = definition.kontakt.clone();
-            let definition_id = match definitionen_invertiert.entry(definition.clone()) {
-                Entry::Occupied(occupied) => *occupied.get(),
-                Entry::Vacant(vacant) => {
-                    let Some(id) =
-                        definitionen.last_key_value().map_or(Some(0), |(k, _v)| k.checked_add(&1))
-                    else {
-                        fehler.push(KeineIdVerfügbar);
-                        continue;
-                    };
-                    let _ = definitionen.insert(id, definition);
-                    let _ = vacant.insert(id);
-                    id
-                },
-            };
-            let v4_gleis: v4::GleisSerialisiert<Gerade> = v4::GleisSerialisiert {
-                definition: definition_id,
-                steuerung,
-                position,
-                streckenabschnitt: streckenabschnitt.clone(),
-            };
-            // gleis_id ist eindeutig, da es durch enumerate erzeugt wurde
-            let _ = v4_geraden.insert(gleis_id, v4_gleis);
+        macro_rules! erstelle_maps {
+            ($($gleis_art: ident - $steuerung: ident : $typ: ident),* $(,)?) => {{
+                let GleiseDatenSerialisiert { $($gleis_art),* } = self;
+                $(
+                    let definitionen = &mut zugtyp.$gleis_art;
+                    let definitionen_invertiert = &mut definition_maps.$gleis_art;
+                    let ($gleis_art, _nächste_id) = $gleis_art.into_iter().enumerate_checked().fold(
+                        (HashMap::new(), Some(0)),
+                        |(mut elemente, mut nächste_definition_id), (gleis_id, gleis)| {
+                            let Some(gleis_id) = gleis_id else {
+                                fehler.push(KeineIdVerfügbar);
+                                return (elemente, nächste_definition_id);
+                            };
+                            let Gleis { definition, position } = gleis;
+                            let steuerung = definition.$steuerung.clone().map(Into::into);
+                            let (definition_id, definition)
+                                = match definitionen_invertiert.entry(definition.clone()) {
+                                    Entry::Occupied(occupied) => occupied.get().clone(),
+                                    Entry::Vacant(vacant) => {
+                                        let id = if let Some(id) = nächste_definition_id {
+                                            nächste_definition_id = id.checked_add(&1);
+                                            id
+                                        } else {
+                                            fehler.push(KeineIdVerfügbar);
+                                            return (elemente, nächste_definition_id);
+                                        };
+                                        let definition: $typ<()> = definition.into();
+                                        let _ = vacant.insert((id, definition.clone()));
+                                        (id, definition)
+                                    },
+                                };
+                            let _ = definitionen.insert(definition_id, definition);
+                            let v4_gleis: v4::GleisSerialisiert<$typ> = v4::GleisSerialisiert {
+                                definition: definition_id,
+                                steuerung,
+                                position,
+                                streckenabschnitt: streckenabschnitt.clone(),
+                            };
+                            // gleis_id ist eindeutig, da es durch enumerate erzeugt wurde
+                            let _ = elemente.insert(gleis_id, v4_gleis);
+                            (elemente, nächste_definition_id)
+                        },
+                    );
+                )*
+                v4::GleiseDatenSerialisiert { $($gleis_art),* }
+            }};
         }
 
-        let v4 = v4::GleiseDatenSerialisiert {
-            geraden: v4_geraden,
-            kurven: todo!(),
-            weichen: todo!(),
-            dreiwege_weichen: todo!(),
-            kurven_weichen: todo!(),
-            s_kurven_weichen: todo!(),
-            kreuzungen: todo!(),
-        };
+        let v4 = erstelle_maps!(
+            geraden - kontakt : Gerade,
+            kurven - kontakt : Kurve,
+            weichen - steuerung : Weiche,
+            dreiwege_weichen - steuerung : DreiwegeWeiche,
+            kurven_weichen - steuerung : KurvenWeiche,
+            s_kurven_weichen - steuerung : SKurvenWeiche,
+            kreuzungen - steuerung : Kreuzung,
+        );
+
         (v4, fehler)
     }
 }

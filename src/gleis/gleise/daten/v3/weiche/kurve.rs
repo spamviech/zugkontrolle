@@ -3,7 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::gleise::daten::v3::weiche::{gerade, orientierung::Orientierung, steuerung},
+    gleis::{
+        gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
+        weiche::kurve as v4,
+    },
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
@@ -13,7 +16,7 @@ type AnschlüsseSerialisiert =
 /// Definition einer Kurven-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
@@ -32,6 +35,27 @@ pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert
 /// Eine Variante ohne Anschlüsse.
 pub type KurvenWeicheUnit = KurvenWeicheSerialisiert<()>;
 
+impl<A> From<KurvenWeicheSerialisiert<A>> for v4::KurvenWeicheUnit {
+    fn from(wert: KurvenWeicheSerialisiert<A>) -> Self {
+        let KurvenWeicheSerialisiert {
+            länge,
+            radius,
+            winkel,
+            orientierung,
+            beschreibung,
+            steuerung: _,
+        } = wert;
+        v4::KurvenWeicheUnit {
+            länge,
+            radius,
+            winkel,
+            orientierung: orientierung.into(),
+            beschreibung,
+            steuerung: (),
+        }
+    }
+}
+
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
@@ -41,6 +65,15 @@ pub enum Richtung {
     Außen,
 }
 
+impl From<Richtung> for v4::Richtung {
+    fn from(wert: Richtung) -> Self {
+        match wert {
+            Richtung::Innen => v4::Richtung::Innen,
+            Richtung::Außen => v4::Richtung::Außen,
+        }
+    }
+}
+
 /// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
@@ -48,4 +81,11 @@ pub struct RichtungAnschlüsseSerialisiert {
     pub innen: crate::anschluss::OutputSerialisiert,
     /// [Richtung::Außen]
     pub außen: crate::anschluss::OutputSerialisiert,
+}
+
+impl From<RichtungAnschlüsseSerialisiert> for v4::RichtungAnschlüsseSerialisiert {
+    fn from(wert: RichtungAnschlüsseSerialisiert) -> Self {
+        let RichtungAnschlüsseSerialisiert { innen, außen } = wert;
+        v4::RichtungAnschlüsseSerialisiert { innen, außen }
+    }
 }
