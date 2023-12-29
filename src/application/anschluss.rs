@@ -343,12 +343,18 @@ where
     M: 'a + Clone,
     R: 'a + text::Renderer,
     <R as Renderer>::Theme: iced_widget::radio::StyleSheet + iced_widget::text::StyleSheet,
+    <R as iced_core::text::Renderer>::Font: From<Font>,
 {
     let mut column = Column::new();
+    let mut leerer_iterator = true;
     for (label, value) in elemente {
+        leerer_iterator = false;
         column = column.push(
             Radio::new(label, value, Some(aktuell.clone()), als_nachricht.clone()).spacing(0),
         );
+    }
+    if leerer_iterator {
+        column = column.push(Text::new("⚠").font(crate::application::fonts::EMOJI));
     }
     column
 }
@@ -414,6 +420,8 @@ where
     }
 }
 
+const PADDING: f32 = 2.5;
+
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     ModusNachricht: 'static + Clone,
@@ -443,11 +451,12 @@ where
             |level: &Level, als_nachricht: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
-        // TODO Warnung anzeigen, wenn kein I2CBus aktiviert wurde!
         let pcf8574_row = Row::new()
             .push(
                 Scrollable::new(
                     Row::new()
+                        .push(Text::new("I2C"))
+                        .push(Space::with_width(Length::Fixed(PADDING)))
                         .push(make_radios(
                             i2c_bus,
                             [
