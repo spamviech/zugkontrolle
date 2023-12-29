@@ -371,7 +371,7 @@ impl GleiseDatenSerialisiert {
 }
 
 impl<L: BekannterLeiter> Zugtyp2<L> {
-    fn serialisiere(&self) -> ZugtypSerialisiert2<L> {
+    pub(crate) fn serialisiere(&self) -> ZugtypSerialisiert2<L> {
         let Zugtyp2 {
             name,
             leiter: PhantomData,

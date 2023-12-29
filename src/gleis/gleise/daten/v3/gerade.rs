@@ -24,3 +24,10 @@ impl<A> From<GeradeSerialisiert<A>> for v4::GeradeUnit {
         v4::GeradeUnit { länge, beschreibung, kontakt: () }
     }
 }
+
+impl From<v4::GeradeUnit> for GeradeUnit {
+    fn from(gerade: v4::GeradeUnit) -> Self {
+        let v4::GeradeUnit { länge, beschreibung, kontakt } = gerade;
+        GeradeSerialisiert { länge, beschreibung, kontakt }
+    }
+}

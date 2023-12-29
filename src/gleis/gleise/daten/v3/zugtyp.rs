@@ -119,3 +119,47 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
         )
     }
 }
+
+impl<L: Leiter> v4::ZugtypSerialisiert2<L> {
+    pub(crate) fn v3(self) -> ZugtypSerialisiert<L> {
+        macro_rules! erstelle_maps {
+            ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
+                let v4::ZugtypSerialisiert2 {
+                    name,
+                    leiter,
+                    spurweite,
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    schalten_zeit,
+                    $($gleis_art),*
+                } = self;
+                $(
+                    let $gleis_art = $gleis_art.into_values().map(Into::into).collect();
+                )*
+                ZugtypSerialisiert {
+                    name,
+                    leiter,
+                    spurweite,
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    schalten_zeit,
+                    $($gleis_art),*
+                }
+            }};
+        }
+
+        erstelle_maps!(
+            geraden : GeradeUnit,
+            kurven : KurveUnit,
+            weichen : WeicheUnit,
+            dreiwege_weichen : DreiwegeWeicheUnit,
+            kurven_weichen : KurvenWeicheUnit,
+            s_kurven_weichen : SKurvenWeicheUnit,
+            kreuzungen : KreuzungUnit,
+        )
+    }
+}

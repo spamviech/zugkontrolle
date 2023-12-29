@@ -56,6 +56,21 @@ impl<A> From<KurvenWeicheSerialisiert<A>> for v4::KurvenWeicheUnit {
     }
 }
 
+impl From<v4::KurvenWeicheUnit> for KurvenWeicheUnit {
+    fn from(wert: v4::KurvenWeicheUnit) -> Self {
+        let v4::KurvenWeicheUnit { länge, radius, winkel, orientierung, beschreibung, steuerung } =
+            wert;
+        KurvenWeicheUnit {
+            länge,
+            radius,
+            winkel,
+            orientierung: orientierung.into(),
+            beschreibung,
+            steuerung,
+        }
+    }
+}
+
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {

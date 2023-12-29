@@ -29,8 +29,15 @@ pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
 pub type KurveUnit = KurveSerialisiert<()>;
 
 impl<A> From<KurveSerialisiert<A>> for v4::KurveUnit {
-    fn from(gerade: KurveSerialisiert<A>) -> Self {
-        let KurveSerialisiert { radius, winkel, beschreibung, kontakt: _ } = gerade;
+    fn from(kurve: KurveSerialisiert<A>) -> Self {
+        let KurveSerialisiert { radius, winkel, beschreibung, kontakt: _ } = kurve;
         v4::KurveUnit { radius, winkel, beschreibung, kontakt: () }
+    }
+}
+
+impl From<v4::KurveUnit> for KurveUnit {
+    fn from(kurve: v4::KurveUnit) -> Self {
+        let v4::KurveUnit { radius, winkel, beschreibung, kontakt } = kurve;
+        KurveUnit { radius, winkel, beschreibung, kontakt }
     }
 }

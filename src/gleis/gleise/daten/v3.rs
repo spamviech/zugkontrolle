@@ -3,9 +3,7 @@
 use std::{collections::HashMap, fmt::Debug};
 
 use assoc::vec::{AssocExt, Entry};
-use log::{error, warn};
-use nonempty::NonEmpty;
-use num_traits::{bounds::LowerBounded, CheckedAdd, One};
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -42,7 +40,6 @@ use crate::{
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::canvas::Position,
-    util::enumerate_checked::EnumerateCheckedExt,
 };
 
 pub mod gerade;
@@ -166,6 +163,7 @@ impl NächsteIds {
 }
 
 impl GleiseDatenSerialisiert {
+    // FIXME Resultat ist falsch/nicht stabil
     fn v4<L: Leiter>(
         self,
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,

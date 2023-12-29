@@ -43,6 +43,13 @@ impl<A> From<KreuzungSerialisiert<A>> for v4::KreuzungUnit {
     }
 }
 
+impl From<v4::KreuzungUnit> for KreuzungUnit {
+    fn from(wert: v4::KreuzungUnit) -> Self {
+        let v4::KreuzungUnit { länge, radius, variante, beschreibung, steuerung } = wert;
+        KreuzungUnit { länge, radius, variante: variante.into(), beschreibung, steuerung }
+    }
+}
+
 /// Werden die Kurven gezeichnet, oder nur die Geraden.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
@@ -57,6 +64,15 @@ impl From<Variante> for v4::Variante {
         match wert {
             Variante::MitKurve => v4::Variante::MitKurve,
             Variante::OhneKurve => v4::Variante::OhneKurve,
+        }
+    }
+}
+
+impl From<v4::Variante> for Variante {
+    fn from(wert: v4::Variante) -> Self {
+        match wert {
+            v4::Variante::MitKurve => Variante::MitKurve,
+            v4::Variante::OhneKurve => Variante::OhneKurve,
         }
     }
 }

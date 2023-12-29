@@ -55,6 +55,12 @@ impl<A> From<DreiwegeWeicheSerialisiert<A>> for v4::DreiwegeWeicheUnit {
         v4::DreiwegeWeicheUnit { länge, radius, winkel, beschreibung, steuerung: () }
     }
 }
+impl From<v4::DreiwegeWeicheUnit> for DreiwegeWeicheUnit {
+    fn from(wert: v4::DreiwegeWeicheUnit) -> Self {
+        let v4::DreiwegeWeicheUnit { länge, radius, winkel, beschreibung, steuerung } = wert;
+        DreiwegeWeicheUnit { länge, radius, winkel, beschreibung, steuerung }
+    }
+}
 
 #[doc = r" Mögliche Richtungen zum Schalten."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -21,3 +21,12 @@ impl From<Orientierung> for v4::Orientierung {
         }
     }
 }
+
+impl From<v4::Orientierung> for Orientierung {
+    fn from(wert: v4::Orientierung) -> Self {
+        match wert {
+            v4::Orientierung::Links => Orientierung::Links,
+            v4::Orientierung::Rechts => Orientierung::Rechts,
+        }
+    }
+}

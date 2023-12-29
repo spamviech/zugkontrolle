@@ -13,15 +13,7 @@ use crate::{
         polarität::Polarität,
         trigger::Trigger,
     },
-    gleis::{
-        gerade,
-        gleise::daten::v3,
-        kreuzung, kurve,
-        weiche::{
-            dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, orientierung::Orientierung,
-            s_kurve,
-        },
-    },
+    gleis::gleise::daten::v3::{self, kreuzung, weiche::orientierung::Orientierung},
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
         kontakt, plan, streckenabschnitt, weiche,
@@ -270,7 +262,7 @@ impl From<WeicheSerialisiert> for v3::weiche::gerade::WeicheSerialisiert {
             länge,
             radius,
             winkel,
-            orientierung: todo!("orientierung"),
+            orientierung,
             beschreibung,
             steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
@@ -327,7 +319,7 @@ impl From<KurvenWeicheSerialisiert> for v3::weiche::kurve::KurvenWeicheSerialisi
             länge,
             radius,
             winkel,
-            orientierung: todo!("orientierung"),
+            orientierung,
             beschreibung,
             steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
@@ -414,7 +406,7 @@ impl From<SKurvenWeicheSerialisiert> for v3::weiche::s_kurve::SKurvenWeicheSeria
             winkel,
             radius_kurve_nach_innen: radius_reverse,
             winkel_kurve_nach_innen: winkel_reverse,
-            orientierung: todo!("orientierung"),
+            orientierung,
             beschreibung,
             steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
@@ -439,7 +431,7 @@ impl From<KreuzungSerialisiert> for v3::kreuzung::KreuzungSerialisiert {
         v3::kreuzung::KreuzungSerialisiert {
             länge,
             radius,
-            variante: todo!("variante"),
+            variante,
             beschreibung,
             steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
         }
@@ -515,7 +507,7 @@ impl BekannterZugtyp for Mittelleiter {
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Märklin" {
-            Some(todo!("Zugtyp2::märklin()"))
+            Some(Zugtyp2::märklin().serialisiere().v3())
         } else {
             None
         }
@@ -578,7 +570,7 @@ impl BekannterZugtyp for Zweileiter {
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Lego" {
-            Some(todo!("Zugtyp2::lego()"))
+            Some(Zugtyp2::lego().serialisiere().v3())
         } else {
             None
         }

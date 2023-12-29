@@ -63,3 +63,28 @@ impl<A> From<SKurvenWeicheSerialisiert<A>> for v4::SKurvenWeicheUnit {
         }
     }
 }
+
+impl From<v4::SKurvenWeicheUnit> for SKurvenWeicheUnit {
+    fn from(wert: v4::SKurvenWeicheUnit) -> Self {
+        let v4::SKurvenWeicheUnit {
+            länge,
+            radius,
+            winkel,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            orientierung,
+            beschreibung,
+            steuerung,
+        } = wert;
+        SKurvenWeicheUnit {
+            länge,
+            radius,
+            winkel,
+            radius_kurve_nach_innen,
+            winkel_kurve_nach_innen,
+            orientierung: orientierung.into(),
+            beschreibung,
+            steuerung,
+        }
+    }
+}

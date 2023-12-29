@@ -50,6 +50,20 @@ impl<A> From<WeicheSerialisiert<A>> for v4::WeicheUnit {
     }
 }
 
+impl From<v4::WeicheUnit> for WeicheUnit {
+    fn from(wert: v4::WeicheUnit) -> Self {
+        let v4::WeicheUnit { länge, radius, winkel, orientierung, beschreibung, steuerung } = wert;
+        WeicheUnit {
+            länge,
+            radius,
+            winkel,
+            orientierung: orientierung.into(),
+            beschreibung,
+            steuerung,
+        }
+    }
+}
+
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
