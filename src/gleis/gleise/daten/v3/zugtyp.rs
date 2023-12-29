@@ -1,22 +1,29 @@
 //! Serialisierbare Darstellung eines [Zugtyps](crate::zugtyp::Zugtyp) in Version 3.
 
-use std::{fmt::Debug, time::Duration};
+use std::{collections::HashMap, fmt::Debug, time::Duration};
 
+use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gleis::gleise::daten::v3::{
-        gerade::GeradeUnit,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
-        weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
+    gleis::gleise::{
+        daten::{
+            v3::{
+                gerade::GeradeUnit,
+                kreuzung::KreuzungUnit,
+                kurve::KurveUnit,
+                weiche::{
+                    dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
+                    s_kurve::SKurvenWeicheUnit,
+                },
+            },
+            v4,
         },
+        id::eindeutig::KeineIdVerfügbar,
     },
     steuerung::geschwindigkeit::Leiter,
     typen::mm::Spurweite,
-    util::eingeschränkt::NichtNegativ,
+    util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt},
 };
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
@@ -58,4 +65,62 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
     /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
     pub schalten_zeit: Duration,
+}
+
+impl<L: Leiter> ZugtypSerialisiert<L> {
+    fn v4(self) -> (v4::ZugtypSerialisiert2<L>, Option<NonEmpty<KeineIdVerfügbar>>) {
+        let mut fehler = Vec::new();
+
+        macro_rules! erstelle_maps {
+            ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
+                let ZugtypSerialisiert {
+                    name,
+                    leiter,
+                    spurweite,
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    schalten_zeit,
+                    $($gleis_art),*
+                } = self;
+                $(
+                    let $gleis_art = $gleis_art.into_iter().enumerate_checked().fold(
+                        HashMap::new(),
+                        |mut elemente, (id, element)| {
+                            if let Some(id) = id {
+                                let _ = elemente.insert(id, element.into());
+                            } else {
+                                fehler.push(KeineIdVerfügbar::für::<$typ>());
+                            }
+                            elemente
+                        }
+                    );
+                )*
+                v4::ZugtypSerialisiert2 {
+                    name,
+                    leiter,
+                    spurweite,
+                    pwm_frequenz,
+                    verhältnis_fahrspannung_überspannung,
+                    stopp_zeit,
+                    umdrehen_zeit,
+                    schalten_zeit,
+                    $($gleis_art),*
+                }
+            }};
+        }
+
+        let zugtyp = erstelle_maps!(
+            geraden : GeradeUnit,
+            kurven : KurveUnit,
+            weichen : WeicheUnit,
+            dreiwege_weichen : DreiwegeWeicheUnit,
+            kurven_weichen : KurvenWeicheUnit,
+            s_kurven_weichen : SKurvenWeicheUnit,
+            kreuzungen : KreuzungUnit,
+        );
+
+        (zugtyp, NonEmpty::from_vec(fehler))
+    }
 }

@@ -130,11 +130,11 @@ impl GleiseDatenSerialisiert {
                     let ($gleis_art, _nächste_id) = $gleis_art.into_iter().enumerate_checked().fold(
                         (HashMap::new(), Some(0)),
                         |(mut elemente, mut nächste_definition_id), (gleis_id, gleis)| {
+                            let Gleis { definition, position } = gleis;
                             let Some(gleis_id) = gleis_id else {
-                                fehler.push(KeineIdVerfügbar::für::<$typ>());
+                                fehler.push(KeineIdVerfügbar::für_ref(&definition));
                                 return (elemente, nächste_definition_id);
                             };
-                            let Gleis { definition, position } = gleis;
                             let steuerung = definition.$steuerung.clone().map(Into::into);
                             let (definition_id, definition)
                                 = match definitionen_invertiert.entry(definition.clone()) {

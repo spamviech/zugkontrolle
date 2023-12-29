@@ -85,12 +85,20 @@ impl<T> Drop for Id<T> {
 /// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [Id] verfügbar.
 #[derive(Debug, Clone, Copy)]
 pub struct KeineIdVerfügbar {
+    #[allow(dead_code)]
     type_id: TypeId,
+    #[allow(dead_code)]
     type_name: &'static str,
 }
 
 impl KeineIdVerfügbar {
+    /// Erzeuge einen neuen [KeineIdVerfügbar]-Fehler für den gewünschten Typ.
     pub fn für<T: 'static>() -> KeineIdVerfügbar {
+        KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
+    }
+
+    /// Erzeuge einen neuen [KeineIdVerfügbar]-Fehler für den Typ des Arguments.
+    pub fn für_ref<T: 'static>(_t: &T) -> KeineIdVerfügbar {
         KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
     }
 }
