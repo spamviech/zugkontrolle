@@ -9,6 +9,7 @@ use iced::{
     },
     Alignment, Element, Length, Renderer,
 };
+use itertools::Itertools;
 
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
@@ -278,7 +279,11 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {
-                    for (id, button) in buttons.iter() {
+                    for (id, button) in buttons.iter().sorted_by_key(|(_id, gleis)| {
+                        let (_position, beschreibung, _name) =
+                            gleis.beschreibung_und_name(&(), spurweite);
+                        beschreibung
+                    }) {
                         let knopf = Knopf::neu(button, id.clone(), spurweite);
                         scrollable_column =
                             scrollable_column.push(knopf.als_iced_widget(max_breite))
