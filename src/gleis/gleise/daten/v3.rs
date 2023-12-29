@@ -3,6 +3,7 @@
 use std::{collections::HashMap, fmt::Debug};
 
 use assoc::vec::{AssocExt, Entry};
+use log::error;
 use nonempty::NonEmpty;
 use num_traits::{bounds::LowerBounded, CheckedAdd, One};
 use serde::{Deserialize, Serialize};
@@ -111,14 +112,39 @@ impl DefinitionMaps {
         }
     }
 }
+#[derive(Debug)]
+struct NächsteGleisIds {
+    geraden: Option<id::Repräsentation>,
+    kurven: Option<id::Repräsentation>,
+    weichen: Option<id::Repräsentation>,
+    dreiwege_weichen: Option<id::Repräsentation>,
+    kurven_weichen: Option<id::Repräsentation>,
+    s_kurven_weichen: Option<id::Repräsentation>,
+    kreuzungen: Option<id::Repräsentation>,
+}
+
+impl NächsteGleisIds {
+    fn neu() -> NächsteGleisIds {
+        NächsteGleisIds {
+            geraden: Some(0),
+            kurven: Some(0),
+            weichen: Some(0),
+            dreiwege_weichen: Some(0),
+            kurven_weichen: Some(0),
+            s_kurven_weichen: Some(0),
+            kreuzungen: Some(0),
+        }
+    }
+}
 
 impl GleiseDatenSerialisiert {
     fn v4<L: Leiter>(
         self,
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,
         definition_maps: &mut DefinitionMaps,
+        nächste_gleis_ids: &mut NächsteGleisIds,
         fehler: &mut Vec<KeineIdVerfügbar>,
-        streckenabschnitt: &Option<streckenabschnitt::Name>,
+        streckenabschnitt: Option<&streckenabschnitt::Name>,
     ) -> v4::GleiseDatenSerialisiert {
         macro_rules! erstelle_maps {
             ($($gleis_art: ident - $steuerung: ident : $typ: ident),* $(,)?) => {{
@@ -126,8 +152,8 @@ impl GleiseDatenSerialisiert {
                 $(
                     let definitionen = &mut zugtyp.$gleis_art;
                     let definitionen_invertiert = &mut definition_maps.$gleis_art;
-                    let ($gleis_art, _nächste_id) = $gleis_art.into_iter().enumerate_checked().fold(
-                        (HashMap::new(), Some(0)),
+                    let ($gleis_art, nächste_gleis_id) = $gleis_art.into_iter().enumerate_checked().fold(
+                        (HashMap::new(), nächste_gleis_ids.$gleis_art),
                         |(mut elemente, mut nächste_definition_id), (gleis_id, gleis)| {
                             let Gleis { definition, position } = gleis;
                             let Some(gleis_id) = gleis_id else {
@@ -140,7 +166,7 @@ impl GleiseDatenSerialisiert {
                                     Entry::Occupied(occupied) => occupied.get().clone(),
                                     Entry::Vacant(vacant) => {
                                         let id = if let Some(id) = nächste_definition_id {
-                                            nächste_definition_id = id.checked_add(&1);
+                                            nächste_definition_id = id.checked_add(1);
                                             id
                                         } else {
                                             fehler.push(KeineIdVerfügbar::für::<$typ<()>>());
@@ -156,13 +182,14 @@ impl GleiseDatenSerialisiert {
                                 definition: definition_id,
                                 steuerung,
                                 position,
-                                streckenabschnitt: streckenabschnitt.clone(),
+                                streckenabschnitt: streckenabschnitt.cloned(),
                             };
                             // gleis_id ist eindeutig, da es durch enumerate erzeugt wurde
                             let _ = elemente.insert(gleis_id, v4_gleis);
                             (elemente, nächste_definition_id)
                         },
                     );
+                    nächste_gleis_ids.$gleis_art = nächste_gleis_id;
                 )*
                 v4::GleiseDatenSerialisiert { $($gleis_art),* }
             }};
@@ -208,6 +235,60 @@ pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
 
 impl<L: Leiter, S> ZustandSerialisiert<L, S> {
     pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZustandSerialisiert<L, S> {
-        todo!()
+        let ZustandSerialisiert {
+            zugtyp,
+            ohne_streckenabschnitt,
+            ohne_geschwindigkeit,
+            geschwindigkeiten,
+            pläne,
+        } = self;
+        let mut zugtyp = zugtyp.v4(fehler);
+        let mut definition_maps = DefinitionMaps::neu();
+        let mut nächste_gleis_ids = NächsteGleisIds::neu();
+        let mut gleise = ohne_streckenabschnitt.v4(
+            &mut zugtyp,
+            &mut definition_maps,
+            &mut nächste_gleis_ids,
+            fehler,
+            None,
+        );
+        let mut konvertiere_streckenabschnitt_map =
+            |streckenabschnitt_map: StreckenabschnittMapSerialisiert,
+             geschwindigkeit: Option<&geschwindigkeit::Name>| {
+                let mut streckenabschnitte = HashMap::new();
+                for (name, (streckenabschnitt, gleise_daten)) in streckenabschnitt_map {
+                    gleise.verschmelze(gleise_daten.v4(
+                        &mut zugtyp,
+                        &mut definition_maps,
+                        &mut nächste_gleis_ids,
+                        fehler,
+                        Some(&name),
+                    ));
+                    // name ist eindeutig, da er aus einer HashMap kommt
+                    // (und Assoziation zu einer Geschwindigkeit in v3 nicht möglich ist)
+                    let bisher = streckenabschnitte
+                        .insert(name.clone(), (streckenabschnitt, geschwindigkeit.cloned()));
+                    if let Some(bisher) = bisher {
+                        error!("Streckenabschnitt {} überschrieben!\n{:?}", name.0, bisher);
+                    }
+                }
+                streckenabschnitte
+            };
+        let mut streckenabschnitte = konvertiere_streckenabschnitt_map(ohne_geschwindigkeit, None);
+        let mut v4_geschwindigkeiten = HashMap::new();
+        for (name, (geschwindigkeit, streckenabschnitt_map)) in geschwindigkeiten {
+            let neue_streckenabschnitte =
+                konvertiere_streckenabschnitt_map(streckenabschnitt_map, Some(&name));
+            streckenabschnitte.extend(neue_streckenabschnitte);
+            // name ist eindeutig, da er aus einer HashMap kommt
+            let _ = v4_geschwindigkeiten.insert(name, geschwindigkeit);
+        }
+        v4::ZustandSerialisiert {
+            zugtyp,
+            geschwindigkeiten: v4_geschwindigkeiten,
+            streckenabschnitte,
+            gleise,
+            pläne,
+        }
     }
 }

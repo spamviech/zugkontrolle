@@ -95,6 +95,23 @@ impl GleiseDatenSerialisiert {
             kreuzungen: GleisMapSerialisiert::new(),
         }
     }
+
+    pub(crate) fn verschmelze(&mut self, andere: GleiseDatenSerialisiert) {
+        macro_rules! extend {
+            ($($gleis_art: ident),*) => {$(
+                self.$gleis_art.extend(andere.$gleis_art);
+            )*};
+        }
+        extend!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen
+        );
+    }
 }
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
