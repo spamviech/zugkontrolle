@@ -27,7 +27,7 @@ assoc = "0.1.3"
 bincode = "1.3.3"
 dyn-clonable = "0.9.0"
 either = "1.6.1"
-itertools = "0.11.0"
+itertools = "0.12.0"
 log = "0.4.14"
 once_cell = "1.17.1"
 parking_lot = "0.12.0"
@@ -41,7 +41,7 @@ version = "0.2.1"
 features = ["derive"]
 
 [dependencies.nonempty]
-version = "0.8.0"
+version = "0.9.0"
 features = ["serialize"]
 
 [dependencies.serde]
@@ -49,7 +49,7 @@ version = "1.0.136"
 features = ["derive"]
 
 [dependencies.flexi_logger]
-version = "0.25.2"
+version = "0.27.3"
 default_features = false
 features = ["colors"]
 
@@ -71,13 +71,13 @@ version = "0.1.3"
 default-features = false
 
 [dependencies.iced_aw]
-version = "0.6.0"
+version = "0.7.0"
 default-features = false
 features = ["card", "tab_bar", "tabs", "number_input"]
 
 # can't be used on non-raspi systems
 [dependencies.rppal]
-version = "0.14.1"
+version = "0.16.1"
 optional = true
 
 #[dependencies.libcamera]

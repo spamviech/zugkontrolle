@@ -13,9 +13,9 @@ rust-version = "1.59"
 proc-macro = true
 
 [dependencies]
-cargo_metadata = "0.17.0"
+cargo_metadata = "0.18.1"
 proc-macro2 = "1.0.36"
-proc-macro-crate = "1.1.3"
+proc-macro-crate = "2.0.1"
 quote = "1.0.15"
 
 [dependencies.heck]

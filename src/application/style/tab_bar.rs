@@ -3,6 +3,7 @@
 
 use iced::{Background, Color};
 use iced_aw::style::tab_bar::{Appearance, StyleSheet};
+use iced_core::BorderRadius;
 
 use crate::application::style::thema::Thema;
 
@@ -21,6 +22,8 @@ impl TabBar {
             tab_label_border_color: Color::BLACK,
             tab_label_border_width: 1.,
             icon_color: Color::BLACK,
+            icon_background: None,
+            icon_border_radius: BorderRadius::default(),
             text_color: Color::BLACK,
         }
     }
@@ -29,7 +32,7 @@ impl TabBar {
 impl StyleSheet for Thema {
     type Style = TabBar;
 
-    fn active(&self, style: Self::Style, is_active: bool) -> Appearance {
+    fn active(&self, style: &Self::Style, is_active: bool) -> Appearance {
         match self {
             Thema::Hell => {
                 let grey_value: f32;
@@ -43,7 +46,7 @@ impl StyleSheet for Thema {
         }
     }
 
-    fn hovered(&self, style: Self::Style, _is_active: bool) -> Appearance {
+    fn hovered(&self, style: &Self::Style, _is_active: bool) -> Appearance {
         match self {
             Thema::Hell => {
                 let grey_value = 0.7;

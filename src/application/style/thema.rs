@@ -128,7 +128,7 @@ impl text_input::StyleSheet for Thema {
 impl card::StyleSheet for Thema {
     type Style = <iced::Theme as card::StyleSheet>::Style;
 
-    fn active(&self, style: Self::Style) -> card::Appearance {
+    fn active(&self, style: &Self::Style) -> card::Appearance {
         match self {
             Thema::Hell => card::StyleSheet::active(&iced::Theme::Light, style),
         }
@@ -176,19 +176,19 @@ impl radio::StyleSheet for Thema {
 impl number_input::StyleSheet for Thema {
     type Style = <iced::Theme as number_input::StyleSheet>::Style;
 
-    fn active(&self, style: Self::Style) -> number_input::Appearance {
+    fn active(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::active(&iced::Theme::Light, style),
         }
     }
 
-    fn pressed(&self, style: Self::Style) -> number_input::Appearance {
+    fn pressed(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::pressed(&iced::Theme::Light, style),
         }
     }
 
-    fn disabled(&self, style: Self::Style) -> number_input::Appearance {
+    fn disabled(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::disabled(&iced::Theme::Light, style),
         }
