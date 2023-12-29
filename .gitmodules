@@ -4,3 +4,6 @@
 [submodule "dockerfiles/docker"]
 	path = dockerfiles/docker
 	url = git@github.com:iced-rs/docker.git
+[submodule "fonts/noto-emoji"]
+	path = fonts/noto-emoji
+	url = git@github.com:googlefonts/noto-emoji.git

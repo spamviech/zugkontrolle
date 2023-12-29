@@ -1544,27 +1544,58 @@ the following restrictions:
     ))
 }
 
+/// Einstellungen für das Copyright-Präfix einer Ofl-Lizenz.
+#[derive(Debug)]
+pub struct OflCopyright<'t> {
+    /// Wird ein (c) nach Copyright angezeigt?
+    pub copyright_c: bool,
+    /// Das Jahr des Copyrights.
+    pub jahr: &'t str,
+    /// Der Name des Copyright-Halters.
+    pub voller_name: &'t str,
+    /// Der Name des Fonts.
+    pub font_name: &'t str,
+    /// Wird nach dem Font-Namen ein Punkt hinzugefügt?
+    pub punkt_nach_font_name: bool,
+    /// Ein extra Suffix nach dem Copyright-Text.
+    pub extra_notice: &'t str,
+}
+
+impl Display for OptionD<OflCopyright<'_>, ()> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(copyright) = &self.0 {
+            let OflCopyright {
+                copyright_c,
+                jahr,
+                voller_name,
+                font_name,
+                punkt_nach_font_name,
+                extra_notice,
+            } = copyright;
+            let copyright_c_str = if *copyright_c { "(c) " } else { "" };
+            let punkt_nach_font_name_str = if *punkt_nach_font_name { "." } else { "" };
+            write!(f, "Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}\n\n")
+        } else {
+            Ok(())
+        }
+    }
+}
+
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
 pub fn ofl_1_1<'t>(
-    copyright_c: bool,
-    jahr: &str,
-    voller_name: &str,
-    font_name: &str,
-    punkt_nach_font_name: bool,
-    extra_notice: &str,
+    copyright: Option<OflCopyright<'_>>,
+    neue_zeile_vor_version: bool,
     leerzeile: bool,
     neue_zeile_vor_url: bool,
     extra_leerzeichen: bool,
 ) -> Cow<'t, str> {
-    let copyright_c_str = if copyright_c { "(c) " } else { "" };
-    let punkt_nach_font_name_str = if punkt_nach_font_name { "." } else { "" };
+    let copyright_d = OptionD(copyright, ());
+    let neue_zeile_vor_version_str = if neue_zeile_vor_version { "\n" } else { " " };
     let leerzeile_str = if leerzeile { "\n" } else { "" };
     let neue_zeile_vor_url_str = if neue_zeile_vor_url { "\n" } else { " " };
     let extra_leerzeichen_str = if extra_leerzeichen { " " } else { "" };
     Cow::Owned(format!(
-        r#"Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}
-
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
+        r#"{copyright_d}This Font Software is licensed under the SIL Open Font License,{neue_zeile_vor_version_str}Version 1.1.
 {leerzeile_str}This license is copied below, and is also available with a FAQ at:{neue_zeile_vor_url_str}http://scripts.sil.org/OFL
 
 

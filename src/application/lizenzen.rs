@@ -23,6 +23,7 @@ use once_cell::sync::Lazy;
 
 use crate::{
     application::{
+        lizenzen::texte::OflCopyright,
         map_mit_zustand::MapMitZustand,
         style::{
             self,
@@ -683,34 +684,31 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
             "SourceSerif4-Regular",
             Lizenz::neu(|| {
                 let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
-                ofl_1_1(
-                    false,
-                    "2014-2021",
-                    "Adobe (http://www.adobe.com/),",
-                    "'Source'",
-                    true,
+                let copyright = OflCopyright {
+                    copyright_c: false,
+                    jahr: "2014-2021",
+                    voller_name: "Adobe (http://www.adobe.com/),",
+                    font_name: "'Source'",
+                    punkt_nach_font_name: true,
                     extra_notice,
-                    true,
-                    false,
-                    false,
-                )
+                };
+                ofl_1_1(Some(copyright), false, true, false, false)
             }),
         ),
+        ("Noto Color Emoji", Lizenz::neu(|| ofl_1_1(None, true, false, true, false))),
         // Über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
         (
             "Lato",
             Lizenz::neu(|| {
-                ofl_1_1(
-                    true,
-                    "2010-2014",
-                    "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
-                    "\"Lato\"",
-                    false,
-                    "",
-                    false,
-                    true,
-                    true,
-                )
+                let copyright = OflCopyright {
+                    copyright_c: true,
+                    jahr: "2010-2014",
+                    voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
+                    font_name: "\"Lato\"",
+                    punkt_nach_font_name: false,
+                    extra_notice: "",
+                };
+                ofl_1_1(Some(copyright), false, false, true, true)
             }),
         ),
         ("ab_glyph", Lizenz::neu(|| ab_glyph_lizenz(false, 0))),
