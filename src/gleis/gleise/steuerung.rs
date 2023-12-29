@@ -136,6 +136,16 @@ pub trait MitSteuerung {
     type Steuerung;
     /// Die serialisierte Steuerung für das Gleis.
     type Serialisiert;
+
+    /// Erzeuge eine Referenz auf die Steuerung, ohne die Möglichkeit sie zu verändern.
+    fn steuerung(&self) -> &Self::Steuerung;
+
+    /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
+    /// ein [Neuzeichnen des Canvas](crate::typen::canvas::Cache::leeren) auslöst.
+    fn steuerung_mut(
+        &mut self,
+        sender: impl 'static + AktualisierenSender,
+    ) -> Steuerung<&mut Self::Steuerung>;
 }
 
 macro_rules! impl_mit_steuerung {
@@ -146,6 +156,17 @@ macro_rules! impl_mit_steuerung {
             type Steuerung = $steuerung;
 
             type Serialisiert = $serialisiert;
+
+            fn steuerung(& self) -> & Self::Steuerung {
+                &self.$ident
+            }
+
+            fn steuerung_mut(
+                & mut self,
+                sender: impl 'static + AktualisierenSender,
+            ) -> Steuerung<& mut Self::Steuerung> {
+                Steuerung::neu(&mut self.$ident, sender)
+            }
         }
     };
 }
