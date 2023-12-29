@@ -161,7 +161,7 @@ impl GleiseDatenSerialisiert {
                         (HashMap::new(), Some(0)),
                         |(mut elemente, mut nächste_definition_id), (gleis_id, gleis)| {
                             let Some(gleis_id) = gleis_id else {
-                                fehler.push(KeineIdVerfügbar);
+                                fehler.push(KeineIdVerfügbar::für::<$typ>());
                                 return (elemente, nächste_definition_id);
                             };
                             let Gleis { definition, position } = gleis;
@@ -174,7 +174,7 @@ impl GleiseDatenSerialisiert {
                                             nächste_definition_id = id.checked_add(&1);
                                             id
                                         } else {
-                                            fehler.push(KeineIdVerfügbar);
+                                            fehler.push(KeineIdVerfügbar::für::<$typ<()>>());
                                             return (elemente, nächste_definition_id);
                                         };
                                         let definition: $typ<()> = definition.into();

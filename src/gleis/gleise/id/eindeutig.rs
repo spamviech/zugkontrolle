@@ -84,7 +84,16 @@ impl<T> Drop for Id<T> {
 
 /// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [Id] verfügbar.
 #[derive(Debug, Clone, Copy)]
-pub struct KeineIdVerfügbar;
+pub struct KeineIdVerfügbar {
+    type_id: TypeId,
+    type_name: &'static str,
+}
+
+impl KeineIdVerfügbar {
+    pub fn für<T: 'static>() -> KeineIdVerfügbar {
+        KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
+    }
+}
 
 impl<T> Id<T> {
     /// Erhalte eine bisher unbenutzte [Id].
@@ -96,7 +105,7 @@ impl<T> Id<T> {
         while !set.insert(id) {
             id = id.wrapping_add(1);
             if id == initial {
-                return Err(KeineIdVerfügbar);
+                return Err(KeineIdVerfügbar::für::<T>());
             }
         }
         trace!("Erzeuge Id '{}' für Typ '{}'.", id, type_name::<T>());
