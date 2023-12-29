@@ -1,28 +1,16 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use std::{convert::identity, fmt::Debug};
-
 use crate::{
-    anschluss::{
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        Lager,
-    },
-    gleis::{
-        gleise::{
-            self,
-            daten::{
-                AnyGleis2, BewegenFehler2, EntfernenFehler2, HinzufügenFehler2,
-                SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
-            },
-            id::{
-                AnyDefinitionIdSteuerung2, AnyDefinitionIdSteuerungVerbindung2, AnyId2,
-                AnyIdSteuerung2, AnyIdSteuerungSerialisiert2, AnyIdVerbindung2, GleisId,
-            },
-            nachricht::GleisSteuerung,
-            steuerung::{MitSteuerung, SomeAktualisierenSender},
-            AnschlüsseAnpassenFehler, Gehalten2, Gleise, ModusDaten,
+    anschluss::Lager,
+    gleis::gleise::{
+        self,
+        daten::{
+            AnyGleis2, BewegenFehler2, EntfernenFehler2, HinzufügenFehler2,
+            SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
         },
-        verbindung::Verbindung,
+        id::{AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2},
+        steuerung::SomeAktualisierenSender,
+        Gehalten2, Gleise, ModusDaten,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
     typen::{canvas::Position, vektor::Vektor},
@@ -94,40 +82,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(gleis_id)
     }
 
-    /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung`
-    /// mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
-    pub(in crate::gleis::gleise) fn hinzufügen_anliegend2(
-        &mut self,
-        definition_steuerung_verbindung: impl Into<AnyDefinitionIdSteuerungVerbindung2>,
-        streckenabschnitt: Option<streckenabschnitt::Name>,
-        ziel_verbindung: Verbindung,
-    ) -> Result<AnyId2, HinzufügenFehler2> {
-        self.zustand2.hinzufügen_anliegend(
-            definition_steuerung_verbindung.into(),
-            streckenabschnitt,
-            ziel_verbindung,
-        )
-    }
-
-    /// Bewege ein [Gleis] an die neue [Position].
-    pub(in crate::gleis::gleise) fn bewegen2(
-        &mut self,
-        gleis_id: impl Into<AnyId2>,
-        position: Position,
-        einrasten: bool,
-    ) -> Result<(), BewegenFehler2> {
-        self.zustand2.bewegen(gleis_id.into(), position, einrasten)
-    }
-
-    /// Bewege ein [Gleis], so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    pub(in crate::gleis::gleise) fn bewegen_anliegend2(
-        &mut self,
-        id_verbindung: impl Into<AnyIdVerbindung2>,
-        ziel_verbindung: Verbindung,
-    ) -> Result<(), BewegenFehler2> {
-        self.zustand2.bewegen_anliegend(id_verbindung.into(), ziel_verbindung)
-    }
-
     /// Entferne das [Gleis] assoziiert mit der [GleisId].
     pub(in crate::gleis::gleise) fn entfernen2(
         &mut self,
@@ -164,147 +118,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
         self.zustand2.setze_streckenabschnitt(gleis_id, streckenabschnitt)
-    }
-
-    #[allow(single_use_lifetimes)]
-    fn gleis_anschlüsse_anpassen<T, W, S>(
-        &mut self,
-        id: GleisId<T>,
-        anschlüsse_serialisiert: Option<S>,
-        lager: &mut Lager,
-        move_arg: <S as Reserviere<W>>::MoveArg,
-    ) -> Result<(), AnschlüsseAnpassenFehler>
-    where
-        T: for<'t> MitSteuerung<Steuerung = Option<W>>,
-        W: Serialisiere<S>,
-        S: Debug + Reserviere<W, RefArg = (), MutRefArg = ()>,
-        <S as Reserviere<W>>::MoveArg: Clone,
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
-    {
-        use Ergebnis::*;
-        self.mit_steuerung_mut(
-            &id,
-            (self.sender.clone(), AktualisierenNachricht::from),
-            |mut steuerung| {
-                let anschlüsse_serialisiert =
-                    if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
-                        anschlüsse_serialisiert
-                    } else {
-                        let _ = steuerung.take();
-                        return Ok(());
-                    };
-                let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
-                    (Some(s.serialisiere()), s.anschlüsse())
-                } else {
-                    (None, Anschlüsse::default())
-                };
-                let (fehler, anschlüsse) = match anschlüsse_serialisiert.reserviere(
-                    lager,
-                    anschlüsse,
-                    move_arg.clone(),
-                    &(),
-                    &mut (),
-                ) {
-                    Wert { anschluss, .. } => {
-                        let _ = steuerung.insert(anschluss);
-                        return Ok(());
-                    },
-                    FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
-                        anschlüsse.anhängen(anschluss.anschlüsse());
-                        (fehler, anschlüsse)
-                    },
-                    Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
-                };
-                let mut wiederherstellen_fehler = None;
-                if let Some(steuerung_serialisiert) = steuerung_serialisiert {
-                    let serialisiert_string = format!("{steuerung_serialisiert:?}");
-                    match steuerung_serialisiert.reserviere(
-                        lager,
-                        anschlüsse,
-                        move_arg,
-                        &(),
-                        &mut (),
-                    ) {
-                        Wert { anschluss, .. } => {
-                            let _ = steuerung.insert(anschluss);
-                        },
-                        FehlerMitErsatzwert { anschluss, fehler, .. } => {
-                            let _ = steuerung.insert(anschluss);
-                            wiederherstellen_fehler = Some((fehler, serialisiert_string));
-                        },
-                        Fehler { fehler, .. } => {
-                            wiederherstellen_fehler = Some((fehler, serialisiert_string))
-                        },
-                    }
-                }
-                Err(AnschlüsseAnpassenFehler::Deserialisieren { fehler, wiederherstellen_fehler })
-            },
-        )
-        .map_err(AnschlüsseAnpassenFehler::from)
-        .and_then(identity)
-        // TODO and_then(identity) is actually flatten, but this hasn't been stabilized yet
-        // https://doc.rust-lang.org/src/core/result.rs.html#1739
-    }
-
-    /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(
-        &mut self,
-        lager: &mut Lager,
-        gleis_steuerung: GleisSteuerung,
-    ) -> Result<(), AnschlüsseAnpassenFehler>
-    where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
-    {
-        let aktualisieren_sender =
-            SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from));
-        match gleis_steuerung {
-            GleisSteuerung::Gerade(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
-                id,
-                anschlüsse_serialisiert,
-                lager,
-                aktualisieren_sender,
-            ),
-            GleisSteuerung::Kurve(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
-                id,
-                anschlüsse_serialisiert,
-                lager,
-                aktualisieren_sender,
-            ),
-            GleisSteuerung::Weiche(id, anschlüsse_serialisiert) => self.gleis_anschlüsse_anpassen(
-                id,
-                anschlüsse_serialisiert,
-                lager,
-                aktualisieren_sender,
-            ),
-            GleisSteuerung::DreiwegeWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::KurvenWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::SKurvenWeiche(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-            GleisSteuerung::Kreuzung(id, anschlüsse_serialisiert) => self
-                .gleis_anschlüsse_anpassen(
-                    id,
-                    anschlüsse_serialisiert,
-                    lager,
-                    aktualisieren_sender,
-                ),
-        }
     }
 
     /// Passe die Anschlüsse für ein Gleis an.

@@ -27,16 +27,16 @@ use crate::{
     util::nachschlagen::impl_nachschlagen,
 };
 
-type Anschlüsse = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
+type Steuerung = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
 
 /// Definition einer Dreiwege-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DreiwegeWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct DreiwegeWeiche<Anschlüsse = Option<Steuerung>> {
     /// Die Länge der Gerade.
     pub länge: Skalar,
     /// Der Radius der Kurven.

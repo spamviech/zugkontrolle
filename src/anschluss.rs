@@ -630,12 +630,18 @@ pub enum Fehler {
     ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
     /// Ein Gleis wurde mit unbekannter [DefinitionId] gespeichert.
     UnbekannteGespeicherteDefinition {
+        /// Die gespeicherte Id.
         id: id::Repräsentation,
+        /// Die Typ-Id, zu der die Id gehört.
         type_id: TypeId,
+        /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
     /// Ein Gleis mit unbekannter [DefinitionId].
-    UnbekannteDefinition { id: AnyDefinitionId2 },
+    UnbekannteDefinition {
+        /// Die Id ohne zugehörigen Eintrag im [Zugtyp].
+        id: AnyDefinitionId2,
+    },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.

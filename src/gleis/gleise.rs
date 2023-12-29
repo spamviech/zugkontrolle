@@ -21,8 +21,7 @@ use crate::{
             de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler2,
             StreckenabschnittEntferntFehler2, Zustand2,
         },
-        id::StreckenabschnittId,
-        nachricht::{Gehalten, Gehalten2, Nachricht},
+        nachricht::{Gehalten2, Nachricht},
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -52,7 +51,7 @@ pub mod update;
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten: Option<Gehalten>, gehalten2: Option<Gehalten2>, letzter_klick: Instant },
+    Bauen { gehalten2: Option<Gehalten2>, letzter_klick: Instant },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
@@ -60,9 +59,7 @@ enum ModusDaten {
 impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
-            Modus::Bauen => {
-                ModusDaten::Bauen { gehalten: None, gehalten2: None, letzter_klick: Instant::now() }
-            },
+            Modus::Bauen => ModusDaten::Bauen { gehalten2: None, letzter_klick: Instant::now() },
             Modus::Fahren => ModusDaten::Fahren,
         }
     }
@@ -361,7 +358,7 @@ where
         cursor: Cursor,
     ) -> mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(bounds) => {
+            ModusDaten::Bauen { gehalten2: Some(_gehalten), .. } if cursor.is_over(bounds) => {
                 mouse::Interaction::Pointer
             },
             _ => mouse::Interaction::default(),
@@ -380,8 +377,6 @@ pub enum Fehler {
     Anschluss(anschluss::Fehler),
     /// Das betroffene Gleis wurde entfernt.
     GleisEntfernt,
-    /// Der betroffene [Streckenabschnitt] wurde entfernt.
-    StreckenabschnittEntfernt(StreckenabschnittId),
     /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
@@ -406,11 +401,9 @@ impl From<anschluss::Fehler> for Fehler {
 
 /// Fehler bei Interaktion mit einem [bestimmten Gleis](AnyId).
 #[derive(Debug)]
-pub enum GleisIdFehler {
+pub(crate) enum GleisIdFehler {
     /// Das betroffene Gleis wurde entfernt.
     GleisEntfernt,
-    /// Der betroffene [Streckenabschnitt] wurde entfernt.
-    StreckenabschnittEntfernt(StreckenabschnittId),
     /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
@@ -419,9 +412,6 @@ impl From<GleisIdFehler> for Fehler {
     fn from(fehler: GleisIdFehler) -> Self {
         match fehler {
             GleisIdFehler::GleisEntfernt => Fehler::GleisEntfernt,
-            GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
-                Fehler::StreckenabschnittEntfernt(streckenabschnitt)
-            },
             GleisIdFehler::GeschwindigkeitEntfernt(name) => Fehler::GeschwindigkeitEntfernt(name),
         }
     }
@@ -445,9 +435,7 @@ impl From<GleisEntferntFehler> for GleisIdFehler {
 
 /// Fehler bei Interaktion mit einem [Streckenabschnitt]
 #[derive(Debug)]
-pub enum StreckenabschnittIdFehler {
-    /// Der betroffene Streckenabschnitt wurde entfernt.
-    StreckenabschnittEntfernt(StreckenabschnittId),
+pub(crate) enum StreckenabschnittIdFehler {
     /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
 }
@@ -455,9 +443,6 @@ pub enum StreckenabschnittIdFehler {
 impl From<StreckenabschnittIdFehler> for Fehler {
     fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
-            StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
-                Fehler::StreckenabschnittEntfernt(streckenabschnitt)
-            },
             StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 Fehler::GeschwindigkeitEntfernt(geschwindigkeit)
             },
@@ -468,9 +453,6 @@ impl From<StreckenabschnittIdFehler> for Fehler {
 impl From<StreckenabschnittIdFehler> for GleisIdFehler {
     fn from(fehler: StreckenabschnittIdFehler) -> Self {
         match fehler {
-            StreckenabschnittIdFehler::StreckenabschnittEntfernt(streckenabschnitt) => {
-                GleisIdFehler::StreckenabschnittEntfernt(streckenabschnitt)
-            },
             StreckenabschnittIdFehler::GeschwindigkeitEntfernt(geschwindigkeit) => {
                 GleisIdFehler::GeschwindigkeitEntfernt(geschwindigkeit)
             },
@@ -509,15 +491,9 @@ pub enum StreckenabschnittHinzufügenFehler {
 
 /// Fehler beim Bearbeiten eines [Streckenabschnittes](Streckenabschnitt).
 #[derive(Debug)]
-pub enum StreckenabschnittBearbeitenFehler {
-    /// Der betroffene [Streckenabschnitt] wurde entfernt.
-    StreckenabschnittEntfernt(StreckenabschnittId),
+pub(crate) enum StreckenabschnittBearbeitenFehler {
     /// Die betroffene [Geschwindigkeit] wurde entfernt.
     GeschwindigkeitEntfernt(geschwindigkeit::Name),
-    /// Es gibt noch mit dem [Streckenabschnitt] assoziierte Gleise.
-    GleiseNichtEntfernt(StreckenabschnittId),
-    /// Es wurde die selbe [Geschwindigkeit] gewählt.
-    IdentischeGeschwindigkeit(Option<geschwindigkeit::Name>),
 }
 
 impl From<GeschwindigkeitEntferntFehler> for StreckenabschnittBearbeitenFehler {
@@ -536,13 +512,15 @@ pub enum GeschwindigkeitEntfernenFehler {
 /// Fehler, die beim Anpassen der Anschlüsse eines Gleises auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
-pub enum AnschlüsseAnpassenFehler {
+pub(crate) enum AnschlüsseAnpassenFehler {
     /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
+        #[allow(dead_code)]
         fehler: NonEmpty<anschluss::Fehler>,
         /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
+        #[allow(dead_code)]
         wiederherstellen_fehler: Option<(NonEmpty<anschluss::Fehler>, String)>,
     },
     /// Das betroffene Gleis wurde entfernt.

@@ -4,20 +4,11 @@
 use std::fmt::{self, Debug, Formatter};
 
 use log::error;
-use rstar::RTreeObject;
 
 use crate::{
-    gleis::{
-        self,
-        gleise::{
-            daten::{Gleis2, SelectEnvelope},
-            id::{AnyId2, GleisId},
-            GleisIdFehler, Gleise,
-        },
-    },
+    gleis,
     steuerung::{
         self,
-        geschwindigkeit::Leiter,
         kontakt::{Kontakt, KontaktSerialisiert},
     },
     util::sender_trait::erstelle_sender_trait_existential,
@@ -145,59 +136,6 @@ pub trait MitSteuerung {
     type Steuerung;
     /// Die serialisierte Steuerung für das Gleis.
     type Serialisiert;
-    /// Erzeuge eine Referenz auf die Steuerung, ohne die Möglichkeit sie zu verändern.
-    fn steuerung(&self) -> &Self::Steuerung;
-    /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
-    /// ein [Neuzeichnen des Canvas](crate::typen::canvas::Cache::leeren) auslöst.
-    fn steuerung_mut(
-        &mut self,
-        sender: impl 'static + AktualisierenSender,
-    ) -> Steuerung<&mut Self::Steuerung>;
-}
-
-impl<L: Leiter, AktualisierenNachricht: 'static> Gleise<L, AktualisierenNachricht> {
-    // #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn mit_steuerung<T: MitSteuerung, V>(
-        &self,
-        gleis_id: &GleisId<T>,
-        f: impl FnOnce(&<T as MitSteuerung>::Steuerung) -> V,
-    ) -> Result<V, GleisIdFehler> {
-        // let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        // let Gleis { definition, position: _ }: &Gleis<T> = &self
-        //     .zustand
-        //     .daten(streckenabschnitt)?
-        //     .rstern()
-        //     .locate_with_selection_function(SelectEnvelope(rectangle.envelope()))
-        //     .next()
-        //     .ok_or(GleisIdFehler::GleisEntfernt)?
-        //     .data;
-        // let steuerung = definition.steuerung();
-        // Ok(f(steuerung))
-        todo!()
-    }
-
-    // #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Erhalte die [Steuerung] für das spezifizierte Gleis.
-    pub(crate) fn mit_steuerung_mut<T: MitSteuerung, V>(
-        &mut self,
-        gleis_id: &GleisId<T>,
-        sender: impl 'static + AktualisierenSender,
-        f: impl FnOnce(Steuerung<&mut <T as MitSteuerung>::Steuerung>) -> V,
-    ) -> Result<V, GleisIdFehler> {
-        // let GleisId { rectangle, streckenabschnitt, phantom: _ } = gleis_id;
-        // let Gleis { definition, position: _ }: &mut Gleis<T> = &mut self
-        //     .zustand
-        //     .daten_mut(streckenabschnitt)?
-        //     .rstern_mut()
-        //     .locate_with_selection_function_mut(SelectEnvelope(rectangle.envelope()))
-        //     .next()
-        //     .ok_or(GleisIdFehler::GleisEntfernt)?
-        //     .data;
-        // let steuerung = definition.steuerung_mut(sender);
-        // Ok(f(steuerung))
-        todo!()
-    }
 }
 
 macro_rules! impl_mit_steuerung {
@@ -208,19 +146,6 @@ macro_rules! impl_mit_steuerung {
             type Steuerung = $steuerung;
 
             type Serialisiert = $serialisiert;
-
-            #[inline]
-            fn steuerung(&self) -> &Self::Steuerung {
-                &self.$ident
-            }
-
-            #[inline]
-            fn steuerung_mut(
-                &mut self,
-                sender: impl 'static + AktualisierenSender,
-            ) -> Steuerung<&mut Self::Steuerung> {
-                Steuerung::neu(&mut self.$ident, sender)
-            }
         }
     };
 }

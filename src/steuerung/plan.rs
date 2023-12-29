@@ -292,18 +292,19 @@ pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur jeweiligen Gleis-Steuerung.
 #[derive(Debug)]
-pub(crate) struct SteuerungMaps<L, S> {
-    pub(crate) geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
-    pub(crate) streckenabschnitte: HashMap<OutputSerialisiert, Streckenabschnitt>,
-    pub(crate) gerade_weichen: HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
-    pub(crate) dreiwege_weichen: HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
-    pub(crate) kurven_weichen: HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
-    pub(crate) kontakte: HashMap<KontaktSerialisiert, Kontakt>,
+#[allow(missing_docs)]
+pub struct SteuerungMaps<L, S> {
+    pub geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
+    pub streckenabschnitte: HashMap<OutputSerialisiert, Streckenabschnitt>,
+    pub gerade_weichen: HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
+    pub dreiwege_weichen: HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
+    pub kurven_weichen: HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
+    pub kontakte: HashMap<KontaktSerialisiert, Kontakt>,
 }
 
 impl<L, S> SteuerungMaps<L, S> {
     /// Erzeuge eine neue, leere [SteuerungMaps].
-    pub(crate) fn neu() -> SteuerungMaps<L, S> {
+    pub fn neu() -> SteuerungMaps<L, S> {
         SteuerungMaps {
             geschwindigkeiten: HashMap::new(),
             streckenabschnitte: HashMap::new(),

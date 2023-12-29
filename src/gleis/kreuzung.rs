@@ -29,12 +29,12 @@ use crate::{
 
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
-type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 
 /// Definition einer Kreuzung.
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct Kreuzung<Anschlüsse = Option<Steuerung>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Kurvenradius; legt automatisch den Winkel fest.

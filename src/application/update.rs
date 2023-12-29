@@ -1,7 +1,6 @@
 //! Methoden für die [update](iced::Application::update)-Methode des [iced::Application]-Traits.
 
 use std::{
-    cell::Ref,
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
@@ -20,17 +19,15 @@ use crate::{
         OutputSerialisiert,
     },
     application::{
-        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, nachricht::AnyGleisUnit,
-        style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
+        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, style::thema::Thema, MessageBox,
+        Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
         self,
-        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2, StreckenabschnittMap2},
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2},
         id::{
-            mit_any_id, mit_any_id2, AnyDefinitionIdSteuerung2, AnyId, AnyId2,
-            AnyIdSteuerungSerialisiert2, StreckenabschnittId, StreckenabschnittIdRef,
+            AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerungSerialisiert2, StreckenabschnittIdRef,
         },
-        AnschlüsseAnpassenFehler, Gleise,
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -199,10 +196,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             self.streckenabschnitt_aktuell = None
         }
 
-        let nicht_gefunden_nachricht = format!(
-            "Streckenabschnitt {} sollte entfernt werden, aber wurde nicht gefunden!",
-            name.0
-        );
         match self.gleise.streckenabschnitt_entfernen(name) {
             Ok(_) => {},
             Err(name) => error!(

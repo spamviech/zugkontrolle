@@ -34,17 +34,12 @@ mod test;
 
 /// Id für einen Streckenabschnitt.
 #[derive(Debug, PartialEq, Eq)]
-pub struct StreckenabschnittId {
+pub(crate) struct StreckenabschnittId {
     pub(crate) geschwindigkeit: Option<geschwindigkeit::Name>,
     pub(crate) name: streckenabschnitt::Name,
 }
 
 impl StreckenabschnittId {
-    // Als Methode definiert, damit es privat bleibt.
-    pub(crate) fn klonen(&self) -> Self {
-        Self { geschwindigkeit: self.geschwindigkeit.clone(), name: self.name.clone() }
-    }
-
     pub(crate) fn als_ref<'t>(&'t self) -> StreckenabschnittIdRef<'t> {
         StreckenabschnittIdRef { geschwindigkeit: self.geschwindigkeit.as_ref(), name: &self.name }
     }
@@ -52,21 +47,10 @@ impl StreckenabschnittId {
 
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug)]
-pub struct GleisId<T> {
+pub(crate) struct GleisId<T> {
     pub(in crate::gleis::gleise) rectangle: Rectangle<Vektor>,
     pub(in crate::gleis::gleise) streckenabschnitt: Option<StreckenabschnittId>,
     pub(in crate::gleis::gleise) phantom: PhantomData<fn() -> T>,
-}
-
-impl<T> GleisId<T> {
-    // Als Methode definiert, damit es privat bleibt.
-    pub(crate) fn klonen(&self) -> Self {
-        GleisId {
-            rectangle: self.rectangle.clone(),
-            streckenabschnitt: self.streckenabschnitt.as_ref().map(StreckenabschnittId::klonen),
-            phantom: self.phantom,
-        }
-    }
 }
 
 // Explizite Implementierung wegen Phantomtyp benötigt (derive erzeugt extra-Constraint).
@@ -78,7 +62,7 @@ impl<T> PartialEq for GleisId<T> {
 
 /// Id für ein beliebiges Gleis.
 #[derive(Debug, zugkontrolle_macros::From)]
-pub enum AnyId {
+pub(crate) enum AnyId {
     /// Eine [Gerade].
     Gerade(GleisId<Gerade>),
     /// Eine [Kurve].
@@ -109,35 +93,6 @@ impl PartialEq for AnyId {
         }
     }
 }
-
-macro_rules! mit_any_id {
-    ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
-        match $any_id {
-            crate::gleis::gleise::id::AnyId::Gerade(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::Kurve(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::Weiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::DreiwegeWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::KurvenWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::SKurvenWeiche(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-            crate::gleis::gleise::id::AnyId::Kreuzung(gleis_id) => {
-                $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
-            }
-        }
-    };
-}
-pub(crate) use mit_any_id;
 
 pub use eindeutig::Repräsentation;
 
@@ -460,16 +415,6 @@ impl<T> GleisIdRef<'_, T> {
     }
 }
 
-impl<T> GleisId<T> {
-    pub(in crate::gleis::gleise) fn als_ref(&self) -> GleisIdRef<'_, T> {
-        GleisIdRef {
-            rectangle: &self.rectangle,
-            streckenabschnitt: self.streckenabschnitt.as_ref().map(StreckenabschnittId::als_ref),
-            phantom: self.phantom,
-        }
-    }
-}
-
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::From)]
 pub(in crate::gleis::gleise) enum AnyIdRef<'t> {
     Gerade(GleisIdRef<'t, Gerade>),
@@ -514,20 +459,5 @@ impl PartialEq<AnyId> for AnyIdRef<'_> {
 impl<'t> PartialEq<AnyIdRef<'t>> for AnyId {
     fn eq(&self, other: &AnyIdRef<'t>) -> bool {
         other.eq(self)
-    }
-}
-
-impl AnyIdRef<'_> {
-    /// Klone die Referenzen um eine neue Id zu erzeugen.
-    pub(in crate::gleis::gleise) fn als_id(self) -> AnyId {
-        match self {
-            AnyIdRef::Gerade(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::Kurve(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::Weiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::DreiwegeWeiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::KurvenWeiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::SKurvenWeiche(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-            AnyIdRef::Kreuzung(gleis_id_ref) => AnyId::from(gleis_id_ref.als_id()),
-        }
     }
 }

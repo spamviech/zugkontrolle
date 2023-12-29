@@ -33,14 +33,14 @@ use crate::{
 
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
-type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 
 /// Definition einer Weiche mit S-Kurve.
 ///
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SKurvenWeiche<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct SKurvenWeiche<Anschlüsse = Option<Steuerung>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Radius der Kurve nach außen.

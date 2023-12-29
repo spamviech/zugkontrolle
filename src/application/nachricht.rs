@@ -18,10 +18,10 @@ use crate::{
         gleise::{
             self,
             id::{
-                mit_any_id2, AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyId2, AnyIdSteuerung2,
-                AnyIdSteuerungSerialisiert2, GleisId, GleisId2, StreckenabschnittId,
+                mit_any_id2, AnyDefinitionId2, AnyDefinitionIdSteuerung2, AnyId2,
+                AnyIdSteuerungSerialisiert2, GleisId2,
             },
-            nachricht::{GleisSteuerung, Nachricht as GleiseNachricht},
+            nachricht::Nachricht as GleiseNachricht,
             Modus,
         },
         knopf::KnopfNachricht,

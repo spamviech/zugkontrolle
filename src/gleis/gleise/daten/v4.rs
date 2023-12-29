@@ -84,18 +84,6 @@ pub(crate) struct GleiseDatenSerialisiert {
 }
 
 impl GleiseDatenSerialisiert {
-    pub(crate) fn neu() -> Self {
-        GleiseDatenSerialisiert {
-            geraden: GleisMapSerialisiert::new(),
-            kurven: GleisMapSerialisiert::new(),
-            weichen: GleisMapSerialisiert::new(),
-            dreiwege_weichen: GleisMapSerialisiert::new(),
-            kurven_weichen: GleisMapSerialisiert::new(),
-            s_kurven_weichen: GleisMapSerialisiert::new(),
-            kreuzungen: GleisMapSerialisiert::new(),
-        }
-    }
-
     pub(crate) fn verschmelze(&mut self, andere: GleiseDatenSerialisiert) {
         macro_rules! extend {
             ($($gleis_art: ident),*) => {$(

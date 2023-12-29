@@ -30,25 +30,8 @@ use crate::{
         style::thema::Thema,
     },
     argumente::{Argumente, I2cSettings, ZugtypArgument},
-    gleis::{
-        gerade::{Gerade, GeradeUnit},
-        gleise::{
-            daten::v2::BekannterZugtyp,
-            id::{DefinitionId2, StreckenabschnittId},
-            Gleise,
-        },
-        knopf::Knopf,
-        kreuzung::{Kreuzung, KreuzungUnit},
-        kurve::{Kurve, KurveUnit},
-        weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
-        },
-    },
+    gleis::gleise::{daten::v2::BekannterZugtyp, Gleise},
     steuerung::{
-        self,
         geschwindigkeit::{BekannterLeiter, Leiter},
         streckenabschnitt::Name as StreckenabschnittName,
     },

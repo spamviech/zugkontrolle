@@ -1,7 +1,6 @@
 //! [update](iced::widget::canvas::Program::update)-Methode für [Gleise].
 
 use std::{
-    marker::PhantomData,
     sync::mpsc::Sender,
     time::{Duration, Instant},
 };
@@ -21,17 +20,14 @@ use crate::{
         gerade::Gerade,
         gleise::{
             self,
-            daten::{BewegenFehler2, EntfernenFehler2, Gleis2, GleiseDaten2, RStern2, Zustand2},
-            id::{
-                mit_any_id, AnyId2, AnyIdSteuerung2, AnyIdSteuerungSerialisiert2, GleisIdRef,
-                StreckenabschnittIdRef,
-            },
+            daten::{BewegenFehler2, EntfernenFehler2, Zustand2},
+            id::{AnyIdSteuerung2, GleisIdRef},
             nachricht::{
                 Gehalten2, GleisSteuerung, IdUndSteuerungSerialisiert, Nachricht,
                 ZustandAktualisieren, ZustandAktualisierenEnum,
             },
             steuerung::{MitSteuerung, Steuerung},
-            Gehalten, GleisIdFehler, Gleise, ModusDaten,
+            Gleise, ModusDaten,
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
@@ -43,11 +39,9 @@ use crate::{
     steuerung::{
         geschwindigkeit::Leiter,
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
-        streckenabschnitt::{self, Streckenabschnitt},
+        streckenabschnitt::Streckenabschnitt,
     },
-    typen::{
-        canvas::Position, mm::Spurweite, skalar::Skalar, vektor::Vektor, winkel::Winkel, Zeichnen,
-    },
+    typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel},
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.
@@ -67,10 +61,6 @@ fn berechne_canvas_position(
 }
 
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
-
-// TODO innerhalb auf enum umstellen, dass zwischen
-// wirklich_innerhalb und innerhalb_toleranz unterscheidet?
-const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 type IdUndSteuerung<'t, T> = (GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung);
 
@@ -121,47 +111,6 @@ impl From<GleisSteuerungRef<'_>> for GleisSteuerung {
             },
         }
     }
-}
-
-/// Erhalte die Id, Steuerung und Streckenabschnitt des Gleises an der gesuchten Position.
-fn gleis_an_position<'t, T>(
-    spurweite: Spurweite,
-    streckenabschnitt: Option<(StreckenabschnittIdRef<'t>, &'t Streckenabschnitt)>,
-    rstern: &'t RStern2,
-    canvas_pos: Vektor,
-) -> Option<(GleisSteuerungRef<'t>, Vektor, Winkel, Option<&'t Streckenabschnitt>)>
-where
-    T: Zeichnen<()> + MitSteuerung,
-    <T as MitSteuerung>::Steuerung: 't,
-    GleisSteuerungRef<'t>: From<(GleisIdRef<'t, T>, &'t <T as MitSteuerung>::Steuerung)>,
-{
-    for geom_with_data in rstern.locate_all_at_point(&canvas_pos) {
-        let rectangle = geom_with_data.geom();
-        let (id, position) = &geom_with_data.data;
-        let definition: T = todo!("definition");
-        let relative_pos = canvas_pos - position.punkt;
-        let rotated_pos = relative_pos.rotiert(-position.winkel);
-        if definition.innerhalb(&(), spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
-            let (streckenabschnitt_id, streckenabschnitt) =
-                if let Some((id, streckenabschnitt)) = streckenabschnitt {
-                    (Some(id), Some(streckenabschnitt))
-                } else {
-                    (None, None)
-                };
-            let gleis_id_ref: GleisIdRef<'t, T> = GleisIdRef {
-                rectangle,
-                streckenabschnitt: streckenabschnitt_id,
-                phantom: PhantomData,
-            };
-            return Some((
-                (gleis_id_ref, definition.steuerung()).into(),
-                relative_pos,
-                position.winkel,
-                streckenabschnitt,
-            ));
-        }
-    }
-    None
 }
 
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
@@ -275,7 +224,6 @@ where
 fn aktion_gleis_an_position<'t, L, AktualisierenNachricht>(
     bounds: Rectangle,
     cursor: &'t Cursor,
-    spurweite: Spurweite,
     modus: &'t ModusDaten,
     zustand2: &Zustand2<L>,
     pivot: &'t Position,
@@ -292,7 +240,7 @@ where
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position2 = zustand2.gleis_an_position2(canvas_pos);
             match modus {
-                ModusDaten::Bauen { gehalten, gehalten2, letzter_klick } => {
+                ModusDaten::Bauen { gehalten2, letzter_klick } => {
                     let now = Instant::now();
                     nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
                     if gehalten2.is_none() {
@@ -355,12 +303,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             }))];
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let spurweite = self.spurweite();
                 let Gleise { zustand2, pivot, skalieren, modus, .. } = self;
                 let (status, nachrichten) = aktion_gleis_an_position(
                     bounds,
                     &cursor,
-                    spurweite,
                     modus,
                     zustand2,
                     pivot,
@@ -416,7 +362,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 /// Fehler, die bei [zustand_aktualisieren](Gleise::zustand_aktualisieren) auftreten können.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AktualisierenFehler2 {
+    /// Fehler beim Bewegen eines Gleises.
     BewegenFehler(BewegenFehler2),
+    /// Fehler beim Entfernen eines Gleises.
     EntfernenFehler(EntfernenFehler2),
 }
 

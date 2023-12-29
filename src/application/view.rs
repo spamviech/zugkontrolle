@@ -20,15 +20,15 @@ use crate::{
         flat_map::FlatMap,
         geschwindigkeit::LeiterAnzeige,
         modal::{self, Modal},
-        nachricht::{AnyGleisUnit, Nachricht, NachrichtClone},
+        nachricht::{Nachricht, NachrichtClone},
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
         MessageBox, Zugkontrolle,
     },
     gleis::{
-        gerade::{Gerade, GeradeUnit},
+        gerade::Gerade,
         gleise::{
-            id::{AnyDefinitionId2, AnyDefinitionIdSteuerung2, DefinitionId2, StreckenabschnittId},
+            id::{AnyDefinitionId2, DefinitionId2},
             steuerung::MitSteuerung,
             Gleise, Modus,
         },
