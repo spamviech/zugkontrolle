@@ -94,7 +94,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Wähle den aktuellen [Streckenabschnitt].
-    #[inline]
     pub fn streckenabschnitt_wählen(
         &mut self,
         streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
@@ -207,7 +206,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// deaktiviert wurde.
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(fehler) = self.gleise.setze_streckenabschnitt2(
+            if let Err(fehler) = self.gleise.setze_streckenabschnitt(
                 any_id,
                 self.streckenabschnitt_aktuell
                     .as_ref()
@@ -226,7 +225,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Einstellen ob anklicken eines Gleises dessen [Streckenabschnitt] zum
     /// aktuellen Streckenabschnitt ändern soll.
-    #[inline]
     pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
         self.streckenabschnitt_aktuell_festlegen = festlegen;
     }
@@ -241,19 +239,16 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Beende die Bewegung des Pivot-Punktes.
-    #[inline]
     pub fn bewegung_beenden(&mut self) {
         self.bewegung = None;
     }
 
     /// Setze den Pivot-Punkt auf den (0,0) zurück.
-    #[inline]
     pub fn bewegung_zurücksetzen(&mut self) {
         self.gleise.setze_pivot(Vektor::null_vektor());
     }
 
     /// Erzwinge ein neuzeichnen des Canvas.
-    #[inline]
     pub fn gleise_neuzeichnen(&mut self) {
         self.gleise.erzwinge_neuzeichnen();
     }
@@ -277,7 +272,7 @@ where
             .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
         let streckenabschnitt2 =
             streckenabschnitt.map(|streckenabschnitt_name| streckenabschnitt_name.clone());
-        if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus2(
+        if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
             definition_steuerung,
             Vektor { x: Skalar(0.), y: klick_höhe },
             streckenabschnitt2,
@@ -291,7 +286,7 @@ where
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
         use SteuerungAktualisierenFehler2::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen2(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();
@@ -399,7 +394,6 @@ where
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    #[inline]
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
     }
@@ -412,7 +406,6 @@ where
     S: 'static + Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
-    #[inline]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
@@ -479,7 +472,6 @@ where
     S: 'static + Send,
 {
     /// Lade einen neuen Zustand aus einer Datei.
-    #[allow(single_use_lifetimes)]
     pub fn laden(&mut self, pfad: String)
     where
         L: BekannterLeiter + Serialisiere<S>,

@@ -340,7 +340,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GleisEntfernen(gleis_id) => {
-                let _id = self.entfernen2(gleis_id)?;
+                let _id = self.entfernen(gleis_id)?;
                 Ok(())
             },
         }

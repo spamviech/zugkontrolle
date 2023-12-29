@@ -18,7 +18,7 @@ use crate::{
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
-    pub(crate) fn hinzufügen2(
+    pub(crate) fn hinzufügen(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
         position: Position,
@@ -30,7 +30,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_gehalten_bei_maus2(
+    pub(crate) fn hinzufügen_gehalten_bei_maus(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
         halte_position: Vektor,
@@ -42,7 +42,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     {
         let punkt = self.letzte_maus_position - halte_position;
         let winkel = -self.pivot.winkel;
-        let gleis_id = self.hinzufügen2(
+        let gleis_id = self.hinzufügen(
             definition_steuerung.clone(),
             Position { punkt, winkel },
             streckenabschnitt,
@@ -83,7 +83,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Entferne das [Gleis] assoziiert mit der [GleisId].
-    pub(in crate::gleis::gleise) fn entfernen2(
+    pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
     ) -> Result<AnyGleis2, EntfernenFehler2> {
@@ -112,7 +112,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
     /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
-    pub fn setze_streckenabschnitt2(
+    pub fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -121,7 +121,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen2(
+    pub fn anschlüsse_anpassen(
         &mut self,
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,

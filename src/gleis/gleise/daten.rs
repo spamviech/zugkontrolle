@@ -175,9 +175,9 @@ where
     }
 }
 
-pub(crate) type StreckenabschnittMap2 =
+pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
-type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
+type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
 
 /// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
 /// sowie der verwendete [Zugtyp].
@@ -188,8 +188,8 @@ type GeschwindigkeitMap2<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkei
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
     zugtyp: Zugtyp<L>,
-    geschwindigkeiten: GeschwindigkeitMap2<L>,
-    streckenabschnitte: StreckenabschnittMap2,
+    geschwindigkeiten: GeschwindigkeitMap<L>,
+    streckenabschnitte: StreckenabschnittMap,
     gleise: GleiseDaten,
     pläne: HashMap<plan::Name, Plan<L>>,
 }
@@ -207,8 +207,8 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp<L>) -> Self {
         Zustand {
             zugtyp,
-            geschwindigkeiten: GeschwindigkeitMap2::new(),
-            streckenabschnitte: StreckenabschnittMap2::new(),
+            geschwindigkeiten: GeschwindigkeitMap::new(),
+            streckenabschnitte: StreckenabschnittMap::new(),
             gleise: GleiseDaten::neu(),
             pläne: HashMap::new(),
         }
@@ -218,7 +218,7 @@ impl<L: Leiter> Zustand<L> {
         &self.zugtyp
     }
 
-    pub(in crate::gleis::gleise) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap2<L> {
+    pub(in crate::gleis::gleise) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap<L> {
         &self.geschwindigkeiten
     }
 
@@ -260,7 +260,7 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
     }
 
-    pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap2 {
+    pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap {
         &self.streckenabschnitte
     }
 
@@ -1090,7 +1090,7 @@ impl GleiseDaten {
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
-        streckenabschnitte: &StreckenabschnittMap2,
+        streckenabschnitte: &StreckenabschnittMap,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
