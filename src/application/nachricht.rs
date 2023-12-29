@@ -17,8 +17,11 @@ use crate::{
         gerade::GeradeUnit,
         gleise::{
             self,
-            id::{AnyId, GleisId, StreckenabschnittId},
-            nachricht::{GleisSteuerung, Nachricht as GleiseNachricht},
+            id::{
+                mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId,
+                AnyIdSteuerungSerialisiert, GleisId,
+            },
+            nachricht::Nachricht as GleiseNachricht,
             Modus,
         },
         knopf::KnopfNachricht,
@@ -63,7 +66,7 @@ pub enum AnyGleisUnit {
 #[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
 pub(in crate::application) enum NachrichtClone<L: Leiter> {
-    Gleis { gleis: AnyGleisUnit, klick_höhe: Skalar },
+    Gleis { definition_steuerung: AnyDefinitionIdSteuerung, klick_höhe: Skalar },
     Skalieren(Skalar),
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
 }
@@ -71,7 +74,9 @@ pub(in crate::application) enum NachrichtClone<L: Leiter> {
 impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
     fn from(nachricht_clone: NachrichtClone<L>) -> Self {
         match nachricht_clone {
-            NachrichtClone::Gleis { gleis, klick_höhe } => Nachricht::Gleis { gleis, klick_höhe },
+            NachrichtClone::Gleis { definition_steuerung, klick_höhe } => {
+                Nachricht::Gleis { definition_steuerung, klick_höhe }
+            },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
             NachrichtClone::AktionGeschwindigkeit(aktion) => {
                 Nachricht::AktionGeschwindigkeit(aktion)
@@ -82,11 +87,20 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
 
 impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
 where
-    T: Clone + Into<AnyGleisUnit>,
+    T: Clone + Into<AnyDefinitionId>,
     L: Leiter,
 {
     fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L> {
-        NachrichtClone::Gleis { gleis: self.clone().into(), klick_höhe: klick_position.y }
+        macro_rules! erhalte_nachricht {
+            ($id: expr) => {
+                AnyDefinitionIdSteuerung::from(($id, None))
+            };
+        }
+        let any_id = self.clone().into();
+        NachrichtClone::Gleis {
+            definition_steuerung: mit_any_id!({}, [AnyDefinitionId => id] any_id => erhalte_nachricht!()),
+            klick_höhe: klick_position.y,
+        }
     }
 }
 
@@ -100,7 +114,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
-        gleis: AnyGleisUnit,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         /// Auf welcher Höhe wurde es ins Bild gezogen.
         klick_höhe: Skalar,
     },
@@ -117,7 +131,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
     /// Wähle den aktuellen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
-    WähleStreckenabschnitt(Option<(StreckenabschnittId, Farbe)>),
+    WähleStreckenabschnitt(Option<(StreckenabschnittName, Farbe)>),
     /// Hinzufügen eines neuen [Streckenabschnittes](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
         /// Der Name der assoziierten [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
@@ -130,7 +144,7 @@ pub enum Nachricht<L: Leiter, S> {
         OutputSerialisiert,
     ),
     /// Lösche einen [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt).
-    LöscheStreckenabschnitt(StreckenabschnittId),
+    LöscheStreckenabschnitt(StreckenabschnittName),
     /// Setze den [Streckenabschnitt](crate::steuerung::streckenabschnitt::Streckenabschnitt) des spezifizierten Gleises,
     /// sofern es über [StreckenabschnittFestlegen](Nachricht::StreckenabschnittFestlegen)
     /// aktiviert wurde.
@@ -153,7 +167,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Löschen einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     LöscheGeschwindigkeit(GeschwindigkeitName),
     /// Anpassen der Anschlüsse eines Gleises.
-    AnschlüsseAnpassen(GleisSteuerung),
+    AnschlüsseAnpassen(AnyIdSteuerungSerialisiert),
     /// Ein Gleis mit [Streckenabschnitt](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
     /// wurde im [Fahren](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
@@ -194,27 +208,39 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
                 modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
             },
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
-                GleisSteuerung::Gerade((id, startwert)) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Kontakt(startwert, KontaktId::Gerade(id)),
-                ),
-                GleisSteuerung::Kurve((id, startwert)) => modal::Nachricht::ZeigeOverlay(
+                AnyIdSteuerungSerialisiert::Gerade(id, startwert) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
+                        startwert,
+                        KontaktId::Gerade(id),
+                    ))
+                },
+                AnyIdSteuerungSerialisiert::Kurve(id, startwert) => modal::Nachricht::ZeigeOverlay(
                     AuswahlZustand::Kontakt(startwert, KontaktId::Kurve(id)),
                 ),
-                GleisSteuerung::Weiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Weiche(startwert, WeichenId::Gerade(id)),
-                ),
-                GleisSteuerung::KurvenWeiche((id, startwert)) => {
+                AnyIdSteuerungSerialisiert::Weiche(id, startwert) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        WeichenId::Gerade(id),
+                    ))
+                },
+                AnyIdSteuerungSerialisiert::KurvenWeiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(startwert, id))
                 },
-                GleisSteuerung::DreiwegeWeiche((id, startwert)) => {
+                AnyIdSteuerungSerialisiert::DreiwegeWeiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(startwert, id))
                 },
-                GleisSteuerung::SKurvenWeiche((id, startwert)) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Weiche(startwert, WeichenId::SKurve(id)),
-                ),
-                GleisSteuerung::Kreuzung((id, startwert)) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Weiche(startwert, WeichenId::Kreuzung(id)),
-                ),
+                AnyIdSteuerungSerialisiert::SKurvenWeiche(id, startwert) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        WeichenId::SKurve(id),
+                    ))
+                },
+                AnyIdSteuerungSerialisiert::Kreuzung(id, startwert) => {
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                        startwert,
+                        WeichenId::Kreuzung(id),
+                    ))
+                },
             },
             GleiseNachricht::ZustandAktualisieren(nachricht) => {
                 modal::Nachricht::Underlay(Nachricht::GleiseZustandAktualisieren(nachricht))
@@ -290,8 +316,8 @@ impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    KontaktId::Gerade(id) => GleisSteuerung::Gerade((id, steuerung)),
-                    KontaktId::Kurve(id) => GleisSteuerung::Kurve((id, steuerung)),
+                    KontaktId::Gerade(id) => AnyIdSteuerungSerialisiert::Gerade(id, steuerung),
+                    KontaktId::Kurve(id) => AnyIdSteuerungSerialisiert::Kurve(id, steuerung),
                 }))
             },
             Schließen => modal::Nachricht::VersteckeOverlay,
@@ -307,9 +333,11 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    WeichenId::Gerade(id) => GleisSteuerung::Weiche((id, steuerung)),
-                    WeichenId::SKurve(id) => GleisSteuerung::SKurvenWeiche((id, steuerung)),
-                    WeichenId::Kreuzung(id) => GleisSteuerung::Kreuzung((id, steuerung)),
+                    WeichenId::Gerade(id) => AnyIdSteuerungSerialisiert::Weiche(id, steuerung),
+                    WeichenId::SKurve(id) => {
+                        AnyIdSteuerungSerialisiert::SKurvenWeiche(id, steuerung)
+                    },
+                    WeichenId::Kreuzung(id) => AnyIdSteuerungSerialisiert::Kreuzung(id, steuerung),
                 }))
             },
             Schließen => modal::Nachricht::VersteckeOverlay,
@@ -324,7 +352,7 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
         use weiche::Nachricht::*;
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                GleisSteuerung::DreiwegeWeiche((gleis_id, steuerung)),
+                AnyIdSteuerungSerialisiert::DreiwegeWeiche(gleis_id, steuerung),
             )),
             Schließen => modal::Nachricht::VersteckeOverlay,
         }
@@ -338,7 +366,7 @@ impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
         use weiche::Nachricht::*;
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
-                GleisSteuerung::KurvenWeiche((gleis_id, steuerung)),
+                AnyIdSteuerungSerialisiert::KurvenWeiche(gleis_id, steuerung),
             )),
             Schließen => modal::Nachricht::VersteckeOverlay,
         }

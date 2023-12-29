@@ -30,18 +30,11 @@ use crate::{
         style::thema::Thema,
     },
     argumente::{Argumente, I2cSettings, ZugtypArgument},
-    gleis::{
-        gerade::GeradeUnit,
-        gleise::{daten::v2::BekannterZugtyp, id::StreckenabschnittId, Gleise},
-        knopf::Knopf,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
-        weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
-        },
+    gleis::gleise::{daten::v2::BekannterZugtyp, Gleise},
+    steuerung::{
+        geschwindigkeit::{BekannterLeiter, Leiter},
+        streckenabschnitt::Name as StreckenabschnittName,
     },
-    steuerung::geschwindigkeit::{BekannterLeiter, Leiter},
     typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
     zugtyp::Zugtyp,
 };
@@ -88,14 +81,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     lager: Lager,
     scrollable_style: style::sammlung::Sammlung,
     i2c_settings: I2cSettings,
-    geraden: Vec<Knopf<GeradeUnit>>,
-    kurven: Vec<Knopf<KurveUnit>>,
-    weichen: Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: Vec<Knopf<KreuzungUnit>>,
-    streckenabschnitt_aktuell: Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt_aktuell: Option<(StreckenabschnittName, Farbe)>,
     streckenabschnitt_aktuell_festlegen: bool,
     bewegen: Bewegen,
     drehen: Drehen,
@@ -119,7 +105,7 @@ pub enum Fehler {
     Anschluss(crate::anschluss::InitFehler),
 }
 
-type Flags<L> = (Argumente, Lager, Zugtyp<L>, &'static [&'static [u8]]);
+type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 #[inline(always)]
@@ -153,7 +139,7 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     fn erstelle_settings<L: Leiter>(
         argumente: Argumente,
         lager: Lager,
-        zugtyp: Zugtyp<L>,
+        zugtyp: &'static Zugtyp<L>,
     ) -> Settings<Flags<L>> {
         Settings {
             window: iced::window::Settings {
@@ -194,7 +180,9 @@ where
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
     S: 'static + Debug + Clone + Eq + Hash + Unpin + Send,
-    S: Reserviere<L, Arg = ()> + Serialize + for<'de> Deserialize<'de>,
+    S: Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
+        + Serialize
+        + for<'de> Deserialize<'de>,
     // zusätzlicher Constraint für v2-Kompatibilität
     L: BekannterZugtyp,
     S: From<<L as BekannterZugtyp>::V2>,
@@ -206,7 +194,7 @@ where
     type Theme = Thema;
 
     fn new(
-        (argumente, lager, zugtyp, schriftarten): Self::Flags,
+        (argumente, lager, zugtyp2, schriftarten): Self::Flags,
     ) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
@@ -227,29 +215,16 @@ where
         } else {
             lade_zustand = Command::none();
             initialer_pfad = {
-                let mut pfad = zugtyp.name.clone();
+                let mut pfad = zugtyp2.name.clone();
                 pfad.push_str(".zug");
                 pfad
             };
         };
 
-        macro_rules! erstelle_knopf {
-            () => {
-                |gleis| Knopf::neu(gleis.clone(), zugtyp.spurweite)
-            };
-        }
-        let geraden = zugtyp.geraden.iter().map(erstelle_knopf!()).collect();
-        let kurven = zugtyp.kurven.iter().map(erstelle_knopf!()).collect();
-        let weichen = zugtyp.weichen.iter().map(erstelle_knopf!()).collect();
-        let dreiwege_weichen = zugtyp.dreiwege_weichen.iter().map(erstelle_knopf!()).collect();
-        let kurven_weichen = zugtyp.kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        let s_kurven_weichen = zugtyp.s_kurven_weichen.iter().map(erstelle_knopf!()).collect();
-        let kreuzungen = zugtyp.kreuzungen.iter().map(erstelle_knopf!()).collect();
-
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp,
+            zugtyp2.clone(),
             modus,
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
@@ -261,13 +236,6 @@ where
             lager,
             scrollable_style: style::sammlung::Sammlung::neu(10.),
             i2c_settings,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
             streckenabschnitt_aktuell: None,
             streckenabschnitt_aktuell_festlegen: false,
             bewegen: Bewegen::neu(),
@@ -291,7 +259,9 @@ where
         let mut command = Command::none();
 
         match message {
-            Nachricht::Gleis { gleis, klick_höhe } => self.gleis_hinzufügen(gleis, klick_höhe),
+            Nachricht::Gleis { definition_steuerung, klick_höhe } => {
+                self.gleis_hinzufügen(definition_steuerung, klick_höhe)
+            },
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
                 command = self.bewegung_starten(bewegung)
@@ -318,8 +288,8 @@ where
                 farbe,
                 anschluss_definition,
             ),
-            Nachricht::LöscheStreckenabschnitt(streckenabschnitt_id) => {
-                self.streckenabschnitt_löschen(streckenabschnitt_id)
+            Nachricht::LöscheStreckenabschnitt(streckenabschnitt_name) => {
+                self.streckenabschnitt_löschen(&streckenabschnitt_name)
             },
             Nachricht::SetzeStreckenabschnitt(any_id) => {
                 self.gleis_setzte_streckenabschnitt(any_id)
@@ -341,7 +311,7 @@ where
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
                 self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
             },
-            Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(name),
+            Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(&name),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
                 self.anschlüsse_anpassen(anschlüsse_anpassen)
             },

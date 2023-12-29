@@ -1,6 +1,9 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    any::TypeId,
+    fmt::{self, Display, Formatter},
+};
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
@@ -14,9 +17,12 @@ use crate::{
         trigger::Trigger,
     },
     argumente::I2cSettings,
+    gleis::gleise::{
+        daten::de_serialisieren::ZugtypDeserialisierenFehler,
+        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
+    },
     rppal,
     util::eingeschränkt::kleiner_8,
-    zugtyp::FalscherLeiter,
 };
 
 pub mod de_serialisieren;
@@ -290,13 +296,17 @@ impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
 }
 
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<OutputAnschluss> {
         let neue_polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
@@ -489,12 +499,16 @@ impl Serialisiere<InputSerialisiert> for InputAnschluss {
 }
 
 impl Reserviere<InputAnschluss> for InputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<InputAnschluss> {
         let mut gesuchter_anschluss = None;
         let mut gesuchter_interrupt = None;
@@ -612,8 +626,22 @@ pub enum Fehler {
     Pcf8574(pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [Anschluss]es.
     Reservieren(ReservierenFehler),
-    /// Der Name des Leiters stimmt nicht überein.
-    FalscherLeiter(FalscherLeiter),
+    /// Fehler beim Deserialisieren des Zugtyps.
+    ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
+    /// Ein Gleis wurde mit unbekannter [DefinitionId] gespeichert.
+    UnbekannteGespeicherteDefinition {
+        /// Die gespeicherte Id.
+        id: id::Repräsentation,
+        /// Die Typ-Id, zu der die Id gehört.
+        type_id: TypeId,
+        /// Der Typ, zu der die Id gehört.
+        type_name: &'static str,
+    },
+    /// Ein Gleis mit unbekannter [DefinitionId].
+    UnbekannteDefinition {
+        /// Die Id ohne zugehörigen Eintrag im [Zugtyp].
+        id: AnyDefinitionId,
+    },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.
@@ -621,6 +649,9 @@ pub enum Fehler {
         /// Der Name des aktuellen Leiters.
         leiter: &'static str,
     },
+    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
 impl From<pin::ReservierenFehler> for Fehler {

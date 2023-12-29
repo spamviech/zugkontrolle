@@ -9,11 +9,17 @@ use iced::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::typen::{
-    canvas::pfad::{Pfad, Transformation},
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::Winkel,
+use crate::{
+    typen::{
+        canvas::pfad::{Pfad, Transformation},
+        mm::Spurweite,
+        skalar::Skalar,
+        vektor::Vektor,
+        verbindung::{self, Verbindung},
+        winkel::{self, Trigonometrie, Winkel},
+        Zeichnen,
+    },
+    util::nachschlagen::Nachschlagen,
 };
 
 pub mod pfad;
@@ -161,7 +167,7 @@ impl Cache {
 
 /// Position eines Gleises/Textes auf dem Canvas.
 #[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.
     pub punkt: Vektor,
@@ -178,5 +184,32 @@ impl Position {
     /// Vektor nachdem er um den Winkel gedreht wurde.
     pub fn rotation(&self, richtung: Vektor) -> Vektor {
         richtung.rotiert(self.winkel)
+    }
+
+    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
+    pub(crate) fn anliegend_position<T, Z>(
+        definition: &T,
+        z: &Z,
+        spurweite: Spurweite,
+        verbindung_name: &T::VerbindungName,
+        ziel_verbindung: Verbindung,
+    ) -> Position
+    where
+        T: Zeichnen<Z>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+    {
+        let verbindungen = definition.verbindungen(z, spurweite);
+        let verbindung = verbindungen.erhalte(verbindung_name);
+        let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
+        Position {
+            punkt: Vektor {
+                x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()
+                    + verbindung.position.y * winkel.sin(),
+                y: ziel_verbindung.position.y
+                    - verbindung.position.x * winkel.sin()
+                    - verbindung.position.y * winkel.cos(),
+            },
+            winkel,
+        }
     }
 }

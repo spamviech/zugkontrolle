@@ -245,12 +245,10 @@ impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<Richtung, T, S> Serialisiere<WeicheSerialisiert<Richtung, S>> for Weiche<Richtung, T>
 where
     Richtung: Clone,
     T: Serialisiere<S>,
-    S: Reserviere<T, Arg = ()>,
 {
     fn serialisiere(&self) -> WeicheSerialisiert<Richtung, S> {
         WeicheSerialisiert {
@@ -273,23 +271,26 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<Richtung, R, S> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, S>
 where
     R: Serialisiere<S>,
-    S: Reserviere<R, Arg = ()>,
+    S: Reserviere<R, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
-    type Arg = SomeAktualisierenSender;
+    type MoveArg = SomeAktualisierenSender;
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         bekannte_anschlüsse: Anschlüsse,
         sender: SomeAktualisierenSender,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
         anschlüsse
-            .reserviere(lager, bekannte_anschlüsse, ())
+            .reserviere(lager, bekannte_anschlüsse, (), ref_arg, mut_ref_arg)
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))
     }
 }

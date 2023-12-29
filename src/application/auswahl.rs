@@ -31,7 +31,7 @@ use crate::{
 use super::kontakt;
 
 /// Die Id eines Gleises mit einem [Kontakt](crate::steuerung::kontakt::Kontakt).
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum KontaktId {
     /// Die Id einer [Geraden](Gerade).
     Gerade(GleisId<Gerade>),
@@ -39,17 +39,8 @@ pub enum KontaktId {
     Kurve(GleisId<Kurve>),
 }
 
-impl KontaktId {
-    pub(in crate::application) fn klonen(&self) -> Self {
-        match self {
-            KontaktId::Gerade(id) => KontaktId::Gerade(id.klonen()),
-            KontaktId::Kurve(id) => KontaktId::Kurve(id.klonen()),
-        }
-    }
-}
-
 /// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum WeichenId {
     /// Die Id einer [Weiche].
     Gerade(GleisId<Weiche>),
@@ -57,16 +48,6 @@ pub enum WeichenId {
     SKurve(GleisId<SKurvenWeiche>),
     /// Die Id einer [Kreuzung].
     Kreuzung(GleisId<Kreuzung>),
-}
-
-impl WeichenId {
-    pub(in crate::application) fn klonen(&self) -> Self {
-        match self {
-            WeichenId::Gerade(id) => WeichenId::Gerade(id.klonen()),
-            WeichenId::SKurve(id) => WeichenId::SKurve(id.klonen()),
-            WeichenId::Kreuzung(id) => WeichenId::Kreuzung(id.klonen()),
-        }
-    }
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
@@ -113,16 +94,16 @@ impl Clone for AuswahlZustand {
             AuswahlZustand::Streckenabschnitt => AuswahlZustand::Streckenabschnitt,
             AuswahlZustand::Geschwindigkeit => AuswahlZustand::Geschwindigkeit,
             AuswahlZustand::Kontakt(startwert, id) => {
-                AuswahlZustand::Kontakt(startwert.clone(), id.klonen())
+                AuswahlZustand::Kontakt(startwert.clone(), id.clone())
             },
             AuswahlZustand::Weiche(startwert, id) => {
-                AuswahlZustand::Weiche(startwert.clone(), id.klonen())
+                AuswahlZustand::Weiche(startwert.clone(), id.clone())
             },
             AuswahlZustand::DreiwegeWeiche(startwert, id) => {
-                AuswahlZustand::DreiwegeWeiche(startwert.clone(), id.klonen())
+                AuswahlZustand::DreiwegeWeiche(startwert.clone(), id.clone())
             },
             AuswahlZustand::KurvenWeiche(startwert, id) => {
-                AuswahlZustand::KurvenWeiche(startwert.clone(), id.klonen())
+                AuswahlZustand::KurvenWeiche(startwert.clone(), id.clone())
             },
             AuswahlZustand::ZeigeLizenzen => AuswahlZustand::ZeigeLizenzen,
         }
@@ -191,7 +172,7 @@ impl AuswahlZustand {
                     KontaktId::Gerade(_id) => "Gerade",
                     KontaktId::Kurve(_id) => "Kurve",
                 };
-                let kontakt_id_clone = kontakt_id.klonen();
+                let kontakt_id_clone = kontakt_id.clone();
                 Element::from(kontakt::Auswahl::neu(
                     gleis_art,
                     kontakt.clone(),
@@ -199,9 +180,7 @@ impl AuswahlZustand {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| {
-                    modal::Nachricht::from((nachricht, kontakt_id_clone.klonen()))
-                })
+                .map(move |nachricht| modal::Nachricht::from((nachricht, kontakt_id_clone.clone())))
             },
             AuswahlZustand::Weiche(weiche, weichen_id) => {
                 let weichen_art = match &weichen_id {
@@ -209,36 +188,34 @@ impl AuswahlZustand {
                     WeichenId::SKurve(_id) => "S-Kurven-Weiche",
                     WeichenId::Kreuzung(_id) => "Kreuzung",
                 };
-                let weichen_id_clone = weichen_id.klonen();
+                let weichen_id_clone = weichen_id.clone();
                 Element::from(weiche::Auswahl::neu(
                     weichen_art,
                     weiche.clone(),
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| {
-                    modal::Nachricht::from((nachricht, weichen_id_clone.klonen()))
-                })
+                .map(move |nachricht| modal::Nachricht::from((nachricht, weichen_id_clone.clone())))
             },
             AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
-                let id_clone = id.klonen();
+                let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Dreiwege-Weiche",
                     dreiwege_weiche.clone(),
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.klonen())))
+                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.clone())))
             },
             AuswahlZustand::KurvenWeiche(kurven_weiche, id) => {
-                let id_clone = id.klonen();
+                let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Kurven-Weiche",
                     kurven_weiche.clone(),
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.klonen())))
+                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.clone())))
             },
             AuswahlZustand::ZeigeLizenzen => {
                 Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(scrollable_style))

@@ -16,7 +16,7 @@ use iced::{
 
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
-    gleis::gleise::draw::bewege_an_position,
+    gleis::gleise::{draw::bewege_an_position, id::GleisId},
     typen::{
         canvas::{
             pfad::{Pfad, Transformation},
@@ -37,36 +37,37 @@ const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 
 /// Ein Knopf, der ein Gleis anzeigt.
 #[derive(Debug)]
-pub struct Knopf<T> {
-    gleis: T,
+pub struct Knopf<'t, T: 'static> {
+    gleis: &'t T,
+    id: GleisId<T>,
     spurweite: Spurweite,
 }
 
-impl<T> Knopf<T> {
+impl<'t, T> Knopf<'t, T> {
     /// Erstelle einen neuen [Knopf].
-    pub fn neu(gleis: T, spurweite: Spurweite) -> Self {
-        Knopf { gleis, spurweite }
+    pub fn neu(gleis: &'t T, id: GleisId<T>, spurweite: Spurweite) -> Self {
+        Knopf { gleis, id, spurweite }
     }
 }
 
-impl<T: Zeichnen> Knopf<T> {
+impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     /// Die Dimensionen des [Knopfes](Knopf).
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
-            .rechteck(self.spurweite)
+            .rechteck(&(), self.spurweite)
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
-    pub fn als_iced_widget<'t, Nachricht>(
-        &'t self,
+    pub fn als_iced_widget<Nachricht>(
+        self,
         breite: Option<f32>,
     ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
         Nachricht: 'static,
-        T: KnopfNachricht<Nachricht>,
+        GleisId<T>: KnopfNachricht<Nachricht>,
     {
-        let größe = self.gleis.rechteck(self.spurweite).größe();
+        let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         let standard_breite = (STROKE_WIDTH + größe.x).0;
         let höhe = (DOUBLE_PADDING + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
@@ -84,8 +85,10 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Renderer<Thema>>
-    for Knopf<T>
+impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
+where
+    T: Zeichnen<()>,
+    GleisId<T>: KnopfNachricht<Nachricht>,
 {
     type State = Zustand;
 
@@ -116,7 +119,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                 },
             );
             let spurweite = self.spurweite;
-            let rechteck = self.gleis.rechteck(spurweite);
+            let rechteck = self.gleis.rechteck(&(), spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(-rechteck_position));
             let größe = rechteck.größe();
@@ -133,7 +136,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                     Skalar(0.5) * Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING },
                 ));
             }
-            for path in self.gleis.zeichne(spurweite) {
+            for path in self.gleis.zeichne(&(), spurweite) {
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -146,7 +149,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                 });
             }
             if let (relative_position, Some(content), _unit_name) =
-                self.gleis.beschreibung_und_name(spurweite)
+                self.gleis.beschreibung_und_name(&(), spurweite)
             {
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);
@@ -177,7 +180,7 @@ impl<T: Zeichnen + KnopfNachricht<Nachricht>, Nachricht> Program<Nachricht, Rend
                 let Point { x, y } = cursor.position_in(bounds).unwrap_or(Point { x: 0., y: 0. });
                 (
                     event::Status::Captured,
-                    Some(self.gleis.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
+                    Some(self.id.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
             },
             _ => (event::Status::Ignored, None),

@@ -10,7 +10,7 @@ licences_dir=os.path.dirname(os.path.abspath(__file__))
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
 # hash(probably) at the end might change, possibly with cargo update
 # crate-name followed by a `-` and the crate-version, e.g. "ab_glyph_rasterizer-0.1.5"
-crates_io_dir = os.path.join(cargo_dir, "registry", "src", "github.com-1ecc6299db9ec823")
+crates_io_dir = os.path.join(cargo_dir, "registry", "src", "index.crates.io-6f17d22bba15001f")
 # crate-name followed by a `-` and some hash(probably), inside folder with the commit-hash (abbreviated)
 git_dir = os.path.join(cargo_dir, "git", "checkouts")
 
@@ -104,8 +104,8 @@ def extract_repository_and_license(cargo_toml_path, log_file):
                     elif line.startswith("["):
                         break
     else:
-        log("Missing Cargo.toml")
-        log(f"\t{cargo_toml_path}")
+        log("Missing Cargo.toml", log_file)
+        log(f"\t{cargo_toml_path}", log_file)
     return repository, license
 
 def make_https(url):

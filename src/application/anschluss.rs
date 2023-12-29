@@ -443,6 +443,7 @@ where
             |level: &Level, als_nachricht: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
+        // TODO Warnung anzeigen, wenn kein I2CBus aktiviert wurde!
         let pcf8574_row = Row::new()
             .push(
                 Scrollable::new(

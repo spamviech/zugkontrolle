@@ -23,6 +23,7 @@ path = "zugkontrolle-macros"
 version = "4.0.0"
 
 [dependencies]
+assoc = "0.1.3"
 bincode = "1.3.3"
 dyn-clonable = "0.9.0"
 either = "1.6.1"

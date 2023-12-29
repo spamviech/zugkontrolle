@@ -9,6 +9,7 @@ use iced::{
     },
     Alignment, Element, Length, Renderer,
 };
+use itertools::Itertools;
 
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
@@ -19,24 +20,28 @@ use crate::{
         flat_map::FlatMap,
         geschwindigkeit::LeiterAnzeige,
         modal::{self, Modal},
-        nachricht::{AnyGleisUnit, Nachricht, NachrichtClone},
+        nachricht::{Nachricht, NachrichtClone},
         speichern_laden, streckenabschnitt,
         style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
         MessageBox, Zugkontrolle,
     },
     gleis::{
-        gerade::GeradeUnit,
-        gleise::{id::StreckenabschnittId, Gleise, Modus},
+        gerade::Gerade,
+        gleise::{
+            id::{AnyDefinitionId, DefinitionId},
+            steuerung::MitSteuerung,
+            Gleise, Modus,
+        },
         knopf::Knopf,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
+        kreuzung::Kreuzung,
+        kurve::Kurve,
         weiche::{
-            dreiwege::DreiwegeWeicheUnit, gerade::WeicheUnit, kurve::KurvenWeicheUnit,
-            s_kurve::SKurvenWeicheUnit,
+            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
-    steuerung::geschwindigkeit::Leiter,
-    typen::{farbe::Farbe, skalar::Skalar, Zeichnen},
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
+    typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen},
+    zugtyp::DefinitionMap,
 };
 
 trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
@@ -72,13 +77,6 @@ where
             gleise,
             scrollable_style,
             i2c_settings,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
             streckenabschnitt_aktuell,
             streckenabschnitt_aktuell_festlegen,
             bewegen,
@@ -104,18 +102,7 @@ where
             initialer_pfad,
             speichern_gefärbt.map(|(gefärbt, _färbe_zeit)| gefärbt),
         );
-        let row_mit_scrollable = row_mit_scrollable(
-            aktueller_modus,
-            *scrollable_style,
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen,
-            gleise,
-        );
+        let row_mit_scrollable = row_mit_scrollable(aktueller_modus, *scrollable_style, gleise);
         let canvas = Element::new(FlatMap::neu(
             Box::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
             |nachrichten| {
@@ -175,7 +162,7 @@ const SKALIEREN_BREITE: f32 = 75.;
 
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
-    streckenabschnitt_aktuell: &'t Option<(StreckenabschnittId, Farbe)>,
+    streckenabschnitt_aktuell: &'t Option<(StreckenabschnittName, Farbe)>,
     streckenabschnitt_festlegen: &'t bool,
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,
@@ -254,13 +241,6 @@ where
 fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
-    geraden: &'t Vec<Knopf<GeradeUnit>>,
-    kurven: &'t Vec<Knopf<KurveUnit>>,
-    weichen: &'t Vec<Knopf<WeicheUnit>>,
-    dreiwege_weichen: &'t Vec<Knopf<DreiwegeWeicheUnit>>,
-    kurven_weichen: &'t Vec<Knopf<KurvenWeicheUnit>>,
-    s_kurven_weichen: &'t Vec<Knopf<SKurvenWeicheUnit>>,
-    kreuzungen: &'t Vec<Knopf<KreuzungUnit>>,
     gleise: &'t Gleise<L, Nachricht<L, S>>,
 ) -> Row<
     't,
@@ -270,14 +250,15 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
+
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_breite = None;
             macro_rules! max_breite_berechnen {
-                ($($vec: expr),* $(,)?) => {
+                ($($map: expr),* $(,)?) => {
                     $(
-                        for button in $vec.iter() {
-                            let größe = button.rechteck().größe();
+                        for button in $map.values() {
+                            let größe = button.rechteck(&(), gleise.spurweite()).größe();
                             let breite = Some(größe.x.0);
                             if breite > max_breite {
                                 max_breite = breite;
@@ -287,35 +268,43 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 }
             }
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
-                max_breite: &mut Option<f32>,
+                spurweite: Spurweite,
+                max_breite: Option<f32>,
                 scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Thema>>,
-                buttons: &'t Vec<Knopf<T>>,
+                buttons: &'t DefinitionMap<T>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, R>,
-                T: Zeichnen + Clone + Into<AnyGleisUnit>,
+                T: MitSteuerung,
+                DefinitionId<T>: Into<AnyDefinitionId>,
+                <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
                 take_mut::take(scrollable_column, |mut scrollable_column| {
-                    for button in buttons {
+                    for (id, button) in buttons.iter().sorted_by_key(|(_id, gleis)| {
+                        let (_position, beschreibung, _name) =
+                            gleis.beschreibung_und_name(&(), spurweite);
+                        beschreibung
+                    }) {
+                        let knopf = Knopf::neu(button, id.clone(), spurweite);
                         scrollable_column =
-                            scrollable_column.push(button.als_iced_widget(*max_breite))
+                            scrollable_column.push(knopf.als_iced_widget(max_breite))
                     }
                     scrollable_column
                 })
             }
             macro_rules! knöpfe_hinzufügen {
-                ($($vec: expr),* $(,)?) => {
-                    max_breite_berechnen!($($vec),*);
-                    $(knöpfe_hinzufügen(&mut max_breite, &mut scrollable_column, $vec);)*
+                ($($map: expr => $type: ty),* $(,)?) => {
+                    max_breite_berechnen!($($map),*);
+                    $(knöpfe_hinzufügen::<L, S, _, $type>(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
                 }
             }
             knöpfe_hinzufügen!(
-                geraden,
-                kurven,
-                weichen,
-                dreiwege_weichen,
-                kurven_weichen,
-                s_kurven_weichen,
-                kreuzungen
+                &gleise.zugtyp2().geraden => Gerade,
+                &gleise.zugtyp2().kurven => Kurve,
+                &gleise.zugtyp2().weichen => Weiche,
+                &gleise.zugtyp2().dreiwege_weichen => DreiwegeWeiche,
+                &gleise.zugtyp2().kurven_weichen => KurvenWeiche,
+                &gleise.zugtyp2().s_kurven_weichen => SKurvenWeiche,
+                &gleise.zugtyp2().kreuzungen => Kreuzung,
             );
             if let Some(max) = max_breite {
                 width = Length::Fixed(max);

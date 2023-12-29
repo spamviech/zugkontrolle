@@ -223,17 +223,21 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    type Arg = SomeAktualisierenSender;
+    type MoveArg = SomeAktualisierenSender;
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        aktualisieren_sender: Self::Arg,
+        aktualisieren_sender: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::*;
         let (mut anschluss, fehler, mut anschlüsse) =
-            match self.anschluss.reserviere(lager, anschlüsse, ()) {
+            match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     (anschluss, Some(fehler), anschlüsse)

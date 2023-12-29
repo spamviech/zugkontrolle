@@ -42,6 +42,9 @@ pub const FRAC_PI_2: Winkel = Winkel(consts::FRAC_PI_2);
 pub const ZERO: Winkel = Winkel(0.);
 
 /// Winkel \[Bogenmaß\]
+///
+/// Die [PartialEq]- und [PartialOrd]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
+/// bevor sie verglichen werden.
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub f32);
 
@@ -86,8 +89,8 @@ impl AddAssign<WinkelGradmaß> for Winkel {
         *self += &rhs
     }
 }
-#[allow(single_use_lifetimes)]
 
+#[allow(single_use_lifetimes)]
 impl<T> AddAssign<&mut T> for Winkel
 where
     Winkel: for<'s> AddAssign<&'s T>,
@@ -250,6 +253,9 @@ impl Trigonometrie for Winkel {
 }
 
 /// Winkel \[Gradmaß\].
+///
+/// Die [PartialEq]- und [PartialOrd]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
+/// bevor sie verglichen werden.
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct WinkelGradmaß(f32);
 

@@ -63,16 +63,16 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
+impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Gerade<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.länge)
     }
 
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
         let mut pfade =
             vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)];
         if level_und_trigger.is_some() {
@@ -86,8 +86,12 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
         pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
-        let level_und_trigger = self.kontakt.aktuelles_level_und_trigger();
+    fn fülle(
+        &self,
+        anschlüsse: &Anschlüsse2,
+        spurweite: Spurweite,
+    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
         let pfad = fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis);
         let mut pfade = vec![(pfad, None, Transparenz::Voll)];
         if let Some((Some(level), trigger)) = level_und_trigger {
@@ -104,10 +108,11 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
         pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&str>, Option<&str>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         (
             Position {
                 punkt: Vektor {
@@ -116,12 +121,13 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_ref().map(String::as_str),
-            self.kontakt.name(),
+            anschlüsse.name(),
         )
     }
 
     fn innerhalb(
         &self,
+        _anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -129,7 +135,9 @@ impl<Anschluss: MitName + MitKontakt> Zeichnen for Gerade<Anschluss> {
         innerhalb(spurweite, self.länge, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+    fn verbindungen(
+        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
+    ) -> Self::Verbindungen {
         let gleis_links = Skalar(0.);
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = spurweite.beschränkung().halbiert();

@@ -29,7 +29,7 @@ use crate::{
     anschluss::{polarität::Polarität, OutputSerialisiert},
     application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
     argumente::I2cSettings,
-    gleis::gleise::{id::StreckenabschnittId, Gleise},
+    gleis::gleise::Gleise,
     steuerung::{
         geschwindigkeit::{self, Leiter},
         streckenabschnitt::{Name, Streckenabschnitt},
@@ -67,15 +67,11 @@ where
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(
-        zustand: &'a Option<(StreckenabschnittId, Farbe)>,
-        festlegen: bool,
-        overlay: Overlay,
-    ) -> Self {
+    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
-        let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
-            children.push(Text::new(&streckenabschnitt_id.name.0).into());
+        let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
+            children.push(Text::new(&streckenabschnitt_name.0).into());
             style::streckenabschnitt::anzeige_farbe(*farbe)
         } else {
             children.push(
@@ -136,11 +132,9 @@ impl AuswahlZustand {
             neu_name: String::new(),
             neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
             neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            streckenabschnitte: gleise.aus_allen_streckenabschnitten(
-                |streckenabschnitt_id, streckenabschnitt| {
-                    Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
-                },
-            ),
+            streckenabschnitte: gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
+                Self::iter_map((name, streckenabschnitt))
+            }),
         }
     }
 
@@ -171,11 +165,11 @@ pub enum AuswahlNachricht {
     /// Schließe das Auswahl-Fenster.
     Schließe,
     /// Wähle den aktuellen Streckenabschnitt.
-    Wähle(Option<(StreckenabschnittId, Farbe)>),
+    Wähle(Option<(Name, Farbe)>),
     /// Füge einen neuen Streckenabschnitt hinzu.
     Hinzufügen(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
     /// Lösche einen Streckenabschnitt.
-    Lösche(StreckenabschnittId),
+    Lösche(Name),
 }
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
@@ -215,14 +209,11 @@ where
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
-            let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
                 InterneAuswahlNachricht::Wähle(wahl) => {
                     vec![
-                        AuswahlNachricht::Wähle(
-                            wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
-                        ),
+                        AuswahlNachricht::Wähle(wahl.map(|(name, farbe)| (name, farbe))),
                         AuswahlNachricht::Schließe,
                     ]
                 },
@@ -236,7 +227,7 @@ where
                     vec![nachricht]
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
-                    vec![AuswahlNachricht::Lösche(erstelle_id(name))]
+                    vec![AuswahlNachricht::Lösche(name)]
                 },
                 InterneAuswahlNachricht::Name(name) => {
                     zustand.neu_name = name;
