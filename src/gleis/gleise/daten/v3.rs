@@ -3,7 +3,7 @@
 use std::{collections::HashMap, fmt::Debug};
 
 use assoc::vec::{AssocExt, Entry};
-use log::error;
+use log::{error, warn};
 use nonempty::NonEmpty;
 use num_traits::{bounds::LowerBounded, CheckedAdd, One};
 use serde::{Deserialize, Serialize};
@@ -112,8 +112,9 @@ impl DefinitionMaps {
         }
     }
 }
+
 #[derive(Debug)]
-struct NächsteGleisIds {
+struct NächsteDefinitionIds {
     geraden: Option<id::Repräsentation>,
     kurven: Option<id::Repräsentation>,
     weichen: Option<id::Repräsentation>,
@@ -123,9 +124,9 @@ struct NächsteGleisIds {
     kreuzungen: Option<id::Repräsentation>,
 }
 
-impl NächsteGleisIds {
-    fn neu() -> NächsteGleisIds {
-        NächsteGleisIds {
+impl NächsteDefinitionIds {
+    fn neu() -> NächsteDefinitionIds {
+        NächsteDefinitionIds {
             geraden: Some(0),
             kurven: Some(0),
             weichen: Some(0),
@@ -137,12 +138,39 @@ impl NächsteGleisIds {
     }
 }
 
+#[derive(Debug)]
+struct NächsteIds {
+    geraden: Option<id::Repräsentation>,
+    kurven: Option<id::Repräsentation>,
+    weichen: Option<id::Repräsentation>,
+    dreiwege_weichen: Option<id::Repräsentation>,
+    kurven_weichen: Option<id::Repräsentation>,
+    s_kurven_weichen: Option<id::Repräsentation>,
+    kreuzungen: Option<id::Repräsentation>,
+    definitionen: NächsteDefinitionIds,
+}
+
+impl NächsteIds {
+    fn neu() -> NächsteIds {
+        NächsteIds {
+            geraden: Some(0),
+            kurven: Some(0),
+            weichen: Some(0),
+            dreiwege_weichen: Some(0),
+            kurven_weichen: Some(0),
+            s_kurven_weichen: Some(0),
+            kreuzungen: Some(0),
+            definitionen: NächsteDefinitionIds::neu(),
+        }
+    }
+}
+
 impl GleiseDatenSerialisiert {
     fn v4<L: Leiter>(
         self,
         zugtyp: &mut v4::ZugtypSerialisiert2<L>,
         definition_maps: &mut DefinitionMaps,
-        nächste_gleis_ids: &mut NächsteGleisIds,
+        nächste_ids: &mut NächsteIds,
         fehler: &mut Vec<KeineIdVerfügbar>,
         streckenabschnitt: Option<&streckenabschnitt::Name>,
     ) -> v4::GleiseDatenSerialisiert {
@@ -152,13 +180,13 @@ impl GleiseDatenSerialisiert {
                 $(
                     let definitionen = &mut zugtyp.$gleis_art;
                     let definitionen_invertiert = &mut definition_maps.$gleis_art;
-                    let ($gleis_art, nächste_gleis_id) = $gleis_art.into_iter().enumerate_checked().fold(
-                        (HashMap::new(), nächste_gleis_ids.$gleis_art),
-                        |(mut elemente, mut nächste_definition_id), (gleis_id, gleis)| {
+                    let ($gleis_art, _nächste_definition_id, nächste_gleis_id) = $gleis_art.into_iter().fold(
+                        (HashMap::new(), nächste_ids.definitionen.$gleis_art, nächste_ids.$gleis_art),
+                        |(mut elemente, mut nächste_definition_id, gleis_id), gleis| {
                             let Gleis { definition, position } = gleis;
                             let Some(gleis_id) = gleis_id else {
                                 fehler.push(KeineIdVerfügbar::für_ref(&definition));
-                                return (elemente, nächste_definition_id);
+                                return (elemente, nächste_definition_id, gleis_id);
                             };
                             let steuerung = definition.$steuerung.clone().map(Into::into);
                             let (definition_id, definition)
@@ -170,7 +198,7 @@ impl GleiseDatenSerialisiert {
                                             id
                                         } else {
                                             fehler.push(KeineIdVerfügbar::für::<$typ<()>>());
-                                            return (elemente, nächste_definition_id);
+                                            return (elemente, nächste_definition_id, Some(gleis_id));
                                         };
                                         let definition: $typ<()> = definition.into();
                                         let _ = vacant.insert((id, definition.clone()));
@@ -186,10 +214,10 @@ impl GleiseDatenSerialisiert {
                             };
                             // gleis_id ist eindeutig, da es durch enumerate erzeugt wurde
                             let _ = elemente.insert(gleis_id, v4_gleis);
-                            (elemente, nächste_definition_id)
+                            (elemente, nächste_definition_id, gleis_id.checked_add(1))
                         },
                     );
-                    nächste_gleis_ids.$gleis_art = nächste_gleis_id;
+                    nächste_ids.$gleis_art = nächste_gleis_id;
                 )*
                 v4::GleiseDatenSerialisiert { $($gleis_art),* }
             }};
@@ -244,11 +272,11 @@ impl<L: Leiter, S> ZustandSerialisiert<L, S> {
         } = self;
         let mut zugtyp = zugtyp.v4(fehler);
         let mut definition_maps = DefinitionMaps::neu();
-        let mut nächste_gleis_ids = NächsteGleisIds::neu();
+        let mut nächste_ids = NächsteIds::neu();
         let mut gleise = ohne_streckenabschnitt.v4(
             &mut zugtyp,
             &mut definition_maps,
-            &mut nächste_gleis_ids,
+            &mut nächste_ids,
             fehler,
             None,
         );
@@ -260,7 +288,7 @@ impl<L: Leiter, S> ZustandSerialisiert<L, S> {
                     gleise.verschmelze(gleise_daten.v4(
                         &mut zugtyp,
                         &mut definition_maps,
-                        &mut nächste_gleis_ids,
+                        &mut nächste_ids,
                         fehler,
                         Some(&name),
                     ));
