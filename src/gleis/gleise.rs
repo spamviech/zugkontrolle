@@ -18,8 +18,8 @@ use crate::{
     application::style::thema::Thema,
     gleis::gleise::{
         daten::{
-            de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler2,
-            StreckenabschnittEntferntFehler2, Zustand,
+            de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler,
+            StreckenabschnittEntferntFehler, Zustand,
         },
         nachricht::{Gehalten, Nachricht},
     },
@@ -188,7 +188,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn streckenabschnitt<'s>(
         &'s self,
         streckenabschnitt: &streckenabschnitt::Name,
-    ) -> Result<&'s Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+    ) -> Result<&'s Streckenabschnitt, StreckenabschnittEntferntFehler> {
         self.zustand
             .streckenabschnitt(streckenabschnitt)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
@@ -198,7 +198,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
         streckenabschnitt: &streckenabschnitt::Name,
-    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+    ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittEntferntFehler> {
         self.zustand
             .streckenabschnitt_mut(streckenabschnitt)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
@@ -210,7 +210,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn streckenabschnitt_entfernen(
         &mut self,
         name: &streckenabschnitt::Name,
-    ) -> Result<Streckenabschnitt, StreckenabschnittEntferntFehler2> {
+    ) -> Result<Streckenabschnitt, StreckenabschnittEntferntFehler> {
         self.zustand
             .streckenabschnitt_entfernen(name)
             .map(|(streckenabschnitt, _geschwindigkeit)| streckenabschnitt)
@@ -246,7 +246,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&'s Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+    ) -> Result<&'s Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit(name)
     }
 
@@ -254,7 +254,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&'s mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+    ) -> Result<&'s mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit_mut(name)
     }
 
@@ -264,7 +264,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit_entfernen(name)
     }
 
@@ -312,7 +312,7 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
         &mut self,
         name: &streckenabschnitt::Name,
         mut geschwindigkeit: Option<geschwindigkeit::Name>,
-    ) -> Result<Option<geschwindigkeit::Name>, StreckenabschnittEntferntFehler2> {
+    ) -> Result<Option<geschwindigkeit::Name>, StreckenabschnittEntferntFehler> {
         let (_streckenabschnitt, bisherige_geschwindigkeit) =
             self.zustand.streckenabschnitt_mut(name)?;
         std::mem::swap(bisherige_geschwindigkeit, &mut geschwindigkeit);

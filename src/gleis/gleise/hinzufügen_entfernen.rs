@@ -5,7 +5,7 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{
-            AnyGleis2, BewegenFehler2, EntfernenFehler2, HinzufügenFehler2,
+            AnyGleis, BewegenFehler2, EntfernenFehler, HinzufügenFehler2,
             SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
         },
         id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
@@ -86,7 +86,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
-    ) -> Result<AnyGleis2, EntfernenFehler2> {
+    ) -> Result<AnyGleis, EntfernenFehler> {
         self.zustand.entfernen(gleis_id.into())
     }
 

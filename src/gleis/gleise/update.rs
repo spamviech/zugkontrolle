@@ -18,7 +18,7 @@ use crate::{
     gleis::{
         gleise::{
             self,
-            daten::{BewegenFehler2, EntfernenFehler2, Zustand},
+            daten::{BewegenFehler2, EntfernenFehler, Zustand},
             id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
@@ -304,7 +304,7 @@ pub enum AktualisierenFehler2 {
     /// Fehler beim Bewegen eines Gleises.
     BewegenFehler(BewegenFehler2),
     /// Fehler beim Entfernen eines Gleises.
-    EntfernenFehler(EntfernenFehler2),
+    EntfernenFehler(EntfernenFehler),
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {

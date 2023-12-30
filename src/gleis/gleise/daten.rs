@@ -93,24 +93,10 @@ where
 }
 
 erzeuge_any_enum! {
-    (pub) AnyGleis2,
+    (pub) AnyGleis,
     "Ein beliebiges Gleis.",
     [Debug, Clone],
     (Gleis<[]>),
-}
-
-erzeuge_any_enum! {
-    (pub(crate)) AnyGleisRef2<'t>,
-    "Ein beliebiges Gleis.",
-    [Debug, Clone],
-    (&'t Gleis<[]>),
-}
-
-erzeuge_any_enum! {
-    (pub(crate)) AnyGleisMut2<'t>,
-    "Ein beliebiges Gleis.",
-    [Debug],
-    (&'t mut Gleis<[]>),
 }
 
 #[allow(single_use_lifetimes)]
@@ -196,11 +182,11 @@ pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
 
 /// Die gesuchte [Geschwindigkeit] wurde entfernt.
 #[derive(Debug)]
-pub struct GeschwindigkeitEntferntFehler2(pub geschwindigkeit::Name);
+pub struct GeschwindigkeitEntferntFehler(pub geschwindigkeit::Name);
 
 /// Der gesuchte [Streckenabschnitt] wurde entfernt.
 #[derive(Debug)]
-pub struct StreckenabschnittEntferntFehler2(pub streckenabschnitt::Name);
+pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
 
 impl<L: Leiter> Zustand<L> {
     /// Erstelle einen neuen [Zustand].
@@ -225,17 +211,17 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn geschwindigkeit(
         &self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
-        self.geschwindigkeiten.get(name).ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+    ) -> Result<&Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+        self.geschwindigkeiten.get(name).ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn geschwindigkeit_mut(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+    ) -> Result<&mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
         self.geschwindigkeiten
             .get_mut(name)
-            .ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+            .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn geschwindigkeit_hinzufügen(
@@ -249,7 +235,7 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler2> {
+    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
         for (_name, (_streckenabschnitt, geschwindigkeit)) in self.streckenabschnitte.iter_mut() {
             if Some(name) == geschwindigkeit.as_ref() {
                 *geschwindigkeit = None;
@@ -257,7 +243,7 @@ impl<L: Leiter> Zustand<L> {
         }
         self.geschwindigkeiten
             .remove(name)
-            .ok_or_else(|| GeschwindigkeitEntferntFehler2(name.clone()))
+            .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap {
@@ -267,11 +253,11 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn streckenabschnitt(
         &self,
         name: &streckenabschnitt::Name,
-    ) -> Result<&(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler2>
+    ) -> Result<&(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler>
     {
         self.streckenabschnitte
             .get(name)
-            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
+            .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn streckenabschnitt_mut(
@@ -279,11 +265,11 @@ impl<L: Leiter> Zustand<L> {
         name: &streckenabschnitt::Name,
     ) -> Result<
         &mut (Streckenabschnitt, Option<geschwindigkeit::Name>),
-        StreckenabschnittEntferntFehler2,
+        StreckenabschnittEntferntFehler,
     > {
         self.streckenabschnitte
             .get_mut(name)
-            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
+            .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
     pub(in crate::gleis::gleise) fn streckenabschnitt_hinzufügen(
@@ -298,12 +284,12 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn streckenabschnitt_entfernen(
         &mut self,
         name: &streckenabschnitt::Name,
-    ) -> Result<(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler2>
+    ) -> Result<(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler>
     {
         self.gleise.entferne_streckenabschnitt(name);
         self.streckenabschnitte
             .remove(name)
-            .ok_or_else(|| StreckenabschnittEntferntFehler2(name.clone()))
+            .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
@@ -337,7 +323,7 @@ impl<L: Leiter> Zustand<L> {
     pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
-    ) -> Result<AnyGleis2, EntfernenFehler2> {
+    ) -> Result<AnyGleis, EntfernenFehler> {
         self.gleise.entfernen(gleis_id.into())
     }
 
@@ -717,16 +703,16 @@ impl GleiseDaten {
 
 /// Fehler beim [entfernen](crate::gleis::gleise::Gleise::entfernen) eines Gleises.
 #[derive(Debug, Clone)]
-pub struct EntfernenFehler2(AnyId);
+pub struct EntfernenFehler(AnyId);
 
 impl GleiseDaten {
     /// Entferne ein [Gleis].
-    fn entfernen(&mut self, gleis_id: AnyId) -> Result<AnyGleis2, EntfernenFehler2> {
+    fn entfernen(&mut self, gleis_id: AnyId) -> Result<AnyGleis, EntfernenFehler> {
         macro_rules! entfernen_aux {
             ($gleise: expr, $gleis_id: expr) => {{
                 let (gleis, rectangle) = match $gleise.remove(&$gleis_id) {
                     Some(entry) => entry,
-                    None => return Err(EntfernenFehler2(AnyId::from($gleis_id))),
+                    None => return Err(EntfernenFehler(AnyId::from($gleis_id))),
                 };
                 let id_clone = $gleis_id.clone();
                 let result = self.rstern.remove(&GeomWithData::new(
@@ -741,7 +727,7 @@ impl GleiseDaten {
                         "Rectangle für Gleis {gleis:?} mit Id {id_clone:?} konnte nicht entfernt werden!"
                     );
                 }
-                Ok(AnyGleis2::from(gleis))
+                Ok(AnyGleis::from(gleis))
             }};
         }
         mit_any_id!({mut self}, [AnyId => id] gleis_id => entfernen_aux!())
