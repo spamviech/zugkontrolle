@@ -335,7 +335,7 @@ impl<L: Leiter> Zustand<L> {
         &mut self,
         gleis_id: impl Into<AnyId>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
         self.gleise.setze_streckenabschnitt(gleis_id.into(), streckenabschnitt)
     }
 
@@ -742,10 +742,9 @@ impl GleiseDaten {
     }
 }
 
-// TODO 2-suffix
 /// Fehler beim [setzen des Streckenabschnitts](crate::gleis::gleise::Gleise::setzte_streckenabschnitt) eines Gleises.
 #[derive(Debug, Clone)]
-pub struct SetzteStreckenabschnittFehler2(AnyId, Option<streckenabschnitt::Name>);
+pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>);
 
 impl GleiseDaten {
     /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [GleisId].
@@ -756,13 +755,13 @@ impl GleiseDaten {
         &mut self,
         gleis_id: AnyId,
         mut streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
         macro_rules! setze_streckenabschnitt_aux {
             ($gleise: expr, $gleis_id: expr) => {{
                 let (gleis, _rectangle) = match $gleise.get_mut(&$gleis_id) {
                     Some(entry) => entry,
                     None => {
-                        return Err(SetzteStreckenabschnittFehler2(
+                        return Err(SetzteStreckenabschnittFehler(
                             AnyId::from($gleis_id),
                             streckenabschnitt,
                         ))

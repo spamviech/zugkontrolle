@@ -6,7 +6,7 @@ use crate::{
         self,
         daten::{
             AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
-            SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler,
+            SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
         },
         id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         steuerung::SomeAktualisierenSender,
@@ -116,7 +116,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         gleis_id: impl Into<AnyId>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
-    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler2> {
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
         self.zustand.setze_streckenabschnitt(gleis_id, streckenabschnitt)
     }
 
