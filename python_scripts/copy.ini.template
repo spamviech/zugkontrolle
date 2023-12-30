@@ -1,0 +1,8 @@
+[raspi]
+address=raspberrypi
+user=pi
+[targets]
+armv7-unknown-linux-gnueabihf=True
+aarch64-unknown-linux-gnu=True
+x86_64-pc-windows-gnu=True
+x86_64-unknown-linux-gnu=True
