@@ -195,7 +195,7 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
+impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>> {
     fn from(nachricht: GleiseNachricht) -> Self {
         match nachricht {
             GleiseNachricht::SetzeStreckenabschnitt(any_id) => {
@@ -302,7 +302,7 @@ impl<L: Leiter, S> From<gleise::steuerung::Aktualisieren> for Nachricht<L, S> {
 }
 
 impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from(nachricht: streckenabschnitt::AuswahlNachricht) -> Self {
         use streckenabschnitt::AuswahlNachricht::*;
@@ -318,7 +318,7 @@ impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht>
 }
 
 impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from(nachricht: geschwindigkeit::AuswahlNachricht<S>) -> Self {
         use geschwindigkeit::AuswahlNachricht::*;
@@ -332,7 +332,7 @@ impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
     }
 }
 impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, weichen_id): (kontakt::Nachricht, KontaktId)) -> Self {
         use kontakt::Nachricht::*;
@@ -349,7 +349,7 @@ impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
 }
 
 impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, weichen_id): (WeicheNachricht, WeichenId)) -> Self {
         use weiche::Nachricht::*;
@@ -369,7 +369,7 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
 }
 
 impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, gleis_id): (DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)) -> Self {
         use weiche::Nachricht::*;
@@ -383,7 +383,7 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
 }
 
 impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
-    for modal::Nachricht<AuswahlZustand, Nachricht<L, S>>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, gleis_id): (KurvenWeicheNachricht, GleisId<KurvenWeiche>)) -> Self {
         use weiche::Nachricht::*;
@@ -396,7 +396,9 @@ impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
     }
 }
 
-impl<L: Leiter, S> From<lizenzen::Nachricht> for modal::Nachricht<AuswahlZustand, Nachricht<L, S>> {
+impl<L: Leiter, S> From<lizenzen::Nachricht>
+    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
+{
     fn from(nachricht: lizenzen::Nachricht) -> Self {
         use lizenzen::Nachricht::*;
         match nachricht {

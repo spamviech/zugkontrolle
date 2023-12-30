@@ -61,7 +61,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Zeige einen neuen [AuswahlZustand], z.B. zum anpassen der Anschlüsse eines Gleises.
-    pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand) {
+    pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
         *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
     }
 
@@ -346,11 +346,14 @@ where
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
+        geschwindigkeit: GeschwindigkeitSerialisiert<S>,
     ) {
-        let Zugkontrolle { gleise, .. } = self;
+        self.zeige_auswahlzustand(AuswahlZustand::Geschwindigkeit(Some((
+            name.clone(),
+            geschwindigkeit.clone(),
+        ))));
         let (alt_serialisiert, anschlüsse) =
-            if let Ok(geschwindigkeit) = gleise.geschwindigkeit_entfernen(&name) {
+            if let Ok(geschwindigkeit) = self.gleise.geschwindigkeit_entfernen(&name) {
                 let serialisiert = geschwindigkeit.serialisiere();
                 let anschlüsse = geschwindigkeit.anschlüsse();
                 (Some(serialisiert), anschlüsse)
@@ -359,7 +362,7 @@ where
             };
         use Ergebnis::*;
         let (fehler, anschlüsse) =
-            match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
+            match geschwindigkeit.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
                     if let Some(serialisiert) = alt_serialisiert {
                         self.zeige_message_box(
@@ -395,7 +398,7 @@ where
             if let Some(geschwindigkeit) = geschwindigkeit {
                 // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
                 // nachdem nur wiederhergestellt wird
-                let _ = gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
+                let _ = self.gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
             }
             if let Some(fehler) = fehler {
                 fehlermeldung.push_str(&format!(

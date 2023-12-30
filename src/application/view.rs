@@ -69,7 +69,7 @@ impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
     <L as Leiter>::Fahrtrichtung: Clone + Send,
-    S: 'static + Clone + Send,
+    S: 'static + Clone + PartialEq + Send,
 {
     /// [view](iced::Application::view)-Methode für [Zugkontrolle].
     pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
@@ -109,7 +109,7 @@ where
             |nachrichten| {
                 nachrichten
                     .into_iter()
-                    .map(modal::Nachricht::<AuswahlZustand, Nachricht<L, S>>::from)
+                    .map(modal::Nachricht::<AuswahlZustand<S>, Nachricht<L, S>>::from)
             },
         ))
         .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
@@ -123,7 +123,7 @@ where
                 .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
-        let zeige_auswahlzustand = |modal: &AuswahlZustand| {
+        let zeige_auswahlzustand = |modal: &AuswahlZustand<S>| {
             AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
                 .map(modal::Nachricht::äußeres_modal)
         };
@@ -168,11 +168,11 @@ fn top_row<'t, L, S>(
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
-) -> Row<'t, modal::Nachricht<AuswahlZustand, Nachricht<L, S>>, Renderer<Thema>>
+) -> Row<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>, Renderer<Thema>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
-    S: 'static + Clone,
+    S: 'static + Clone + PartialEq,
 {
     let modus_radios = Column::new()
         .push(Modus::Bauen.erstelle_radio(aktueller_modus))
@@ -203,7 +203,7 @@ where
     if let Modus::Bauen { .. } = aktueller_modus {
         let geschwindigkeit = Element::new(
             Button::new(Text::new("Geschwindigkeiten"))
-                .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit)),
+                .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit(None))),
         )
         .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
         let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
@@ -243,7 +243,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
     gleise: &'t Gleise<L, Nachricht<L, S>>,
 ) -> Row<
     't,
-    modal::Nachricht<AuswahlZustand, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
+    modal::Nachricht<AuswahlZustand<S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
     Renderer<Thema>,
 > {
     let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();

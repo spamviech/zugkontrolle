@@ -90,7 +90,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     initialer_pfad: String,
     speichern_gefärbt: Option<(bool, Instant)>,
     bewegung: Option<Bewegung>,
-    auswahl_zustand: Overlay<AuswahlZustand>,
+    auswahl_zustand: Overlay<AuswahlZustand<S>>,
     message_box: Overlay<MessageBox>,
     sender: Sender<Nachricht<L, S>>,
     empfänger: Empfänger<Nachricht<L, S>>,

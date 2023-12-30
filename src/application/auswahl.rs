@@ -29,7 +29,8 @@ use crate::{
         },
     },
     steuerung::{
-        self, kontakt::KontaktSerialisiert, streckenabschnitt::StreckenabschnittSerialisiert,
+        self, geschwindigkeit::GeschwindigkeitSerialisiert, kontakt::KontaktSerialisiert,
+        streckenabschnitt::StreckenabschnittSerialisiert,
     },
 };
 
@@ -73,11 +74,11 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 
 /// Zustand des Auswahl-Fensters.
 #[derive(Debug, Clone, PartialEq)]
-pub enum AuswahlZustand {
+pub enum AuswahlZustand<S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt(Option<(steuerung::streckenabschnitt::Name, StreckenabschnittSerialisiert)>),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::geschwindigkeit::Geschwindigkeit).
-    Geschwindigkeit,
+    Geschwindigkeit(Option<(steuerung::geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>)>),
     /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),
     /// oder [Kurve](gleis::kurve::Kurve).
     Kontakt(KontaktId, Option<KontaktSerialisiert>, bool),
@@ -93,7 +94,7 @@ pub enum AuswahlZustand {
     ZeigeLizenzen,
 }
 
-impl From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand {
+impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     fn from((wert, hat_steuerung): (AnyIdSteuerungSerialisiert, bool)) -> Self {
         use AnyIdSteuerungSerialisiert::*;
         match wert {
@@ -140,19 +141,19 @@ pub(in crate::application) type KurvenWeicheNachricht = weiche::Nachricht<
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-impl AuswahlZustand {
+impl<S> AuswahlZustand<S> {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, S, Nachricht: 't, AktualisierenNachricht>(
+    pub fn view<'t, L, Nachricht: 't, AktualisierenNachricht>(
         &self,
         gleise: &'t Gleise<L, AktualisierenNachricht>,
         lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
-    ) -> Element<'t, modal::Nachricht<AuswahlZustand, Nachricht>, Renderer<Thema>>
+    ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Renderer<Thema>>
     where
         L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S>,
         S: 't,
-        modal::Nachricht<AuswahlZustand, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
+        modal::Nachricht<AuswahlZustand<S>, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
@@ -170,7 +171,7 @@ impl AuswahlZustand {
                 ))
                 .map(|nachricht| modal::Nachricht::from(nachricht))
             },
-            AuswahlZustand::Geschwindigkeit => {
+            AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
