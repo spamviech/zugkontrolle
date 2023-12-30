@@ -189,6 +189,7 @@ struct AuswahlZustand {
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
     fn neu<'t, LeiterSerialisiert: 't + Display>(
+        startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: impl Iterator<
             Item = (&'t Name, &'t GeschwindigkeitSerialisiert<LeiterSerialisiert>),
         >,
@@ -266,7 +267,7 @@ pub enum FahrtrichtungAnschluss {
 
 impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
 where
-    LeiterSerialisiert: 't + Display,
+    LeiterSerialisiert: 't + Display + Clone,
     R: 't + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
@@ -282,6 +283,7 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
+        startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -298,7 +300,8 @@ where
         settings: I2cSettings,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
-        let erzeuge_zustand = move || AuswahlZustand::neu(geschwindigkeiten.iter());
+        let erzeuge_zustand =
+            move || AuswahlZustand::neu(startwert.clone(), geschwindigkeiten.iter());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element(
                 zustand,
@@ -538,6 +541,7 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
 
     /// Erstelle eine neue [Auswahl].
     fn auswahl_neu(
+        startwert: Option<(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -591,13 +595,14 @@ where
         )
     }
 
-    #[inline(always)]
     fn auswahl_neu(
+        startwert: Option<(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
         Auswahl::neu(
+            startwert,
             geschwindigkeiten,
             FahrtrichtungAnschluss::KonstanteSpannung,
             "Umdrehen",
@@ -673,13 +678,14 @@ where
         )
     }
 
-    #[inline(always)]
     fn auswahl_neu(
+        startwert: Option<(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
         Auswahl::neu(
+            startwert,
             geschwindigkeiten,
             FahrtrichtungAnschluss::Immer,
             "Fahrtrichtung",

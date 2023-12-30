@@ -158,7 +158,7 @@ impl<S> AuswahlZustand<S> {
     ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Renderer<Thema>>
     where
         L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S>,
-        S: 't,
+        S: 't + Clone,
         modal::Nachricht<AuswahlZustand<S>, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
@@ -183,6 +183,7 @@ impl<S> AuswahlZustand<S> {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
                 Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(
+                    startwert.clone(),
                     geschwindigkeiten,
                     scrollable_style,
                     i2c_settings,
