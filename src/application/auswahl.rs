@@ -76,7 +76,13 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand<S> {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
-    Streckenabschnitt(Option<(steuerung::streckenabschnitt::Name, StreckenabschnittSerialisiert)>),
+    Streckenabschnitt(
+        Option<(
+            steuerung::streckenabschnitt::Name,
+            StreckenabschnittSerialisiert,
+            Option<steuerung::geschwindigkeit::Name>,
+        )>,
+    ),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::geschwindigkeit::Geschwindigkeit).
     Geschwindigkeit(Option<(steuerung::geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>)>),
     /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),

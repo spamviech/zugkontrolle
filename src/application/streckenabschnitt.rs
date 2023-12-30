@@ -127,12 +127,12 @@ struct AuswahlZustand {
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
     fn neu<L: Leiter, AktualisierenNachricht>(
-        startwert: Option<(Name, StreckenabschnittSerialisiert)>,
+        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &Gleise<L, AktualisierenNachricht>,
     ) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         let (neu_name, neu_farbe, neu_anschluss) =
-            if let Some((name, streckenabschnitt)) = startwert {
+            if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
                 (name.0, streckenabschnitt.farbe, streckenabschnitt.anschluss())
             } else {
                 (
@@ -212,7 +212,7 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
-        startwert: Option<(Name, StreckenabschnittSerialisiert)>,
+        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &'a Gleise<L, AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
