@@ -349,6 +349,14 @@ impl<L: Leiter> Zustand<L> {
         self.gleise.steuerung_aktualisieren(lager, gleis_steuerung, sender)
     }
 
+    /// Sind für ein Gleis Anschlüsse definiert?
+    pub(in crate::gleis::gleise) fn hat_steuerung(
+        &self,
+        gleis: AnyId,
+    ) -> Result<bool, GleisNichtGefunden> {
+        self.gleise.hat_steuerung(gleis)
+    }
+
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
     pub(in crate::gleis::gleise) fn darstellen_aller_gleise(
         &self,
@@ -734,6 +742,7 @@ impl GleiseDaten {
     }
 }
 
+// TODO 2-suffix
 /// Fehler beim [setzen des Streckenabschnitts](crate::gleis::gleise::Gleise::setzte_streckenabschnitt) eines Gleises.
 #[derive(Debug, Clone)]
 pub struct SetzteStreckenabschnittFehler2(AnyId, Option<streckenabschnitt::Name>);
@@ -809,6 +818,10 @@ pub enum SteuerungAktualisierenFehler {
     },
 }
 
+/// Das Gleis wurde nicht gefunden.
+#[derive(Debug, Clone)]
+pub struct GleisNichtGefunden(AnyId);
+
 impl GleiseDaten {
     /// Aktualisiere die Steuerung für ein [Gleis].
     fn steuerung_aktualisieren(
@@ -875,6 +888,22 @@ impl GleiseDaten {
             {mut self},
             [AnyIdSteuerungSerialisiert => gleis_id, steuerung_serialisiert] gleis_steuerung
             => steuerung_aktualisieren_aux!()
+        )
+    }
+
+    /// Sind für ein Gleis Anschlüsse definiert?
+    fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
+        macro_rules! hat_steuerung_aux {
+            ($gleise: expr, $gleis_id: expr) => {{
+                let (Gleis { steuerung, .. }, _rectangle) =
+                    $gleise.get(&$gleis_id).ok_or(GleisNichtGefunden(AnyId::from($gleis_id)))?;
+                Ok(steuerung.is_some())
+            }};
+        }
+        mit_any_id!(
+            {ref self},
+            [AnyId => gleis_id] gleis
+            => hat_steuerung_aux!()
         )
     }
 }

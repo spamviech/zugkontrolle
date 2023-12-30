@@ -5,7 +5,7 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{
-            AnyGleis, BewegenFehler, EntfernenFehler, HinzufügenFehler2,
+            AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
             SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler,
         },
         id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
@@ -134,5 +134,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             gleis_steuerung,
             SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from)),
         )
+    }
+
+    /// Sind für ein Gleis Anschlüsse definiert?
+    pub fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
+        self.zustand.hat_steuerung(gleis)
     }
 }

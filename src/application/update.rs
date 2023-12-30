@@ -315,7 +315,9 @@ where
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
-            self.zeige_auswahlzustand(AuswahlZustand::from(anschlüsse_anpassen))
+            let hat_steuerung =
+                self.gleise.hat_steuerung(anschlüsse_anpassen.id()).unwrap_or(false);
+            self.zeige_auswahlzustand(AuswahlZustand::from((anschlüsse_anpassen, hat_steuerung)))
         } else {
             self.verstecke_auswahlzustand();
         }

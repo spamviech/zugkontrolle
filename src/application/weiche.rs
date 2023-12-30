@@ -48,12 +48,13 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
     /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
         option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+        hat_steuerung: bool,
     ) -> Self {
-        let (name, anschlüsse, hat_steuerung) =
+        let (name, anschlüsse) =
             if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
-                (name.0.clone(), anschlüsse.clone(), true)
+                (name.0.clone(), anschlüsse.clone())
             } else {
-                (String::new(), AnschlüsseSerialisiert::default(), false)
+                (String::new(), AnschlüsseSerialisiert::default())
             };
         Zustand { name, anschlüsse, hat_steuerung }
     }
@@ -112,10 +113,11 @@ where
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        hat_steuerung: bool,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
+        let erzeuge_zustand = move || Zustand::neu(&weiche.clone(), hat_steuerung);
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
         };

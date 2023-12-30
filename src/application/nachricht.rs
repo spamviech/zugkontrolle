@@ -209,36 +209,59 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
             },
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
                 AnyIdSteuerungSerialisiert::Gerade(id, startwert) => {
+                    let hat_steuerung = startwert.is_some();
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
                         KontaktId::Gerade(id),
                         startwert,
+                        hat_steuerung,
                     ))
                 },
-                AnyIdSteuerungSerialisiert::Kurve(id, startwert) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Kontakt(KontaktId::Kurve(id), startwert),
-                ),
+                AnyIdSteuerungSerialisiert::Kurve(id, startwert) => {
+                    let hat_steuerung = startwert.is_some();
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
+                        KontaktId::Kurve(id),
+                        startwert,
+                        hat_steuerung,
+                    ))
+                },
                 AnyIdSteuerungSerialisiert::Weiche(id, startwert) => {
+                    let hat_steuerung = startwert.is_some();
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
                         WeichenId::Gerade(id),
                         startwert,
+                        hat_steuerung,
                     ))
                 },
                 AnyIdSteuerungSerialisiert::KurvenWeiche(id, startwert) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(id, startwert))
+                    let hat_steuerung = startwert.is_some();
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(
+                        id,
+                        startwert,
+                        hat_steuerung,
+                    ))
                 },
                 AnyIdSteuerungSerialisiert::DreiwegeWeiche(id, startwert) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(id, startwert))
+                    let hat_steuerung = startwert.is_some();
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(
+                        id,
+                        startwert,
+                        hat_steuerung,
+                    ))
                 },
                 AnyIdSteuerungSerialisiert::SKurvenWeiche(id, startwert) => {
+                    let hat_steuerung = startwert.is_some();
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
                         WeichenId::SKurve(id),
                         startwert,
+                        hat_steuerung,
                     ))
                 },
                 AnyIdSteuerungSerialisiert::Kreuzung(id, startwert) => {
+                    let hat_steuerung = startwert.is_some();
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
                         WeichenId::Kreuzung(id),
                         startwert,
+                        hat_steuerung,
                     ))
                 },
             },

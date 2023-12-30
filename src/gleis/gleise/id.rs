@@ -269,6 +269,22 @@ erzeuge_any_enum! {
     (<[] as MitSteuerung>::Serialisiert),
 }
 
+impl AnyIdSteuerungSerialisiert {
+    /// Erhalte die [Id](AnyId) eines Gleises.
+    pub fn id(&self) -> AnyId {
+        macro_rules! id_aux {
+            ($id: expr, $steuerung: expr) => {
+                AnyId::from($id.clone())
+            };
+        }
+        mit_any_id!(
+            {},
+            [AnyIdSteuerungSerialisiert => id, _steuerung] self
+            =>id_aux!()
+        )
+    }
+}
+
 erzeuge_any_enum! {
     (pub) AnyIdVerbindung,
     "Id für ein beliebiges Gleis und der Name einer seiner Verbindungen.",

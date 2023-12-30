@@ -43,12 +43,12 @@ struct Zustand {
 
 impl Zustand {
     /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
-    fn neu(option_kontakt: &Option<KontaktSerialisiert>) -> Self {
-        let (name, anschluss, trigger, hat_steuerung) =
+    fn neu(option_kontakt: &Option<KontaktSerialisiert>, hat_steuerung: bool) -> Self {
+        let (name, anschluss, trigger) =
             if let Some(KontaktSerialisiert { name, anschluss, trigger }) = option_kontakt {
-                (name.0.clone(), anschluss.clone(), *trigger, true)
+                (name.0.clone(), anschluss.clone(), *trigger)
             } else {
-                (String::new(), InputSerialisiert::Pin { pin: 0 }, Trigger::RisingEdge, false)
+                (String::new(), InputSerialisiert::Pin { pin: 0 }, Trigger::RisingEdge)
             };
         Zustand { name, anschluss, trigger, hat_steuerung }
     }
@@ -97,11 +97,12 @@ where
     pub fn neu(
         gleis_art: &'t str,
         kontakt: Option<KontaktSerialisiert>,
+        hat_steuerung: bool,
         lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || Zustand::neu(&kontakt.clone());
+        let erzeuge_zustand = move || Zustand::neu(&kontakt.clone(), hat_steuerung);
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(gleis_art, zustand, lager, scrollable_style, settings)
         };
