@@ -29,6 +29,7 @@
   - entferne lifetime vom MitSteuerung
   - verschiebe \*Serialisiert-Definitionen für Sammel-Strukturen nach gleis::gleise::de_serialisieren::v4
   - Neue Implementierung für Ids (jetzt zahlen-basiert).
+  - AuswahlZustand verwendet Id als ersten Parameter (analog zu allen anderen Datenstrukturen)
 - aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
 - pcf8574::Port::als_(input|output) geben immer den Port zurück,
   selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).

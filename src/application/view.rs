@@ -84,6 +84,7 @@ where
             lager,
             speichern_gefärbt,
             bewegung: _,
+            auswahl_zustand,
             message_box,
             sender: _,
             empfänger: _,
@@ -126,11 +127,12 @@ where
             AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
                 .map(modal::Nachricht::äußeres_modal)
         };
-        let auswahlzustand =
-            Element::from(Modal::neu(column, zeige_auswahlzustand).schließe_bei_esc());
+        let auswahlzustand = Element::from(
+            Modal::neu(column, auswahl_zustand, zeige_auswahlzustand).schließe_bei_esc(),
+        );
 
         let zeige_message_box = |message_box: &MessageBox| {
-            let MessageBox { titel, nachricht, zeitstempel: _ } = message_box;
+            let MessageBox { titel, nachricht } = message_box;
             Element::new(
                 iced_aw::Card::new(
                     Text::new(titel.clone()),
@@ -145,11 +147,8 @@ where
             )
             .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>)
         };
-        let mut message_box_modal =
-            Modal::neu(auswahlzustand, zeige_message_box).schließe_bei_esc();
-        if let Some(message_box) = message_box {
-            message_box_modal = message_box_modal.initiales_overlay(message_box.clone());
-        }
+        let message_box_modal =
+            Modal::neu(auswahlzustand, message_box, zeige_message_box).schließe_bei_esc();
         message_box_modal.into()
     }
 }

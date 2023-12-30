@@ -20,12 +20,14 @@ use crate::{
         Lager,
     },
     application::{
+        auswahl::AuswahlZustand,
         bewegen::{Bewegen, Bewegung},
         drehen::Drehen,
         empfänger::Empfänger,
         fonts::BENÖTIGTE_FONT_BYTES,
         geschwindigkeit::LeiterAnzeige,
         icon::icon,
+        modal::Overlay,
         nachricht::Nachricht,
         style::thema::Thema,
     },
@@ -67,7 +69,6 @@ pub mod weiche;
 pub struct MessageBox {
     titel: String,
     nachricht: String,
-    zeitstempel: Instant,
 }
 
 /// Die Anwendung inklusive des GUI.
@@ -89,7 +90,8 @@ pub struct Zugkontrolle<L: Leiter, S> {
     initialer_pfad: String,
     speichern_gefärbt: Option<(bool, Instant)>,
     bewegung: Option<Bewegung>,
-    message_box: Option<MessageBox>,
+    auswahl_zustand: Overlay<AuswahlZustand>,
+    message_box: Overlay<MessageBox>,
     sender: Sender<Nachricht<L, S>>,
     empfänger: Empfänger<Nachricht<L, S>>,
     // TODO Plan
@@ -244,7 +246,8 @@ where
             initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
-            message_box: None,
+            auswahl_zustand: Overlay::neu(None),
+            message_box: Overlay::neu(None),
             sender,
             empfänger: Empfänger::neu(receiver, ()),
         };

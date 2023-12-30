@@ -18,7 +18,10 @@ use crate::{
     gleis::{
         self,
         gerade::Gerade,
-        gleise::{id::GleisId, Gleise},
+        gleise::{
+            id::{AnyIdSteuerungSerialisiert, GleisId},
+            Gleise,
+        },
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -31,7 +34,7 @@ use crate::{
 use super::kontakt;
 
 /// Die Id eines Gleises mit einem [Kontakt](crate::steuerung::kontakt::Kontakt).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum KontaktId {
     /// Die Id einer [Geraden](Gerade).
     Gerade(GleisId<Gerade>),
@@ -40,7 +43,7 @@ pub enum KontaktId {
 }
 
 /// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum WeichenId {
     /// Die Id einer [Weiche].
     Gerade(GleisId<Weiche>),
@@ -67,7 +70,7 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 >;
 
 /// Zustand des Auswahl-Fensters.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AuswahlZustand {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt,
@@ -75,37 +78,45 @@ pub enum AuswahlZustand {
     Geschwindigkeit,
     /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),
     /// oder [Kurve](gleis::kurve::Kurve).
-    Kontakt(Option<KontaktSerialisiert>, KontaktId),
+    Kontakt(KontaktId, Option<KontaktSerialisiert>),
     /// Hinzufügen/Verändern der Anschlüsse einer [Weiche](gleis::weiche::gerade::Weiche),
     /// [Kreuzung](gleis::kreuzung::Kreuzung),
     /// oder [SKurvenWeiche](gleis::weiche::s_kurve::SKurvenWeiche).
-    Weiche(Option<WeicheSerialisiert>, WeichenId),
+    Weiche(WeichenId, Option<WeicheSerialisiert>),
     /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
-    DreiwegeWeiche(Option<DreiwegeWeicheSerialisiert>, GleisId<DreiwegeWeiche>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>),
     /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
-    KurvenWeiche(Option<KurvenWeicheSerialisiert>, GleisId<KurvenWeiche>),
+    KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen,
 }
 
 impl Clone for AuswahlZustand {
     fn clone(&self) -> Self {
+        use AuswahlZustand::*;
         match self {
-            AuswahlZustand::Streckenabschnitt => AuswahlZustand::Streckenabschnitt,
-            AuswahlZustand::Geschwindigkeit => AuswahlZustand::Geschwindigkeit,
-            AuswahlZustand::Kontakt(startwert, id) => {
-                AuswahlZustand::Kontakt(startwert.clone(), id.clone())
-            },
-            AuswahlZustand::Weiche(startwert, id) => {
-                AuswahlZustand::Weiche(startwert.clone(), id.clone())
-            },
-            AuswahlZustand::DreiwegeWeiche(startwert, id) => {
-                AuswahlZustand::DreiwegeWeiche(startwert.clone(), id.clone())
-            },
-            AuswahlZustand::KurvenWeiche(startwert, id) => {
-                AuswahlZustand::KurvenWeiche(startwert.clone(), id.clone())
-            },
-            AuswahlZustand::ZeigeLizenzen => AuswahlZustand::ZeigeLizenzen,
+            Streckenabschnitt => Streckenabschnitt,
+            Geschwindigkeit => Geschwindigkeit,
+            Kontakt(id, startwert) => Kontakt(id.clone(), startwert.clone()),
+            Weiche(id, startwert) => Weiche(id.clone(), startwert.clone()),
+            DreiwegeWeiche(id, startwert) => DreiwegeWeiche(id.clone(), startwert.clone()),
+            KurvenWeiche(id, startwert) => KurvenWeiche(id.clone(), startwert.clone()),
+            ZeigeLizenzen => ZeigeLizenzen,
+        }
+    }
+}
+
+impl From<AnyIdSteuerungSerialisiert> for AuswahlZustand {
+    fn from(wert: AnyIdSteuerungSerialisiert) -> Self {
+        use AnyIdSteuerungSerialisiert::*;
+        match wert {
+            Gerade(id, steuerung) => AuswahlZustand::Kontakt(KontaktId::from(id), steuerung),
+            Kurve(id, steuerung) => AuswahlZustand::Kontakt(KontaktId::from(id), steuerung),
+            Weiche(id, steuerung) => AuswahlZustand::Weiche(WeichenId::from(id), steuerung),
+            DreiwegeWeiche(id, steuerung) => AuswahlZustand::DreiwegeWeiche(id, steuerung),
+            KurvenWeiche(id, steuerung) => AuswahlZustand::KurvenWeiche(id, steuerung),
+            SKurvenWeiche(id, steuerung) => AuswahlZustand::Weiche(WeichenId::from(id), steuerung),
+            Kreuzung(id, steuerung) => AuswahlZustand::Weiche(WeichenId::from(id), steuerung),
         }
     }
 }
@@ -167,7 +178,7 @@ impl AuswahlZustand {
                 ))
                 .map(|nachricht| modal::Nachricht::from(nachricht))
             },
-            AuswahlZustand::Kontakt(kontakt, kontakt_id) => {
+            AuswahlZustand::Kontakt(kontakt_id, kontakt) => {
                 let gleis_art = match &kontakt_id {
                     KontaktId::Gerade(_id) => "Gerade",
                     KontaktId::Kurve(_id) => "Kurve",
@@ -182,7 +193,7 @@ impl AuswahlZustand {
                 ))
                 .map(move |nachricht| modal::Nachricht::from((nachricht, kontakt_id_clone.clone())))
             },
-            AuswahlZustand::Weiche(weiche, weichen_id) => {
+            AuswahlZustand::Weiche(weichen_id, weiche) => {
                 let weichen_art = match &weichen_id {
                     WeichenId::Gerade(_id) => "Weiche",
                     WeichenId::SKurve(_id) => "S-Kurven-Weiche",
@@ -197,7 +208,7 @@ impl AuswahlZustand {
                 ))
                 .map(move |nachricht| modal::Nachricht::from((nachricht, weichen_id_clone.clone())))
             },
-            AuswahlZustand::DreiwegeWeiche(dreiwege_weiche, id) => {
+            AuswahlZustand::DreiwegeWeiche(id, dreiwege_weiche) => {
                 let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Dreiwege-Weiche",
@@ -207,7 +218,7 @@ impl AuswahlZustand {
                 ))
                 .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.clone())))
             },
-            AuswahlZustand::KurvenWeiche(kurven_weiche, id) => {
+            AuswahlZustand::KurvenWeiche(id, kurven_weiche) => {
                 let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Kurven-Weiche",

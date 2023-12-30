@@ -210,35 +210,35 @@ impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand, Na
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
                 AnyIdSteuerungSerialisiert::Gerade(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
-                        startwert,
                         KontaktId::Gerade(id),
+                        startwert,
                     ))
                 },
                 AnyIdSteuerungSerialisiert::Kurve(id, startwert) => modal::Nachricht::ZeigeOverlay(
-                    AuswahlZustand::Kontakt(startwert, KontaktId::Kurve(id)),
+                    AuswahlZustand::Kontakt(KontaktId::Kurve(id), startwert),
                 ),
                 AnyIdSteuerungSerialisiert::Weiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
                         WeichenId::Gerade(id),
+                        startwert,
                     ))
                 },
                 AnyIdSteuerungSerialisiert::KurvenWeiche(id, startwert) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(startwert, id))
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(id, startwert))
                 },
                 AnyIdSteuerungSerialisiert::DreiwegeWeiche(id, startwert) => {
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(startwert, id))
+                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(id, startwert))
                 },
                 AnyIdSteuerungSerialisiert::SKurvenWeiche(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
                         WeichenId::SKurve(id),
+                        startwert,
                     ))
                 },
                 AnyIdSteuerungSerialisiert::Kreuzung(id, startwert) => {
                     modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
-                        startwert,
                         WeichenId::Kreuzung(id),
+                        startwert,
                     ))
                 },
             },

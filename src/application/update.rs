@@ -4,6 +4,7 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
+    ops::DerefMut,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
@@ -19,8 +20,8 @@ use crate::{
         OutputSerialisiert,
     },
     application::{
-        bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, style::thema::Thema, MessageBox,
-        Nachricht, Zugkontrolle,
+        auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
+        style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
         self,
@@ -56,7 +57,17 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        self.message_box = Some(MessageBox { titel, nachricht, zeitstempel: Instant::now() });
+        *self.message_box.deref_mut() = Some(MessageBox { titel, nachricht });
+    }
+
+    /// Zeige einen neuen [AuswahlZustand], z.B. zum anpassen der Anschlüsse eines Gleises.
+    pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand) {
+        *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
+    }
+
+    /// Verstecke den [AuswahlZustand], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
+    pub fn verstecke_auswahlzustand(&mut self) {
+        *self.auswahl_zustand.deref_mut() = None;
     }
 
     /// Führe eine Aktion aus.
@@ -283,7 +294,7 @@ where
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
         use SteuerungAktualisierenFehler2::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();
@@ -304,7 +315,9 @@ where
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
+            self.zeige_auswahlzustand(AuswahlZustand::from(anschlüsse_anpassen))
         } else {
+            self.verstecke_auswahlzustand();
             // TODO schließe Auswahl-Modal
             // FIXME Widget-Werte werden zurückgesetzt!
         }
