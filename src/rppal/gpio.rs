@@ -95,7 +95,7 @@ impl Pin {
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
     /// and disables the pin's built-in pull-up/pull-down resistors.
     pub fn into_input(self) -> InputPin {
-        InputPin(self, PullUpDown::Off)
+        InputPin(self, Bias::Off)
     }
 
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
@@ -104,7 +104,7 @@ impl Pin {
     /// The pull-down resistor is disabled when InputPin goes out of scope if `reset_on_drop`
     /// is set to true (default).
     pub fn into_input_pulldown(self) -> InputPin {
-        InputPin(self, PullUpDown::PullDown)
+        InputPin(self, Bias::PullDown)
     }
 
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
@@ -113,7 +113,7 @@ impl Pin {
     /// The pull-up resistor is disabled when InputPin goes out of scope if `reset_on_drop`
     /// is set to true (default).
     pub fn into_input_pullup(self) -> InputPin {
-        InputPin(self, PullUpDown::PullUp)
+        InputPin(self, Bias::PullUp)
     }
 
     /// Consumes the Pin and returns an [OutputPin]. Sets the mode to [Mode::Output]
@@ -141,7 +141,7 @@ pub use ::rppal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
-pub struct InputPin(Pin, PullUpDown);
+pub struct InputPin(Pin, Bias);
 
 #[cfg(not(feature = "raspi"))]
 impl PartialEq for InputPin {
@@ -288,12 +288,12 @@ impl Not for Level {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::PullUpDown;
+pub use ::rppal::gpio::Bias;
 #[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
-pub enum PullUpDown {
+pub enum Bias {
     Off,
     PullDown,
     PullUp,
@@ -340,14 +340,17 @@ pub use ::rppal::gpio::Mode;
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum Mode {
-    Input = 0b000,
-    Output = 0b001,
-    Alt0 = 0b100,
-    Alt1 = 0b101,
-    Alt2 = 0b110,
-    Alt3 = 0b111,
-    Alt4 = 0b011,
-    Alt5 = 0b010,
+    Input,
+    Output,
+    Alt0,
+    Alt1,
+    Alt2,
+    Alt3,
+    Alt4,
+    Alt5,
+    Alt6,
+    Alt7,
+    Alt8,
 }
 
 #[cfg(not(feature = "raspi"))]
@@ -362,6 +365,9 @@ impl std::fmt::Display for Mode {
             Mode::Alt3 => write!(f, "Alt3"),
             Mode::Alt4 => write!(f, "Alt4"),
             Mode::Alt5 => write!(f, "Alt5"),
+            Mode::Alt6 => write!(f, "Alt6"),
+            Mode::Alt7 => write!(f, "Alt7"),
+            Mode::Alt8 => write!(f, "Alt8"),
         }
     }
 }
