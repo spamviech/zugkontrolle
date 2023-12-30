@@ -28,7 +28,9 @@ use crate::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
     },
-    steuerung::{self, kontakt::KontaktSerialisiert},
+    steuerung::{
+        self, kontakt::KontaktSerialisiert, streckenabschnitt::StreckenabschnittSerialisiert,
+    },
 };
 
 use super::kontakt;
@@ -70,10 +72,10 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 >;
 
 /// Zustand des Auswahl-Fensters.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand {
     /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
-    Streckenabschnitt,
+    Streckenabschnitt(Option<(steuerung::streckenabschnitt::Name, StreckenabschnittSerialisiert)>),
     /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::geschwindigkeit::Geschwindigkeit).
     Geschwindigkeit,
     /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),
@@ -159,12 +161,15 @@ impl AuswahlZustand {
             + From<lizenzen::Nachricht>,
     {
         match self {
-            AuswahlZustand::Streckenabschnitt => Element::from(streckenabschnitt::Auswahl::neu(
-                gleise,
-                scrollable_style,
-                i2c_settings,
-            ))
-            .map(|nachricht| modal::Nachricht::from(nachricht)),
+            AuswahlZustand::Streckenabschnitt(startwert) => {
+                Element::from(streckenabschnitt::Auswahl::neu(
+                    startwert.clone(),
+                    gleise,
+                    scrollable_style,
+                    i2c_settings,
+                ))
+                .map(|nachricht| modal::Nachricht::from(nachricht))
+            },
             AuswahlZustand::Geschwindigkeit => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {

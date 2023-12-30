@@ -26,13 +26,15 @@ use iced_widget::{
 };
 
 use crate::{
-    anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
+    anschluss::{de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert},
+    application::{
+        anschluss, farbwahl::Farbwahl, fonts::EMOJI, map_mit_zustand::MapMitZustand, modal, style,
+    },
     argumente::I2cSettings,
     gleis::gleise::Gleise,
     steuerung::{
         geschwindigkeit::{self, Leiter},
-        streckenabschnitt::{Name, Streckenabschnitt},
+        streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
     typen::farbe::Farbe,
     util::unicase_ord::UniCaseOrd,
@@ -119,19 +121,30 @@ struct AuswahlZustand {
     neu_name: String,
     neu_farbe: Farbe,
     neu_anschluss: OutputSerialisiert,
-    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe)>,
+    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)>,
 }
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
     fn neu<L: Leiter, AktualisierenNachricht>(
+        startwert: Option<(Name, StreckenabschnittSerialisiert)>,
         gleise: &Gleise<L, AktualisierenNachricht>,
     ) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
+        let (neu_name, neu_farbe, neu_anschluss) =
+            if let Some((name, streckenabschnitt)) = startwert {
+                (name.0, streckenabschnitt.farbe, streckenabschnitt.anschluss())
+            } else {
+                (
+                    String::new(),
+                    Farbe { rot: 1., grün: 1., blau: 1. },
+                    OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
+                )
+            };
         AuswahlZustand {
-            neu_name: String::new(),
-            neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
-            neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
+            neu_name,
+            neu_farbe,
+            neu_anschluss,
             streckenabschnitte: gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
                 Self::iter_map((name, streckenabschnitt))
             }),
@@ -140,10 +153,11 @@ impl AuswahlZustand {
 
     fn iter_map(
         (name, streckenabschnitt): (&Name, &Streckenabschnitt),
-    ) -> (UniCaseOrd<Name>, (String, Farbe)) {
+    ) -> (UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)) {
+        let anschluss = &*streckenabschnitt.lock_anschluss();
         (
             UniCaseOrd::neu(name.clone()),
-            (streckenabschnitt.lock_anschluss().to_string(), streckenabschnitt.farbe.clone()),
+            (anschluss.to_string(), streckenabschnitt.farbe.clone(), anschluss.serialisiere()),
         )
     }
 }
@@ -157,6 +171,7 @@ enum InterneAuswahlNachricht {
     Name(String),
     FarbeBestimmen(Farbe),
     Anschluss(OutputSerialisiert),
+    Bearbeiten(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
 }
 
 /// Nachricht des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
@@ -197,11 +212,12 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
+        startwert: Option<(Name, StreckenabschnittSerialisiert)>,
         gleise: &'a Gleise<L, AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = || AuswahlZustand::neu(gleise);
+        let erzeuge_zustand = move || AuswahlZustand::neu(startwert.clone(), gleise);
         let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element(zustand, scrollable_style, settings)
         };
@@ -238,6 +254,13 @@ where
                     Vec::new()
                 },
                 InterneAuswahlNachricht::Anschluss(anschluss) => {
+                    zustand.neu_anschluss = anschluss;
+                    Vec::new()
+                },
+                InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
+                    // TODO assoziierte Geschwindigkeit berücksichtigen
+                    zustand.neu_name = name.0;
+                    zustand.neu_farbe = farbe;
                     zustand.neu_anschluss = anschluss;
                     Vec::new()
                 },
@@ -279,17 +302,26 @@ where
             )
             .push(Button::new(Text::new("Keinen")).on_press(InterneAuswahlNachricht::Wähle(None)))
             .width(Length::Shrink);
-        for (name, (anschluss, farbe)) in streckenabschnitte {
+        for (name, (anschluss_str, farbe, anschluss)) in streckenabschnitte {
             column = column.push(
                 Row::new()
                     .push(
-                        Button::new(Text::new(format!("{name}: {anschluss:?}")))
+                        Button::new(Text::new(format!("{name}: {anschluss_str:?}")))
                             .on_press(InterneAuswahlNachricht::Wähle(Some((
                                 name.clone().into_inner(),
                                 *farbe,
                             ))))
                             .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
                     )
+                    .push(Button::new(Text::new("🪶").font(EMOJI)).on_press(
+                        // TODO assoziierte Geschwindigkeit berücksichtigen
+                        InterneAuswahlNachricht::Bearbeiten(
+                            None,
+                            name.clone().into_inner(),
+                            *farbe,
+                            anschluss.clone(),
+                        ),
+                    ))
                     .push(
                         Button::new(Text::new("X"))
                             .on_press(InterneAuswahlNachricht::Lösche(name.clone().into_inner())),

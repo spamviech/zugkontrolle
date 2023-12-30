@@ -120,6 +120,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
+        self.zeige_auswahlzustand(AuswahlZustand::Streckenabschnitt(Some((
+            name.clone(),
+            Streckenabschnitt::neu_serialisiert(farbe, anschluss_definition.clone()),
+        ))));
         // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
         // vermeidet (unmöglichen) Fehlerfall mit doppeltem Namen beim hinzufügen.
         match self.gleise.streckenabschnitt_mut(&name) {

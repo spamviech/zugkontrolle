@@ -209,7 +209,7 @@ where
         let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
             streckenabschnitt_aktuell,
             *streckenabschnitt_festlegen,
-            AuswahlZustand::Streckenabschnitt,
+            AuswahlZustand::Streckenabschnitt(None),
         ))
         .map(modal::Nachricht::underlay_from);
         row = row.push(Column::new().push(geschwindigkeit).push(streckenabschnitt).spacing(1));

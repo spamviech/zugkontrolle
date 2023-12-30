@@ -35,7 +35,7 @@ impl Display for Name {
 }
 
 /// Steuerung der Stromzufuhr.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
     /// Die Farbe des Streckenabschnittes.
     pub farbe: Farbe,

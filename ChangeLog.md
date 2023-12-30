@@ -46,11 +46,7 @@
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 - Reserviere hat jetzt zusätzlich RefArg und MutRefArg als (veränderliche) Referenz-Argumente für reserviere
 - Anpassen der Fehler-Enums
-
-### workaround
-
-- Schließe Auswahl-Anzeige nach jeder Aktion, um erneut Eingaben zu akzeptieren.
-  Aus irgend einem Grund wird das Modal danach nicht angezeigt.
+- Erlaube einfaches bearbeiten vorhandener Streckenabschnitte
 
 ## 3.0.0
 
