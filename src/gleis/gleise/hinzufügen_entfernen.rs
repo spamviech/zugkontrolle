@@ -5,8 +5,8 @@ use crate::{
     gleis::gleise::{
         self,
         daten::{
-            AnyGleis, BewegenFehler2, EntfernenFehler, HinzufügenFehler2,
-            SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler2,
+            AnyGleis, BewegenFehler, EntfernenFehler, HinzufügenFehler2,
+            SetzteStreckenabschnittFehler2, SteuerungAktualisierenFehler,
         },
         id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         steuerung::SomeAktualisierenSender,
@@ -94,7 +94,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
         &mut self,
         canvas_pos: Vektor,
-    ) -> Result<(), BewegenFehler2> {
+    ) -> Result<(), BewegenFehler> {
         if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
             if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
                 let punkt = canvas_pos - halte_position;
@@ -125,7 +125,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
-    ) -> Result<(), SteuerungAktualisierenFehler2>
+    ) -> Result<(), SteuerungAktualisierenFehler>
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {

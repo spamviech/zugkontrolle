@@ -315,7 +315,7 @@ impl<L: Leiter> Zustand<L> {
         gleis_id: impl Into<AnyId>,
         position: Position,
         einrasten: bool,
-    ) -> Result<(), BewegenFehler2> {
+    ) -> Result<(), BewegenFehler> {
         self.gleise.bewegen(&self.zugtyp, gleis_id.into(), position, einrasten)
     }
 
@@ -345,7 +345,7 @@ impl<L: Leiter> Zustand<L> {
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
         sender: SomeAktualisierenSender,
-    ) -> Result<(), SteuerungAktualisierenFehler2> {
+    ) -> Result<(), SteuerungAktualisierenFehler> {
         self.gleise.steuerung_aktualisieren(lager, gleis_steuerung, sender)
     }
 
@@ -370,7 +370,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
-    pub(in crate::gleis::gleise) fn gleis_an_position2(
+    pub(in crate::gleis::gleise) fn gleis_an_position(
         &self,
         canvas_pos: Vektor,
     ) -> Option<(
@@ -384,7 +384,7 @@ impl<L: Leiter> Zustand<L> {
         )>,
     )> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
-            self.gleise.gleis_an_position2(&self.zugtyp, canvas_pos)?;
+            self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_id| {
             self.streckenabschnitte.get(&streckenabschnitt_id).map(
                 |(streckenabschnitt, geschwindigkeit_id)| {
@@ -618,7 +618,7 @@ impl GleiseDaten {
 
 /// Fehler beim [bewegen](crate::gleis::gleise::Gleise::bewegen) eines Gleises.
 #[derive(Debug, Clone)]
-pub enum BewegenFehler2 {
+pub enum BewegenFehler {
     /// Unbekannte Definition-Id für das bewegte Gleis.
     DefinitionNichtGefunden(AnyDefinitionId),
     /// Ein unbekanntes Gleis sollte bewegt werden.
@@ -633,14 +633,14 @@ impl GleiseDaten {
         gleis_id: AnyId,
         mut neue_position: Position,
         einrasten: bool,
-    ) -> Result<(), BewegenFehler2> {
+    ) -> Result<(), BewegenFehler> {
         macro_rules! bewegen_aux {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
                 // Erhalte Referenz auf das Gleis.
                 let (gleis, rectangle) = match $gleise.get_mut(&$gleis_id) {
                     Some(entry) => entry,
                     None => {
-                        return Err(BewegenFehler2::GleisNichtGefunden(AnyId::from($gleis_id)));
+                        return Err(BewegenFehler::GleisNichtGefunden(AnyId::from($gleis_id)));
                     },
                 };
                 let neues_rectangle = match $definitionen.get(&gleis.definition) {
@@ -664,7 +664,7 @@ impl GleiseDaten {
                         ))
                     },
                     None => {
-                        return Err(BewegenFehler2::DefinitionNichtGefunden(AnyDefinitionId::from(
+                        return Err(BewegenFehler::DefinitionNichtGefunden(AnyDefinitionId::from(
                             gleis.definition.clone(),
                         )))
                     },
@@ -796,7 +796,7 @@ impl GleiseDaten {
 
 /// Fehler beim aktualisieren der Steuerung eines Gleises.
 #[derive(Debug)]
-pub enum SteuerungAktualisierenFehler2 {
+pub enum SteuerungAktualisierenFehler {
     /// Das Gleis wurde nicht gefunden.
     GleisNichtGefunden(AnyId),
     /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
@@ -816,12 +816,12 @@ impl GleiseDaten {
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
         sender: SomeAktualisierenSender,
-    ) -> Result<(), SteuerungAktualisierenFehler2> {
+    ) -> Result<(), SteuerungAktualisierenFehler> {
         macro_rules! steuerung_aktualisieren_aux {
             ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
                 let (Gleis { steuerung, .. }, _rectangle) =
                     $gleise.get_mut(&$gleis_id).ok_or(
-                        SteuerungAktualisierenFehler2::GleisNichtGefunden(AnyId::from($gleis_id)),
+                        SteuerungAktualisierenFehler::GleisNichtGefunden(AnyId::from($gleis_id)),
                     )?;
 
                 let anschlüsse_serialisiert =
@@ -865,7 +865,7 @@ impl GleiseDaten {
                         },
                     }
                 }
-                Err(SteuerungAktualisierenFehler2::Deserialisieren {
+                Err(SteuerungAktualisierenFehler::Deserialisieren {
                     fehler,
                     wiederherstellen_fehler,
                 })
@@ -1247,7 +1247,7 @@ const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 impl GleiseDaten {
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
-    fn gleis_an_position2<L: Leiter>(
+    fn gleis_an_position<L: Leiter>(
         &self,
         zugtyp: &Zugtyp<L>,
         canvas_pos: Vektor,

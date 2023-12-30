@@ -25,7 +25,7 @@ use crate::{
     },
     gleis::gleise::{
         self,
-        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler2},
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
         id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
     },
     steuerung::{
@@ -292,7 +292,7 @@ where
 
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
-        use SteuerungAktualisierenFehler2::*;
+        use SteuerungAktualisierenFehler::*;
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
             Ok(()) => {},
@@ -318,8 +318,6 @@ where
             self.zeige_auswahlzustand(AuswahlZustand::from(anschlüsse_anpassen))
         } else {
             self.verstecke_auswahlzustand();
-            // TODO schließe Auswahl-Modal
-            // FIXME Widget-Werte werden zurückgesetzt!
         }
     }
 }

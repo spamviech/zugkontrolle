@@ -18,7 +18,7 @@ use crate::{
     gleis::{
         gleise::{
             self,
-            daten::{BewegenFehler2, EntfernenFehler, Zustand},
+            daten::{BewegenFehler, EntfernenFehler, Zustand},
             id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
@@ -177,7 +177,7 @@ where
     let mut status = event::Status::Ignored;
     if cursor.is_over(bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let gleis_an_position2 = zustand2.gleis_an_position2(canvas_pos);
+            let gleis_an_position2 = zustand2.gleis_an_position(canvas_pos);
             match modus {
                 ModusDaten::Bauen { gehalten: gehalten2, letzter_klick } => {
                     let now = Instant::now();
@@ -300,9 +300,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
 /// Fehler, die bei [zustand_aktualisieren](Gleise::zustand_aktualisieren) auftreten können.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub enum AktualisierenFehler2 {
+pub enum AktualisierenFehler {
     /// Fehler beim Bewegen eines Gleises.
-    BewegenFehler(BewegenFehler2),
+    BewegenFehler(BewegenFehler),
     /// Fehler beim Entfernen eines Gleises.
     EntfernenFehler(EntfernenFehler),
 }
@@ -313,7 +313,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn zustand_aktualisieren(
         &mut self,
         nachricht: ZustandAktualisieren,
-    ) -> Result<(), AktualisierenFehler2> {
+    ) -> Result<(), AktualisierenFehler> {
         match nachricht.0 {
             ZustandAktualisierenEnum::LetzteMausPosition(position) => {
                 self.letzte_maus_position = position;
