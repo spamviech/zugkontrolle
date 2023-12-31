@@ -54,7 +54,7 @@ def print_newline_after_first_call():
 
 def execute(command: list[str], exit=True) -> Tuple[bool, Optional[str]]:
     print_newline_after_first_call()
-    print(" ".join(command))
+    print(" ".join(map(lambda s: f'"{s}"', command)))
     try:
         # display output + save it to a variable
         # https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
