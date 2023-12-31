@@ -17,6 +17,7 @@ use crate::application::fonts::BOOTSTRAP;
 pub enum Bootstrap {
     Feather,
     ExclamationTriangle,
+    Trash,
 }
 
 impl Bootstrap {
@@ -24,6 +25,7 @@ impl Bootstrap {
         match self {
             Bootstrap::Feather => "\u{F7BF}",
             Bootstrap::ExclamationTriangle => "\u{F33B}",
+            Bootstrap::Trash => "\u{F5DE}",
         }
     }
 }
