@@ -46,7 +46,7 @@
 - gebe Empfänger Id-Parameter, falls mehrere benötigt werden
 - Reserviere hat jetzt zusätzlich RefArg und MutRefArg als (veränderliche) Referenz-Argumente für reserviere
 - Anpassen der Fehler-Enums
-- Erlaube einfaches bearbeiten vorhandener Streckenabschnitte
+- Erlaube einfaches bearbeiten vorhandener Streckenabschnitte und Geschwindigkeiten
 
 ## 3.0.0
 

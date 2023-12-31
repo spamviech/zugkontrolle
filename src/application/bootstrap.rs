@@ -29,6 +29,8 @@ impl Bootstrap {
 }
 
 /// Ein Widget, dass ein Icon darstellt.
+///
+/// Damit das Icon richtig angezeigt wird muss vorher die [BOOTSTRAP]-Schriftart [geladen](iced::font::load) werden.
 #[allow(missing_debug_implementations)]
 pub struct Icon<'a, R>(Text<'a, R>)
 where
