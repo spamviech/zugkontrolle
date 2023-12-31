@@ -186,25 +186,77 @@ struct AuswahlZustand {
     geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, String>,
 }
 
+/// Der Startwert für ein [Auswahl]-Widget.
+#[derive(Debug, Clone)]
+#[allow(variant_size_differences)]
+pub enum AuswahlStartwert {
+    /// Steuerung über ein Pwm-Signal.
+    Pwm {
+        /// Anschluss zur Steuerung der Fahrtrichtung.
+        umdrehen_anschluss: Option<OutputSerialisiert>,
+        /// Der [Pwm-Pin](pwm::Pin).
+        pwm_pin: pwm::Serialisiert,
+        /// Die Polarität des Pwm-Signals.
+        polarität: Polarität,
+    },
+    /// Steuerung über mehrere Anschlüsse mit konstanter Spannung.
+    KonstanteSpannung {
+        /// Anschluss zur Steuerung der Fahrtrichtung.
+        umdrehen_anschluss: Option<OutputSerialisiert>,
+        /// Die Anschlüsse zum steuern der Geschwindigkeit.
+        geschwindigkeit_anschlüsse: NonEmpty<OutputSerialisiert>,
+    },
+}
+
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
     fn neu<'t, LeiterSerialisiert: 't + Display>(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
+        startwert: Option<(Name, AuswahlStartwert)>,
         geschwindigkeiten: impl Iterator<
             Item = (&'t Name, &'t GeschwindigkeitSerialisiert<LeiterSerialisiert>),
         >,
     ) -> Self {
-        AuswahlZustand {
-            neu_name: String::new(),
-            aktueller_tab: TabId::Pwm,
-            umdrehen_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            pwm_pin: pwm::Serialisiert(0),
-            pwm_polarität: Polarität::Normal,
-            ks_anschlüsse: NonEmpty::singleton(OutputSerialisiert::Pin {
-                pin: 0,
-                polarität: Polarität::Normal,
-            }),
-            geschwindigkeiten: geschwindigkeiten.map(Self::iter_map).collect(),
+        let geschwindigkeiten = geschwindigkeiten.map(Self::iter_map).collect();
+        let standard_anschluss = OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal };
+        let standard_pwm_pin = pwm::Serialisiert(0);
+        match startwert {
+            Some((name, AuswahlStartwert::Pwm { umdrehen_anschluss, pwm_pin, polarität })) => {
+                AuswahlZustand {
+                    neu_name: name.0,
+                    aktueller_tab: TabId::Pwm,
+                    umdrehen_anschluss: umdrehen_anschluss
+                        .unwrap_or_else(|| standard_anschluss.clone()),
+                    pwm_pin,
+                    pwm_polarität: polarität,
+                    ks_anschlüsse: NonEmpty::singleton(standard_anschluss),
+                    geschwindigkeiten,
+                }
+            },
+            Some((
+                name,
+                AuswahlStartwert::KonstanteSpannung {
+                    umdrehen_anschluss,
+                    geschwindigkeit_anschlüsse,
+                },
+            )) => AuswahlZustand {
+                neu_name: name.0,
+                aktueller_tab: TabId::KonstanteSpannung,
+                umdrehen_anschluss: umdrehen_anschluss
+                    .unwrap_or_else(|| standard_anschluss.clone()),
+                pwm_pin: standard_pwm_pin,
+                pwm_polarität: Polarität::Normal,
+                ks_anschlüsse: geschwindigkeit_anschlüsse,
+                geschwindigkeiten,
+            },
+            None => AuswahlZustand {
+                neu_name: String::new(),
+                aktueller_tab: TabId::Pwm,
+                umdrehen_anschluss: standard_anschluss.clone(),
+                pwm_pin: standard_pwm_pin,
+                pwm_polarität: Polarität::Normal,
+                ks_anschlüsse: NonEmpty::singleton(standard_anschluss),
+                geschwindigkeiten,
+            },
         }
     }
 
@@ -283,7 +335,7 @@ where
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
+        startwert: Option<(Name, AuswahlStartwert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -601,6 +653,20 @@ where
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
+        let startwert = startwert.map(|(name, geschwindigkeit)| {
+            let startwert = match geschwindigkeit.leiter {
+                MittelleiterSerialisiert::Pwm { pin, polarität } => {
+                    AuswahlStartwert::Pwm { umdrehen_anschluss: None, pwm_pin: pin, polarität }
+                },
+                MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
+                    AuswahlStartwert::KonstanteSpannung {
+                        umdrehen_anschluss: Some(umdrehen),
+                        geschwindigkeit_anschlüsse: geschwindigkeit,
+                    }
+                },
+            };
+            (name, startwert)
+        });
         Auswahl::neu(
             startwert,
             geschwindigkeiten,
@@ -684,6 +750,24 @@ where
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
+        let startwert = startwert.map(|(name, geschwindigkeit)| {
+            let startwert = match geschwindigkeit.leiter {
+                ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                    AuswahlStartwert::Pwm {
+                        umdrehen_anschluss: Some(fahrtrichtung),
+                        pwm_pin: geschwindigkeit,
+                        polarität,
+                    }
+                },
+                ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
+                    AuswahlStartwert::KonstanteSpannung {
+                        umdrehen_anschluss: Some(fahrtrichtung),
+                        geschwindigkeit_anschlüsse: geschwindigkeit,
+                    }
+                },
+            };
+            (name, startwert)
+        });
         Auswahl::neu(
             startwert,
             geschwindigkeiten,
