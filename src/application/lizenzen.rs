@@ -627,22 +627,27 @@ fn freetype_lizenz(ende: MITEnde) -> Cow<'static, str> {
 }
 
 /// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
-fn target_crates() -> HashMap<&'static str, NonEmpty<&'static str>> {
-    let mut crates: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
+fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static str>> {
+    let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
+    // Schriftarten
+    let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005R"));
+    let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
+    let _ = crates_und_schriftarten.insert("Lato", NonEmpty::singleton(""));
+    // crates
     for (name, version) in zugkontrolle_macros::target_crates!() {
         use std::collections::hash_map::Entry;
-        match crates.entry(name) {
+        match crates_und_schriftarten.entry(name) {
             Entry::Occupied(mut o) => o.get_mut().push(version),
             Entry::Vacant(v) => {
                 let _ = v.insert(NonEmpty::singleton(version));
             },
         }
     }
-    crates
+    crates_und_schriftarten
 }
 
 static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>> =
-    Lazy::new(|| verwendete_lizenzen(target_crates()));
+    Lazy::new(|| verwendete_lizenzen(target_crates_und_schriftarten()));
 
 struct Lizenz {
     lizenz: fn() -> Cow<'static, str>,
@@ -695,7 +700,20 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 ofl_1_1(Some(copyright), false, true, false, false)
             }),
         ),
-        ("Noto Color Emoji", Lizenz::neu(|| ofl_1_1(None, true, false, true, false))),
+        (
+            "Bootstrap Icons",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
         // Über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
         (
             "Lato",

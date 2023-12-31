@@ -60,6 +60,7 @@ def execute(command: list[str], exit=True) -> Tuple[bool, Optional[str]]:
         # https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
         p = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         output = ""
+        assert p.stdout is not None
         for line in iter(p.stdout.readline, ""):
             print(line, end="")
             output += line
@@ -74,13 +75,14 @@ def execute(command: list[str], exit=True) -> Tuple[bool, Optional[str]]:
             if len(output) > 0:
                 print(output)
         if exit:
-            sys.exit(e)
+            sys.exit(str(e))
         else:
             return False, output
     return True, output
 
 def query_host_target_triple() -> Optional[str]:
     success, output = execute(["rustc", "--version", "--verbose"], exit=False)
+    assert isinstance(output, str)
     if not success:
         print(f"Failed to query host target_triple: {output}", sys.stderr)
         return None

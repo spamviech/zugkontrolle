@@ -22,6 +22,7 @@ use crate::{
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
     application::{
+        fonts::BOOTSTRAP,
         map_mit_zustand::MapMitZustand,
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
@@ -354,7 +355,8 @@ where
         );
     }
     if leerer_iterator {
-        column = column.push(Text::new("⚠").font(crate::application::fonts::EMOJI));
+        // TODO verwende Icon-enum
+        column = column.push(Text::new("\u{F33B}").font(BOOTSTRAP));
     }
     column
 }

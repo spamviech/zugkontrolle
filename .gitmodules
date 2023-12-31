@@ -4,6 +4,9 @@
 [submodule "dockerfiles/docker"]
 	path = dockerfiles/docker
 	url = git@github.com:iced-rs/docker.git
-[submodule "fonts/noto-emoji"]
-	path = fonts/noto-emoji
-	url = git@github.com:googlefonts/noto-emoji.git
+[submodule "fonts/bootstrap-icons"]
+	path = fonts/bootstrap-icons
+	url = git@github.com:twbs/icons.git
+[submodule "fonts/woff2otf"]
+	path = python_scripts/woff2otf
+	url = git@github.com:hanikesn/woff2otf.git
