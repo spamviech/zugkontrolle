@@ -44,6 +44,7 @@ use crate::{
 pub mod anschluss;
 pub mod auswahl;
 pub mod bewegen;
+pub mod bootstrap;
 pub mod drehen;
 #[path = "application/empfänger.rs"]
 pub mod empfänger;

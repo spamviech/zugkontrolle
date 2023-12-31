@@ -28,8 +28,11 @@ use iced_widget::{
 use crate::{
     anschluss::{de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert},
     application::{
-        anschluss, farbwahl::Farbwahl, fonts::BOOTSTRAP, map_mit_zustand::MapMitZustand, modal,
-        style,
+        anschluss,
+        bootstrap::{Bootstrap, Icon},
+        farbwahl::Farbwahl,
+        map_mit_zustand::MapMitZustand,
+        modal, style,
     },
     argumente::I2cSettings,
     gleis::gleise::Gleise,
@@ -314,8 +317,7 @@ where
                             ))))
                             .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
                     )
-                    // TODO verwende Icon-enum
-                    .push(Button::new(Text::new("\u{F7BF}").font(BOOTSTRAP)).on_press(
+                    .push(Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                         // TODO assoziierte Geschwindigkeit berücksichtigen
                         InterneAuswahlNachricht::Bearbeiten(
                             None,

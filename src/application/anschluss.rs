@@ -22,7 +22,7 @@ use crate::{
         InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     },
     application::{
-        fonts::BOOTSTRAP,
+        bootstrap::{Bootstrap, Icon},
         map_mit_zustand::MapMitZustand,
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
@@ -355,8 +355,7 @@ where
         );
     }
     if leerer_iterator {
-        // TODO verwende Icon-enum
-        column = column.push(Text::new("\u{F33B}").font(BOOTSTRAP));
+        column = column.push(Icon::neu(Bootstrap::ExclamationTriangle));
     }
     column
 }
