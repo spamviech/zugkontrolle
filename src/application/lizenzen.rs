@@ -383,10 +383,10 @@ fn lyon_lizenz() -> Cow<'static, str> {
     )
 }
 
-fn memchr_lizenz() -> Cow<'static, str> {
+fn memchr_lizenz(jahr: &'static str) -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
-        vec![MITCopyright::neu(true, "2015", "Andrew Gallant")],
+        vec![MITCopyright::neu(true, jahr, "Andrew Gallant")],
         None,
         MITZeilenumbruch::Winreg,
         MITEinrückung::keine(),
@@ -577,7 +577,7 @@ fn tiny_skia_lizenz() -> Cow<'static, str> {
     bsd_3(
         vec![
             BSD3Copyright::neu("2011", false, "Google Inc.", false),
-            BSD3Copyright::neu("2020", false, "Reizner Evgeniy", false),
+            BSD3Copyright::neu("2020", false, "Yevhenii Reizner", false),
         ],
         BSD3Zeilenumbruch::TinySkia,
         BSD3Darstellung {
@@ -635,6 +635,50 @@ fn x11rb_lizenz() -> Cow<'static, str> {
         MITEinrückung::keine(),
         false,
         MITEnde::standard(),
+    )
+}
+
+fn unicode_ccc_bidi_mirroring_lizenz() -> Cow<'static, str> {
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Reizner Evgeniy"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+fn toml_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: None,
+            voller_name: Some("Individual contributors"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+fn ttf_parser_lizenz(jahr: &'static str, ende_neue_zeilen: u8) -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(true, jahr, "Yevhenii Reizner")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde { punkt: true, neue_zeile: ende_neue_zeilen },
     )
 }
 
@@ -736,7 +780,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ),
         ("ab_glyph", Lizenz::neu(|| ab_glyph_lizenz(false, 0))),
         ("ab_glyph_rasterizer", Lizenz::neu(|| ab_glyph_lizenz(true, 1))),
-        ("aho-corasick", Lizenz::neu(memchr_lizenz)),
+        ("aho-corasick", Lizenz::neu(|| memchr_lizenz("2015"))),
         (
             "android_glue",
             Lizenz::neu(|| {
@@ -878,7 +922,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ),
         ("bytemuck", Lizenz::neu(bytemuck_lizenz)),
         ("bytemuck_derive", Lizenz::neu(bytemuck_lizenz)),
-        ("byteorder", Lizenz::neu(memchr_lizenz)),
+        ("byteorder", Lizenz::neu(|| memchr_lizenz("2015"))),
         (
             "calloop",
             Lizenz::neu(|| {
@@ -1277,7 +1321,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
                 )
             }),
         ),
-        ("memchr", Lizenz::neu(memchr_lizenz)),
+        ("memchr", Lizenz::neu(|| memchr_lizenz("2015"))),
         ("memmap2", Lizenz::neu(memmap2_lizenz)),
         ("memmap2", Lizenz::neu(memmap2_lizenz)),
         (
@@ -1741,21 +1785,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
                 )
             }),
         ),
-        ("toml", Lizenz::neu(crichton_2014_lizenz)),
-        (
-            "ttf-parser",
-            Lizenz::neu(|| {
-                mit(
-                    None,
-                    vec![MITCopyright::neu(true, "2018", "Yevhenii Reizner")],
-                    None,
-                    MITZeilenumbruch::Winreg,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::zwei_neue_zeilen(),
-                )
-            }),
-        ),
+        ("ttf-parser", Lizenz::neu(|| ttf_parser_lizenz("2018", 2))),
         (
             "twox-hash",
             Lizenz::neu(|| {
@@ -1855,24 +1885,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("winapi-i686-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
         ("winapi-wsapoll", Lizenz::neu(apache_2_0_standard_eingerückt)),
         ("winapi-x86_64-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
-        (
-            "winapi-util",
-            Lizenz::neu(|| {
-                mit(
-                    MITPräfix("The MIT License (MIT)", 2),
-                    vec![MITCopyright {
-                        c_in_klammern: true,
-                        jahr: Some("2017"),
-                        voller_name: Some("Andrew Gallant"),
-                    }],
-                    None,
-                    MITZeilenumbruch::Winreg,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
-        ),
+        ("winapi-util", Lizenz::neu(|| memchr_lizenz("2017"))),
         ("windows", Lizenz::neu(widows_sys_lizenz)),
         ("windows-sys", Lizenz::neu(widows_sys_lizenz)),
         ("windows_aarch64_msvc", Lizenz::neu(widows_sys_lizenz)),
@@ -2241,20 +2254,8 @@ option.
         ("tiny-skia", Lizenz::neu(tiny_skia_lizenz)),
         ("tiny-skia-path", Lizenz::neu(tiny_skia_lizenz)),
         ("toml_datetime", Lizenz::neu(crichton_2014_lizenz)),
-        (
-            "toml_edit",
-            Lizenz::neu(|| {
-                mit(
-                    MITPräfix("MIT License", 2),
-                    vec![MITCopyright::neu(true, "2017", "Andronik Ordian")],
-                    None,
-                    MITZeilenumbruch::Standard,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
-        ),
+        ("toml", Lizenz::neu(toml_lizenz)),
+        ("toml_edit", Lizenz::neu(toml_lizenz)),
         ("vec_map", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
         (
             "windows-targets",
@@ -2396,6 +2397,74 @@ option.
                 )
             }),
         ),
+        (
+            "unicode-linebreak",
+            Lizenz::neu(|| apache_2_0_eingerückt(false, ApacheCopyright::standard(), true, 1)),
+        ),
+        (
+            "unicode-general-category",
+            Lizenz::neu(|| apache_2_0_eingerückt(false, ApacheCopyright::braces(), true, 1)),
+        ),
+        ("unicode-ccc", Lizenz::neu(unicode_ccc_bidi_mirroring_lizenz)),
+        ("unicode-bidi-mirroring", Lizenz::neu(unicode_ccc_bidi_mirroring_lizenz)),
+        ("unicode-bidi", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        ("termcolor", Lizenz::neu(|| memchr_lizenz("2015"))),
+        (
+            "sys-locale",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2021"),
+                        voller_name: Some("1Password"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "swash",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Chad Brokaw"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        (
+            "svg_fmt",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2019"),
+                        voller_name: Some("Nicolas Silva"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("strict-num", Lizenz::neu(|| ttf_parser_lizenz("2022", 1))),
+        ("spirv", Lizenz::neu(apache_2_0_standard_eingerückt)),
     ])
 }
 
