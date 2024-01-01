@@ -18,7 +18,6 @@ use iced_widget::{
     scrollable::{self, Scrollable},
     Column, Row, Space,
 };
-use itertools::Itertools;
 use nonempty::NonEmpty;
 use once_cell::sync::Lazy;
 
@@ -2281,6 +2280,7 @@ option.
                 )
             }),
         ),
+        ("widestring", Lizenz::neu(apache_2_0_standard_eingerückt)),
     ])
 }
 
@@ -2293,6 +2293,9 @@ fn verwendete_lizenzen_impl<K: Ord>(
     target_crates
         .into_iter()
         .flat_map(|(name, versionen)| {
+            if name.starts_with("zugkontrolle") {
+                return Vec::new();
+            }
             let lizenz = alle_lizenzen.get(name).unwrap_or(&fallback_lizenz);
             versionen
                 .into_iter()
@@ -2301,7 +2304,7 @@ fn verwendete_lizenzen_impl<K: Ord>(
                     let text = lizenz.lizenz_für_version(version);
                     (key, text)
                 })
-                .collect_vec()
+                .collect()
         })
         .collect()
 }
