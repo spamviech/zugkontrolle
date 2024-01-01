@@ -1,4 +1,5 @@
 .vscode/
+!/ide_settings_templates/**
 
 .stack-work/
 dist-newstyle/
