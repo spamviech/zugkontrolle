@@ -5,6 +5,7 @@ dist-newstyle/
 dist/
 target/
 __pycache__/
+.mypy_cache/
 *~
 *.o
 
