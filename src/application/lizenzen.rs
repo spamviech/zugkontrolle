@@ -18,6 +18,7 @@ use iced_widget::{
     scrollable::{self, Scrollable},
     Column, Row, Space,
 };
+use itertools::Itertools;
 use nonempty::NonEmpty;
 use once_cell::sync::Lazy;
 
@@ -632,7 +633,6 @@ fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static s
     // Schriftarten
     let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005R"));
     let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
-    let _ = crates_und_schriftarten.insert("Lato", NonEmpty::singleton(""));
     // crates
     for (name, version) in zugkontrolle_macros::target_crates!() {
         use std::collections::hash_map::Entry;
@@ -649,6 +649,7 @@ fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static s
 static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>> =
     Lazy::new(|| verwendete_lizenzen(target_crates_und_schriftarten()));
 
+#[derive(Debug, Clone)]
 struct Lizenz {
     lizenz: fn() -> Cow<'static, str>,
     version_spezifisch: HashMap<&'static str, fn() -> Cow<'static, str>>,
@@ -672,19 +673,12 @@ impl Lizenz {
 
 // TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
+fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
     let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
     let mit_rust_project_developers_lizenz_2016 = || mit_rust_project_developers_lizenz("2016");
-    vec![
-        ("block", Lizenz::neu(mit_missing_note)),           // TODO
-        ("dispatch", Lizenz::neu(mit_missing_note)),        // TODO
-        ("glow_glyph", Lizenz::neu(mit_missing_note)),      // TODO
-        ("objc-foundation", Lizenz::neu(mit_missing_note)), // TODO
-        ("objc_id", Lizenz::neu(mit_missing_note)),         // TODO
-        ("sid", Lizenz::neu(mit_missing_note)),             // TODO
-        ("expat-sys", Lizenz::neu(mit_missing_note)),       // TODO
+    HashMap::from([
         (
             "SourceSerif4-Regular",
             Lizenz::neu(|| {
@@ -714,7 +708,7 @@ fn cargo_lock_lizenzen() -> Vec<(&'static str, Lizenz)> {
                 )
             }),
         ),
-        // Über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
+        // War über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
         (
             "Lato",
             Lizenz::neu(|| {
@@ -2225,7 +2219,7 @@ option.
 "#,
                 )
             }),
-        ), // TODO new
+        ),
         ("tiny-skia", Lizenz::neu(tiny_skia_lizenz)),
         ("tiny-skia-path", Lizenz::neu(tiny_skia_lizenz)),
         ("toml_datetime", Lizenz::neu(crichton_2014_lizenz)),
@@ -2287,7 +2281,7 @@ option.
                 )
             }),
         ),
-    ]
+    ])
 }
 
 fn verwendete_lizenzen_impl<K: Ord>(
@@ -2295,15 +2289,19 @@ fn verwendete_lizenzen_impl<K: Ord>(
     mut erzeuge_key: impl FnMut(&'static str, &'static str) -> K,
 ) -> BTreeMap<K, fn() -> Cow<'static, str>> {
     let alle_lizenzen = cargo_lock_lizenzen();
-    alle_lizenzen
+    let fallback_lizenz = Lizenz::neu(mit_missing_note);
+    target_crates
         .into_iter()
-        .flat_map(|(name, lizenz)| {
-            target_crates.get(name).map_or_else(Vec::new, |versions| {
-                versions
-                    .into_iter()
-                    .map(|version| (erzeuge_key(name, version), lizenz.lizenz_für_version(version)))
-                    .collect()
-            })
+        .flat_map(|(name, versionen)| {
+            let lizenz = alle_lizenzen.get(name).unwrap_or(&fallback_lizenz);
+            versionen
+                .into_iter()
+                .map(|version| {
+                    let key = erzeuge_key(name, version);
+                    let text = lizenz.lizenz_für_version(version);
+                    (key, text)
+                })
+                .collect_vec()
         })
         .collect()
 }
