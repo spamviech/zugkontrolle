@@ -1,0 +1,11 @@
+[package]
+name = "unicode-bidi-mirroring"
+version = "0.1.0"
+authors = ["Evgeniy Reizner <razrfalcon@gmail.com>"]
+description = "Unicode Bidi Mirroring propery detection"
+documentation = "https://docs.rs/unicode-bidi-mirroring/"
+keywords = ["unicode"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/RazrFalcon/unicode-bidi-mirroring"
+edition = "2018"
