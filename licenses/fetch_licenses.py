@@ -1,10 +1,12 @@
+#!/usr/bin/python3
+
 import os
 import os.path
 import shutil
 import urllib.request
 import urllib.error
 
-script_name=os.path.splitext(os.path.os.path.basename(__file__))[0]
+script_name=os.path.splitext(os.path.basename(__file__))[0]
 licences_dir=os.path.dirname(os.path.abspath(__file__))
 
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
@@ -187,6 +189,7 @@ def copy_or_download_licenses(show_percent = 5):
     l = len(packages)
     step = int(show_percent * l / 100)
     with open(os.path.join(os.path.join(licences_dir, f"{script_name}.log")), 'w') as log_file:
+        log(f"Fetch {l} licenses...", log_file)
         for package in packages:
             name_and_version = f"{package.name}-{package.version}"
             if package.git is None:
