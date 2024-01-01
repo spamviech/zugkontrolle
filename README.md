@@ -193,6 +193,13 @@ Das sollte (minimal) weniger Speicherplatz benötigen.
 sudo apt install xserver-xorg raspberrypi-ui-mods lightdm
 ```
 
+Außerdem müssen die `mesa-vulkan-drivers` entfernt werden.
+Ansonsten kommt es zu einem seg-fault mit der Nachricht "lavapipe is not a confomant vulkan implementation".
+
+```sh
+sudo apt remove mesa-vulkan-drivers
+```
+
 ## Aktivieren zusätzlicher I2C-Busse
 
 Durch hinzufügen folgender Zeilen in `/boot/config.txt` werden ab dem nächsten boot zusätzliche I2C-Busse (3-6) verfügbar sein.
