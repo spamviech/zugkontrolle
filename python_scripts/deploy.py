@@ -1,29 +1,19 @@
 #!/bin/python3
 
-from action import build, send_to_raspi, check_docker_podman
+import os.path
+
+from action import get_bin_path, send_to_raspi
 
 import config
 
-# install either docker or podman
-# the respective machine must be started before executing this script
-
-# Windows (Docker Desktop not free for arbitrary use)
-# https://podman-desktop.io/downloads
-# https://www.docker.com/
-
-# Linux/Debian (e.g. Ubuntu)
-# sudo apt install docker:io
-# sudo apt install podman
-
-# install cross https://github.com/cross-rs/cross
-# cargo install cross --git https://github.com/cross-rs/cross
-
-# check if docker/podman is running
-check_docker_podman()
+# This assumes, prepare_release.py was executed before running this script
+# Hint: you can adjust the config.ini to only build the target binaries
 
 # only deploy activated targets
 for raspi_target in filter(lambda t: t in config.targets, [config.raspi32_target, config.raspi64_target]):
     # build for raspi
-    bin_path = build(target=raspi_target, release=True)
+    bin_path = get_bin_path(target=raspi_target)
+    # check if the file exists
+    assert(os.path.isfile(bin_path))
     # automatically transfer to raspi using scp
     send_to_raspi(bin_path, config.raspberry_user, config.raspberry_address)

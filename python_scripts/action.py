@@ -4,7 +4,7 @@ import sys
 import os.path
 from typing import Optional
 
-from util import execute, copy, query_host_target_triple, get_repo_root, get_name_and_version, get_binary_extension, is_raspi_target
+from util import execute, copy, query_host_target_triple, get_repo_root, get_name_and_version, get_binary_extension, is_raspi_target, get_bin_path
 
 host_target_triple: Optional[str] = query_host_target_triple()
 repo_root: str = get_repo_root()
@@ -26,7 +26,7 @@ def check_docker_podman(exit: bool = True) -> bool:
         return False
 
 
-def build(target: str, release: bool = True) -> str:
+def build(target: str, release: bool = True):
     """Build the program for the specified profile, copy it to {repo_root}/bin"""
     if target == host_target_triple:
         build_program = "cargo"
@@ -44,10 +44,8 @@ def build(target: str, release: bool = True) -> str:
     binary_extension = get_binary_extension(target)
     source_path = os.path.join(
         repo_root, "target",  target, profile, name + binary_extension)
-    bin_path = os.path.join(
-        repo_root, "bin", f"{name}-{version}-{target}{binary_extension}")
+    bin_path = get_bin_path(target)
     copy(source_path, bin_path)
-    return bin_path
 
 
 def send_to_raspi(bin_path: str, raspberry_user: str, raspberry_address: str):

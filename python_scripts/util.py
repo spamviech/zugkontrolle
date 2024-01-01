@@ -40,7 +40,15 @@ def get_binary_extension(target: str) -> str:
         return ".exe"
     else:
         return ""
-    
+
+def get_bin_path(target: str) -> str:
+    repo_root: str = get_repo_root()
+    name, version = get_name_and_version()
+    binary_extension = get_binary_extension(target)
+    bin_path = os.path.join(
+        repo_root, "bin", f"{name}-{version}-{target}{binary_extension}")
+    return bin_path
+
 def is_raspi_target(target: str) -> bool:
     return (target in (config.raspi32_target, config.raspi64_target))
 
