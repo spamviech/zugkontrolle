@@ -74,14 +74,14 @@ So können Abstellgleise abgeschaltet werden, ohne eine eigene Bahngeschwindigke
 Weichen und Kreuzungen, bei denen die Fahrtrichtung geändert werden kann.
 Es wird ein Anschluss pro Richtung benötigt.
 
-## Geplant
-
-### Kontakt (nicht implementiert)
+### Kontakt
 
 Ein Kontakt ist ein Eingangssignal. Es wird durch einen Zug ausgelöst und ist hauptsächlich für den
 automatischen Betrieb (Plan) interessant.
 
 Soll ein PCF8574Port verwenden werden wird der zugehörige InterruptPin benötigt.
+
+## Geplant
 
 ### Plan (nicht implementiert)
 
