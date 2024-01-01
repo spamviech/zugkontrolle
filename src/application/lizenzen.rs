@@ -626,11 +626,23 @@ fn freetype_lizenz(ende: MITEnde) -> Cow<'static, str> {
     )
 }
 
+fn x11rb_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(false, "2019", "x11rb Contributers")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
 /// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
 fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static str>> {
     let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
     // Schriftarten
-    let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005R"));
+    let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005"));
     let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
     // crates
     for (name, version) in zugkontrolle_macros::target_crates!() {
@@ -1843,6 +1855,25 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("winapi-i686-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
         ("winapi-wsapoll", Lizenz::neu(apache_2_0_standard_eingerückt)),
         ("winapi-x86_64-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
+        (
+            "winapi-util",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2017"),
+                        voller_name: Some("Andrew Gallant"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Winreg,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("windows", Lizenz::neu(widows_sys_lizenz)),
         ("windows-sys", Lizenz::neu(widows_sys_lizenz)),
         ("windows_aarch64_msvc", Lizenz::neu(widows_sys_lizenz)),
         ("windows_i686_gnu", Lizenz::neu(widows_sys_lizenz)),
@@ -1894,20 +1925,8 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             }),
         ),
         ("x11-dl", Lizenz::neu(mit_ohne_copyright_x11)),
-        (
-            "x11rb",
-            Lizenz::neu(|| {
-                mit(
-                    None,
-                    vec![MITCopyright::neu(false, "2019", "x11rb Contributers")],
-                    None,
-                    MITZeilenumbruch::X11,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
-        ),
+        ("x11rb", Lizenz::neu(x11rb_lizenz)),
+        ("x11rb-protocol", Lizenz::neu(x11rb_lizenz)),
         (
             "xcursor",
             Lizenz::neu(|| {
@@ -2329,6 +2348,48 @@ option.
                     }],
                     None,
                     MITZeilenumbruch::Winreg,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("wgpu", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("wgpu-core", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("wgpu-hal", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("wgpu-types", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "wayland-backend",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2015"),
+                        voller_name: Some("Elinor Berger"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Winreg,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("unicode-xid", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        ("unicode-width", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        (
+            "unicode-script",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2019"),
+                        voller_name: Some("Manish Goregaokar"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
                     MITEinrückung::keine(),
                     false,
                     MITEnde::standard(),

@@ -208,12 +208,18 @@ fn lizenz_dateien(
         ("Lato", ("../iced_graphics-0.3.0/fonts/OFL.txt", HashMap::new())),
         ("SourceSerif4-Regular", ("../../fonts/source-serif/LICENSE.md", HashMap::new())),
         ("bytemuck_derive", ("../bytemuck-1.9.1/LICENSE-MIT", HashMap::new())),
-        ("windows_aarch64_msvc", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_aarch64", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_gnu", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_msvc", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
-        ("windows_x86_64_gnu", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
-        ("windows_x86_64_msvc", ("../windows-sys-0.36.1/LICENSE-MIT", HashMap::new())),
+        ("windows_aarch64_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_i686_aarch64", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_i686_gnu", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_i686_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_x86_64_gnu", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_x86_64_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("widestring", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("wgpu", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("wgpu-core", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("wgpu-hal", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("wgpu-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("wayland-backend", ("LICENSE-GITHUB..txt", HashMap::new())),
     ]
     .into_iter()
     .map(|(name, (pfad, version_spezifisch))| (UniCaseOrd::neu(name), (pfad, version_spezifisch)))
@@ -255,7 +261,6 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                 format!("{pfad}-GITHUB"),
             ]
         })
-        .chain([String::from("../LICENCE-APACHE-2-0.txt"), String::from("../CC0.txt")])
         .collect_vec();
     let fallback_standard_pfad = String::from("UnbekannterStandardLizenzPfad");
 
