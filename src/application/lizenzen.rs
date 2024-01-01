@@ -2281,6 +2281,60 @@ option.
             }),
         ),
         ("widestring", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "zerocopy",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: false,
+                        jahr: Some("2023"),
+                        voller_name: Some("The Fuchsia Authors"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::zwei_neue_zeilen(),
+                )
+            }),
+        ),
+        (
+            "zeno",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Chad Brokaw"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        (
+            "yazi",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Chad Brokaw"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Winreg,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
     ])
 }
 
