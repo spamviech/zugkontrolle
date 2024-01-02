@@ -5,8 +5,10 @@ abstand
 achse
 adresse
 adwaita
+ahash
 Akash
 Alacritty
+aliasable
 Amanieu
 Andronik
 anfang
@@ -43,6 +45,7 @@ byteorder
 calloop
 chacha
 Chibisov
+Chiovoloni
 chrono
 clonable
 consts
@@ -80,6 +83,7 @@ Epifanov
 erbauer
 erfolg
 ergebnis
+errno
 Evgeniy
 Eyal
 Fackler
@@ -144,6 +148,7 @@ itertools
 itoa
 jahr
 Kaiden
+Kaitchuck
 Kalderon
 kandidat
 kandidaten
@@ -246,6 +251,7 @@ raspberrypi
 rasperry
 raspi
 raspicam
+Raux
 rechteck
 recv
 Reem
@@ -255,7 +261,6 @@ Reizner
 renderdoc
 repr
 repräsentation
-repräsentation",
 richtung
 Rijs
 riscv
@@ -298,6 +303,7 @@ Soveu
 spirv
 sprache
 srgb
+Stephane
 steuerung
 steuerungen
 strsim
@@ -310,7 +316,7 @@ thiserror
 tinyvec
 tlsv
 toleranz
-transformation",
+transformation
 transparenz
 twox
 typen
