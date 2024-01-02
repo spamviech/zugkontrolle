@@ -1207,6 +1207,19 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("heck", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
         ("hermit-abi", Lizenz::neu(mit_ohne_copyright_x11)),
         ("iced", Lizenz::neu(iced_lizenz)),
+        ("iced_core", Lizenz::neu(iced_lizenz)),
+        ("iced_futures", Lizenz::neu(iced_lizenz)),
+        ("iced_glow", Lizenz::neu(iced_lizenz)),
+        ("iced_glutin", Lizenz::neu(iced_lizenz)),
+        ("iced_graphics", Lizenz::neu(iced_lizenz)),
+        ("iced_native", Lizenz::neu(iced_lizenz)),
+        ("iced_renderer", Lizenz::neu(iced_lizenz)),
+        ("iced_runtime", Lizenz::neu(iced_lizenz)),
+        ("iced_style", Lizenz::neu(iced_lizenz)),
+        ("iced_tiny_skia", Lizenz::neu(iced_lizenz)),
+        ("iced_wgpu", Lizenz::neu(iced_lizenz)),
+        ("iced_widget", Lizenz::neu(iced_lizenz)),
+        ("iced_winit", Lizenz::neu(iced_lizenz)),
         (
             "iced_aw",
             Lizenz::neu(|| {
@@ -1221,14 +1234,6 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
                 )
             }),
         ),
-        ("iced_core", Lizenz::neu(iced_lizenz)),
-        ("iced_futures", Lizenz::neu(iced_lizenz)),
-        ("iced_glow", Lizenz::neu(iced_lizenz)),
-        ("iced_glutin", Lizenz::neu(iced_lizenz)),
-        ("iced_graphics", Lizenz::neu(iced_lizenz)),
-        ("iced_native", Lizenz::neu(iced_lizenz)),
-        ("iced_style", Lizenz::neu(iced_lizenz)),
-        ("iced_winit", Lizenz::neu(iced_lizenz)),
         (
             "ident_case",
             Lizenz::neu(|| {
@@ -2558,6 +2563,232 @@ option.
                     }],
                     None,
                     MITZeilenumbruch::QuickXml,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "profiling",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Philip Degarmo and other contributors"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        (
+            "object",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2015"),
+                        voller_name: Some("The Gimli Developers"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "naga",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("[yyyy]"),
+                        voller_name: Some("[name of copyright owner]"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "lru",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2016"),
+                        voller_name: Some("Jerome Froelich"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        (
+            "kurbo",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2018"),
+                        voller_name: Some("Raph Levien"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("khronos-egl", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("jobserver", Lizenz::neu(crichton_2014_lizenz)),
+        ("hexf-parse", Lizenz::neu(cc_0)),
+        (
+            "hassle-rs",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2018"),
+                        voller_name: Some("Jasper Bekkers"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("half", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "guillotiere",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("MIT License", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2019"),
+                        voller_name: Some("Nicolas Silva"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("gpu-descriptor", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("gpu-descriptor-types", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "gpu-allocator",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2021"),
+                        voller_name: Some("Traverse Research B.V."),
+                    }],
+                    None,
+                    MITZeilenumbruch::Keine,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        ("gpu-alloc", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("gpu-alloc-types", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        ("glyphon", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("gimli", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        (
+            "fontdb",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Yevhenii Reizner"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "fast-srgb8",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2021"),
+                        voller_name: Some("Thom Chiovoloni"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::ohne_neue_zeile(),
+                )
+            }),
+        ),
+        (
+            "etagere",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("Nicolas Silva"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Iced,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "errno",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2014"),
+                        voller_name: Some("Chris Wong"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
                     MITEinrückung::keine(),
                     false,
                     MITEnde::standard(),

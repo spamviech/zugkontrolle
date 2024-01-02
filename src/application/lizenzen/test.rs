@@ -134,7 +134,11 @@ fn push_diff(string: &mut String, diff: &str, farbe_str: &str, split: &str) {
             string.push_str(split);
         }
         if teil_string.is_empty() {
-            string.push_str("<Leerer String>");
+            if ["\n", "\r", "\r\n"].contains(&split) {
+                string.push_str("<Leere Zeile>");
+            } else {
+                string.push_str("<Leerer String>");
+            }
         } else if teil_string.trim().is_empty() {
             string.push('"');
             string.push_str(teil_string);
@@ -215,6 +219,13 @@ fn lizenz_dateien(
         ("wgpu-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wayland-backend", ("LICENSE-GITHUB..txt", HashMap::new())),
         ("range-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("nu-ansi-term", ("LICENCE", HashMap::new())),
+        ("hexf-parse", ("../CC0.txt", HashMap::new())),
+        ("half", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("gpu-descriptor", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("gpu-descriptor-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("gpu-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("gpu-alloc-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
     ]
     .into_iter()
     .map(|(name, (pfad, version_spezifisch))| (UniCaseOrd::neu(name), (pfad, version_spezifisch)))

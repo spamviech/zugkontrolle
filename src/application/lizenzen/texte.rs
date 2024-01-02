@@ -9,7 +9,6 @@ use enum_iterator::Sequence;
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten
 /// und Anmerkung über fehlende Lizenzdatei.
-#[inline(always)]
 pub fn mit_missing_note<'t>() -> Cow<'t, str> {
     mit(
         MITPräfix(
@@ -31,13 +30,11 @@ MIT License"#,
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
-#[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
     mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), false, MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
-#[inline(always)]
 pub fn mit_ohne_copyright_x11<'t>() -> Cow<'t, str> {
     mit_ohne_copyright(MITZeilenumbruch::X11)
 }
