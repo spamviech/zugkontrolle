@@ -2,7 +2,8 @@
 
 ## Unreleased changes
 
-- füge Lizenz für `fdeflate` hinzu
+## 4.0.0
+
 - neues Feature "raspi", ersetzt bisherige target-spezifische Logik
 - Kontakte werden auf dem Canvas als Kreise angezeigt
 - Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
