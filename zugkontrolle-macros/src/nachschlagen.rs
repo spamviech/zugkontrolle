@@ -52,7 +52,7 @@ pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -
             }
         });
         impl_lookup = Some(quote! {
-            impl #base_ident::nachschlagen::Nachschlagen<#ident, #element> for #struct_name {
+            impl #base_ident::util::nachschlagen::Nachschlagen<#ident, #element> for #struct_name {
                 fn erhalte(&self, key: &#ident) -> &#element {
                     match key {
                         #(#ident::#enum_variants => &self.#struct_fields),*

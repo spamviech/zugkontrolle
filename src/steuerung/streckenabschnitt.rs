@@ -35,7 +35,7 @@ impl Display for Name {
 }
 
 /// Steuerung der Stromzufuhr.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
     /// Die Farbe des Streckenabschnittes.
     pub farbe: Farbe,
@@ -118,17 +118,21 @@ impl Serialisiere<StreckenabschnittSerialisiert> for Streckenabschnitt {
 }
 
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: (),
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Streckenabschnitt> {
         let Streckenabschnitt { anschluss, farbe } = self;
         anschluss
-            .reserviere(lager, anschlüsse, arg)
+            .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
             .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss))
     }
 }

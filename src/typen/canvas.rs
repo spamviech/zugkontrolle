@@ -2,23 +2,27 @@
 
 use std::fmt::{self, Debug, Formatter};
 
-use iced::{widget::canvas::Geometry, Size};
+use iced::{
+    widget::canvas::Geometry,
+    widget::canvas::{fill::Fill, stroke::Stroke, Text},
+    Renderer, Size,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::typen::{skalar::Skalar, vektor::Vektor, winkel::Winkel};
+use crate::{
+    typen::{
+        canvas::pfad::{Pfad, Transformation},
+        mm::Spurweite,
+        skalar::Skalar,
+        vektor::Vektor,
+        verbindung::{self, Verbindung},
+        winkel::{self, Trigonometrie, Winkel},
+        Zeichnen,
+    },
+    util::nachschlagen::Nachschlagen,
+};
 
 pub mod pfad;
-
-// re-exports
-pub use self::pfad::{Bogen, Pfad, Transformation};
-pub use iced::{
-    widget::canvas::{
-        fill::{self, Fill},
-        stroke::{self, Stroke},
-        Text,
-    },
-    Color,
-};
 
 /// Newtype auf [iced::widget::canvas::Frame], dessen Methoden meine Typen verwenden.
 ///
@@ -123,14 +127,15 @@ impl Cache {
         self.0.clear()
     }
 
-    pub(crate) fn zeichnen_skaliert_von_pivot(
+    pub(crate) fn zeichnen_skaliert_von_pivot<Theme>(
         &self,
+        renderer: &Renderer<Theme>,
         bounds: Size<f32>,
         pivot: &Position,
         skalieren: &Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
     ) -> Geometry {
-        self.0.draw(bounds, |frame| {
+        self.0.draw(renderer, bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
                 // pivot transformationen
@@ -144,8 +149,14 @@ impl Cache {
     }
 
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [Cache].
-    pub fn zeichnen(&self, bounds: Size<f32>, draw_fn: impl Fn(&mut Frame<'_>)) -> Geometry {
+    pub fn zeichnen<Theme>(
+        &self,
+        renderer: &Renderer<Theme>,
+        bounds: Size<f32>,
+        draw_fn: impl Fn(&mut Frame<'_>),
+    ) -> Geometry {
         self.zeichnen_skaliert_von_pivot(
+            renderer,
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             &Skalar::multiplikativ_neutral(),
@@ -156,7 +167,7 @@ impl Cache {
 
 /// Position eines Gleises/Textes auf dem Canvas.
 #[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.
     pub punkt: Vektor,
@@ -173,5 +184,32 @@ impl Position {
     /// Vektor nachdem er um den Winkel gedreht wurde.
     pub fn rotation(&self, richtung: Vektor) -> Vektor {
         richtung.rotiert(self.winkel)
+    }
+
+    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
+    pub(crate) fn anliegend_position<T, Z>(
+        definition: &T,
+        z: &Z,
+        spurweite: Spurweite,
+        verbindung_name: &T::VerbindungName,
+        ziel_verbindung: Verbindung,
+    ) -> Position
+    where
+        T: Zeichnen<Z>,
+        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
+    {
+        let verbindungen = definition.verbindungen(z, spurweite);
+        let verbindung = verbindungen.erhalte(verbindung_name);
+        let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
+        Position {
+            punkt: Vektor {
+                x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()
+                    + verbindung.position.y * winkel.sin(),
+                y: ziel_verbindung.position.y
+                    - verbindung.position.x * winkel.sin()
+                    - verbindung.position.y * winkel.cos(),
+            },
+            winkel,
+        }
     }
 }

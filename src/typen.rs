@@ -2,22 +2,15 @@
 
 use crate::{
     gleis::verbindung::{self, Verbindung},
-    nachschlagen::Nachschlagen,
-    steuerung::{
-        kontakt::{Kontakt, KontaktSerialisiert},
-        weiche::Weiche,
+    typen::{
+        canvas::{pfad::Pfad, Position},
+        farbe::Farbe,
+        mm::Spurweite,
+        rechteck::Rechteck,
+        skalar::Skalar,
+        vektor::Vektor,
     },
-};
-
-// re-exports
-pub use self::{
-    canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Transformation},
-    farbe::Farbe,
-    mm::{Länge, Radius, Spurweite},
-    rechteck::Rechteck,
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::{Trigonometrie, Winkel, WinkelGradmaß},
+    util::nachschlagen::Nachschlagen,
 };
 
 pub mod canvas;
@@ -72,57 +65,69 @@ impl Transparenz {
 }
 
 /// Trait für Typen, die auf einem [Frame](crate::typen::canvas::Frame) gezeichnet werden können.
-pub trait Zeichnen {
+///
+/// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [zeichne](Zeichnen::zeichne),
+/// [beschreibung_und_name](Zeichnen::beschreibung_und_name).
+pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck;
+    fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    /// Einschließendes Rechteck, wenn sich das Gleis an der `Position` befindet.
-    fn rechteck_an_position(&self, spurweite: Spurweite, position: &Position) -> Rechteck {
-        self.rechteck(spurweite)
+    /// Einschließendes Rechteck, wenn sich das Gleis an der [Position] befindet.
+    fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
+        self.rechteck(t, spurweite)
             .respektiere_rotation_chain(&position.winkel)
             .verschiebe_chain(&position.punkt)
     }
 
-    /// Erzeuge die Pfade für Färben des Hintergrunds.
-    /// Alle Pfade werden mit `canvas::FillRule::EvenOdd` gefüllt.
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)>;
-
     /// Erzeuge die Pfade für Darstellung der Linien.
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad>;
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad>;
 
-    /// Position für, sowie Beschreibung und Name (falls verfügbar).
-    fn beschreibung_und_name(
-        &self,
+    /// Erzeuge die Pfade für Färben des Hintergrunds.
+    ///
+    /// Alle Pfade werden mit [fill::Rule::EvenOdd](iced::widget::canvas::fill::Rule::EvenOdd) gefüllt.
+    ///
+    /// Wenn ein Pfad ohne Farbe zurückgegeben wird, wird die Farbe des
+    /// [Streckenabschnitts](crate::steuerung::streckenabschnitt::Streckenabschnitt) verwendet.
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
+
+    /// [Position] und Text für Beschreibung und Name (falls verfügbar).
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        t: &'t T,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>);
+    ) -> (Position, Option<&'s str>, Option<&'t str>);
 
-    /// Zeigt der `Vektor` auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
+    /// Zeigt der [Vektor] auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(
         &self,
+        t: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> bool;
 
-    /// Identifier for `Verbindungen`.
+    /// Identifier for [Self::Verbindungen].
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
-    /// Speicher-Typ für `Verbindung`.
-    /// Muss `verbindung::Nachschlagen<Self::VerbindungName>` implementieren.
+
+    /// Speicher-Typ für [Verbindung].
+    /// Muss [verbindung::Nachschlagen<Self::VerbindungName>] implementieren.
     type Verbindungen: verbindung::Nachschlagen<Self::VerbindungName>;
+
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei `(0,0)`, Richtung nach außen zeigend.
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen;
+    fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen;
 
-    /// Absolute Position der Verbindungen, wenn sich das Gleis an der `Position` befindet.
+    /// Absolute Position der Verbindungen, wenn sich das Gleis an der [Position] befindet.
     fn verbindungen_an_position(
         &self,
+        t: &T,
         spurweite: Spurweite,
         position: Position,
     ) -> Self::Verbindungen {
-        self.verbindungen(spurweite).zuordnen(
+        self.verbindungen(t, spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| Verbindung {
                 position: position.transformation(verbindung_position),
                 richtung: position.winkel + richtung,
@@ -134,53 +139,11 @@ pub trait Zeichnen {
 /// Trait für (potentiell) benannte Typen.
 pub trait MitName {
     /// Der Name des Wertes.
-    fn name(&self) -> Option<&String>;
+    fn name(&self) -> Option<&str>;
 }
 
 impl MitName for () {
-    fn name(&self) -> Option<&String> {
+    fn name(&self) -> Option<&str> {
         None
-    }
-}
-
-impl<R, A> MitName for Option<Weiche<R, A>> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|weiche| &weiche.name.0)
-    }
-}
-
-impl MitName for Option<Kontakt> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
-    }
-}
-
-impl MitName for Option<KontaktSerialisiert> {
-    fn name(&self) -> Option<&String> {
-        self.as_ref().map(|kontakt| &kontakt.name.0)
-    }
-}
-
-/// Trait für Typen mit einer aktuellen Richtung.
-pub trait MitRichtung<Richtung> {
-    /// Erhalte die aktuelle Richtung.
-    fn aktuelle_richtung(&self) -> Option<Richtung>;
-}
-
-impl<R> MitRichtung<R> for () {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        None
-    }
-}
-
-impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        self.as_ref().and_then(MitRichtung::aktuelle_richtung)
-    }
-}
-
-impl<R, T: Clone + MitRichtung<R>, A> MitRichtung<R> for Weiche<T, A> {
-    fn aktuelle_richtung(&self) -> Option<R> {
-        self.richtung().aktuelle_richtung()
     }
 }

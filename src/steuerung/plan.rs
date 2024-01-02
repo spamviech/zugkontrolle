@@ -4,15 +4,11 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
-    sync::{
-        mpsc::{RecvError, Sender},
-        Arc,
-    },
+    sync::mpsc::{RecvError, Sender},
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -20,16 +16,17 @@ use crate::{
         self, de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss,
         OutputSerialisiert,
     },
-    eingeschränkt::NichtNegativ,
-    gleis::{gleise::steuerung::Steuerung, weiche},
-    nachschlagen::Nachschlagen,
+    gleis::{
+        gleise::{self, steuerung::Steuerung},
+        weiche,
+    },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
-    typen::canvas::Cache,
+    util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
     zugtyp::Zugtyp,
 };
 
@@ -280,6 +277,45 @@ impl<L: Leiter> Plan<L> {
     }
 }
 
+pub(crate) type GeradeWeiche = Weiche<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsse>;
+pub(crate) type GeradeWeicheSerialisiert =
+    WeicheSerialisiert<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsseSerialisiert>;
+pub(crate) type KurvenWeiche = Weiche<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsse>;
+pub(crate) type KurvenWeicheSerialisiert =
+    WeicheSerialisiert<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsseSerialisiert>;
+pub(crate) type DreiwegeWeiche =
+    Weiche<weiche::dreiwege::RichtungInformation, weiche::dreiwege::RichtungAnschlüsse>;
+pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
+    weiche::dreiwege::RichtungInformation,
+    weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+>;
+
+/// Mapping von der Zahl aus der serialisierten Darstellung zur jeweiligen Gleis-Steuerung.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct SteuerungMaps<L, S> {
+    pub geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
+    pub streckenabschnitte: HashMap<OutputSerialisiert, Streckenabschnitt>,
+    pub gerade_weichen: HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
+    pub dreiwege_weichen: HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
+    pub kurven_weichen: HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
+    pub kontakte: HashMap<KontaktSerialisiert, Kontakt>,
+}
+
+impl<L, S> SteuerungMaps<L, S> {
+    /// Erzeuge eine neue, leere [SteuerungMaps].
+    pub fn neu() -> SteuerungMaps<L, S> {
+        SteuerungMaps {
+            geschwindigkeiten: HashMap::new(),
+            streckenabschnitte: HashMap::new(),
+            gerade_weichen: HashMap::new(),
+            dreiwege_weichen: HashMap::new(),
+            kurven_weichen: HashMap::new(),
+            kontakte: HashMap::new(),
+        }
+    }
+}
+
 /// Serialisierbare Repräsentation der nicht bekannten Anschlüsse.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum UnbekannteAnschlüsse<S> {
@@ -295,28 +331,15 @@ pub enum UnbekannteAnschlüsse<S> {
 
 impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
     /// Deserialisiere einen [Plan].
-    pub fn deserialisiere(
+    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
-        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
-        streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
-        gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
-        kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
-        dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
-        kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
-        canvas: &Arc<Mutex<Cache>>,
+        bekannte_steuerungen: &SteuerungMaps<L, S>,
+        sender: &Sender<Nachricht>,
     ) -> Result<Plan<L>, UnbekannteAnschlüsse<S>> {
         let PlanSerialisiert { aktionen: aktionen_serialisiert, endlosschleife } = self;
         let mut aktionen = Vec::new();
         for aktion in aktionen_serialisiert {
-            let aktion = aktion.deserialisiere(
-                geschwindigkeiten,
-                streckenabschnitte,
-                gerade_weichen,
-                kurven_weichen,
-                dreiwege_weichen,
-                kontakte,
-                canvas.clone(),
-            )?;
+            let aktion = aktion.deserialisiere(bekannte_steuerungen, sender.clone())?;
             aktionen.push(aktion);
         }
         Ok(Plan { aktionen, endlosschleife })
@@ -432,41 +455,30 @@ impl<L: Leiter> Aktion<L> {
 
 impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
     /// Deserialisiere eine [Aktion] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere(
+    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
-        geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
-        streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
-        gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
-        kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
-        dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
-        kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
-        canvas: Arc<Mutex<Cache>>,
+        bekannte_steuerungen: &SteuerungMaps<L, S>,
+        sender: Sender<Nachricht>,
     ) -> Result<Aktion<L>, UnbekannteAnschlüsse<S>> {
         let reserviert = match self {
-            AktionSerialisiert::Geschwindigkeit(aktion) => {
-                Aktion::Geschwindigkeit(aktion.deserialisiere(geschwindigkeiten)?)
-            },
-            AktionSerialisiert::Streckenabschnitt(aktion) => {
-                Aktion::Streckenabschnitt(aktion.deserialisiere(streckenabschnitte, canvas)?)
-            },
+            AktionSerialisiert::Geschwindigkeit(aktion) => Aktion::Geschwindigkeit(
+                aktion.deserialisiere(&bekannte_steuerungen.geschwindigkeiten)?,
+            ),
+            AktionSerialisiert::Streckenabschnitt(aktion) => Aktion::Streckenabschnitt(
+                aktion.deserialisiere(&bekannte_steuerungen.streckenabschnitte, sender)?,
+            ),
             AktionSerialisiert::Schalten(aktion) => Aktion::Schalten(aktion.deserialisiere(
-                gerade_weichen,
-                kurven_weichen,
-                dreiwege_weichen,
-                canvas,
+                &bekannte_steuerungen.gerade_weichen,
+                &bekannte_steuerungen.kurven_weichen,
+                &bekannte_steuerungen.dreiwege_weichen,
+                sender,
             )?),
             AktionSerialisiert::Warten(aktion) => {
-                Aktion::Warten(aktion.deserialisiere(kontakte, canvas)?)
+                Aktion::Warten(aktion.deserialisiere(&bekannte_steuerungen.kontakte, sender)?)
             },
-            AktionSerialisiert::Ausführen(plan) => Aktion::Ausführen(plan.deserialisiere(
-                geschwindigkeiten,
-                streckenabschnitte,
-                gerade_weichen,
-                kurven_weichen,
-                dreiwege_weichen,
-                kontakte,
-                &canvas,
-            )?),
+            AktionSerialisiert::Ausführen(plan) => {
+                Aktion::Ausführen(plan.deserialisiere(bekannte_steuerungen, &sender)?)
+            },
         };
         Ok(reserviert)
     }
@@ -750,10 +762,10 @@ pub struct UnbekannterStreckenabschnitt(pub StreckenabschnittSerialisiert);
 
 impl AktionStreckenabschnittSerialisiert {
     /// Deserialisiere eine Aktion mit einem [Streckenabschnitt] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere(
+    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
-        canvas: Arc<Mutex<Cache>>,
+        sender: Sender<Nachricht>,
     ) -> Result<AktionStreckenabschnitt, UnbekannterStreckenabschnitt> {
         let aktion = match self {
             AktionStreckenabschnittSerialisiert::Strom { streckenabschnitt, fließend } => {
@@ -762,7 +774,7 @@ impl AktionStreckenabschnittSerialisiert {
                     .ok_or(UnbekannterStreckenabschnitt(streckenabschnitt))?
                     .clone();
                 AktionStreckenabschnitt::Strom {
-                    streckenabschnitt: Steuerung::neu(streckenabschnitt, canvas),
+                    streckenabschnitt: Steuerung::neu(streckenabschnitt, (sender, Nachricht::from)),
                     fließend,
                 }
             },
@@ -770,19 +782,6 @@ impl AktionStreckenabschnittSerialisiert {
         Ok(aktion)
     }
 }
-
-pub(crate) type GeradeWeiche = Weiche<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsse>;
-pub(crate) type GeradeWeicheSerialisiert =
-    WeicheSerialisiert<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsseSerialisiert>;
-pub(crate) type KurvenWeiche = Weiche<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsse>;
-pub(crate) type KurvenWeicheSerialisiert =
-    WeicheSerialisiert<weiche::kurve::Richtung, weiche::kurve::RichtungAnschlüsseSerialisiert>;
-pub(crate) type DreiwegeWeiche =
-    Weiche<weiche::dreiwege::RichtungInformation, weiche::dreiwege::RichtungAnschlüsse>;
-pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
-    weiche::dreiwege::RichtungInformation,
-    weiche::dreiwege::RichtungAnschlüsseSerialisiert,
->;
 
 /// Eine Aktion mit einer [Weiche].
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -870,22 +869,22 @@ pub enum AnyUnbekannteWeiche {
 
 impl AnyAktionSchaltenSerialisiert {
     /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere(
+    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
         dreiwege_weichen: &HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
-        canvas: Arc<Mutex<Cache>>,
+        sender: Sender<Nachricht>,
     ) -> Result<AnyAktionSchalten, AnyUnbekannteWeiche> {
         let aktion = match self {
             AnyAktionSchaltenSerialisiert::SchalteGerade(aktion) => {
-                AnyAktionSchalten::SchalteGerade(aktion.deserialisiere(gerade_weichen, canvas)?)
+                AnyAktionSchalten::SchalteGerade(aktion.deserialisiere(gerade_weichen, sender)?)
             },
             AnyAktionSchaltenSerialisiert::SchalteKurve(aktion) => {
-                AnyAktionSchalten::SchalteKurve(aktion.deserialisiere(kurven_weichen, canvas)?)
+                AnyAktionSchalten::SchalteKurve(aktion.deserialisiere(kurven_weichen, sender)?)
             },
             AnyAktionSchaltenSerialisiert::SchalteDreiwege(aktion) => {
-                AnyAktionSchalten::SchalteDreiwege(aktion.deserialisiere(dreiwege_weichen, canvas)?)
+                AnyAktionSchalten::SchalteDreiwege(aktion.deserialisiere(dreiwege_weichen, sender)?)
             },
         };
         Ok(aktion)
@@ -953,16 +952,21 @@ impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
 #[derive(Debug, Clone)]
 pub struct UnbekannteWeiche<S>(pub S);
 
-impl<S: Eq + Hash, Richtung> AktionSchalten<S, Richtung> {
+impl<S, Richtung> AktionSchalten<S, Richtung> {
     /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
-    pub fn deserialisiere<Weiche: Clone>(
+    pub fn deserialisiere<Weiche, Nachricht>(
         self,
         bekannte_weichen: &HashMap<S, Weiche>,
-        canvas: Arc<Mutex<Cache>>,
-    ) -> Result<AktionSchalten<Steuerung<Weiche>, Richtung>, UnbekannteWeiche<S>> where {
+        sender: Sender<Nachricht>,
+    ) -> Result<AktionSchalten<Steuerung<Weiche>, Richtung>, UnbekannteWeiche<S>>
+    where
+        S: Eq + Hash,
+        Weiche: Clone,
+        Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
-        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, canvas), richtung })
+        Ok(AktionSchalten { weiche: Steuerung::neu(weiche, (sender, Nachricht::from)), richtung })
     }
 }
 
@@ -1019,15 +1023,17 @@ pub struct UnbekannterKontakt(pub KontaktSerialisiert);
 
 impl AktionWartenSerialisiert {
     /// Deserialisiere eine Warte-Aktion mithilfe bekannter [Kontakte](Kontakt).
-    pub fn deserialisiere(
+    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
-        canvas: Arc<Mutex<Cache>>,
+        sender: Sender<Nachricht>,
     ) -> Result<AktionWarten, UnbekannterKontakt> {
         let aktion = match self {
             AktionWartenSerialisiert::WartenAuf { kontakt } => {
                 let kontakt = kontakte.get(&kontakt).ok_or(UnbekannterKontakt(kontakt))?.clone();
-                AktionWarten::WartenAuf { kontakt: Steuerung::neu(kontakt, canvas) }
+                AktionWarten::WartenAuf {
+                    kontakt: Steuerung::neu(kontakt, (sender, Nachricht::from)),
+                }
             },
             AktionWartenSerialisiert::WartenFür { zeit } => AktionWarten::WartenFür { zeit },
         };

@@ -2,7 +2,7 @@
 
 use iced::{
     widget::rule::{Appearance, FillMode, StyleSheet},
-    Color,
+    BorderRadius, Color,
 };
 
 use crate::application::style::thema::Thema;
@@ -28,7 +28,12 @@ impl StyleSheet for Thema {
         match self {
             Thema::Hell => {
                 let Linie { farbe: color, breite: width, radius } = *style;
-                Appearance { color, radius, width, fill_mode: FillMode::Full }
+                Appearance {
+                    color,
+                    radius: BorderRadius::from(radius),
+                    width,
+                    fill_mode: FillMode::Full,
+                }
             },
         }
     }

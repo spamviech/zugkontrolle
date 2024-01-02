@@ -2,6 +2,53 @@
 
 ## Unreleased changes
 
+## 4.0.0
+
+- neues Feature "raspi", ersetzt bisherige target-spezifische Logik
+- Kontakte werden auf dem Canvas als Kreise angezeigt
+- Kontakte können für Geraden und Kurven per Doppelklick eingestellt werden
+- Zusätzliche "trailing" Bytes werden beim Laden nicht mehr ignoriert. Stattdessen kommt es zu einem Fehler.
+- Neues ID-basiertes Speicherformat.
+  - Weiterhin sehr stark an wirklich verwendete Datenstrukturen angelehnt.
+  - Gleis-Definitionen kommen nur noch ein mal vor.
+- verbessere build-scripts:
+  - neue targets: 64-bit raspi, x86_64 linux
+  - erkenne automatisch host target-triple
+  - binaries enthalten immer target-triple + version
+  - lese name+version aus Cargo.toml
+  - ausführen unabhängig vom aktuellen Arbeitsverzeichnis möglich
+  - stelle sicher ziel-Ordner existiert, bevor scp ausgeführt wird
+  - config.ini um Einstellungen lokal zu überschreiben
+  - deploy.py "bearbeitet" nur aktivierte targets
+  - neues "raspi"-feature wird automatisch anhand des targets gesetzt
+- refactoring:
+  - verschiebe MitRichtung nach steuerung::weiche
+  - verwende &str statt &String für Zeichne::name_und_beschreibung und MitName::name
+  - extrahiere application::Nachricht (+ Hilfsgrößen) und AuswahlZustand in eigene Module
+  - verwende From-implementierungen zur Konvertierung der Auswahl-Nachrichten.
+  - entferne die meisten `pub use` re-exports
+  - entferne lifetime vom MitSteuerung
+  - verschiebe \*Serialisiert-Definitionen für Sammel-Strukturen nach gleis::gleise::de_serialisieren::v4
+  - Neue Implementierung für Ids (jetzt zahlen-basiert).
+  - AuswahlZustand verwendet Id als ersten Parameter (analog zu allen anderen Datenstrukturen)
+- aktualisiere iced auf Version 0.10.0 (+ aktualisiere weitere dependencies)
+- pcf8574::Port::als_(input|output) geben immer den Port zurück,
+  selbst wenn es beim Initialisieren einen Fehler gab (z.B. pcf8574 nicht angeschlossen).
+- (Input|Output)Anschluss::reserviere gibt FehlerMitErsatzwert zurück,
+  wenn initialisieren nicht erfolgreich war (z.B. pcf8574 nicht angeschlossen).
+- entferne RwLock aus Gleise-Struktur, um auftretende Deadlocks zu beheben
+- ersetzte Mutex in Steuerung-Struktur, um Deadlocks bei gleichzeitigem neuzeichnen zu beheben
+- erstelle FlatMap, um mehrere Nachrichten zurückgeben zu können
+- ermögliche Auswahl des I2C-Busses bei Anschlüssen
+- alle I2C-Busse sind standard-mäßig deaktiviert
+- neue Gleise erscheinen direkt an der richtigen Position
+- Anschluss-Auswahl für Weichen/Kreuzungen wird immer richtig geschlossen
+- Schriftgröße von Beschreibungen skaliert nun ebenfalls
+- gebe Empfänger Id-Parameter, falls mehrere benötigt werden
+- Reserviere hat jetzt zusätzlich RefArg und MutRefArg als (veränderliche) Referenz-Argumente für reserviere
+- Anpassen der Fehler-Enums
+- Erlaube einfaches bearbeiten vorhandener Streckenabschnitte und Geschwindigkeiten
+
 ## 3.0.0
 
 - Fehlermeldung bei Anschlüsse anpassen schließt nicht mehr das Dialog-Fenster

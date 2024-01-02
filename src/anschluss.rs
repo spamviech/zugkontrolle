@@ -1,30 +1,37 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    any::TypeId,
+    fmt::{self, Display, Formatter},
+};
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
-use crate::{eingeschränkt::kleiner_8, rppal, zugtyp::FalscherLeiter};
-
-pub mod level;
-pub use level::Level;
-
-#[path = "anschluss/polarität.rs"]
-pub mod polarität;
-pub use polarität::{Fließend, Polarität};
-
-pub mod trigger;
-pub use trigger::Trigger;
-
-pub mod pin;
-pub use pin::{input, output, pwm, Pin};
-
-pub mod pcf8574;
-pub use pcf8574::{I2cBus, Pcf8574};
+use crate::{
+    anschluss::{
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        level::Level,
+        pin::{input, output, pwm, Pin},
+        polarität::{Fließend, Polarität},
+        trigger::Trigger,
+    },
+    argumente::I2cSettings,
+    gleis::gleise::{
+        daten::de_serialisieren::ZugtypDeserialisierenFehler,
+        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
+    },
+    rppal,
+    util::eingeschränkt::kleiner_8,
+};
 
 pub mod de_serialisieren;
-pub use de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere};
+pub mod level;
+pub mod pcf8574;
+pub mod pin;
+#[path = "anschluss/polarität.rs"]
+pub mod polarität;
+pub mod trigger;
 
 /// Verwalten nicht verwendeter [Pin]s und [Pcf8574-Ports](pcf8574::Port).
 #[derive(Debug)]
@@ -46,7 +53,7 @@ pub enum InitFehler {
 
 impl Lager {
     /// Initialisiere ein [Lager], das nicht verwendete [Anschlüsse](Anschluss) verwaltet.
-    pub fn neu(settings: pcf8574::I2cSettings) -> Result<Lager, InitFehler> {
+    pub fn neu(settings: I2cSettings) -> Result<Lager, InitFehler> {
         let mut pin = pin::Lager::neu()?;
         let pcf8574 = pcf8574::Lager::neu(&mut pin, settings)?;
         Ok(Lager { pin, pcf8574 })
@@ -96,24 +103,28 @@ impl Display for Anschluss {
 
 impl Anschluss {
     /// Konfiguriere den [Anschluss] als [Output](OutputAnschluss).
-    pub fn als_output(self, polarität: Polarität) -> Result<OutputAnschluss, Fehler> {
+    pub fn als_output(self, polarität: Polarität) -> (OutputAnschluss, Option<Fehler>) {
         let gesperrt_level = Fließend::Gesperrt.mit_polarität(polarität);
-        Ok(match self {
+        match self {
             Anschluss::Pin(pin) => {
-                OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }
+                (OutputAnschluss::Pin { pin: pin.als_output(gesperrt_level), polarität }, None)
             },
             Anschluss::Pcf8574Port(port) => {
-                OutputAnschluss::Pcf8574Port { port: port.als_output(gesperrt_level)?, polarität }
+                let (port, fehler) = port.als_output(gesperrt_level);
+                (OutputAnschluss::Pcf8574Port { port, polarität }, fehler.map(Fehler::from))
             },
-        })
+        }
     }
 
     /// Konfiguriere den [Anschluss] als [Input](InputAnschluss).
-    pub fn als_input(self) -> Result<InputAnschluss, Fehler> {
-        Ok(match self {
-            Anschluss::Pin(pin) => InputAnschluss::Pin(pin.als_input()),
-            Anschluss::Pcf8574Port(port) => InputAnschluss::Pcf8574Port(port.als_input()?),
-        })
+    pub fn als_input(self) -> (InputAnschluss, Option<Fehler>) {
+        match self {
+            Anschluss::Pin(pin) => (InputAnschluss::Pin(pin.als_input()), None),
+            Anschluss::Pcf8574Port(port) => {
+                let (port, fehler) = port.als_input();
+                (InputAnschluss::Pcf8574Port(port), fehler.map(Fehler::from))
+            },
+        }
     }
 }
 
@@ -285,13 +296,17 @@ impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
 }
 
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<OutputAnschluss> {
         let neue_polarität = match self {
             OutputSerialisiert::Pin { polarität, .. } => polarität,
@@ -319,13 +334,17 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 },
             };
             match anschluss_res {
-                Ok(anschluss) => match anschluss.als_output(polarität) {
-                    Ok(output_anschluss) => {
+                Ok(anschluss) => {
+                    let (output_anschluss, fehler) = anschluss.als_output(polarität);
+                    if let Some(fehler) = fehler {
+                        Ergebnis::FehlerMitErsatzwert {
+                            anschluss: output_anschluss,
+                            fehler: NonEmpty::singleton(fehler.into()),
+                            anschlüsse,
+                        }
+                    } else {
                         Ergebnis::Wert { anschluss: output_anschluss, anschlüsse }
-                    },
-                    Err(fehler) => {
-                        Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
-                    },
+                    }
                 },
                 Err(fehler) => {
                     Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
@@ -480,12 +499,16 @@ impl Serialisiere<InputSerialisiert> for InputAnschluss {
 }
 
 impl Reserviere<InputAnschluss> for InputSerialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
     fn reserviere(
         self,
         lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<InputAnschluss> {
         let mut gesuchter_anschluss = None;
         let mut gesuchter_interrupt = None;
@@ -523,7 +546,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             anschluss_suchen(anschluss)
         }
         drop(anschluss_suchen);
-        let interrupt_konfigurieren = |mut port: pcf8574::InputPort| -> Result<_, Fehler> {
+        let interrupt_konfigurieren = |port: &mut pcf8574::InputPort| -> Result<(), Fehler> {
             if let Some(interrupt) = gesuchter_interrupt {
                 let _ = port.setze_interrupt_pin(interrupt)?;
             } else if let Some(pin) = self_interrupt {
@@ -532,7 +555,7 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let _ = port.setze_interrupt_pin(interrupt)?;
                 }
             }
-            Ok(port)
+            Ok(())
         };
         let anschlüsse = Anschlüsse {
             output_anschlüsse,
@@ -554,21 +577,24 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                 },
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
                     match lager.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
-                        Ok(port) => match port.als_input() {
-                            Ok(input_port) => match interrupt_konfigurieren(input_port) {
-                                Ok(konfigurierter_port) => Ergebnis::Wert {
-                                    anschluss: InputAnschluss::Pcf8574Port(konfigurierter_port),
+                        Ok(port) => {
+                            let (mut input_port, fehler) = port.als_input();
+                            let fehler2 = interrupt_konfigurieren(&mut input_port).err();
+                            let input_anschluss = InputAnschluss::Pcf8574Port(input_port);
+                            let fehler_vec: Vec<_> = fehler
+                                .into_iter()
+                                .map(Fehler::from)
+                                .chain(fehler2.map(Fehler::from))
+                                .collect();
+                            if let Ok(fehler) = NonEmpty::try_from(fehler_vec) {
+                                Ergebnis::FehlerMitErsatzwert {
+                                    anschluss: input_anschluss,
+                                    fehler,
                                     anschlüsse,
-                                },
-                                Err(fehler) => Ergebnis::Fehler {
-                                    fehler: NonEmpty::singleton(fehler.into()),
-                                    anschlüsse,
-                                },
-                            },
-                            Err(fehler) => Ergebnis::Fehler {
-                                fehler: NonEmpty::singleton(fehler.into()),
-                                anschlüsse,
-                            },
+                                }
+                            } else {
+                                Ergebnis::Wert { anschluss: input_anschluss, anschlüsse }
+                            }
                         },
                         Err(fehler) => Ergebnis::Fehler {
                             fehler: NonEmpty::singleton(fehler.into()),
@@ -600,8 +626,22 @@ pub enum Fehler {
     Pcf8574(pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [Anschluss]es.
     Reservieren(ReservierenFehler),
-    /// Der Name des Leiters stimmt nicht überein.
-    FalscherLeiter(FalscherLeiter),
+    /// Fehler beim Deserialisieren des Zugtyps.
+    ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
+    /// Ein Gleis wurde mit unbekannter [DefinitionId] gespeichert.
+    UnbekannteGespeicherteDefinition {
+        /// Die gespeicherte Id.
+        id: id::Repräsentation,
+        /// Die Typ-Id, zu der die Id gehört.
+        type_id: TypeId,
+        /// Der Typ, zu der die Id gehört.
+        type_name: &'static str,
+    },
+    /// Ein Gleis mit unbekannter [DefinitionId].
+    UnbekannteDefinition {
+        /// Die Id ohne zugehörigen Eintrag im [Zugtyp].
+        id: AnyDefinitionId,
+    },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.
@@ -609,6 +649,9 @@ pub enum Fehler {
         /// Der Name des aktuellen Leiters.
         leiter: &'static str,
     },
+    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
 impl From<pin::ReservierenFehler> for Fehler {

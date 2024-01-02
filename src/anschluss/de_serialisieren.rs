@@ -18,6 +18,15 @@ pub struct Anschlüsse {
 }
 
 impl Anschlüsse {
+    /// Erzeuge eine leere [Anschlüsse]-Struktur.
+    pub const fn neu() -> Anschlüsse {
+        Anschlüsse {
+            pwm_pins: Vec::new(),
+            output_anschlüsse: Vec::new(),
+            input_anschlüsse: Vec::new(),
+        }
+    }
+
     /// Füge weitere Anschlüsse zu den jeweiligen [Vec] hinzu.
     pub fn anhängen(&mut self, andere: Anschlüsse) {
         let Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse } = andere;
@@ -121,8 +130,12 @@ impl<R> Ergebnis<R> {
 ///     && anschluss == r
 /// ```
 pub trait Reserviere<R> {
-    /// Extra-Argument zum reservieren der Anschlüsse.
-    type Arg;
+    /// Extra Move-Argument zum reservieren der Anschlüsse.
+    type MoveArg;
+    /// Extra Referenz-Argument zum reservieren der Anschlüsse.
+    type RefArg;
+    /// Extra veränderliche-Referenz-Argument zum reservieren der Anschlüsse.
+    type MutRefArg;
 
     /// Reserviere die benötigten [Anschlüsse](crate::anschluss::Anschluss),
     /// potentiell unter Verwendung bereits reservierter Anschlüsse,
@@ -131,7 +144,9 @@ pub trait Reserviere<R> {
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: Self::Arg,
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<R>;
 }
 
@@ -143,9 +158,19 @@ impl<T> Ergebnis<T> {
         self,
         lager: &mut anschluss::Lager,
         serialisiert: S,
-        arg: <S as Reserviere<R>>::Arg,
+        move_arg: <S as Reserviere<R>>::MoveArg,
+        ref_arg: &<S as Reserviere<R>>::RefArg,
+        mut_ref_arg: &mut <S as Reserviere<R>>::MutRefArg,
     ) -> Ergebnis<(T, R)> {
-        self.reserviere_ebenfalls_mit(lager, serialisiert, arg, |t, r| (t, r), |_| None)
+        self.reserviere_ebenfalls_mit(
+            lager,
+            serialisiert,
+            move_arg,
+            ref_arg,
+            mut_ref_arg,
+            |t, r| (t, r),
+            |_| None,
+        )
     }
 
     /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
@@ -157,7 +182,9 @@ impl<T> Ergebnis<T> {
         self,
         lager: &mut anschluss::Lager,
         serialisiert: S,
-        arg: <S as Reserviere<R>>::Arg,
+        move_arg: <S as Reserviere<R>>::MoveArg,
+        ref_arg: &<S as Reserviere<R>>::RefArg,
+        mut_ref_arg: &mut <S as Reserviere<R>>::MutRefArg,
         kombiniere: impl FnOnce(T, R) -> U,
         fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
     ) -> Ergebnis<U> {
@@ -169,13 +196,14 @@ impl<T> Ergebnis<T> {
             },
             Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
         };
-        let (r, fehler_r, anschlüsse) = match serialisiert.reserviere(lager, anschlüsse, arg) {
-            Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
-            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                (Some(anschluss), Some(fehler), anschlüsse)
-            },
-            Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
-        };
+        let (r, fehler_r, anschlüsse) =
+            match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
+                Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
+                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                    (Some(anschluss), Some(fehler), anschlüsse)
+                },
+                Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
+            };
         let kombiniert = match (t, r) {
             (Some(t), Some(r)) => Some(kombiniere(t, r)),
             (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
@@ -223,19 +251,22 @@ where
 impl<S, R> Reserviere<Option<R>> for Option<S>
 where
     S: Reserviere<R>,
-    R: Serialisiere<S>,
 {
-    type Arg = <S as Reserviere<R>>::Arg;
+    type MoveArg = <S as Reserviere<R>>::MoveArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
+    type MutRefArg = <S as Reserviere<R>>::MutRefArg;
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: Self::Arg,
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Option<R>> {
         use Ergebnis::*;
         if let Some(s) = self {
-            match s.reserviere(lager, anschlüsse, arg) {
+            match s.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     FehlerMitErsatzwert { anschluss: Some(anschluss), fehler, anschlüsse }
@@ -253,8 +284,6 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<Vec<S>> for Vec<R>
 where
-    S: Reserviere<R>,
-    <S as Reserviere<R>>::Arg: Clone,
     R: Serialisiere<S>,
 {
     fn serialisiere(&self) -> Vec<S> {
@@ -274,16 +303,19 @@ where
 impl<S, R> Reserviere<Vec<R>> for Vec<S>
 where
     S: Reserviere<R>,
-    R: Serialisiere<S>,
-    <S as Reserviere<R>>::Arg: Clone,
+    <S as Reserviere<R>>::MoveArg: Clone,
 {
-    type Arg = <S as Reserviere<R>>::Arg;
+    type MoveArg = <S as Reserviere<R>>::MoveArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
+    type MutRefArg = <S as Reserviere<R>>::MutRefArg;
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: Self::Arg,
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Vec<R>> {
         let len = self.len();
         self.into_iter().fold(
@@ -292,7 +324,9 @@ where
                 acc.reserviere_ebenfalls_mit(
                     lager,
                     serialisiert,
-                    arg.clone(),
+                    move_arg.clone(),
+                    ref_arg,
+                    mut_ref_arg,
                     |mut vec, r| {
                         vec.push(r);
                         vec
@@ -313,8 +347,6 @@ where
 #[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<NonEmpty<S>> for NonEmpty<R>
 where
-    S: Clone + Reserviere<R>,
-    <S as Reserviere<R>>::Arg: Clone,
     R: Serialisiere<S>,
 {
     fn serialisiere(&self) -> NonEmpty<S> {
@@ -336,22 +368,27 @@ where
 impl<S, R> Reserviere<NonEmpty<R>> for NonEmpty<S>
 where
     S: Reserviere<R>,
-    <S as Reserviere<R>>::Arg: Clone,
-    R: Serialisiere<S>,
+    <S as Reserviere<R>>::MoveArg: Clone,
 {
-    type Arg = <S as Reserviere<R>>::Arg;
+    type MoveArg = <S as Reserviere<R>>::MoveArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
+    type MutRefArg = <S as Reserviere<R>>::MutRefArg;
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: Self::Arg,
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<NonEmpty<R>> {
-        let head = self.head.reserviere(lager, anschlüsse, arg.clone());
+        let head = self.head.reserviere(lager, anschlüsse, move_arg.clone(), ref_arg, mut_ref_arg);
         head.reserviere_ebenfalls_mit(
             lager,
             self.tail,
-            arg,
+            move_arg,
+            ref_arg,
+            mut_ref_arg,
             |head, tail| NonEmpty { head, tail },
             |either| match either {
                 Either::Left(None) => None,
@@ -362,9 +399,17 @@ where
     }
 }
 
+macro_rules! tuple_arg_type {
+    ($arg: ident: $type: ident - $serialisiert: ident $(,)?) => {
+        <$serialisiert as Reserviere<$type>>::$arg
+    };
+    ($arg: ident: $head_type: ident - $head_serialisiert: ident, $($tail_type: ident - $tail_serialisiert: ident),+ $(,)?) => {
+        (<$head_serialisiert as Reserviere<$head_type>>::$arg, tuple_arg_type!($arg: $($tail_type - $tail_serialisiert),+))
+    };
+}
+
 macro_rules! impl_serialisiere_tuple {
-    ($($name: ident - $arg_name: ident : $type: ident - $serialisiert: ident),+) => {
-        #[allow(single_use_lifetimes)]
+    ($($name: ident : $type: ident - $serialisiert: ident),+) => {
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
@@ -382,6 +427,7 @@ macro_rules! impl_serialisiere_tuple {
                 )+
                 (s0, $($name),+)
             }
+
             fn anschlüsse(self) -> Anschlüsse {
                 let (a0, $($name),+) = self;
                 let mut acc = a0.anschlüsse();
@@ -391,7 +437,7 @@ macro_rules! impl_serialisiere_tuple {
                 acc
             }
         }
-        #[allow(single_use_lifetimes)]
+
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,
@@ -402,20 +448,30 @@ macro_rules! impl_serialisiere_tuple {
             )+
         {
             #[allow(unused_parens)]
-            type Arg = (<S0 as Reserviere<A0>>::Arg, $(<$serialisiert as Reserviere<$type>>::Arg),+);
+            type MoveArg = tuple_arg_type!(MoveArg: A0 - S0, $($type - $serialisiert),+);
+            #[allow(unused_parens)]
+            type RefArg = tuple_arg_type!(RefArg: A0 - S0, $($type - $serialisiert),+);
+            #[allow(unused_parens)]
+            type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
                 lager: &mut anschluss::Lager,
                 anschlüsse: Anschlüsse,
-                arg: Self::Arg,
+                move_arg: Self::MoveArg,
+                ref_arg: &Self::RefArg,
+                mut_ref_arg: &mut Self::MutRefArg,
             ) -> Ergebnis<(A0, $($type),+)> {
                 let (a0, $($name),+) = self;
-                let (arg_0, $($arg_name),+) = arg;
-                let reserviert = a0.reserviere(lager, anschlüsse, arg_0);
+                let (move_arg_0, move_tail_tuple) = move_arg;
+                let (ref_arg_0, ref_tail_tuple) = ref_arg;
+                let (mut_ref_arg_0, mut_ref_tail_tuple) = mut_ref_arg;
+                let reserviert = a0.reserviere(lager, anschlüsse, move_arg_0, ref_arg_0, mut_ref_arg_0);
                 reserviert.reserviere_ebenfalls_mit(
                     lager,
                     ($($name),+),
-                    ($($arg_name),+),
+                    move_tail_tuple,
+                    ref_tail_tuple,
+                    mut_ref_tail_tuple,
                     #[allow(unused_parens)]
                     |a0, ($($name),+)| (a0, $($name),+),
                     |_| None,
@@ -425,9 +481,12 @@ macro_rules! impl_serialisiere_tuple {
     };
 }
 
-impl_serialisiere_tuple! {a-aa: A-SA}
-impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB}
-impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC}
-impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD}
-impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD, e-ee: E-SE}
-impl_serialisiere_tuple! {a-aa: A-SA, b-bb: B-SB, c-cc: C-SC, d-dd: D-SD, e-ee: E-SE, f-ff: F-SF}
+impl_serialisiere_tuple! {a: A-SA}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH}
+impl_serialisiere_tuple! {a: A-SA, b: B-SB, c: C-SC, d: D-SD, e: E-SE, f: F-SF, g: G-SG, h: H-SH, i: I-SI}

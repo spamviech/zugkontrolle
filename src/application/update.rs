@@ -4,6 +4,7 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
+    ops::DerefMut,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
@@ -19,21 +20,18 @@ use crate::{
         OutputSerialisiert,
     },
     application::{
-        bewegen::Bewegung,
-        geschwindigkeit::{self, LeiterAnzeige},
-        streckenabschnitt,
-        style::thema::Thema,
-        AnschlüsseAnpassen, AnyGleisUnit, MessageBox, Nachricht, Zugkontrolle,
+        auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
+        style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
     },
     gleis::gleise::{
-        daten::{v2::BekannterZugtyp, StreckenabschnittMap},
-        id::{mit_any_id, AnyId, StreckenabschnittId, StreckenabschnittIdRef},
-        AnschlüsseAnpassenFehler, Gleise,
+        self,
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
     },
     steuerung::{
-        geschwindigkeit::{BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
         plan::{Ausführen, Einstellungen},
-        streckenabschnitt::Streckenabschnitt,
+        streckenabschnitt::{self, Streckenabschnitt},
     },
     typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
 };
@@ -59,7 +57,17 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        self.message_box = Some(MessageBox { titel, nachricht });
+        *self.message_box.deref_mut() = Some(MessageBox { titel, nachricht });
+    }
+
+    /// Zeige einen neuen [AuswahlZustand], z.B. zum anpassen der Anschlüsse eines Gleises.
+    pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
+        *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
+    }
+
+    /// Verstecke den [AuswahlZustand], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
+    pub fn verstecke_auswahlzustand(&mut self) {
+        *self.auswahl_zustand.deref_mut() = None;
     }
 
     /// Führe eine Aktion aus.
@@ -67,7 +75,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
-        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp());
+        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp2());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
         }
@@ -84,7 +92,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         S: 'static + Send,
     {
         let join_handle = aktion
-            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp()), self.sender.clone());
+            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp2()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = thread::spawn(move || {
@@ -96,53 +104,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
-    pub fn gleis_hinzufügen(&mut self, gleis: AnyGleisUnit, klick_höhe: Skalar) {
-        let streckenabschnitt = self
-            .streckenabschnitt_aktuell
-            .as_ref()
-            .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen());
-        macro_rules! hinzufügen_gehalten_bei_maus {
-            ($gleis: expr) => {
-                if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
-                    $gleis.mit_none(),
-                    Vektor { x: Skalar(0.), y: klick_höhe },
-                    streckenabschnitt,
-                    false,
-                ) {
-                    error!("Aktueller Streckenabschnitt entfernt: {:?}", fehler);
-                    self.streckenabschnitt_aktuell = None;
-                    let _ = self.gleise.hinzufügen_gehalten_bei_maus(
-                        $gleis.mit_none(),
-                        Vektor { x: Skalar(0.), y: klick_höhe },
-                        None,
-                        false,
-                    );
-                }
-            };
-        }
-        match gleis {
-            AnyGleisUnit::GeradeUnit(gerade) => hinzufügen_gehalten_bei_maus!(gerade),
-            AnyGleisUnit::KurveUnit(kurve) => hinzufügen_gehalten_bei_maus!(kurve),
-            AnyGleisUnit::WeicheUnit(weiche) => hinzufügen_gehalten_bei_maus!(weiche),
-            AnyGleisUnit::DreiwegeWeicheUnit(dreiwege_weiche) => {
-                hinzufügen_gehalten_bei_maus!(dreiwege_weiche)
-            },
-            AnyGleisUnit::KurvenWeicheUnit(kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(kurven_weiche)
-            },
-            AnyGleisUnit::SKurvenWeicheUnit(s_kurven_weiche) => {
-                hinzufügen_gehalten_bei_maus!(s_kurven_weiche)
-            },
-            AnyGleisUnit::KreuzungUnit(kreuzung) => hinzufügen_gehalten_bei_maus!(kreuzung),
-        }
-    }
-
     /// Wähle den aktuellen [Streckenabschnitt].
-    #[inline(always)]
     pub fn streckenabschnitt_wählen(
         &mut self,
-        streckenabschnitt: Option<(StreckenabschnittId, Farbe)>,
+        streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
     ) {
         self.streckenabschnitt_aktuell = streckenabschnitt
     }
@@ -150,66 +115,63 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Füge einen neuen [Streckenabschnitt] hinzu.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
-        geschwindigkeit: Option<&geschwindigkeit::Name>,
+        geschwindigkeit: Option<geschwindigkeit::Name>,
         name: streckenabschnitt::Name,
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        let id_ref = StreckenabschnittIdRef { geschwindigkeit, name: &name };
-        let message_opt = match self.gleise.streckenabschnitt_mut(&StreckenabschnittId {
-            geschwindigkeit: geschwindigkeit.cloned(),
-            name: name.clone(),
-        }) {
-            Ok(mut streckenabschnitt)
+        self.zeige_auswahlzustand(AuswahlZustand::Streckenabschnitt(Some((
+            name.clone(),
+            Streckenabschnitt::neu_serialisiert(farbe, anschluss_definition.clone()),
+            geschwindigkeit.clone(),
+        ))));
+        // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
+        // vermeidet (unmöglichen) Fehlerfall mit doppeltem Namen beim hinzufügen.
+        match self.gleise.streckenabschnitt_mut(&name) {
+            Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
                 streckenabschnitt.farbe = farbe;
+                let titel = format!("Streckenabschnitt {} anpassen", name.0);
                 let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
                 {
                     format!("{:?}", fehler)
                 } else {
-                    format!("Streckenabschnitt {:?} angepasst.", id_ref)
+                    format!("Streckenabschnitt {} angepasst.", name.0)
                 };
-                Some((format!("Streckenabschnitt {:?} anpassen", id_ref), fehlermeldung))
+                self.zeige_message_box(titel, fehlermeldung);
+                return;
             },
-            _fehler => None,
+            _fehler => {},
         };
-        if let Some((titel, nachricht)) = message_opt {
-            self.zeige_message_box(titel, nachricht);
-            return;
-        }
-        // Streckenabschnitt hat nur einen Anschluss,
-        // nachdem dieser unterschiedlich ist kann der aktuelle Anschluss ignoriert werden.
-        // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
-        // vermeidet (unmöglichen) Fehlerfall mit nicht gefundener Geschwindigkeit
-        // beim hinzufügen.
+        // Streckenabschnitt hat nur einen Anschluss.
+        // Nachdem dieser unterschiedlich ist, kann der aktuelle Anschluss ignoriert werden.
         use Ergebnis::*;
-        let (streckenabschnitt, fehler) =
-            match anschluss_definition.reserviere(&mut self.lager, Anschlüsse::default(), ()) {
-                Wert { anschluss, .. } => (Some(anschluss), None),
-                FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
-                Fehler { fehler, .. } => (None, Some(fehler)),
-            };
+        let (anschluss, fehler) = match anschluss_definition.reserviere(
+            &mut self.lager,
+            Anschlüsse::default(),
+            (),
+            &(),
+            &mut (),
+        ) {
+            Wert { anschluss, .. } => (Some(anschluss), None),
+            FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
+            Fehler { fehler, .. } => (None, Some(fehler)),
+        };
 
         let mut fehlermeldung = fehler.map(|fehler| {
-            (format!("Hinzufügen Streckenabschnitt {:?}", id_ref), format!("{:?}", fehler))
+            (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{:?}", fehler))
         });
 
-        if let Some(streckenabschnitt) = streckenabschnitt {
+        if let Some(anschluss) = anschluss {
             {
-                self.streckenabschnitt_aktuell = Some((
-                    StreckenabschnittId {
-                        geschwindigkeit: geschwindigkeit.cloned(),
-                        name: name.clone(),
-                    },
-                    farbe,
-                ));
-                let streckenabschnitt = Streckenabschnitt::neu(farbe, streckenabschnitt);
+                self.streckenabschnitt_aktuell = Some((name.clone(), farbe));
+                let streckenabschnitt = Streckenabschnitt::neu(farbe, anschluss);
 
-                if let Ok((id, Some(ersetzt))) = self.gleise.streckenabschnitt_hinzufügen(
-                    geschwindigkeit,
-                    name,
+                if let Some(ersetzt) = self.gleise.streckenabschnitt_hinzufügen(
+                    name.clone(),
                     streckenabschnitt,
+                    geschwindigkeit,
                 ) {
                     let bisherige_nachricht = if let Some((_titel, mut nachricht)) = fehlermeldung {
                         nachricht.push('\n');
@@ -218,10 +180,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                         String::new()
                     };
                     fehlermeldung = Some((
-                        format!("Streckenabschnitt {:?} anpassen", id),
+                        format!("Streckenabschnitt {:?} anpassen", name),
                         format!(
                             "{}Streckenabschnitt {:?} angepasst: {:?}",
-                            bisherige_nachricht, id, ersetzt
+                            bisherige_nachricht, name, ersetzt
                         ),
                     ));
                 }
@@ -234,25 +196,20 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     }
 
     /// Lösche einen [Streckenabschnitt].
-    pub fn streckenabschnitt_löschen(&mut self, streckenabschnitt_id: StreckenabschnittId) {
+    pub fn streckenabschnitt_löschen(&mut self, name: &streckenabschnitt::Name) {
         if self
             .streckenabschnitt_aktuell
             .as_ref()
-            .map_or(false, |(aktuell_id, _farbe)| *aktuell_id == streckenabschnitt_id)
+            .map_or(false, |(aktuell_name, _farbe)| aktuell_name == name)
         {
             self.streckenabschnitt_aktuell = None
         }
 
-        let nicht_gefunden_nachricht = format!(
-            "Streckenabschnitt {:?} sollte entfernt werden, aber wurde nicht gefunden!",
-            streckenabschnitt_id
-        );
-        match self.gleise.streckenabschnitt_entfernen(streckenabschnitt_id) {
-            Ok(None) => error!("{nicht_gefunden_nachricht}"),
-            Ok(Some(_)) => {},
-            Err(fehler) => self.zeige_message_box(
-                "Fehler bei Streckenabschnitt löschen!".to_string(),
-                format!("{:?}", fehler),
+        match self.gleise.streckenabschnitt_entfernen(name) {
+            Ok(_) => {},
+            Err(name) => error!(
+                "Streckenabschnitt {} sollte entfernt werden, aber wurde nicht gefunden!",
+                name.0
             ),
         }
     }
@@ -260,15 +217,13 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
     /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
-    pub fn gleis_setzte_streckenabschnitt(&mut self, mut any_id: AnyId) {
+    pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(fehler) = mit_any_id!(
-                &mut any_id,
-                Gleise::setze_streckenabschnitt,
-                &mut self.gleise,
+            if let Err(fehler) = self.gleise.setze_streckenabschnitt(
+                any_id,
                 self.streckenabschnitt_aktuell
                     .as_ref()
-                    .map(|(streckenabschnitt_id, _farbe)| streckenabschnitt_id.klonen())
+                    .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone()),
             ) {
                 self.zeige_message_box(
                     "Gleis entfernt".to_string(),
@@ -283,9 +238,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Einstellen ob anklicken eines Gleises dessen [Streckenabschnitt] zum
     /// aktuellen Streckenabschnitt ändern soll.
-    #[inline(always)]
     pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
-        self.streckenabschnitt_aktuell_festlegen = festlegen
+        self.streckenabschnitt_aktuell_festlegen = festlegen;
     }
 
     /// Setze die Farbe des Speichern-Knopfes zurück.
@@ -297,11 +251,55 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
+    /// Beende die Bewegung des Pivot-Punktes.
+    pub fn bewegung_beenden(&mut self) {
+        self.bewegung = None;
+    }
+
+    /// Setze den Pivot-Punkt auf den (0,0) zurück.
+    pub fn bewegung_zurücksetzen(&mut self) {
+        self.gleise.setze_pivot(Vektor::null_vektor());
+    }
+
+    /// Erzwinge ein neuzeichnen des Canvas.
+    pub fn gleise_neuzeichnen(&mut self) {
+        self.gleise.erzwinge_neuzeichnen();
+    }
+}
+
+impl<'t, L, S> Zugkontrolle<L, S>
+where
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    S: 'static + Send,
+{
+    /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
+    pub fn gleis_hinzufügen(
+        &mut self,
+        definition_steuerung: AnyDefinitionIdSteuerung,
+        klick_höhe: Skalar,
+    ) {
+        let streckenabschnitt = self
+            .streckenabschnitt_aktuell
+            .as_ref()
+            .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
+        let streckenabschnitt2 =
+            streckenabschnitt.map(|streckenabschnitt_name| streckenabschnitt_name.clone());
+        if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
+            definition_steuerung,
+            Vektor { x: Skalar(0.), y: klick_höhe },
+            streckenabschnitt2,
+            false,
+        ) {
+            self.zeige_message_box(format!("Fehler beim Gleis hinzufügen!"), format!("{fehler:?}"));
+        }
+    }
+
     /// Passe die Anschlüsse für ein Gleis an.
-    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnschlüsseAnpassen) {
-        use AnschlüsseAnpassenFehler::*;
+    pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
+        use SteuerungAktualisierenFehler::*;
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
             Ok(()) => {},
             Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
                 let titel = "Anschlüsse anpassen!".to_owned();
@@ -313,34 +311,27 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 }
                 fehlermeldung = Some((titel, nachricht));
             },
-            Err(GleisEntfernt(fehler)) => {
+            Err(GleisNichtGefunden(id)) => {
                 fehlermeldung = Some((
                     "Gleis entfernt!".to_owned(),
-                    format!("Anschlüsse anpassen für ein entferntes Gleis: {fehler:?}"),
+                    format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
                 ));
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.zeige_message_box(titel, nachricht);
+            let hat_steuerung =
+                self.gleise.hat_steuerung(anschlüsse_anpassen.id()).unwrap_or(false);
+            self.zeige_auswahlzustand(AuswahlZustand::from((anschlüsse_anpassen, hat_steuerung)))
+        } else {
+            self.verstecke_auswahlzustand();
         }
-    }
-
-    /// Beende die Bewegung des Pivot-Punktes.
-    #[inline(always)]
-    pub fn bewegung_beenden(&mut self) {
-        self.bewegung = None
-    }
-
-    /// Setze den Pivot-Punkt auf den (0,0) zurück.
-    #[inline(always)]
-    pub fn bewegung_zurücksetzen(&mut self) {
-        self.gleise.setze_pivot(Vektor::null_vektor())
     }
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
     /// Entferne eine [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    pub fn geschwindigkeit_entfernen(&mut self, name: geschwindigkeit::Name) {
+    pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
         }
@@ -350,45 +341,41 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
     L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S> + Display,
-    S: Debug + Clone + Reserviere<L, Arg = ()>,
+    S: Debug + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit_save: GeschwindigkeitSerialisiert<S>,
+        geschwindigkeit: GeschwindigkeitSerialisiert<S>,
     ) {
-        let Zugkontrolle { gleise, .. } = self;
-        let (alt_serialisiert_und_map, anschlüsse) =
-            if let Some((geschwindigkeit, streckenabschnitt_map)) =
-                gleise.geschwindigkeit_mit_streckenabschnitten_entfernen(&name)
-            {
+        self.zeige_auswahlzustand(AuswahlZustand::Geschwindigkeit(Some((
+            name.clone(),
+            geschwindigkeit.clone(),
+        ))));
+        let (alt_serialisiert, anschlüsse) =
+            if let Ok(geschwindigkeit) = self.gleise.geschwindigkeit_entfernen(&name) {
                 let serialisiert = geschwindigkeit.serialisiere();
                 let anschlüsse = geschwindigkeit.anschlüsse();
-                (Some((serialisiert, streckenabschnitt_map)), anschlüsse)
+                (Some(serialisiert), anschlüsse)
             } else {
                 (None, Anschlüsse::default())
             };
         use Ergebnis::*;
         let (fehler, anschlüsse) =
-            match geschwindigkeit_save.reserviere(&mut self.lager, anschlüsse, ()) {
+            match geschwindigkeit.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
-                    let streckenabschnitt_map = if let Some((serialisiert, streckenabschnitt_map)) =
-                        alt_serialisiert_und_map
-                    {
+                    if let Some(serialisiert) = alt_serialisiert {
                         self.zeige_message_box(
                             format!("Geschwindigkeit {} anpassen", name.0),
                             format!("Geschwindigkeit {} angepasst: {:?}", name.0, serialisiert),
                         );
-                        streckenabschnitt_map
-                    } else {
-                        StreckenabschnittMap::new()
                     };
-                    let _ = self.gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                        name,
-                        geschwindigkeit,
-                        streckenabschnitt_map,
-                    );
+                    if let Some(bisher) =
+                        self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
+                    {
+                        error!("Geschwindigkeit {bisher} beim wiederherstellen überschrieben!");
+                    }
                     return;
                 },
                 FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
@@ -399,10 +386,10 @@ where
             };
 
         let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
-        if let Some((serialisiert, streckenabschnitt_map)) = alt_serialisiert_und_map {
+        if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
             let (geschwindigkeit, fehler) =
-                match serialisiert.reserviere(&mut self.lager, anschlüsse, ()) {
+                match serialisiert.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                     Wert { anschluss, .. } => (Some(anschluss), None),
                     FehlerMitErsatzwert { anschluss, fehler, .. } => {
                         (Some(anschluss), Some(fehler))
@@ -412,11 +399,7 @@ where
             if let Some(geschwindigkeit) = geschwindigkeit {
                 // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
                 // nachdem nur wiederhergestellt wird
-                let _ = gleise.geschwindigkeit_mit_streckenabschnitten_hinzufügen(
-                    name.clone(),
-                    geschwindigkeit,
-                    streckenabschnitt_map,
-                );
+                let _ = self.gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
             }
             if let Some(fehler) = fehler {
                 fehlermeldung.push_str(&format!(
@@ -432,7 +415,6 @@ where
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    #[inline(always)]
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
     }
@@ -445,7 +427,6 @@ where
     S: 'static + Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
-    #[inline(always)]
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
@@ -467,6 +448,21 @@ where
     }
 }
 
+impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [update](Gleise::update)-Methode.
+    pub fn gleise_zustand_aktualisieren(
+        &mut self,
+        nachricht: gleise::nachricht::ZustandAktualisieren,
+    ) {
+        if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
+            self.zeige_message_box(
+                String::from("Interner Applikations-Fehler."),
+                format!("{fehler:?}"),
+            )
+        }
+    }
+}
+
 impl<'t, L, S> Zugkontrolle<L, S>
 where
     L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + BekannterLeiter + Serialisiere<S> + Send,
@@ -480,26 +476,35 @@ where
         let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit.clone()));
-        if let Err(err) = ergebnis {
+        if let Err(fehler) = ergebnis {
             self.zeige_message_box(
-                format!("Fehler beim Speichern in {}", pfad),
-                format!("{:?}", err),
+                format!("Fehler beim Speichern in '{pfad}'."),
+                format!("{fehler:?}"),
             );
         }
         Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+impl<'t, L, S> Zugkontrolle<L, S>
+where
+    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    <L as Leiter>::Fahrtrichtung: Send,
+    S: 'static + Send,
+{
     /// Lade einen neuen Zustand aus einer Datei.
-    #[allow(single_use_lifetimes)]
     pub fn laden(&mut self, pfad: String)
     where
         L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
         <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
         <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Debug + Clone + Eq + Hash + Reserviere<L, Arg = ()> + for<'de> Deserialize<'de>,
+        S: Debug
+            + Clone
+            + Eq
+            + Hash
+            + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
+            + for<'de> Deserialize<'de>,
         // zusätzliche Constraints für v2-Kompatibilität
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,
@@ -509,8 +514,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(
-                format!("Fehler beim Laden von {}", pfad),
-                format!("{:?}", fehler),
+                format!("Fehler beim Laden von '{pfad}'."),
+                format!("{fehler:?}"),
             )
         }
     }

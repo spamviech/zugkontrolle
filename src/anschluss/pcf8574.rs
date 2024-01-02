@@ -6,7 +6,7 @@
 
 use std::{
     array,
-    collections::HashMap,
+    collections::hash_map::{Entry, HashMap},
     fmt::Debug,
     fmt::{self, Display, Formatter},
     hash::Hash,
@@ -23,14 +23,13 @@ use crate::{
         pin::{self, input, Pin},
         {level::Level, trigger::Trigger},
     },
-    eingeschränkt::{kleiner_128, kleiner_8},
+    argumente::I2cSettings,
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
+    util::eingeschränkt::{kleiner_128, kleiner_8},
 };
-
-pub use crate::argumente::I2cSettings;
 
 #[derive(Debug)]
 struct I2cMitPins {
@@ -78,7 +77,7 @@ impl I2cMitPins {
 }
 
 impl I2cSettings {
-    fn aktiviert(&self, i2c_bus: I2cBus) -> bool {
+    pub(crate) fn aktiviert(&self, i2c_bus: I2cBus) -> bool {
         match i2c_bus {
             I2cBus::I2c0_1 => self.i2c0_1,
             // I2cBus::I2c2 => self.i2c2,
@@ -112,7 +111,7 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
 
 /// Noch verfügbare Pcf8574-[Port]s.
 #[derive(Debug)]
-pub struct Lager(Arc<RwLock<HashMap<(Beschreibung, kleiner_8), Port>>>);
+pub struct Lager(Arc<RwLock<HashMap<Beschreibung, (Arc<Mutex<Pcf8574>>, [Option<Port>; 8])>>>);
 
 impl Lager {
     /// Erstelle ein neues [Lager].
@@ -130,12 +129,14 @@ impl Lager {
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
+                    let mut array = [None, None, None, None, None, None, None, None];
                     for port_num in kleiner_8::alle_werte() {
                         let port_struct =
                             Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
-                        if let Some(bisher) = map.insert((beschreibung, port_num), port_struct) {
-                            error!("Pcf8574-Port doppelt erstellt: {:?}", bisher)
-                        }
+                        array[usize::from(port_num)] = Some(port_struct);
+                    }
+                    if let Some(bisher) = map.insert(beschreibung, (pcf8574, array)) {
+                        error!("Pcf8574 doppelt erstellt: {bisher:?}")
                     }
                 }
             }
@@ -149,33 +150,65 @@ impl Lager {
         beschreibung: Beschreibung,
         port: kleiner_8,
     ) -> Result<Port, InVerwendung> {
-        debug!("reserviere pcf8574 {:?}-{}", beschreibung, port);
-        self.0.write().remove(&(beschreibung, port)).ok_or(InVerwendung { beschreibung, port })
+        debug!("reserviere pcf8574 {beschreibung:?}-{port}");
+        self.0
+            .write()
+            .get_mut(&beschreibung)
+            .and_then(|(_pcf8574, ports)| ports[usize::from(port)].take())
+            .ok_or(InVerwendung { beschreibung, port })
     }
 
     /// Gebe einen Pcf8574-[Port] zurück, damit er wieder verwendet werden kann.
     ///
     /// Wird vom [Drop]-Handler des [Port]s aufgerufen.
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
-        debug!("rückgabe {:?}", port);
-        let port_opt = self.0.write().insert((port.beschreibung().clone(), port.port()), port);
-        if let Some(bisher) = port_opt {
+        debug!("rückgabe {port:?}");
+        let mut guard = self.0.write();
+        let entry = guard.entry(port.beschreibung().clone());
+        let (_pcf8574, ports) = match entry {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => {
+                error!("Port für unbekannten Pcf8574 zurückgegeben: {:?}", port.beschreibung());
+                let pcf8574 = port.pcf8574.clone();
+                let array = [None, None, None, None, None, None, None, None];
+                v.insert((pcf8574, array))
+            },
+        };
+        if let Some(bisher) = ports[usize::from(port.port())].replace(port) {
             error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
         }
+    }
+
+    /// Der Interrupt-Pin für den Pcf8574.
+    pub fn interrupt_pin(&self, beschreibung: &Beschreibung) -> Option<u8> {
+        debug!("lese Interrupt-Pin für pcf8574 {beschreibung:?}");
+        self.0
+            .read()
+            .get(beschreibung)
+            .and_then(|(pcf8574, _ports)| pcf8574.lock().interrupt.as_ref().map(input::Pin::pin))
     }
 }
 
 /// Ein I2cBus.
 ///
-/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) unterstützt.
+/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) als Hardware-I2C unterstützt.
+///
+/// Anmerkung: Es ist möglich Software-I2C auf normalen Gpio-Pins zu aktivieren.
+/// Beachte dazu den Abschnitt "Aktivieren zusätzlicher I2C-Busse" in der `README.md`.
+///
+/// ACHTUNG: Dabei werden nur die Standard-Pins, die auch bei Pi4 verwendet werden, unterstützt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum I2cBus {
     /// I2C-Bus auf den GPIO-Pins 2 (SDA) und 3 (SCL), physisch 3 und 5.
     ///
     /// Auf dem Raspberry Pi B Rev 1 sind sie mit I2C0 verbunden,
     /// bei allen anderen Raspberry Pi Versionen mit I2C1.
+    ///
+    /// Der jeweils andere ist für Kommunikation mit dem EEPROM z.B. eines Hats
+    /// und nicht für allgemeine Nutzung vorgesehen.
     I2c0_1,
-    // /// I2C-Bus bisher nicht verfügbar.
+    // /// I2C-Bus wird u.a. für HDMI und Kamera verwendet
+    // /// und ist nicht für allgemeine Nutzung vorgesehen.
     // I2c2,
     /// I2C-Bus auf den GPIO-Pins 4 (SDA) und 5 (SCL), physisch 7 und 29.
     I2c3,
@@ -521,15 +554,19 @@ impl Port {
     }
 
     /// Konfiguriere den Port für Output.
-    pub fn als_output(self, level: Level) -> Result<OutputPort, Fehler> {
-        self.pcf8574.lock().schreibe_port(self.port, level)?;
-        Ok(OutputPort(self))
+    pub fn als_output(self, level: Level) -> (OutputPort, Option<Fehler>) {
+        let fehler = self.pcf8574.lock().schreibe_port(self.port, level).err();
+        (OutputPort(self), fehler)
     }
 
     /// Konfiguriere den Port für Input.
-    pub fn als_input(self) -> Result<InputPort, Fehler> {
-        self.pcf8574.lock().port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
-        Ok(InputPort(self))
+    pub fn als_input(self) -> (InputPort, Option<Fehler>) {
+        let fehler = self
+            .pcf8574
+            .lock()
+            .port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)
+            .err();
+        (InputPort(self), fehler)
     }
 }
 

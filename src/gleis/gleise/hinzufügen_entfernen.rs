@@ -1,345 +1,143 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use std::{convert::identity, fmt::Debug};
-
-use log::error;
-use rstar::RTreeObject;
-
 use crate::{
-    anschluss::{
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        Lager,
-    },
-    gleis::{
-        gleise::{
-            daten::{DatenAuswahl, Gleis, SelectEnvelope, Zustand},
-            id::{AnyId, GleisId, StreckenabschnittId},
-            mit_any_steuerung_id,
-            steuerung::MitSteuerung,
-            AnschlüsseAnpassen, AnschlüsseAnpassenFehler, Gehalten, GleisIdFehler, GleisSteuerung,
-            Gleise, ModusDaten, StreckenabschnittIdFehler,
+    anschluss::Lager,
+    gleis::gleise::{
+        self,
+        daten::{
+            AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
+            SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
         },
-        verbindung::{self, Verbindung},
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+        steuerung::SomeAktualisierenSender,
+        Gehalten, Gleise, ModusDaten,
     },
-    steuerung::geschwindigkeit::Leiter,
-    typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel, Zeichnen},
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
+    typen::{canvas::Position, vektor::Vektor},
 };
 
-impl<L: Leiter> Gleise<L> {
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Füge ein neues Gleis an der `Position` mit dem gewählten `streckenabschnitt` hinzu.
-    pub(crate) fn hinzufügen<T: Debug + Zeichnen + DatenAuswahl>(
+impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
+    pub(crate) fn hinzufügen(
         &mut self,
-        definition: T,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         position: Position,
-        streckenabschnitt: Option<StreckenabschnittId>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let gleis_id =
-            self.zustand.write().hinzufügen(definition, position, streckenabschnitt, einrasten)?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(gleis_id)
+    ) -> Result<AnyId, HinzufügenFehler2> {
+        self.zustand.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_gehalten_bei_maus<T, R, S>(
+    pub(crate) fn hinzufügen_gehalten_bei_maus(
         &mut self,
-        definition: T,
+        definition_steuerung: AnyDefinitionIdSteuerung,
         halte_position: Vektor,
-        streckenabschnitt: Option<StreckenabschnittId>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
+    ) -> Result<AnyId, HinzufügenFehler2>
     where
-        GleisId<T>: Into<AnyId>,
-        T: Debug + Zeichnen + DatenAuswahl + for<'t> MitSteuerung<'t, Steuerung = Option<R>>,
-        <T as Zeichnen>::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-        R: Serialisiere<S>,
-        (GleisId<T>, Option<S>): Into<GleisSteuerung>,
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
-        let mut canvas_position = *self.last_mouse.read();
-        let last_size = self.last_size.read();
-        let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
-        let cp_x = canvas_position.skalarprodukt(&ex);
-        if cp_x < Skalar(0.) {
-            canvas_position -= cp_x * ex;
-        } else if cp_x > last_size.x {
-            canvas_position -= (cp_x - last_size.x) * ex;
-        }
-        let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiert(-self.pivot.winkel);
-        let cp_y = canvas_position.skalarprodukt(&ey);
-        if cp_y < Skalar(0.) {
-            canvas_position -= cp_y * ey;
-        } else if cp_y > last_size.y {
-            canvas_position -= (cp_y - last_size.y) * ey;
-        }
-        drop(last_size);
-        let serialisiert =
-            definition.steuerung(self.canvas.clone()).opt_as_ref().map(Serialisiere::serialisiere);
+        let punkt = self.letzte_maus_position - halte_position;
+        let winkel = -self.pivot.winkel;
         let gleis_id = self.hinzufügen(
-            definition,
-            Position { punkt: canvas_position - halte_position, winkel: -self.pivot.winkel },
-            streckenabschnitt.map(|id| id.klonen()),
+            definition_steuerung.clone(),
+            Position { punkt, winkel },
+            streckenabschnitt,
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
-            let gleis_steuerung = (gleis_id.klonen(), serialisiert).into();
-            *gehalten = Some(Gehalten {
-                gleis_steuerung,
-                halte_position,
-                winkel: winkel::ZERO,
-                bewegt: true,
-            });
+        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
+            let gleis_steuerung = match (&gleis_id, definition_steuerung) {
+                (AnyId::Gerade(id), AnyDefinitionIdSteuerung::Gerade(_definition, steuerung)) => {
+                    AnyIdSteuerung::Gerade(id.clone(), steuerung)
+                },
+                (AnyId::Kurve(id), AnyDefinitionIdSteuerung::Kurve(_definition, steuerung)) => {
+                    AnyIdSteuerung::Kurve(id.clone(), steuerung)
+                },
+                (AnyId::Weiche(id), AnyDefinitionIdSteuerung::Weiche(_definition, steuerung)) => {
+                    AnyIdSteuerung::Weiche(id.clone(), steuerung)
+                },
+                (
+                    AnyId::DreiwegeWeiche(id),
+                    AnyDefinitionIdSteuerung::DreiwegeWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::DreiwegeWeiche(id.clone(), steuerung),
+                (
+                    AnyId::KurvenWeiche(id),
+                    AnyDefinitionIdSteuerung::KurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::KurvenWeiche(id.clone(), steuerung),
+                (
+                    AnyId::SKurvenWeiche(id),
+                    AnyDefinitionIdSteuerung::SKurvenWeiche(_definition, steuerung),
+                ) => AnyIdSteuerung::SKurvenWeiche(id.clone(), steuerung),
+                (
+                    AnyId::Kreuzung(id),
+                    AnyDefinitionIdSteuerung::Kreuzung(_definition, steuerung),
+                ) => AnyIdSteuerung::Kreuzung(id.clone(), steuerung),
+                wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
+            };
+            *gehalten2 = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
         }
         Ok(gleis_id)
     }
 
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Füge ein neues Gleis mit `verbindung_name` anliegend an `ziel_verbindung` hinzu.
-    pub(crate) fn hinzufügen_anliegend<T: Debug + Zeichnen + DatenAuswahl>(
+    /// Entferne das [Gleis] assoziiert mit der [GleisId].
+    pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
-        definition: T,
-        streckenabschnitt: Option<StreckenabschnittId>,
-        verbindung_name: &<T as Zeichnen>::VerbindungName,
-        ziel_verbindung: Verbindung,
-    ) -> Result<GleisId<T>, StreckenabschnittIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let gleis_id = self.zustand.write().hinzufügen_anliegend(
-            definition,
-            streckenabschnitt,
-            verbindung_name,
-            ziel_verbindung,
-        )?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(gleis_id)
-    }
-
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Bewege ein Gleis an die neue position.
-    pub(crate) fn bewegen<T: Debug + Zeichnen + DatenAuswahl>(
-        &mut self,
-        gleis_id: &mut GleisId<T>,
-        position_neu: Position,
-        einrasten: bool,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        self.zustand.write().bewegen(gleis_id, position_neu, einrasten)?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(())
-    }
-
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Bewege ein Gleis, so dass `verbindung_name` mit `ziel_verbindung` anliegend ist.
-    pub(crate) fn bewegen_anliegend<T: Debug + Zeichnen + DatenAuswahl>(
-        &mut self,
-        gleis_id: &mut GleisId<T>,
-        verbindung_name: &<T as Zeichnen>::VerbindungName,
-        ziel_verbindung: Verbindung,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        self.zustand.write().bewegen_anliegend(gleis_id, verbindung_name, ziel_verbindung)?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(())
-    }
-
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Entferne das Gleis assoziiert mit der `GleisId`.
-    pub(crate) fn entfernen<T: Debug + Zeichnen + DatenAuswahl>(
-        &mut self,
-        gleis_id: GleisId<T>,
-    ) -> Result<Gleis<T>, GleisIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let gleis = self.zustand.write().entfernen(gleis_id)?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(gleis)
-    }
-
-    /// Wie `entfernen`, nur ohne Rückgabewert für Verwendung mit `with_any_id`
-    #[inline(always)]
-    pub(crate) fn entfernen_unit<T>(&self, gleis_id: GleisId<T>) -> Result<(), GleisIdFehler>
-    where
-        T: Debug + Zeichnen + DatenAuswahl,
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let _gleis = self.zustand.write().entfernen(gleis_id)?;
-        // Erzwinge Neuzeichnen
-        self.canvas.lock().leeren();
-        // Rückgabewert
-        Ok(())
+        gleis_id: impl Into<AnyId>,
+    ) -> Result<AnyGleis, EntfernenFehler> {
+        self.zustand.entfernen(gleis_id.into())
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
-        &self,
+        &mut self,
         canvas_pos: Vektor,
-    ) -> Result<(), GleisIdFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut *self.modus.write() {
-            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten {
+    ) -> Result<(), BewegenFehler> {
+        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
+            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
                 let punkt = canvas_pos - halte_position;
-                let mut_ref = &mut *self.zustand.write();
-                mit_any_steuerung_id!(
-                    gleis_steuerung,
-                    Zustand::bewegen,
-                    mut_ref,
-                    Position { punkt, winkel: *winkel },
-                    true
-                )?;
+                let id = gleis_steuerung.id();
+                self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
                 *bewegt = true;
-                self.canvas.lock().leeren();
+                self.erzwinge_neuzeichnen();
             }
         }
         Ok(())
     }
 
-    #[zugkontrolle_macros::erstelle_daten_methoden]
-    /// Setze den Streckenabschnitt für das spezifizierte Gleis.
-    pub(crate) fn setze_streckenabschnitt<T: Debug + Zeichnen + DatenAuswahl>(
+    /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)
+    /// für das [Gleis] assoziiert mit der [GleisId].
+    ///
+    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
+    /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
+    pub fn setze_streckenabschnitt(
         &mut self,
-        gleis_id: &mut GleisId<T>,
-        streckenabschnitt_neu: Option<StreckenabschnittId>,
-    ) -> Result<(), GleisIdFehler>
-    where
-        T::Verbindungen: verbindung::Nachschlagen<T::VerbindungName>,
-    {
-        let GleisId { rectangle, streckenabschnitt, phantom: _ } = &*gleis_id;
-        let mut guard = self.zustand.write();
-        let bisherige_daten = guard.daten_mut(streckenabschnitt)?;
-        // Entferne aktuellen Eintrag.
-        let geom_with_data = bisherige_daten
-            .rstern_mut::<T>()
-            .remove_with_selection_function(SelectEnvelope(rectangle.envelope()))
-            .ok_or(GleisIdFehler::GleisEntfernt)?;
-        // Füge Eintrag bei neuem Streckenabschnitt hinzu.
-        match guard.daten_mut(&streckenabschnitt_neu) {
-            Ok(neue_daten) => {
-                neue_daten.rstern_mut().insert(geom_with_data);
-                gleis_id.streckenabschnitt = streckenabschnitt_neu;
-                Ok(())
-            },
-            Err(fehler) => {
-                let daten = match guard.daten_mut(&streckenabschnitt) {
-                    Ok(bisherige_daten) => bisherige_daten,
-                    Err(wiederherstellen_fehler) => {
-                        error!(
-                        "Fehler bei Streckenabschnitt wiederherstellen: {:?}\nStreckenabschnitt für Gleis entfernt: {:?}",
-                        wiederherstellen_fehler, geom_with_data.data
-                    );
-                        &mut guard.ohne_streckenabschnitt
-                    },
-                };
-                daten.rstern_mut().insert(geom_with_data);
-                Err(fehler.into())
-            },
-        }
-    }
-    #[allow(single_use_lifetimes)]
-    fn gleis_anschlüsse_anpassen<T, W, S>(
-        &mut self,
-        id: GleisId<T>,
-        anschlüsse_serialisiert: Option<S>,
-        lager: &mut Lager,
-        arg: <S as Reserviere<W>>::Arg,
-    ) -> Result<(), AnschlüsseAnpassenFehler>
-    where
-        T: for<'t> MitSteuerung<'t, Steuerung = Option<W>> + DatenAuswahl,
-        W: Serialisiere<S>,
-        S: Debug + Reserviere<W>,
-        <S as Reserviere<W>>::Arg: Clone,
-    {
-        use Ergebnis::*;
-        self.mit_steuerung_mut(&id, |mut steuerung| {
-            let anschlüsse_serialisiert =
-                if let Some(anschlüsse_serialisiert) = anschlüsse_serialisiert {
-                    anschlüsse_serialisiert
-                } else {
-                    let _ = steuerung.take();
-                    return Ok(());
-                };
-            let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
-                (Some(s.serialisiere()), s.anschlüsse())
-            } else {
-                (None, Anschlüsse::default())
-            };
-            let (fehler, anschlüsse) =
-                match anschlüsse_serialisiert.reserviere(lager, anschlüsse, arg.clone()) {
-                    Wert { anschluss, .. } => {
-                        let _ = steuerung.insert(anschluss);
-                        return Ok(());
-                    },
-                    FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
-                        anschlüsse.anhängen(anschluss.anschlüsse());
-                        (fehler, anschlüsse)
-                    },
-                    Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
-                };
-            let mut wiederherstellen_fehler = None;
-            if let Some(steuerung_serialisiert) = steuerung_serialisiert {
-                let serialisiert_string = format!("{steuerung_serialisiert:?}");
-                match steuerung_serialisiert.reserviere(lager, anschlüsse, arg) {
-                    Wert { anschluss, .. } => {
-                        let _ = steuerung.insert(anschluss);
-                    },
-                    FehlerMitErsatzwert { anschluss, fehler, .. } => {
-                        let _ = steuerung.insert(anschluss);
-                        wiederherstellen_fehler = Some((fehler, serialisiert_string));
-                    },
-                    Fehler { fehler, .. } => {
-                        wiederherstellen_fehler = Some((fehler, serialisiert_string))
-                    },
-                }
-            }
-            Err(AnschlüsseAnpassenFehler::Deserialisieren { fehler, wiederherstellen_fehler })
-        })
-        .map_err(AnschlüsseAnpassenFehler::from)
-        .and_then(identity)
-        // TODO and_then(identity) is actually flatten, but this hasn't been stabilized yet
-        // https://doc.rust-lang.org/src/core/result.rs.html#1739
+        gleis_id: impl Into<AnyId>,
+        streckenabschnitt: Option<streckenabschnitt::Name>,
+    ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
+        self.zustand.setze_streckenabschnitt(gleis_id, streckenabschnitt)
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(
         &mut self,
         lager: &mut Lager,
-        anschlüsse_anpassen: AnschlüsseAnpassen,
-    ) -> Result<(), AnschlüsseAnpassenFehler> {
-        let canvas = self.canvas.clone();
-        match anschlüsse_anpassen {
-            AnschlüsseAnpassen::Weiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
-            },
-            AnschlüsseAnpassen::DreiwegeWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
-            },
-            AnschlüsseAnpassen::KurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
-            },
-            AnschlüsseAnpassen::SKurvenWeiche(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
-            },
-            AnschlüsseAnpassen::Kreuzung(id, anschlüsse_serialisiert) => {
-                self.gleis_anschlüsse_anpassen(id, anschlüsse_serialisiert, lager, canvas)
-            },
-        }
+        gleis_steuerung: AnyIdSteuerungSerialisiert,
+    ) -> Result<(), SteuerungAktualisierenFehler>
+    where
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
+        self.zustand.steuerung_aktualisieren(
+            lager,
+            gleis_steuerung,
+            SomeAktualisierenSender::from((self.sender.clone(), AktualisierenNachricht::from)),
+        )
+    }
+
+    /// Sind für ein Gleis Anschlüsse definiert?
+    pub fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
+        self.zustand.hat_steuerung(gleis)
     }
 }

@@ -1,0 +1,15 @@
+{
+    "cSpell.caseSensitive": false,
+    "cSpell.customDictionaries": {
+        "custom-dictionary-workspace": {
+            "addWords": true,
+            "name": "custom-dictionary-workspace",
+            "path": "${workspaceFolder:zugkontrolle}/.vscode/.cspell/custom-dictionary-workspace.txt",
+            "scope": "workspace"
+        }
+    },
+    "todo-tree.filtering.excludeGlobs": [
+        "licenses/",
+        "fonts/"
+    ]
+}

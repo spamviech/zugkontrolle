@@ -2,21 +2,23 @@
 //! mit potentieller Mutation eines Zustands erlaubt.
 
 use std::{
+    any::Any,
     fmt::{self, Debug, Formatter},
     ops::{Deref, DerefMut},
 };
 
-use iced_native::{
+use iced_core::{
     event::{self, Event},
     layout::{self, Layout},
     mouse,
     overlay::{self, Overlay},
     renderer::{Renderer, Style},
     widget::{
+        self,
         operation::Operation,
         tree::{State, Tag, Tree},
     },
-    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
@@ -158,7 +160,7 @@ where
         theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         self.element.as_widget().draw(
@@ -203,16 +205,16 @@ where
         state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Extern>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let zustand: &mut Zustand = state.state.downcast_mut();
         if self.initialer_zustand.1 && (self.initialer_zustand.0 != *zustand) {
             self.initialer_zustand.1 = false;
             self.element = (self.erzeuge_element)(zustand);
-            state.children = vec![Tree::new(&self.element)];
         }
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
@@ -224,6 +226,7 @@ where
             renderer,
             clipboard,
             &mut interne_shell,
+            viewport,
         );
         synchronisiere_widget_layout_validierung(&interne_shell, shell);
         verarbeite_nachrichten(
@@ -242,7 +245,7 @@ where
         &self,
         state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
@@ -284,36 +287,39 @@ pub(in crate::application) struct MapOperation<'a, B> {
 impl<T, B> Operation<T> for MapOperation<'_, B> {
     fn container(
         &mut self,
-        id: Option<&iced_native::widget::Id>,
+        id: Option<&widget::Id>,
+        bounds: Rectangle,
         operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
     ) {
-        self.operation.container(id, &mut |operation| {
+        self.operation.container(id, bounds, &mut |operation| {
             operate_on_children(&mut MapOperation { operation });
         });
     }
 
-    fn focusable(
-        &mut self,
-        state: &mut dyn iced_native::widget::operation::Focusable,
-        id: Option<&iced_native::widget::Id>,
-    ) {
+    fn focusable(&mut self, state: &mut dyn widget::operation::Focusable, id: Option<&widget::Id>) {
         self.operation.focusable(state, id);
     }
 
     fn scrollable(
         &mut self,
-        state: &mut dyn iced_native::widget::operation::Scrollable,
-        id: Option<&iced_native::widget::Id>,
+        state: &mut dyn widget::operation::Scrollable,
+        id: Option<&widget::Id>,
+        bounds: Rectangle,
+        translation: Vector,
     ) {
-        self.operation.scrollable(state, id);
+        self.operation.scrollable(state, id, bounds, translation);
     }
 
     fn text_input(
         &mut self,
-        state: &mut dyn iced_native::widget::operation::TextInput,
-        id: Option<&iced_native::widget::Id>,
+        state: &mut dyn widget::operation::TextInput,
+        id: Option<&widget::Id>,
     ) {
         self.operation.text_input(state, id);
+    }
+
+    fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+        self.operation.custom(state, id);
     }
 }
 
@@ -372,7 +378,7 @@ where
         theme: &<R as Renderer>::Theme,
         style: &Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
     ) {
         self.overlay.draw(renderer, theme, style, layout, cursor_position)
     }
@@ -385,7 +391,7 @@ where
         &mut self,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Extern>,
@@ -416,14 +422,14 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
         self.overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn is_over(&self, layout: Layout<'_>, _renderer: &R, cursor_position: Point) -> bool {
         layout.bounds().contains(cursor_position)
     }
 }

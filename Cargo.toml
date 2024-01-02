@@ -1,7 +1,7 @@
 [package]
 name = "zugkontrolle"
-version = "3.0.0"
-authors = ["Wolfgang Witt <Wolfgang.Witt@campus.lmu.de>"]
+version = "4.0.0"
+authors = ["spamviech <spamviech@web.de>"]
 edition = "2021"
 license = "MIT"
 publish = false
@@ -12,26 +12,28 @@ rust-version = "1.69"
 [profile.release]
 strip = true
 
+[features]
+default = []
+# Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
+raspi = ["rppal"]
+
 # dependencies
 [dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
-version = "3.0.0"
+version = "4.0.0"
 
 [dependencies]
+assoc = "0.1.3"
 bincode = "1.3.3"
+dyn-clonable = "0.9.0"
 either = "1.6.1"
-itertools = "0.11.0"
+itertools = "0.12.0"
 log = "0.4.14"
 once_cell = "1.17.1"
 parking_lot = "0.12.0"
 rstar = "0.11.0"
 take_mut = "0.2.2"
 unicase = "2.6.0"
-
-[target.'cfg(target_arch = "x86_64")'.dependencies]
-num-traits = "0.2.14"
-
-[target.'cfg(target_arch = "x86")'.dependencies]
 num-traits = "0.2.14"
 
 [dependencies.kommandozeilen_argumente]
@@ -39,7 +41,7 @@ version = "0.2.1"
 features = ["derive"]
 
 [dependencies.nonempty]
-version = "0.8.0"
+version = "0.9.0"
 features = ["serialize"]
 
 [dependencies.serde]
@@ -47,67 +49,44 @@ version = "1.0.136"
 features = ["derive"]
 
 [dependencies.flexi_logger]
-version = "0.25.2"
+version = "0.27.3"
 default_features = false
 features = ["colors"]
 
 [dependencies.iced]
-version = "0.9.0"
+version = "0.10.0"
 default-features = false
-features = ["canvas", "glow"]
+features = ["canvas", "wgpu"]
 
-[dependencies.iced_native]
-version = "0.10.3"
+[dependencies.iced_core]
+version = "0.10.0"
 default-features = false
-
-[dependencies.iced_graphics]
-version = "0.8.0"
-default-features = false
-features = ["canvas"]
 
 [dependencies.iced_futures]
-version = "0.6.0"
+version = "0.7.0"
+default-features = false
+
+[dependencies.iced_widget]
+version = "0.1.3"
 default-features = false
 
 [dependencies.iced_aw]
-version = "0.5.0"
+version = "0.7.0"
 default-features = false
-features = ["card", "tab_bar", "tabs", "number_input", "glow"]
+features = ["card", "tab_bar", "tabs", "number_input"]
 
 # can't be used on non-raspi systems
-# raspi 0/1
-[target.arm-unknown-linux-gnueabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.arm-unknown-linux-musleabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-# raspi 2/3/4
-[target.armv7-unknown-linux-gnueabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
-[target.armv7-unknown-linux-musleabihf.dependencies]
-rppal = "0.14.1"
-#rascam = "0.0.2"
-#raspicam-rs = "0.1.3"
-#libcamera = "0.2.1"
+[dependencies.rppal]
+version = "0.16.1"
+optional = true
+
+#[dependencies.libcamera]
+#version = "0.2.2"
+#optional = true
 
 [build-dependencies]
-cfg_aliases = "0.1.1"
 embed-resource = "2.1.1"
 
 [dev-dependencies]
 difference = "2.0.0"
-
-[package.metadata.cross.build]
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update",
-    "apt-get --assume-yes install libfontconfig-dev:$CROSS_DEB_ARCH",
-]
+enum-iterator = "1.4.1"

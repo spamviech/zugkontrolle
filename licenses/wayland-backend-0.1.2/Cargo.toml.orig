@@ -1,0 +1,60 @@
+[package]
+name = "wayland-backend"
+version = "0.1.2"
+authors = ["Elinor Berger <elinor@safaradeg.net>"]
+edition = "2018"
+rust-version = "1.59"
+repository = "https://github.com/smithay/wayland-rs"
+documentation = "https://docs.rs/wayland-backend/"
+license = "MIT"
+categories = ["gui", "api-bindings"]
+keywords = ["wayland"]
+description = "Low-level bindings to the Wayland protocol"
+readme = "README.md"
+build = "build.rs"
+
+[dependencies]
+wayland-sys = { version = "0.30.0", path = "../wayland-sys", features = [] }
+log = { version = "0.4", optional = true }
+scoped-tls = "1.0"
+downcast-rs = "1.2"
+io-lifetimes = "1.0.0"
+raw-window-handle = { version = "0.5.0", optional = true }
+
+[dependencies.smallvec]
+version = "1.9"
+# Some additional features can be enabled since wayland-rs requires at least Rust 1.59
+features = [
+    "union", # 1.49
+    "const_generics", # 1.51
+    "const_new", # 1.51
+]
+
+[dependencies.nix]
+version = "0.26.0"
+default-features = false
+features = [
+    "event",
+    "fs",
+    "poll",
+    "socket",
+    "uio",
+]
+
+[build-dependencies]
+cc = "1.0"
+
+[dev-dependencies]
+wayland-scanner = { path = "../wayland-scanner"}
+wayland-sys = { path = "../wayland-sys", features = ["client", "server"] }
+concat-idents = "1.1"
+env_logger = "0.10"
+
+[features]
+client_system = ["wayland-sys/client"]
+server_system = ["wayland-sys/server"]
+dlopen = ["wayland-sys/dlopen"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

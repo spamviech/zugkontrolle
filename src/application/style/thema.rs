@@ -88,25 +88,25 @@ impl text_input::StyleSheet for Thema {
         }
     }
 
-    fn placeholder_color(&self, style: &Self::Style) -> iced_native::Color {
+    fn placeholder_color(&self, style: &Self::Style) -> iced_core::Color {
         match self {
             Thema::Hell => text_input::StyleSheet::placeholder_color(&iced::Theme::Light, style),
         }
     }
 
-    fn value_color(&self, style: &Self::Style) -> iced_native::Color {
+    fn value_color(&self, style: &Self::Style) -> iced_core::Color {
         match self {
             Thema::Hell => text_input::StyleSheet::value_color(&iced::Theme::Light, style),
         }
     }
 
-    fn disabled_color(&self, style: &Self::Style) -> iced_native::Color {
+    fn disabled_color(&self, style: &Self::Style) -> iced_core::Color {
         match self {
             Thema::Hell => text_input::StyleSheet::disabled_color(&iced::Theme::Light, style),
         }
     }
 
-    fn selection_color(&self, style: &Self::Style) -> iced_native::Color {
+    fn selection_color(&self, style: &Self::Style) -> iced_core::Color {
         match self {
             Thema::Hell => text_input::StyleSheet::selection_color(&iced::Theme::Light, style),
         }
@@ -128,7 +128,7 @@ impl text_input::StyleSheet for Thema {
 impl card::StyleSheet for Thema {
     type Style = <iced::Theme as card::StyleSheet>::Style;
 
-    fn active(&self, style: Self::Style) -> card::Appearance {
+    fn active(&self, style: &Self::Style) -> card::Appearance {
         match self {
             Thema::Hell => card::StyleSheet::active(&iced::Theme::Light, style),
         }
@@ -138,19 +138,19 @@ impl card::StyleSheet for Thema {
 impl slider::StyleSheet for Thema {
     type Style = <iced::Theme as slider::StyleSheet>::Style;
 
-    fn active(&self, style: &Self::Style) -> iced_native::widget::vertical_slider::Appearance {
+    fn active(&self, style: &Self::Style) -> iced_widget::vertical_slider::Appearance {
         match self {
             Thema::Hell => slider::StyleSheet::active(&iced::Theme::Light, style),
         }
     }
 
-    fn hovered(&self, style: &Self::Style) -> iced_native::widget::vertical_slider::Appearance {
+    fn hovered(&self, style: &Self::Style) -> iced_widget::vertical_slider::Appearance {
         match self {
             Thema::Hell => slider::StyleSheet::hovered(&iced::Theme::Light, style),
         }
     }
 
-    fn dragging(&self, style: &Self::Style) -> iced_native::widget::vertical_slider::Appearance {
+    fn dragging(&self, style: &Self::Style) -> iced_widget::vertical_slider::Appearance {
         match self {
             Thema::Hell => slider::StyleSheet::dragging(&iced::Theme::Light, style),
         }
@@ -176,19 +176,19 @@ impl radio::StyleSheet for Thema {
 impl number_input::StyleSheet for Thema {
     type Style = <iced::Theme as number_input::StyleSheet>::Style;
 
-    fn active(&self, style: Self::Style) -> number_input::Appearance {
+    fn active(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::active(&iced::Theme::Light, style),
         }
     }
 
-    fn pressed(&self, style: Self::Style) -> number_input::Appearance {
+    fn pressed(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::pressed(&iced::Theme::Light, style),
         }
     }
 
-    fn disabled(&self, style: Self::Style) -> number_input::Appearance {
+    fn disabled(&self, style: &Self::Style) -> number_input::Appearance {
         match self {
             Thema::Hell => number_input::StyleSheet::disabled(&iced::Theme::Light, style),
         }

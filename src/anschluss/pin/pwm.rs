@@ -10,8 +10,8 @@ use crate::{
         pin::Pin as EinPin,
         polarität::Polarität,
     },
-    eingeschränkt::{NichtNegativ, NullBisEins},
     rppal::{gpio, pwm},
+    util::eingeschränkt::{NichtNegativ, NullBisEins},
 };
 
 #[allow(variant_size_differences)]
@@ -184,13 +184,17 @@ impl Serialisiere<Serialisiert> for Pin {
 }
 
 impl Reserviere<Pin> for Serialisiert {
-    type Arg = ();
+    type MoveArg = ();
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
-        _arg: (),
+        _move_arg: Self::MoveArg,
+        _ref_arg: &Self::RefArg,
+        _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Pin> {
         let (mut gesucht, andere): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);

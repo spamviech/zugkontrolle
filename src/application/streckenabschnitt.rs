@@ -10,31 +10,39 @@ use iced_aw::{
     native::card::{self, Card},
     style::{number_input, tab_bar},
 };
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        checkbox::{self, Checkbox},
-        container::{self, Container},
-        radio,
-        scrollable::{self, Scrollable},
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row,
-    },
+    widget::text::{self, Text},
     Alignment, Element, Font, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    checkbox::{self, Checkbox},
+    container::{self, Container},
+    radio,
+    scrollable::{self, Scrollable},
+    text_input::{self, TextInput},
+    Column, Row,
 };
 
 use crate::{
-    anschluss::{polarität::Polarität, OutputSerialisiert},
-    application::{anschluss, farbwahl::Farbwahl, map_mit_zustand::MapMitZustand, modal, style},
-    gleis::gleise::{id::StreckenabschnittId, Gleise},
-    steuerung::geschwindigkeit::{self, Leiter},
+    anschluss::{de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert},
+    application::{
+        anschluss,
+        bootstrap::{Bootstrap, Icon},
+        farbwahl::Farbwahl,
+        map_mit_zustand::MapMitZustand,
+        modal, style,
+    },
+    argumente::I2cSettings,
+    gleis::gleise::Gleise,
+    steuerung::{
+        geschwindigkeit::{self, Leiter},
+        streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
+    },
     typen::farbe::Farbe,
-    unicase_ord::UniCaseOrd,
+    util::unicase_ord::UniCaseOrd,
 };
-
-pub use crate::steuerung::streckenabschnitt::{Name, Streckenabschnitt};
 
 /// Eine Nachricht des [Anzeige]-Widgets.
 #[derive(Debug, Clone, Copy)]
@@ -59,21 +67,17 @@ impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
 impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
 where
     Overlay: 'a + Clone,
-    R: 'a + iced_native::text::Renderer,
+    R: 'a + iced_core::text::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [Anzeige].
-    pub fn neu(
-        zustand: &'a Option<(StreckenabschnittId, Farbe)>,
-        festlegen: bool,
-        overlay: Overlay,
-    ) -> Self {
+    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
-        let style = if let Some((streckenabschnitt_id, farbe)) = zustand {
-            children.push(Text::new(&streckenabschnitt_id.name.0).into());
+        let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
+            children.push(Text::new(&streckenabschnitt_name.0).into());
             style::streckenabschnitt::anzeige_farbe(*farbe)
         } else {
             children.push(
@@ -121,31 +125,43 @@ struct AuswahlZustand {
     neu_name: String,
     neu_farbe: Farbe,
     neu_anschluss: OutputSerialisiert,
-    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe)>,
+    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)>,
 }
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [AuswahlZustand].
-    fn neu<L: Leiter>(gleise: &Gleise<L>) -> AuswahlZustand {
+    fn neu<L: Leiter, AktualisierenNachricht>(
+        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        gleise: &Gleise<L, AktualisierenNachricht>,
+    ) -> AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
+        let (neu_name, neu_farbe, neu_anschluss) =
+            if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
+                (name.0, streckenabschnitt.farbe, streckenabschnitt.anschluss())
+            } else {
+                (
+                    String::new(),
+                    Farbe { rot: 1., grün: 1., blau: 1. },
+                    OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
+                )
+            };
         AuswahlZustand {
-            neu_name: String::new(),
-            neu_farbe: Farbe { rot: 1., grün: 1., blau: 1. },
-            neu_anschluss: OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
-            streckenabschnitte: gleise.aus_allen_streckenabschnitten(
-                |streckenabschnitt_id, streckenabschnitt| {
-                    Self::iter_map((streckenabschnitt_id.name, streckenabschnitt))
-                },
-            ),
+            neu_name,
+            neu_farbe,
+            neu_anschluss,
+            streckenabschnitte: gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
+                Self::iter_map((name, streckenabschnitt))
+            }),
         }
     }
 
     fn iter_map(
         (name, streckenabschnitt): (&Name, &Streckenabschnitt),
-    ) -> (UniCaseOrd<Name>, (String, Farbe)) {
+    ) -> (UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)) {
+        let anschluss = &*streckenabschnitt.lock_anschluss();
         (
             UniCaseOrd::neu(name.clone()),
-            (streckenabschnitt.lock_anschluss().to_string(), streckenabschnitt.farbe.clone()),
+            (anschluss.to_string(), streckenabschnitt.farbe.clone(), anschluss.serialisiere()),
         )
     }
 }
@@ -159,6 +175,7 @@ enum InterneAuswahlNachricht {
     Name(String),
     FarbeBestimmen(Farbe),
     Anschluss(OutputSerialisiert),
+    Bearbeiten(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
 }
 
 /// Nachricht des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
@@ -167,11 +184,11 @@ pub enum AuswahlNachricht {
     /// Schließe das Auswahl-Fenster.
     Schließe,
     /// Wähle den aktuellen Streckenabschnitt.
-    Wähle(Option<(StreckenabschnittId, Farbe)>),
+    Wähle(Option<(Name, Farbe)>),
     /// Füge einen neuen Streckenabschnitt hinzu.
     Hinzufügen(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
     /// Lösche einen Streckenabschnitt.
-    Lösche(StreckenabschnittId),
+    Lösche(Name),
 }
 
 /// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
@@ -182,7 +199,7 @@ pub struct Auswahl<'a, R: Renderer>(
 
 impl<'a, R> Auswahl<'a, R>
 where
-    R: 'a + iced_native::text::Renderer<Font = Font>,
+    R: 'a + iced_core::text::Renderer<Font = Font>,
     <R as Renderer>::Theme: card::StyleSheet
         + text::StyleSheet
         + scrollable::StyleSheet
@@ -192,26 +209,31 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
+    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<style::Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
-    pub fn neu<L: Leiter>(gleise: &'a Gleise<L>) -> Self {
-        let erzeuge_zustand = || AuswahlZustand::neu(gleise);
-        let erzeuge_element = Self::erzeuge_element;
+    pub fn neu<L: Leiter, AktualisierenNachricht>(
+        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        gleise: &'a Gleise<L, AktualisierenNachricht>,
+        scrollable_style: style::Sammlung,
+        settings: I2cSettings,
+    ) -> Self {
+        let erzeuge_zustand = move || AuswahlZustand::neu(startwert.clone(), gleise);
+        let erzeuge_element = move |zustand: &AuswahlZustand| {
+            Self::erzeuge_element(zustand, scrollable_style, settings)
+        };
         let mapper = |interne_nachricht,
                       zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
-            let erstelle_id = |name| StreckenabschnittId { geschwindigkeit: None, name };
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
                 InterneAuswahlNachricht::Wähle(wahl) => {
                     vec![
-                        AuswahlNachricht::Wähle(
-                            wahl.map(|(name, farbe)| (erstelle_id(name), farbe)),
-                        ),
+                        AuswahlNachricht::Wähle(wahl.map(|(name, farbe)| (name, farbe))),
                         AuswahlNachricht::Schließe,
                     ]
                 },
@@ -225,7 +247,7 @@ where
                     vec![nachricht]
                 },
                 InterneAuswahlNachricht::Lösche(name) => {
-                    vec![AuswahlNachricht::Lösche(erstelle_id(name))]
+                    vec![AuswahlNachricht::Lösche(name)]
                 },
                 InterneAuswahlNachricht::Name(name) => {
                     zustand.neu_name = name;
@@ -239,6 +261,13 @@ where
                     zustand.neu_anschluss = anschluss;
                     Vec::new()
                 },
+                InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
+                    // TODO assoziierte Geschwindigkeit berücksichtigen
+                    zustand.neu_name = name.0;
+                    zustand.neu_farbe = farbe;
+                    zustand.neu_anschluss = anschluss;
+                    Vec::new()
+                },
             }
         };
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
@@ -246,6 +275,8 @@ where
 
     fn erzeuge_element(
         auswahl_zustand: &AuswahlZustand,
+        scrollable_style: style::Sammlung,
+        settings: I2cSettings,
     ) -> Element<'a, InterneAuswahlNachricht, R> {
         let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
             auswahl_zustand;
@@ -258,8 +289,12 @@ where
             )
             .push(Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen).durchmesser(50))
             .push(
-                Element::from(anschluss::Auswahl::neu_output_s(Some(neu_anschluss.clone())))
-                    .map(InterneAuswahlNachricht::Anschluss),
+                Element::from(anschluss::Auswahl::neu_output_s(
+                    Some(neu_anschluss.clone()),
+                    scrollable_style,
+                    settings,
+                ))
+                .map(InterneAuswahlNachricht::Anschluss),
             );
         let hinzufügen =
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);
@@ -271,17 +306,26 @@ where
             )
             .push(Button::new(Text::new("Keinen")).on_press(InterneAuswahlNachricht::Wähle(None)))
             .width(Length::Shrink);
-        for (name, (anschluss, farbe)) in streckenabschnitte {
+        for (name, (anschluss_str, farbe, anschluss)) in streckenabschnitte {
             column = column.push(
                 Row::new()
                     .push(
-                        Button::new(Text::new(format!("{name}: {anschluss:?}")))
+                        Button::new(Text::new(format!("{name}: {anschluss_str:?}")))
                             .on_press(InterneAuswahlNachricht::Wähle(Some((
                                 name.clone().into_inner(),
                                 *farbe,
                             ))))
                             .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
                     )
+                    .push(Button::new(Icon::neu(Bootstrap::Feather)).on_press(
+                        // TODO assoziierte Geschwindigkeit berücksichtigen
+                        InterneAuswahlNachricht::Bearbeiten(
+                            None,
+                            name.clone().into_inner(),
+                            *farbe,
+                            anschluss.clone(),
+                        ),
+                    ))
                     .push(
                         Button::new(Text::new("X"))
                             .on_press(InterneAuswahlNachricht::Lösche(name.clone().into_inner())),
@@ -291,7 +335,7 @@ where
 
         let card = Card::new(
             Text::new("Streckenabschnitt").width(Length::Fill),
-            Scrollable::new(column).width(Length::Shrink),
+            Scrollable::new(column).height(Length::Fixed(400.)).width(Length::Shrink),
         )
         .on_close(InterneAuswahlNachricht::Schließe)
         .width(Length::Shrink);

@@ -1,4 +1,4 @@
-//! Einstellen der Steuerung einer [Weiche](crate::steuerung::Weiche).
+//! Einstellen der Steuerung einer [Weiche](crate::steuerung::weiche::Weiche).
 
 use std::{
     fmt::{Debug, Display},
@@ -12,26 +12,31 @@ use iced_aw::{
     },
     tab_bar,
 };
-use iced_native::{
+use iced_core::{
     event,
-    widget::{
-        button::{self, Button},
-        container, radio,
-        text::{self, Text},
-        text_input::{self, TextInput},
-        Column, Row,
-    },
+    widget::text::{self, Text},
     Element, Font, Length, Renderer,
+};
+use iced_widget::{
+    button::{self, Button},
+    container, radio, scrollable,
+    text_input::{self, TextInput},
+    Column, Row,
 };
 
 use crate::{
     anschluss::OutputSerialisiert,
-    application::{anschluss, map_mit_zustand::MapMitZustand, style::tab_bar::TabBar},
-    nachschlagen::Nachschlagen,
+    application::{
+        anschluss,
+        map_mit_zustand::MapMitZustand,
+        style::{sammlung::Sammlung, tab_bar::TabBar},
+    },
+    argumente::I2cSettings,
     steuerung::weiche::{Name, WeicheSerialisiert},
+    util::nachschlagen::Nachschlagen,
 };
 
-/// Zustand eines Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
     name: String,
@@ -43,12 +48,13 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
     /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
         option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+        hat_steuerung: bool,
     ) -> Self {
-        let (name, anschlüsse, hat_steuerung) =
+        let (name, anschlüsse) =
             if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
-                (name.0.clone(), anschlüsse.clone(), true)
+                (name.0.clone(), anschlüsse.clone())
             } else {
-                (String::new(), AnschlüsseSerialisiert::default(), false)
+                (String::new(), AnschlüsseSerialisiert::default())
             };
         Zustand { name, anschlüsse, hat_steuerung }
     }
@@ -72,7 +78,7 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-/// Widgets zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::Weiche).
+/// Widget zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
 #[derive(Debug)]
 pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
     MapMitZustand<
@@ -90,24 +96,31 @@ where
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
-    R: 't + Renderer + iced_native::text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: container::StyleSheet
-        + button::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + radio::StyleSheet
+    R: 't + Renderer + iced_core::text::Renderer<Font = Font>,
+    <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
+        + container::StyleSheet
         + number_input::StyleSheet
-        + tab_bar::StyleSheet,
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + tab_bar::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
+    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [Auswahl].
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        hat_steuerung: bool,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || Zustand::neu(&weiche.clone());
-        let erzeuge_element = move |zustand: &_| Self::erzeuge_element(weichen_art, zustand);
+        let erzeuge_zustand = move || Zustand::neu(&weiche.clone(), hat_steuerung);
+        let erzeuge_element = move |zustand: &_| {
+            Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
+        };
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
                       zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
                       status: &mut event::Status| {
@@ -122,16 +135,15 @@ where
                     Vec::new()
                 },
                 InterneNachricht::Festlegen => {
-                    vec![
-                        Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
-                            Name(zustand.name.clone()),
-                            RichtungInformation::default(),
-                            zustand.anschlüsse.clone(),
-                        ))),
-                        Nachricht::Schließen,
-                    ]
+                    vec![Nachricht::Festlegen(Some(WeicheSerialisiert::neu(
+                        Name(zustand.name.clone()),
+                        RichtungInformation::default(),
+                        zustand.anschlüsse.clone(),
+                    )))]
                 },
-                InterneNachricht::Entfernen => vec![Nachricht::Festlegen(None)],
+                InterneNachricht::Entfernen => {
+                    vec![Nachricht::Festlegen(None)]
+                },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
@@ -141,6 +153,8 @@ where
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
     ) -> Element<'t, InterneNachricht<Richtung>, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
         let mut column: Column<'t, InterneNachricht<Richtung>, R> = Column::new();
@@ -151,7 +165,11 @@ where
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
-                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(Some(anschluss.clone()));
+                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(
+                    Some(anschluss.clone()),
+                    scrollable_style,
+                    settings,
+                );
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })
@@ -160,14 +178,11 @@ where
         column = column.push(
             Row::new()
                 .push(Button::new(Text::new("Festlegen")).on_press(InterneNachricht::Festlegen))
-                .push(
-                    Button::new(Text::new(if *hat_steuerung {
-                        "Entfernen"
-                    } else {
-                        "Keine Anschlüsse"
-                    }))
-                    .on_press(InterneNachricht::Entfernen),
-                ),
+                .push(if *hat_steuerung {
+                    Button::new(Text::new("Entfernen")).on_press(InterneNachricht::Entfernen)
+                } else {
+                    Button::new(Text::new("Keine Anschlüsse")).on_press(InterneNachricht::Schließen)
+                }),
         );
         let card: Card<'t, InterneNachricht<Richtung>, R> =
             Card::new(Text::new(weichen_art), column)

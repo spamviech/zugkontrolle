@@ -1,13 +1,18 @@
+#!/usr/bin/python3
+
 import os
 import os.path
 import shutil
 import urllib.request
 import urllib.error
 
+script_name=os.path.splitext(os.path.basename(__file__))[0]
+licences_dir=os.path.dirname(os.path.abspath(__file__))
+
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
 # hash(probably) at the end might change, possibly with cargo update
 # crate-name followed by a `-` and the crate-version, e.g. "ab_glyph_rasterizer-0.1.5"
-crates_io_dir = os.path.join(cargo_dir, "registry", "src", "github.com-1ecc6299db9ec823")
+crates_io_dir = os.path.join(cargo_dir, "registry", "src", "index.crates.io-6f17d22bba15001f")
 # crate-name followed by a `-` and some hash(probably), inside folder with the commit-hash (abbreviated)
 git_dir = os.path.join(cargo_dir, "git", "checkouts")
 
@@ -26,6 +31,12 @@ license_exts = {"", ".md", ".txt"}
 license_files = {root + ext for root in license_roots for ext in license_exts}
 cargo_toml = {"Cargo.toml", "Cargo.toml.orig"}
 readme = {"README.md"}
+
+def log(message, log_file):
+    print(message, end='\n')
+    if log_file is not None:
+        log_file.write(message)
+        log_file.write('\n')
 
 class Package:
     def __init__(self):
@@ -47,7 +58,7 @@ def collect_cargo_lock_packages():
 
     packages = []
     current = Package()
-    with open(os.path.join("..", "Cargo.lock"), 'r') as cargo_lock:
+    with open(os.path.join(licences_dir, "..", "Cargo.lock"), 'r') as cargo_lock:
         found_package = False
         for line in cargo_lock:
             line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
@@ -70,7 +81,7 @@ def collect_cargo_lock_packages():
     append_package(packages, current)
     return packages
 
-def extract_repository_and_license(cargo_toml_path):
+def extract_repository_and_license(cargo_toml_path, log_file):
     repository = None
     license = None
     # not a true toml parser, assume simplified Cargo.toml
@@ -90,13 +101,13 @@ def extract_repository_and_license(cargo_toml_path):
                         repository = line.removeprefix(repository_prefix).strip('"').removesuffix(".git")
                     if line.startswith(license_prefix):
                         if license is not None:
-                            print(f"Overwrite duplicate license entry: {license}")
+                            log(f"Overwrite duplicate license entry: {license}", log_file)
                         license = line.removeprefix(license_prefix).strip('"')
                     elif line.startswith("["):
                         break
     else:
-        print("Missing Cargo.toml")
-        print(f"\t{cargo_toml_path}")
+        log("Missing Cargo.toml", log_file)
+        log(f"\t{cargo_toml_path}", log_file)
     return repository, license
 
 def make_https(url):
@@ -106,7 +117,7 @@ def make_https(url):
     else:
         return url
 
-def download_licenses(repository, dst_dir):
+def download_licenses(repository, dst_dir, log_file):
     github_prefix = "https://github.com"
     raw_prefix = "https://raw.githubusercontent.com"
     https_repository = make_https(repository)
@@ -138,11 +149,11 @@ def download_licenses(repository, dst_dir):
                 except urllib.error.URLError:
                     pass
     else:
-        print(f"Non-GitHub-Repository: {repository}")
+        log(f"Non-GitHub-Repository: {repository}", log_file)
     return found
 
 copy_filenames = license_files | cargo_toml | readme
-def copy_licenses(src_dir, dst_dir):
+def copy_licenses(src_dir, dst_dir, log_file):
     global copy_filenames
     # kopiere gefundene Dateien und überprüfe, ob eine Lizenz-Datei gefunden wurde
     os.makedirs(dst_dir, exist_ok=True)
@@ -164,34 +175,40 @@ def copy_licenses(src_dir, dst_dir):
     # suche github, sofern keine Lizenz-Datei gefunden wurde
     if not found:
         cargo_toml_path = os.path.join(src_dir, "Cargo.toml")
-        repository, license = extract_repository_and_license(cargo_toml_path)
-        found = download_licenses(repository, dst_dir)
+        repository, license = extract_repository_and_license(cargo_toml_path, log_file)
+        found = download_licenses(repository, dst_dir, log_file)
     # Rückmeldung, falls auch im github-Repository keine Lizenz-Datei gefunden wurde
     if not found:
-        print(f"Missing License: {dst_dir}")
-        print(f"\tRepository: {repository}")
-        print(f"\tAnnounced License: {license}")
+        log(f"Missing License: {dst_dir}", log_file)
+        log(f"\tRepository: {repository}", log_file)
+        log(f"\tAnnounced License: {license}", log_file)
 
 def copy_or_download_licenses(show_percent = 5):
     packages = collect_cargo_lock_packages()
     i = 0
     l = len(packages)
     step = int(show_percent * l / 100)
-    for package in packages:
-        name_and_version = f"{package.name}-{package.version}"
-        if package.git is None:
-            print(f"Skip {name_and_version}")
-        elif package.git:
-            for dir in os.listdir(git_dir):
-                if dir.startswith(package.name):
-                    dir_path = os.path.join(git_dir, dir)
-                    for rev in os.listdir(dir_path):
-                        copy_licenses(os.path.join(dir_path, rev), os.path.join(name_and_version, rev))
-        else:
-            copy_licenses(os.path.join(crates_io_dir, name_and_version), name_and_version)
-        i += 1
-        if i % step == 0:
-            print(f"{i} / {l}: {name_and_version}")
+    with open(os.path.join(os.path.join(licences_dir, f"{script_name}.log")), 'w') as log_file:
+        log(f"Fetch {l} licenses...", log_file)
+        for package in packages:
+            name_and_version = f"{package.name}-{package.version}"
+            if package.git is None:
+                log(f"Skip {name_and_version}", log_file)
+            elif package.git:
+                for dir in os.listdir(git_dir):
+                    if dir.startswith(package.name):
+                        dir_path = os.path.join(git_dir, dir)
+                        for rev in os.listdir(dir_path):
+                            os.path.join(dir_path, rev)
+                            target_dir = os.path.join(licences_dir, name_and_version, rev)
+                            copy_licenses(src_dir, target_dir, log_file)
+            else:
+                src_dir = os.path.join(crates_io_dir, name_and_version)
+                target_dir = os.path.join(licences_dir, name_and_version)
+                copy_licenses(src_dir, target_dir, log_file)
+            i += 1
+            if i % step == 0:
+                log(f"{i} / {l}: {name_and_version}", log_file)
 
 if __name__ == "__main__":
     copy_or_download_licenses()

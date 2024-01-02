@@ -2,14 +2,14 @@
 
 use std::fmt::Debug;
 
-use iced_native::{
+use iced_core::{
     event::{self, Event},
     layout::{self, Layout},
     mouse,
-    renderer::{BorderRadius, Quad, Renderer, Style},
+    renderer::{Quad, Renderer, Style},
     touch,
     widget::tree::Tree,
-    Background, Clipboard, Color, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    Background, BorderRadius, Clipboard, Color, Element, Length, Rectangle, Shell, Size, Widget,
 };
 
 use crate::typen::{
@@ -119,7 +119,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
         _theme: &<R as Renderer>::Theme,
         _style: &Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -153,18 +153,23 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
         _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _renderer: &R,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, M>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         let mut status = event::Status::Ignored;
         let bounds = layout.bounds();
-        if let Some(position) = match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => Some(cursor_position),
-            Event::Touch(touch::Event::FingerPressed { id: _, position }) => Some(position),
+        let position = match (event, cursor_position) {
+            (
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+                mouse::Cursor::Available(position),
+            ) => Some(position),
+            (Event::Touch(touch::Event::FingerPressed { id: _, position }), _) => Some(position),
             _ => None,
-        } {
+        };
+        if let Some(position) = position {
             let vr = Vektor { x: Skalar(position.x), y: Skalar(position.y) }
                 - Vektor { x: Skalar(bounds.center_x()), y: Skalar(bounds.center_y()) };
             if let Some(farbe) = self.farbe(vr) {

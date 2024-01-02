@@ -10,30 +10,31 @@ pub use crate::gleis::weiche::gerade::{
 };
 use crate::{
     gleis::{gerade, kurve, verbindung::Verbindung},
-    nachschlagen::impl_nachschlagen,
-    steuerung,
+    steuerung::{self, weiche::MitRichtung},
     typen::{
         canvas::{
             pfad::{self, Pfad, Transformation},
             Position,
         },
+        farbe::Farbe,
         mm::{Länge, Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
         vektor::Vektor,
         winkel::{self, Trigonometrie, Winkel},
-        MitName, MitRichtung, Transparenz, Zeichnen,
+        MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
-type Anschlüsse = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
+type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;
 
-/// Definition einer [Kreuzung].
+/// Definition einer Kreuzung.
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Kreuzung<Anschlüsse = Option<self::Anschlüsse>> {
+pub struct Kreuzung<Anschlüsse = Option<Steuerung>> {
     /// Die Länge der Geraden.
     pub länge: Skalar,
     /// Der Kurvenradius; legt automatisch den Winkel fest.
@@ -113,11 +114,13 @@ pub enum VerbindungName {
     Ende1,
 }
 
-impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschlüsse> {
+impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
+    for Kreuzung<Anschlüsse>
+{
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         let winkel = self.winkel();
         let rechteck_kurve = kurve::rechteck(spurweite, self.radius, winkel);
         let rechteck_gerade = gerade::rechteck(spurweite, self.länge);
@@ -144,9 +147,9 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         }
     }
 
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
+    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -154,57 +157,61 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
-        let mut paths = Vec::new();
+        let mut pfade = Vec::new();
         // Transformationen
-        let horizontal_transformations = vec![Transformation::Translation(start)];
-        let gedreht_transformations = vec![
+        let horizontal_transformationen = vec![Transformation::Translation(start)];
+        let gedreht_transformationen = vec![
             Transformation::Translation(zentrum),
             Transformation::Rotation(winkel),
-            // transformations with assumed inverted y-Axis
+            // transformationen with assumed inverted y-Axis
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
         // Geraden
-        paths.push(gerade::zeichne(
+        pfade.push(gerade::zeichne(
             spurweite,
             self.länge,
             true,
-            horizontal_transformations.clone(),
+            horizontal_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
         ));
-        paths.push(gerade::zeichne(
+        pfade.push(gerade::zeichne(
             spurweite,
             self.länge,
             true,
-            gedreht_transformations.clone(),
+            gedreht_transformationen.clone(),
             pfad::Erbauer::with_invert_y,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push(kurve::zeichne(
+            pfade.push(kurve::zeichne(
                 spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
-                horizontal_transformations,
+                horizontal_transformationen,
                 pfad::Erbauer::with_normal_axis,
             ));
-            paths.push(kurve::zeichne(
+            pfade.push(kurve::zeichne(
                 spurweite,
                 self.radius,
                 winkel,
                 kurve::Beschränkung::Keine,
-                gedreht_transformations,
+                gedreht_transformationen,
                 pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
-        paths
+        pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
+    fn fülle(
+        &self,
+        anschlüsse: &Anschlüsse2,
+        spurweite: Spurweite,
+    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -212,73 +219,78 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
         let start_invert_y = Vektor { x: start.x, y: -start.y };
         let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
-        let mut paths = Vec::new();
         // Transformationen
-        let horizontal_transformations = vec![Transformation::Translation(start)];
-        let gedreht_transformations = vec![
+        let horizontal_transformationen = vec![Transformation::Translation(start)];
+        let gedreht_transformationen = vec![
             Transformation::Translation(zentrum),
             Transformation::Rotation(winkel),
-            // transformations with assumed inverted y-Axis
+            // transformationen with assumed inverted y-Axis
             Transformation::Translation(-zentrum_invert_y),
             Transformation::Translation(start_invert_y),
         ];
-        let (gerade_transparenz, kurve_transparenz) = match self.steuerung.aktuelle_richtung() {
+        let (gerade_transparenz, kurve_transparenz) = match anschlüsse.aktuelle_richtung() {
             None => (Transparenz::Voll, Transparenz::Voll),
             Some(Richtung::Gerade) => (Transparenz::Voll, Transparenz::Reduziert),
             Some(Richtung::Kurve) => (Transparenz::Reduziert, Transparenz::Voll),
         };
+        let mut pfade = Vec::new();
         // Geraden
-        paths.push((
+        pfade.push((
             gerade::fülle(
                 spurweite,
                 self.länge,
-                horizontal_transformations.clone(),
+                horizontal_transformationen.clone(),
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             gerade_transparenz,
         ));
-        paths.push((
+        pfade.push((
             gerade::fülle(
                 spurweite,
                 self.länge,
-                gedreht_transformations.clone(),
+                gedreht_transformationen.clone(),
                 pfad::Erbauer::with_invert_y,
             ),
+            None,
             gerade_transparenz,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push((
+            pfade.push((
                 kurve::fülle(
                     spurweite,
                     self.radius,
                     winkel,
-                    horizontal_transformations,
+                    horizontal_transformationen,
                     pfad::Erbauer::with_normal_axis,
                 ),
+                None,
                 kurve_transparenz,
             ));
-            paths.push((
+            pfade.push((
                 kurve::fülle(
                     spurweite,
                     self.radius,
                     winkel,
-                    gedreht_transformations,
+                    gedreht_transformationen,
                     pfad::Erbauer::with_invert_y,
                 ),
+                None,
                 kurve_transparenz,
             ));
         }
-        // return value
-        paths
+        // Rückgabewert
+        pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         // utility sizes
-        let size: Vektor = self.rechteck(spurweite).ecke_max();
+        let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
@@ -287,19 +299,20 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
                 punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
                 winkel: Winkel(0.),
             },
-            self.beschreibung.as_ref(),
-            self.steuerung.name(),
+            self.beschreibung.as_ref().map(String::as_str),
+            anschlüsse.name(),
         )
     }
 
     fn innerhalb(
         &self,
+        anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> bool {
         // utility sizes
-        let Vektor { x: width, y: height } = self.rechteck(spurweite).ecke_max();
+        let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         let start = Vektor { x: Skalar(0.), y: half_height - spurweite.beschränkung().halbiert() };
@@ -328,8 +341,8 @@ impl<Anschlüsse: MitName + MitRichtung<Richtung>> Zeichnen for Kreuzung<Anschl�
                 )))
     }
 
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
-        let Vektor { x: _, y: height } = self.rechteck(spurweite).ecke_max();
+    fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {
+        let Vektor { x: _, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = height.halbiert();
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };

@@ -1,8 +1,11 @@
 //! Kontakt, der über einen Anschluss ausgelesen werden kann.
 
-use std::sync::{
-    mpsc::{channel, Receiver, RecvError, SendError, Sender},
-    Arc,
+use std::{
+    fmt::Debug,
+    sync::{
+        mpsc::{channel, Receiver, RecvError, SendError, Sender},
+        Arc,
+    },
 };
 
 use either::Either;
@@ -11,17 +14,34 @@ use nonempty::NonEmpty;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
-use crate::anschluss::{
-    self,
-    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-    level::Level,
-    trigger::Trigger,
-    Fehler, InputAnschluss, InputSerialisiert,
+use crate::{
+    anschluss::{
+        self,
+        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+        level::Level,
+        trigger::Trigger,
+        Fehler, InputAnschluss, InputSerialisiert,
+    },
+    gleis::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung},
+    typen::MitName,
+    util::sender_trait::erstelle_sender_trait_existential,
 };
 
 /// Name eines [Kontaktes](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
+
+erstelle_sender_trait_existential! {
+    LevelSender,
+    "Hilfs-Trait um existential types zu ermöglichen (Verstecke T).",
+    SomeLevelSender,
+    "Ein beliebiger [LevelSender].",
+    Level,
+}
+
+/// Hilfs-Trait um Trait-Objekte für beide Traits zu erstellen.
+trait LetztesLevel: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send {}
+impl<T: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send> LetztesLevel for T {}
 
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
 #[derive(Debug, Clone)]
@@ -30,10 +50,12 @@ pub struct Kontakt {
     pub name: Name,
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
+    /// Die letzte bekannte [Level] eines [Kontaktes](Kontakt).
+    letztes_level: Arc<Mutex<dyn LetztesLevel>>,
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
     /// Wer interessiert sich für das [Trigger]-Event.
-    senders: Arc<Mutex<Vec<Sender<Level>>>>,
+    senders: Arc<Mutex<Vec<SomeLevelSender>>>,
 }
 
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
@@ -72,29 +94,57 @@ impl Kontakt {
         name: Name,
         mut anschluss: InputAnschluss,
         trigger: Trigger,
+        letztes_level: impl 'static + Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send,
+        aktualisieren_sender: SomeAktualisierenSender,
     ) -> Result<Self, (Fehler, InputAnschluss)> {
-        let senders: Arc<Mutex<Vec<Sender<Level>>>> = Arc::new(Mutex::new(Vec::new()));
+        let senders: Arc<Mutex<Vec<SomeLevelSender>>> = Arc::new(Mutex::new(Vec::new()));
+        let letztes_level = Arc::new(Mutex::new(letztes_level));
+
+        let name_clone = name.clone();
         let senders_clone = senders.clone();
-        let set_async_interrupt_result = anschluss.setze_async_interrupt(trigger, move |level| {
-            let senders = &mut *senders_clone.lock();
-            // iterate over all registered channels, sending them the level
-            // start at the end to avoid shifting channels as much as possible
-            let mut next = senders.len().checked_sub(1);
-            while let Some(i) = next {
-                match senders[i].send(level) {
-                    Ok(()) => next = i.checked_sub(1),
-                    Err(SendError(_level)) => {
-                        // channel was disconnected, so no need to send to it anymore
-                        let _ = senders.remove(i);
-                    },
+        let trigger_copy = trigger;
+        let letztes_level_clone = letztes_level.clone();
+        let aktualisieren_sender = Mutex::new(aktualisieren_sender);
+        let set_async_interrupt_result =
+            anschluss.setze_async_interrupt(Trigger::Both, move |level| {
+                let callback_aufrufen = {
+                    let mut guard = letztes_level_clone.lock();
+                    let letztes_level_mut = guard.as_mut();
+                    let callback_aufrufen = letztes_level_mut
+                        .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
+                        .unwrap_or(true);
+                    *letztes_level_mut = Some(level);
+                    callback_aufrufen
+                };
+                if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
+                    log::error!(
+                        "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
+                        name_clone.0,
+                        fehler
+                    );
                 }
-            }
-        });
+                if callback_aufrufen {
+                    let senders = &mut *senders_clone.lock();
+                    // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
+                    let mut next = senders.len().checked_sub(1);
+                    while let Some(i) = next {
+                        match senders[i].send(level) {
+                            Ok(()) => next = i.checked_sub(1),
+                            Err(SendError(_level)) => {
+                                // channel was disconnected, so no need to send to it anymore
+                                let _ = senders.swap_remove(i);
+                            },
+                        }
+                    }
+                }
+            });
+
         match set_async_interrupt_result {
             Ok(()) => Ok(Kontakt {
                 name,
-                anschluss: Arc::new(Mutex::new(Either::Left(anschluss))),
                 trigger,
+                letztes_level,
+                anschluss: Arc::new(Mutex::new(Either::Left(anschluss))),
                 senders,
             }),
             Err(fehler) => Err((fehler, anschluss)),
@@ -106,14 +156,32 @@ impl Kontakt {
     pub fn registriere_trigger_channel(&mut self) -> Receiver<Level> {
         let (sender, receiver) = channel();
         let senders = &mut *self.senders.lock();
-        senders.push(sender);
+        senders.push(SomeLevelSender::from(sender));
         receiver
+    }
+
+    /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
+    /// Das übergebene Funktion wird mit dem neuen [Level] aufgerufen,
+    /// das Ergebnis wird mit dem [Sender] geschickt.
+    pub fn registriere_trigger_sender<T, F>(&mut self, sender: Sender<T>, f: F)
+    where
+        T: 'static + Send,
+        F: 'static + Fn(Level) -> T + Clone + Send,
+    {
+        let senders = &mut *self.senders.lock();
+        senders.push(SomeLevelSender::from((sender, f)));
     }
 
     /// Blockiere den aktuellen Thread bis das aktuelle Trigger-Event ausgelöst wird.
     pub fn warte_auf_trigger(&mut self) -> Result<Level, RecvError> {
         let receiver = self.registriere_trigger_channel();
         receiver.recv()
+    }
+}
+
+impl MitName for Option<Kontakt> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
     }
 }
 
@@ -126,6 +194,13 @@ pub struct KontaktSerialisiert {
     pub anschluss: InputSerialisiert,
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
+}
+
+impl KontaktSerialisiert {
+    /// Erstelle einen neuen [KontaktSerialisiert].
+    pub fn neu(name: Name, anschluss: InputSerialisiert, trigger: Trigger) -> Self {
+        KontaktSerialisiert { name, anschluss, trigger }
+    }
 }
 
 impl Serialisiere<KontaktSerialisiert> for Kontakt {
@@ -148,24 +223,38 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 }
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
-    type Arg = ();
+    type MoveArg = SomeAktualisierenSender;
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         anschlüsse: Anschlüsse,
-        arg: (),
+        aktualisieren_sender: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::*;
-        let (anschluss, fehler, mut anschlüsse) =
-            match self.anschluss.reserviere(lager, anschlüsse, arg) {
+        let (mut anschluss, fehler, mut anschlüsse) =
+            match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     (anschluss, Some(fehler), anschlüsse)
                 },
                 Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
             };
-        match (Kontakt::neu(self.name, anschluss, self.trigger), fehler) {
+        let letztes_level = anschluss.lese().ok();
+        match (
+            Kontakt::neu(
+                self.name,
+                anschluss,
+                self.trigger,
+                Steuerung::neu(letztes_level, aktualisieren_sender.clone()),
+                aktualisieren_sender,
+            ),
+            fehler,
+        ) {
             (Ok(anschluss), None) => Wert { anschluss, anschlüsse },
             (Ok(anschluss), Some(fehler)) => FehlerMitErsatzwert { anschluss, fehler, anschlüsse },
             (Err((kontakt_fehler, anschluss)), fehler) => {
@@ -179,5 +268,35 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 Fehler { fehler, anschlüsse }
             },
         }
+    }
+}
+
+impl MitName for Option<KontaktSerialisiert> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
+    }
+}
+
+/// Trait für Typen mit einem [Kontakt].
+pub trait MitKontakt {
+    /// Erhalte das aktuelle [Level] und den gewählten [Trigger].
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)>;
+}
+
+impl MitKontakt for () {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
+        None
+    }
+}
+
+impl<T: MitKontakt> MitKontakt for Option<T> {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
+        self.as_ref().and_then(MitKontakt::aktuelles_level_und_trigger)
+    }
+}
+
+impl MitKontakt for Kontakt {
+    fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)> {
+        Some((*self.letztes_level.lock().as_ref(), self.trigger))
     }
 }

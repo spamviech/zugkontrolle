@@ -1,32 +1,32 @@
 //! Low level Steuerung von Gpio Pins.
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use std::{collections::HashSet, io, ops::Not, time::Duration};
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use log::{debug, error};
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use parking_lot::MappedMutexGuard;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use crate::rppal::LazyMutex;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 struct GpioStore {
     pins: HashSet<u8>,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 const MIN_PIN: u8 = 0;
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 const MAX_PIN: u8 = 27;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 static GPIO: LazyMutex<GpioStore> =
     LazyMutex::neu(|| GpioStore { pins: (MIN_PIN..=MAX_PIN).collect() });
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl GpioStore {
     #[inline(always)]
     fn lock_static<'t>() -> MappedMutexGuard<'t, GpioStore> {
@@ -34,16 +34,16 @@ impl GpioStore {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Gpio;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Gpio;
+#[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
 #[allow(missing_copy_implementations)]
 pub struct Gpio;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Gpio {
     /// Constructs a new Gpio.
     pub fn new() -> Result<Gpio> {
@@ -66,15 +66,15 @@ impl Gpio {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Pin;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Pin;
+#[cfg(not(feature = "raspi"))]
 /// Unconfigured GPIO pin.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Pin(u8);
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Drop for Pin {
     fn drop(&mut self) {
         if !GpioStore::lock_static().pins.insert(self.0) {
@@ -83,7 +83,7 @@ impl Drop for Pin {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Pin {
     /// Returns the GPIO pin number.
     ///
@@ -95,7 +95,7 @@ impl Pin {
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
     /// and disables the pin's built-in pull-up/pull-down resistors.
     pub fn into_input(self) -> InputPin {
-        InputPin(self, PullUpDown::Off)
+        InputPin(self, Bias::Off)
     }
 
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
@@ -104,7 +104,7 @@ impl Pin {
     /// The pull-down resistor is disabled when InputPin goes out of scope if `reset_on_drop`
     /// is set to true (default).
     pub fn into_input_pulldown(self) -> InputPin {
-        InputPin(self, PullUpDown::PullDown)
+        InputPin(self, Bias::PullDown)
     }
 
     /// Consumes the Pin and returns an [InputPin]. Sets the mode to [Mode::Input]
@@ -113,7 +113,7 @@ impl Pin {
     /// The pull-up resistor is disabled when InputPin goes out of scope if `reset_on_drop`
     /// is set to true (default).
     pub fn into_input_pullup(self) -> InputPin {
-        InputPin(self, PullUpDown::PullUp)
+        InputPin(self, Bias::PullUp)
     }
 
     /// Consumes the Pin and returns an [OutputPin]. Sets the mode to [Mode::Output]
@@ -135,25 +135,25 @@ impl Pin {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::InputPin;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::InputPin;
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
-pub struct InputPin(Pin, PullUpDown);
+pub struct InputPin(Pin, Bias);
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl PartialEq for InputPin {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Eq for InputPin {}
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl InputPin {
     /// Returns the GPIO pin number.
     ///
@@ -203,15 +203,15 @@ impl InputPin {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::OutputPin;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::OutputPin;
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug, PartialEq, Eq)]
 /// GPIO pin configured as output.
 pub struct OutputPin(Pin, Level);
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl OutputPin {
     /// Returns the GPIO pin number.
     ///
@@ -262,10 +262,10 @@ impl OutputPin {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Level;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Level;
+#[cfg(not(feature = "raspi"))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -274,7 +274,7 @@ pub enum Level {
     High,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Not for Level {
     type Output = Level;
 
@@ -286,23 +286,23 @@ impl Not for Level {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::PullUpDown;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Bias;
+#[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
-pub enum PullUpDown {
+pub enum Bias {
     Off,
     PullDown,
     PullUp,
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Trigger;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Trigger;
+#[cfg(not(feature = "raspi"))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -316,10 +316,10 @@ pub enum Trigger {
 /// Result with [Error].
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Error;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Error;
+#[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -331,26 +331,29 @@ pub enum Error {
     ThreadPanic,
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::gpio::Mode;
-#[cfg(not(raspi))]
+pub use ::rppal::gpio::Mode;
+#[cfg(not(feature = "raspi"))]
 /// Pin modes.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum Mode {
-    Input = 0b000,
-    Output = 0b001,
-    Alt0 = 0b100,
-    Alt1 = 0b101,
-    Alt2 = 0b110,
-    Alt3 = 0b111,
-    Alt4 = 0b011,
-    Alt5 = 0b010,
+    Input,
+    Output,
+    Alt0,
+    Alt1,
+    Alt2,
+    Alt3,
+    Alt4,
+    Alt5,
+    Alt6,
+    Alt7,
+    Alt8,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl std::fmt::Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
@@ -362,6 +365,9 @@ impl std::fmt::Display for Mode {
             Mode::Alt3 => write!(f, "Alt3"),
             Mode::Alt4 => write!(f, "Alt4"),
             Mode::Alt5 => write!(f, "Alt5"),
+            Mode::Alt6 => write!(f, "Alt6"),
+            Mode::Alt7 => write!(f, "Alt7"),
+            Mode::Alt8 => write!(f, "Alt8"),
         }
     }
 }

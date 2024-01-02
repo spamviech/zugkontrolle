@@ -1,10 +1,12 @@
 .vscode/
+!/ide_settings_templates/**
 
 .stack-work/
 dist-newstyle/
 dist/
 target/
 __pycache__/
+.mypy_cache/
 *~
 *.o
 
@@ -23,3 +25,9 @@ __pycache__/
 /deps.png
 build_all.sh
 /licenses/_bak/
+
+# versehentlich/testweise gespeicherter Zustand
+/Märklin.zug
+/Lego.zug
+
+/python_scripts/config.ini

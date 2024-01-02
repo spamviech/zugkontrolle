@@ -5,9 +5,11 @@ use std::{
     fmt::{self, Display, Formatter},
 };
 
+#[cfg(test)]
+use enum_iterator::Sequence;
+
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten
 /// und Anmerkung über fehlende Lizenzdatei.
-#[inline(always)]
 pub fn mit_missing_note<'t>() -> Cow<'t, str> {
     mit(
         MITPräfix(
@@ -29,13 +31,11 @@ MIT License"#,
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
-#[inline(always)]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
     mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), false, MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
-#[inline(always)]
 pub fn mit_ohne_copyright_x11<'t>() -> Cow<'t, str> {
     mit_ohne_copyright(MITZeilenumbruch::X11)
 }
@@ -154,6 +154,7 @@ impl MITEinrückung<'_> {
 
 /// Wo sind Zeilenumbrüche im MIT-Lizenztext.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Sequence))]
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
@@ -171,6 +172,10 @@ pub enum MITZeilenumbruch {
     Redox,
     /// Zeilenumbrüche, wie sie beim nonempty-crate verwendet werden.
     NonEmpty,
+    /// Zeilenumbrüche, wie sie beim softbuffer-crate verwendet werden.
+    Softbuffer,
+    /// Zeilenumbrüche, wie sie beim quick-xml-crate verwendet werden.
+    QuickXml,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
 }
@@ -219,8 +224,11 @@ pub fn mit<'t, 'p, 'i>(
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
     use MITZeilenumbruch::*;
-    let winreg = neue_zeile_oder_leerzeichen(zeilenumbrüche == Winreg);
-    let standard_winreg = neue_zeile_oder_leerzeichen([Standard, Winreg].contains(&zeilenumbrüche));
+    let quickxml_extra_leerzeichen = if zeilenumbrüche == QuickXml { " " } else { "" };
+    let neuer_paragraph = if zeilenumbrüche == QuickXml { "\n\n\n" } else { "\n\n" };
+    let standard_winreg_quickxml =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, QuickXml].contains(&zeilenumbrüche));
+    let winreg_quickxml = neue_zeile_oder_leerzeichen([Winreg, QuickXml].contains(&zeilenumbrüche));
     let x11 = neue_zeile_oder_leerzeichen(zeilenumbrüche == X11);
     let iced = neue_zeile_oder_leerzeichen(zeilenumbrüche == Iced);
     let wasm = neue_zeile_oder_leerzeichen(zeilenumbrüche == WasmTimer);
@@ -228,25 +236,41 @@ pub fn mit<'t, 'p, 'i>(
     let x11_iced_wasm =
         neue_zeile_oder_leerzeichen([X11, Iced, WasmTimer].contains(&zeilenumbrüche));
     let rppal = neue_zeile_oder_leerzeichen(zeilenumbrüche == RPPal);
-    let winreg_rppal = neue_zeile_oder_leerzeichen([Winreg, RPPal].contains(&zeilenumbrüche));
+    let winreg_rppal_quickxml =
+        neue_zeile_oder_leerzeichen([Winreg, RPPal, QuickXml].contains(&zeilenumbrüche));
     let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
+    let rppal_softbuffer =
+        neue_zeile_oder_leerzeichen([RPPal, Softbuffer].contains(&zeilenumbrüche));
     let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
     let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
-    let nonempty = neue_zeile_oder_leerzeichen(zeilenumbrüche == NonEmpty);
-    let standard_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, NonEmpty].contains(&zeilenumbrüche));
-    let standard_winreg_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, NonEmpty].contains(&zeilenumbrüche));
-    let standard_iced_wasm_nonempty = neue_zeile_oder_leerzeichen(
-        [Standard, Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche),
+    let nonempty_softbuffer =
+        neue_zeile_oder_leerzeichen([NonEmpty, Softbuffer].contains(&zeilenumbrüche));
+    let standard_nonempty_softbuffer =
+        neue_zeile_oder_leerzeichen([Standard, NonEmpty, Softbuffer].contains(&zeilenumbrüche));
+    let standard_winreg_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Softbuffer, QuickXml].contains(&zeilenumbrüche),
     );
-    let standard_winreg_rppal_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, RPPal, NonEmpty].contains(&zeilenumbrüche));
-    let standard_winreg_iced_wasm_rppal_nonempty = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty].contains(&zeilenumbrüche),
+    let standard_winreg_nonempty_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, NonEmpty, QuickXml].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, NonEmpty, Softbuffer, QuickXml].contains(&zeilenumbrüche),
+    );
+    let standard_iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Standard, Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_rppal_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, RPPal, NonEmpty, Softbuffer, QuickXml].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_iced_wasm_rppal_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty, Softbuffer, QuickXml]
+            .contains(&zeilenumbrüche),
     );
     let iced_wasm_nonempty =
         neue_zeile_oder_leerzeichen([Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche));
+    let iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    );
     let including_next_paragraph_str =
         if including_next_paragraph { " (including the next paragraph)" } else { "" };
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
@@ -265,7 +289,7 @@ pub fn mit<'t, 'p, 'i>(
         "a",
         rppal,
         "copy",
-        standard_winreg,
+        standard_winreg_softbuffer_quickxml,
         "of",
         iced_wasm_nonempty,
         "this software and associated",
@@ -275,7 +299,7 @@ pub fn mit<'t, 'p, 'i>(
         "\"Software\"),",
         rppal,
         "to deal",
-        standard_winreg,
+        standard_winreg_softbuffer_quickxml,
         "in",
         iced_wasm_nonempty,
         "the",
@@ -287,9 +311,9 @@ pub fn mit<'t, 'p, 'i>(
         "limitation",
         rppal,
         "the rights",
-        standard_winreg,
+        standard_winreg_quickxml,
         "to",
-        iced_wasm_nonempty,
+        iced_wasm_nonempty_softbuffer,
         "use, copy, modify, merge,",
         x11,
         "publish,",
@@ -297,9 +321,9 @@ pub fn mit<'t, 'p, 'i>(
         "distribute, sublicense,",
         rppal,
         "and/or sell",
-        standard_winreg,
+        standard_winreg_quickxml,
         "copies",
-        nonempty,
+        nonempty_softbuffer,
         "of",
         x11_iced_wasm,
         "the Software, and to",
@@ -309,16 +333,17 @@ pub fn mit<'t, 'p, 'i>(
         "Software",
         x11,
         "is",
-        standard_winreg,
+        standard_winreg_quickxml,
         "furnished to do",
-        nonempty,
+        nonempty_softbuffer,
         "so,",
         iced_wasm,
         "subject to",
         redox,
         "the following",
         x11,
-        "conditions:\n\n",
+        "conditions:",
+        neuer_paragraph,
         einrückung.0,
         "The above copyright notice and this permission notice",
         including_next_paragraph_str,
@@ -326,37 +351,40 @@ pub fn mit<'t, 'p, 'i>(
         "shall be",
         redox,
         "included in",
-        winreg_rppal,
+        winreg_rppal_quickxml,
         "all",
-        standard_iced_wasm_nonempty,
+        standard_iced_wasm_nonempty_softbuffer,
         "copies or substantial portions",
         x11,
-        "of the Software.\n\n",
+        "of the Software.",
+        neuer_paragraph,
         einrückung.0,
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         x11,
         "ANY KIND,",
         redox,
         "EXPRESS OR",
-        standard_winreg_iced_wasm_rppal_nonempty,
+        standard_winreg_iced_wasm_rppal_nonempty_softbuffer_quickxml,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
         "TO THE WARRANTIES OF",
         redox,
         "MERCHANTABILITY,",
-        standard_winreg_rppal_nonempty,
+        standard_winreg_rppal_nonempty_softbuffer_quickxml,
         "FITNESS",
         iced_wasm,
         "FOR A",
         x11,
         "PARTICULAR PURPOSE AND",
         redox,
-        "NONINFRINGEMENT. IN NO EVENT",
+        "NONINFRINGEMENT. ",
+        quickxml_extra_leerzeichen,
+        "IN NO EVENT",
         x11,
         "SHALL",
-        rppal,
+        rppal_softbuffer,
         "THE",
-        standard_winreg_nonempty,
+        standard_winreg_nonempty_quickxml,
         "AUTHORS",
         wasm,
         "OR",
@@ -366,7 +394,7 @@ pub fn mit<'t, 'p, 'i>(
         "LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
-        standard_winreg_rppal_nonempty,
+        standard_winreg_rppal_nonempty_softbuffer_quickxml,
         "LIABILITY,",
         wasm,
         "WHETHER",
@@ -376,7 +404,7 @@ pub fn mit<'t, 'p, 'i>(
         "OF CONTRACT, TORT OR OTHERWISE, ARISING",
         rppal,
         "FROM,",
-        standard_winreg_nonempty,
+        standard_winreg_nonempty_softbuffer_quickxml,
         "OUT OF OR",
         x11,
         "IN",
@@ -386,9 +414,9 @@ pub fn mit<'t, 'p, 'i>(
         "WITH THE SOFTWARE OR THE USE OR OTHER",
         x11_rppal,
         "DEALINGS IN",
-        winreg,
+        winreg_quickxml,
         "THE",
-        standard_nonempty,
+        standard_nonempty_softbuffer,
         "SOFTWARE",
     );
     if ende.punkt {
@@ -747,6 +775,25 @@ pub fn apache_2_0<'t>(
 
 {indent_header}END OF TERMS AND CONDITIONS
 {appendix_str}{ende_neue_zeile_str}"#,
+    ))
+}
+
+/// Erzeuge den Lizenztext für die 0BSD-Lizenz.
+pub fn bsd_0<'t>(jahr: &'t str, name: &'t str) -> Cow<'t, str> {
+    Cow::Owned(format!(
+        r#"Copyright (C) {jahr} {name}
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+"#
     ))
 }
 
@@ -1544,27 +1591,58 @@ the following restrictions:
     ))
 }
 
+/// Einstellungen für das Copyright-Präfix einer Ofl-Lizenz.
+#[derive(Debug)]
+pub struct OflCopyright<'t> {
+    /// Wird ein (c) nach Copyright angezeigt?
+    pub copyright_c: bool,
+    /// Das Jahr des Copyrights.
+    pub jahr: &'t str,
+    /// Der Name des Copyright-Halters.
+    pub voller_name: &'t str,
+    /// Der Name des Fonts.
+    pub font_name: &'t str,
+    /// Wird nach dem Font-Namen ein Punkt hinzugefügt?
+    pub punkt_nach_font_name: bool,
+    /// Ein extra Suffix nach dem Copyright-Text.
+    pub extra_notice: &'t str,
+}
+
+impl Display for OptionD<OflCopyright<'_>, ()> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(copyright) = &self.0 {
+            let OflCopyright {
+                copyright_c,
+                jahr,
+                voller_name,
+                font_name,
+                punkt_nach_font_name,
+                extra_notice,
+            } = copyright;
+            let copyright_c_str = if *copyright_c { "(c) " } else { "" };
+            let punkt_nach_font_name_str = if *punkt_nach_font_name { "." } else { "" };
+            write!(f, "Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}\n\n")
+        } else {
+            Ok(())
+        }
+    }
+}
+
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
 pub fn ofl_1_1<'t>(
-    copyright_c: bool,
-    jahr: &str,
-    voller_name: &str,
-    font_name: &str,
-    punkt_nach_font_name: bool,
-    extra_notice: &str,
+    copyright: Option<OflCopyright<'_>>,
+    neue_zeile_vor_version: bool,
     leerzeile: bool,
     neue_zeile_vor_url: bool,
     extra_leerzeichen: bool,
 ) -> Cow<'t, str> {
-    let copyright_c_str = if copyright_c { "(c) " } else { "" };
-    let punkt_nach_font_name_str = if punkt_nach_font_name { "." } else { "" };
+    let copyright_d = OptionD(copyright, ());
+    let neue_zeile_vor_version_str = if neue_zeile_vor_version { "\n" } else { " " };
     let leerzeile_str = if leerzeile { "\n" } else { "" };
     let neue_zeile_vor_url_str = if neue_zeile_vor_url { "\n" } else { " " };
     let extra_leerzeichen_str = if extra_leerzeichen { " " } else { "" };
     Cow::Owned(format!(
-        r#"Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}
-
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
+        r#"{copyright_d}This Font Software is licensed under the SIL Open Font License,{neue_zeile_vor_version_str}Version 1.1.
 {leerzeile_str}This license is copied below, and is also available with a FAQ at:{neue_zeile_vor_url_str}http://scripts.sil.org/OFL
 
 

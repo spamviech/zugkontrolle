@@ -13,19 +13,13 @@ use crate::{
         polarität::Polarität,
         trigger::Trigger,
     },
-    eingeschränkt::kleiner_8,
-    gleis::{
-        gerade,
-        gleise::daten as aktuell,
-        kreuzung, kurve,
-        weiche::{dreiwege, gerade as gerade_weiche, kurve as kurven_weiche, s_kurve},
-    },
+    gleis::gleise::daten::v3::{self, kreuzung, weiche::orientierung::Orientierung},
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
         kontakt, plan, streckenabschnitt, weiche,
     },
     typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel},
-    void::Void,
+    util::{eingeschränkt::kleiner_8, void::Void},
     zugtyp::Zugtyp,
 };
 
@@ -148,10 +142,10 @@ struct GeradeSerialisiert {
     kontakt: Option<KontaktSerialisiert>,
 }
 
-impl From<GeradeSerialisiert> for gerade::GeradeSerialisiert {
+impl From<GeradeSerialisiert> for v3::gerade::GeradeSerialisiert {
     fn from(input: GeradeSerialisiert) -> Self {
         let GeradeSerialisiert { länge, beschreibung, kontakt } = input;
-        gerade::GeradeSerialisiert { länge, beschreibung, kontakt: kontakt.map(Into::into) }
+        v3::gerade::GeradeSerialisiert { länge, beschreibung, kontakt: kontakt.map(Into::into) }
     }
 }
 
@@ -164,10 +158,15 @@ struct KurveSerialisiert {
     kontakt: Option<KontaktSerialisiert>,
 }
 
-impl From<KurveSerialisiert> for kurve::KurveSerialisiert {
+impl From<KurveSerialisiert> for v3::kurve::KurveSerialisiert {
     fn from(input: KurveSerialisiert) -> Self {
         let KurveSerialisiert { radius, winkel, beschreibung, kontakt } = input;
-        kurve::KurveSerialisiert { radius, winkel, beschreibung, kontakt: kontakt.map(Into::into) }
+        v3::kurve::KurveSerialisiert {
+            radius,
+            winkel,
+            beschreibung,
+            kontakt: kontakt.map(Into::into),
+        }
     }
 }
 
@@ -196,23 +195,25 @@ impl<R> From<AktuellUndBisher<R>> for Wrapper<R> {
     }
 }
 
-impl From<AktuellUndBisher<dreiwege::Richtung>> for Wrapper<dreiwege::RichtungInformation> {
-    fn from(input: AktuellUndBisher<dreiwege::Richtung>) -> Self {
+impl From<AktuellUndBisher<v3::weiche::dreiwege::Richtung>>
+    for Wrapper<v3::weiche::dreiwege::RichtungInformation>
+{
+    fn from(input: AktuellUndBisher<v3::weiche::dreiwege::Richtung>) -> Self {
         let AktuellUndBisher { aktuelle_richtung, letzte_richtung } = input;
-        Wrapper(dreiwege::RichtungInformation { aktuelle_richtung, letzte_richtung })
+        Wrapper(v3::weiche::dreiwege::RichtungInformation { aktuelle_richtung, letzte_richtung })
     }
 }
 
 impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
-    fn konvertiere<R2, A2>(self) -> weiche::WeicheSerialisiert<R2, A2>
+    fn konvertiere<R2, A2>(self) -> v3::weiche::steuerung::WeicheSerialisiert<R2, A2>
     where
         Wrapper<R2>: From<AktuellUndBisher<R1>>,
         A2: From<A1>,
     {
         let WeicheSteuerungSerialisiert { name, aktuelle_richtung, letzte_richtung, anschlüsse } =
             self;
-        weiche::WeicheSerialisiert::neu(
-            name,
+        v3::weiche::steuerung::WeicheSerialisiert::neu(
+            v3::weiche::steuerung::Name(name.0),
             Wrapper::from(AktuellUndBisher { aktuelle_richtung, letzte_richtung }).0,
             anschlüsse.into(),
         )
@@ -227,33 +228,37 @@ struct WeicheAnschlüsseSerialisiert {
     kurve: OutputSerialisiert,
 }
 
-impl From<WeicheAnschlüsseSerialisiert> for gerade_weiche::RichtungAnschlüsseSerialisiert {
+impl From<WeicheAnschlüsseSerialisiert> for v3::weiche::gerade::RichtungAnschlüsseSerialisiert {
     fn from(input: WeicheAnschlüsseSerialisiert) -> Self {
         let WeicheAnschlüsseSerialisiert { gerade, kurve } = input;
-        gerade_weiche::RichtungAnschlüsseSerialisiert {
+        v3::weiche::gerade::RichtungAnschlüsseSerialisiert {
             gerade: gerade.into(),
             kurve: kurve.into(),
         }
     }
 }
 
-/// Serialisierbare Repräsentation einer [Weiche](gerade_weiche::Weiche).
+// FIXME richtung, orientierung, variante in v2 definieren -> use in v3
+// FIXME Name in v2 definieren
+
+/// Serialisierbare Repräsentation einer [Weiche](v3::weiche::gerade::Weiche).
 #[derive(Deserialize)]
 struct WeicheSerialisiert {
     länge: Skalar,
     radius: Skalar,
     winkel: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
-    steuerung:
-        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+    steuerung: Option<
+        WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
+    >,
 }
 
-impl From<WeicheSerialisiert> for gerade_weiche::WeicheSerialisiert {
+impl From<WeicheSerialisiert> for v3::weiche::gerade::WeicheSerialisiert {
     fn from(input: WeicheSerialisiert) -> Self {
         let WeicheSerialisiert { länge, radius, winkel, orientierung, beschreibung, steuerung } =
             input;
-        gerade_weiche::WeicheSerialisiert {
+        v3::weiche::gerade::WeicheSerialisiert {
             länge,
             radius,
             winkel,
@@ -272,11 +277,14 @@ struct KurvenWeicheAnschlüsseSerialisiert {
     außen: OutputSerialisiert,
 }
 
-impl From<KurvenWeicheAnschlüsseSerialisiert> for kurven_weiche::RichtungAnschlüsseSerialisiert {
+impl From<KurvenWeicheAnschlüsseSerialisiert>
+    for v3::weiche::kurve::RichtungAnschlüsseSerialisiert
+{
     fn from(input: KurvenWeicheAnschlüsseSerialisiert) -> Self {
         let KurvenWeicheAnschlüsseSerialisiert { innen, außen } = input;
-        kurven_weiche::RichtungAnschlüsseSerialisiert {
-            innen: innen.into(), außen: außen.into()
+        v3::weiche::kurve::RichtungAnschlüsseSerialisiert {
+            innen: innen.into(),
+            außen: außen.into(),
         }
     }
 }
@@ -287,14 +295,17 @@ struct KurvenWeicheSerialisiert {
     länge: Skalar,
     radius: Skalar,
     winkel: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
     steuerung: Option<
-        WeicheSteuerungSerialisiert<kurven_weiche::Richtung, KurvenWeicheAnschlüsseSerialisiert>,
+        WeicheSteuerungSerialisiert<
+            v3::weiche::kurve::Richtung,
+            KurvenWeicheAnschlüsseSerialisiert,
+        >,
     >,
 }
 
-impl From<KurvenWeicheSerialisiert> for kurven_weiche::KurvenWeicheSerialisiert {
+impl From<KurvenWeicheSerialisiert> for v3::weiche::kurve::KurvenWeicheSerialisiert {
     fn from(input: KurvenWeicheSerialisiert) -> Self {
         let KurvenWeicheSerialisiert {
             länge,
@@ -304,7 +315,7 @@ impl From<KurvenWeicheSerialisiert> for kurven_weiche::KurvenWeicheSerialisiert 
             beschreibung,
             steuerung,
         } = input;
-        kurven_weiche::KurvenWeicheSerialisiert {
+        v3::weiche::kurve::KurvenWeicheSerialisiert {
             länge,
             radius,
             winkel,
@@ -324,10 +335,12 @@ struct DreiwegeAnschlüsseSerialisiert {
     rechts: OutputSerialisiert,
 }
 
-impl From<DreiwegeAnschlüsseSerialisiert> for dreiwege::RichtungAnschlüsseSerialisiert {
+impl From<DreiwegeAnschlüsseSerialisiert>
+    for v3::weiche::dreiwege::RichtungAnschlüsseSerialisiert
+{
     fn from(input: DreiwegeAnschlüsseSerialisiert) -> Self {
         let DreiwegeAnschlüsseSerialisiert { gerade, links, rechts } = input;
-        dreiwege::RichtungAnschlüsseSerialisiert {
+        v3::weiche::dreiwege::RichtungAnschlüsseSerialisiert {
             gerade: gerade.into(),
             links: links.into(),
             rechts: rechts.into(),
@@ -342,14 +355,15 @@ struct DreiwegeWeicheSerialisiert {
     radius: Skalar,
     winkel: Winkel,
     beschreibung: Option<String>,
-    steuerung:
-        Option<WeicheSteuerungSerialisiert<dreiwege::Richtung, DreiwegeAnschlüsseSerialisiert>>,
+    steuerung: Option<
+        WeicheSteuerungSerialisiert<v3::weiche::dreiwege::Richtung, DreiwegeAnschlüsseSerialisiert>,
+    >,
 }
 
-impl From<DreiwegeWeicheSerialisiert> for dreiwege::DreiwegeWeicheSerialisiert {
+impl From<DreiwegeWeicheSerialisiert> for v3::weiche::dreiwege::DreiwegeWeicheSerialisiert {
     fn from(input: DreiwegeWeicheSerialisiert) -> Self {
         let DreiwegeWeicheSerialisiert { länge, radius, winkel, beschreibung, steuerung } = input;
-        dreiwege::DreiwegeWeicheSerialisiert {
+        v3::weiche::dreiwege::DreiwegeWeicheSerialisiert {
             länge,
             radius,
             winkel,
@@ -367,13 +381,14 @@ struct SKurvenWeicheSerialisiert {
     winkel: Winkel,
     radius_reverse: Skalar,
     winkel_reverse: Winkel,
-    orientierung: gerade_weiche::Orientierung,
+    orientierung: Orientierung,
     beschreibung: Option<String>,
-    steuerung:
-        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+    steuerung: Option<
+        WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
+    >,
 }
 
-impl From<SKurvenWeicheSerialisiert> for s_kurve::SKurvenWeicheSerialisiert {
+impl From<SKurvenWeicheSerialisiert> for v3::weiche::s_kurve::SKurvenWeicheSerialisiert {
     fn from(input: SKurvenWeicheSerialisiert) -> Self {
         let SKurvenWeicheSerialisiert {
             länge,
@@ -385,12 +400,12 @@ impl From<SKurvenWeicheSerialisiert> for s_kurve::SKurvenWeicheSerialisiert {
             beschreibung,
             steuerung,
         } = input;
-        s_kurve::SKurvenWeicheSerialisiert {
+        v3::weiche::s_kurve::SKurvenWeicheSerialisiert {
             länge,
             radius,
             winkel,
-            radius_reverse,
-            winkel_reverse,
+            radius_kurve_nach_innen: radius_reverse,
+            winkel_kurve_nach_innen: winkel_reverse,
             orientierung,
             beschreibung,
             steuerung: steuerung.map(WeicheSteuerungSerialisiert::konvertiere),
@@ -405,14 +420,15 @@ struct KreuzungSerialisiert {
     radius: Skalar,
     variante: kreuzung::Variante,
     beschreibung: Option<String>,
-    steuerung:
-        Option<WeicheSteuerungSerialisiert<gerade_weiche::Richtung, WeicheAnschlüsseSerialisiert>>,
+    steuerung: Option<
+        WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
+    >,
 }
 
-impl From<KreuzungSerialisiert> for kreuzung::KreuzungSerialisiert {
+impl From<KreuzungSerialisiert> for v3::kreuzung::KreuzungSerialisiert {
     fn from(input: KreuzungSerialisiert) -> Self {
         let KreuzungSerialisiert { länge, radius, variante, beschreibung, steuerung } = input;
-        kreuzung::KreuzungSerialisiert {
+        v3::kreuzung::KreuzungSerialisiert {
             länge,
             radius,
             variante,
@@ -449,7 +465,7 @@ pub trait BekannterZugtyp: BekannterLeiter {
     type V2;
 
     /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>>;
+    fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>>;
 }
 
 #[derive(Deserialize)]
@@ -489,9 +505,9 @@ enum MittelleiterSerialisiertEnum {
 impl BekannterZugtyp for Mittelleiter {
     type V2 = MittelleiterSerialisiert;
 
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+    fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Märklin" {
-            Some(Zugtyp::märklin())
+            Some(Zugtyp::märklin().serialisiere().v3())
         } else {
             None
         }
@@ -552,9 +568,9 @@ enum ZweileiterSerialisiertEnum {
 impl BekannterZugtyp for Zweileiter {
     type V2 = ZweileiterSerialisiert;
 
-    fn bekannter_zugtyp(name: &str) -> Option<Zugtyp<Self>> {
+    fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
         if name == "Lego" {
-            Some(Zugtyp::lego())
+            Some(Zugtyp::lego().serialisiere().v3())
         } else {
             None
         }
@@ -630,31 +646,28 @@ pub(crate) struct GleiseVecs<LeiterV2> {
     pläne: HashMap<plan::Name, Void>,
 }
 
-impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
-    TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>>
-    for aktuell::de_serialisieren::ZustandSerialisiert<L, S>
+impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
+    TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>> for v3::ZustandSerialisiert<L, S>
 {
     type Error = anschluss::Fehler;
 
     fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
-        let leiter = L::NAME;
         let zugtyp = match L::bekannter_zugtyp(&v2.name) {
             Some(zugtyp) => zugtyp,
-            None => return Err(anschluss::Fehler::UnbekannterZugtyp { zugtyp: v2.name, leiter }),
+            None => {
+                return Err(anschluss::Fehler::UnbekannterZugtyp {
+                    zugtyp: v2.name,
+                    leiter: L::NAME,
+                })
+            },
         };
 
-        let mut ohne_streckenabschnitt = aktuell::de_serialisieren::GleiseDatenSerialisiert::neu();
+        let mut ohne_streckenabschnitt = v3::GleiseDatenSerialisiert::neu();
         let mut streckenabschnitte: HashMap<_, _> = v2
             .streckenabschnitte
             .into_iter()
             .map(|(name, streckenabschnitt)| {
-                (
-                    name,
-                    (
-                        streckenabschnitt.into(),
-                        aktuell::de_serialisieren::GleiseDatenSerialisiert::neu(),
-                    ),
-                )
+                (name, (streckenabschnitt.into(), v3::GleiseDatenSerialisiert::neu()))
             })
             .collect();
         macro_rules! verteile_gleise {
@@ -667,7 +680,7 @@ impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
                     } else {
                         &mut ohne_streckenabschnitt
                     };
-                    daten.$gleis.push(aktuell::Gleis {definition: definition.into(), position})
+                    daten.$gleis.push(v3::Gleis {definition: definition.into(), position})
                 })*
             };
         }
@@ -684,17 +697,11 @@ impl<L: BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
             .geschwindigkeiten
             .into_iter()
             .map(|(name, geschwindigkeit)| {
-                (
-                    name,
-                    (
-                        geschwindigkeit.into(),
-                        aktuell::de_serialisieren::StreckenabschnittMapSerialisiert::new(),
-                    ),
-                )
+                (name, (geschwindigkeit.into(), v3::StreckenabschnittMapSerialisiert::new()))
             })
             .collect();
-        Ok(aktuell::de_serialisieren::ZustandSerialisiert {
-            zugtyp: zugtyp.into(),
+        Ok(v3::ZustandSerialisiert {
+            zugtyp,
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,

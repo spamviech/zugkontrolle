@@ -1,14 +1,14 @@
 //! Widget zum Einstellen des Anzeigewinkels.
 
 use iced::{
-    mouse,
+    mouse::{self, Cursor},
     widget::canvas::{
         event,
-        fill::{self, Fill, FillRule},
+        fill::{self, Fill},
         stroke::{self, Stroke},
-        Cursor, Event, Geometry, Program,
+        Event, Geometry, Program,
     },
-    Rectangle,
+    Rectangle, Renderer,
 };
 
 use crate::{
@@ -49,18 +49,19 @@ impl Default for Zustand {
     }
 }
 
-impl Program<Winkel, Thema> for Drehen {
+impl Program<Winkel, Renderer<Thema>> for Drehen {
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
+        renderer: &Renderer<Thema>,
         thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
-        vec![self.0.zeichnen(size, |frame| {
+        vec![self.0.zeichnen(renderer, size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
@@ -94,7 +95,7 @@ impl Program<Winkel, Thema> for Drehen {
                 .baue();
             let hintergrund = thema.hintergrund(
                 state.grabbed,
-                cursor.position_in(&bounds).map_or(false, |position| {
+                cursor.position_in(bounds).map_or(false, |position| {
                     let v_r =
                         Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;
                     v_r.länge() < knopf_radius
@@ -102,7 +103,7 @@ impl Program<Winkel, Thema> for Drehen {
             );
             frame.fill(
                 &knopf_pfad,
-                Fill { style: fill::Style::Solid(hintergrund.into()), rule: FillRule::EvenOdd },
+                Fill { style: fill::Style::Solid(hintergrund.into()), rule: fill::Rule::EvenOdd },
             );
         })]
     }
@@ -118,7 +119,7 @@ impl Program<Winkel, Thema> for Drehen {
         let mut winkel = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     let relative_position = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
                     let size = bounds.size();
                     let min_width_height = Skalar(size.width.min(size.height));
@@ -157,7 +158,7 @@ impl Program<Winkel, Thema> for Drehen {
                     );
                     state.winkel = if position_von_zentrum.y > Skalar(0.) { acos } else { -acos };
                     winkel = Some(state.winkel);
-                } else if cursor.is_over(&bounds) {
+                } else if cursor.is_over(bounds) {
                     self.0.leeren()
                 }
             },

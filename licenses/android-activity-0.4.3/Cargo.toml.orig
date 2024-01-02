@@ -1,0 +1,47 @@
+[package]
+name = "android-activity"
+version = "0.4.3"
+edition = "2021"
+keywords = ["android", "ndk"]
+readme = "../README.md"
+homepage = "https://github.com/rust-mobile/android-activity"
+repository = "https://github.com/rust-mobile/android-activity"
+documentation = "https://docs.rs/android-activity"
+description = "Glue for building Rust applications on Android with NativeActivity or GameActivity"
+license = "MIT OR Apache-2.0"
+rust-version = "1.64"
+
+[features]
+# Note: we don't enable any backend by default since features
+# are generally supposed to be additive, while these backends
+# are actually mutually exclusive.
+#
+# In general it's only the final application crate that needs
+# to decide on a backend.
+default = []
+game-activity = []
+native-activity = []
+
+[dependencies]
+log = "0.4"
+jni-sys = "0.3"
+ndk = "0.7"
+ndk-sys = "0.4"
+ndk-context = "0.1"
+android-properties = "0.2"
+num_enum = "0.6"
+bitflags = "1.3"
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1.0", features = ["parallel"] }
+
+[package.metadata.docs.rs]
+targets = [
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "i686-linux-android",
+    "x86_64-linux-android",
+]
+
+rustdoc-args = ["--cfg", "docsrs"]

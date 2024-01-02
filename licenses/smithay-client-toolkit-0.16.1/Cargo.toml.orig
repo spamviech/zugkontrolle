@@ -1,0 +1,34 @@
+[package]
+name = "smithay-client-toolkit"
+version = "0.16.1"
+authors = ["Victor Berger <victor.berger@m4x.org>"]
+documentation = "https://smithay.github.io/client-toolkit"
+repository = "https://github.com/smithay/client-toolkit"
+license = "MIT"
+edition = "2018"
+categories = ["gui"]
+keywords = ["wayland", "client"]
+description = "Toolkit for making client wayland applications."
+readme = "README.md"
+
+[dependencies]
+bitflags = "1.0"
+nix = { version = "0.24", default-features = false, features = ["mman", "fs"] }
+dlib = "0.5"
+lazy_static = "1.0"
+memmap2 = "0.5.0"
+log = "0.4"
+wayland-client = "0.29"
+wayland-protocols = { version = "0.29" , features = ["client", "unstable_protocols"] }
+wayland-cursor = "0.29"
+calloop = { version = "0.10", optional = true }
+
+[features]
+default = ["calloop", "dlopen"]
+dlopen = ["wayland-client/dlopen"]
+
+[build-dependencies]
+pkg-config = "0.3"
+
+[dev-dependencies]
+image = "0.24"

@@ -62,7 +62,7 @@ pub struct Argumente {
 #[kommandozeilen_argumente(sprache: deutsch)]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
-    #[kommandozeilen_argumente(standard: true, lang: [i2c0_1, i2c0, i2c1])]
+    #[kommandozeilen_argumente(lang: [i2c0_1, i2c0, i2c1])]
     pub i2c0_1: bool,
     // /// I2C channel auf pins ? und ? (bus 2).
     // pub i2c2: bool,

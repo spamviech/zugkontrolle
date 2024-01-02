@@ -1,6 +1,6 @@
 //! Low level Steuerung von Pwm Signalen.
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use std::{
     f64,
     fmt::{Debug, Display},
@@ -8,27 +8,27 @@ use std::{
     time::Duration,
 };
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use log::{debug, error};
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use num_traits::NumCast;
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 use parking_lot::{const_rwlock, RwLock, RwLockWriteGuard};
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 struct PwmStore {
     pwm0: Option<Pwm>,
     pwm1: Option<Pwm>,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
     pwm0: Some(Pwm::init(Channel::Pwm0)),
     pwm1: Some(Pwm::init(Channel::Pwm1)),
 });
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl PwmStore {
     #[inline(always)]
     fn write_static<'t>() -> RwLockWriteGuard<'t, PwmStore> {
@@ -44,10 +44,10 @@ impl PwmStore {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::pwm::Pwm;
-#[cfg(not(raspi))]
+pub use ::rppal::pwm::Pwm;
+#[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s PWM peripherals.
 #[derive(Debug)]
 pub struct Pwm {
@@ -58,7 +58,7 @@ pub struct Pwm {
     enabled: bool,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Drop for Pwm {
     fn drop(&mut self) {
         let mut guard = PwmStore::write_static();
@@ -80,19 +80,19 @@ impl Drop for Pwm {
     }
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 const NANOS_PER_SEC: f64 = 1_000_000_000.0;
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 fn period(frequency: f64) -> Duration {
     let period = if frequency > 0.0 { NANOS_PER_SEC / frequency } else { 0.0 };
     Duration::from_nanos(<u64 as NumCast>::from(period.floor()).unwrap_or_else(|| {
-        error!("Cast of period {} to u64 failed!", period);
+        error!("Cast of period {period} to u64 failed!");
         0
     }))
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Pwm {
     const fn init(channel: Channel) -> Pwm {
         Pwm {
@@ -285,10 +285,10 @@ impl Pwm {
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::pwm::Channel;
-#[cfg(not(raspi))]
+pub use ::rppal::pwm::Channel;
+#[cfg(not(feature = "raspi"))]
 /// Pwm channels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -297,17 +297,17 @@ pub enum Channel {
     Pwm1,
 }
 
-#[cfg(not(raspi))]
+#[cfg(not(feature = "raspi"))]
 impl Display for Channel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <Channel as Debug>::fmt(&self, f)
     }
 }
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::pwm::Polarity;
-#[cfg(not(raspi))]
+pub use ::rppal::pwm::Polarity;
+#[cfg(not(feature = "raspi"))]
 /// Polarity of a pwm pulse.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -319,10 +319,10 @@ pub enum Polarity {
 /// Result with `pwm::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[cfg(raspi)]
+#[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use rppal::pwm::Error;
-#[cfg(not(raspi))]
+pub use ::rppal::pwm::Error;
+#[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the PWM peripheral.
 #[derive(Debug)]
 #[allow(missing_docs)]

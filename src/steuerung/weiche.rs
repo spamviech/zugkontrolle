@@ -20,15 +20,21 @@ use crate::{
         polarität::Fließend,
         Fehler, OutputAnschluss,
     },
-    gleis::gleise::steuerung::Steuerung,
-    nachschlagen::Nachschlagen,
+    gleis::gleise::steuerung::{SomeAktualisierenSender, Steuerung},
     steuerung::plan::async_ausführen,
-    typen::{canvas::Cache, MitRichtung},
+    typen::MitName,
+    util::nachschlagen::Nachschlagen,
 };
 
 /// Name einer [Weiche].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
+
+impl<R, A> MitName for Option<Weiche<R, A>> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().map(|weiche| weiche.name.0.as_str())
+    }
+}
 
 // inklusive Kreuzung
 /// [Name], aktuelle Richtung und Anschlüsse einer Weiche.
@@ -48,11 +54,11 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
         name: Name,
         richtung: Richtung,
         anschlüsse: Anschlüsse,
-        cache: Arc<Mutex<Cache>>,
+        sender: impl Into<SomeAktualisierenSender>,
     ) -> Self {
         Weiche {
             name,
-            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, cache))),
+            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, sender))),
             anschlüsse: Arc::new(Mutex::new(anschlüsse)),
         }
     }
@@ -239,12 +245,10 @@ impl<Richtung, Anschlüsse> WeicheSerialisiert<Richtung, Anschlüsse> {
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<Richtung, T, S> Serialisiere<WeicheSerialisiert<Richtung, S>> for Weiche<Richtung, T>
 where
     Richtung: Clone,
     T: Serialisiere<S>,
-    S: Reserviere<T, Arg = ()>,
 {
     fn serialisiere(&self) -> WeicheSerialisiert<Richtung, S> {
         WeicheSerialisiert {
@@ -267,23 +271,50 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<Richtung, R, S> Reserviere<Weiche<Richtung, R>> for WeicheSerialisiert<Richtung, S>
 where
     R: Serialisiere<S>,
-    S: Reserviere<R, Arg = ()>,
+    S: Reserviere<R, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
-    type Arg = Arc<Mutex<Cache>>;
+    type MoveArg = SomeAktualisierenSender;
+    type RefArg = ();
+    type MutRefArg = ();
 
     fn reserviere(
         self,
         lager: &mut anschluss::Lager,
         bekannte_anschlüsse: Anschlüsse,
-        canvas: Arc<Mutex<Cache>>,
+        sender: SomeAktualisierenSender,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
         anschlüsse
-            .reserviere(lager, bekannte_anschlüsse, ())
-            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, canvas))
+            .reserviere(lager, bekannte_anschlüsse, (), ref_arg, mut_ref_arg)
+            .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))
+    }
+}
+
+/// Trait für Typen mit einer aktuellen Richtung.
+pub trait MitRichtung<Richtung> {
+    /// Erhalte die aktuelle Richtung.
+    fn aktuelle_richtung(&self) -> Option<Richtung>;
+}
+
+impl<R> MitRichtung<R> for () {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        None
+    }
+}
+
+impl<R, T: MitRichtung<R>> MitRichtung<R> for Option<T> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.as_ref().and_then(MitRichtung::aktuelle_richtung)
+    }
+}
+
+impl<R, T: Clone + MitRichtung<R>, A> MitRichtung<R> for Weiche<T, A> {
+    fn aktuelle_richtung(&self) -> Option<R> {
+        self.richtung().aktuelle_richtung()
     }
 }

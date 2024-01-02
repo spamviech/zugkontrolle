@@ -74,14 +74,14 @@ So können Abstellgleise abgeschaltet werden, ohne eine eigene Bahngeschwindigke
 Weichen und Kreuzungen, bei denen die Fahrtrichtung geändert werden kann.
 Es wird ein Anschluss pro Richtung benötigt.
 
-## Geplant
-
-### Kontakt (nicht implementiert)
+### Kontakt
 
 Ein Kontakt ist ein Eingangssignal. Es wird durch einen Zug ausgelöst und ist hauptsächlich für den
 automatischen Betrieb (Plan) interessant.
 
 Soll ein PCF8574Port verwenden werden wird der zugehörige InterruptPin benötigt.
+
+## Geplant
 
 ### Plan (nicht implementiert)
 
@@ -180,3 +180,58 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
 
   - [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
   - [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)
+
+## Abhängigkeiten
+
+Sofern die desktop-variante des Raspberry Pi OS installiert wurde, sollte alles nötige vorhanden sein.
+
+Falls z.B. aus Größenbeschränkung der SD-Karte nur die lite-variante installiert wurde,
+kann man nach Installation der folgenden Pakete ebenfalls in ein Desktop-environment booten.
+Das sollte (minimal) weniger Speicherplatz benötigen.
+
+```sh
+sudo apt install xserver-xorg raspberrypi-ui-mods lightdm
+```
+
+Außerdem müssen die `mesa-vulkan-drivers` entfernt werden.
+Ansonsten kommt es zu einem seg-fault mit der Nachricht "lavapipe is not a confomant vulkan implementation".
+
+```sh
+sudo apt remove mesa-vulkan-drivers
+```
+
+## Aktivieren zusätzlicher I2C-Busse
+
+Durch hinzufügen folgender Zeilen in `/boot/config.txt` werden ab dem nächsten boot zusätzliche I2C-Busse (3-6) verfügbar sein.
+Bei raspi4 verwenden diese Hardware-Funktionalität, ansonsten wird das I2C-Signal über Software erzeugt.
+
+```txt
+# Enable additional i2c busses
+# https://www.instructables.com/Raspberry-PI-Multiple-I2c-Devices/
+# https://www.raspberrypi.com/documentation/computers/config_txt.html
+# https://www.raspberrypi.com/documentation/computers/configuration.html#part3.1
+[pi4]
+dtoverlay=i2c3
+dtoverlay=i2c4
+dtoverlay=i2c5
+dtoverlay=i2c6
+[pi3]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[pi2]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[pi1]
+dtoverlay=i2c-gpio,bus=6,i2c_gpio_sda=22,i2c_gpio_scl=23
+dtoverlay=i2c-gpio,bus=5,i2c_gpio_sda=12,i2c_gpio_scl=13
+dtoverlay=i2c-gpio,bus=4,i2c_gpio_sda=8,i2c_gpio_scl=9
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=4,i2c_gpio_scl=5
+gpio=22,23,12,13,8,9,4,5=pu
+[all]
+```

@@ -6,14 +6,15 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_macros::alias_serialisiert_unit;
 
 use crate::{
+    anschluss::{level::Level, trigger::Trigger},
     gleis::verbindung::Verbindung,
-    nachschlagen::impl_nachschlagen,
-    steuerung::kontakt::{Kontakt, KontaktSerialisiert},
+    steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt},
     typen::{
         canvas::{
             pfad::{self, Bogen, Pfad, Transformation},
             Position,
         },
+        farbe::{self, Farbe},
         mm::{Radius, Spurweite},
         rechteck::Rechteck,
         skalar::Skalar,
@@ -21,6 +22,7 @@ use crate::{
         winkel::{self, Trigonometrie, Winkel},
         MitName, Transparenz, Zeichnen,
     },
+    util::nachschlagen::impl_nachschlagen,
 };
 
 /// Definition einer Kurve.
@@ -70,27 +72,43 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
+impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Kurve<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.radius, self.winkel)
     }
 
-    fn zeichne(&self, spurweite: Spurweite) -> Vec<Pfad> {
-        vec![zeichne(
+    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+        let mut pfade = vec![zeichne(
             spurweite,
             self.radius,
             self.winkel,
             Beschränkung::Alle,
             Vec::new(),
             pfad::Erbauer::with_normal_axis,
-        )]
+        )];
+        if level_und_trigger.is_some() {
+            pfade.push(zeichne_kontakt(
+                spurweite,
+                self.radius,
+                self.winkel,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            ));
+        }
+        pfade
     }
 
-    fn fülle(&self, spurweite: Spurweite) -> Vec<(Pfad, Transparenz)> {
-        vec![(
+    fn fülle(
+        &self,
+        anschlüsse: &Anschlüsse2,
+        spurweite: Spurweite,
+    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+        let mut pfade = vec![(
             fülle(
                 spurweite,
                 self.radius,
@@ -98,14 +116,29 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
             ),
+            None,
             Transparenz::Voll,
-        )]
+        )];
+        if let Some((Some(level), trigger)) = level_und_trigger {
+            let (pfad, farbe) = fülle_kontakt(
+                spurweite,
+                self.radius,
+                self.winkel,
+                level,
+                trigger,
+                Vec::new(),
+                pfad::Erbauer::with_normal_axis,
+            );
+            pfade.push((pfad, Some(farbe), Transparenz::Voll));
+        }
+        pfade
     }
 
-    fn beschreibung_und_name(
-        &self,
+    fn beschreibung_und_name<'s, 't>(
+        &'s self,
+        anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
-    ) -> (Position, Option<&String>, Option<&String>) {
+    ) -> (Position, Option<&'s str>, Option<&'t str>) {
         let half_angle = 0.5 * self.winkel;
         (
             Position {
@@ -116,13 +149,14 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
                 },
                 winkel: Winkel(0.),
             },
-            self.beschreibung.as_ref(),
-            self.kontakt.name(),
+            self.beschreibung.as_ref().map(String::as_str),
+            anschlüsse.name(),
         )
     }
 
     fn innerhalb(
         &self,
+        _anschlüsse: &Anschlüsse2,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -130,7 +164,9 @@ impl<Anschluss: MitName> Zeichnen for Kurve<Anschluss> {
         innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(&self, spurweite: Spurweite) -> Self::Verbindungen {
+    fn verbindungen(
+        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
+    ) -> Self::Verbindungen {
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {
@@ -282,6 +318,50 @@ fn zeichne_internal<P, A>(
     );
 }
 
+pub(crate) fn zeichne_kontakt<P, A>(
+    spurweite: Spurweite,
+    radius: Skalar,
+    winkel: Winkel,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl FnOnce(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>)>,
+    ),
+) -> Pfad
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    let mut erbauer = pfad::Erbauer::neu();
+    mit_invertierter_achse(
+        &mut erbauer,
+        Box::new(move |builder| zeichne_kontakt_intern::<P, A>(spurweite, builder, radius, winkel)),
+    );
+    erbauer.baue_unter_transformationen(transformationen)
+}
+
+fn zeichne_kontakt_intern<P, A>(
+    spurweite: Spurweite,
+    erbauer: &mut pfad::Erbauer<P, A>,
+    radius: Skalar,
+    winkel: Winkel,
+) where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    // Utility Größen
+    let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
+    let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
+    let radius = (Skalar(0.5) * spurweite.abstand())
+        .min(&(Skalar(0.25) * radius_begrenzung_außen * Skalar(winkel.0)));
+    let anzeige_winkel = Winkel(3. * radius.0 / radius_begrenzung_außen.0);
+    let zentrum = gleis_links_oben
+        + radius_begrenzung_außen
+            * Vektor { x: anzeige_winkel.sin(), y: (Skalar(1.) - anzeige_winkel.cos()) };
+    // Kontakt
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
+}
+
 pub(crate) fn fülle<P, A>(
     spurweite: Spurweite,
     radius: Skalar,
@@ -363,7 +443,67 @@ fn fülle_internal<P, A>(
     path_builder.close();
 }
 
-#[allow(unused_qualifications)]
+fn fülle_kontakt<P, A>(
+    spurweite: Spurweite,
+    radius: Skalar,
+    winkel: Winkel,
+    level: Level,
+    trigger: Trigger,
+    transformationen: Vec<Transformation>,
+    mit_invertierter_achse: impl Fn(
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn FnOnce(&mut pfad::Erbauer<P, A>) -> Farbe>,
+    ) -> Farbe,
+) -> (Pfad, Farbe)
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    let mut erbauer = pfad::Erbauer::neu();
+    let farbe = mit_invertierter_achse(
+        &mut erbauer,
+        Box::new(move |builder| {
+            fülle_kontakt_intern::<P, A>(spurweite, builder, radius, winkel, level, trigger)
+        }),
+    );
+    // Rückgabewert
+    (erbauer.baue_unter_transformationen(transformationen), farbe)
+}
+
+fn fülle_kontakt_intern<P, A>(
+    spurweite: Spurweite,
+    erbauer: &mut pfad::Erbauer<P, A>,
+    radius: Skalar,
+    winkel: Winkel,
+    level: Level,
+    trigger: Trigger,
+) -> Farbe
+where
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
+{
+    // Utility Größen
+    let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
+    let radius_begrenzung_außen: Skalar = spurweite.radius_begrenzung_außen(radius);
+    let radius = (Skalar(0.5) * spurweite.abstand())
+        .min(&(Skalar(0.25) * radius_begrenzung_außen * Skalar(winkel.0)));
+    let anzeige_winkel = Winkel(3. * radius.0 / radius_begrenzung_außen.0);
+    let zentrum = gleis_links_oben
+        + radius_begrenzung_außen
+            * Vektor { x: anzeige_winkel.sin(), y: (Skalar(1.) - anzeige_winkel.cos()) };
+    // Kontakt
+    erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
+    // Anzeigefarbe
+    match (level, trigger) {
+        (Level::Low, Trigger::RisingEdge) => farbe::ROT,
+        (Level::High, Trigger::RisingEdge) => farbe::GRÜN,
+        (Level::Low, Trigger::FallingEdge) => farbe::GRÜN,
+        (Level::High, Trigger::FallingEdge) => farbe::ROT,
+        (Level::Low, _trigger) => farbe::BLAU,
+        (Level::High, _trigger) => farbe::GRÜN,
+    }
+}
+
 pub(crate) fn innerhalb(
     spurweite: Spurweite,
     radius: Skalar,
@@ -383,8 +523,8 @@ pub(crate) fn innerhalb(
         let acos = Winkel::acos(radius_vector.y / länge);
         let mut test_winkel: Winkel = if radius_vector.x > Skalar(0.) { -acos } else { acos };
         // normalisiere winkel
-        while test_winkel < Winkel(0.) {
-            test_winkel += Winkel(2. * std::f32::consts::PI)
+        while test_winkel < winkel::ZERO {
+            test_winkel += winkel::TAU
         }
         if test_winkel < winkel {
             return true;
