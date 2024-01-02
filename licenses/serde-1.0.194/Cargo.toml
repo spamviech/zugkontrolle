@@ -10,24 +10,26 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-rust-version = "1.56"
-name = "serde_derive"
-version = "1.0.193"
+edition = "2018"
+rust-version = "1.31"
+name = "serde"
+version = "1.0.194"
 authors = [
     "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
     "David Tolnay <dtolnay@gmail.com>",
 ]
-description = "Macros 1.1 implementation of #[derive(Serialize, Deserialize)]"
+build = "build.rs"
+description = "A generic serialization/deserialization framework"
 homepage = "https://serde.rs"
-documentation = "https://serde.rs/derive.html"
+documentation = "https://docs.rs/serde"
 readme = "crates-io.md"
 keywords = [
     "serde",
     "serialization",
     "no_std",
-    "derive",
 ]
 categories = [
+    "encoding",
     "no-std",
     "no-std::no-alloc",
 ]
@@ -35,25 +37,41 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/serde-rs/serde"
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--generate-link-to-definition"]
+features = [
+    "derive",
+    "rc",
+    "unstable",
+]
+rustdoc-args = [
+    "--cfg",
+    "doc_cfg",
+    "--generate-link-to-definition",
+]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[package.metadata.playground]
+features = [
+    "derive",
+    "rc",
+]
+
 [lib]
-name = "serde_derive"
-proc-macro = true
+doc-scrape-examples = false
 
-[dependencies.proc-macro2]
-version = "1.0"
+[dependencies.serde_derive]
+version = "1"
+optional = true
 
-[dependencies.quote]
-version = "1.0"
-
-[dependencies.syn]
-version = "2.0.28"
-
-[dev-dependencies.serde]
+[dev-dependencies.serde_derive]
 version = "1"
 
 [features]
-default = []
-deserialize_in_place = []
+alloc = []
+default = ["std"]
+derive = ["serde_derive"]
+rc = []
+std = []
+unstable = []
+
+[target."cfg(any())".dependencies.serde_derive]
+version = "=1.0.194"
