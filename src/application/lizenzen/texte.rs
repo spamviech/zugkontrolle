@@ -5,6 +5,7 @@ use std::{
     fmt::{self, Display, Formatter},
 };
 
+#[cfg(test)]
 use enum_iterator::Sequence;
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten
@@ -152,7 +153,8 @@ impl MITEinrückung<'_> {
 }
 
 /// Wo sind Zeilenumbrüche im MIT-Lizenztext.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(Sequence))]
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
