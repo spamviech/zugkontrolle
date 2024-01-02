@@ -245,7 +245,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
     let lizenzen: BTreeMap<_, _> =
         verwendete_lizenzen_impl(release_target_crates, |name, version| (name, version));
     let lizenz_dateien = lizenz_dateien();
-    let standard_lizenz_pfade = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE"]
+    let standard_lizenz_pfade = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "COPYING"]
         .into_iter()
         .flat_map(|pfad| {
             [
@@ -325,7 +325,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                                 false
                             }
                         };
-                        // Zeige nur Changesets mit mindestens einer Übereinstimmung.
+                        // Zeige nur MIT-Changesets mit mindestens einer Übereinstimmung.
                         // (schlage keinen MIT-Zeilenumbruch bei Apache-Lizenz vor)
                         if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
                             writeln!(
@@ -336,7 +336,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                             .unwrap();
                         }
                         fehlermeldung.push('\n');
-                        fehlermeldung.push_str(name.as_ref());
+                        fehlermeldung.push_str(&format!("{name}-{version}"));
                         fehlermeldung.push('\n');
                     }
                 },

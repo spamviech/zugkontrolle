@@ -1546,7 +1546,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             Lizenz::neu(|| {
                 mit(
                     None,
-                    vec![MITCopyright::neu(true, "2017-2022", "Rene van der Meer")],
+                    vec![MITCopyright::neu(true, "2017-2023", "Rene van der Meer")],
                     None,
                     MITZeilenumbruch::RPPal,
                     MITEinrückung::keine(),
@@ -2219,7 +2219,7 @@ Nota Bene: This is same as the Rust Project's own license.
                 )
             }),
         ),
-        ("serde_spanned", Lizenz::neu(crichton_2014_lizenz)),
+        ("serde_spanned", Lizenz::neu(toml_lizenz)),
         ("servo-fontconfig", Lizenz::neu(mozilla_foundation_lizenz)),
         ("servo-fontconfig-sys", Lizenz::neu(servo_fontconfig_sys)),
         (
@@ -2241,7 +2241,7 @@ Nota Bene: This is same as the Rust Project's own license.
             Lizenz::neu(|| {
                 Cow::Borrowed(
                     r#"Copyright 2012-2016 The Rust Project Developers.
-Copyright 2016-2021 Frank Denis.
+Copyright 2016-2023 Frank Denis.
 
 Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -2480,6 +2480,68 @@ option.
                     MITEinrückung::keine(),
                     false,
                     MITEnde::zwei_neue_zeilen(),
+                )
+            }),
+        ),
+        (
+            "rustybuzz",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![
+                        MITCopyright {
+                            c_in_klammern: true,
+                            jahr: None,
+                            voller_name: Some("HarfBuzz developers"),
+                        },
+                        MITCopyright {
+                            c_in_klammern: true,
+                            jahr: Some("2020"),
+                            voller_name: Some("Evgeniy Reizner"),
+                        },
+                    ],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("rustc-demangle", Lizenz::neu(crichton_2014_lizenz)),
+        (
+            "renderdoc-sys",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2022"),
+                        voller_name: Some("Eyal Kalderon"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "rangemap",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: false,
+                        jahr: Some("2019"),
+                        voller_name: Some("Jeffrey Parsons"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Keine,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
                 )
             }),
         ),
