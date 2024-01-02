@@ -175,6 +175,8 @@ pub enum MITZeilenumbruch {
     NonEmpty,
     /// Zeilenumbrüche, wie sie beim softbuffer-crate verwendet werden.
     Softbuffer,
+    /// Zeilenumbrüche, wie sie beim quick-xml-crate verwendet werden.
+    QuickXml,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
 }
@@ -223,8 +225,11 @@ pub fn mit<'t, 'p, 'i>(
     let neue_zeile_str = neue_zeile.as_str();
     let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
     use MITZeilenumbruch::*;
-    let winreg = neue_zeile_oder_leerzeichen(zeilenumbrüche == Winreg);
-    let standard_winreg = neue_zeile_oder_leerzeichen([Standard, Winreg].contains(&zeilenumbrüche));
+    let quickxml_extra_leerzeichen = if zeilenumbrüche == QuickXml { " " } else { "" };
+    let neuer_paragraph = if zeilenumbrüche == QuickXml { "\n\n\n" } else { "\n\n" };
+    let standard_winreg_quickxml =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, QuickXml].contains(&zeilenumbrüche));
+    let winreg_quickxml = neue_zeile_oder_leerzeichen([Winreg, QuickXml].contains(&zeilenumbrüche));
     let x11 = neue_zeile_oder_leerzeichen(zeilenumbrüche == X11);
     let iced = neue_zeile_oder_leerzeichen(zeilenumbrüche == Iced);
     let wasm = neue_zeile_oder_leerzeichen(zeilenumbrüche == WasmTimer);
@@ -232,37 +237,41 @@ pub fn mit<'t, 'p, 'i>(
     let x11_iced_wasm =
         neue_zeile_oder_leerzeichen([X11, Iced, WasmTimer].contains(&zeilenumbrüche));
     let rppal = neue_zeile_oder_leerzeichen(zeilenumbrüche == RPPal);
-    let winreg_rppal = neue_zeile_oder_leerzeichen([Winreg, RPPal].contains(&zeilenumbrüche));
+    let winreg_rppal_quickxml =
+        neue_zeile_oder_leerzeichen([Winreg, RPPal, QuickXml].contains(&zeilenumbrüche));
     let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
+    let rppal_softbuffer =
+        neue_zeile_oder_leerzeichen([RPPal, Softbuffer].contains(&zeilenumbrüche));
     let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
     let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
+    let nonempty_softbuffer =
+        neue_zeile_oder_leerzeichen([NonEmpty, Softbuffer].contains(&zeilenumbrüche));
     let standard_nonempty_softbuffer =
         neue_zeile_oder_leerzeichen([Standard, NonEmpty, Softbuffer].contains(&zeilenumbrüche));
-    let standard_winreg_softbuffer =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, Softbuffer].contains(&zeilenumbrüche));
-    let standard_winreg_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, NonEmpty].contains(&zeilenumbrüche));
-    let standard_winreg_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    let standard_winreg_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Softbuffer, QuickXml].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_nonempty_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, NonEmpty, QuickXml].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, NonEmpty, Softbuffer, QuickXml].contains(&zeilenumbrüche),
     );
     let standard_iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
         [Standard, Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
     );
-    let standard_winreg_rppal_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, RPPal, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    let standard_winreg_rppal_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, RPPal, NonEmpty, Softbuffer, QuickXml].contains(&zeilenumbrüche),
     );
-    let standard_winreg_iced_wasm_rppal_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    let standard_winreg_iced_wasm_rppal_nonempty_softbuffer_quickxml = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty, Softbuffer, QuickXml]
+            .contains(&zeilenumbrüche),
     );
     let iced_wasm_nonempty =
         neue_zeile_oder_leerzeichen([Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche));
     let iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
         [Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
     );
-    let rppal_softbuffer =
-        neue_zeile_oder_leerzeichen([RPPal, Softbuffer].contains(&zeilenumbrüche));
-    let nonempty_softbuffer =
-        neue_zeile_oder_leerzeichen([NonEmpty, Softbuffer].contains(&zeilenumbrüche));
     let including_next_paragraph_str =
         if including_next_paragraph { " (including the next paragraph)" } else { "" };
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
@@ -281,7 +290,7 @@ pub fn mit<'t, 'p, 'i>(
         "a",
         rppal,
         "copy",
-        standard_winreg_softbuffer,
+        standard_winreg_softbuffer_quickxml,
         "of",
         iced_wasm_nonempty,
         "this software and associated",
@@ -291,7 +300,7 @@ pub fn mit<'t, 'p, 'i>(
         "\"Software\"),",
         rppal,
         "to deal",
-        standard_winreg_softbuffer,
+        standard_winreg_softbuffer_quickxml,
         "in",
         iced_wasm_nonempty,
         "the",
@@ -303,7 +312,7 @@ pub fn mit<'t, 'p, 'i>(
         "limitation",
         rppal,
         "the rights",
-        standard_winreg,
+        standard_winreg_quickxml,
         "to",
         iced_wasm_nonempty_softbuffer,
         "use, copy, modify, merge,",
@@ -313,7 +322,7 @@ pub fn mit<'t, 'p, 'i>(
         "distribute, sublicense,",
         rppal,
         "and/or sell",
-        standard_winreg,
+        standard_winreg_quickxml,
         "copies",
         nonempty_softbuffer,
         "of",
@@ -325,7 +334,7 @@ pub fn mit<'t, 'p, 'i>(
         "Software",
         x11,
         "is",
-        standard_winreg,
+        standard_winreg_quickxml,
         "furnished to do",
         nonempty_softbuffer,
         "so,",
@@ -334,7 +343,8 @@ pub fn mit<'t, 'p, 'i>(
         redox,
         "the following",
         x11,
-        "conditions:\n\n",
+        "conditions:",
+        neuer_paragraph,
         einrückung.0,
         "The above copyright notice and this permission notice",
         including_next_paragraph_str,
@@ -342,37 +352,40 @@ pub fn mit<'t, 'p, 'i>(
         "shall be",
         redox,
         "included in",
-        winreg_rppal,
+        winreg_rppal_quickxml,
         "all",
         standard_iced_wasm_nonempty_softbuffer,
         "copies or substantial portions",
         x11,
-        "of the Software.\n\n",
+        "of the Software.",
+        neuer_paragraph,
         einrückung.0,
         "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF",
         x11,
         "ANY KIND,",
         redox,
         "EXPRESS OR",
-        standard_winreg_iced_wasm_rppal_nonempty_softbuffer,
+        standard_winreg_iced_wasm_rppal_nonempty_softbuffer_quickxml,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
         "TO THE WARRANTIES OF",
         redox,
         "MERCHANTABILITY,",
-        standard_winreg_rppal_nonempty_softbuffer,
+        standard_winreg_rppal_nonempty_softbuffer_quickxml,
         "FITNESS",
         iced_wasm,
         "FOR A",
         x11,
         "PARTICULAR PURPOSE AND",
         redox,
-        "NONINFRINGEMENT. IN NO EVENT",
+        "NONINFRINGEMENT. ",
+        quickxml_extra_leerzeichen,
+        "IN NO EVENT",
         x11,
         "SHALL",
         rppal_softbuffer,
         "THE",
-        standard_winreg_nonempty,
+        standard_winreg_nonempty_quickxml,
         "AUTHORS",
         wasm,
         "OR",
@@ -382,7 +395,7 @@ pub fn mit<'t, 'p, 'i>(
         "LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
-        standard_winreg_rppal_nonempty_softbuffer,
+        standard_winreg_rppal_nonempty_softbuffer_quickxml,
         "LIABILITY,",
         wasm,
         "WHETHER",
@@ -392,7 +405,7 @@ pub fn mit<'t, 'p, 'i>(
         "OF CONTRACT, TORT OR OTHERWISE, ARISING",
         rppal,
         "FROM,",
-        standard_winreg_nonempty_softbuffer,
+        standard_winreg_nonempty_softbuffer_quickxml,
         "OUT OF OR",
         x11,
         "IN",
@@ -402,7 +415,7 @@ pub fn mit<'t, 'p, 'i>(
         "WITH THE SOFTWARE OR THE USE OR OTHER",
         x11_rppal,
         "DEALINGS IN",
-        winreg,
+        winreg_quickxml,
         "THE",
         standard_nonempty_softbuffer,
         "SOFTWARE",

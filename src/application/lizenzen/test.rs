@@ -199,8 +199,8 @@ fn lizenz_dateien(
     // Nachteil: fetch dauert eine Weile
 
     [
-        ("Lato", ("../iced_graphics-0.3.0/fonts/OFL.txt", HashMap::new())),
         ("SourceSerif4-Regular", ("../../fonts/source-serif/LICENSE.md", HashMap::new())),
+        ("Bootstrap Icons", ("../../fonts/bootstrap-icons/LICENSE", HashMap::new())),
         ("bytemuck_derive", ("../bytemuck-1.9.1/LICENSE-MIT", HashMap::new())),
         ("windows_aarch64_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
         ("windows_i686_aarch64", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
@@ -214,6 +214,7 @@ fn lizenz_dateien(
         ("wgpu-hal", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wgpu-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wayland-backend", ("LICENSE-GITHUB..txt", HashMap::new())),
+        ("range-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
     ]
     .into_iter()
     .map(|(name, (pfad, version_spezifisch))| (UniCaseOrd::neu(name), (pfad, version_spezifisch)))

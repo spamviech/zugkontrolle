@@ -2545,6 +2545,25 @@ option.
                 )
             }),
         ),
+        ("range-alloc", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "quick-xml",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2016"),
+                        voller_name: Some("Johann Tuffe"),
+                    }],
+                    None,
+                    MITZeilenumbruch::QuickXml,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
     ])
 }
 
