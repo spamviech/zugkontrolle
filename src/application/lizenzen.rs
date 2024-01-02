@@ -36,8 +36,8 @@ use crate::{
 pub mod texte;
 
 use texte::{
-    apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_2, bsd_3, bsl_1_0, cc_0,
-    isc, mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1,
+    apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_0, bsd_2, bsd_3,
+    bsl_1_0, cc_0, isc, mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1,
     servo_fontconfig_sys, zlib, ApacheCopyright, ApacheEinrückung, BSD3Copyright, BSD3Darstellung,
     BSD3Zeilenumbruch, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix,
     MITZeilenumbruch,
@@ -679,6 +679,22 @@ fn ttf_parser_lizenz(jahr: &'static str, ende_neue_zeilen: u8) -> Cow<'static, s
         MITEinrückung::keine(),
         false,
         MITEnde { punkt: true, neue_zeile: ende_neue_zeilen },
+    )
+}
+
+fn dyn_clonable_lizenz() -> Cow<'static, str> {
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2022"),
+            voller_name: Some("Jacob Brown <kardeiz@gmail.com>"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
     )
 }
 
@@ -2789,6 +2805,47 @@ option.
                     }],
                     None,
                     MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("enum-iterator-derive", Lizenz::neu(|| bsd_0("2018-2022", "Stephane Raux"))),
+        ("enum-iterator", Lizenz::neu(|| bsd_0("2018-2022", "Stephane Raux"))),
+        ("dyn-clone", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("dyn-clonable", Lizenz::neu(dyn_clonable_lizenz)),
+        ("dyn-clonable-impl", Lizenz::neu(dyn_clonable_lizenz)),
+        (
+            "cosmic-text",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2022"),
+                        voller_name: Some("System76"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "cosmic-text",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2016"),
+                        voller_name: Some("Lee Jeffery"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Winreg,
                     MITEinrückung::keine(),
                     false,
                     MITEnde::standard(),
