@@ -7,7 +7,7 @@ import urllib.request
 import urllib.error
 
 script_name=os.path.splitext(os.path.basename(__file__))[0]
-licences_dir=os.path.dirname(os.path.abspath(__file__))
+licenses_dir=os.path.dirname(os.path.abspath(__file__))
 
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
 # hash(probably) at the end might change, possibly with cargo update
@@ -58,7 +58,7 @@ def collect_cargo_lock_packages():
 
     packages = []
     current = Package()
-    with open(os.path.join(licences_dir, "..", "Cargo.lock"), 'r') as cargo_lock:
+    with open(os.path.join(licenses_dir, "..", "Cargo.lock"), 'r') as cargo_lock:
         found_package = False
         for line in cargo_lock:
             line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
@@ -188,7 +188,7 @@ def copy_or_download_licenses(show_percent = 5):
     i = 0
     l = len(packages)
     step = int(show_percent * l / 100)
-    with open(os.path.join(os.path.join(licences_dir, f"{script_name}.log")), 'w') as log_file:
+    with open(os.path.join(os.path.join(licenses_dir, f"{script_name}.log")), 'w') as log_file:
         log(f"Fetch {l} licenses...", log_file)
         for package in packages:
             name_and_version = f"{package.name}-{package.version}"
@@ -200,11 +200,11 @@ def copy_or_download_licenses(show_percent = 5):
                         dir_path = os.path.join(git_dir, dir)
                         for rev in os.listdir(dir_path):
                             os.path.join(dir_path, rev)
-                            target_dir = os.path.join(licences_dir, name_and_version, rev)
+                            target_dir = os.path.join(licenses_dir, name_and_version, rev)
                             copy_licenses(src_dir, target_dir, log_file)
             else:
                 src_dir = os.path.join(crates_io_dir, name_and_version)
-                target_dir = os.path.join(licences_dir, name_and_version)
+                target_dir = os.path.join(licenses_dir, name_and_version)
                 copy_licenses(src_dir, target_dir, log_file)
             i += 1
             if i % step == 0:
