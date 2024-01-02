@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "4.0.0"
+version = "4.0.1"
 authors = ["spamviech <spamviech@web.de>"]
 edition = "2021"
 license = "MIT"
