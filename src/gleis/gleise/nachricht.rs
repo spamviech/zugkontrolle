@@ -2,10 +2,11 @@
 
 use std::time::Instant;
 
-use iced_core::touch::Finger;
-
 use crate::{
-    gleis::gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+    gleis::{
+        gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+        knopf::KlickQuelle,
+    },
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
     typen::{vektor::Vektor, winkel::Winkel},
 };
@@ -16,12 +17,6 @@ pub(in crate::gleis::gleise) struct Gehalten {
     pub(in crate::gleis::gleise) halte_position: Vektor,
     pub(in crate::gleis::gleise) winkel: Winkel,
     pub(in crate::gleis::gleise) bewegt: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::gleis::gleise) enum KlickQuelle {
-    Maus,
-    Touch(Finger),
 }
 
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [Canvas](iced::widget::canvas::Canvas).
@@ -58,9 +53,9 @@ pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Canvas-Größe.
     LetzteCanvasGröße(Vektor),
     /// Aktualisiere das aktuell gehaltene Gleis.
-    GehaltenAktualisieren(Option<Gehalten>),
+    GehaltenAktualisieren(KlickQuelle, Option<Gehalten>),
     /// Bewege ein Gleis an die neue Position.
-    GehaltenBewegen(Vektor),
+    GehaltenBewegen(KlickQuelle, Vektor),
     /// Entferne ein Gleis.
     GleisEntfernen(AnyId),
 }

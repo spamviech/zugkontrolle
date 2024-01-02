@@ -1,16 +1,21 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
+use log::error;
+
 use crate::{
     anschluss::Lager,
-    gleis::gleise::{
-        self,
-        daten::{
-            AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
-            SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
+    gleis::{
+        gleise::{
+            self,
+            daten::{
+                AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
+                SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
+            },
+            id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+            steuerung::SomeAktualisierenSender,
+            Gehalten, Gleise, ModusDaten,
         },
-        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
-        steuerung::SomeAktualisierenSender,
-        Gehalten, Gleise, ModusDaten,
+        knopf::KlickQuelle,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
     typen::{canvas::Position, vektor::Vektor},
@@ -33,6 +38,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub(crate) fn hinzufügen_gehalten_bei_maus(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
+        klick_quelle: KlickQuelle,
         halte_position: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
@@ -48,7 +54,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             streckenabschnitt,
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
             let gleis_steuerung = match (&gleis_id, definition_steuerung) {
                 (AnyId::Gerade(id), AnyDefinitionIdSteuerung::Gerade(_definition, steuerung)) => {
                     AnyIdSteuerung::Gerade(id.clone(), steuerung)
@@ -77,7 +83,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 ) => AnyIdSteuerung::Kreuzung(id.clone(), steuerung),
                 wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
             };
-            *gehalten2 = Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true });
+            let quelle_str = format!("{klick_quelle:?}");
+            let bisher = gehalten.insert(
+                klick_quelle,
+                Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true },
+            );
+            if let Some(bisher) = bisher {
+                error!("Gehaltenes Gleis für {quelle_str} ersetzt: {bisher:?}");
+            }
         }
         Ok(gleis_id)
     }
@@ -93,10 +106,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Bewege das gehaltene Gleis an die übergebene Position.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
         &mut self,
+        klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,
     ) -> Result<(), BewegenFehler> {
-        if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) = gehalten2 {
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
+                gehalten.get_mut(klick_quelle)
+            {
                 let punkt = canvas_pos - halte_position;
                 let id = gleis_steuerung.id();
                 self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;

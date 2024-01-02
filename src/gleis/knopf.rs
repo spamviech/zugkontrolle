@@ -2,6 +2,7 @@
 
 use iced::{
     mouse::{self, Cursor},
+    touch::{self, Finger},
     widget::{
         canvas::{
             event,
@@ -175,21 +176,47 @@ where
             state.canvas.leeren();
             state.in_bounds = in_bounds;
         }
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if state.in_bounds => {
-                let Point { x, y } = cursor.position_in(bounds).unwrap_or(Point { x: 0., y: 0. });
+        fn pressed<T, Nachricht>(
+            id: &GleisId<T>,
+            klick_quelle: KlickQuelle,
+            cursor: Cursor,
+            bounds: Rectangle,
+        ) -> (event::Status, Option<Nachricht>)
+        where
+            GleisId<T>: KnopfNachricht<Nachricht>,
+        {
+            if let Some(Point { x, y }) = cursor.position_in(bounds) {
                 (
                     event::Status::Captured,
-                    Some(self.id.nachricht(Vektor { x: Skalar(x), y: Skalar(y) })),
+                    Some(id.nachricht(klick_quelle, Vektor { x: Skalar(x), y: Skalar(y) })),
                 )
+            } else {
+                (event::Status::Ignored, None)
+            }
+        }
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                pressed(&self.id, KlickQuelle::Maus, cursor, bounds)
+            },
+            Event::Touch(touch::Event::FingerPressed { id, position }) => {
+                pressed(&self.id, KlickQuelle::Touch(id), Cursor::Available(position), bounds)
             },
             _ => (event::Status::Ignored, None),
         }
     }
 }
 
+/// Der Auslöser eines Klicks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KlickQuelle {
+    /// Der Klick wurde mit der Maus ausgelöst.
+    Maus,
+    /// Der Klick wurde mit einem Finger ausgelöst.
+    Touch(Finger),
+}
+
 /// Alle Funktionen eines [Knopfes](Knopf) werden unterstützt.
 pub trait KnopfNachricht<Nachricht> {
     /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [Knopf] gedrückt wurde.
-    fn nachricht(&self, klick_position: Vektor) -> Nachricht;
+    fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> Nachricht;
 }

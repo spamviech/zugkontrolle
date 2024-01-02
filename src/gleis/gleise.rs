@@ -1,7 +1,7 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
 //! [Canvas](iced::widget::canvas::Canvas).
 
-use std::{convert::identity, fmt::Debug, sync::mpsc::Sender, time::Instant};
+use std::{collections::HashMap, convert::identity, fmt::Debug, sync::mpsc::Sender, time::Instant};
 
 use iced::{
     mouse::{self, Cursor},
@@ -16,12 +16,15 @@ use nonempty::NonEmpty;
 use crate::{
     anschluss,
     application::style::thema::Thema,
-    gleis::gleise::{
-        daten::{
-            de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler,
-            StreckenabschnittEntferntFehler, Zustand,
+    gleis::{
+        gleise::{
+            daten::{
+                de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler,
+                StreckenabschnittEntferntFehler, Zustand,
+            },
+            nachricht::{Gehalten, Nachricht},
         },
-        nachricht::{Gehalten, KlickQuelle, Nachricht},
+        knopf::KlickQuelle,
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -51,7 +54,10 @@ pub mod update;
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten: Option<Gehalten>, letzter_klick: Option<(KlickQuelle, Instant)> },
+    Bauen {
+        gehalten: HashMap<KlickQuelle, Gehalten>,
+        letzter_klick: Option<(KlickQuelle, Instant)>,
+    },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
@@ -59,7 +65,7 @@ enum ModusDaten {
 impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
-            Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: None },
+            Modus::Bauen => ModusDaten::Bauen { gehalten: HashMap::new(), letzter_klick: None },
             Modus::Fahren => ModusDaten::Fahren,
         }
     }
@@ -356,7 +362,9 @@ where
         cursor: Cursor,
     ) -> mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { gehalten: Some(_gehalten), .. } if cursor.is_over(bounds) => {
+            ModusDaten::Bauen { gehalten, .. }
+                if gehalten.contains_key(&KlickQuelle::Maus) && cursor.is_over(bounds) =>
+            {
                 mouse::Interaction::Pointer
             },
             _ => mouse::Interaction::default(),

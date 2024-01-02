@@ -264,8 +264,8 @@ where
         let mut command = Command::none();
 
         match message {
-            Nachricht::Gleis { definition_steuerung, klick_höhe } => {
-                self.gleis_hinzufügen(definition_steuerung, klick_höhe)
+            Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
+                self.gleis_hinzufügen(definition_steuerung, klick_quelle, klick_höhe)
             },
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {

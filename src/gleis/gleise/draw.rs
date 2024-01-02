@@ -1,5 +1,7 @@
 //! [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
 
+use std::collections::HashSet;
+
 use iced::{
     mouse::Cursor,
     widget::canvas::{Geometry, Program},
@@ -57,21 +59,24 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             &self.skalieren,
             |frame| {
                 // Zeichne Gleise
-                let gehalten_id: Option<AnyId>;
+                let gehalten_ids: HashSet<AnyId>;
                 let modus_bauen: bool;
                 match modus {
                     ModusDaten::Bauen { gehalten, .. } => {
-                        gehalten_id = gehalten
-                            .as_ref()
-                            .map(|Gehalten { gleis_steuerung, .. }| gleis_steuerung.id());
+                        gehalten_ids = gehalten
+                            .iter()
+                            .map(|(_klick_quelle, Gehalten { gleis_steuerung, .. })| {
+                                gleis_steuerung.id()
+                            })
+                            .collect();
                         modus_bauen = true;
                     },
                     ModusDaten::Fahren => {
-                        gehalten_id = None;
+                        gehalten_ids = HashSet::new();
                         modus_bauen = false;
                     },
                 };
-                let ist_gehalten = |id| Some(id) == gehalten_id;
+                let ist_gehalten = |id| gehalten_ids.contains(&id);
                 let transparent_hintergrund = |id, fließend| {
                     Transparenz::true_reduziert(if modus_bauen {
                         ist_gehalten(id)

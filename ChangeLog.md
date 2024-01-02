@@ -2,8 +2,7 @@
 
 ## Unreleased changes
 
-- Gleise-Canvas hört auf Touch-Eingaben. Es werden nur eingaben berücksichtigt,
-  die von der selben Quelle (Maus, bestimmter Finger) kommen, wie die aktuell verfolgte (z.B. gezogenes Gleis).
+- Gleise-Canvas hört auf Touch-Eingaben. Es können mehrere Gleise gleichzeitig bewegt werden.
 
 ## 4.0.0
 
