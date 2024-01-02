@@ -21,7 +21,7 @@ use crate::{
             de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler,
             StreckenabschnittEntferntFehler, Zustand,
         },
-        nachricht::{Gehalten, Nachricht},
+        nachricht::{Gehalten, KlickQuelle, Nachricht},
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -51,7 +51,7 @@ pub mod update;
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
-    Bauen { gehalten: Option<Gehalten>, letzter_klick: Instant },
+    Bauen { gehalten: Option<Gehalten>, letzter_klick: Option<(KlickQuelle, Instant)> },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
     Fahren,
 }
@@ -59,7 +59,7 @@ enum ModusDaten {
 impl ModusDaten {
     fn neu(modus: Modus) -> Self {
         match modus {
-            Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: Instant::now() },
+            Modus::Bauen => ModusDaten::Bauen { gehalten: None, letzter_klick: None },
             Modus::Fahren => ModusDaten::Fahren,
         }
     }
@@ -328,7 +328,6 @@ where
 {
     type State = ();
 
-    #[inline(always)]
     fn draw(
         &self,
         state: &Self::State,
@@ -340,7 +339,6 @@ where
         Gleise::draw(self, state, renderer, thema, bounds, cursor)
     }
 
-    #[inline(always)]
     fn update(
         &self,
         state: &mut Self::State,

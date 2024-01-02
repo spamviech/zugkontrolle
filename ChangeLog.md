@@ -2,6 +2,9 @@
 
 ## Unreleased changes
 
+- Gleise-Canvas hört auf Touch-Eingaben. Es werden nur eingaben berücksichtigt,
+  die von der selben Quelle (Maus, bestimmter Finger) kommen, wie die aktuell verfolgte (z.B. gezogenes Gleis).
+
 ## 4.0.0
 
 - neues Feature "raspi", ersetzt bisherige target-spezifische Logik
