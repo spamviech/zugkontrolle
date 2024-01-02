@@ -9,6 +9,7 @@ use std::{
 
 use difference::{Changeset, Difference};
 use either::Either;
+use enum_iterator::all;
 use itertools::Itertools;
 use log::error;
 use nonempty::NonEmpty;
@@ -189,13 +190,6 @@ fn changeset_als_string(changeset: &Changeset) -> String {
     string
 }
 
-impl MITZeilenumbruch {
-    fn alle() -> impl Iterator<Item = Self> {
-        use MITZeilenumbruch::*;
-        [Standard, Winreg, X11, Iced, WasmTimer, RPPal, Redox, NonEmpty, Keine].into_iter()
-    }
-}
-
 /// Lizenz-Dateien, die nicht "LICENSE" heißen.
 fn lizenz_dateien(
 ) -> BTreeMap<UniCaseOrd<&'static str>, (&'static str, HashMap<&'static str, &'static str>)> {
@@ -290,7 +284,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                 let gespeicherte_lizenz_unix = gespeicherte_lizenz.replace("\r\n", "\n");
                 let changeset = Changeset::new(&gespeicherte_lizenz_unix, &verwendete_lizenz, "\n");
                 if changeset.diffs.iter().any(is_diff) {
-                    let mit_changesets: Vec<_> = MITZeilenumbruch::alle()
+                    let mit_changesets: Vec<_> = all::<MITZeilenumbruch>()
                         .map(|zeilenumbrüche| {
                             (
                                 zeilenumbrüche,

@@ -2465,6 +2465,24 @@ option.
         ),
         ("strict-num", Lizenz::neu(|| ttf_parser_lizenz("2022", 1))),
         ("spirv", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "softbuffer",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: false,
+                        jahr: Some("2022"),
+                        voller_name: Some("Kirill Chibisov"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Softbuffer,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::zwei_neue_zeilen(),
+                )
+            }),
+        ),
     ])
 }
 

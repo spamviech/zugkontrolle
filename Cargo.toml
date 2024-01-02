@@ -35,6 +35,7 @@ rstar = "0.11.0"
 take_mut = "0.2.2"
 unicase = "2.6.0"
 num-traits = "0.2.14"
+enum-iterator = "1.4.1"
 
 [dependencies.kommandozeilen_argumente]
 version = "0.2.1"

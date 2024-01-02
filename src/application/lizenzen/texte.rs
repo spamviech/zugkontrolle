@@ -5,6 +5,8 @@ use std::{
     fmt::{self, Display, Formatter},
 };
 
+use enum_iterator::Sequence;
+
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten
 /// und Anmerkung über fehlende Lizenzdatei.
 #[inline(always)]
@@ -153,7 +155,7 @@ impl MITEinrückung<'_> {
 }
 
 /// Wo sind Zeilenumbrüche im MIT-Lizenztext.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
 pub enum MITZeilenumbruch {
     /// Zeilenumbrüche, wie sie bei den meisten crates verwendet werden.
     Standard,
@@ -171,6 +173,8 @@ pub enum MITZeilenumbruch {
     Redox,
     /// Zeilenumbrüche, wie sie beim nonempty-crate verwendet werden.
     NonEmpty,
+    /// Zeilenumbrüche, wie sie beim softbuffer-crate verwendet werden.
+    Softbuffer,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
 }
@@ -232,21 +236,33 @@ pub fn mit<'t, 'p, 'i>(
     let x11_rppal = neue_zeile_oder_leerzeichen([X11, RPPal].contains(&zeilenumbrüche));
     let redox = neue_zeile_oder_leerzeichen(zeilenumbrüche == Redox);
     let x11_redox = neue_zeile_oder_leerzeichen([X11, Redox].contains(&zeilenumbrüche));
-    let nonempty = neue_zeile_oder_leerzeichen(zeilenumbrüche == NonEmpty);
-    let standard_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, NonEmpty].contains(&zeilenumbrüche));
+    let standard_nonempty_softbuffer =
+        neue_zeile_oder_leerzeichen([Standard, NonEmpty, Softbuffer].contains(&zeilenumbrüche));
+    let standard_winreg_softbuffer =
+        neue_zeile_oder_leerzeichen([Standard, Winreg, Softbuffer].contains(&zeilenumbrüche));
     let standard_winreg_nonempty =
         neue_zeile_oder_leerzeichen([Standard, Winreg, NonEmpty].contains(&zeilenumbrüche));
-    let standard_iced_wasm_nonempty = neue_zeile_oder_leerzeichen(
-        [Standard, Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche),
+    let standard_winreg_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
     );
-    let standard_winreg_rppal_nonempty =
-        neue_zeile_oder_leerzeichen([Standard, Winreg, RPPal, NonEmpty].contains(&zeilenumbrüche));
-    let standard_winreg_iced_wasm_rppal_nonempty = neue_zeile_oder_leerzeichen(
-        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty].contains(&zeilenumbrüche),
+    let standard_iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Standard, Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_rppal_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, RPPal, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    );
+    let standard_winreg_iced_wasm_rppal_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Standard, Winreg, Iced, WasmTimer, RPPal, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
     );
     let iced_wasm_nonempty =
         neue_zeile_oder_leerzeichen([Iced, WasmTimer, NonEmpty].contains(&zeilenumbrüche));
+    let iced_wasm_nonempty_softbuffer = neue_zeile_oder_leerzeichen(
+        [Iced, WasmTimer, NonEmpty, Softbuffer].contains(&zeilenumbrüche),
+    );
+    let rppal_softbuffer =
+        neue_zeile_oder_leerzeichen([RPPal, Softbuffer].contains(&zeilenumbrüche));
+    let nonempty_softbuffer =
+        neue_zeile_oder_leerzeichen([NonEmpty, Softbuffer].contains(&zeilenumbrüche));
     let including_next_paragraph_str =
         if including_next_paragraph { " (including the next paragraph)" } else { "" };
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
@@ -265,7 +281,7 @@ pub fn mit<'t, 'p, 'i>(
         "a",
         rppal,
         "copy",
-        standard_winreg,
+        standard_winreg_softbuffer,
         "of",
         iced_wasm_nonempty,
         "this software and associated",
@@ -275,7 +291,7 @@ pub fn mit<'t, 'p, 'i>(
         "\"Software\"),",
         rppal,
         "to deal",
-        standard_winreg,
+        standard_winreg_softbuffer,
         "in",
         iced_wasm_nonempty,
         "the",
@@ -289,7 +305,7 @@ pub fn mit<'t, 'p, 'i>(
         "the rights",
         standard_winreg,
         "to",
-        iced_wasm_nonempty,
+        iced_wasm_nonempty_softbuffer,
         "use, copy, modify, merge,",
         x11,
         "publish,",
@@ -299,7 +315,7 @@ pub fn mit<'t, 'p, 'i>(
         "and/or sell",
         standard_winreg,
         "copies",
-        nonempty,
+        nonempty_softbuffer,
         "of",
         x11_iced_wasm,
         "the Software, and to",
@@ -311,7 +327,7 @@ pub fn mit<'t, 'p, 'i>(
         "is",
         standard_winreg,
         "furnished to do",
-        nonempty,
+        nonempty_softbuffer,
         "so,",
         iced_wasm,
         "subject to",
@@ -328,7 +344,7 @@ pub fn mit<'t, 'p, 'i>(
         "included in",
         winreg_rppal,
         "all",
-        standard_iced_wasm_nonempty,
+        standard_iced_wasm_nonempty_softbuffer,
         "copies or substantial portions",
         x11,
         "of the Software.\n\n",
@@ -338,13 +354,13 @@ pub fn mit<'t, 'p, 'i>(
         "ANY KIND,",
         redox,
         "EXPRESS OR",
-        standard_winreg_iced_wasm_rppal_nonempty,
+        standard_winreg_iced_wasm_rppal_nonempty_softbuffer,
         "IMPLIED, INCLUDING BUT NOT LIMITED",
         x11,
         "TO THE WARRANTIES OF",
         redox,
         "MERCHANTABILITY,",
-        standard_winreg_rppal_nonempty,
+        standard_winreg_rppal_nonempty_softbuffer,
         "FITNESS",
         iced_wasm,
         "FOR A",
@@ -354,7 +370,7 @@ pub fn mit<'t, 'p, 'i>(
         "NONINFRINGEMENT. IN NO EVENT",
         x11,
         "SHALL",
-        rppal,
+        rppal_softbuffer,
         "THE",
         standard_winreg_nonempty,
         "AUTHORS",
@@ -366,7 +382,7 @@ pub fn mit<'t, 'p, 'i>(
         "LIABLE FOR ANY",
         x11,
         "CLAIM, DAMAGES OR OTHER",
-        standard_winreg_rppal_nonempty,
+        standard_winreg_rppal_nonempty_softbuffer,
         "LIABILITY,",
         wasm,
         "WHETHER",
@@ -376,7 +392,7 @@ pub fn mit<'t, 'p, 'i>(
         "OF CONTRACT, TORT OR OTHERWISE, ARISING",
         rppal,
         "FROM,",
-        standard_winreg_nonempty,
+        standard_winreg_nonempty_softbuffer,
         "OUT OF OR",
         x11,
         "IN",
@@ -388,7 +404,7 @@ pub fn mit<'t, 'p, 'i>(
         "DEALINGS IN",
         winreg,
         "THE",
-        standard_nonempty,
+        standard_nonempty_softbuffer,
         "SOFTWARE",
     );
     if ende.punkt {
