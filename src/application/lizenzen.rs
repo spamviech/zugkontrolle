@@ -698,6 +698,19 @@ fn dyn_clonable_lizenz() -> Cow<'static, str> {
     )
 }
 
+fn gimli_developers_lizenz(großes_g: bool, jahr: &'static str) -> Cow<'static, str> {
+    let name = if großes_g { "The Gimli Developers" } else { "The gimli Developers" };
+    mit(
+        None,
+        vec![MITCopyright { c_in_klammern: true, jahr: Some(jahr), voller_name: Some(name) }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
 /// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
 fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static str>> {
     let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
@@ -2603,24 +2616,7 @@ option.
                 )
             }),
         ),
-        (
-            "object",
-            Lizenz::neu(|| {
-                mit(
-                    None,
-                    vec![MITCopyright {
-                        c_in_klammern: true,
-                        jahr: Some("2015"),
-                        voller_name: Some("The Gimli Developers"),
-                    }],
-                    None,
-                    MITZeilenumbruch::X11,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
-        ),
+        ("object", Lizenz::neu(|| gimli_developers_lizenz(true, "2015"))),
         (
             "naga",
             Lizenz::neu(|| {
@@ -2835,7 +2831,7 @@ option.
             }),
         ),
         (
-            "cosmic-text",
+            "com-rs",
             Lizenz::neu(|| {
                 mit(
                     MITPräfix("The MIT License (MIT)", 2),
@@ -2852,6 +2848,78 @@ option.
                 )
             }),
         ),
+        ("d3d12", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "codespan-reporting",
+            Lizenz::neu(|| {
+                apache_2_0(
+                    false,
+                    ApacheCopyright::standard(),
+                    ApacheEinrückung::eingerückt(),
+                    true,
+                    1,
+                )
+            }),
+        ),
+        ("bit-vec", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
+        ("bit-set", Lizenz::neu(mit_rust_project_developers_lizenz_2016)),
+        ("backtrace", Lizenz::neu(crichton_2014_lizenz)),
+        (
+            "ash",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2016"),
+                        voller_name: Some("ASH"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("allocator-api2", Lizenz::neu(apache_2_0_standard_eingerückt)),
+        (
+            "aliasable",
+            Lizenz::neu(|| {
+                mit(
+                    MITPräfix("The MIT License (MIT)", 2),
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2020"),
+                        voller_name: Some("James Dyson <avitex@wfxlabs.com>"),
+                    }],
+                    None,
+                    MITZeilenumbruch::Standard,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        (
+            "ahash",
+            Lizenz::neu(|| {
+                mit(
+                    None,
+                    vec![MITCopyright {
+                        c_in_klammern: true,
+                        jahr: Some("2018"),
+                        voller_name: Some("Tom Kaitchuck"),
+                    }],
+                    None,
+                    MITZeilenumbruch::X11,
+                    MITEinrückung::keine(),
+                    false,
+                    MITEnde::standard(),
+                )
+            }),
+        ),
+        ("addr2line", Lizenz::neu(|| gimli_developers_lizenz(false, "2016-2018"))),
     ])
 }
 
