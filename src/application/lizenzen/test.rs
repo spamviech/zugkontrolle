@@ -280,7 +280,8 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
         }
     };
     for ((name, version), f) in lizenzen {
-        let ordner_pfad = format!("licenses/{name}-{version}");
+        let repo_pfad = env!("CARGO_MANIFEST_DIR");
+        let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
         let standard_lizenz_pfad: &str = standard_lizenz_pfade
             .iter()
             .filter(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file())
