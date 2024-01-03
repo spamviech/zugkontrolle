@@ -139,7 +139,9 @@ where
                 ) => KlickQuelle::Touch(*id),
                 _ => return false,
             };
-            gleise.hat_gehaltenes_gleis(klick_quelle)
+            let gehalten = gleise.hat_gehaltenes_gleis(klick_quelle);
+            log::debug!("{event:?} -> {gehalten}");
+            gehalten
         };
         let auswahlzustand = Element::from(
             Modal::neu(column, auswahl_zustand, zeige_auswahlzustand)

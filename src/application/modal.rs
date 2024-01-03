@@ -453,7 +453,13 @@ where
             &mut zustand.aktualisiere_element,
         );
         let modal_overlay = self.overlay.as_mut();
-        let overlay = ModalOverlay { modal_overlay, element_overlay, zustand, state_overlay };
+        let overlay = ModalOverlay {
+            modal_overlay,
+            element_overlay,
+            zustand,
+            state_overlay,
+            passthrough_event: &self.passthrough_event,
+        };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
     }
 }
@@ -512,6 +518,7 @@ struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, R> {
     state_overlay: &'a mut Tree,
     element_overlay: Option<overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, R>>,
     zustand: &'a mut Zustand<Overlay>,
+    passthrough_event: &'a dyn Fn(&Event) -> bool,
 }
 
 impl<'e, Overlay, ElementNachricht, R> overlay::Overlay<ElementNachricht, R>
@@ -589,6 +596,9 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, ElementNachricht>,
     ) -> event::Status {
+        if (self.passthrough_event)(&event) {
+            return event::Status::Ignored;
+        }
         let mut messages = Vec::new();
         let mut inner_shell = Shell::new(&mut messages);
         let mut status = if let Some(overlay) = &mut self.modal_overlay {
