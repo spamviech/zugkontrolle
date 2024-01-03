@@ -3,11 +3,12 @@
 use std::fmt::Debug;
 
 use iced::{
+    mouse, touch,
     widget::{
         scrollable::{self, Scrollable},
         Button, Canvas, Column, Container, Row, Rule, Slider, Space, Text,
     },
-    Alignment, Element, Length, Renderer,
+    Alignment, Element, Event, Length, Renderer,
 };
 use itertools::Itertools;
 
@@ -32,7 +33,7 @@ use crate::{
             steuerung::MitSteuerung,
             Gleise, Modus,
         },
-        knopf::Knopf,
+        knopf::{KlickQuelle, Knopf},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
@@ -127,8 +128,25 @@ where
             AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
                 .map(modal::Nachricht::äußeres_modal)
         };
+        let passthrough_event = |event: &Event| {
+            let klick_quelle = match event {
+                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                    KlickQuelle::Maus
+                },
+                Event::Touch(
+                    touch::Event::FingerLifted { id, position: _ }
+                    | touch::Event::FingerLost { id, position: _ },
+                ) => KlickQuelle::Touch(*id),
+                _ => return false,
+            };
+            let gehalten = gleise.hat_gehaltenes_gleis(klick_quelle);
+            log::debug!("{event:?} -> {gehalten}");
+            gehalten
+        };
         let auswahlzustand = Element::from(
-            Modal::neu(column, auswahl_zustand, zeige_auswahlzustand).schließe_bei_esc(),
+            Modal::neu(column, auswahl_zustand, zeige_auswahlzustand)
+                .passthrough_event(passthrough_event)
+                .schließe_bei_esc(),
         );
 
         let zeige_message_box = |message_box: &MessageBox| {
@@ -147,8 +165,9 @@ where
             )
             .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>)
         };
-        let message_box_modal =
-            Modal::neu(auswahlzustand, message_box, zeige_message_box).schließe_bei_esc();
+        let message_box_modal = Modal::neu(auswahlzustand, message_box, zeige_message_box)
+            .passthrough_event(passthrough_event)
+            .schließe_bei_esc();
         message_box_modal.into()
     }
 }

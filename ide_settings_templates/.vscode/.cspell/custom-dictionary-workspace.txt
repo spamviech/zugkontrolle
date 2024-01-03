@@ -3,6 +3,7 @@ AABB
 aarch
 abstand
 achse
+adler
 adresse
 adwaita
 ahash
@@ -13,13 +14,16 @@ Amanieu
 Andronik
 anfang
 anschlüsse
+ansi
 anzahl
 aparicio
 argumente
 armv
 arrayref
 arrayvec
+ascii
 Ashish
+Augusto
 ausgegraut
 auswahl
 autocfg
@@ -43,6 +47,7 @@ Burkert
 bytemuck
 byteorder
 calloop
+camino
 chacha
 Chibisov
 Chiovoloni
@@ -52,6 +57,8 @@ consts
 Contributers
 corasick
 Couprie
+cpus
+crichton
 crossfont
 Crozet
 d'Antras
@@ -84,7 +91,10 @@ erbauer
 erfolg
 ergebnis
 errno
+Esposito
+euclid
 Evgeniy
+exts
 Eyal
 Fackler
 faktor
@@ -152,6 +162,7 @@ Kaitchuck
 Kalderon
 kandidat
 kandidaten
+Kang
 Katharos
 Kazlauskas
 khronos
@@ -173,6 +184,7 @@ kurbo
 Kurdekar
 länge
 Lato
+lego
 leiter
 Levien
 libc
@@ -184,12 +196,15 @@ libxkbcommon
 lightdm
 linebreak
 linie
+linux
 lizenz
 lizenzen
 llln
 Loïc
 Lokathor
 Lukasz
+lyon
+Manish
 märklin
 Maryńczak
 Mathijs
@@ -203,6 +218,7 @@ methoden
 miniz
 mitte
 moduswechsel
+mozilla
 msvc
 musleabihf
 Naaman
@@ -251,6 +267,7 @@ raspberrypi
 rasperry
 raspi
 raspicam
+rasterizer
 Raux
 rechteck
 recv
@@ -283,6 +300,7 @@ scopeguard
 Scripta
 Scrollbares
 sctk
+Sébastien
 Šegan
 seite
 Sellier
@@ -291,6 +309,7 @@ serde
 serialisierbar
 Serialisierbar
 Sgeo
+simd
 siphasher
 skalarprodukt
 skalierfaktor
@@ -300,6 +319,7 @@ smallvec
 smithay
 softbuffer
 Soveu
+spamviech
 spirv
 sprache
 srgb
@@ -309,10 +329,13 @@ steuerungen
 strsim
 sublicensable
 Sverdrup
+syscall
 Tangren
 termcolor
 thema
 thiserror
+Thom
+Timmins
 tinyvec
 tlsv
 toleranz
@@ -324,6 +347,7 @@ Ulrik
 Unconfigured
 ungenauigkeit
 unicase
+unicode
 unterschiede
 validierung
 variante
@@ -344,6 +368,7 @@ vswhom
 vswwhom
 wahl
 wasi
+wayland
 wgpu
 widestring
 winapi
@@ -359,5 +384,6 @@ Yevhenii
 Yuki
 zeile
 zeilen
+zeno
 zentrum
 zerocopy

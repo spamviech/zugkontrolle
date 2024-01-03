@@ -3,7 +3,10 @@
 use std::time::Instant;
 
 use crate::{
-    gleis::gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+    gleis::{
+        gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+        knopf::KlickQuelle,
+    },
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
     typen::{vektor::Vektor, winkel::Winkel},
 };
@@ -45,14 +48,14 @@ pub struct ZustandAktualisieren(pub(in crate::gleis::gleise) ZustandAktualisiere
 pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Maus-Position.
     LetzteMausPosition(Vektor),
-    /// Aktualisiere die Zeit des letzten Maus-Klicks.
-    LetzterKlick(Instant),
+    /// Aktualisiere die Zeit und Art des letzten Maus- oder Touch-Klicks.
+    LetzterKlick(KlickQuelle, Instant),
     /// Aktualisiere die letzte bekannte Canvas-Größe.
     LetzteCanvasGröße(Vektor),
-    /// Aktualisiere das aktuell gehaltene Gleis.
-    GehaltenAktualisieren(Option<Gehalten>),
+    /// Aktualisiere das aktuell von der [KlickQuelle] gehaltene Gleis.
+    GehaltenAktualisieren(KlickQuelle, Option<Gehalten>),
     /// Bewege ein Gleis an die neue Position.
-    GehaltenBewegen(Vektor),
+    GehaltenBewegen(KlickQuelle, Vektor),
     /// Entferne ein Gleis.
     GleisEntfernen(AnyId),
 }

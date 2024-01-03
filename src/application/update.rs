@@ -23,10 +23,13 @@ use crate::{
         auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
         style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
     },
-    gleis::gleise::{
-        self,
-        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
-        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
+    gleis::{
+        gleise::{
+            self,
+            daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
+            id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
+        },
+        knopf::KlickQuelle,
     },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
@@ -277,6 +280,7 @@ where
     pub fn gleis_hinzufügen(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
+        klick_quelle: KlickQuelle,
         klick_höhe: Skalar,
     ) {
         let streckenabschnitt = self
@@ -285,8 +289,10 @@ where
             .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
         let streckenabschnitt2 =
             streckenabschnitt.map(|streckenabschnitt_name| streckenabschnitt_name.clone());
+        // FIXME x-position abhängig vom aktuellen pivot-punkt (rotation?)
         if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
             definition_steuerung,
+            klick_quelle,
             Vektor { x: Skalar(0.), y: klick_höhe },
             streckenabschnitt2,
             false,

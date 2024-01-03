@@ -24,7 +24,7 @@ use crate::{
             nachricht::Nachricht as GleiseNachricht,
             Modus,
         },
-        knopf::KnopfNachricht,
+        knopf::{KlickQuelle, KnopfNachricht},
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
@@ -66,7 +66,11 @@ pub enum AnyGleisUnit {
 #[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
 pub(in crate::application) enum NachrichtClone<L: Leiter> {
-    Gleis { definition_steuerung: AnyDefinitionIdSteuerung, klick_höhe: Skalar },
+    Gleis {
+        definition_steuerung: AnyDefinitionIdSteuerung,
+        klick_quelle: KlickQuelle,
+        klick_höhe: Skalar,
+    },
     Skalieren(Skalar),
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
 }
@@ -74,8 +78,8 @@ pub(in crate::application) enum NachrichtClone<L: Leiter> {
 impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
     fn from(nachricht_clone: NachrichtClone<L>) -> Self {
         match nachricht_clone {
-            NachrichtClone::Gleis { definition_steuerung, klick_höhe } => {
-                Nachricht::Gleis { definition_steuerung, klick_höhe }
+            NachrichtClone::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
+                Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe }
             },
             NachrichtClone::Skalieren(skalieren) => Nachricht::Skalieren(skalieren),
             NachrichtClone::AktionGeschwindigkeit(aktion) => {
@@ -90,7 +94,7 @@ where
     T: Clone + Into<AnyDefinitionId>,
     L: Leiter,
 {
-    fn nachricht(&self, klick_position: Vektor) -> NachrichtClone<L> {
+    fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> NachrichtClone<L> {
         macro_rules! erhalte_nachricht {
             ($id: expr) => {
                 AnyDefinitionIdSteuerung::from(($id, None))
@@ -99,6 +103,7 @@ where
         let any_id = self.clone().into();
         NachrichtClone::Gleis {
             definition_steuerung: mit_any_id!({}, [AnyDefinitionId => id] any_id => erhalte_nachricht!()),
+            klick_quelle,
             klick_höhe: klick_position.y,
         }
     }
@@ -115,6 +120,8 @@ pub enum Nachricht<L: Leiter, S> {
     Gleis {
         /// Das neue Gleis.
         definition_steuerung: AnyDefinitionIdSteuerung,
+        /// Wie wurde das Gleis angeklickt.
+        klick_quelle: KlickQuelle,
         /// Auf welcher Höhe wurde es ins Bild gezogen.
         klick_höhe: Skalar,
     },

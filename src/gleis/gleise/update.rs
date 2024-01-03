@@ -5,12 +5,14 @@ use std::{
     time::{Duration, Instant},
 };
 
+use either::Either;
 use iced::{
     mouse::{self, Cursor},
+    touch::{self, Finger},
     widget::canvas::{event, Event, Program},
-    Rectangle, Renderer,
+    Point, Rectangle, Renderer,
 };
-use log::error;
+use log::{debug, error, info, warn};
 use nonempty::{nonempty, NonEmpty};
 
 use crate::{
@@ -22,7 +24,7 @@ use crate::{
             id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
-            Gleise, ModusDaten,
+            Gleise, KlickQuelle, ModusDaten,
         },
         weiche,
     },
@@ -56,20 +58,35 @@ const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 fn aktion_bauen(
     nachrichten: &mut Vec<Nachricht>,
     gleis_steuerung: AnyIdSteuerung,
+    quelle: KlickQuelle,
     now: Instant,
-    letzter_klick: Instant,
+    letzter_klick: &Option<(KlickQuelle, Instant)>,
     halte_position: Vektor,
     winkel: Winkel,
 ) {
-    let diff = now.checked_duration_since(letzter_klick).unwrap_or(Duration::MAX);
+    let diff = letzter_klick
+        .as_ref()
+        .and_then(|(letzte_quelle, letzte_zeit)| {
+            let selbe_klick_art = match (letzte_quelle, quelle) {
+                (KlickQuelle::Maus, KlickQuelle::Maus) => true,
+                (KlickQuelle::Touch(_), KlickQuelle::Touch(_)) => true,
+                _ => false,
+            };
+            if selbe_klick_art {
+                now.checked_duration_since(*letzte_zeit)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(Duration::MAX);
     let gleis_steuerung_serialisiert = gleis_steuerung.serialisiere();
     if diff < DOUBLE_CLICK_TIME {
         nachrichten.push(Nachricht::AnschlüsseAnpassen(gleis_steuerung_serialisiert));
-        nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(None)))
     } else {
-        nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(Some(
-            Gehalten { gleis_steuerung, halte_position, winkel, bewegt: false },
-        ))));
+        nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
+            quelle,
+            Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt: false }),
+        )));
     }
 }
 
@@ -160,13 +177,13 @@ where
     }
 }
 
-fn aktion_gleis_an_position<'t, L, AktualisierenNachricht>(
+fn aktion_gleis_an_position<L, AktualisierenNachricht>(
     bounds: Rectangle,
-    cursor: &'t Cursor,
-    modus: &'t ModusDaten,
-    zustand2: &Zustand<L>,
-    pivot: &'t Position,
-    skalieren: &'t Skalar,
+    cursor_or_finger: Either<Cursor, (Finger, Point)>,
+    modus: &ModusDaten,
+    zustand: &Zustand<L>,
+    pivot: &Position,
+    skalieren: &Skalar,
     sender: &Sender<AktualisierenNachricht>,
 ) -> (event::Status, Vec<Nachricht>)
 where
@@ -175,32 +192,40 @@ where
 {
     let mut nachrichten = Vec::new();
     let mut status = event::Status::Ignored;
+    let (cursor, aktueller_klick) = match cursor_or_finger {
+        Either::Left(cursor) => (cursor, KlickQuelle::Maus),
+        Either::Right((finger, position)) => {
+            (Cursor::Available(position), KlickQuelle::Touch(finger))
+        },
+    };
     if cursor.is_over(bounds) {
         if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let gleis_an_position2 = zustand2.gleis_an_position(canvas_pos);
+            let gleis_an_position = zustand.gleis_an_position(canvas_pos);
             match modus {
-                ModusDaten::Bauen { gehalten: gehalten2, letzter_klick } => {
+                ModusDaten::Bauen { gehalten: _, letzter_klick } => {
                     let now = Instant::now();
-                    nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(now)));
-                    if gehalten2.is_none() {
-                        if let Some((gleis_steuerung, halte_position, winkel, _streckenabschnitt)) =
-                            gleis_an_position2
-                        {
-                            aktion_bauen(
-                                &mut nachrichten,
-                                gleis_steuerung,
-                                now,
-                                *letzter_klick,
-                                halte_position,
-                                winkel,
-                            );
-                            status = event::Status::Captured;
-                        }
+                    nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(
+                        aktueller_klick.clone(),
+                        now,
+                    )));
+                    if let Some((gleis_steuerung, halte_position, winkel, _streckenabschnitt)) =
+                        gleis_an_position
+                    {
+                        aktion_bauen(
+                            &mut nachrichten,
+                            gleis_steuerung,
+                            aktueller_klick,
+                            now,
+                            letzter_klick,
+                            halte_position,
+                            winkel,
+                        );
+                        status = event::Status::Captured;
                     }
                 },
                 ModusDaten::Fahren => {
                     if let Some((id_steuerung, _halte_position, _winkel, streckenabschnitt)) =
-                        gleis_an_position2
+                        gleis_an_position
                     {
                         let nachricht = aktion_fahren(
                             id_steuerung,
@@ -223,6 +248,93 @@ where
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+    fn maus_oder_touch_pressed(
+        &self,
+        cursor_oder_finger: Either<Cursor, (Finger, Point)>,
+        bounds: Rectangle,
+        event_status: &mut event::Status,
+        messages: &mut NonEmpty<Nachricht>,
+    ) where
+        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    {
+        let Gleise { zustand, pivot, skalieren, modus, sender, .. } = self;
+        let (status, nachrichten) = aktion_gleis_an_position(
+            bounds,
+            cursor_oder_finger,
+            modus,
+            zustand,
+            pivot,
+            skalieren,
+            &sender,
+        );
+        *event_status = status;
+        messages.extend(nachrichten);
+    }
+
+    fn maus_oder_touch_released(
+        &self,
+        cursor_oder_finger: Either<Cursor, (Finger, Point)>,
+        bounds: Rectangle,
+        event_status: &mut event::Status,
+        messages: &mut NonEmpty<Nachricht>,
+    ) {
+        let (cursor, quelle) = match cursor_oder_finger {
+            Either::Left(cursor) => (cursor, KlickQuelle::Maus),
+            Either::Right((finger, position)) => {
+                (Cursor::Available(position), KlickQuelle::Touch(finger))
+            },
+        };
+        if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
+            if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
+                let gleis_id = gleis_steuerung.id();
+                if *bewegt {
+                    if !cursor.is_over(bounds) {
+                        messages.push(Nachricht::from(ZustandAktualisierenEnum::GleisEntfernen(
+                            gleis_id,
+                        )));
+                    }
+                } else {
+                    // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
+                    messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
+                }
+                messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
+                    quelle, None,
+                )));
+                *event_status = event::Status::Captured;
+            }
+        }
+    }
+
+    fn maus_oder_touch_moved(
+        &self,
+        cursor_oder_finger: Either<Point, (Finger, Point)>,
+        bounds: Rectangle,
+        event_status: &mut event::Status,
+        messages: &mut NonEmpty<Nachricht>,
+    ) {
+        let (position, quelle) = match cursor_oder_finger {
+            Either::Left(position) => (position, KlickQuelle::Maus),
+            Either::Right((finger, position)) => (position, KlickQuelle::Touch(finger)),
+        };
+        if let Some(canvas_pos) = berechne_canvas_position(
+            &bounds,
+            &Cursor::Available(position),
+            &self.pivot,
+            &self.skalieren,
+        ) {
+            messages
+                .push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(canvas_pos)));
+            if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
+                if gehalten.contains_key(&quelle) {
+                    messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
+                        quelle, canvas_pos,
+                    )));
+                }
+            }
+            *event_status = event::Status::Captured
+        }
+    }
+
     /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
     pub fn update(
         &self,
@@ -240,55 +352,53 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 x: Skalar(bounds.width),
                 y: Skalar(bounds.height),
             }))];
+        match &event {
+            Event::Mouse(_) | Event::Touch(_) => debug!("{event:?}"),
+            _ => {},
+        }
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let Gleise { zustand: zustand2, pivot, skalieren, modus, .. } = self;
-                let (status, nachrichten) = aktion_gleis_an_position(
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => self
+                .maus_oder_touch_pressed(
+                    Either::Left(cursor),
                     bounds,
-                    &cursor,
-                    modus,
-                    zustand2,
-                    pivot,
-                    skalieren,
-                    &self.sender,
-                );
-                event_status = status;
-                messages.extend(nachrichten);
-            },
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &self.modus {
-                    if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten2 {
-                        let gleis_id = gleis_steuerung.id();
-                        if *bewegt {
-                            if !cursor.is_over(bounds) {
-                                messages.push(Nachricht::from(
-                                    ZustandAktualisierenEnum::GleisEntfernen(gleis_id),
-                                ));
-                            }
-                        } else {
-                            // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                            messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
-                        }
-                        messages.push(Nachricht::from(
-                            ZustandAktualisierenEnum::GehaltenAktualisieren(None),
-                        ));
-                        event_status = event::Status::Captured;
-                    }
-                }
-            },
-            Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
-                if let Some(canvas_pos) =
-                    berechne_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
-                {
-                    messages.push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(
-                        canvas_pos,
-                    )));
-                    messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
-                        canvas_pos,
-                    )));
-                    event_status = event::Status::Captured
-                }
-            },
+                    &mut event_status,
+                    &mut messages,
+                ),
+            Event::Touch(touch::Event::FingerPressed { id, position }) => self
+                .maus_oder_touch_pressed(
+                    Either::Right((id, position)),
+                    bounds,
+                    &mut event_status,
+                    &mut messages,
+                ),
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => self
+                .maus_oder_touch_released(
+                    Either::Left(cursor),
+                    bounds,
+                    &mut event_status,
+                    &mut messages,
+                ),
+            Event::Touch(
+                touch::Event::FingerLifted { id, position }
+                | touch::Event::FingerLost { id, position },
+            ) => self.maus_oder_touch_released(
+                Either::Right((id, position)),
+                bounds,
+                &mut event_status,
+                &mut messages,
+            ),
+            Event::Mouse(mouse::Event::CursorMoved { position }) => self.maus_oder_touch_moved(
+                Either::Left(position),
+                bounds,
+                &mut event_status,
+                &mut messages,
+            ),
+            Event::Touch(touch::Event::FingerMoved { id, position }) => self.maus_oder_touch_moved(
+                Either::Right((id, position)),
+                bounds,
+                &mut event_status,
+                &mut messages,
+            ),
             _otherwise => {},
         };
         if event_status == event::Status::Captured {
@@ -319,9 +429,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 self.letzte_maus_position = position;
                 Ok(())
             },
-            ZustandAktualisierenEnum::LetzterKlick(zeitpunkt) => {
+            ZustandAktualisierenEnum::LetzterKlick(quelle, zeitpunkt) => {
                 if let ModusDaten::Bauen { letzter_klick, .. } = &mut self.modus {
-                    *letzter_klick = zeitpunkt;
+                    *letzter_klick = Some((quelle, zeitpunkt));
+                } else {
+                    error!("LetzterKlick-Nachricht im {:?}-Modus!", &self.modus);
                 }
                 Ok(())
             },
@@ -329,14 +441,30 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 self.letzte_canvas_größe = größe;
                 Ok(())
             },
-            ZustandAktualisierenEnum::GehaltenAktualisieren(wert) => {
-                if let ModusDaten::Bauen { gehalten: gehalten2, .. } = &mut self.modus {
-                    *gehalten2 = wert;
+            ZustandAktualisierenEnum::GehaltenAktualisieren(quelle, wert) => {
+                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                    if let Some(wert) = wert {
+                        let bisher = gehalten.insert(quelle, wert);
+                        if bisher.is_some() {
+                            debug!("Aktualisiere gehaltenes Gleis für {quelle:?}.");
+                        } else {
+                            info!("Neues gehaltenes Gleis für {quelle:?}.");
+                        }
+                    } else {
+                        let bisher = gehalten.remove(&quelle);
+                        if bisher.is_some() {
+                            info!("Gehaltenes Gleis für {quelle:?} entfernt.");
+                        } else {
+                            warn!("Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!");
+                        }
+                    }
+                } else {
+                    error!("GehaltenAktualisieren-Nachricht im {:?}-Modus!", &self.modus);
                 }
                 Ok(())
             },
-            ZustandAktualisierenEnum::GehaltenBewegen(canvas_pos) => {
-                let _ = self.gehalten_bewegen(canvas_pos)?;
+            ZustandAktualisierenEnum::GehaltenBewegen(quelle, canvas_pos) => {
+                let _ = self.gehalten_bewegen(&quelle, canvas_pos)?;
                 Ok(())
             },
             ZustandAktualisierenEnum::GleisEntfernen(gleis_id) => {
