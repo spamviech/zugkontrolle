@@ -3539,7 +3539,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "assoc",
  "bincode",
