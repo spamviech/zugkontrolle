@@ -124,15 +124,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(())
     }
 
-    /// Leere die aktuell gehaltenen Gleise.
-    /// Danach müssen Gleise neu zum z.B. bewegen ausgewählt/angeklickt werden.
-    pub fn gehalten_leeren(&mut self) {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            info!("Leere aktuell gehaltene Gleise.");
-            gehalten.clear();
-        }
-    }
-
     /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)
     /// für das [Gleis] assoziiert mit der [GleisId].
     ///

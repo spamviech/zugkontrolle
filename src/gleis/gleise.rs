@@ -133,6 +133,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.modus = ModusDaten::neu(modus);
     }
 
+    /// Gibt es ein zur [KlickQuelle] gehörendes gehaltenes Gleis.
+    pub fn hat_gehaltenes_gleis(&self, klick_quelle: KlickQuelle) -> bool {
+        match &self.modus {
+            ModusDaten::Bauen { gehalten, .. } => gehalten.contains_key(&klick_quelle),
+            ModusDaten::Fahren => false,
+        }
+    }
+
     /// Aktuelle Pivot-Punkt und Dreh-Winkel
     pub fn pivot(&self) -> &Position {
         &self.pivot

@@ -169,6 +169,7 @@ pub struct Modal<'a, O, ElementNachricht, R> {
     overlay: Option<Element<'a, Nachricht<O, ElementNachricht>, R>>,
     initiales_overlay: &'a Overlay<O>,
     zeige_overlay: Box<dyn 'a + Fn(&O) -> Element<'a, Nachricht<O, ElementNachricht>, R>>,
+    passthrough_event: Box<dyn 'a + Fn(&Event) -> bool>,
     schließe_bei_esc: bool,
 }
 
@@ -179,6 +180,7 @@ impl<Overlay: Debug, Nachricht, R> Debug for Modal<'_, Overlay, Nachricht, R> {
             .field("overlay", &self.overlay.as_ref().map(|_| "<Element>"))
             .field("initiales_overlay", &self.initiales_overlay)
             .field("zeige_overlay", &"<closure>")
+            .field("passthrough_event", &"<closure>")
             .field("schließe_bei_esc", &self.schließe_bei_esc)
             .finish()
     }
@@ -232,11 +234,15 @@ impl<'a, O, ElementNachricht, R> Modal<'a, O, ElementNachricht, R> {
         initiales_overlay: &'a Overlay<O>,
         zeige_overlay: impl 'a + Fn(&O) -> Element<'a, Nachricht<O, ElementNachricht>, R>,
     ) -> Self {
+        fn kein_passthrough_event(_event: &Event) -> bool {
+            false
+        }
         Modal {
             underlay: underlay.into(),
             overlay: initiales_overlay.as_ref().map(&zeige_overlay),
             initiales_overlay,
             zeige_overlay: Box::new(zeige_overlay),
+            passthrough_event: Box::new(kein_passthrough_event),
             schließe_bei_esc: false,
         }
     }
@@ -244,6 +250,13 @@ impl<'a, O, ElementNachricht, R> Modal<'a, O, ElementNachricht, R> {
     /// Schließe das Overlay bei einem Druck der Esc-Taste.
     pub fn schließe_bei_esc(mut self) -> Self {
         self.schließe_bei_esc = true;
+        self
+    }
+
+    /// Bearbeite die von `passthrough_event` akzeptierten Events zum Underlay,
+    /// selbst wenn das Overlay aktuell angezeigt wird.
+    pub fn passthrough_event(mut self, passthrough_event: impl 'a + Fn(&Event) -> bool) -> Self {
+        self.passthrough_event = Box::new(passthrough_event);
         self
     }
 }
@@ -386,7 +399,7 @@ where
         viewport: &Rectangle,
     ) -> event::Status {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
-        if zustand.overlay.is_none() {
+        if zustand.overlay.is_none() || (self.passthrough_event)(&event) {
             let mut messages = Vec::new();
             let mut inner_shell = Shell::new(&mut messages);
             let mut status = self.underlay.as_widget_mut().on_event(

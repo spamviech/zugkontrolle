@@ -65,7 +65,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
     /// Zeige einen neuen [AuswahlZustand], z.B. zum anpassen der Anschlüsse eines Gleises.
     pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
-        self.gleise.gehalten_leeren();
         *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
     }
 
