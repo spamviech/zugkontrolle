@@ -64,11 +64,15 @@ fn aktion_bauen(
     halte_position: Vektor,
     winkel: Winkel,
 ) {
-    // FIXME quelle-Check auf Maus/Finger (ohne ID) beschränken
     let diff = letzter_klick
         .as_ref()
         .and_then(|(letzte_quelle, letzte_zeit)| {
-            if *letzte_quelle == quelle {
+            let selbe_klick_art = match (letzte_quelle, quelle) {
+                (KlickQuelle::Maus, KlickQuelle::Maus) => true,
+                (KlickQuelle::Touch(_), KlickQuelle::Touch(_)) => true,
+                _ => false,
+            };
+            if selbe_klick_art {
                 now.checked_duration_since(*letzte_zeit)
             } else {
                 None
