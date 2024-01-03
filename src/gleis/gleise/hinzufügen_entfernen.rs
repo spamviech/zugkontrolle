@@ -1,6 +1,6 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use log::error;
+use log::{error, info};
 
 use crate::{
     anschluss::Lager,
@@ -83,13 +83,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 ) => AnyIdSteuerung::Kreuzung(id.clone(), steuerung),
                 wert => unreachable!("Inkompatible GleisId und Steuerung: {wert:?}"),
             };
-            let quelle_str = format!("{klick_quelle:?}");
             let bisher = gehalten.insert(
                 klick_quelle,
                 Gehalten { gleis_steuerung, halte_position, winkel, bewegt: true },
             );
             if let Some(bisher) = bisher {
-                error!("Gehaltenes Gleis für {quelle_str} ersetzt: {bisher:?}");
+                error!("Gehaltenes Gleis für {klick_quelle:?} ersetzt: {bisher:?}");
+            } else {
+                info!("Neues gehaltenes Gleis für {klick_quelle:?}.");
             }
         }
         Ok(gleis_id)

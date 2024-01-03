@@ -14,6 +14,7 @@ use iced::{
     },
     Element, Length, Point, Rectangle, Renderer,
 };
+use log::debug;
 
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
@@ -196,9 +197,11 @@ where
         }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                debug!("{event:?}");
                 pressed(&self.id, KlickQuelle::Maus, cursor, bounds)
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
+                debug!("{event:?}");
                 pressed(&self.id, KlickQuelle::Touch(id), Cursor::Available(position), bounds)
             },
             _ => (event::Status::Ignored, None),

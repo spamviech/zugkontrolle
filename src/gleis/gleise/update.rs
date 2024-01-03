@@ -12,7 +12,7 @@ use iced::{
     widget::canvas::{event, Event, Program},
     Point, Rectangle, Renderer,
 };
-use log::{error, warn};
+use log::{debug, error, info, warn};
 use nonempty::{nonempty, NonEmpty};
 
 use crate::{
@@ -52,7 +52,7 @@ fn berechne_canvas_position(
     })
 }
 
-const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
+const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(500);
 
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
 fn aktion_bauen(
@@ -64,6 +64,7 @@ fn aktion_bauen(
     halte_position: Vektor,
     winkel: Winkel,
 ) {
+    // FIXME quelle-Check auf Maus/Finger (ohne ID) beschränken
     let diff = letzter_klick
         .as_ref()
         .and_then(|(letzte_quelle, letzte_zeit)| {
@@ -286,6 +287,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         } = &self.modus
         {
             if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
+                // FIXME warum wird nur die letzte_quelle berücksichtigt?
                 if *letzte_quelle == quelle {
                     let gleis_id = gleis_steuerung.id();
                     if *bewegt {
@@ -332,6 +334,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 ..
             } = &self.modus
             {
+                // FIXME warum wird nur die letzte_quelle berücksichtigt?
                 if gehalten.contains_key(&quelle) && (*letzte_quelle == quelle) {
                     messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
                         quelle, canvas_pos,
@@ -359,6 +362,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 x: Skalar(bounds.width),
                 y: Skalar(bounds.height),
             }))];
+        match &event {
+            Event::Mouse(_) | Event::Touch(_) => debug!("{event:?}"),
+            _ => {},
+        }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => self
                 .maus_oder_touch_pressed(
@@ -447,10 +454,17 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             ZustandAktualisierenEnum::GehaltenAktualisieren(quelle, wert) => {
                 if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
                     if let Some(wert) = wert {
-                        let _ = gehalten.insert(quelle, wert);
+                        let bisher = gehalten.insert(quelle, wert);
+                        if bisher.is_some() {
+                            debug!("Aktualisiere gehaltenes Gleis für {quelle:?}.");
+                        } else {
+                            info!("Neues gehaltenes Gleis für {quelle:?}.");
+                        }
                     } else {
                         let bisher = gehalten.remove(&quelle);
-                        if bisher.is_none() {
+                        if bisher.is_some() {
+                            info!("Gehaltenes Gleis für {quelle:?} entfernt.");
+                        } else {
                             warn!("Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!");
                         }
                     }
