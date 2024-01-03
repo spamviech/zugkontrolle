@@ -280,31 +280,23 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 (Cursor::Available(position), KlickQuelle::Touch(finger))
             },
         };
-        if let ModusDaten::Bauen {
-            gehalten,
-            letzter_klick: Some((letzte_quelle, _zeitpunkt)),
-            ..
-        } = &self.modus
-        {
+        if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
             if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
-                // FIXME warum wird nur die letzte_quelle berücksichtigt?
-                if *letzte_quelle == quelle {
-                    let gleis_id = gleis_steuerung.id();
-                    if *bewegt {
-                        if !cursor.is_over(bounds) {
-                            messages.push(Nachricht::from(
-                                ZustandAktualisierenEnum::GleisEntfernen(gleis_id),
-                            ));
-                        }
-                    } else {
-                        // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                        messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
+                let gleis_id = gleis_steuerung.id();
+                if *bewegt {
+                    if !cursor.is_over(bounds) {
+                        messages.push(Nachricht::from(ZustandAktualisierenEnum::GleisEntfernen(
+                            gleis_id,
+                        )));
                     }
-                    messages.push(Nachricht::from(
-                        ZustandAktualisierenEnum::GehaltenAktualisieren(quelle, None),
-                    ));
-                    *event_status = event::Status::Captured;
+                } else {
+                    // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
+                    messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
                 }
+                messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
+                    quelle, None,
+                )));
+                *event_status = event::Status::Captured;
             }
         }
     }
@@ -328,14 +320,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         ) {
             messages
                 .push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(canvas_pos)));
-            if let ModusDaten::Bauen {
-                gehalten,
-                letzter_klick: Some((letzte_quelle, _zeitpunkt)),
-                ..
-            } = &self.modus
-            {
-                // FIXME warum wird nur die letzte_quelle berücksichtigt?
-                if gehalten.contains_key(&quelle) && (*letzte_quelle == quelle) {
+            if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
+                if gehalten.contains_key(&quelle) {
                     messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
                         quelle, canvas_pos,
                     )));
