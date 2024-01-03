@@ -3,6 +3,8 @@
 ## Unreleased changes
 
 - Gleise-Canvas hört auf Touch-Eingaben. Es können mehrere Gleise gleichzeitig bewegt werden.
+- Modal-Widget unterstützt passthrough_events, die immer vom Underlay verarbeitet werden,
+  selbst wenn das Overlay aktuell angezeigt wird.
 
 ## 4.0.0
 

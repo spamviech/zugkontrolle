@@ -596,22 +596,23 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, ElementNachricht>,
     ) -> event::Status {
-        if (self.passthrough_event)(&event) {
-            return event::Status::Ignored;
-        }
         let mut messages = Vec::new();
         let mut inner_shell = Shell::new(&mut messages);
         let mut status = if let Some(overlay) = &mut self.modal_overlay {
-            overlay.as_widget_mut().on_event(
-                self.state_overlay,
-                event,
-                layout,
-                cursor_position,
-                renderer,
-                clipboard,
-                &mut inner_shell,
-                &self.zustand.viewport,
-            )
+            if (self.passthrough_event)(&event) {
+                event::Status::Ignored
+            } else {
+                overlay.as_widget_mut().on_event(
+                    self.state_overlay,
+                    event,
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    &mut inner_shell,
+                    &self.zustand.viewport,
+                )
+            }
         } else if let Some(overlay) = &mut self.element_overlay {
             overlay.on_event(event, layout, cursor_position, renderer, clipboard, &mut inner_shell)
         } else {
