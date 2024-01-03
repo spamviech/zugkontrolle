@@ -52,7 +52,7 @@ fn berechne_canvas_position(
     })
 }
 
-const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(500);
+const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
 fn aktion_bauen(

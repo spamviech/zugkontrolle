@@ -52,7 +52,7 @@ pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     LetzterKlick(KlickQuelle, Instant),
     /// Aktualisiere die letzte bekannte Canvas-Größe.
     LetzteCanvasGröße(Vektor),
-    /// Aktualisiere das aktuell gehaltene Gleis.
+    /// Aktualisiere das aktuell von der [KlickQuelle] gehaltene Gleis.
     GehaltenAktualisieren(KlickQuelle, Option<Gehalten>),
     /// Bewege ein Gleis an die neue Position.
     GehaltenBewegen(KlickQuelle, Vektor),
