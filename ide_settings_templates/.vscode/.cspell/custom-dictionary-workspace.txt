@@ -75,6 +75,7 @@ demangle
 deque
 deserialisiere
 Deserialisiere
+Deserialisieren
 dlib
 docstrings
 dpkg
@@ -326,6 +327,7 @@ srgb
 Stephane
 steuerung
 steuerungen
+strom
 strsim
 sublicensable
 Sverdrup
