@@ -36,7 +36,7 @@ pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr with Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
 
-    nachschlagen::impl_nachschlagen(args, ast).into()
+    nachschlagen::impl_nachschlagen(&args, &ast).into()
 }
 
 mod erstelle_enum;
@@ -46,7 +46,7 @@ pub fn erstelle_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    erstelle_enum::erstelle_enum(args, ast).into()
+    erstelle_enum::erstelle_enum(args, &ast).into()
 }
 
 mod chain;
@@ -56,7 +56,7 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    chain::make_chain(args, ast).into()
+    chain::make_chain(&args, &ast).into()
 }
 
 mod richtung;
@@ -67,7 +67,7 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    richtung::erstelle_richtung(args, ast).into()
+    richtung::erstelle_richtung(&args, &ast).into()
 }
 
 mod alias;
@@ -102,7 +102,7 @@ mod daten;
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
-    daten::erstelle_methoden(attr.into(), ast).into()
+    daten::erstelle_methoden(&attr.into(), &ast).into()
 }
 
 mod sum_type_from;
@@ -120,7 +120,7 @@ mod metadata;
 pub fn verwendete_crates(input: TokenStream) -> TokenStream {
     let target = parse_macro_input!(input);
 
-    metadata::verwendete_crates(target).into()
+    metadata::verwendete_crates(&target).into()
 }
 
 #[proc_macro]
@@ -128,5 +128,5 @@ pub fn verwendete_crates(input: TokenStream) -> TokenStream {
 /// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
 /// Die targets werden über `rustc --print target-list` ausgelesen.
 pub fn target_crates(input: TokenStream) -> TokenStream {
-    metadata::target_crates(input.into()).into()
+    metadata::target_crates(&input.into()).into()
 }

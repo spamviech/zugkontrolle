@@ -6,7 +6,7 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{punctuated::Punctuated, token::Comma, ItemEnum, Path};
 
-pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -> TokenStream {
+pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
     let ItemEnum { vis, variants, ident, .. } = &item;

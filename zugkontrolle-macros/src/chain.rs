@@ -8,7 +8,7 @@ use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReturnType, Signature};
 
 /// [`crate::make_chain`]
 #[allow(clippy::single_call_fn)]
-pub(crate) fn make_chain(args: TokenStream, ast: ItemFn) -> TokenStream {
+pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {

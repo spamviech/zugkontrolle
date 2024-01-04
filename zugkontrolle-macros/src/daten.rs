@@ -11,7 +11,7 @@ use syn::{
     Signature, Type, TypeParam, TypeParamBound,
 };
 
-fn ersetze_generic_path(generic: &Ident, insert: Vec<PathSegment>, mut path: Path) -> Path {
+fn ersetze_generic_path(generic: &Ident, insert: &[PathSegment], mut path: Path) -> Path {
     let num_segments = path.segments.len();
     let (segments, segment) =
         path.segments.into_iter().fold((Punctuated::new(), 0usize), |mut acc, mut path_segment| {
@@ -23,7 +23,7 @@ fn ersetze_generic_path(generic: &Ident, insert: Vec<PathSegment>, mut path: Pat
                         .into_iter()
                         .map(|generic_arg| {
                             if let GenericArgument::Type(ty) = generic_arg {
-                                GenericArgument::Type(ersetze_generic(generic, insert.clone(), ty))
+                                GenericArgument::Type(ersetze_generic(generic, insert, ty))
                             } else {
                                 generic_arg
                             }
@@ -35,13 +35,13 @@ fn ersetze_generic_path(generic: &Ident, insert: Vec<PathSegment>, mut path: Pat
                     parenthesized.inputs = parenthesized
                         .inputs
                         .into_iter()
-                        .map(|ty| ersetze_generic(generic, insert.clone(), ty))
+                        .map(|ty| ersetze_generic(generic, insert, ty))
                         .collect();
                     parenthesized.output = match parenthesized.output {
                         ReturnType::Default => ReturnType::Default,
                         ReturnType::Type(r_arrow, ty) => ReturnType::Type(
                             r_arrow,
-                            Box::new(ersetze_generic(generic, insert.clone(), *ty)),
+                            Box::new(ersetze_generic(generic, insert, *ty)),
                         ),
                     };
                     PathArguments::Parenthesized(parenthesized)
@@ -60,7 +60,7 @@ fn ersetze_generic_path(generic: &Ident, insert: Vec<PathSegment>, mut path: Pat
     path
 }
 
-fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type {
+fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
     match ty {
         Type::Infer(infer) => Type::Infer(infer),
         Type::Macro(mac) => Type::Macro(mac),
@@ -145,7 +145,7 @@ fn ersetze_generic(generic: &Ident, insert: Vec<PathSegment>, ty: Type) -> Type 
     }
 }
 
-pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemFn) -> TokenStream {
+pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !attr.is_empty() {
@@ -255,7 +255,7 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemFn) -> TokenStr
                             r_arrow.clone(),
                             Box::new(ersetze_generic(
                                 generic_ident,
-                                insert_ty.clone(),
+                                insert_ty,
                                 ty.as_ref().clone(),
                             )),
                         )
@@ -301,37 +301,37 @@ pub(crate) fn erstelle_methoden(attr: TokenStream, item: ImplItemFn) -> TokenStr
                         }
                         gerade_types.push(ersetze_generic(
                             generic_ident,
-                            gerade.clone(),
+                            &gerade,
                             ty.as_ref().clone(),
                         ));
                         kurve_types.push(ersetze_generic(
                             generic_ident,
-                            kurve.clone(),
+                            &kurve,
                             ty.as_ref().clone(),
                         ));
                         weiche_types.push(ersetze_generic(
                             generic_ident,
-                            weiche.clone(),
+                            &weiche,
                             ty.as_ref().clone(),
                         ));
                         dreiwege_weiche_types.push(ersetze_generic(
                             generic_ident,
-                            dreiwege_weiche.clone(),
+                            &dreiwege_weiche,
                             ty.as_ref().clone(),
                         ));
                         kurven_weiche_types.push(ersetze_generic(
                             generic_ident,
-                            kurven_weiche.clone(),
+                            &kurven_weiche,
                             ty.as_ref().clone(),
                         ));
                         s_kurven_weiche_types.push(ersetze_generic(
                             generic_ident,
-                            s_kurven_weiche.clone(),
+                            &s_kurven_weiche,
                             ty.as_ref().clone(),
                         ));
                         kreuzung_types.push(ersetze_generic(
                             generic_ident,
-                            kreuzung.clone(),
+                            &kreuzung,
                             ty.as_ref().clone(),
                         ));
                     },

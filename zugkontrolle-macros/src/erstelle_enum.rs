@@ -48,7 +48,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     }
 }
 
-pub(crate) fn erstelle_enum(args: TokenStream, ast: ItemEnum) -> TokenStream {
+pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
     let (arg_vis, arg_ident) = match parse_args(args) {
         Ok(vid_ident) => vid_ident,
         Err(errors) => {
