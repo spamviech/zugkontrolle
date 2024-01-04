@@ -1,12 +1,24 @@
 [package]
 name = "zugkontrolle"
 version = "4.0.2"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[workspace]
+members = ["zugkontrolle-macros"]
+
+[workspace.package]
 authors = ["spamviech <spamviech@web.de>"]
 edition = "2021"
 license = "MIT"
 publish = false
 resolver = "2"
 rust-version = "1.69"
+repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
@@ -17,7 +29,10 @@ default = []
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
 raspi = ["rppal"]
 
-[lints.rust]
+[lints]
+workspace = true
+
+[workspace.lints.rust]
 # Aktiviere alle Warnungen/Lints, außer: box_pointers, non_ascii_idents, unstable_features
 absolute_paths_not_starting_with_crate = "warn"
 elided_lifetimes_in_paths = "warn"
@@ -47,12 +62,12 @@ unused_import_braces = "warn"
 unused_lifetimes = "warn"
 unused_qualifications = "warn"
 unused_results = "warn"
-variant_size_difference = "warn"
+variant_size_differences = "warn"
 box_pointers = "allow"
 non_ascii_idents = "allow"
 unstable_features = "allow"
 
-[lints.clippy]
+[workspace.lints.clippy]
 correctness = "deny"
 suspicious = "warn"
 complexity = "warn"
@@ -63,7 +78,7 @@ cargo = "warn"
 # restriction group lints
 absolute_paths = "warn"
 alloc_instead_of_core = "warn"
-allow_attributes = "allow"                  # expect-attribute still experimental
+allow_attributes = "allow"               # expect-attribute still experimental
 allow_attributes_without_reason = "warn"
 arithmetic_side_effects = "warn"
 as_conversions = "warn"
@@ -74,35 +89,35 @@ clone_on_ref_ptr = "warn"
 create_dir = "warn"
 dbg_macro = "warn"
 decimal_literal_representation = "warn"
-default_numeric_fallback = "allow"          # nervig
+default_numeric_fallback = "allow"       # nervig
 default_union_representation = "warn"
-deref_by_slicing = "allow"                  # bin anderer Meinung
-disallowed_script_idents = "allow"          # keine Einschränkung für Namensgebung
+deref_by_slicing = "allow"               # bin anderer Meinung
+disallowed_script_idents = "allow"       # keine Einschränkung für Namensgebung
 else_if_without_else = "warn"
 empty_drop = "warn"
 empty_structs_with_brackets = "warn"
 error_impl_error = "warn"
-exhaustive_enums = "allow"                  # exhaustive sollte der Standard sein
-exhaustive_structs = "allow"                # exhaustive sollte der Standard sein
+exhaustive_enums = "allow"               # exhaustive sollte der Standard sein
+exhaustive_structs = "allow"             # exhaustive sollte der Standard sein
 exit = "warn"
-expect_used = "allow"                       # expect wird öfter verwendet um Invarianten auszunutzen
+expect_used = "allow"                    # expect wird öfter verwendet um Invarianten auszunutzen
 filetype_is_file = "warn"
-float_arithmetic = "allow"                  # float-Berechnungen sind kein Problem
+float_arithmetic = "allow"               # float-Berechnungen sind kein Problem
 float_cmp_const = "warn"
 fn_to_numeric_cast_any = "warn"
 format_push_string = "warn"
 get_unwrap = "warn"
 host_endian_bytes = "warn"
 if_then_some_else_none = "warn"
-impl_trait_in_params = "allow"              # Erlaubt manche Typ-Parameter nicht zu benennen
-implicit_return = "allow"                   # idiomatic rust
+impl_trait_in_params = "allow"           # Erlaubt manche Typ-Parameter nicht zu benennen
+implicit_return = "allow"                # idiomatic rust
 indexing_slicing = "warn"
 inline_asm_x86_att_syntax = "warn"
 inline_asm_x86_intel_syntax = "warn"
 integer_division = "warn"
 large_include_file = "warn"
-let_underscore_must_use = "allow"           # wird verwendet, um die must_use-Warnung auszuschalten
-let_underscore_untyped = "allow"            # nervig, jede Typ-Anpassung der aufgerufenen Funktion muss dupliziert werden
+let_underscore_must_use = "allow"        # wird verwendet, um die must_use-Warnung auszuschalten
+let_underscore_untyped = "allow"         # nervig, jede Typ-Anpassung der aufgerufenen Funktion muss dupliziert werden
 little_endian_bytes = "warn"
 lossy_float_literal = "warn"
 map_err_ignore = "warn"
@@ -111,46 +126,46 @@ min_ident_chars = "warn"
 missing_assert_message = "warn"
 missing_asserts_for_indexing = "warn"
 missing_docs_in_private_items = "warn"
-missing_inline_in_public_items = "allow"    # die meisten functions sind groß genug, dass inline nicht zwingend Sinn macht
-missing_trait_methods = "allow"             # soll nicht global aktiviert werden
+missing_inline_in_public_items = "allow" # die meisten functions sind groß genug, dass inline nicht zwingend Sinn macht
+missing_trait_methods = "allow"          # soll nicht global aktiviert werden
 mixed_read_write_in_expression = "warn"
 mod_module_files = "deny"
-modulo_arithmetic = "allow"                 # nur ein Problem, sobald FFI involviert ist
+modulo_arithmetic = "allow"              # nur ein Problem, sobald FFI involviert ist
 multiple_inherent_impl = "warn"
 multiple_unsafe_ops_per_block = "warn"
 mutex_atomic = "warn"
 needless_raw_strings = "warn"
-non_ascii_literal = "allow"                 # wenn ein Editor kein unicode kann sollte er nicht verwendet werden...
+non_ascii_literal = "allow"              # wenn ein Editor kein unicode kann sollte er nicht verwendet werden...
 panic = "warn"
 panic_in_result_fn = "warn"
 partial_pub_fields = "warn"
-pattern_type_mismatch = "allow"             # benötigt viel boilerplate um match-statements
+pattern_type_mismatch = "allow"          # benötigt viel boilerplate um match-statements
 print_stderr = "warn"
 print_stdout = "warn"
 pub_use = "warn"
-pub_with_shorthand = "allow"                # pub_without_shorthand aktiviert
+pub_with_shorthand = "allow"             # pub_without_shorthand aktiviert
 pub_without_shorthand = "warn"
-question_mark_used = "allow"                # ?-operator ist super
+question_mark_used = "allow"             # ?-operator ist super
 rc_buffer = "warn"
 rc_mutex = "warn"
 redundant_type_annotations = "warn"
 ref_patterns = "warn"
 rest_pat_in_fully_bound_structs = "warn"
 same_name_method = "warn"
-self_named_module_files = "allow"           # mod_module_files aktiviert
+self_named_module_files = "allow"        # mod_module_files aktiviert
 semicolon_inside_block = "warn"
-semicolon_outside_block = "allow"           # semicolon_inside_block aktiviert
+semicolon_outside_block = "allow"        # semicolon_inside_block aktiviert
 separated_literal_suffix = "warn"
-shadow_reuse = "allow"                      # common rust pattern, führt sonst zu a1 = a0 + 3, ...
-shadow_same = "allow"                       # nützlich, wenn die ursprüngliche mutability/ownership/... nicht mehr gebraucht wird
+shadow_reuse = "allow"                   # common rust pattern, führt sonst zu a1 = a0 + 3, ...
+shadow_same = "allow"                    # nützlich, wenn die ursprüngliche mutability/ownership/... nicht mehr gebraucht wird
 shadow_unrelated = "warn"
-single_call_fn = "allow"                    # single use Funktionen verbessern die Code-Struktur
-single_char_lifetime_names = "allow"        # einzelner Buchstabe ist "üblich"
-std_instead_of_alloc = "allow"              # kein no_std-crate
-std_instead_of_core = "allow"               # kein no_std-crate
+single_call_fn = "allow"                 # single use Funktionen verbessern die Code-Struktur
+single_char_lifetime_names = "allow"     # einzelner Buchstabe ist "üblich"
+std_instead_of_alloc = "allow"           # kein no_std-crate
+std_instead_of_core = "allow"            # kein no_std-crate
 str_to_string = "warn"
 string_add = "warn"
-string_lit_chars_any = "allow"              # lint existiert aus Performance-Gründen, app ist nicht Performance-kritisch
+string_lit_chars_any = "allow"           # lint existiert aus Performance-Gründen, app ist nicht Performance-kritisch
 string_slice = "warn"
 string_to_string = "warn"
 suspicious_xor_used_as_pow = "warn"
@@ -163,11 +178,11 @@ unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unnecessary_self_imports = "warn"
 unneeded_field_pattern = "warn"
-unreachable = "allow"                       # unreachable wird verwendet um Invarianten auszunutzen
-unseparated_literal_suffix = "allow"        # separated_literal_suffix aktiviert
-unwrap_in_result = "allow"                  # führt nur dazu nicht-behandelbare Fehler-Varianten hinzufügen zu müssen
+unreachable = "allow"                    # unreachable wird verwendet um Invarianten auszunutzen
+unseparated_literal_suffix = "allow"     # separated_literal_suffix aktiviert
+unwrap_in_result = "allow"               # führt nur dazu nicht-behandelbare Fehler-Varianten hinzufügen zu müssen
 unwrap_used = "warn"
-use_debug = "allow"                         # TODO wird aktuell für die meisten Fehlermeldungen verwendet. Allow, bis andere Lints adressiert wurden.
+use_debug = "allow"                      # TODO wird aktuell für die meisten Fehlermeldungen verwendet. Allow, bis andere Lints adressiert wurden.
 verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
 

@@ -1,16 +1,19 @@
 [package]
 name = "zugkontrolle-macros"
 version = "4.0.0"
-authors = ["Wolfgang Witt <Wolfgang.Witt@campus.lmu.de>"]
-edition = "2021"
-license = "MIT"
-publish = false
-resolver = "2"
-rust-version = "1.59"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 proc-macro = true
+
+[lints]
+workspace = true
 
 [dependencies]
 cargo_metadata = "0.18.1"
