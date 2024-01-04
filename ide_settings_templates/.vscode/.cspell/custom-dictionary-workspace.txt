@@ -229,6 +229,7 @@ nachrichten
 naga
 nanos
 NANOS
+newtype
 Newtype
 Newtypes
 Nieuwenhuis
@@ -309,6 +310,7 @@ Seonghoon
 serde
 serialisierbar
 Serialisierbar
+Serialisierbare
 Sgeo
 simd
 siphasher
