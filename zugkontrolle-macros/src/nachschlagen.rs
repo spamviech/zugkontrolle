@@ -17,6 +17,8 @@ pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -
         } else {
             "Collection missing!".to_string()
         });
+        // Skip, damit die Iterator-Typen übereinstimmen.
+        #[allow(clippy::iter_skip_zero)]
         (None, None, dummy.iter().skip(0))
     } else {
         let fst = &args[0];
