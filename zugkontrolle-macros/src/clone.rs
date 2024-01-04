@@ -1,51 +1,18 @@
 //! Implementation of the Clone-Trait without requirement for generic parameters.
 
-use std::collections::HashMap;
 use std::iter;
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::{self, Punctuated},
-    token::Plus,
-    Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam,
-    Generics, Ident, LifetimeParam, Token, TypeParamBound, Variant, WhereClause,
+    punctuated::{self},
+    Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, Ident, Token,
+    Variant, WhereClause,
 };
 
-use crate::utils::{mark_fields_generic, parse_attributes};
-
-/// Relevante Informationen aus [Generics], partitioniert nach ihrer Art.
-struct PartitionierteGenericParameter<'t> {
-    /// Lifetime-Parameter
-    lifetimes: Vec<&'t LifetimeParam>,
-    /// Typ-Parameter mit Trait-Bounds
-    types: HashMap<&'t Ident, (&'t Punctuated<TypeParamBound, Plus>, bool)>,
-    /// Typ-Parameter ohne Trait-Bounds
-    type_names: Vec<&'t Ident>,
-}
-
-/// Extrahiere relevante Informationen aus den [Generics] und partitioniere sie nach ihrer Art.
-#[allow(clippy::type_complexity)]
-fn partitioniere_generics(generics: &Generics) -> PartitionierteGenericParameter<'_> {
-    generics.params.iter().fold(
-        PartitionierteGenericParameter {
-            lifetimes: Vec::new(),
-            types: HashMap::new(),
-            type_names: Vec::new(),
-        },
-        |PartitionierteGenericParameter { mut lifetimes, mut types, mut type_names }, generic| {
-            match generic {
-                GenericParam::Lifetime(lt) => lifetimes.push(lt),
-                GenericParam::Type(ty) => {
-                    type_names.push(&ty.ident);
-                    let _ = types.insert(&ty.ident, (&ty.bounds, false));
-                },
-                GenericParam::Const(_c) => {},
-            }
-            PartitionierteGenericParameter { lifetimes, types, type_names }
-        },
-    )
-}
+use crate::utils::{
+    mark_fields_generic, parse_attributes, partitioniere_generics, PartitionierteGenericParameter,
+};
 
 /// Erzeuge den Funktions-Körper (die Implementierung) für die `clone`-Methode.
 fn erzeuge_body(

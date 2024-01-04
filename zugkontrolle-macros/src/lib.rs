@@ -88,6 +88,7 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
 
 mod daten;
 #[proc_macro_attribute]
+#[deprecated]
 /// Erstelle spezialisierte Methoden für alle Gleis-Typen mit entsprechendem Suffix.
 /// Notwendig, damit `DatenAuswahl` kein Teil des APIs wird.
 ///

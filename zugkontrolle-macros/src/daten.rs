@@ -1,4 +1,4 @@
-//! Erstelle Methoden für alle Typen in GleiseDaten
+//! Erstelle Methoden für alle Typen in `GleiseDaten`
 
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
@@ -11,6 +11,7 @@ use syn::{
     Signature, Type, TypeParam, TypeParamBound,
 };
 
+/// Ersetzte den `generic`-Parameter durch den übergebenen [Pfad].
 fn ersetze_generic_path(generic: &Ident, insert: &[PathSegment], mut path: Path) -> Path {
     let num_segments = path.segments.len();
     let (segments, segment) =
@@ -47,19 +48,23 @@ fn ersetze_generic_path(generic: &Ident, insert: &[PathSegment], mut path: Path)
                     PathArguments::Parenthesized(parenthesized)
                 },
             };
-            acc.1 += 1;
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                acc.1 += 1;
+            }
             if &path_segment.ident == generic {
-                acc.0.extend(insert.iter().cloned())
+                acc.0.extend(insert.iter().cloned());
             } else {
-                acc.0.push(path_segment)
+                acc.0.push(path_segment);
             }
             acc
         });
-    assert!(segment == num_segments);
+    assert!(segment == num_segments, "Sanity check");
     path.segments = segments;
     path
 }
 
+/// Ersetzte den `generic`-Parameter durch den übergebenen [Type].
 fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
     match ty {
         Type::Infer(infer) => Type::Infer(infer),
@@ -72,8 +77,7 @@ fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
                 .into_iter()
                 .map(|bound| {
                     if let TypeParamBound::Trait(mut trait_bound) = bound {
-                        trait_bound.path =
-                            ersetze_generic_path(generic, insert.clone(), trait_bound.path);
+                        trait_bound.path = ersetze_generic_path(generic, insert, trait_bound.path);
                         TypeParamBound::Trait(trait_bound)
                     } else {
                         bound
@@ -111,7 +115,7 @@ fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
             type_tuple.elems = type_tuple
                 .elems
                 .into_iter()
-                .map(|elem| ersetze_generic(generic, insert.clone(), elem))
+                .map(|elem| ersetze_generic(generic, insert, elem))
                 .collect();
             Type::Tuple(type_tuple)
         },
@@ -120,36 +124,43 @@ fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
                 .inputs
                 .into_iter()
                 .map(|mut bare_fn_arg| {
-                    bare_fn_arg.ty = ersetze_generic(generic, insert.clone(), bare_fn_arg.ty);
+                    bare_fn_arg.ty = ersetze_generic(generic, insert, bare_fn_arg.ty);
                     bare_fn_arg
                 })
                 .collect();
             type_bar_fn.output = match type_bar_fn.output {
                 ReturnType::Default => ReturnType::Default,
-                ReturnType::Type(r_arrow, ty) => ReturnType::Type(
-                    r_arrow,
-                    Box::new(ersetze_generic(generic, insert.clone(), *ty)),
-                ),
+                ReturnType::Type(r_arrow, ret_ty) => {
+                    ReturnType::Type(r_arrow, Box::new(ersetze_generic(generic, insert, *ret_ty)))
+                },
             };
             Type::BareFn(type_bar_fn)
         },
         Type::Path(mut type_path) => {
-            type_path.path = ersetze_generic_path(generic, insert.clone(), type_path.path);
+            type_path.path = ersetze_generic_path(generic, insert, type_path.path);
             type_path.qself = type_path.qself.map(|mut qself| {
                 qself.ty = Box::new(ersetze_generic(generic, insert, *qself.ty));
                 qself
             });
             Type::Path(type_path)
         },
-        _ => unimplemented!("Unsupported Argument type: {:?}", ty),
+        _ => {
+            #[allow(clippy::unimplemented)]
+            {
+                unimplemented!("Unsupported Argument type: {:?}", ty)
+            }
+        },
     }
 }
 
+// ist deprecated und wird demnächst entfernt
+#[allow(clippy::too_many_lines)]
+/// [`crate::erstelle_daten_methoden`]
 pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !attr.is_empty() {
-        errors.push(format!("Keine Argumente unterstützt, bekommen: {attr}"))
+        errors.push(format!("Keine Argumente unterstützt, bekommen: {attr}"));
     }
 
     let mut methoden_definitionen: Option<TokenStream> = None;
@@ -199,7 +210,7 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
         let ImplItemFn { sig: Signature { ident, generics, inputs, output, .. }, attrs, .. } =
             &item;
         let doc_attrs: Vec<&Attribute> =
-            attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
+            attrs.iter().filter(|this_attr| this_attr.path().is_ident("doc")).collect();
         let gerade_ident = format_ident!("{}_gerade", ident);
         let kurve_ident = format_ident!("{}_kurve", ident);
         let weiche_ident = format_ident!("{}_weiche", ident);
@@ -210,9 +221,10 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
 
         let mut option_generic_ident = None;
         let mut generic_params = Punctuated::new();
-        for generic in generics.params.iter() {
+        for generic in &generics.params {
+            #[allow(clippy::wildcard_enum_match_arm)]
             match generic {
-                GenericParam::Type(TypeParam { ident, bounds, .. })
+                GenericParam::Type(TypeParam { ident: ty_ident, bounds, .. })
                     if bounds.iter().any(|bound| {
                         if let TypeParamBound::Trait(trait_bound) = bound {
                             trait_bound
@@ -220,14 +232,13 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
                                 .segments
                                 .iter()
                                 .last()
-                                .map(|segment| segment.ident.to_string() == "DatenAuswahl")
-                                .unwrap_or(false)
+                                .map_or(false, |segment| segment.ident == "DatenAuswahl")
                         } else {
                             false
                         }
                     }) =>
                 {
-                    option_generic_ident = Some(ident);
+                    option_generic_ident = Some(ty_ident);
                 },
                 other => generic_params.push(other.clone()),
             }
@@ -252,7 +263,7 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
                 ReturnType::Type(r_arrow, ty) => {
                     let return_type = |insert_ty: &Vec<PathSegment>| {
                         ReturnType::Type(
-                            r_arrow.clone(),
+                            *r_arrow,
                             Box::new(ersetze_generic(
                                 generic_ident,
                                 insert_ty,
@@ -292,12 +303,12 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
             for fn_arg in inputs {
                 match fn_arg {
                     FnArg::Typed(PatType { pat, ty, .. }) => {
-                        match pat.as_ref() {
-                            Pat::Ident(PatIdent { ident, .. }) => input_names.push(ident),
-                            _ => errors.push(format!(
-                                "Only pure name-patterns supported, but {:?} was used!",
-                                pat
-                            )),
+                       if let Pat::Ident(PatIdent { ident: pat_ident, .. }) = pat.as_ref(){
+                            input_names.push(pat_ident);
+                        } else {
+                            errors.push(format!(
+                                "Only pure name-patterns supported, but {pat:?} was used!",
+                            ));
                         }
                         gerade_types.push(ersetze_generic(
                             generic_ident,
@@ -336,15 +347,15 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
                         ));
                     },
                     FnArg::Receiver(self_or_mut_self) if self_or_mut_self.attrs.is_empty() => {
-                        receiver = Some(self_or_mut_self)
+                        receiver = Some(self_or_mut_self);
                     },
-                    FnArg::Receiver(receiver) => errors.push(format!(
-                        "Only Receiver ([&mut] self) without attributes supported, got `{receiver:?}` instead.",
+                    FnArg::Receiver(fn_receiver) => errors.push(format!(
+                        "Only Receiver ([&mut] self) without attributes supported, got `{fn_receiver:?}` instead.",
                     )),
                 }
             }
             if receiver.is_none() {
-                errors.push("Only function with Receiver ([&mut] self) supported!".to_owned())
+                errors.push("Only function with Receiver ([&mut] self) supported!".to_owned());
             }
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
@@ -383,22 +394,22 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
                 #kreuzung_methode
             });
         } else {
-            errors.push("Kein Parameter mit DatenAuswahl-Constraint.".to_owned())
+            errors.push("Kein Parameter mit DatenAuswahl-Constraint.".to_owned());
         }
     } else {
-        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string())
+        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string());
     }
 
     if !errors.is_empty() {
         let error_message = errors.join("\n");
-        quote! {
+        return quote! {
             compile_error!(#error_message);
             #item
-        }
-    } else {
-        quote! {
-            #item
-            #methoden_definitionen
-        }
+        };
+    }
+
+    quote! {
+        #item
+        #methoden_definitionen
     }
 }
