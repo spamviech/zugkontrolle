@@ -196,7 +196,7 @@ wildcard_enum_match_arm = "warn"
 # dependencies
 [dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
-version = "4.0.0"
+version = "4.0.2"
 
 [dependencies]
 assoc = "0.1.3"
