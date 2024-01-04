@@ -20,7 +20,7 @@ fn erzeuge_body(
     data: &Data,
     generics: &mut PartitionierteGenericParameter<'_>,
 ) -> TokenStream {
-    let ident_str = ident.to_string();
+    let ident_str = &ident.to_string();
     match data {
         Data::Struct(DataStruct { fields, .. }) => match fields {
             Fields::Named(FieldsNamed { named, .. }) => {
@@ -64,7 +64,7 @@ fn erzeuge_body(
                                 None => String::new(),
                             });
                             quote! {
-                                #ident_str::#variant_ident {#(#fs_vec),*} => {
+                                #ident::#variant_ident {#(#fs_vec),*} => {
                                     f.debug_struct(#variant_ident_str)
                                         #(.field(#fs_str, #fs_vec))*
                                         .finish()
@@ -75,9 +75,9 @@ fn erzeuge_body(
                             mark_fields_generic(unnamed.iter(), &mut generics.types);
                             let fs_iter = unnamed.iter().map(|field| &field.ident);
                             let fs_str: Vec<Ident> =
-                                fs_iter.enumerate().map(|(i, _)| format_ident!("i{}", i)).collect();
+                                fs_iter.enumerate().map(|(i, _)| format_ident!("i{i}")).collect();
                             quote! {
-                                #ident_str::#variant_ident (#(#fs_str),*) => {
+                                #ident::#variant_ident (#(#fs_str),*) => {
                                     f.debug_tuple(#ident_str)
                                         #(.field(#fs_str))*
                                         .finish()
@@ -85,7 +85,7 @@ fn erzeuge_body(
                             }
                         },
                         Fields::Unit => quote! {
-                            #ident_str::#variant_ident  => write!(f, "{}", #variant_ident_str)
+                            #ident::#variant_ident  => write!(f, "{}", #variant_ident_str)
                         },
                     }
                 })
@@ -100,7 +100,7 @@ fn erzeuge_body(
         Data::Union(_) => {
             let error = format!("Unsupported data! Given ast: {ast:?}");
             quote! {
-                compile_error!(#error)
+                compile_error!(#error);
             }
         },
     }
