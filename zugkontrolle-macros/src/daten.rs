@@ -358,11 +358,11 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
                 errors.push("Only function with Receiver ([&mut] self) supported!".to_owned());
             }
 
-            let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, output: ReturnType| {
+            let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, return_type: ReturnType| {
                 quote! {
                     #[inline(always)]
                     #(#doc_attrs)*
-                    pub fn #new_ident #new_generics (#receiver, #(#input_names: #types),*) #output {
+                    pub fn #new_ident #new_generics (#receiver, #(#input_names: #types),*) #return_type {
                         self.#ident(#(#input_names),*)
                     }
                 }
@@ -397,7 +397,7 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
             errors.push("Kein Parameter mit DatenAuswahl-Constraint.".to_owned());
         }
     } else {
-        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string());
+        errors.push(String::from("`zugkontrolle` missing in `Cargo.toml`"));
     }
 
     if !errors.is_empty() {

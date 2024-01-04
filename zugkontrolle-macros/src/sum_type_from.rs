@@ -4,13 +4,14 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Field, Fields, FieldsNamed, FieldsUnnamed, GenericParam, ItemEnum};
 
+/// [`crate::From`]
 pub(crate) fn impl_from(item: ItemEnum) -> TokenStream {
     let mut impls = Vec::new();
     let item_ident = item.ident;
     let item_generics = item.generics;
     let item_ty_generics = {
         let mut generics = item_generics.clone();
-        for param in generics.params.iter_mut() {
+        for param in &mut generics.params {
             match param {
                 GenericParam::Type(ty) => ty.bounds.clear(),
                 GenericParam::Lifetime(lt) => lt.bounds.clear(),
@@ -42,7 +43,7 @@ pub(crate) fn impl_from(item: ItemEnum) -> TokenStream {
                 }
                 (quote!(( #(#idents),* )), idents, types)
             },
-            _ => continue,
+            Fields::Unit => continue,
         };
         let ty = quote!((#(#types),*));
         impls.push(quote!(

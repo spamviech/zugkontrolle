@@ -10,21 +10,19 @@ use syn::{
     PathSegment, Token, Type, TypeParamBound, TypePath, WherePredicate,
 };
 
+/// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
 #[allow(single_use_lifetimes)]
 pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t Field>,
     generic_types: &mut HashMap<&Ident, (T, bool)>,
 ) {
     for field in fields {
-        match &field.ty {
-            Type::Path(TypePath { path: Path { segments, .. }, .. }) => {
-                if let Some(PathSegment { ident, .. }) = segments.first() {
-                    if let Some((_, v)) = generic_types.get_mut(ident) {
-                        *v = true
-                    }
+        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = &field.ty {
+            if let Some(PathSegment { ident, .. }) = segments.first() {
+                if let Some((_, gefunden)) = generic_types.get_mut(ident) {
+                    *gefunden = true;
                 }
-            },
-            _ => {},
+            }
         }
     }
 }
@@ -33,7 +31,7 @@ pub(crate) fn mark_fields_generic<'t, T>(
 pub(crate) struct PartitionierteGenericParameter<'t> {
     /// Lifetime-Parameter
     pub(crate) lifetimes: Vec<&'t LifetimeParam>,
-    /// Typ-Parameter mit Trait-Bounds
+    /// Typ-Parameter mit Trait-Bounds. Der [bool]-eintrag wird u.a. in [mark_fields_generic] verwendet.
     pub(crate) types: HashMap<&'t Ident, (&'t Punctuated<TypeParamBound, Plus>, bool)>,
     /// Typ-Parameter ohne Trait-Bounds
     pub(crate) type_names: Vec<&'t Ident>,
@@ -62,28 +60,33 @@ pub(crate) fn partitioniere_generics(generics: &Generics) -> PartitionierteGener
 }
 
 /// Look for attributes prefixed with name and construct a where-clause from it.
-/// E.g. #[zugkontrolle_clone(M: Clone, <C as Trait>::A: Clone)]
+/// E.g. `#[zugkontrolle_clone(M: Clone, <C as Trait>::A: Clone)]`
 /// becomes `M: Clone, <C as Trait>::A: Clone` to allow more flexibility than the normal derive-macros.
 pub(crate) fn parse_attributes_fn(
-    attrs: &Vec<Attribute>,
+    attrs: &[Attribute],
     name: &str,
 ) -> Result<impl Iterator<Item = WherePredicate>, Error> {
     let intermediate: Vec<Punctuated<WherePredicate, Token!(,)>> = attrs
         .iter()
-        .filter_map(|attr| match attr {
-            Attribute {
-                meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
-                ..
-            } if segments.len() == 1 && segments[0].ident == name => {
-                let parser = punctuated::Punctuated::parse_terminated;
-                Some(parser.parse2(tokens.clone()))
-            },
-            _ => None,
+        .filter_map(|attr| {
+            // sichergestellt durch `segments.len() == 1`
+            #[allow(clippy::indexing_slicing)]
+            match attr {
+                Attribute {
+                    meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
+                    ..
+                } if segments.len() == 1 && segments[0].ident == name => {
+                    let parser = punctuated::Punctuated::parse_terminated;
+                    Some(parser.parse2(tokens.clone()))
+                },
+                _ => None,
+            }
         })
         .collect::<Result<_, _>>()?;
     Ok(intermediate.into_iter().flat_map(punctuated::Punctuated::into_iter))
 }
 
+/// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [Err] direkt `quote!(compile_error(#fehler));` zurück.
 macro_rules! parse_attributes {
     ($attrs:expr, $name:expr) => {
         match crate::utils::parse_attributes_fn($attrs, $name) {
@@ -92,7 +95,7 @@ macro_rules! parse_attributes {
                 let error =
                     format!("Parse-error parsing constraints for {}: {:?}", $name, parse_error);
                 return quote! {
-                    compile_error! { #error }
+                    compile_error!(#error);
                 };
             },
         }

@@ -4,32 +4,37 @@ use std::iter::once;
 
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use syn::{Ident, ItemEnum, Visibility};
+use syn::{parse2, Ident, ItemEnum, Variant, Visibility};
 
+/// Parse die Macro-Argumente.
 fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), Vec<String>> {
     let mut acc = TokenStream::new();
     let mut arg_vis: Option<Visibility> = None;
     let mut arg_ident: Option<Ident> = None;
     let mut errors = Vec::new();
-    let mut parse_acc = |acc: &mut TokenStream| {
-        if let Ok(vis) = syn::parse2(acc.clone()) {
+    let mut parse_acc = |current_acc: &mut TokenStream| {
+        // Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp.
+        #[allow(clippy::same_functions_in_if_condition)]
+        if let Ok(vis) = parse2(current_acc.clone()) {
             if arg_vis.is_none() {
                 arg_vis = Some(vis);
             } else {
-                errors.push(format!("duplicate visibility argument {acc}"));
+                errors.push(format!("duplicate visibility argument {current_acc}"));
             }
-        } else if let Ok(ident) = syn::parse2(acc.clone()) {
+        } else if let Ok(ident) = parse2(current_acc.clone()) {
             if arg_ident.is_none() {
                 arg_ident = Some(ident);
             } else {
-                errors.push(format!("duplicate identifier {acc}"));
+                errors.push(format!("duplicate identifier {current_acc}"));
             }
         } else {
-            errors.push(format!("Only identifiers supported, but {acc} was given"))
+            errors.push(format!("Only identifiers supported, but {current_acc} was given"));
         }
-        *acc = TokenStream::new();
+        *current_acc = TokenStream::new();
     };
     for tt in args {
+        // if-let-chain ist noch nicht auf stable
+        #[allow(clippy::wildcard_enum_match_arm)]
         match tt {
             TokenTree::Punct(punct) if punct.as_char() == ',' => {
                 parse_acc(&mut acc);
@@ -48,6 +53,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     }
 }
 
+/// [`crate::erstelle_enum`]
 pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
     let (arg_vis, arg_ident) = match parse_args(args) {
         Ok(vid_ident) => vid_ident,
@@ -69,18 +75,12 @@ pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
     let (enum_variants, enum_variants_docstrings): (Vec<Ident>, Vec<TokenStream>) = variants
         .iter()
-        .map(|syn::Variant { ident, attrs, .. }| {
-            let docstrings = attrs.iter().filter_map(|attr| {
-                if attr.path().is_ident("doc") {
-                    Some(attr.clone())
-                } else {
-                    None
-                }
-            });
-            (ident.clone(), quote!(#(#docstrings)*))
+        .map(|Variant { ident: var_ident, attrs: var_attrs, .. }| {
+            let docstrings = var_attrs.iter().filter(|attr| attr.path().is_ident("doc")).cloned();
+            (var_ident.clone(), quote!(#(#docstrings)*))
         })
         .unzip();
-    let enum_variants_str: Vec<String> = enum_variants.iter().map(syn::Ident::to_string).collect();
+    let enum_variants_str: Vec<String> = enum_variants.iter().map(Ident::to_string).collect();
     let docstrings = attrs.iter().filter(|attr| attr.path().is_ident("doc"));
     quote!(
         #ast

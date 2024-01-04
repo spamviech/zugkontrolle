@@ -7,6 +7,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::LitStr;
 
+/// [`crate::verwendete_crates`]
 pub(crate) fn verwendete_crates(target: &LitStr) -> TokenStream {
     let metadata_res = MetadataCommand::new()
         .other_options([
@@ -29,6 +30,7 @@ pub(crate) fn verwendete_crates(target: &LitStr) -> TokenStream {
     quote!([#(#packages),*])
 }
 
+/// [`crate::target_crates`]
 pub(crate) fn target_crates(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung = format!("No argument supported, but \"{input}\" was given.");
