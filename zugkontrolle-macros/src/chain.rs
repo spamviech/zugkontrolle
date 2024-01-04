@@ -4,19 +4,22 @@ use std::convert::identity;
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReturnType, Signature};
 
-pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
+/// [`crate::make_chain`]
+#[allow(clippy::single_call_fn)]
+pub(crate) fn make_chain(args: TokenStream, ast: ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
-        errors.push(format!("no arguments supported, but {:?} was given.", args));
+        errors.push(format!("no arguments supported, but {args:?} was given."));
     }
 
-    let syn::ItemFn {
+    let ItemFn {
         attrs,
         vis,
         sig:
-            syn::Signature {
+            Signature {
                 constness,
                 asyncness,
                 unsafety,
@@ -31,7 +34,7 @@ pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
         ..
     } = &ast;
     let docstrings: Vec<_> = attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
-    if let syn::ReturnType::Type(_arrow, ty) = output {
+    if let ReturnType::Type(_arrow, ty) = output {
         errors.push(format!("only default return type supported, but {:?} was given.", ty));
     }
     if let Some(abi) = abi {
@@ -41,9 +44,7 @@ pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
         errors.push("no variadic supported.".to_string());
     }
     let mut inputs_iter = inputs.iter();
-    if let Some(syn::FnArg::Receiver(syn::Receiver { reference, mutability, .. })) =
-        inputs_iter.next()
-    {
+    if let Some(FnArg::Receiver(Receiver { reference, mutability, .. })) = inputs_iter.next() {
         if reference.is_none() || mutability.is_none() {
             errors.push("first argument must be &mut self.".to_string());
         }
@@ -54,8 +55,8 @@ pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
     let other_input_names: Vec<_> = inputs_iter
         .clone()
         .map(|fn_arg| {
-            if let syn::FnArg::Typed(syn::PatType { pat, .. }) = fn_arg {
-                if let syn::Pat::Ident(id) = pat.as_ref() {
+            if let FnArg::Typed(PatType { pat, .. }) = fn_arg {
+                if let Pat::Ident(id) = pat.as_ref() {
                     Some(id)
                 } else {
                     errors.push(format!(

@@ -1,7 +1,7 @@
 //! Macros für zugkontrolle.
 
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, punctuated::Punctuated};
 
 pub(crate) mod utils;
 
@@ -33,7 +33,7 @@ mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(attr with syn::punctuated::Punctuated::parse_terminated);
+    let args = parse_macro_input!(attr with Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
 
     nachschlagen::impl_nachschlagen(args, ast).into()
@@ -83,7 +83,7 @@ mod alias;
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
-    alias::alias_serialisiert_unit(attr.into(), ast).into()
+    alias::alias_serialisiert_unit(&attr.into(), &ast).into()
 }
 
 mod daten;
@@ -98,7 +98,7 @@ mod daten;
 /// Das erste Argument muss `&mut self`, oder `&'t mut self` und
 /// alle anderen Argumente reine Namen-Pattern sein.
 /// Die `where`-Klausel wird nicht inspiziert oder kopiert.
-/// Für assoziierte Typen wird eine vollständig qualifizierte Form \<T as Trait\>::Typ empfohlen.
+/// Für assoziierte Typen wird eine vollständig qualifizierte Form `<T as Trait>::Typ` empfohlen.
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
@@ -125,7 +125,7 @@ pub fn verwendete_crates(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 /// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten.
-/// Dazu werden viele über cfg-Aufrufe von [verwendete_crates!] erzeugt.
+/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
 /// Die targets werden über `rustc --print target-list` ausgelesen.
 pub fn target_crates(input: TokenStream) -> TokenStream {
     metadata::target_crates(input.into()).into()
