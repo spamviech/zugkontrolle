@@ -10,13 +10,13 @@ repository.workspace = true
 
 [workspace]
 members = ["zugkontrolle-macros"]
+resolver = "2"
 
 [workspace.package]
 authors = ["spamviech <spamviech@web.de>"]
 edition = "2021"
 license = "MIT"
 publish = false
-resolver = "2"
 rust-version = "1.69"
 repository = "https://github.com/spamviech/zugkontrolle"
 
