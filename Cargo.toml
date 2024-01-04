@@ -22,7 +22,14 @@ repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
-strip = true
+strip = "symbols"
+lto = "fat"
+panic = "abort"
+
+[profile.dev]
+strip = "none"
+lto = "thin"
+panic = "abort"
 
 [features]
 default = []
