@@ -1,5 +1,7 @@
 //! Steuerung einer Model-Eisenbahn über einen Raspberry Pi.
 
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
 // Erlaube mehr rekursive Aufrufe von Macros.
 #![recursion_limit = "256"]
 
@@ -26,7 +28,7 @@ mod test_util {
 
     static LOGGER_HANDLE: Mutex<Option<LoggerHandle>> = const_mutex(None);
 
-    /// Initialisiere FlexiLogger einmalig, speichere den Handle in einer globalen Variable.
+    /// Initialisiere `FlexiLogger` einmalig, speichere den Handle in einer globalen Variable.
     ///
     /// Notwendig, da `cargo test` mehrere Tests parallel ausführt, aber nur ein Logger aktiv sein kann.
     pub(crate) fn init_test_logging() {
@@ -42,16 +44,17 @@ mod test_util {
                     .log_to_stderr()
                     .start()
                     .expect("Logging initialisieren fehlgeschlagen!"),
-            )
+            );
         }
     }
 
+    /// Eine fehlgeschlagene Annahme in einem Test.
     #[derive(Debug, zugkontrolle_macros::From)]
     pub(crate) enum Expectation {
-        ExpectTrue(ExpectTrue),
-        ExpectEq(ExpectEq),
-        ExpectNe(ExpectNe),
-        ExpectGt(ExpectGt),
+        True(ExpectTrue),
+        Eq(ExpectEq),
+        Ne(ExpectNe),
+        Gt(ExpectGt),
     }
 
     #[derive(Debug)]
@@ -70,23 +73,26 @@ mod test_util {
     pub(crate) struct ExpectEq(Box<dyn Debug>, Box<dyn Debug>);
 
     /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [Err].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectEq> {
-        expect_true(a == b).map_err(|_| ExpectEq(Box::new(a), Box::new(b)))
+        expect_true(a == b).map_err(|_expect_true| ExpectEq(Box::new(a), Box::new(b)))
     }
 
     #[derive(Debug)]
     pub(crate) struct ExpectNe(Box<dyn Debug>, Box<dyn Debug>);
 
     /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectNe> {
-        expect_true(a != b).map_err(|_| ExpectNe(Box::new(a), Box::new(b)))
+        expect_true(a != b).map_err(|_expect_true| ExpectNe(Box::new(a), Box::new(b)))
     }
 
     #[derive(Debug)]
     pub(crate) struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
 
     /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_gt<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectGt> {
-        expect_true(a != b).map_err(|_| ExpectGt(Box::new(a), Box::new(b)))
+        expect_true(a != b).map_err(|_expect_true| ExpectGt(Box::new(a), Box::new(b)))
     }
 }
