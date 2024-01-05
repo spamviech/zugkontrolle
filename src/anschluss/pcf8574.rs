@@ -87,7 +87,8 @@ impl I2cMitPins {
 }
 
 impl I2cSettings {
-    pub(crate) fn aktiviert(&self, i2c_bus: I2cBus) -> bool {
+    /// Ist der [`I2cBus`] aktiviert?
+    pub(crate) fn aktiviert(self, i2c_bus: I2cBus) -> bool {
         match i2c_bus {
             I2cBus::I2c0_1 => self.i2c0_1,
             // I2cBus::I2c2 => self.i2c2,
@@ -99,6 +100,8 @@ impl I2cSettings {
     }
 }
 
+// TODO durch enum-iterator::Sequence ersetzen.
+/// Ein [`Iterator`] über alle [`I2cBus`]-Varianten.
 fn alle_i2c_bus() -> array::IntoIter<I2cBus, 5> {
     [
         I2cBus::I2c0_1,
@@ -111,20 +114,31 @@ fn alle_i2c_bus() -> array::IntoIter<I2cBus, 5> {
     .into_iter()
 }
 
+// TODO durch enum-iterator::Sequence ersetzen.
+/// Ein [`Iterator`] über alle [`Level`]-Varianten.
 fn alle_level() -> array::IntoIter<Level, 2> {
     [Level::Low, Level::High].into_iter()
 }
 
+// TODO durch enum-iterator::Sequence ersetzen.
+/// Ein [`Iterator`] über alle [`Variante`]-Varianten.
 fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
+/// Ein [`Pcf8574`] und seine noch verfügbaren [Ports](Port).
+type Pcf8574MitPorts = (Arc<Mutex<Pcf8574>>, [Option<Port>; 8]);
+
 /// Noch verfügbare Pcf8574-[Port]s.
 #[derive(Debug)]
-pub struct Lager(Arc<RwLock<HashMap<Beschreibung, (Arc<Mutex<Pcf8574>>, [Option<Port>; 8])>>>);
+pub struct Lager(Arc<RwLock<HashMap<Beschreibung, Pcf8574MitPorts>>>);
 
 impl Lager {
     /// Erstelle ein neues [Lager].
+    ///
+    /// ## Errors
+    ///
+    /// TODO
     pub fn neu(lager: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
@@ -138,15 +152,24 @@ impl Lager {
                     iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
-                    let pcf8574 = Arc::new(Mutex::new(Pcf8574::neu(beschreibung, i2c.clone())));
+                    let pcf8574 =
+                        Arc::new(Mutex::new(Pcf8574::neu(beschreibung, Arc::clone(&i2c))));
                     let mut array = [None, None, None, None, None, None, None, None];
                     for port_num in kleiner_8::alle_werte() {
-                        let port_struct =
-                            Port::neu(pcf8574.clone(), Lager(arc.clone()), beschreibung, port_num);
-                        array[usize::from(port_num)] = Some(port_struct);
+                        let port_struct = Port::neu(
+                            Arc::clone(&pcf8574),
+                            Lager(Arc::clone(&arc)),
+                            beschreibung,
+                            port_num,
+                        );
+                        // 0 <= port_num < 8 == array.len()
+                        #[allow(clippy::indexing_slicing)]
+                        {
+                            array[usize::from(port_num)] = Some(port_struct);
+                        }
                     }
                     if let Some(bisher) = map.insert(beschreibung, (pcf8574, array)) {
-                        error!("Pcf8574 doppelt erstellt: {bisher:?}")
+                        error!("Pcf8574 doppelt erstellt: {bisher:?}");
                     }
                 }
             }
@@ -155,6 +178,10 @@ impl Lager {
     }
 
     /// Reserviere einen Pcf8574-[Port].
+    ///
+    /// ## Errors
+    ///
+    /// Der gewünschte Port ist bereits in Verwendung.
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: Beschreibung,
@@ -164,7 +191,11 @@ impl Lager {
         self.0
             .write()
             .get_mut(&beschreibung)
-            .and_then(|(_pcf8574, ports)| ports[usize::from(port)].take())
+            .and_then(|(_pcf8574, ports)| {
+                // 0 <= port < 8 == ports.len()
+                #[allow(clippy::indexing_slicing)]
+                ports[usize::from(port)].take()
+            })
             .ok_or(InVerwendung { beschreibung, port })
     }
 
@@ -174,22 +205,29 @@ impl Lager {
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
         debug!("rückgabe {port:?}");
         let mut guard = self.0.write();
-        let entry = guard.entry(port.beschreibung().clone());
+        let entry = guard.entry(*port.beschreibung());
         let (_pcf8574, ports) = match entry {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => {
+            Entry::Occupied(occupied) => occupied.into_mut(),
+            Entry::Vacant(vacant) => {
                 error!("Port für unbekannten Pcf8574 zurückgegeben: {:?}", port.beschreibung());
-                let pcf8574 = port.pcf8574.clone();
+                let pcf8574 = Arc::clone(&port.pcf8574);
                 let array = [None, None, None, None, None, None, None, None];
-                v.insert((pcf8574, array))
+                vacant.insert((pcf8574, array))
             },
         };
+        // 0 <= port < 8 == ports.len()
+        #[allow(clippy::indexing_slicing)]
         if let Some(bisher) = ports[usize::from(port.port())].replace(port) {
-            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher)
+            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher);
         }
     }
 
-    /// Der Interrupt-Pin für den Pcf8574.
+    /// Der Interrupt-Pin für den [`Pcf8574`].
+    ///
+    /// ## Errors
+    ///
+    /// Es ist noch kein Interrupt-Pin gesetzt.
+    #[must_use]
     pub fn interrupt_pin(&self, beschreibung: &Beschreibung) -> Option<u8> {
         debug!("lese Interrupt-Pin für pcf8574 {beschreibung:?}");
         self.0
@@ -199,9 +237,9 @@ impl Lager {
     }
 }
 
-/// Ein I2cBus.
+/// Ein `I2cBus`.
 ///
-/// Vor Raspberry Pi 4 wird nur [I2c0_1](I2cBus::I2c0_1) als Hardware-I2C unterstützt.
+/// Vor Raspberry Pi 4 wird nur [`I2c0_1`](I2cBus::I2c0_1) als Hardware-I2C unterstützt.
 ///
 /// Anmerkung: Es ist möglich Software-I2C auf normalen Gpio-Pins zu aktivieren.
 /// Beachte dazu den Abschnitt "Aktivieren zusätzlicher I2C-Busse" in der `README.md`.
@@ -231,6 +269,7 @@ pub enum I2cBus {
 }
 
 impl I2cBus {
+    /// Reserviere den Zugriff auf den gewünschten [`I2cBus`].
     fn reserviere(&self) -> i2c::Result<I2c> {
         match self {
             I2cBus::I2c0_1 => I2c::with_bus(1).or_else(|_| I2c::with_bus(0)),
@@ -242,6 +281,7 @@ impl I2cBus {
         }
     }
 
+    /// SDA- und SCL-Pin für den [`I2cBus`].
     fn sda_scl(&self) -> (u8, u8) {
         match self {
             I2cBus::I2c0_1 => (2, 3),
@@ -263,9 +303,18 @@ pub struct InVerwendung {
     pub port: kleiner_8,
 }
 
+/// Der aktuelle Zustand eines [`Pcf8574`]-[Ports](Port).
 pub(super) enum Modus {
-    Input { trigger: Trigger, callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> },
+    /// Der Port ist im Input-Modus und wartet potentiell auf eine [`Level`]-Änderung.
+    Input {
+        /// Wann soll der `callback` ausgelöst werden.
+        trigger: Trigger,
+        /// Reaktion auf ein [`Trigger`]-Event.
+        callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>>,
+    },
+    /// Der Port ist im Output-Modus und erzeugt ein `High` Signal.
     High,
+    /// Der Port ist im Output-Modus und erzeugt ein `Low` Signal.
     Low,
 }
 
@@ -279,15 +328,15 @@ impl From<Level> for Modus {
 }
 
 impl Debug for Modus {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Modus::Input { trigger, callback } => f
+            Modus::Input { trigger, callback } => formatter
                 .debug_struct("Input")
                 .field("trigger", trigger)
                 .field("callback", &callback.as_ref().map(|_| "<function>"))
                 .finish(),
-            Modus::High => f.debug_struct("High").finish(),
-            Modus::Low => f.debug_struct("Low").finish(),
+            Modus::High => formatter.debug_struct("High").finish(),
+            Modus::Low => formatter.debug_struct("Low").finish(),
         }
     }
 }
@@ -295,12 +344,12 @@ impl Debug for Modus {
 /// Gleichheit unabhängig vom callback.
 impl PartialEq for Modus {
     fn eq(&self, other: &Modus) -> bool {
-        match (self, other) {
-            (Modus::Input { .. }, Modus::Input { .. }) => true,
-            (Modus::High, Modus::High) => true,
-            (Modus::Low, Modus::Low) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (Modus::Input { .. }, Modus::Input { .. })
+                | (Modus::High, Modus::High)
+                | (Modus::Low, Modus::Low)
+        )
     }
 }
 impl Eq for Modus {}
@@ -308,9 +357,13 @@ impl Eq for Modus {}
 /// Ein Pcf8574, gesteuert über I2C.
 #[derive(Debug)]
 pub struct Pcf8574 {
+    /// Die Einstellungen des Pcf8574.
     beschreibung: Beschreibung,
+    /// Aktueller Zustand der [Ports](Port).
     ports: [Modus; 8],
+    /// Der Interrupt-Pin.
     interrupt: Option<input::Pin>,
+    /// Der I2C-Bus, mit dem sich der [Pcf8574] ansprechen lässt.
     i2c: Arc<Mutex<I2cMitPins>>,
 }
 
@@ -336,6 +389,7 @@ impl PartialEq for Pcf8574 {
 }
 impl Eq for Pcf8574 {}
 
+/// Darstellung des [`I2cBus`] in der [Display]-Implementierung von [Pcf8574].
 fn display_bus_str(i2c_bus: &I2cBus) -> &str {
     match i2c_bus {
         I2cBus::I2c0_1 => "01",
@@ -347,6 +401,7 @@ fn display_bus_str(i2c_bus: &I2cBus) -> &str {
     }
 }
 
+/// Darstellung eines [Levels](Level) in der [Display]-Implementierung von [Pcf8574].
 fn display_level_str(level: &Level) -> &str {
     match level {
         Level::Low => "L",
@@ -354,6 +409,7 @@ fn display_level_str(level: &Level) -> &str {
     }
 }
 
+/// Darstellung der [Variante] in der [Display]-Implementierung von [Pcf8574].
 fn display_variante_str(variante: &Variante) -> &str {
     match variante {
         Variante::Normal => " ",
@@ -362,10 +418,10 @@ fn display_variante_str(variante: &Variante) -> &str {
 }
 
 impl Display for Beschreibung {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let Beschreibung { i2c_bus, a0, a1, a2, variante } = self;
         write!(
-            f,
+            formatter,
             "{}-{}{}{}{}",
             display_bus_str(i2c_bus),
             display_level_str(a0),
@@ -746,7 +802,6 @@ impl InputPort {
     /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
     /// > on different threads, consider using asynchronous interrupts with
     /// > InputPin::set_async_interrupt instead.
-
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
