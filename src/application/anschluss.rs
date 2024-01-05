@@ -333,7 +333,6 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-#[allow(single_use_lifetimes)]
 pub(in crate::application) fn make_radios<'a, 'b, T, M, R>(
     aktuell: &T,
     elemente: impl IntoIterator<Item = (&'b str, T)>,

@@ -112,7 +112,7 @@ pub enum Fehler {
 type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
-#[inline(always)]
+
 pub fn ausführen_aus_env() -> Result<(), Fehler> {
     let args = Argumente::parse_aus_env();
     ausführen(args)

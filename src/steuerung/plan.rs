@@ -260,7 +260,6 @@ where
 /// Serialisierbare Repräsentation eines Fahrplans.
 pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 
-#[allow(single_use_lifetimes)]
 impl<L: Leiter> Plan<L> {
     /// Serialisiere einen [Plan]
     pub fn serialisiere<S>(&self) -> PlanSerialisiert<L, S>
@@ -432,7 +431,7 @@ pub type AktionSerialisiert<L, S> = AktionEnum<
 
 impl<L: Leiter> Aktion<L> {
     /// Serialisiere eine [Aktion].
-    #[allow(single_use_lifetimes)]
+
     pub fn serialisiere<S>(&self) -> AktionSerialisiert<L, S>
     where
         L: Serialisiere<S>,
@@ -643,7 +642,6 @@ erstelle_aktion_geschwindigkeit! {
     "S: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>";
 }
 
-#[allow(single_use_lifetimes)]
 impl<L: Leiter> AktionGeschwindigkeit<L> {
     /// Serialisiere eine Aktion mit einer [Geschwindigkeit].
     fn serialisiere<S>(&self) -> AktionGeschwindigkeitSerialisiert<L, S>
@@ -937,7 +935,7 @@ where
 
 impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
     /// Serialisiere eine Aktion mit einer [Weiche].
-    #[allow(single_use_lifetimes)]
+
     pub fn serialisiere<WeicheSerialisiert>(&self) -> AktionSchalten<WeicheSerialisiert, Richtung>
     where
         Weiche: Serialisiere<WeicheSerialisiert>,

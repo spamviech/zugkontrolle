@@ -360,7 +360,7 @@ pub(crate) fn erstelle_methoden(attr: &TokenStream, item: &ImplItemFn) -> TokenS
 
             let erzeuge_methode = |new_ident: Ident, types: Vec<Type>, return_type: ReturnType| {
                 quote! {
-                    #[inline(always)]
+
                     #(#doc_attrs)*
                     pub fn #new_ident #new_generics (#receiver, #(#input_names: #types),*) #return_type {
                         self.#ident(#(#input_names),*)

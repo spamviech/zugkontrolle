@@ -35,7 +35,7 @@ impl<'a, T> MutTracer<'a, T> {
     }
 
     /// Hat bereits ein Zugriff über [DerefMut] stattgefunden?
-    #[inline(always)]
+
     fn verändert(&self) -> bool {
         self.verändert
     }

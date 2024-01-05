@@ -99,7 +99,6 @@ erzeuge_any_enum! {
     (Gleis<[]>),
 }
 
-#[allow(single_use_lifetimes)]
 impl<T> Serialisiere<GleisSerialisiert<T>> for Gleis<T>
 where
     T: MitSteuerung,

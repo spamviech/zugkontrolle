@@ -28,7 +28,7 @@ impl Sammlung {
     }
 
     /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des [Scrollable](iced::widget::Scrollable).
-    #[inline(always)]
+
     pub fn breite(&self) -> f32 {
         self.breite
     }

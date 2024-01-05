@@ -153,7 +153,7 @@ pub(crate) fn impl_debug(ast: &DeriveInput) -> TokenStream {
         generic_names = quote! {#(#generic_lifetimes),*, #(#generic_type_names),*};
     };
     quote! {
-        #[allow(single_use_lifetimes)]
+
         impl<#generic_constraints> std::fmt::Debug for #ident<#generic_names> #where_clause {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 #fmt

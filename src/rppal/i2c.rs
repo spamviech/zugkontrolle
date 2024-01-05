@@ -28,7 +28,6 @@ static I2C: LazyMutex<I2cStore> =
 
 #[cfg(not(feature = "raspi"))]
 impl I2cStore {
-    #[inline(always)]
     fn lock_static<'t>() -> MappedMutexGuard<'t, I2cStore> {
         I2C.lock()
     }

@@ -62,7 +62,6 @@ struct LazyMutex<T, F = fn() -> T>(Mutex<ElementOderKonstruktor<T, F>>);
 
 #[cfg(not(feature = "raspi"))]
 impl<T, F> LazyMutex<T, F> {
-    #[inline(always)]
     const fn neu(konstruktor: F) -> LazyMutex<T, F> {
         LazyMutex(const_mutex(ElementOderKonstruktor::Konstruktor(konstruktor)))
     }

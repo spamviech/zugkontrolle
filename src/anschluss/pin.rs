@@ -17,7 +17,7 @@ pub struct Lager(rppal::gpio::Gpio);
 
 impl Lager {
     /// Erstelle ein neues [Lager].
-    #[inline(always)]
+
     pub fn neu() -> Result<Lager, rppal::gpio::Error> {
         rppal::gpio::Gpio::new().map(Lager)
     }
@@ -48,14 +48,14 @@ impl Pin {
     /// Erhalte die GPIO [Pin] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
-    #[inline(always)]
+
     pub fn pin(&self) -> u8 {
         self.0.pin()
     }
 
     /// Konsumiere den [Pin], gebe einen [input::Pin] zurück, setze seinen Modus als Input
     /// und deaktiviere die eingebauten pull-up/pull-down Widerstände des [Pin]s.
-    #[inline(always)]
+
     pub fn als_input(self) -> input::Pin {
         input::Pin(self.0.into_input())
     }
@@ -64,7 +64,7 @@ impl Pin {
     /// und aktiviere den eingebauten pull-down Widerstand des [Pin]s.
     ///
     /// Der pull-down Widerstand wird deaktiviert, wenn der [input::Pin] out of scope geht.
-    #[inline(always)]
+
     pub fn als_input_pulldown(self) -> input::Pin {
         input::Pin(self.0.into_input_pulldown())
     }
@@ -73,14 +73,14 @@ impl Pin {
     /// und aktiviere den eingebauten pull-up Widerstand des [Pin]s.
     ///
     /// Der pull-up Widerstand wird deaktiviert, wenn der [input::Pin] out of scope geht.
-    #[inline(always)]
+
     pub fn als_input_pullup(self) -> input::Pin {
         input::Pin(self.0.into_input_pullup())
     }
 
     /// Konsumiere den [Pin], geben einen [output::Pin] und setze seinen Modus auf Output
     /// mit dem übergebenen [Level]
-    #[inline(always)]
+
     pub fn als_output(self, level: Level) -> output::Pin {
         let modus_ändern = match level {
             Level::Low => rppal::gpio::Pin::into_output_low,
@@ -89,7 +89,6 @@ impl Pin {
         output::Pin(modus_ändern(self.0))
     }
 
-    #[inline(always)]
     fn pwm_channel(&self) -> Option<rppal::pwm::Channel> {
         match self.0.pin() {
             18 => Some(rppal::pwm::Channel::Pwm0),

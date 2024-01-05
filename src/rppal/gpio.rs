@@ -28,7 +28,6 @@ static GPIO: LazyMutex<GpioStore> =
 
 #[cfg(not(feature = "raspi"))]
 impl GpioStore {
-    #[inline(always)]
     fn lock_static<'t>() -> MappedMutexGuard<'t, GpioStore> {
         GPIO.lock()
     }
@@ -158,7 +157,7 @@ impl InputPin {
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
-    #[inline(always)]
+
     pub fn pin(&self) -> u8 {
         self.0.pin()
     }
@@ -216,7 +215,7 @@ impl OutputPin {
     /// Returns the GPIO pin number.
     ///
     /// Pins are addressed by their BCM numbers, rather than their physical location.
-    #[inline(always)]
+
     pub fn pin(&self) -> u8 {
         self.0.pin()
     }

@@ -44,7 +44,7 @@ impl<'t> Frame<'t> {
     }
 
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Stroke).
-    #[allow(single_use_lifetimes)]
+
     pub fn stroke<'s>(
         &mut self,
         Pfad { pfad, transformationen }: &Pfad,
@@ -73,7 +73,7 @@ impl<'t> Frame<'t> {
     ///
     /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [iced::widget::canvas::Frame]
     /// treten hier ebenfalls auf!
-    #[inline(always)]
+
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text)
     }
@@ -83,7 +83,7 @@ impl<'t> Frame<'t> {
     ///
     /// Diese Methode ist nützlich um mehrere Transformationen zusammenzufassen und Zeichen-Operationen
     /// in verschiedenen Koordinaten-Systemen durchzuführen.
-    #[inline(always)]
+
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
         self.0.with_save(|frame| action(&mut Frame(frame)))
     }
@@ -122,7 +122,7 @@ impl Cache {
     }
 
     /// Leere den [Cache], so dass er neu gezeichnet wird.
-    #[inline(always)]
+
     pub fn leeren(&self) {
         self.0.clear()
     }

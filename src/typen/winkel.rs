@@ -90,7 +90,6 @@ impl AddAssign<WinkelGradmaß> for Winkel {
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<T> AddAssign<&mut T> for Winkel
 where
     Winkel: for<'s> AddAssign<&'s T>,
@@ -135,7 +134,6 @@ impl SubAssign<WinkelGradmaß> for Winkel {
         *self -= &rhs
     }
 }
-#[allow(single_use_lifetimes)]
 
 impl<T> SubAssign<&mut T> for Winkel
 where

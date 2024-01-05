@@ -30,7 +30,6 @@ static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
 
 #[cfg(not(feature = "raspi"))]
 impl PwmStore {
-    #[inline(always)]
     fn write_static<'t>() -> RwLockWriteGuard<'t, PwmStore> {
         PWM.write()
     }

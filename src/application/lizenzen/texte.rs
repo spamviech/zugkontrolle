@@ -207,7 +207,7 @@ impl MITEnde {
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz.
-#[allow(single_use_lifetimes)]
+
 pub fn mit<'t, 'p, 'i>(
     präfix: impl Into<Option<MITPräfix<'p>>>,
     copyright: Vec<MITCopyright<'_>>,
@@ -430,13 +430,13 @@ pub fn mit<'t, 'p, 'i>(
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten
 /// ohne Einrückung und ohne Leerzeile am Anfang.
-#[inline(always)]
+
 pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
     apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
-#[inline(always)]
+
 pub fn apache_2_0_nicht_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
@@ -454,13 +454,13 @@ pub fn apache_2_0_nicht_eingerückt<'t>(
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten, eingerücktem Text
 /// und Leerzeile am Anfang.
-#[inline(always)]
+
 pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
     apache_2_0_eingerückt(true, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit eingerücktem Text.
-#[inline(always)]
+
 pub fn apache_2_0_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,

@@ -198,7 +198,7 @@ impl OutputAnschluss {
     }
 
     /// Ist der [OutputAnschluss] aktuell [gesperrt](Fließend::Gesperrt).
-    #[inline(always)]
+
     pub fn ist_gesperrt(&self) -> bool {
         !self.ist_fließend()
     }

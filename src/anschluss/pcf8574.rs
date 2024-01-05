@@ -31,14 +31,19 @@ use crate::{
     util::eingeschränkt::{kleiner_128, kleiner_8},
 };
 
+/// Zugriff auf I2C-Kommunikation, inklusive der dafür notwendigen Pins.
 #[derive(Debug)]
 struct I2cMitPins {
+    /// Zugriff auf die I2C-Kommunikation.
     i2c: I2c,
     #[allow(dead_code)]
+    /// Der angesprochene Bus.
     i2c_bus: I2cBus,
     #[allow(dead_code)]
+    /// Der SDA-Pin.
     sda: Pin,
     #[allow(dead_code)]
+    /// Der SCL-Pin.
     scl: Pin,
 }
 
@@ -66,11 +71,16 @@ pub enum InitFehler {
 pub struct Deaktiviert(pub I2cBus);
 
 impl I2cMitPins {
+    /// Erhalte Zugriff auf die I2C-Kommunikation auf dem gewünschten [`I2cBus`].
+    ///
+    /// ## Errors
+    ///
+    /// Einer der Pins ist bereits anderweitig in Verwendung.
     fn neu(lager: &mut pin::Lager, i2c_bus: I2cBus) -> Result<I2cMitPins, InitFehler> {
         let i2c = i2c_bus.reserviere().map_err(|fehler| InitFehler::I2c { i2c_bus, fehler })?;
         let (sda, scl) = i2c_bus.sda_scl();
         let konvertiere_pin_fehler = |fehler| InitFehler::Pin { i2c_bus, fehler };
-        let sda = lager.reserviere_pin(sda).map_err(&konvertiere_pin_fehler)?;
+        let sda = lager.reserviere_pin(sda).map_err(konvertiere_pin_fehler)?;
         let scl = lager.reserviere_pin(scl).map_err(konvertiere_pin_fehler)?;
         Ok(I2cMitPins { i2c, i2c_bus, sda, scl })
     }
@@ -542,13 +552,13 @@ impl Port {
     }
 
     /// Die Beschreibung des [Pcf8574].
-    #[inline(always)]
+
     pub fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
     }
 
     /// Der angesprochene Port des [Pcf8574].
-    #[inline(always)]
+
     pub fn port(&self) -> kleiner_8 {
         self.port
     }
@@ -582,13 +592,13 @@ impl Display for OutputPort {
 
 impl OutputPort {
     /// Die Beschreibung des [Pcf8574].
-    #[inline(always)]
+
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
     /// Der angesprochene Port des [Pcf8574].
-    #[inline(always)]
+
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
@@ -638,13 +648,13 @@ impl Display for InputPort {
 
 impl InputPort {
     /// Die Beschreibung des [Pcf8574].
-    #[inline(always)]
+
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
     /// Der angesprochene Port des [Pcf8574].
-    #[inline(always)]
+
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
@@ -736,7 +746,7 @@ impl InputPort {
     /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
     /// > on different threads, consider using asynchronous interrupts with
     /// > InputPin::set_async_interrupt instead.
-    #[inline(always)]
+
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
@@ -747,7 +757,7 @@ impl InputPort {
     }
 
     /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
-    #[inline(always)]
+
     pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let port = self.port();
         self.0.pcf8574.lock().port_als_input::<fn(Level)>(port, Trigger::Disabled, None)

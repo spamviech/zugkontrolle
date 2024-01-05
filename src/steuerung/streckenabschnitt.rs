@@ -65,7 +65,6 @@ impl Streckenabschnitt {
         self.lock_anschluss().fließend()
     }
 
-    #[inline(always)]
     pub(crate) fn lock_anschluss<'t>(&'t self) -> MutexGuard<'t, OutputAnschluss> {
         self.anschluss.lock()
     }

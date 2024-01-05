@@ -146,7 +146,6 @@ impl<Leiter> Geschwindigkeit<Leiter> {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
 
-    #[inline(always)]
     pub(crate) fn lock_leiter<'t>(&'t self) -> MutexGuard<'t, Leiter> {
         self.leiter.lock()
     }
@@ -320,7 +319,6 @@ impl<LeiterSerialisiert: Display> Display for GeschwindigkeitSerialisiert<Leiter
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Geschwindigkeit<T> {
     fn serialisiere(&self) -> GeschwindigkeitSerialisiert<S> {
         GeschwindigkeitSerialisiert { leiter: self.lock_leiter().serialisiere() }
@@ -339,7 +337,6 @@ impl<T: Serialisiere<S>, S> Serialisiere<GeschwindigkeitSerialisiert<S>> for Ges
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<T, S> Reserviere<Geschwindigkeit<T>> for GeschwindigkeitSerialisiert<S>
 where
     S: Reserviere<T>,
@@ -704,7 +701,7 @@ impl Leiter for Mittelleiter {
 
 impl Geschwindigkeit<Mittelleiter> {
     /// Umdrehen der aktuellen Fahrtrichtung.
-    #[inline(always)]
+
     pub fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -721,7 +718,7 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 
     /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
-    #[inline(always)]
+
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -841,7 +838,6 @@ impl Leiter for Zweileiter {
         }
     }
 
-    #[inline(always)]
     fn umdrehen(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -852,7 +848,6 @@ impl Leiter for Zweileiter {
         self.umdrehen(pwm_frequenz, stopp_zeit)
     }
 
-    #[inline(always)]
     fn async_umdrehen_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         pwm_frequenz: NichtNegativ,
@@ -864,7 +859,6 @@ impl Leiter for Zweileiter {
         Self::async_umdrehen_aux(mutex, pwm_frequenz, stopp_zeit, aktualisieren)
     }
 
-    #[inline(always)]
     fn fahrtrichtung(
         &mut self,
         neue_fahrtrichtung: Self::Fahrtrichtung,
@@ -876,7 +870,6 @@ impl Leiter for Zweileiter {
         self.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
-    #[inline(always)]
     fn async_fahrtrichtung_allgemein_aux(
         mutex: &Arc<Mutex<Self>>,
         neue_fahrtrichtung: <Self as Leiter>::Fahrtrichtung,
