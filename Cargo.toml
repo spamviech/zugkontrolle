@@ -17,7 +17,7 @@ authors = ["spamviech <spamviech@web.de>"]
 edition = "2021"
 license = "MIT"
 publish = false
-rust-version = "1.69"
+rust-version = "1.75"
 repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
