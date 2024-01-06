@@ -28,7 +28,10 @@ use crate::{
         gpio,
         i2c::{self, I2c},
     },
-    util::eingeschränkt::{kleiner_128, kleiner_8},
+    util::{
+        eingeschränkt::{kleiner_128, kleiner_8},
+        enumerate_checked::EnumerateCheckedExt,
+    },
 };
 
 /// Zugriff auf I2C-Kommunikation, inklusive der dafür notwendigen Pins.
@@ -367,7 +370,9 @@ pub struct Pcf8574 {
     i2c: Arc<Mutex<I2cMitPins>>,
 }
 
-/// Beschreibung eines [Pcf8574].
+/// Die Beschreibung eines [Pcf8574].
+///
+/// Enthält Anschluss-Details notwendig zur Adressierung.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
     /// I2CBus, über den das [Pcf8574] angeschlossen ist.
@@ -433,11 +438,19 @@ impl Display for Beschreibung {
 }
 
 impl Pcf8574 {
+    /// Erhalte die [`Beschreibung`] des [`Pcf8574`].
     fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
     }
 
+    /// Erzeuge einen neuen [`Pcf8574`] passend zur [`Beschreibung`] auf dem übergebenen I2C-Bus.
     fn neu(beschreibung: Beschreibung, i2c: Arc<Mutex<I2cMitPins>>) -> Self {
+        assert!(
+            beschreibung.i2c_bus == i2c.lock().i2c_bus,
+            "I2CBus aus der Beschreibung {:?} und verwendeter I2cBus {:?} stimmen nicht überein!",
+            beschreibung.i2c_bus,
+            i2c.lock().i2c_bus
+        );
         Pcf8574 {
             beschreibung,
             ports: [
@@ -462,14 +475,18 @@ impl Pcf8574 {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
         };
+        // max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX
+        #[allow(clippy::arithmetic_side_effects)]
         if let Level::High = a0 {
-            adresse = adresse + 0b001;
+            adresse += 0b001;
         }
+        #[allow(clippy::arithmetic_side_effects)]
         if let Level::High = a1 {
-            adresse = adresse + 0b010;
+            adresse += 0b010;
         }
+        #[allow(clippy::arithmetic_side_effects)]
         if let Level::High = a2 {
-            adresse = adresse + 0b100;
+            adresse += 0b100;
         }
         kleiner_128::try_from(adresse).expect("I2C-Adresse eines Pcf8574 passt nicht in 7Bit!")
     }
@@ -482,20 +499,26 @@ impl Pcf8574 {
         let beschreibung = self.beschreibung();
         let map_fehler = |fehler| Fehler::I2c { beschreibung: *beschreibung, fehler };
         let mut i2c_with_pins = self.i2c.lock();
-        i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+        i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(map_fehler)?;
         let mut buf = [0; 1];
         let bytes_read = i2c_with_pins.i2c.read(&mut buf).map_err(map_fehler)?;
         if bytes_read != 1 {
-            debug!("bytes_read = {} != 1", bytes_read)
+            debug!("bytes_read = {bytes_read} != 1",);
         }
         let mut result = [None; 8];
-        for (port, modus) in self.ports.iter().enumerate() {
-            let port_bit = 2u8.pow(port as u32);
-            result[port] = if let Modus::Input { .. } = modus {
-                Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
-            } else {
-                None
-            };
+        for (port, modus) in self.ports.iter().enumerate_checked() {
+            let port: usize = port.expect("port passt nicht in usize!");
+            let port_u32 = u32::try_from(port).expect("port passt nicht in u32!");
+            let port_bit = 2u8.pow(port_u32);
+            // 0-7 < 8 == result.len()
+            #[allow(clippy::indexing_slicing)]
+            {
+                result[port] = if let Modus::Input { .. } = modus {
+                    Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
+                } else {
+                    None
+                };
+            }
         }
         Ok(result)
     }
@@ -510,32 +533,43 @@ impl Pcf8574 {
         self.schreibe_port(port, Level::High)?;
         // type annotations need, so extra let binding required
         let callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> = match callback {
-            Some(c) => Some(Arc::new(c)),
+            Some(callback) => Some(Arc::new(callback)),
             None => None,
         };
-        self.ports[usize::from(port)] = Modus::Input { trigger, callback };
+        // 0-7 < 8 == self.ports.len()
+        #[allow(clippy::indexing_slicing)]
+        {
+            self.ports[usize::from(port)] = Modus::Input { trigger, callback };
+        }
         Ok(())
     }
 
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
     fn schreibe_port(&mut self, port: kleiner_8, level: Level) -> Result<(), Fehler> {
-        self.ports[usize::from(port)] = level.into();
+        // 0-7 < 8 == self.ports.len()
+        #[allow(clippy::indexing_slicing)]
+        {
+            self.ports[usize::from(port)] = level.into();
+        }
         let beschreibung = self.beschreibung();
         let mut i2c_with_pins = self.i2c.lock();
         let map_fehler = |fehler| Fehler::I2c { beschreibung: *beschreibung, fehler };
-        i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(&map_fehler)?;
+        i2c_with_pins.i2c.set_slave_address(self.i2c_adresse().into()).map_err(map_fehler)?;
         let mut wert = 0;
-        for (port, modus) in self.ports.iter().enumerate() {
+        for (it_port, modus) in self.ports.iter().enumerate_checked() {
             wert |= match modus {
-                Modus::Input { .. } | Modus::High => 2u8.pow(port as u32),
+                Modus::Input { .. } | Modus::High => {
+                    let it_port = it_port.expect("port passt nicht in u32!");
+                    2u8.pow(it_port)
+                },
                 Modus::Low => 0,
             };
         }
         let buf = [wert; 1];
         let bytes_written = i2c_with_pins.i2c.write(&buf).map_err(map_fehler)?;
         if bytes_written != 1 {
-            error!("bytes_written = {} != 1", bytes_written)
+            error!("bytes_written = {bytes_written} != 1",);
         }
         Ok(())
     }
@@ -543,6 +577,7 @@ impl Pcf8574 {
 
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(clippy::min_ident_chars)]
 pub enum Variante {
     /// Variante ohne Zusätze auf dem Chip-Aufdruck.
     Normal,
@@ -550,18 +585,27 @@ pub enum Variante {
     A,
 }
 
-/// Ein Port eines Pcf8574.
+/// Ein Port eines [`Pcf8574`].
 pub struct Port {
+    /// Pointer auf den [`Pcf8574`].
+    ///
+    /// Notwendig für lese/schreibe-Implementierung.
     pcf8574: Arc<Mutex<Pcf8574>>,
+    /// Pointer auf das Port-[`Lager`].
+    ///
+    /// Notwendig, für die [`Drop`]-Implementierung.
     lager: Lager,
+    /// Die Beschreibung des [`Pcf8574`].
     beschreibung: Beschreibung,
+    /// Die Port-Nummer.
     port: kleiner_8,
 }
 
 // Explizite Implementierung um einen stack-overflow zu vermeiden.
 impl Debug for Port {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Port")
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Port")
             .field("pcf8574", &self.pcf8574)
             .field("lager", &"<Lager>")
             .field("beschreibung", &self.beschreibung)
@@ -578,9 +622,9 @@ impl PartialEq for Port {
 impl Eq for Port {}
 
 impl Display for Port {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let Port { beschreibung, port, .. } = self;
-        write!(f, "{beschreibung}-{port}",)
+        write!(formatter, "{beschreibung}-{port}",)
     }
 }
 
@@ -588,8 +632,8 @@ impl Drop for Port {
     fn drop(&mut self) {
         debug!("drop {:?}", self);
         let port_ersatz = Port::neu(
-            self.pcf8574.clone(),
-            Lager(self.lager.0.clone()),
+            Arc::clone(&self.pcf8574),
+            Lager(Arc::clone(&self.lager.0)),
             *self.beschreibung(),
             self.port(),
         );
@@ -598,6 +642,7 @@ impl Drop for Port {
 }
 
 impl Port {
+    /// Erzeuge einen neuen [`Port`].
     fn neu(
         pcf8574: Arc<Mutex<Pcf8574>>,
         lager: Lager,
@@ -608,24 +653,26 @@ impl Port {
     }
 
     /// Die Beschreibung des [Pcf8574].
-
+    #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
     }
 
     /// Der angesprochene Port des [Pcf8574].
-
+    #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.port
     }
 
     /// Konfiguriere den Port für Output.
+    #[must_use]
     pub fn als_output(self, level: Level) -> (OutputPort, Option<Fehler>) {
         let fehler = self.pcf8574.lock().schreibe_port(self.port, level).err();
         (OutputPort(self), fehler)
     }
 
     /// Konfiguriere den Port für Input.
+    #[must_use]
     pub fn als_input(self) -> (InputPort, Option<Fehler>) {
         let fehler = self
             .pcf8574
@@ -641,43 +688,63 @@ impl Port {
 pub struct OutputPort(Port);
 
 impl Display for OutputPort {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, formatter)
     }
 }
 
 impl OutputPort {
     /// Die Beschreibung des [Pcf8574].
-
+    #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
     /// Der angesprochene Port des [Pcf8574].
-
+    #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
     /// Setze den [Port] auf das übergebene [Level].
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim setzten des aktuellen Werts für den [`Pcf8574`].
     pub fn schreibe(&mut self, level: Level) -> Result<(), Fehler> {
         self.0.pcf8574.lock().schreibe_port(self.0.port, level)
     }
 
     /// Ist der aktuelle Level [High](Level::High)?
+    #[must_use]
     pub fn ist_high(&self) -> bool {
-        self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High
+        // 0-7 < 8 == self.ports.len()
+        #[allow(clippy::indexing_slicing)]
+        {
+            self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High
+        }
     }
 
     /// Ist der aktuelle Level [Low](Level::Low)?
+    #[must_use]
     pub fn ist_low(&self) -> bool {
-        self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low
+        // 0-7 < 8 == self.ports.len()
+        #[allow(clippy::indexing_slicing)]
+        {
+            self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low
+        }
     }
 
     /// Wechsle den aktuellen anliegenden [Level] von [High](Level::High) auf [Low](Level::Low)
     /// und umgekehrt.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim schreiben des aktuellen Werts für den [`Pcf8574`].
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         let level = {
+            // 0-7 < 8 == self.ports.len()
+            #[allow(clippy::indexing_slicing)]
             let modus = &self.0.pcf8574.lock().ports[usize::from(self.port())];
             match modus {
                 Modus::High => Level::Low,
@@ -697,27 +764,33 @@ impl OutputPort {
 pub struct InputPort(Port);
 
 impl Display for InputPort {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, formatter)
     }
 }
 
 impl InputPort {
     /// Die Beschreibung des [Pcf8574].
-
+    #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
     /// Der angesprochene Port des [Pcf8574].
-
+    #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
     /// Lese das aktuell am [Port] anliegende [Level].
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim lesen des aktuellen Werts des [`Pcf8574`].
     pub fn lese(&self) -> Result<Level, Fehler> {
         let values = self.0.pcf8574.lock().lese()?;
+        // 0-7 < 8 == self.ports.len()
+        #[allow(clippy::indexing_slicing)]
         if let Some(value) = values[usize::from(self.0.port)] {
             Ok(value)
         } else {
@@ -737,9 +810,13 @@ impl InputPort {
         self.0.pcf8574.lock().interrupt.as_ref().map(input::Pin::pin)
     }
 
-    /// Assoziiere den angeschlossenen InterruptPin für den [Pcf8574].
-    /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
+    /// Assoziiere den angeschlossenen Interrupt-Pin für den [`Pcf8574`].
+    /// Rückgabewert ist ein evtl. vorher konfigurierter Interrupt-Pin.
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
+    ///
+    /// ## Errors
+    ///
+    /// TODO
     pub fn setze_interrupt_pin(
         &mut self,
         mut interrupt: input::Pin,
@@ -748,8 +825,10 @@ impl InputPort {
             // set up callback.
             let pcf8574 = &mut *self.0.pcf8574.lock();
             let mut last = pcf8574.lese()?;
-            let arc_clone = self.0.pcf8574.clone();
+            let arc_clone = Arc::clone(&self.0.pcf8574);
             let interrupt_callback = move |_level| {
+                // neuer Zugriff auf die selbe Mutex
+                #[allow(clippy::shadow_unrelated)]
                 let mut pcf8574 = arc_clone.lock();
                 let current = match pcf8574.lese() {
                     Ok(current) => current,
@@ -758,6 +837,8 @@ impl InputPort {
                         return;
                     },
                 };
+                // 0-7 < 8 == self.ports.len()
+                #[allow(clippy::indexing_slicing)]
                 for i in 0..8 {
                     match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
                         (
@@ -778,6 +859,8 @@ impl InputPort {
                     Fehler::Gpio { beschreibung: *pcf8574.beschreibung(), fehler }
                 },
             )?;
+            // std::mem::replace soll auffallen
+            #[allow(clippy::absolute_paths)]
             std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
         // clear interrupt on previous pin.
@@ -789,19 +872,23 @@ impl InputPort {
     /// Bei auftreten wird der callback in einem separaten Thread ausgeführt.
     ///
     /// Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald
-    /// [setze_async_interrupt](input::Pin::setze_async_interrupt) oder
-    /// [lösche_async_interrupt](input::Pin::lösche_async_interrupt) aufgerufen wird,
-    /// oder der [input::Pin] out of scope geht.
+    /// [`setze_async_interrupt`](input::Pin::setze_async_interrupt) oder
+    /// [`lösche_async_interrupt`](input::Pin::lösche_async_interrupt) aufgerufen wird,
+    /// oder der [`input::Pin`] out of scope geht.
     ///
     /// ## Keine synchronen Interrupts
     /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
     /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
-    /// > Calling poll_interrupts blocks any other calls to poll_interrupts or
-    /// > InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously
+    /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
+    /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously
     /// > on different threads, consider using asynchronous interrupts with
-    /// > InputPin::set_async_interrupt instead.
+    /// > `InputPin::set_async_interrupt` instead.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim setzten des async interrupts.
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
@@ -812,7 +899,10 @@ impl InputPort {
     }
 
     /// Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.
-
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim entfernen des async interrupts.
     pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let port = self.port();
         self.0.pcf8574.lock().port_als_input::<fn(Level)>(port, Trigger::Disabled, None)
