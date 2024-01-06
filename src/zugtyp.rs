@@ -22,6 +22,7 @@ pub mod lego;
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 
+/// Die Definitionen für den Typ `T`.
 pub(crate) type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise

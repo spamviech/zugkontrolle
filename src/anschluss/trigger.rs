@@ -20,9 +20,9 @@ pub enum Trigger {
 }
 
 impl Display for Trigger {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> Result {
         write!(
-            f,
+            formatter,
             "{}",
             match self {
                 Trigger::Disabled => "Disabled",
@@ -47,7 +47,7 @@ impl From<Trigger> for rppal::gpio::Trigger {
 
 impl Trigger {
     /// Ist die konfigurierte Trigger-Bedingung aufgetreten?
-    pub(crate) fn callback_aufrufen(&self, aktuell: Level, bisher: Level) -> bool {
+    pub(crate) fn callback_aufrufen(self, aktuell: Level, bisher: Level) -> bool {
         match self {
             Trigger::Both => aktuell != bisher,
             Trigger::FallingEdge => aktuell < bisher,

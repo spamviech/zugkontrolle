@@ -19,9 +19,9 @@ pub enum Polarität {
 }
 
 impl Display for Polarität {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> Result {
         write!(
-            f,
+            formatter,
             "{}",
             match self {
                 Polarität::Normal => "Normal",
@@ -71,6 +71,7 @@ impl Not for Fließend {
 
 impl Fließend {
     /// Erhalte den zur [Polarität] passenden [Level].
+    #[must_use]
     pub fn mit_polarität(self, polarität: Polarität) -> Level {
         match (self, polarität) {
             (Fließend::Fließend, Polarität::Normal)

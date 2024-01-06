@@ -11,7 +11,7 @@ use syn::{
 };
 
 /// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
-
+#[allow(single_use_lifetimes)]
 pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t Field>,
     generic_types: &mut HashMap<&Ident, (T, bool)>,
