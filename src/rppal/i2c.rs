@@ -1,5 +1,8 @@
 //! Low level Steuerung eines i2c Kanals.
 
+// Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
+#![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
+
 #[cfg(not(feature = "raspi"))]
 use std::{collections::HashSet, fmt::Debug, io};
 
@@ -12,22 +15,30 @@ use parking_lot::MappedMutexGuard;
 use crate::rppal::LazyMutex;
 
 #[cfg(not(feature = "raspi"))]
+/// Verfügbare I2C-Busse.
 #[derive(Debug)]
 struct I2cStore {
+    /// Noch verfügbare I2C-Busse.
     buses: HashSet<u8>,
 }
 
 #[cfg(not(feature = "raspi"))]
+/// Kleinster unterstützter I2C-Bus.
 const MIN_BUS: u8 = 0;
 #[cfg(not(feature = "raspi"))]
+/// Größter unterstützter I2C-Bus.
 const MAX_BUS: u8 = 6;
 
 #[cfg(not(feature = "raspi"))]
+/// Globales Singleton mit den aktuell verfügbaren I2C-Bussen.
 static I2C: LazyMutex<I2cStore> =
     LazyMutex::neu(|| I2cStore { buses: (MIN_BUS..=MAX_BUS).collect() });
 
 #[cfg(not(feature = "raspi"))]
 impl I2cStore {
+    /// Erhalte Zugriff auf das [Singleton](I2C) mit den aktuell verfügbaren I2C-Bussen.
+    ///
+    /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn lock_static<'t>() -> MappedMutexGuard<'t, I2cStore> {
         I2C.lock()
     }
@@ -41,7 +52,9 @@ pub use ::rppal::i2c::I2c;
 #[derive(Debug)]
 #[allow(missing_copy_implementations)]
 pub struct I2c {
+    /// Der I2C-Bus.
     bus: u8,
+    /// [`I2C::set_slave_address`]
     slave_address: u16,
 }
 
@@ -49,7 +62,7 @@ pub struct I2c {
 impl Drop for I2c {
     fn drop(&mut self) {
         if !I2cStore::lock_static().buses.insert(self.bus) {
-            error!("Dropped i2c bus was still available: {:?}", self.bus)
+            error!("Dropped i2c bus was still available: {:?}", self.bus);
         }
     }
 }
@@ -68,17 +81,18 @@ impl I2c {
         } else {
             Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                format!("I2c-bus already in use: {}", bus),
+                format!("I2c-bus already in use: {bus}"),
             )))
         }
     }
 
     /// Returns the I2C bus ID.
+    #[must_use]
     pub fn bus(&self) -> u8 {
         self.bus
     }
 
-    /// Set slave of the i2c bus the following ['read'] or ['write'] commands refer to.
+    /// Set slave of the i2c bus the following [`read`] or [`write`] commands refer to.
     ///
     /// [`read`]: #method.read
     /// [`write`]: #method.write
@@ -96,8 +110,8 @@ impl I2c {
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
         debug!("{:?}.read({:?})", self, buffer);
         let bytes = buffer.len();
-        for i in 0..bytes {
-            buffer[i] = 0
+        for element in buffer {
+            *element = 0;
         }
         Ok(bytes)
     }
@@ -111,6 +125,8 @@ impl I2c {
     }
 }
 
+// disambiguate mit self::Result
+#[allow(clippy::absolute_paths)]
 /// Result with `i2c::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 

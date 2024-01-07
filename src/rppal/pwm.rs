@@ -1,9 +1,12 @@
 //! Low level Steuerung von Pwm Signalen.
 
+// Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
+#![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
+
 #[cfg(not(feature = "raspi"))]
 use std::{
     f64,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display, Formatter},
     io,
     time::Duration,
 };
@@ -16,13 +19,17 @@ use num_traits::NumCast;
 use parking_lot::{const_rwlock, RwLock, RwLockWriteGuard};
 
 #[cfg(not(feature = "raspi"))]
+/// Aktuell verfügbare Hardware-[`Pwm`] Kanälen.
 #[derive(Debug)]
 struct PwmStore {
+    /// Pwm-Kanal 0.
     pwm0: Option<Pwm>,
+    /// Pwm-Kanal 1.
     pwm1: Option<Pwm>,
 }
 
 #[cfg(not(feature = "raspi"))]
+/// Globales Singleton mit den aktuell verfügbaren Pwm-Kanälen.
 static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
     pwm0: Some(Pwm::init(Channel::Pwm0)),
     pwm1: Some(Pwm::init(Channel::Pwm1)),
@@ -30,11 +37,17 @@ static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
 
 #[cfg(not(feature = "raspi"))]
 impl PwmStore {
+    /// Erhalte Schreib-Zugriff auf das [Singleton](PWM) mit den aktuell verfügbaren I2C-Bussen.
+    ///
+    /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn write_static<'t>() -> RwLockWriteGuard<'t, PwmStore> {
         PWM.write()
     }
 
-    fn write_channel<'t>(&'t mut self, channel: Channel) -> &'t mut Option<Pwm> {
+    /// Erhalte Schreib-Zugriff auf den Pwm-Channel im [Singleton](PWM), sofern noch verfügbar.
+    ///
+    /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
+    fn write_channel(&mut self, channel: Channel) -> &mut Option<Pwm> {
         let PwmStore { pwm0, pwm1 } = self;
         match channel {
             Channel::Pwm0 => pwm0,
@@ -46,14 +59,18 @@ impl PwmStore {
 #[cfg(feature = "raspi")]
 #[doc(inline)]
 pub use ::rppal::pwm::Pwm;
-#[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s PWM peripherals.
 #[derive(Debug)]
 pub struct Pwm {
+    /// Der zugehörige Pwm-Kanal.
     channel: Channel,
+    /// Die eingestellte Periodendauer. Muss kleiner als `pulse_width` sein!
     period: Duration,
+    /// Die eingestellte Pulsweite.
     pulse_width: Duration,
+    /// Die eingestellte [`Polarität`](Polarity).
     polarity: Polarity,
+    /// Ist das Signal aktiviert?
     enabled: bool,
 }
 
@@ -73,16 +90,18 @@ impl Drop for Pwm {
                     pulse_width: self.pulse_width,
                     polarity: self.polarity,
                     enabled: false,
-                })
+                });
             },
         }
     }
 }
 
 #[cfg(not(feature = "raspi"))]
+/// Nanosekunden in einer Sekunde.
 const NANOS_PER_SEC: f64 = 1_000_000_000.0;
 
 #[cfg(not(feature = "raspi"))]
+/// Konvertiere eine Frequenz in die zugehörige Periodendauer.
 fn period(frequency: f64) -> Duration {
     let period = if frequency > 0.0 { NANOS_PER_SEC / frequency } else { 0.0 };
     Duration::from_nanos(<u64 as NumCast>::from(period.floor()).unwrap_or_else(|| {
@@ -93,6 +112,7 @@ fn period(frequency: f64) -> Duration {
 
 #[cfg(not(feature = "raspi"))]
 impl Pwm {
+    /// Erzeuge einen neuen [`Pwm`] für den gewünschten [`Channel`].
     const fn init(channel: Channel) -> Pwm {
         Pwm {
             channel,
@@ -113,7 +133,7 @@ impl Pwm {
 
     /// Constructs a new Pwm using the specified settings.
     ///
-    /// This method will fail if period is shorter than pulse_width.
+    /// This method will fail if period is shorter than `pulse_width`.
     pub fn with_period(
         channel: Channel,
         period: Duration,
@@ -125,7 +145,7 @@ impl Pwm {
         if period < pulse_width {
             Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                format!("Period {:?} is shorter than the pulse width {:?}!", period, pulse_width),
+                format!("Period {period:?} is shorter than the pulse width {pulse_width:?}!"),
             )))
         } else {
             pwm.period = period;
@@ -298,8 +318,8 @@ pub enum Channel {
 
 #[cfg(not(feature = "raspi"))]
 impl Display for Channel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        <Channel as Debug>::fmt(&self, f)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        <Channel as Debug>::fmt(self, formatter)
     }
 }
 
@@ -315,6 +335,8 @@ pub enum Polarity {
     Inverse,
 }
 
+// disambiguate mit self::Result
+#[allow(clippy::absolute_paths)]
 /// Result with `pwm::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
