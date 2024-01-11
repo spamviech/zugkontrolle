@@ -29,11 +29,13 @@ impl AsRef<str> for Name {
 }
 
 impl Display for Name {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, formatter)
     }
 }
 
+// TODO Benötigt public API Anpassung, ersetzte durch "Getter"
+#[allow(clippy::partial_pub_fields)]
 /// Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
@@ -45,46 +47,64 @@ pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
 
 impl Streckenabschnitt {
     /// Erstelle einen neuen [Streckenabschnitt].
+    #[must_use]
     pub fn neu(farbe: Farbe, anschluss: OutputAnschluss) -> Self {
         Streckenabschnitt { farbe, anschluss: Arc::new(Mutex::new(anschluss)) }
     }
 
     /// Schalte den Strom für einen [Streckenabschnitt].
+    ///
+    /// ## Errors
+    ///
+    /// Steuern des [Anschlusses](crate::anschluss::Anschluss) schlug fehl.
     pub fn strom(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         self.lock_anschluss().einstellen(fließend)
     }
 
     /// Schalte den Strom eines [Streckenabschnittes](Streckenabschnitt).
     /// von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt) und umgekehrt.
+    ///
+    /// ## Errors
+    ///
+    /// Steuern des [Anschlusses](crate::anschluss::Anschluss) schlug fehl.
     pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
         self.lock_anschluss().umschalten()
     }
 
     /// Aktuelle Einstellung eines [Streckenabschnittes](Streckenabschnitt).
+    #[must_use]
     pub fn fließend(&self) -> Fließend {
         self.lock_anschluss().fließend()
     }
 
-    pub(crate) fn lock_anschluss<'t>(&'t self) -> MutexGuard<'t, OutputAnschluss> {
+    /// Erhalte Zugriff auf den [Anschluss](crate::anschluss::Anschluss) zur Steuerung des Streckenabschnittes.
+    ///
+    /// Blockiert, bis der Zugriff erhalten wurde.
+    pub(crate) fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {
         self.anschluss.lock()
     }
 }
 
+// Befolge Konvention TypName->TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Serialisierbare Repräsentation der Steuerung der Stromzufuhr.
 pub type StreckenabschnittSerialisiert = Streckenabschnitt<OutputSerialisiert>;
 
 impl StreckenabschnittSerialisiert {
-    /// Erstelle einen neuen [StreckenabschnittSerialisiert].
+    /// Erstelle einen neuen [`StreckenabschnittSerialisiert`].
+    #[must_use]
     pub fn neu_serialisiert(farbe: Farbe, anschluss: OutputSerialisiert) -> Self {
         Streckenabschnitt { farbe, anschluss }
     }
 
     /// Der Anschluss des Streckenabschnittes.
+    #[must_use]
     pub fn anschluss(self) -> OutputSerialisiert {
         self.anschluss
     }
 
     /// Eine Referenz des Anschlusses des Streckenabschnittes.
+    #[must_use]
     pub fn anschluss_ref(&self) -> &OutputSerialisiert {
         &self.anschluss
     }
@@ -129,8 +149,8 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Streckenabschnitt> {
-        let Streckenabschnitt { anschluss, farbe } = self;
-        anschluss
+        let Streckenabschnitt { anschluss: serialisiert, farbe } = self;
+        serialisiert
             .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
             .konvertiere(|anschluss| Streckenabschnitt::neu(farbe, anschluss))
     }
