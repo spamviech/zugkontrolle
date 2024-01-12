@@ -56,7 +56,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             renderer,
             bounds.size(),
             &self.pivot,
-            &self.skalieren,
+            self.skalieren,
             |frame| {
                 // Zeichne Gleise
                 let gehalten_ids: HashSet<AnyId>;

@@ -12,21 +12,33 @@ pub struct Skalar(pub f32);
 
 impl Skalar {
     /// Doppelter Wert.
+    #[must_use]
     pub fn doppelt(&self) -> Self {
-        Skalar(2.) * self
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            Skalar(2.) * self
+        }
     }
 
     /// Halber Wert.
+    #[must_use]
     pub fn halbiert(&self) -> Self {
-        Skalar(0.5) * self
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            Skalar(0.5) * self
+        }
     }
 
     /// Absoluter Wert.
+    #[must_use]
     pub fn abs(&self) -> Self {
         Skalar(self.0.abs())
     }
 
     /// Kopie des größeren Elements.
+    #[must_use]
     pub fn max(&self, other: &Self) -> Self {
         if self > other {
             *self
@@ -36,6 +48,7 @@ impl Skalar {
     }
 
     /// Kopie des kleineren Elements.
+    #[must_use]
     pub fn min(&self, other: &Self) -> Self {
         if self < other {
             *self
@@ -55,13 +68,21 @@ impl AddAssign<&Self> for Skalar {
 
 impl AddAssign<&mut Self> for Skalar {
     fn add_assign(&mut self, rhs: &mut Self) {
-        *self += &*rhs;
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &*rhs;
+        }
     }
 }
 
 impl AddAssign<Self> for Skalar {
     fn add_assign(&mut self, rhs: Self) {
-        *self += &rhs;
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &rhs;
+        }
     }
 }
 
@@ -72,7 +93,11 @@ where
     type Output = Self;
 
     fn add(mut self, rhs: T) -> Self::Output {
-        self += rhs;
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self += rhs;
+        }
         self
     }
 }
@@ -80,6 +105,7 @@ where
 // Monoid
 impl Skalar {
     /// Additiv neutrales Element `Skalar(0.)`.
+    #[must_use]
     pub const fn additiv_neutral() -> Self {
         Skalar(0.)
     }
@@ -97,19 +123,33 @@ impl Neg for Skalar {
 
 impl SubAssign<Self> for Skalar {
     fn sub_assign(&mut self, rhs: Self) {
-        *self += rhs.neg();
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        // Der Wert wird vor der Addition negiert.
+        #[allow(clippy::suspicious_op_assign_impl)]
+        {
+            *self += rhs.neg();
+        }
     }
 }
 
 impl SubAssign<&Self> for Skalar {
     fn sub_assign(&mut self, rhs: &Self) {
-        *self -= rhs.clone();
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= *rhs;
+        }
     }
 }
 
 impl SubAssign<&mut Self> for Skalar {
     fn sub_assign(&mut self, rhs: &mut Self) {
-        *self -= &*rhs;
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= &*rhs;
+        }
     }
 }
 
@@ -120,13 +160,16 @@ where
     type Output = Self;
 
     fn sub(mut self, rhs: T) -> Self::Output {
-        self -= rhs;
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self -= rhs;
+        }
         self
     }
 }
 
-// Körper ohne additiv-neutrales Element (0) ist eine (multiplikative) abelsche Gruppe
-// Halbgruppe
+// Körper ohne additiv-neutrales Element (0) ist eine (multiplikative) abelsche Gruppe Halbgruppe.
 impl MulAssign<&Self> for Skalar {
     fn mul_assign(&mut self, rhs: &Self) {
         self.0 *= rhs.0;
@@ -135,13 +178,21 @@ impl MulAssign<&Self> for Skalar {
 
 impl MulAssign<&mut Self> for Skalar {
     fn mul_assign(&mut self, rhs: &mut Self) {
-        *self *= &*rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self *= &*rhs;
+        }
     }
 }
 
 impl MulAssign<Self> for Skalar {
     fn mul_assign(&mut self, rhs: Self) {
-        *self *= &rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self *= &rhs;
+        }
     }
 }
 
@@ -152,7 +203,11 @@ where
     type Output = Self;
 
     fn mul(mut self, rhs: T) -> Self::Output {
-        self *= rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self *= rhs;
+        }
         self
     }
 }
@@ -160,6 +215,7 @@ where
 // Monoid
 impl Skalar {
     /// Multiplikativ neutrales Element `Skalar(1.)`.
+    #[must_use]
     pub const fn multiplikativ_neutral() -> Self {
         Skalar(1.)
     }
@@ -168,19 +224,31 @@ impl Skalar {
 // Inverses Element (via division)
 impl DivAssign<&Self> for Skalar {
     fn div_assign(&mut self, rhs: &Self) {
-        *self *= Skalar(1. / rhs.0);
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self *= Skalar(1. / rhs.0);
+        }
     }
 }
 
 impl DivAssign<&mut Self> for Skalar {
     fn div_assign(&mut self, rhs: &mut Self) {
-        *self /= &*rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self /= &*rhs;
+        }
     }
 }
 
 impl DivAssign<Self> for Skalar {
     fn div_assign(&mut self, rhs: Self) {
-        *self /= &rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self /= &rhs;
+        }
     }
 }
 
@@ -191,7 +259,11 @@ where
     type Output = Self;
 
     fn div(mut self, rhs: T) -> Self::Output {
-        self /= rhs;
+        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self /= rhs;
+        }
         self
     }
 }

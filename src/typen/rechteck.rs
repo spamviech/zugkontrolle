@@ -16,6 +16,7 @@ pub struct Rechteck {
 
 impl Rechteck {
     /// Erzeuge ein Rechteck der angegebenen Größe beginnend bei `(0, 0)`.
+    #[must_use]
     pub fn mit_größe(größe: Vektor) -> Self {
         Rechteck { ecke_a: Vektor::null_vektor(), ecke_b: größe }
     }
@@ -36,6 +37,7 @@ impl Rechteck {
     }
 
     /// Erzeuge ein Rechteck, in dem `self` und `other` enthalten sind.
+    #[must_use]
     pub fn einschließend(self, other: Self) -> Self {
         Rechteck::aus_vektoren([self.ecke_a, self.ecke_b, other.ecke_a, other.ecke_b].into_iter())
             .expect("Iterator besteht aus 4 Elementen.")
@@ -59,11 +61,13 @@ impl Rechteck {
     }
 
     /// Position der linken oberen Ecke des Rechtecks.
+    #[must_use]
     pub fn position(&self) -> Vektor {
         Vektor { x: self.ecke_a.x.min(&self.ecke_b.x), y: self.ecke_a.y.min(&self.ecke_b.y) }
     }
 
     /// Größe des Rechtecks.
+    #[must_use]
     pub fn größe(&self) -> Vektor {
         Vektor {
             x: (self.ecke_a.x - self.ecke_b.x).abs(),
@@ -72,11 +76,13 @@ impl Rechteck {
     }
 
     /// Ecke mit den minimalen Koordinaten.
+    #[must_use]
     pub fn ecke_min(&self) -> Vektor {
         Vektor { x: self.ecke_a.x.min(&self.ecke_b.x), y: self.ecke_a.y.min(&self.ecke_b.y) }
     }
 
     /// Ecke mit den maximalen Koordinaten.
+    #[must_use]
     pub fn ecke_max(&self) -> Vektor {
         Vektor { x: self.ecke_a.x.max(&self.ecke_b.x), y: self.ecke_a.y.max(&self.ecke_b.y) }
     }

@@ -6,14 +6,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::typen::skalar::Skalar;
 
+/// Erstelle `neu` und `als_skalar`-Methoden.
 macro_rules! erstelle_neu_und_als_skalar {
     ($doc_neu: expr, $doc_als_skalar: expr $(,)?) => {
         #[doc = $doc_neu]
+        #[must_use]
         pub const fn neu(radius: f32) -> Self {
             Self(radius)
         }
 
         #[doc = $doc_als_skalar]
+        #[must_use]
         pub const fn als_skalar(self) -> Skalar {
             Skalar(self.0)
         }
@@ -32,23 +35,43 @@ impl Spurweite {
     }
 
     /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes.
+    #[must_use]
     pub fn abstand(self) -> Skalar {
-        self.als_skalar() / Skalar(3.)
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.als_skalar() / Skalar(3.)
+        }
     }
 
     /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten).
+    #[must_use]
     pub fn beschränkung(self) -> Skalar {
-        self.als_skalar() + self.abstand().doppelt()
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.als_skalar() + self.abstand().doppelt()
+        }
     }
 
     /// Innerster Radius (inklusive Beschränkung) einer Kurve.
+    #[must_use]
     pub fn radius_begrenzung_innen(self, radius: Skalar) -> Skalar {
-        radius - self.als_skalar().halbiert() - self.abstand()
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            radius - self.als_skalar().halbiert() - self.abstand()
+        }
     }
 
     /// Äußerster Radius (inklusive Beschränkung) einer Kurve.
+    #[must_use]
     pub fn radius_begrenzung_außen(self, radius: Skalar) -> Skalar {
-        radius + self.als_skalar().halbiert() + self.abstand()
+        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            radius + self.als_skalar().halbiert() + self.abstand()
+        }
     }
 }
 

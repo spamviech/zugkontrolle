@@ -273,7 +273,7 @@ pub enum I2cBus {
 
 impl I2cBus {
     /// Reserviere den Zugriff auf den gewünschten [`I2cBus`].
-    fn reserviere(&self) -> i2c::Result<I2c> {
+    fn reserviere(self) -> i2c::Result<I2c> {
         match self {
             I2cBus::I2c0_1 => I2c::with_bus(1).or_else(|_| I2c::with_bus(0)),
             // I2cBus::I2c2 => I2c::with_bus(2),
@@ -285,7 +285,7 @@ impl I2cBus {
     }
 
     /// SDA- und SCL-Pin für den [`I2cBus`].
-    fn sda_scl(&self) -> (u8, u8) {
+    fn sda_scl(self) -> (u8, u8) {
         match self {
             I2cBus::I2c0_1 => (2, 3),
             // I2cBus::I2c2 => unreachable!(),
