@@ -23,7 +23,9 @@ use parking_lot::Mutex;
 /// über [`from_recipe`](iced::Subscription::from_recipe) verwendet werden.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct Empfänger<Nachricht, Id = ()> {
+    /// Eine Id für den Empfänger, um unterschiedliche [`Hash`]-Werte zu erhalten.
     id: Id,
+    /// Der [`Receiver`] für den [channel](std::sync::mpsc::channel).
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }
 

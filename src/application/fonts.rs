@@ -28,6 +28,7 @@ pub static BOOTSTRAP: Font = Font::with_name("bootstrap-icons");
 pub static BENÖTIGTE_FONT_BYTES: &[&[u8]] = &[REGULAR_BYTES, ICON_FONT_BYTES, BOOTSTRAP_BYTES];
 
 /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
+#[must_use]
 pub fn standard_text() -> Text {
     Text {
         font: REGULAR,
