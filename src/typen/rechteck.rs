@@ -32,11 +32,21 @@ impl Rechteck {
     /// Verschiebe das Rechteck um [Vektor].
     #[zugkontrolle_macros::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
-        self.ecke_a += bewegung;
-        self.ecke_b += bewegung;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.ecke_a += bewegung;
+            self.ecke_b += bewegung;
+        }
     }
 
+    // TODO Behandeln bedeutet Anpassung des public API.
+    #[allow(clippy::needless_pass_by_value)]
     /// Erzeuge ein Rechteck, in dem `self` und `other` enthalten sind.
+    ///
+    /// ## Panics
+    ///
+    /// Bei einem Programmier-Fehler, wenn [`Rechteck::aus_vektoren`] [`None`] zurück gibt.
     #[must_use]
     pub fn einschließend(self, other: Self) -> Self {
         Rechteck::aus_vektoren([self.ecke_a, self.ecke_b, other.ecke_a, other.ecke_b].into_iter())
@@ -45,6 +55,10 @@ impl Rechteck {
 
     /// Dehne das Rechteck aus, so dass es um `winkel`-Rotation um `(0, 0)` (im Uhrzeigersinn)
     /// in das angepasste (nicht rotierte) Rechteck passt.
+    ///
+    /// ## Panics
+    ///
+    /// Bei einem Programmier-Fehler, wenn [`Rechteck::aus_vektoren`] [`None`] zurück gibt.
     #[zugkontrolle_macros::chain]
     pub fn respektiere_rotation(&mut self, winkel: &Winkel) {
         let Rechteck { mut ecke_a, mut ecke_b } = *self;
@@ -69,6 +83,8 @@ impl Rechteck {
     /// Größe des Rechtecks.
     #[must_use]
     pub fn größe(&self) -> Vektor {
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         Vektor {
             x: (self.ecke_a.x - self.ecke_b.x).abs(),
             y: (self.ecke_a.y - self.ecke_b.y).abs(),
@@ -88,6 +104,7 @@ impl Rechteck {
     }
 }
 
+/// Hilfsfunktion für [`Rechteck::aus_vektoren`]: erhalten Vektoren mit minimalen und maximalen Werten.
 fn min_max((min, max): (Vektor, Vektor), wert: Vektor) -> (Vektor, Vektor) {
     (
         Vektor { x: min.x.min(&wert.x), y: min.y.min(&wert.y) },

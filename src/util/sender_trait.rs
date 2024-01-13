@@ -9,7 +9,6 @@ macro_rules! erstelle_sender_trait_existential {
         #[allow(unused_qualifications)]
         $($vis)? trait $trait: Clone + Send {
             #[doc = "Sende eine [$msg]-Nachricht."]
-            #[must_use]
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>>;
 
             #[doc = "[Debug]-Ausgabe zur Darstellung eines [$existential]."]

@@ -12,20 +12,28 @@ use crate::typen::skalar::Skalar;
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
     /// Absoluter Wert.
+    #[must_use]
     fn abs(&self) -> Self;
     /// Normalisiert in den äquivalenten Bereich zu [-π,π).
+    #[must_use]
     fn normalisiert(self) -> Self;
     /// Kosinus
+    #[must_use]
     fn cos(&self) -> Skalar;
     /// Sinus
+    #[must_use]
     fn sin(&self) -> Skalar;
     /// Tangens
+    #[must_use]
     fn tan(&self) -> Skalar;
     /// Inverser Kosinus
+    #[must_use]
     fn acos(input: Skalar) -> Self;
     /// Inverser Sinus
+    #[must_use]
     fn asin(input: Skalar) -> Self;
     /// Inverser Tangens
+    #[must_use]
     fn atan(input: Skalar) -> Self;
 }
 
@@ -43,14 +51,14 @@ pub const ZERO: Winkel = Winkel(0.);
 
 /// Winkel \[Bogenmaß\]
 ///
-/// Die [PartialEq]- und [PartialOrd]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
+/// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
 /// bevor sie verglichen werden.
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub f32);
 
 impl From<WinkelGradmaß> for Winkel {
-    fn from(WinkelGradmaß(f): WinkelGradmaß) -> Winkel {
-        Winkel(f.to_radians())
+    fn from(WinkelGradmaß(gradmaß): WinkelGradmaß) -> Winkel {
+        Winkel(gradmaß.to_radians())
     }
 }
 
@@ -68,25 +76,41 @@ impl PartialOrd<WinkelGradmaß> for Winkel {
 
 impl AddAssign<&Winkel> for Winkel {
     fn add_assign(&mut self, Winkel(other): &Winkel) {
-        self.0 += other
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 += other;
+        }
     }
 }
 
 impl AddAssign<&WinkelGradmaß> for Winkel {
     fn add_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
-        self.0 += other.to_radians()
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 += other.to_radians();
+        }
     }
 }
 
 impl AddAssign<Winkel> for Winkel {
     fn add_assign(&mut self, rhs: Winkel) {
-        *self += &rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &rhs;
+        }
     }
 }
 
 impl AddAssign<WinkelGradmaß> for Winkel {
     fn add_assign(&mut self, rhs: WinkelGradmaß) {
-        *self += &rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &rhs;
+        }
     }
 }
 
@@ -95,7 +119,11 @@ where
     Winkel: for<'s> AddAssign<&'s T>,
 {
     fn add_assign(&mut self, rhs: &mut T) {
-        *self += &*rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &*rhs;
+        }
     }
 }
 
@@ -106,32 +134,52 @@ where
     type Output = Self;
 
     fn add(mut self, other: T) -> Winkel {
-        self += other;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self += other;
+        }
         self
     }
 }
 
 impl SubAssign<&Winkel> for Winkel {
     fn sub_assign(&mut self, Winkel(other): &Winkel) {
-        self.0 -= other
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 -= other;
+        }
     }
 }
 
 impl SubAssign<&WinkelGradmaß> for Winkel {
     fn sub_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
-        self.0 -= other.to_radians()
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 -= other.to_radians();
+        }
     }
 }
 
 impl SubAssign<Winkel> for Winkel {
     fn sub_assign(&mut self, rhs: Winkel) {
-        *self -= &rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= &rhs;
+        }
     }
 }
 
 impl SubAssign<WinkelGradmaß> for Winkel {
     fn sub_assign(&mut self, rhs: WinkelGradmaß) {
-        *self -= &rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= &rhs;
+        }
     }
 }
 
@@ -140,7 +188,11 @@ where
     Winkel: for<'s> SubAssign<&'s T>,
 {
     fn sub_assign(&mut self, rhs: &mut T) {
-        *self -= &*rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= &*rhs;
+        }
     }
 }
 
@@ -151,7 +203,11 @@ where
     type Output = Self;
 
     fn sub(mut self, other: T) -> Self::Output {
-        self -= other;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self -= other;
+        }
         self
     }
 }
@@ -166,7 +222,11 @@ impl Neg for Winkel {
 
 impl MulAssign<f32> for Winkel {
     fn mul_assign(&mut self, rhs: f32) {
-        self.0 *= rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 *= rhs;
+        }
     }
 }
 
@@ -174,7 +234,11 @@ impl Mul<f32> for Winkel {
     type Output = Self;
 
     fn mul(mut self, other: f32) -> Self {
-        self *= other;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self *= other;
+        }
         self
     }
 }
@@ -183,13 +247,21 @@ impl Mul<Winkel> for f32 {
     type Output = Winkel;
 
     fn mul(self, other: Winkel) -> Winkel {
-        other * self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            other * self
+        }
     }
 }
 
 impl DivAssign<f32> for Winkel {
     fn div_assign(&mut self, rhs: f32) {
-        self.0 /= rhs;
+        // Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 /= rhs;
+        }
     }
 }
 
@@ -197,7 +269,11 @@ impl Div<f32> for Winkel {
     type Output = Self;
 
     fn div(mut self, other: f32) -> Self {
-        self /= other;
+        // Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self /= other;
+        }
         self
     }
 }
@@ -206,7 +282,11 @@ impl Div<Winkel> for f32 {
     type Output = Winkel;
 
     fn div(self, other: Winkel) -> Winkel {
-        other / self
+        // Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            other / self
+        }
     }
 }
 
@@ -217,10 +297,18 @@ impl Trigonometrie for Winkel {
 
     fn normalisiert(mut self) -> Self {
         while self < -PI {
-            self += TAU
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                self += TAU;
+            }
         }
         while self >= PI {
-            self -= TAU
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                self -= TAU;
+            }
         }
         self
     }
@@ -250,23 +338,26 @@ impl Trigonometrie for Winkel {
     }
 }
 
+// TODO behandeln erfordert Anpassung des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Winkel \[Gradmaß\].
 ///
-/// Die [PartialEq]- und [PartialOrd]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
+/// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
 /// bevor sie verglichen werden.
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct WinkelGradmaß(f32);
 
 impl WinkelGradmaß {
     /// Konstruktor
+    #[must_use]
     pub const fn neu(grad: f32) -> Self {
         WinkelGradmaß(grad)
     }
 }
 
 impl From<Winkel> for WinkelGradmaß {
-    fn from(Winkel(f): Winkel) -> WinkelGradmaß {
-        WinkelGradmaß(f.to_degrees())
+    fn from(Winkel(bogenmaß): Winkel) -> WinkelGradmaß {
+        WinkelGradmaß(bogenmaß.to_degrees())
     }
 }
 
@@ -284,7 +375,11 @@ impl PartialOrd<Winkel> for WinkelGradmaß {
 
 impl AddAssign<WinkelGradmaß> for WinkelGradmaß {
     fn add_assign(&mut self, rhs: WinkelGradmaß) {
-        self.0 += rhs.0
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 += rhs.0;
+        }
     }
 }
 
@@ -292,7 +387,11 @@ impl Add<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
     fn add(mut self, other: WinkelGradmaß) -> WinkelGradmaß {
-        self += other;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self += other;
+        }
         self
     }
 }
@@ -301,13 +400,21 @@ impl Add<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
     fn add(self, other: Winkel) -> Winkel {
-        other + self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            other + self
+        }
     }
 }
 
 impl SubAssign<WinkelGradmaß> for WinkelGradmaß {
     fn sub_assign(&mut self, rhs: WinkelGradmaß) {
-        self.0 -= rhs.0
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.0 -= rhs.0;
+        }
     }
 }
 
@@ -315,7 +422,11 @@ impl Sub<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
     fn sub(mut self, other: WinkelGradmaß) -> WinkelGradmaß {
-        self -= other;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self -= other;
+        }
         self
     }
 }
@@ -324,7 +435,11 @@ impl Sub<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
     fn sub(self, other: Winkel) -> Winkel {
-        other - self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            other - self
+        }
     }
 }
 
@@ -358,11 +473,19 @@ impl Trigonometrie for WinkelGradmaß {
     }
 
     fn normalisiert(mut self) -> Self {
-        while self < -WinkelGradmaß(180.) {
-            self += WinkelGradmaß(360.)
+        while self < WinkelGradmaß(-180.) {
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                self += WinkelGradmaß(360.);
+            }
         }
         while self >= WinkelGradmaß(180.) {
-            self -= WinkelGradmaß(360.)
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                self -= WinkelGradmaß(360.);
+            }
         }
         self
     }

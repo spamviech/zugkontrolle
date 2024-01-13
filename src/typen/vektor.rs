@@ -12,7 +12,7 @@ use crate::typen::{
 /// Vektoren über [Skalar] ([f32]) mit allen Funktionen für einen 2-dimensionen Vektorraum.
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe
-/// mit dem [null_vektor](Vektor::null_vektor) als neutrales Element.
+/// mit dem [`null_vektor`](Vektor::null_vektor) als neutrales Element.
 ///
 /// Multiplikation mit einem [Skalar] befolgt Distributivgesetzte mit der Addition von Vektoren.
 /// Multiplikation ist assoziativ mit Multiplikation zwischen zwei [Skalar].
@@ -29,6 +29,7 @@ impl Vektor {
     ///
     /// - additiv neutrales Element.
     /// - Resultat einer Multiplikation mit `Skalar(0)`.
+    #[must_use]
     pub fn null_vektor() -> Self {
         Vektor { x: Skalar(0.), y: Skalar(0.) }
     }
@@ -43,16 +44,28 @@ impl Vektor {
     ///
     /// Winkel wachsen im Uhrzeigersinn.
     /// y-Koordinaten wachsen nach unten.
+    #[must_use]
     pub fn polar_koordinaten(radius: Skalar, winkel: Winkel) -> Self {
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         Vektor { x: radius * winkel.cos(), y: radius * winkel.sin() }
     }
 
     /// Normalisiere den Vektor auf länge `Skalar(1.)`.
+    ///
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [Länge](Vektor::länge) `0` angewendet wird.
     pub fn normalisiere(&mut self) {
-        *self /= self.länge();
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self /= self.länge();
+        }
     }
 
     /// Einheitsvektor mit identischer Richtung.
+    ///
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [Länge](Vektor::länge) `0` angewendet wird.
+    #[must_use]
     pub fn einheitsvektor(mut self) -> Self {
         self.normalisiere();
         self
@@ -61,35 +74,53 @@ impl Vektor {
     /// Skalarprodukt zweier Vektoren.
     ///
     /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() * self.winkel(other).cos()`.
-    /// Insbesondere gilt ´self.länge() == self.skalarprodukt(self).sqrt()`
+    /// Insbesondere gilt `self.länge() == self.skalarprodukt(self).sqrt()`
+    #[must_use]
     pub fn skalarprodukt(&self, other: &Self) -> Skalar {
-        self.x * other.x + self.y * other.y
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x * other.x + self.y * other.y
+        }
     }
 
     /// Länge eines Vektors (euklidische Metrik).
     ///
     /// Definiert über `Vektor::skalarprodukt`.
+    #[must_use]
     pub fn länge(&self) -> Skalar {
         Skalar(self.skalarprodukt(self).0.sqrt())
     }
 
     /// Winkel zwischen zwei Vektoren (im Uhrzeigersinn).
     ///
-    /// Definiert über `Vektor::skalarprodukt`.
+    /// Definiert über [`Vektor::skalarprodukt`].
+    ///
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn ein Vektor mit [Länge](Vektor::länge) `0` beteiligt ist.
+    #[must_use]
     pub fn winkel(&self, other: &Self) -> Winkel {
+        // Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
         Winkel::acos(self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
+    // TODO Behandeln erfordert Anpassung des public API.
+    #[allow(clippy::needless_pass_by_value)]
     /// Rotiere einen Vektor um `winkel` im Uhrzeigersinn.
     pub fn rotiere<T: Trigonometrie>(&mut self, winkel: T) {
         let Vektor { x, y } = *self;
         let cos = winkel.cos();
         let sin = winkel.sin();
-        self.x = cos * x - sin * y;
-        self.y = sin * x + cos * y;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x = cos * x - sin * y;
+            self.y = sin * x + cos * y;
+        }
     }
 
     /// Erzeuge einen Vektor, der um `winkel` im Uhrzeigersinn rotiert ist.
+    #[must_use]
     pub fn rotiert<T: Trigonometrie>(mut self, winkel: T) -> Self {
         self.rotiere(winkel);
         self
@@ -100,20 +131,32 @@ impl Vektor {
 // Halbgruppe
 impl AddAssign<&Self> for Vektor {
     fn add_assign(&mut self, rhs: &Self) {
-        self.x += rhs.x;
-        self.y += rhs.y;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x += rhs.x;
+            self.y += rhs.y;
+        }
     }
 }
 
 impl AddAssign<&mut Self> for Vektor {
     fn add_assign(&mut self, rhs: &mut Self) {
-        *self += &*rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &*rhs;
+        }
     }
 }
 
 impl AddAssign<Self> for Vektor {
     fn add_assign(&mut self, rhs: Self) {
-        *self += &rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self += &rhs;
+        }
     }
 }
 
@@ -124,7 +167,11 @@ where
     type Output = Self;
 
     fn add(mut self, rhs: T) -> Self::Output {
-        self += rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self += rhs;
+        }
         self
     }
 }
@@ -136,7 +183,11 @@ where
     type Output = Vektor;
 
     fn add(self, rhs: T) -> Self::Output {
-        *self + rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self + rhs
+        }
     }
 }
 
@@ -147,7 +198,11 @@ where
     type Output = Vektor;
 
     fn add(self, rhs: T) -> Self::Output {
-        &*self + rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self + rhs
+        }
     }
 }
 
@@ -163,27 +218,45 @@ impl Neg for Vektor {
     type Output = Self;
 
     fn neg(mut self) -> Self::Output {
-        self.x = -self.x;
-        self.y = -self.y;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x = -self.x;
+            self.y = -self.y;
+        }
         self
     }
 }
 
 impl SubAssign<Self> for Vektor {
     fn sub_assign(&mut self, rhs: Self) {
-        *self += rhs.neg();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        // Addition des inversen über [Neg::neg].
+        #[allow(clippy::suspicious_op_assign_impl)]
+        {
+            *self += rhs.neg();
+        }
     }
 }
 
 impl SubAssign<&Self> for Vektor {
     fn sub_assign(&mut self, rhs: &Self) {
-        *self -= rhs.clone();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= *rhs;
+        }
     }
 }
 
 impl SubAssign<&mut Self> for Vektor {
     fn sub_assign(&mut self, rhs: &mut Self) {
-        *self -= &*rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self -= &*rhs;
+        }
     }
 }
 
@@ -194,7 +267,11 @@ where
     type Output = Self;
 
     fn sub(mut self, rhs: T) -> Self::Output {
-        self -= rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self -= rhs;
+        }
         self
     }
 }
@@ -206,7 +283,11 @@ where
     type Output = Vektor;
 
     fn sub(self, rhs: T) -> Self::Output {
-        *self - rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self - rhs
+        }
     }
 }
 
@@ -217,27 +298,43 @@ where
     type Output = Vektor;
 
     fn sub(self, rhs: T) -> Self::Output {
-        &*self - rhs
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self - rhs
+        }
     }
 }
 
 // Multiplikation/Division mit Skalar
 impl MulAssign<&Skalar> for Vektor {
     fn mul_assign(&mut self, rhs: &Skalar) {
-        self.x *= rhs;
-        self.y *= rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x *= rhs;
+            self.y *= rhs;
+        }
     }
 }
 
 impl MulAssign<Skalar> for Vektor {
     fn mul_assign(&mut self, rhs: Skalar) {
-        *self *= &rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self *= &rhs;
+        }
     }
 }
 
 impl MulAssign<&mut Skalar> for Vektor {
     fn mul_assign(&mut self, rhs: &mut Skalar) {
-        *self *= &*rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self *= &*rhs;
+        }
     }
 }
 
@@ -248,7 +345,11 @@ where
     type Output = Self;
 
     fn mul(mut self, rhs: T) -> Self::Output {
-        self *= rhs;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self *= rhs;
+        }
         self
     }
 }
@@ -257,7 +358,11 @@ impl Mul<Vektor> for &Skalar {
     type Output = Vektor;
 
     fn mul(self, rhs: Vektor) -> Self::Output {
-        rhs * self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            rhs * self
+        }
     }
 }
 
@@ -265,7 +370,11 @@ impl Mul<Vektor> for Skalar {
     type Output = Vektor;
 
     fn mul(self, rhs: Vektor) -> Self::Output {
-        rhs * self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            rhs * self
+        }
     }
 }
 
@@ -273,26 +382,42 @@ impl Mul<Vektor> for &mut Skalar {
     type Output = Vektor;
 
     fn mul(self, rhs: Vektor) -> Self::Output {
-        rhs * self
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            rhs * self
+        }
     }
 }
 
 impl DivAssign<&Skalar> for Vektor {
     fn div_assign(&mut self, rhs: &Skalar) {
-        self.x /= rhs;
-        self.y /= rhs;
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.x /= rhs;
+            self.y /= rhs;
+        }
     }
 }
 
 impl DivAssign<Skalar> for Vektor {
     fn div_assign(&mut self, rhs: Skalar) {
-        *self /= &rhs;
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self /= &rhs;
+        }
     }
 }
 
 impl DivAssign<&mut Skalar> for Vektor {
     fn div_assign(&mut self, rhs: &mut Skalar) {
-        *self /= &*rhs;
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            *self /= &*rhs;
+        }
     }
 }
 
@@ -303,7 +428,11 @@ where
     type Output = Self;
 
     fn div(mut self, rhs: T) -> Self::Output {
-        self /= rhs;
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self /= rhs;
+        }
         self
     }
 }
