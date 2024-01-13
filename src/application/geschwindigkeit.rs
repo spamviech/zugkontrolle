@@ -584,16 +584,6 @@ where
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
-        pwm_auswahl = pwm_auswahl
-            .push(
-                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin.clone())))
-                    .map(InterneAuswahlNachricht::PwmPin),
-            )
-            .push(
-                Column::new()
-                    .push(make_radio(Polarität::Normal))
-                    .push(make_radio(Polarität::Invertiert)),
-            );
         pwm_auswahl.into()
     }
 
